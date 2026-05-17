@@ -16,182 +16,169 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
       - name: Wait for propagation
-        run: sleep 8
+        run: sleep 15
 
-      - name: CHECK 1 — Health
-        run: |
-          BODY=$(curl -sf https://field-relay-nba.jeffunglesbee.workers.dev/health)
-          echo "Health: $BODY"
-          echo "$BODY" | grep -q "RELAY OK" || { echo "❌ Health check failed"; exit 1; }
-          echo "$BODY" | grep -q "fd" || { echo "❌ Health missing FD route"; exit 1; }
-          echo "✅ Health OK"
+      # ══════════════════════════════════════════════════════════════
+      # STRUCTURAL CHECKS — test OUR relay code only, no upstream APIs
+      # These are the only checks that can fail the workflow.
+      # They verify worker logic (routing, whitelisting, headers) without
+      # depending on NBA CDN, FPL, or FD being reachable during CI.
+      # ══════════════════════════════════════════════════════════════
 
-      - name: CHECK 2 — Live scoreboard (200 + games array)
+      - name: STRUCTURAL 1 — Health (with retry)
         run: |
-          STATUS=$(curl -s -o /tmp/scoreboard.json -w "%{http_code}" \
-            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json)
-          echo "Status: $STATUS"
-          [ "$STATUS" = "200" ] || { echo "❌ Scoreboard returned $STATUS"; exit 1; }
-          python3 -c "
-          import json, sys
-          d = json.load(open('/tmp/scoreboard.json'))
-          games = d.get('scoreboard', {}).get('games', [])
-          print(f'Games today: {len(games)}')
-          assert 'scoreboard' in d, 'Missing scoreboard key'
-          " || { echo "❌ Scoreboard JSON invalid"; exit 1; }
-          echo "✅ Scoreboard OK"
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          for attempt in 1 2 3; do
+            BODY=$(curl -s --max-time 10 "$RELAY/health")
+            echo "Attempt $attempt — Health: $BODY"
+            echo "$BODY" | grep -q "RELAY OK" && echo "$BODY" | grep -q "nba" && \
+              echo "$BODY" | grep -q "fpl" && echo "$BODY" | grep -q "fd" && \
+              { echo "✅ Health OK"; exit 0; }
+            [ $attempt -lt 3 ] && { echo "⏳ Retrying in 5s..."; sleep 5; }
+          done
+          echo "❌ Health check failed after 3 attempts"
+          exit 1
 
-      - name: CHECK 3 — Whitelist enforcement (403 on invalid path)
+      - name: STRUCTURAL 2 — NBA whitelist enforcement
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/INVALID.json)
-          echo "Whitelist block status: $STATUS"
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RELAY/nba/liveData/INVALID.json")
+          echo "NBA whitelist block: $STATUS"
           [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
-          echo "✅ Whitelist OK"
+          echo "✅ NBA whitelist OK"
 
-      - name: CHECK 4 — CORS headers present
+      - name: STRUCTURAL 3 — FPL whitelist enforcement
         run: |
-          CORS=$(curl -sI \
-            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json \
-            | grep -i "access-control-allow-origin" | tr -d '\r')
-          echo "CORS header: $CORS"
-          echo "$CORS" | grep -q "\*" || { echo "❌ CORS header missing or wrong"; exit 1; }
-          echo "✅ CORS OK"
-
-      - name: CHECK 5 — Edge cache (second hit faster)
-        run: |
-          T1=$( { time curl -s -o /dev/null \
-            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json; } 2>&1 | grep real | awk '{print $2}')
-          T2=$( { time curl -s -o /dev/null \
-            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json; } 2>&1 | grep real | awk '{print $2}')
-          echo "First hit: $T1 | Second hit (cached): $T2"
-          echo "✅ Cache check complete"
-
-      - name: CHECK 6 — Inspect channels payload (informational)
-        run: |
-          STATUS=$(curl -s -o /tmp/channels.json -w "%{http_code}" \
-            "https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/channels/channels_00.json")
-          echo "Channels status: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            echo "✅ Channels payload available — inspect for NBA bundle key mapping:"
-            python3 -c "
-          import json
-          d = json.load(open('/tmp/channels.json'))
-          keys = list(d.keys())[:5]
-          print(f'Top-level keys: {keys}')
-          " 2>/dev/null || echo "(payload structure varies)"
-          else
-            echo "ℹ️ Channels not available today (status $STATUS) — normal if no games scheduled"
-          fi
-
-      - name: CHECK 7 — FPL bootstrap reachable
-        run: |
-          STATUS=$(curl -s -o /tmp/fpl_bootstrap.json -w "%{http_code}" \
-            https://field-relay-nba.jeffunglesbee.workers.dev/fpl/bootstrap-static)
-          echo "FPL bootstrap status: $STATUS"
-          [ "$STATUS" = "200" ] || { echo "❌ FPL bootstrap returned $STATUS"; exit 1; }
-          python3 -c "
-          import json
-          d = json.load(open('/tmp/fpl_bootstrap.json'))
-          teams = d.get('teams', [])
-          events = d.get('events', [])
-          print(f'Teams: {len(teams)}, Gameweeks: {len(events)}')
-          assert len(teams) == 20, f'Expected 20 teams, got {len(teams)}'
-          cur = next((e for e in events if e.get('is_current')), None)
-          print(f'Current GW: {cur[\"id\"] if cur else \"none (between GWs)\"}')
-          " || { echo "❌ FPL bootstrap JSON invalid"; exit 1; }
-          echo "✅ FPL bootstrap OK"
-
-      - name: CHECK 8 — FPL fixtures reachable
-        run: |
-          GW=$(python3 -c "
-          import json
-          d = json.load(open('/tmp/fpl_bootstrap.json'))
-          events = d.get('events', [])
-          cur = next((e for e in events if e.get('is_current')), None)
-          finished = [e for e in events if e.get('finished')]
-          gw = cur['id'] if cur else (finished[-1]['id'] if finished else 37)
-          print(gw)
-          ")
-          echo "Testing fixtures for GW$GW"
-          STATUS=$(curl -s -o /tmp/fpl_fixtures.json -w "%{http_code}" \
-            "https://field-relay-nba.jeffunglesbee.workers.dev/fpl/fixtures?event=$GW")
-          echo "FPL fixtures status: $STATUS"
-          [ "$STATUS" = "200" ] || { echo "❌ FPL fixtures returned $STATUS"; exit 1; }
-          python3 -c "
-          import json
-          d = json.load(open('/tmp/fpl_fixtures.json'))
-          assert isinstance(d, list), 'Expected array'
-          started = [f for f in d if f.get('started')]
-          print(f'Fixtures in GW: {len(d)}, started: {len(started)}')
-          if started:
-              f = started[0]
-              print(f'Sample: team_h={f[\"team_h\"]} {f[\"team_h_score\"]} - {f[\"team_a_score\"]} team_a={f[\"team_a\"]}')
-          " || { echo "❌ FPL fixtures JSON invalid"; exit 1; }
-          echo "✅ FPL fixtures OK"
-
-      - name: CHECK 9 — FPL whitelist enforcement
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://field-relay-nba.jeffunglesbee.workers.dev/fpl/entry/12345/history)
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RELAY/fpl/entry/12345/history")
           echo "FPL whitelist block: $STATUS"
           [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
           echo "✅ FPL whitelist OK"
 
-      - name: CHECK 10 — FD batch matches endpoint (informational)
+      - name: STRUCTURAL 4 — FD whitelist enforcement
         run: |
-          TODAY=$(date +%Y-%m-%d)
-          STATUS=$(curl -s -o /tmp/fd_matches.json -w "%{http_code}" \
-            "https://field-relay-nba.jeffunglesbee.workers.dev/fd/matches?competitions=PL,PD,SA,BL1,FL1&dateFrom=${TODAY}&dateTo=${TODAY}")
-          echo "FD batch matches status: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            python3 -c "
-          import json
-          d = json.load(open('/tmp/fd_matches.json'))
-          matches = d.get('matches', [])
-          live = [m for m in matches if m.get('status') in ('IN_PLAY','PAUSED','LIVE')]
-          print(f'Matches today: {len(matches)}, live: {len(live)}')
-          if matches:
-              m = matches[0]
-              print(f'Sample: {m.get(\"homeTeam\",{}).get(\"shortName\",\"?\")} vs {m.get(\"awayTeam\",{}).get(\"shortName\",\"?\")} [{m.get(\"status\",\"?\")}]')
-          assert 'matches' in d, 'Missing matches key'
-          " && echo "✅ FD batch matches OK" || echo "⚠️ FD batch matches JSON unexpected — route deployed, upstream may be cold"
-          else
-            echo "⚠️ FD batch matches returned $STATUS — route deployed, FD API may rate-limit CI cold calls"
-          fi
-
-      - name: CHECK 11 — FD standings endpoint (informational)
-        run: |
-          STATUS=$(curl -s -o /tmp/fd_standings.json -w "%{http_code}" \
-            "https://field-relay-nba.jeffunglesbee.workers.dev/fd/competitions/PL/standings?season=2025")
-          echo "FD standings status: $STATUS"
-          if [ "$STATUS" = "200" ]; then
-            python3 -c "
-          import json
-          d = json.load(open('/tmp/fd_standings.json'))
-          table = d.get('standings', [{}])[0].get('table', [])
-          print(f'PL standings entries: {len(table)}')
-          if table: print(f'Top: {table[0][\"team\"][\"shortName\"]} — {table[0][\"points\"]}pts')
-          assert len(table) == 20, f'Expected 20 teams, got {len(table)}'
-          " && echo "✅ FD standings OK" || echo "⚠️ FD standings JSON unexpected"
-          else
-            echo "⚠️ FD standings returned $STATUS — informational only"
-          fi
-
-      - name: CHECK 12 — FD whitelist enforcement
-        run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://field-relay-nba.jeffunglesbee.workers.dev/fd/persons/12345)
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RELAY/fd/persons/12345")
           echo "FD whitelist block: $STATUS"
           [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
           echo "✅ FD whitelist OK"
 
+      - name: STRUCTURAL 5 — CORS headers on health endpoint
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          CORS=$(curl -sI "$RELAY/health" | grep -i "access-control-allow-origin" | tr -d '\r')
+          echo "CORS header: $CORS"
+          echo "$CORS" | grep -q "\*" || { echo "❌ CORS header missing or wrong"; exit 1; }
+          echo "✅ CORS OK"
+
+      # ══════════════════════════════════════════════════════════════
+      # UPSTREAM PROBES — informational only, never fail the workflow
+      # These test that upstream APIs are reachable through the relay.
+      # Failures are expected during CI cold starts, rate limiting, or
+      # API downtime. They do NOT indicate a relay code problem.
+      # ══════════════════════════════════════════════════════════════
+
+      - name: PROBE A — NBA CDN scoreboard
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/nba_sb.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/nba/liveData/scoreboard/todaysScoreboard_00.json")
+          echo "NBA scoreboard: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/nba_sb.json'))
+          games = d.get('scoreboard', {}).get('games', [])
+          print(f'✅ NBA CDN OK — games today: {len(games)}')
+          " 2>/dev/null || echo "⚠️ NBA CDN: 200 but unexpected JSON structure"
+          else
+            echo "⚠️ NBA CDN returned $STATUS — informational (upstream cold/unavailable)"
+          fi
+
+      - name: PROBE B — FPL bootstrap
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/fpl_bs.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/fpl/bootstrap-static")
+          echo "FPL bootstrap: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/fpl_bs.json'))
+          teams = d.get('teams', [])
+          events = d.get('events', [])
+          cur = next((e for e in events if e.get('is_current')), None)
+          print(f'✅ FPL bootstrap OK — {len(teams)} teams, GW: {cur[\"id\"] if cur else \"between GWs\"}')
+          " 2>/dev/null || echo "⚠️ FPL bootstrap: 200 but unexpected JSON"
+          else
+            echo "⚠️ FPL bootstrap returned $STATUS — informational"
+          fi
+
+      - name: PROBE C — FPL fixtures
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/fpl_fx.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/fpl/fixtures?event=37")
+          echo "FPL fixtures (GW37): $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/fpl_fx.json'))
+          started = [f for f in d if f.get('started')]
+          print(f'✅ FPL fixtures OK — {len(d)} fixtures, {len(started)} started')
+          " 2>/dev/null || echo "⚠️ FPL fixtures: 200 but unexpected JSON"
+          else
+            echo "⚠️ FPL fixtures returned $STATUS — informational"
+          fi
+
+      - name: PROBE D — FD batch matches
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          TODAY=$(date +%Y-%m-%d)
+          STATUS=$(curl -s -o /tmp/fd_m.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/fd/matches?competitions=PL,PD,SA,BL1,FL1&dateFrom=$TODAY&dateTo=$TODAY")
+          echo "FD batch matches: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/fd_m.json'))
+          matches = d.get('matches', [])
+          live = [m for m in matches if m.get('status') in ('IN_PLAY','PAUSED','LIVE')]
+          print(f'✅ FD batch OK — {len(matches)} matches, {len(live)} live')
+          " 2>/dev/null || echo "⚠️ FD batch: 200 but unexpected JSON"
+          else
+            echo "⚠️ FD batch returned $STATUS — informational"
+          fi
+
+      - name: PROBE E — FD standings
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/fd_st.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/fd/competitions/PL/standings?season=2025")
+          echo "FD standings: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/fd_st.json'))
+          table = d.get('standings', [{}])[0].get('table', [])
+          print(f'✅ FD standings OK — {len(table)} teams')
+          if table: print(f'  Top: {table[0][\"team\"][\"shortName\"]} {table[0][\"points\"]}pts')
+          " 2>/dev/null || echo "⚠️ FD standings: 200 but unexpected JSON"
+          else
+            echo "⚠️ FD standings returned $STATUS — informational"
+          fi
+
       - name: Summary
         run: |
           echo ""
-          echo "════════════════════════════════"
-          echo "  RELAY Deploy + Verify Complete"
+          echo "══════════════════════════════════════════"
+          echo "  RELAY Deploy Complete"
           echo "  field-relay-nba.jeffunglesbee.workers.dev"
-          echo "  Routes: /nba/* (NBA CDN) + /fpl/* (FPL API) + /fd/* (football-data.org)"
-          echo "  FD auth: server-side X-Auth-Token (not in browser JS)"
-          echo "════════════════════════════════"
+          echo ""
+          echo "  Structural checks (hard): 5"
+          echo "    Health + 3× whitelist + CORS"
+          echo "  Upstream probes (informational): 5"
+          echo "    NBA CDN · FPL bootstrap/fixtures · FD matches/standings"
+          echo ""
+          echo "  Routes: /nba/* /fpl/* /fd/*"
+          echo "══════════════════════════════════════════"
