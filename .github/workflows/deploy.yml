@@ -32,7 +32,8 @@ jobs:
             BODY=$(curl -s --max-time 10 "$RELAY/health")
             echo "Attempt $attempt — Health: $BODY"
             echo "$BODY" | grep -q "RELAY OK" && echo "$BODY" | grep -q "nba" && \
-              echo "$BODY" | grep -q "fpl" && echo "$BODY" | grep -q "fd" && \
+              echo "$BODY" | grep -q "nhl" && echo "$BODY" | grep -q "fpl" && \
+              echo "$BODY" | grep -q "fd" && \
               { echo "✅ Health OK"; exit 0; }
             [ $attempt -lt 3 ] && { echo "⏳ Retrying in 5s..."; sleep 5; }
           done
@@ -46,6 +47,14 @@ jobs:
           echo "NBA whitelist block: $STATUS"
           [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
           echo "✅ NBA whitelist OK"
+
+      - name: STRUCTURAL 2b — NHL whitelist enforcement
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$RELAY/nhl/v1/player/8471214/game-log/20242025/2")
+          echo "NHL whitelist block: $STATUS"
+          [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
+          echo "✅ NHL whitelist OK"
 
       - name: STRUCTURAL 3 — FPL whitelist enforcement
         run: |
@@ -93,6 +102,29 @@ jobs:
           " 2>/dev/null || echo "⚠️ NBA CDN: 200 but unexpected JSON structure"
           else
             echo "⚠️ NBA CDN returned $STATUS — informational (upstream cold/unavailable)"
+          fi
+
+      - name: PROBE A2 — NHL scoreboard
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/nhl_sb.json --max-time 15 -w "%{http_code}" \
+            "$RELAY/nhl/v1/scoreboard/now")
+          echo "NHL scoreboard: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/nhl_sb.json'))
+          games = d.get('games', [])
+          print(f'✅ NHL API OK — games: {len(games)}')
+          if games:
+              g = games[0]
+              away = g.get('awayTeam',{}).get('abbrev','?')
+              home = g.get('homeTeam',{}).get('abbrev','?')
+              state = g.get('gameState','?')
+              print(f'  Sample: {away} @ {home} [{state}]')
+          " 2>/dev/null || echo "⚠️ NHL: 200 but unexpected JSON structure"
+          else
+            echo "⚠️ NHL returned $STATUS — informational"
           fi
 
       - name: PROBE B — FPL bootstrap
@@ -175,10 +207,10 @@ jobs:
           echo "  RELAY Deploy Complete"
           echo "  field-relay-nba.jeffunglesbee.workers.dev"
           echo ""
-          echo "  Structural checks (hard): 5"
-          echo "    Health + 3× whitelist + CORS"
-          echo "  Upstream probes (informational): 5"
-          echo "    NBA CDN · FPL bootstrap/fixtures · FD matches/standings"
+          echo "  Structural checks (hard): 6"
+          echo "    Health + NBA/NHL/FPL/FD whitelist + CORS"
+          echo "  Upstream probes (informational): 6"
+          echo "    NBA CDN · NHL API · FPL bootstrap/fixtures · FD matches/standings"
           echo ""
-          echo "  Routes: /nba/* /fpl/* /fd/*"
+          echo "  Routes: /nba/* /nhl/* /fpl/* /fd/*"
           echo "══════════════════════════════════════════"
