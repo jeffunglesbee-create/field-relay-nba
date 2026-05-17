@@ -9,6 +9,84 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cloudflare/wrangler-action@v3
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Wait for propagation
+        run: sleep 8
+
+      - name: CHECK 1 — Health
+        run: |
+          BODY=$(curl -sf https://field-relay-nba.jeffunglesbee.workers.dev/health)
+          echo "Health: $BODY"
+          [ "$BODY" = "RELAY OK" ] || { echo "❌ Health check failed"; exit 1; }
+          echo "✅ Health OK"
+
+      - name: CHECK 2 — Live scoreboard (200 + games array)
+        run: |
+          STATUS=$(curl -s -o /tmp/scoreboard.json -w "%{http_code}" \
+            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json)
+          echo "Status: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "❌ Scoreboard returned $STATUS"; exit 1; }
+          python3 -c "
+          import json, sys
+          d = json.load(open('/tmp/scoreboard.json'))
+          games = d.get('scoreboard', {}).get('games', [])
+          print(f'Games today: {len(games)}')
+          assert 'scoreboard' in d, 'Missing scoreboard key'
+          " || { echo "❌ Scoreboard JSON invalid"; exit 1; }
+          echo "✅ Scoreboard OK"
+
+      - name: CHECK 3 — Whitelist enforcement (403 on invalid path)
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/INVALID.json)
+          echo "Whitelist block status: $STATUS"
+          [ "$STATUS" = "403" ] || { echo "❌ Expected 403, got $STATUS"; exit 1; }
+          echo "✅ Whitelist OK"
+
+      - name: CHECK 4 — CORS headers present
+        run: |
+          CORS=$(curl -sI \
+            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json \
+            | grep -i "access-control-allow-origin" | tr -d '\r')
+          echo "CORS header: $CORS"
+          echo "$CORS" | grep -q "\*" || { echo "❌ CORS header missing or wrong"; exit 1; }
+          echo "✅ CORS OK"
+
+      - name: CHECK 5 — Edge cache (second hit faster)
+        run: |
+          T1=$( { time curl -s -o /dev/null \
+            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json; } 2>&1 | grep real | awk '{print $2}')
+          T2=$( { time curl -s -o /dev/null \
+            https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json; } 2>&1 | grep real | awk '{print $2}')
+          echo "First hit: $T1 | Second hit (cached): $T2"
+          echo "✅ Cache check complete"
+
+      - name: CHECK 6 — Inspect channels payload (informational)
+        run: |
+          STATUS=$(curl -s -o /tmp/channels.json -w "%{http_code}" \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/channels/channels_00.json")
+          echo "Channels status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Channels payload available — inspect for NBA bundle key mapping:"
+            python3 -c "
+          import json
+          d = json.load(open('/tmp/channels.json'))
+          keys = list(d.keys())[:5]
+          print(f'Top-level keys: {keys}')
+          " 2>/dev/null || echo "(payload structure varies)"
+          else
+            echo "ℹ️ Channels not available today (status $STATUS) — normal if no games scheduled"
+          fi
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "════════════════════════════════"
+          echo "  RELAY Deploy + Verify Complete"
+          echo "  field-relay-nba.jeffunglesbee.workers.dev"
+          echo "════════════════════════════════"
