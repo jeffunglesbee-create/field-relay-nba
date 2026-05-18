@@ -100,6 +100,32 @@ function fdCacheTtl(path) {
     return 120;
 }
 
+// ── The Odds API ───────────────────────────────────────────────────────────
+// Source: api.the-odds-api.com — free tier 500 req/month
+// Auth: apiKey query param (server-side only — never exposed to browser)
+// Cache: 300s for odds (changes slowly), 3600s for sports list
+// Quota tracking: X-Requests-Remaining / X-Requests-Used response headers
+// FIELD uses: drama_bb preGameScore · pre-game EMBER · BNI divergence ·
+//             J5 upset detection · totals pace · line movement · series odds
+const ODDS_BASE    = 'https://api.the-odds-api.com';
+const ODDS_API_KEY = 'bab102f4d22fb4398c4f237a9e992af2';
+const ODDS_TTL_ODDS   = 300;   // odds — update every 5 min
+const ODDS_TTL_SPORTS = 3600;  // sports list — stable within a season
+const ODDS_ALLOWED_EXACT    = ['/v4/sports', '/v4/usage'];
+const ODDS_ALLOWED_PREFIXES = ['/v4/sports/', '/v4/events/'];
+function oddsAllowed(path) {
+    if (ODDS_ALLOWED_EXACT.includes(path)) return true;
+    return ODDS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
+}
+function oddsCacheTtl(path) {
+    return path === '/v4/sports' ? ODDS_TTL_SPORTS : ODDS_TTL_ODDS;
+}
+// Inject apiKey as query param (server-side only)
+function oddsUrl(cleanPath, search) {
+    const qs  = search ? search + `&apiKey=${ODDS_API_KEY}` : `?apiKey=${ODDS_API_KEY}`;
+    return `${ODDS_BASE}${cleanPath}${qs}`;
+}
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -136,12 +162,20 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
         if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+
+        // /odds/* → api.the-odds-api.com (apiKey injected server-side)
+        if (pathname.startsWith('/odds')) {
+            const cleanPath = pathname.replace(/^\/odds/, '') || '/';
+            if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted' } });
+            const targetUrl = oddsUrl(cleanPath, url.search);
+            return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
+        }
 
         // /nhl/* → api-web.nhle.com
         if (pathname.startsWith('/nhl')) {
