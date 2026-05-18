@@ -25,6 +25,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: workers/field-deploy
 
+      - name: Deploy Claude Proxy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: workers/field-claude-proxy
+
       - name: Wait for propagation
         run: sleep 15
 

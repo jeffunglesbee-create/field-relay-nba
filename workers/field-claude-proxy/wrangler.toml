@@ -1,0 +1,16 @@
+name = "field-claude-proxy"
+main = "src/index.js"
+compatibility_date = "2026-05-18"
+
+# Secrets are set in Cloudflare dashboard — NOT here.
+# Dashboard: Workers & Pages → field-claude-proxy → Settings → Variables and Secrets
+#   GEMINI_KEY    → Google AI Studio key (aistudio.google.com → Get API key)
+#   ANTHROPIC_KEY → Anthropic key (optional Claude fallback)
+#
+# Secrets persist across wrangler deploys — deploying new code does NOT clear them.
+# To update secrets: wrangler secret put GEMINI_KEY --name field-claude-proxy
+
+# Proxy v4 deploy trigger
+
+# Proxy v4 retry after CLOUDFLARE_API_TOKEN set
+# Deploy trigger 2026-05-18T19:01:17Z
