@@ -1,0 +1,7 @@
+name               = "field-deploy"
+main               = "src/index.js"
+compatibility_date = "2026-05-18"
+
+# NO SECRETS REQUIRED — Courier v3 is stateless.
+# Auth uses the caller's GitHub PAT directly (validated server-side via api.github.com/user).
+# The PAT is the only credential. Store it in Drive session docs, not in this Worker.

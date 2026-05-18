@@ -15,6 +15,12 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+      - name: Deploy Courier Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: workers/field-deploy
+
       - name: Wait for propagation
         run: sleep 15
 
@@ -214,3 +220,36 @@ jobs:
           echo ""
           echo "  Routes: /nba/* /nhl/* /fpl/* /fd/*"
           echo "══════════════════════════════════════════"
+
+      - name: COURIER — Health check
+        run: |
+          COURIER="https://field-deploy.jeffunglesbee.workers.dev"
+          for attempt in 1 2 3; do
+            BODY=$(curl -s --max-time 10 "$COURIER/health")
+            echo "Attempt $attempt — $BODY"
+            echo "$BODY" | grep -q "v3" && { echo "✅ Courier v3 OK"; exit 0; }
+            [ $attempt -lt 3 ] && { echo "⏳ Retrying..."; sleep 5; }
+          done
+          echo "❌ Courier health failed"
+          exit 1
+
+      - name: COURIER — Reject invalid PAT
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
+            -H "Authorization: Bearer not-a-real-pat" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"TEST","value":"test"}')
+          echo "Invalid PAT response: $STATUS"
+          [ "$STATUS" = "401" ] || { echo "❌ Expected 401, got $STATUS"; exit 1; }
+          echo "✅ PAT validation guard OK"
+
+      - name: COURIER — Reject missing auth
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST https://field-deploy.jeffunglesbee.workers.dev/push \
+            -H "Content-Type: application/json" \
+            -d '{"file":"test","content":"x","message":"test"}')
+          echo "No auth response: $STATUS"
+          [ "$STATUS" = "401" ] || { echo "❌ Expected 401, got $STATUS"; exit 1; }
+          echo "✅ Auth required guard OK"
