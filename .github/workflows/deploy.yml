@@ -231,7 +231,7 @@ jobs:
           for attempt in 1 2 3; do
             BODY=$(curl -s --max-time 10 "$COURIER/health")
             echo "Attempt $attempt — $BODY"
-            echo "$BODY" | grep -q "v3" && { echo "✅ Courier v3 OK"; exit 0; }
+            echo "$BODY" | grep -q "COURIER OK" && { echo "✅ Courier OK: $BODY"; exit 0; }
             [ $attempt -lt 3 ] && { echo "⏳ Retrying..."; sleep 5; }
           done
           echo "❌ Courier health failed"
