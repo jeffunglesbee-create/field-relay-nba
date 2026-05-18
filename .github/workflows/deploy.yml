@@ -4,6 +4,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write   # Required for GitHub OIDC token generation (Courier v4 auth)
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -256,39 +260,32 @@ jobs:
 
       # ══════════════════════════════════════════════════════════════
       # BOOTSTRAP: sync CLOUDFLARE_API_TOKEN to jubilant-bassoon
-      # Runs via Courier /secret endpoint (unrestricted CI egress).
-      # Requires FIELD_PAT secret in this repo (set once via Courier).
-      # Non-blocking: fails silently if FIELD_PAT not yet set.
-      # After FIELD_PAT is set, every push to this repo auto-syncs
-      # CLOUDFLARE_API_TOKEN to jubilant-bassoon — enabling deploy-proxy.yml.
+      # Uses GitHub OIDC — zero credential management.
+      # CI generates OIDC token automatically (id-token: write above).
+      # Courier v4 verifies it cryptographically against GitHub's JWKS.
+      # No FIELD_PAT. No GitHub secrets needed for auth.
+      # GITHUB_PAT is a Courier Worker secret (set once via wrangler).
       # ══════════════════════════════════════════════════════════════
+      - name: BOOTSTRAP — Get GitHub OIDC token
+        id: oidc
+        run: |
+          TOKEN=$(curl -sH "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=field-deploy" | jq -r .value)
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ OIDC token acquired (expires ~5min, audience=field-deploy)"
+
       - name: BOOTSTRAP — Sync CLOUDFLARE_API_TOKEN to jubilant-bassoon
-        if: ${{ secrets.FIELD_PAT != '' }}
         continue-on-error: true
         env:
-          FIELD_PAT: ${{ secrets.FIELD_PAT }}
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          echo "Syncing CLOUDFLARE_API_TOKEN to jubilant-bassoon..."
           RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
-            -H "Authorization: Bearer $FIELD_PAT" \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"repo\":\"jubilant-bassoon\",\"name\":\"CLOUDFLARE_API_TOKEN\",\"value\":\"$CF_TOKEN\"}")
           echo "Result: $RESULT"
-          echo "$RESULT" | grep -q '"ok":true' && echo "✅ CLOUDFLARE_API_TOKEN synced to jubilant-bassoon" \
-            || echo "⚠️  Sync failed (FIELD_PAT may need updating)"
+          echo "$RESULT" | grep -q '"ok":true' \
+            && echo "✅ CLOUDFLARE_API_TOKEN synced to jubilant-bassoon — deploy-proxy.yml now active" \
+            || echo "⚠️  Sync skipped (Courier GITHUB_PAT not set? Run: echo '<PAT>' | wrangler secret put GITHUB_PAT --name field-deploy)"
 
-      # Self-bootstrapping: after FIELD_PAT is set, also keeps it fresh
-      # (idempotent — safe to run on every deploy)
-      - name: BOOTSTRAP — Refresh FIELD_PAT in this repo
-        if: ${{ secrets.FIELD_PAT != '' }}
-        continue-on-error: true
-        env:
-          FIELD_PAT: ${{ secrets.FIELD_PAT }}
-        run: |
-          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
-            -H "Authorization: Bearer $FIELD_PAT" \
-            -H "Content-Type: application/json" \
-            -d "{\"repo\":\"field-relay-nba\",\"name\":\"FIELD_PAT\",\"value\":\"$FIELD_PAT\"}")
-          echo "$RESULT" | grep -q '"ok":true' && echo "✅ FIELD_PAT refreshed" \
-            || echo "⚠️  FIELD_PAT refresh skipped"
