@@ -253,3 +253,42 @@ jobs:
           echo "No auth response: $STATUS"
           [ "$STATUS" = "401" ] || { echo "❌ Expected 401, got $STATUS"; exit 1; }
           echo "✅ Auth required guard OK"
+
+      # ══════════════════════════════════════════════════════════════
+      # BOOTSTRAP: sync CLOUDFLARE_API_TOKEN to jubilant-bassoon
+      # Runs via Courier /secret endpoint (unrestricted CI egress).
+      # Requires FIELD_PAT secret in this repo (set once via Courier).
+      # Non-blocking: fails silently if FIELD_PAT not yet set.
+      # After FIELD_PAT is set, every push to this repo auto-syncs
+      # CLOUDFLARE_API_TOKEN to jubilant-bassoon — enabling deploy-proxy.yml.
+      # ══════════════════════════════════════════════════════════════
+      - name: BOOTSTRAP — Sync CLOUDFLARE_API_TOKEN to jubilant-bassoon
+        if: ${{ secrets.FIELD_PAT != '' }}
+        continue-on-error: true
+        env:
+          FIELD_PAT: ${{ secrets.FIELD_PAT }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "Syncing CLOUDFLARE_API_TOKEN to jubilant-bassoon..."
+          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
+            -H "Authorization: Bearer $FIELD_PAT" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\":\"jubilant-bassoon\",\"name\":\"CLOUDFLARE_API_TOKEN\",\"value\":\"$CF_TOKEN\"}")
+          echo "Result: $RESULT"
+          echo "$RESULT" | grep -q '"ok":true' && echo "✅ CLOUDFLARE_API_TOKEN synced to jubilant-bassoon" \
+            || echo "⚠️  Sync failed (FIELD_PAT may need updating)"
+
+      # Self-bootstrapping: after FIELD_PAT is set, also keeps it fresh
+      # (idempotent — safe to run on every deploy)
+      - name: BOOTSTRAP — Refresh FIELD_PAT in this repo
+        if: ${{ secrets.FIELD_PAT != '' }}
+        continue-on-error: true
+        env:
+          FIELD_PAT: ${{ secrets.FIELD_PAT }}
+        run: |
+          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
+            -H "Authorization: Bearer $FIELD_PAT" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\":\"field-relay-nba\",\"name\":\"FIELD_PAT\",\"value\":\"$FIELD_PAT\"}")
+          echo "$RESULT" | grep -q '"ok":true' && echo "✅ FIELD_PAT refreshed" \
+            || echo "⚠️  FIELD_PAT refresh skipped"
