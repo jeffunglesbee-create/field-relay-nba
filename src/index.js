@@ -126,6 +126,78 @@ function oddsUrl(cleanPath, search) {
     return `${ODDS_BASE}${cleanPath}${qs}`;
 }
 
+// ── API-Sports (api-sports.io) ─────────────────────────────────────────────
+// Multi-sport: Football, AFL, Baseball, Basketball, F1, Hockey, NFL, MMA + more
+// Auth: x-apisports-key header (server-side only — never exposed to browser)
+// Key: env.APISPORTS_KEY (set in Cloudflare dashboard → field-relay-nba secrets)
+// Free tier: 100 req/day PER SPORT — independent budgets, not shared
+// Rate: 1 req/sec max
+// FIELD uses: live fixture stats · fixture events · live in-play odds ·
+//             pre-match predictions · dangerous_attacks delta · set piece events
+//
+// Route: /apisports/{sport}/{endpoint}?{params}
+// Examples:
+//   /apisports/football/fixtures?live=all&league=39        EPL live games
+//   /apisports/football/fixtures/statistics?fixture=12345  live stats
+//   /apisports/football/fixtures/events?fixture=12345      goals/cards/subs
+//   /apisports/football/odds/live?fixture=12345            in-play odds
+//   /apisports/football/predictions?fixture=12345          pre-match win prob
+//   /apisports/basketball/games?live=all                   NBA/FIBA live
+//   /apisports/hockey/games?live=all                       NHL/intl live
+//   /apisports/afl/games?live=all                          AFL live
+//   /apisports/american-football/games?live=all            NFL live
+
+const APISPORTS_HOSTS = {
+    'football':          'v3.football.api-sports.io',
+    'basketball':        'v1.basketball.api-sports.io',
+    'hockey':            'v1.hockey.api-sports.io',
+    'baseball':          'v1.baseball.api-sports.io',
+    'afl':               'v1.afl.api-sports.io',
+    'american-football': 'v1.american-football.api-sports.io',
+    'formula-1':         'v1.formula-1.api-sports.io',
+    'mma':               'v1.mma.api-sports.io',
+};
+
+// Whitelist: only endpoints FIELD actually needs
+const APISPORTS_ALLOWED = [
+    '/fixtures',         // ?live=all, ?id=, ?league=&season=
+    '/fixtures/',        // /fixtures/statistics, /fixtures/events, /fixtures/lineups
+    '/standings',        // ?league=&season=
+    '/odds',             // ?fixture= (pre-match)
+    '/odds/',            // /odds/live?fixture=
+    '/predictions',      // ?fixture=
+    '/games',            // basketball/hockey/afl/nfl ?live=all
+    '/games/',           // /games/statistics?id=
+    '/leagues',          // ?id= (fixture ID lookup utility)
+    '/seasons',          // utility — cached 24hr
+    '/races',            // F1 /races?season=
+    '/rounds',           // F1 /rounds?season=&current=true
+    '/events',           // MMA /events
+];
+
+function apiSportsAllowed(path) {
+    return APISPORTS_ALLOWED.some(p =>
+        path === p || path.startsWith(p + '?') || path.startsWith(p + '/')
+    );
+}
+
+function apiSportsTtl(path) {
+    // Live data: 30s
+    if (path.startsWith('/fixtures?live') || path.startsWith('/games?live'))   return 30;
+    if (path.startsWith('/fixtures/statistics') || path.startsWith('/fixtures/events')) return 30;
+    if (path.startsWith('/games/statistics'))                                   return 30;
+    if (path.startsWith('/odds/live'))                                          return 30;
+    // Pre-match / stable: 1hr+
+    if (path.startsWith('/predictions'))  return 3600;   // stable until kickoff
+    if (path.startsWith('/standings'))    return 3600;   // daily at most
+    if (path.startsWith('/odds'))         return 300;    // pre-match odds: 5 min
+    if (path.startsWith('/leagues'))      return 86400;  // rarely changes
+    if (path.startsWith('/seasons'))      return 86400;
+    if (path.startsWith('/races'))        return 3600;
+    if (path.startsWith('/rounds'))       return 3600;
+    return 60; // default: 1 min for fixture queries
+}
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -162,12 +234,29 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
         if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+
+        // /apisports/{sport}/* → api-sports.io (x-apisports-key injected server-side)
+        if (pathname.startsWith('/apisports/')) {
+            const parts     = pathname.replace(/^\/apisports\//, '').split('/');
+            const sport     = parts[0];
+            const cleanPath = '/' + parts.slice(1).join('/');
+            const host      = APISPORTS_HOSTS[sport];
+            if (!host)
+                return new Response(`Unknown sport: ${sport}`, { status: 404, headers: { 'X-RELAY-Error': 'apisports-unknown-sport' } });
+            if (!apiSportsAllowed(cleanPath))
+                return new Response('API-Sports path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'apisports-path-not-whitelisted' } });
+            const apiKey = env.APISPORTS_KEY;
+            if (!apiKey)
+                return new Response('APISPORTS_KEY not configured', { status: 500, headers: { 'X-RELAY-Error': 'apisports-no-key' } });
+            const targetUrl = `https://${host}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, { 'x-apisports-key': apiKey, 'Accept': 'application/json' }, apiSportsTtl(cleanPath), 'apisports', ctx);
+        }
 
         // /odds/* → api.the-odds-api.com (apiKey injected server-side)
         if (pathname.startsWith('/odds')) {
