@@ -98,6 +98,16 @@ function squiggleTtl(search) {
     return SQUIGGLE_TTL_LIVE;
 }
 
+// ── ATP Tour Live Scores ────────────────────────────────────────────────────
+// Proxies app.atptour.com — bypasses CORS block in browser iframes.
+// No auth needed; 15s edge cache matches FIELD's live polling interval.
+const ATP_BASE = 'https://app.atptour.com/api/v2/gateway';
+const ATP_TTL  = 15;
+
+function atpAllowed(path) {
+    return path === '/livematches/website' || path.startsWith('/livematches/');
+}
+
 const FD_BASE       = 'https://api.football-data.org/v4';
 const FD_AUTH_TOKEN = '21559ed667044b94a8b7cb0bbe303112';
 const FD_HEADERS = {
@@ -232,10 +242,10 @@ async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true } });
     } catch (err) {
-        return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network` } });
+        return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network`, ...CORS } });
     }
     if (!upstream.ok) {
-        return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}` } });
+        return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
     }
     response = new Response(upstream.body, {
         status: 200,
@@ -252,18 +262,18 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
-        if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+        if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
         if (pathname.startsWith('/squiggle')) {
             if (!url.search || !url.search.includes('q='))
-                return new Response('Squiggle ?q= param required', { status: 400, headers: { 'X-RELAY-Error': 'squiggle-missing-q' } });
+                return new Response('Squiggle ?q= param required', { status: 400, headers: { 'X-RELAY-Error': 'squiggle-missing-q', ...CORS } });
             return relayFetch(`${SQUIGGLE_BASE}/${url.search}`, SQUIGGLE_HEADERS, squiggleTtl(url.search), 'squiggle', ctx);
         }
 
@@ -274,12 +284,12 @@ export default {
             const cleanPath = '/' + parts.slice(1).join('/');
             const host      = APISPORTS_HOSTS[sport];
             if (!host)
-                return new Response(`Unknown sport: ${sport}`, { status: 404, headers: { 'X-RELAY-Error': 'apisports-unknown-sport' } });
+                return new Response(`Unknown sport: ${sport}`, { status: 404, headers: { 'X-RELAY-Error': 'apisports-unknown-sport', ...CORS } });
             if (!apiSportsAllowed(cleanPath))
-                return new Response('API-Sports path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'apisports-path-not-whitelisted' } });
+                return new Response('API-Sports path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'apisports-path-not-whitelisted', ...CORS } });
             const apiKey = env.APISPORTS_KEY;
             if (!apiKey)
-                return new Response('APISPORTS_KEY not configured', { status: 500, headers: { 'X-RELAY-Error': 'apisports-no-key' } });
+                return new Response('APISPORTS_KEY not configured', { status: 500, headers: { 'X-RELAY-Error': 'apisports-no-key', ...CORS } });
             const targetUrl = `https://${host}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, { 'x-apisports-key': apiKey, 'Accept': 'application/json' }, apiSportsTtl(cleanPath), 'apisports', ctx);
         }
@@ -287,7 +297,7 @@ export default {
         // /odds/* → api.the-odds-api.com (apiKey injected server-side)
         if (pathname.startsWith('/odds')) {
             const cleanPath = pathname.replace(/^\/odds/, '') || '/';
-            if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted' } });
+            if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted', ...CORS } });
             const targetUrl = oddsUrl(cleanPath, url.search);
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
         }
@@ -296,7 +306,7 @@ export default {
         if (pathname.startsWith('/nhl')) {
             const cleanPath = pathname.replace(/^\/nhl/, '') || '/';
             const nhlPath   = cleanPath + (url.search || '');
-            if (!nhlAllowed(cleanPath)) return new Response('NHL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nhl-path-not-whitelisted' } });
+            if (!nhlAllowed(cleanPath)) return new Response('NHL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nhl-path-not-whitelisted', ...CORS } });
             return relayFetch(`${NHL_BASE}${nhlPath}`, NHL_HEADERS, nhlCacheTtl(cleanPath), 'nhl', ctx);
         }
 
@@ -304,7 +314,7 @@ export default {
         if (pathname.startsWith('/fd')) {
             const cleanPath = pathname.replace(/^\/fd/, '') || '/';
             const fdPath    = cleanPath + (url.search || '');
-            if (!fdAllowed(cleanPath)) return new Response('FD path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'fd-path-not-whitelisted' } });
+            if (!fdAllowed(cleanPath)) return new Response('FD path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'fd-path-not-whitelisted', ...CORS } });
             return relayFetch(`${FD_BASE}${fdPath}`, FD_HEADERS, fdCacheTtl(cleanPath), 'fd', ctx);
         }
 
@@ -312,13 +322,22 @@ export default {
         if (pathname.startsWith('/fpl')) {
             const cleanPath = pathname.replace(/^\/fpl/, '');
             const fplPath   = cleanPath + (url.search || '');
-            if (!fplAllowed(cleanPath)) return new Response('FPL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'fpl-path-not-whitelisted' } });
+            if (!fplAllowed(cleanPath)) return new Response('FPL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'fpl-path-not-whitelisted', ...CORS } });
             return relayFetch(`${FPL_BASE}${fplPath}`, FPL_HEADERS, fplCacheTtl(cleanPath), 'fpl', ctx);
+        }
+
+        // /atp/* → app.atptour.com/api/v2/gateway (no auth, 15s cache — CORS bypass)
+        if (pathname.startsWith('/atp')) {
+            const cleanPath = pathname.replace(/^\/atp/, '') || '/livematches/website';
+            if (!atpAllowed(cleanPath))
+                return new Response('ATP path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'atp-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${ATP_BASE}${cleanPath}${url.search || '?scoringTournamentLevel=tour'}`;
+            return relayFetch(targetUrl, { 'Accept': 'application/json', 'Origin': 'https://www.atptour.com', 'Referer': 'https://www.atptour.com/' }, ATP_TTL, 'atp', ctx);
         }
 
         // /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
-        if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted' } });
+        if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
         return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, NBA_CACHE_TTL, 'nba', ctx);
     },
 };
