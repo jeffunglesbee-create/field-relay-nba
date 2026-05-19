@@ -142,7 +142,10 @@ function fdCacheTtl(path) {
 // FIELD uses: drama_bb preGameScore · pre-game EMBER · BNI divergence ·
 //             J5 upset detection · totals pace · line movement · series odds
 const ODDS_BASE    = 'https://api.the-odds-api.com';
-const ODDS_API_KEY = 'bab102f4d22fb4398c4f237a9e992af2';
+// ODDS API key — rotate via Cloudflare dashboard (Workers > field-relay-nba > Settings > Variables)
+// Set: ODDS_API_KEY = <new key from api.the-odds-api.com>
+// Fallback to old key until secret is set (old key is exhausted — set secret ASAP)
+const ODDS_API_KEY_FALLBACK = 'bab102f4d22fb4398c4f237a9e992af2'; // EXHAUSTED — replace
 const ODDS_TTL_ODDS   = 300;   // odds — update every 5 min
 const ODDS_TTL_SPORTS = 3600;  // sports list — stable within a season
 const ODDS_ALLOWED_EXACT    = ['/v4/sports', '/v4/usage'];
@@ -155,8 +158,9 @@ function oddsCacheTtl(path) {
     return path === '/v4/sports' ? ODDS_TTL_SPORTS : ODDS_TTL_ODDS;
 }
 // Inject apiKey as query param (server-side only)
-function oddsUrl(cleanPath, search) {
-    const qs  = search ? search + `&apiKey=${ODDS_API_KEY}` : `?apiKey=${ODDS_API_KEY}`;
+function oddsUrl(cleanPath, search, envKey) {
+    const apiKey = envKey || ODDS_API_KEY_FALLBACK;
+    const qs  = search ? search + `&apiKey=${apiKey}` : `?apiKey=${apiKey}`;
     return `${ODDS_BASE}${cleanPath}${qs}`;
 }
 
@@ -304,7 +308,7 @@ export default {
         if (pathname.startsWith('/odds')) {
             const cleanPath = pathname.replace(/^\/odds/, '') || '/';
             if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted', ...CORS } });
-            const targetUrl = oddsUrl(cleanPath, url.search);
+            const targetUrl = oddsUrl(cleanPath, url.search, env?.ODDS_API_KEY);
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
         }
 
