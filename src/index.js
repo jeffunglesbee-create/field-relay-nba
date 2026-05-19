@@ -236,6 +236,28 @@ function apiSportsTtl(path) {
     return 60; // default: 1 min for fixture queries
 }
 
+// ── BallDontLie (BDL) — NBA/WNBA/NFL player stats, standings, season averages ──
+// Auth: Authorization header (API key stored as env.BDL_API_KEY)
+// Free tier: 1M rows/month — generous for FIELD's playoff slate use
+const BDL_BASE = 'https://api.balldontlie.io';
+const BDL_ALLOWED_PREFIXES = [
+    '/nba/v1/players',          // player lookup by name
+    '/nba/v1/season_averages',  // season stats for milestone detection
+    '/nba/v1/standings',        // standings — tertiary source after ESPN
+    '/nba/v1/stats',            // per-game stats
+    '/nba/v1/games',            // schedule/results
+];
+function bdlAllowed(path) {
+    return BDL_ALLOWED_PREFIXES.some(p => path.startsWith(p));
+}
+function bdlCacheTtl(path) {
+    if (path.startsWith('/nba/v1/standings'))      return 3600;   // hourly
+    if (path.startsWith('/nba/v1/season_averages')) return 3600;  // changes each game
+    if (path.startsWith('/nba/v1/players'))         return 86400; // stable reference
+    return 60; // stats/games: 1 min (near-live)
+}
+
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -285,7 +307,7 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -357,6 +379,20 @@ export default {
             const targetUrl = `${ATP_BASE}${cleanPath}${url.search || '?scoringTournamentLevel=tour'}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json', 'Origin': 'https://www.atptour.com', 'Referer': 'https://www.atptour.com/' }, ATP_TTL, 'atp', ctx);
         }
+
+        // /bdl/* → BallDontLie (player stats, season averages, standings)
+        // apiKey injected via Authorization header from env.BDL_API_KEY secret
+        if (pathname.startsWith('/bdl')) {
+            const cleanPath = pathname.replace(/^\/bdl/, '') || '/';
+            if (!bdlAllowed(cleanPath))
+                return new Response('BDL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'bdl-path-not-whitelisted', ...CORS } });
+            const bdlKey = env?.BDL_API_KEY;
+            if (!bdlKey)
+                return new Response('BDL_API_KEY not configured', { status: 500, headers: { 'X-RELAY-Error': 'bdl-no-key', ...CORS } });
+            const targetUrl = `${BDL_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, { 'Authorization': bdlKey, 'Accept': 'application/json' }, bdlCacheTtl(cleanPath), 'bdl', ctx);
+        }
+
 
         // /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
