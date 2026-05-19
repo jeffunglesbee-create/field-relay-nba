@@ -259,7 +259,20 @@ async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     }
     response = new Response(upstream.body, {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...CORS, 'Cache-Control': `public, max-age=${ttl}`, 'X-FIELD-Proxy': `relay-${source}`, 'X-Cache-TTL': String(ttl) }
+        headers: {
+            'Content-Type':               'application/json',
+            ...CORS,
+            'Cache-Control':              `public, max-age=${ttl}`,
+            'X-FIELD-Proxy':              `relay-${source}`,
+            'X-Cache-TTL':                String(ttl),
+            // Forward quota headers from upstream where present
+            ...(upstream.headers.get('x-requests-remaining') !== null
+                ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
+                : {}),
+            ...(upstream.headers.get('x-requests-used') !== null
+                ? {'X-Requests-Used': upstream.headers.get('x-requests-used')}
+                : {}),
+        }
     });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
