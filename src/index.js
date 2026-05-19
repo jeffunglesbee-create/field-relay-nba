@@ -381,14 +381,13 @@ export default {
         }
 
         // /bdl/* → BallDontLie (player stats, season averages, standings)
-        // apiKey injected via Authorization header from env.BDL_API_KEY secret
+        // apiKey injected via Authorization header — env.BDL_API_KEY secret takes priority
+        // Falls back to registered key if secret not configured (key already public in FIELD client)
         if (pathname.startsWith('/bdl')) {
             const cleanPath = pathname.replace(/^\/bdl/, '') || '/';
             if (!bdlAllowed(cleanPath))
                 return new Response('BDL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'bdl-path-not-whitelisted', ...CORS } });
-            const bdlKey = env?.BDL_API_KEY;
-            if (!bdlKey)
-                return new Response('BDL_API_KEY not configured', { status: 500, headers: { 'X-RELAY-Error': 'bdl-no-key', ...CORS } });
+            const bdlKey = env?.BDL_API_KEY || '4c881f4b-3845-4542-841f-a0e685c9f10e';
             const targetUrl = `${BDL_BASE}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, { 'Authorization': bdlKey, 'Accept': 'application/json' }, bdlCacheTtl(cleanPath), 'bdl', ctx);
         }
