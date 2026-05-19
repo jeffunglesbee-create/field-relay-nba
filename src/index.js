@@ -2,11 +2,17 @@
 const NBA_CDN_BASE  = 'https://cdn.nba.com/static/json';
 const NBA_CACHE_TTL = 30;
 const NBA_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Referer':    'https://www.nba.com/',
-    'Origin':     'https://www.nba.com',
-    'Accept':     'application/json',
+    'User-Agent':      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Referer':         'https://www.nba.com/standings',
+    'Origin':          'https://www.nba.com',
+    'Accept':          'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control':   'no-cache',
+    'Pragma':          'no-cache',
 };
+// NBA standings use a separate TTL — refresh hourly (standings don't
+// change more than once per day; 30s for live scoreboard is fine)
+const NBA_STANDINGS_TTL = 3600;
 const NBA_ALLOWED_PATHS = [
     '/liveData/scoreboard/todaysScoreboard_00.json',
     '/liveData/standings/standings_v2.json',
@@ -338,6 +344,7 @@ export default {
         // /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
         if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
-        return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, NBA_CACHE_TTL, 'nba', ctx);
+        const nbaTtl = nbaPath.startsWith('/liveData/standings') ? NBA_STANDINGS_TTL : NBA_CACHE_TTL;
+        return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, nbaTtl, 'nba', ctx);
     },
 };
