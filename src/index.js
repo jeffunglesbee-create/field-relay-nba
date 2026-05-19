@@ -145,7 +145,7 @@ const ODDS_BASE    = 'https://api.the-odds-api.com';
 // ODDS API key — rotate via Cloudflare dashboard (Workers > field-relay-nba > Settings > Variables)
 // Set: ODDS_API_KEY = <new key from api.the-odds-api.com>
 // Fallback to old key until secret is set (old key is exhausted — set secret ASAP)
-const ODDS_API_KEY_FALLBACK = 'bab102f4d22fb4398c4f237a9e992af2'; // EXHAUSTED — replace
+const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038'; 
 const ODDS_TTL_ODDS   = 3600;  // odds — 1hr edge cache (was 5min, burned quota fast)
 const ODDS_TTL_SPORTS = 3600;  // sports list — stable within a season
 const ODDS_ALLOWED_EXACT    = ['/v4/sports', '/v4/usage'];
