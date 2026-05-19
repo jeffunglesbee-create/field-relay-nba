@@ -80,6 +80,24 @@ function fplCacheTtl(path) {
 }
 
 // ── Football-Data.org (FD) ─────────────────────────────────────────────────
+// ── Squiggle AFL API — free, no key, CORS-open BUT blocked from claude.ai Artifact iframe
+// Relay provides: CORS bypass for Artifact testing + shared edge cache (good citizen)
+// User-Agent identifies FIELD traffic to Squiggle's author
+const SQUIGGLE_BASE         = 'https://api.squiggle.com.au';
+const SQUIGGLE_TTL_LIVE     = 30;    // incomplete games — update frequently
+const SQUIGGLE_TTL_STANDING = 120;   // standings — stable within a round
+const SQUIGGLE_TTL_TIPS     = 3600;  // tips/power — once per round
+const SQUIGGLE_HEADERS = {
+    'Accept':     'application/json',
+    'User-Agent': 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)',
+};
+function squiggleTtl(search) {
+    if (search.includes('complete=0'))                                 return SQUIGGLE_TTL_LIVE;
+    if (search.includes('q=standings') || search.includes('q=ladder')) return SQUIGGLE_TTL_STANDING;
+    if (search.includes('q=tips')      || search.includes('q=power'))  return SQUIGGLE_TTL_TIPS;
+    return SQUIGGLE_TTL_LIVE;
+}
+
 const FD_BASE       = 'https://api.football-data.org/v4';
 const FD_AUTH_TOKEN = '21559ed667044b94a8b7cb0bbe303112';
 const FD_HEADERS = {
@@ -234,12 +252,20 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
         if (request.method !== 'GET') return new Response('Method not allowed', { status: 405 });
+
+        // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
+        // Free, no key. All data via ?q= query params. Validate q= present.
+        if (pathname.startsWith('/squiggle')) {
+            if (!url.search || !url.search.includes('q='))
+                return new Response('Squiggle ?q= param required', { status: 400, headers: { 'X-RELAY-Error': 'squiggle-missing-q' } });
+            return relayFetch(`${SQUIGGLE_BASE}/${url.search}`, SQUIGGLE_HEADERS, squiggleTtl(url.search), 'squiggle', ctx);
+        }
 
         // /apisports/{sport}/* → api-sports.io (x-apisports-key injected server-side)
         if (pathname.startsWith('/apisports/')) {
