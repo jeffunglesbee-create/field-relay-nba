@@ -236,6 +236,25 @@ function apiSportsTtl(path) {
     return 60; // default: 1 min for fixture queries
 }
 
+// ── ESPN Gambit Partner API — Win Probability for Gamecast ────────────────
+// Source: gambit-api-partner.fantasy.espn.com — powers ESPN Gamecast WP display
+// CORS: locked to https://www.espn.com — server-side relay required
+// Auth: none (public endpoint, origin lock only)
+// Cache: 25s — shorter than Polling-Interval: 30 to avoid stale WP
+// Route: /espn-gambit/* → gambit-api-partner.fantasy.espn.com/*
+const ESPN_GAMBIT_BASE = 'https://gambit-api-partner.fantasy.espn.com';
+const ESPN_GAMBIT_TTL  = 25;
+const ESPN_GAMBIT_HEADERS = {
+    'Origin':  'https://www.espn.com',
+    'Referer': 'https://www.espn.com/',
+    'Accept':  'application/json',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+};
+// Only allow the one scoreboard endpoint FIELD uses
+function espnGambitAllowed(path) {
+    return path.startsWith('/apis/v1/challenges/');
+}
+
 // ── BallDontLie (BDL) — NBA/WNBA/NFL player stats, standings, season averages ──
 // Auth: Authorization header (API key stored as env.BDL_API_KEY)
 // Free tier: 1M rows/month — generous for FIELD's playoff slate use
@@ -307,7 +326,7 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -392,6 +411,17 @@ export default {
             return relayFetch(targetUrl, { 'Authorization': bdlKey, 'Accept': 'application/json' }, bdlCacheTtl(cleanPath), 'bdl', ctx);
         }
 
+
+        // /espn-gambit/* → gambit-api-partner.fantasy.espn.com (ESPN WP — CORS bypass)
+        // No auth required. ESPN origin headers injected server-side.
+        // TTL 25s — shorter than ESPN's Polling-Interval: 30 to avoid serving stale WP.
+        if (pathname.startsWith('/espn-gambit')) {
+            const cleanPath = pathname.replace(/^\/espn-gambit/, '') || '/';
+            if (!espnGambitAllowed(cleanPath))
+                return new Response('ESPN Gambit path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-gambit-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${ESPN_GAMBIT_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, ESPN_GAMBIT_HEADERS, ESPN_GAMBIT_TTL, 'espn-gambit', ctx);
+        }
 
         // /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
