@@ -255,6 +255,25 @@ function espnGambitAllowed(path) {
     return path.startsWith('/apis/v1/challenges/');
 }
 
+// ── ESPN Site API — Summary endpoint (Win Probability, play-by-play, scores) ───
+// Source: site.api.espn.com — public REST endpoint, no auth required
+// CORS: locked to espn.com origin — server-side relay required
+// Cache: 25s — aligns with FIELD's 30s poll; winprobability[] array is live-updated
+// Route: /espn-summary/* → site.api.espn.com/apis/site/v2/*
+// Usage: /espn-summary/sports/basketball/nba/summary?event={gameId}
+const ESPN_SUMMARY_BASE    = 'https://site.api.espn.com/apis/site/v2';
+const ESPN_SUMMARY_TTL     = 25;
+const ESPN_SUMMARY_HEADERS = {
+    'Origin':  'https://www.espn.com',
+    'Referer': 'https://www.espn.com/',
+    'Accept':  'application/json',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+};
+// Allow only the summary endpoint — no other site.api paths
+function espnSummaryAllowed(path) {
+    return /^\/sports\/[a-z]+\/[a-z]+\/summary$/.test(path.split('?')[0]);
+}
+
 // ── BallDontLie (BDL) — NBA/WNBA/NFL player stats, standings, season averages ──
 // Auth: Authorization header (API key stored as env.BDL_API_KEY)
 // Free tier: 1M rows/month — generous for FIELD's playoff slate use
@@ -326,7 +345,7 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -421,6 +440,17 @@ export default {
                 return new Response('ESPN Gambit path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-gambit-path-not-whitelisted', ...CORS } });
             const targetUrl = `${ESPN_GAMBIT_BASE}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, ESPN_GAMBIT_HEADERS, ESPN_GAMBIT_TTL, 'espn-gambit', ctx);
+        }
+
+        // /espn-summary/* → site.api.espn.com/apis/site/v2 (ESPN WP via summary endpoint)
+        // Public REST API; no auth. Origin headers injected server-side.
+        // winprobability[].homeWinPercentage — 0-100 scale (e.g. 77.1)
+        if (pathname.startsWith('/espn-summary')) {
+            const cleanPath = pathname.replace(/^\/espn-summary/, '') || '/';
+            if (!espnSummaryAllowed(cleanPath))
+                return new Response('ESPN Summary path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-summary-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${ESPN_SUMMARY_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, ESPN_SUMMARY_HEADERS, ESPN_SUMMARY_TTL, 'espn-summary', ctx);
         }
 
         // /nba/* → NBA CDN
