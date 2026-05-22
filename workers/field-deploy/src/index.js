@@ -26,7 +26,10 @@ const DEFAULT_REPO  = 'jubilant-bassoon';
 const BRANCH        = 'main';
 const OIDC_ISSUER   = 'https://token.actions.githubusercontent.com';
 const OIDC_AUDIENCE = 'field-deploy';
-const ALLOWED_REPOS = ['jeffunglesbee-create/field-relay-nba'];
+const ALLOWED_REPOS = [
+  'jeffunglesbee-create/field-relay-nba',
+  'jeffunglesbee-create/jubilant-bassoon',  // Layer 2 AI screenshot review
+];
 
 // ── OIDC Verification ─────────────────────────────────────────────────────────
 async function verifyGitHubOIDC(token) {
@@ -133,6 +136,58 @@ export default {
       let enc;
       try{enc=await sealedBox(kd.key,value);}catch(e){return jr({ok:false,error:`Encrypt failed: ${e.message}`},500);}
       try{const r=await fetch(`${base}/secrets/${name}`,{method:'PUT',headers:ghH,body:JSON.stringify({encrypted_value:enc,key_id:kd.key_id})});if(r.status===201)return jr({ok:true,message:`Secret ${name} created in ${ro}/${rn}`});if(r.status===204)return jr({ok:true,message:`Secret ${name} updated in ${ro}/${rn}`});return jr({ok:false,error:`Set secret ${r.status}: ${await r.text()}`},502);}catch(e){return jr({ok:false,error:`Set secret failed: ${e.message}`},502);}
+    }
+
+    if (url.pathname === '/layer2') {
+      // Layer 2: AI screenshot review for FIELD viewport smoke tests.
+      // Called from jubilant-bassoon CI viewport-smoke job via OIDC auth.
+      // Accepts: { screenshots: { "360": b64, "393": b64, "820": b64, "1200": b64 }, commitMsg: string }
+      // Returns: { ok: true, results: [{ width, verdict, review }], model }
+      if (!env.ANTHROPIC_KEY)
+        return jr({ ok:false, error:'ANTHROPIC_KEY Worker secret not set — add it in Cloudflare dashboard: Workers & Pages → field-deploy → Settings → Variables and Secrets' }, 500);
+      const { screenshots, commitMsg='' } = body;
+      if (!screenshots || typeof screenshots !== 'object')
+        return jr({ ok:false, error:'Missing screenshots object { "360":b64, "393":b64, "820":b64, "1200":b64 }' }, 400);
+
+      const VP_META = {
+        360: { label:'Galaxy A36 / iPhone SE — small phone',
+               ctx:'Phone layout. OTW bar visible (sticky). No ambient panel. Full-width cards.' },
+        393: { label:'Pixel 8 — standard Android phone',
+               ctx:'Phone layout, slightly wider. OTW bar visible. No ambient panel.' },
+        820: { label:'iPad Air portrait — AMBIENT MODE (critical)',
+               ctx:'Two-pane layout. LEFT (430px): masthead + schedule cards, single column. RIGHT (380px): ambient intelligence panel. OTW bar must NOT appear in left pane. Cards ≥380px. Bars must NOT stack above masthead. Right panel should show FIRE/SOON/QUIET state + live scores.' },
+        1200:{ label:'Desktop — wide layout',
+               ctx:'Desktop layout. OTW bar visible. No ambient right panel. Wider cards.' },
+      };
+
+      const results = [];
+      for (const width of [360, 393, 820, 1200]) {
+        const imgB64 = screenshots[String(width)];
+        if (!imgB64) { results.push({width, verdict:'SKIP', review:'Screenshot not provided'}); continue; }
+        const meta = VP_META[width] || { label:`${width}px`, ctx:'' };
+        const prompt = `FIELD PWA screenshot — ${width}px (${meta.label})\nExpected: ${meta.ctx}\nRecent commit: ${commitMsg.slice(0,120)}\n\nReview for: overlapping elements, truncated text, elements outside containers, overall "overlaid/sloppy" vs clean. For 820px: is two-pane layout correct (left schedule + right intelligence panel)?\n\nRespond in exactly three lines:\nVERDICT: PASS or FAIL\nISSUES: [specific problems, or "None"]\nNOTES: [minor observations, or "None"]`;
+        try {
+          const r = await fetch('https://api.anthropic.com/v1/messages', {
+            method:'POST',
+            headers:{ 'content-type':'application/json','x-api-key':env.ANTHROPIC_KEY,'anthropic-version':'2023-06-01' },
+            body: JSON.stringify({
+              model:'claude-sonnet-4-20250514', max_tokens:512,
+              system:'You are reviewing screenshots of FIELD, a sports intelligence PWA, for layout problems. Be specific. When the layout looks correct, say so clearly.',
+              messages:[{ role:'user', content:[
+                { type:'image', source:{ type:'base64', media_type:'image/png', data:imgB64 }},
+                { type:'text', text:prompt },
+              ]}],
+            }),
+            signal: AbortSignal.timeout(25000),
+          });
+          if (!r.ok) { results.push({width, verdict:'ERROR', review:`Anthropic API ${r.status}: ${(await r.text().catch(()=>'')).slice(0,200)}`}); continue; }
+          const d = await r.json();
+          const review = d.content?.[0]?.text?.trim() || '(empty)';
+          const verdict = /VERDICT:\s*PASS/i.test(review) ? 'PASS' : /VERDICT:\s*FAIL/i.test(review) ? 'FAIL' : 'UNKNOWN';
+          results.push({ width, verdict, review });
+        } catch(e) { results.push({width, verdict:'ERROR', review:`Request failed: ${e.message}`}); }
+      }
+      return jr({ ok:true, results, model:'claude-sonnet-4-20250514', repo:oidc.repository });
     }
 
     return new Response('Not found',{status:404});
