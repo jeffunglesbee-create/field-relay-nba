@@ -139,12 +139,11 @@ export default {
     }
 
     if (url.pathname === '/layer2') {
-      // Layer 2: AI screenshot review for FIELD viewport smoke tests.
-      // Called from jubilant-bassoon CI viewport-smoke job via OIDC auth.
-      // Accepts: { screenshots: { "360": b64, "393": b64, "820": b64, "1200": b64 }, commitMsg: string }
-      // Returns: { ok: true, results: [{ width, verdict, review }], model }
-      if (!env.ANTHROPIC_KEY)
-        return jr({ ok:false, error:'ANTHROPIC_KEY Worker secret not set — add it in Cloudflare dashboard: Workers & Pages → field-deploy → Settings → Variables and Secrets' }, 500);
+      // Layer 2: AI screenshot review via field-claude-proxy (no ANTHROPIC_KEY needed here).
+      // Courier routes through field-claude-proxy which already holds ANTHROPIC_KEY.
+      // Worker-to-Worker calls can set Origin freely — proxy's ALLOWED_ORIGINS check passes.
+      // Input:  { screenshots: { "360":b64, "393":b64, "820":b64, "1200":b64 }, commitMsg }
+      // Output: { ok:true, results:[{width,verdict,review}], via:"field-claude-proxy" }
       const { screenshots, commitMsg='' } = body;
       if (!screenshots || typeof screenshots !== 'object')
         return jr({ ok:false, error:'Missing screenshots object { "360":b64, "393":b64, "820":b64, "1200":b64 }' }, 400);
@@ -167,9 +166,13 @@ export default {
         const meta = VP_META[width] || { label:`${width}px`, ctx:'' };
         const prompt = `FIELD PWA screenshot — ${width}px (${meta.label})\nExpected: ${meta.ctx}\nRecent commit: ${commitMsg.slice(0,120)}\n\nReview for: overlapping elements, truncated text, elements outside containers, overall "overlaid/sloppy" vs clean. For 820px: is two-pane layout correct (left schedule + right intelligence panel)?\n\nRespond in exactly three lines:\nVERDICT: PASS or FAIL\nISSUES: [specific problems, or "None"]\nNOTES: [minor observations, or "None"]`;
         try {
-          const r = await fetch('https://api.anthropic.com/v1/messages', {
+          // Route through field-claude-proxy. Vision detection in proxy ensures Claude path.
+          const r = await fetch('https://field-claude-proxy.jeffunglesbee.workers.dev', {
             method:'POST',
-            headers:{ 'content-type':'application/json','x-api-key':env.ANTHROPIC_KEY,'anthropic-version':'2023-06-01' },
+            headers:{
+              'Content-Type':'application/json',
+              'Origin':'https://field-deploy.jeffunglesbee.workers.dev',
+            },
             body: JSON.stringify({
               model:'claude-sonnet-4-20250514', max_tokens:512,
               system:'You are reviewing screenshots of FIELD, a sports intelligence PWA, for layout problems. Be specific. When the layout looks correct, say so clearly.',
@@ -178,16 +181,16 @@ export default {
                 { type:'text', text:prompt },
               ]}],
             }),
-            signal: AbortSignal.timeout(25000),
+            signal: AbortSignal.timeout(30000),
           });
-          if (!r.ok) { results.push({width, verdict:'ERROR', review:`Anthropic API ${r.status}: ${(await r.text().catch(()=>'')).slice(0,200)}`}); continue; }
+          if (!r.ok) { results.push({width, verdict:'ERROR', review:`Proxy ${r.status}: ${(await r.text().catch(()=>'')).slice(0,200)}`}); continue; }
           const d = await r.json();
           const review = d.content?.[0]?.text?.trim() || '(empty)';
           const verdict = /VERDICT:\s*PASS/i.test(review) ? 'PASS' : /VERDICT:\s*FAIL/i.test(review) ? 'FAIL' : 'UNKNOWN';
           results.push({ width, verdict, review });
         } catch(e) { results.push({width, verdict:'ERROR', review:`Request failed: ${e.message}`}); }
       }
-      return jr({ ok:true, results, model:'claude-sonnet-4-20250514', repo:oidc.repository });
+      return jr({ ok:true, results, model:'claude-sonnet-4-20250514', via:'field-claude-proxy', repo:oidc.repository });
     }
 
     return new Response('Not found',{status:404});

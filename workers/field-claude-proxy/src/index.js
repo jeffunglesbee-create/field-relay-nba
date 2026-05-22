@@ -22,6 +22,7 @@ const PROXY_VERSION = '4';
 const ALLOWED_ORIGINS = [
   'https://jubilant-bassoon.jeffunglesbee.workers.dev',
   'https://jubilant-bassoon.pages.dev',
+  'https://field-deploy.jeffunglesbee.workers.dev', // Courier /layer2 vision requests
 ];
 
 const cors = (origin) => ({
@@ -114,9 +115,15 @@ export default {
       status: 400, headers: { 'Content-Type': 'application/json', ...cors(origin), ...version() },
     });
 
+    // Vision requests (contain image content) must use Claude — Gemini adapter strips images
+    let bodyParsed; try { bodyParsed = JSON.parse(raw); } catch { bodyParsed = null; }
+    const hasVision = bodyParsed?.messages?.some(m =>
+      Array.isArray(m.content) && m.content.some(c => c.type === 'image')
+    );
+
     let result;
 
-    if (gKey) {
+    if (gKey && !hasVision) {
       try {
         result = await callGemini(JSON.parse(raw), gKey);
       } catch (e) {
