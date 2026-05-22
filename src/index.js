@@ -345,11 +345,38 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
+        // POST /dropbox/upload — Dropbox file upload (FIELD storage)
+        if (pathname === '/dropbox/upload' && request.method === 'POST') {
+            const filename = url.searchParams.get('filename') || 'upload.html';
+            const token = env.DROPBOX_TOKEN;
+            if (!token) return new Response('DROPBOX_TOKEN not configured', { status: 500, headers: { ...CORS, 'X-RELAY-Error': 'dropbox-no-token' } });
+            const body = await request.arrayBuffer();
+            const dbRes = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Dropbox-API-Arg': JSON.stringify({
+                        path: `/${filename}`,
+                        mode: 'overwrite',
+                        autorename: false,
+                        mute: false,
+                    }),
+                    'Content-Type': 'application/octet-stream',
+                },
+                body,
+            });
+            const result = await dbRes.text();
+            return new Response(result, {
+                status: dbRes.status,
+                headers: { 'Content-Type': 'application/json', ...CORS, 'X-FIELD-Proxy': 'relay-dropbox' },
+            });
+        }
+
         if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
