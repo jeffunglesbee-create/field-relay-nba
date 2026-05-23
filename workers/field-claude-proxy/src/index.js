@@ -3,10 +3,10 @@
 // Auto-deployed via .github/workflows/deploy-proxy.yml on push to workers/**
 //
 // CHANGES IN v4:
-//   Model: gemini-2.5-flash → gemini-2.5-flash-lite (30 RPM vs 15 RPM)
+//   Model: gemini-3.1-flash-lite → gemini-3.1-flash-lite (faster, better quality; 2.5 EOL Jun 2026)
 //   429 handling: forward Retry-After to client instead of throwing 502
 //   ALLOWED_ORIGINS: added jubilant-bassoon.pages.dev
-//   X-FIELD-Proxy-Version: 4 header on all responses
+//   X-FIELD-Proxy-Version: 5 header on all responses
 //   max_tokens default: 1000 → 2500 (supports compound editorial call)
 //
 // SECRETS (set once in Cloudflare dashboard, persist across deploys):
@@ -15,9 +15,9 @@
 //
 // VERIFY after deploy (DevTools Network tab on FIELD app):
 //   X-FIELD-Proxy-Version: 4
-//   X-FIELD-Model: gemini-2.5-flash-lite  (or claude-sonnet-4 on fallback)
+//   X-FIELD-Model: gemini-3.1-flash-lite  (or claude-sonnet-4 on fallback)
 
-const PROXY_VERSION = '4';
+const PROXY_VERSION = '5';
 
 const ALLOWED_ORIGINS = [
   'https://jubilant-bassoon.jeffunglesbee.workers.dev',
@@ -55,7 +55,7 @@ function fromGemini(data) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   return JSON.stringify({
     id: 'gemini-proxy', type: 'message', role: 'assistant',
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.1-flash-lite',
     content: [{ type: 'text', text }],
     stop_reason: 'end_turn',
     usage: { input_tokens: 0, output_tokens: 0 },
@@ -63,7 +63,7 @@ function fromGemini(data) {
 }
 
 async function callGemini(body, key) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -74,7 +74,7 @@ async function callGemini(body, key) {
     throw {is429: true, retryAfter, detail: (await r.text().catch(() => '')).slice(0, 200)};
   }
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  return { text: fromGemini(await r.json()), model: 'gemini-2.5-flash-lite', status: 200 };
+  return { text: fromGemini(await r.json()), model: 'gemini-3.1-flash-lite', status: 200 };
 }
 
 async function callClaude(raw, key) {
