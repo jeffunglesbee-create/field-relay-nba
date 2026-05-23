@@ -345,7 +345,7 @@ export default {
         const pathname = url.pathname;
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -483,6 +483,15 @@ export default {
                 return new Response('ESPN Summary path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-summary-path-not-whitelisted', ...CORS } });
             const targetUrl = `${ESPN_SUMMARY_BASE}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, ESPN_SUMMARY_HEADERS, ESPN_SUMMARY_TTL, 'espn-summary', ctx);
+        }
+
+        // /field/data/today — FIELD overlay data layer (matchupNotes, series records, MLB overrides)
+        // Source: jubilant-bassoon/outbox/field-data-today.json (raw GitHub, no auth required)
+        // Data layer: push that JSON file (with [skip ci]) to update editorial data in ≤5 min.
+        // No SW bump, no session, no CI pipeline needed for data-only changes.
+        if (pathname === '/field/data/today') {
+            const dataUrl = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/field-data-today.json';
+            return relayFetch(dataUrl, { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }, 300, 'field-data', ctx);
         }
 
         // /nba/* → NBA CDN
