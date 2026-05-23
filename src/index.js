@@ -373,7 +373,12 @@ export default {
             const result = await dbRes.text();
             return new Response(result, {
                 status: dbRes.status,
-                headers: { 'Content-Type': 'application/json', ...CORS, 'X-FIELD-Proxy': 'relay-dropbox' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': 'https://jubilant-bassoon.jeffunglesbee.workers.dev',
+                    'Access-Control-Allow-Methods': 'POST',
+                    'X-FIELD-Proxy': 'relay-dropbox',
+                },
             });
         }
 
