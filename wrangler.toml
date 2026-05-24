@@ -3,3 +3,17 @@ main               = "src/index.js"
 compatibility_date = "2026-05-16"
 
 # Bootstrap trigger 2026-05-18T18:39:02Z
+
+# ── Push Notifications (PUSH B — May 24 2026) ────────────────────────────────
+# KV namespace for push subscriptions. Create in CF dashboard first:
+#   wrangler kv:namespace create "PUSH_SUBS"
+# Then replace the id below with the actual namespace ID.
+# Binding name PUSH_SUBS is referenced in src/index.js.
+[[kv_namespaces]]
+binding = "PUSH_SUBS"
+id      = "PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID"
+
+# Cron trigger: heartbeat every 5 minutes
+# Wakes Worker, polls ESPN scores, sends drama notifications
+[triggers]
+crons = ["*/5 * * * *"]

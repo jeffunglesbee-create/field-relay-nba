@@ -372,10 +372,251 @@ async function relayFetch(targetUrl, headers, ttl, source, ctx) {
 }
 
 // ── Worker ─────────────────────────────────────────────────────────────────
+
+// ── PUSH B: VAPID signing + Web Push delivery ─────────────────────────────────
+// PUSH B (May 24 2026). Cloudflare-native crypto — no npm dependencies.
+// VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY set as Worker secrets (never in code).
+// Called by: /push/subscribe (store), /push/unsubscribe (remove), cron (send).
+
+// Base64url helpers (CF Workers have no Buffer)
+function b64uDecode(s) {
+    const pad = s.replace(/-/g,'+').replace(/_/g,'/').padEnd(s.length+(4-s.length%4)%4,'=');
+    const bin = atob(pad);
+    const arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    return arr;
+}
+function b64uEncode(buf) {
+    let bin='';
+    const arr = new Uint8Array(buf);
+    for(const b of arr) bin+=String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+// Build VAPID JWT header.payload (unsigned) for ES256
+function vapidUnsigned(audience, sub, exp) {
+    const header = b64uEncode(new TextEncoder().encode(JSON.stringify({typ:'JWT',alg:'ES256'})));
+    const claims = b64uEncode(new TextEncoder().encode(JSON.stringify({aud:audience,exp,sub})));
+    return `${header}.${claims}`;
+}
+
+// Sign VAPID JWT with ECDSA P-256 (ES256) using the private key JWK from env
+async function signVapidJwt(unsigned, privateKeyJwk) {
+    const key = await crypto.subtle.importKey(
+        'jwk', privateKeyJwk,
+        {name:'ECDSA', namedCurve:'P-256'},
+        false, ['sign']
+    );
+    const data = new TextEncoder().encode(unsigned);
+    const sig = await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, key, data);
+    return `${unsigned}.${b64uEncode(sig)}`;
+}
+
+// Derive content encryption key + nonce using HKDF (Web Push encryption)
+async function hkdf(salt, ikm, info, len) {
+    const key = await crypto.subtle.importKey('raw', ikm, {name:'HKDF'}, false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits(
+        {name:'HKDF', hash:'SHA-256', salt, info: new TextEncoder().encode(info)}, key, len*8);
+    return new Uint8Array(bits);
+}
+
+// Encrypt push payload using ECDH + HKDF + AES-128-GCM (RFC 8291)
+async function encryptPayload(plaintext, sub) {
+    const {p256dh, auth} = sub.keys;
+    const receiverPub = b64uDecode(p256dh);
+    const authSecret  = b64uDecode(auth);
+
+    // Generate sender ephemeral key pair
+    const senderKP = await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+    const senderPubRaw = new Uint8Array(await crypto.subtle.exportKey('raw', senderKP.publicKey));
+
+    // Import receiver public key
+    const receiverKey = await crypto.subtle.importKey('raw', receiverPub,
+        {name:'ECDH',namedCurve:'P-256'}, false, []);
+
+    // ECDH shared secret
+    const sharedBits = await crypto.subtle.deriveBits({name:'ECDH',public:receiverKey},
+        senderKP.privateKey, 256);
+    const ikm = new Uint8Array(sharedBits);
+
+    // Pseudo-random key
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const prk  = await hkdf(authSecret, ikm, 'Content-Encoding: auth\0', 32);
+
+    // CEK and nonce
+    const keyInfo   = new Uint8Array([...new TextEncoder().encode('Content-Encoding: aesgcm\0'),
+                       ...receiverPub, ...senderPubRaw]);
+    const nonceInfo = new Uint8Array([...new TextEncoder().encode('Content-Encoding: nonce\0'),
+                       ...receiverPub, ...senderPubRaw]);
+    const cek   = await hkdf(salt, prk, new TextDecoder().decode(keyInfo), 16);
+    const nonce = await hkdf(salt, prk, new TextDecoder().decode(nonceInfo), 12);
+
+    // Encrypt
+    const aesKey = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['encrypt']);
+    const padded = new Uint8Array([0, 0, ...new TextEncoder().encode(plaintext)]);
+    const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM', iv:nonce}, aesKey, padded);
+
+    return { ciphertext: new Uint8Array(ciphertext), salt, senderPub: senderPubRaw };
+}
+
+// Send Web Push notification to a single subscriber
+async function sendWebPush(sub, payload, env) {
+    if (!env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY) {
+        throw new Error('VAPID keys not configured in Worker secrets');
+    }
+    const endpoint = sub.endpoint;
+    const origin   = new URL(endpoint).origin;
+    const exp      = Math.floor(Date.now()/1000) + 12*3600;
+    const sub_email = 'mailto:jeff@field.app';
+
+    // Parse private key (stored as base64url-encoded raw 32-byte P-256 key → convert to JWK)
+    const dBytes = b64uDecode(env.VAPID_PRIVATE_KEY);
+    const xBytes = b64uDecode(env.VAPID_PUBLIC_KEY).slice(1, 33); // skip 0x04 prefix
+    const yBytes = b64uDecode(env.VAPID_PUBLIC_KEY).slice(33, 65);
+    const privateKeyJwk = {
+        kty:'EC', crv:'P-256',
+        d: b64uEncode(dBytes),
+        x: b64uEncode(xBytes),
+        y: b64uEncode(yBytes),
+    };
+
+    const unsigned = vapidUnsigned(origin, sub_email, exp);
+    const jwt = await signVapidJwt(unsigned, privateKeyJwk);
+    const vapidHeader = `vapid t=${jwt},k=${env.VAPID_PUBLIC_KEY}`;
+
+    const {ciphertext, salt, senderPub} = await encryptPayload(JSON.stringify(payload), sub);
+
+    const headers = {
+        'Authorization':    vapidHeader,
+        'Content-Type':     'application/octet-stream',
+        'Content-Encoding': 'aesgcm',
+        'Encryption':       `salt=${b64uEncode(salt)}`,
+        'Crypto-Key':       `dh=${b64uEncode(senderPub)};p256ecdsa=${env.VAPID_PUBLIC_KEY}`,
+        'TTL':              '86400',
+    };
+
+    const res = await fetch(endpoint, {method:'POST', headers, body:ciphertext});
+    return res;
+}
+
+// Cron handler: poll ESPN scores, compute drama, push to subscribers
+async function handleCron(env) {
+    if (!env.PUSH_SUBS) return; // KV not configured
+    // Fetch ESPN today scoreboard (via own relay)
+    const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    let games = [];
+    try {
+        const r = await fetch(`${RELAY}/espn-gambit/apis/site/v2/sports/basketball/nba/scoreboard`);
+        if (r.ok) {
+            const d = await r.json();
+            games = d?.events || [];
+        }
+    } catch(_) {}
+
+    // Find games with drama ≥ 85 (simple: close score + late period)
+    const dramatic = [];
+    for (const ev of games) {
+        const comp = ev.competitions?.[0];
+        if (!comp) continue;
+        const status = comp.status?.type;
+        if (status?.completed) continue;                       // game over
+        if (!status?.detail?.includes('Q') && !status?.detail?.includes('2H') &&
+            !status?.detail?.includes("'")) continue;          // not live
+        const period = comp.status?.period || 0;
+        if (period < 3) continue;                              // not late enough
+        const [home, away] = comp.competitors || [];
+        const hScore = parseInt(home?.score||'0');
+        const aScore = parseInt(away?.score||'0');
+        const margin = Math.abs(hScore - aScore);
+        // Drama heuristic: late period + margin ≤ 8
+        if (margin > 10) continue;
+        const drama = Math.max(0, Math.min(100, 80 + (period-3)*5 + Math.max(0,5-margin)*2));
+        if (drama < 85) continue;
+        const broadcast = comp.broadcasts?.[0]?.names?.[0] || 'ESPN';
+        dramatic.push({
+            gameId: ev.id,
+            sport: 'NBA',
+            home: home?.team?.shortDisplayName || home?.team?.name || '',
+            away: away?.team?.shortDisplayName || away?.team?.name || '',
+            homeScore: hScore, awayScore: aScore,
+            periodLabel: status?.detail || `Q${period}`,
+            broadcast, drama: Math.round(drama),
+            watchUrl: null,
+            type: 'DRAMA_THRESHOLD',
+        });
+    }
+
+    if (!dramatic.length) return;
+
+    // Get all subscribers from KV
+    const list = await env.PUSH_SUBS.list();
+    for (const key of list.keys) {
+        const raw = await env.PUSH_SUBS.get(key.name);
+        if (!raw) continue;
+        let subData;
+        try { subData = JSON.parse(raw); } catch(_) { continue; }
+        const sub = subData.subscription;
+        if (!sub?.endpoint) continue;
+        const prefs = subData.prefs || {};
+        const minDrama = prefs.drama_min || 85;
+
+        for (const game of dramatic) {
+            if (game.drama < minDrama) continue;
+            const firedKey = `${key.name}:${game.gameId}:DRAMA`;
+            const alreadyFired = await env.PUSH_SUBS.get(firedKey);
+            if (alreadyFired) continue; // already notified for this game
+            try {
+                const res = await sendWebPush(sub, game, env);
+                if (res.ok || res.status === 201) {
+                    // Mark as fired for this session (TTL: 8 hours)
+                    await env.PUSH_SUBS.put(firedKey, '1', {expirationTtl: 28800});
+                }
+            } catch(e) {
+                if (typeof captureFieldError === 'function')
+                    captureFieldError('push-send', e.message);
+            }
+        }
+    }
+}
+
 export default {
+    // Cron trigger (*/5 * * * *): poll scores, send drama push notifications
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(handleCron(env));
+    },
+
     async fetch(request, env, ctx) {
         const url      = new URL(request.url);
         const pathname = url.pathname;
+
+        // /push/subscribe — store push subscription in KV
+        if (pathname === '/push/subscribe' && request.method === 'POST') {
+            if (!env.PUSH_SUBS) return new Response('KV not configured', {status:503, headers:CORS});
+            try {
+                const body = await request.json();
+                const {subscription, prefs} = body;
+                if (!subscription?.endpoint) return new Response('Missing subscription', {status:400, headers:CORS});
+                // Key by endpoint hash (first 32 chars, URL-safe)
+                const key = 'sub:' + btoa(subscription.endpoint).slice(0,32).replace(/[^a-zA-Z0-9]/g,'');
+                await env.PUSH_SUBS.put(key, JSON.stringify({subscription, prefs}), {expirationTtl: 365*86400});
+                return new Response(JSON.stringify({ok:true}), {headers:{...CORS,'Content-Type':'application/json'}});
+            } catch(e) {
+                return new Response(JSON.stringify({ok:false,error:e.message}), {status:500,headers:{...CORS,'Content-Type':'application/json'}});
+            }
+        }
+
+        // /push/unsubscribe — remove subscription from KV
+        if (pathname === '/push/unsubscribe' && request.method === 'POST') {
+            if (!env.PUSH_SUBS) return new Response('KV not configured', {status:503, headers:CORS});
+            try {
+                const {endpoint} = await request.json();
+                const key = 'sub:' + btoa(endpoint).slice(0,32).replace(/[^a-zA-Z0-9]/g,'');
+                await env.PUSH_SUBS.delete(key);
+                return new Response(JSON.stringify({ok:true}), {headers:{...CORS,'Content-Type':'application/json'}});
+            } catch(e) {
+                return new Response(JSON.stringify({ok:false}), {status:500,headers:{...CORS,'Content-Type':'application/json'}});
+            }
+        }
 
         if (pathname === '/health') {
             return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data', {
