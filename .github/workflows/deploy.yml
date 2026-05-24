@@ -14,6 +14,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── KV Bootstrap: create field-push-subs namespace if it doesn't exist ──
+      # Runs before deploy so wrangler.toml has a real ID, not a placeholder.
+      # Idempotent: lists existing namespaces first; creates only if missing.
+      - name: Bootstrap KV namespace (field-push-subs)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npm install -g wrangler --silent 2>/dev/null || true
+
+          # List existing KV namespaces, find field-push-subs
+          EXISTING=$(npx wrangler kv:namespace list 2>/dev/null || echo "[]")
+          KV_ID=$(echo "$EXISTING" | python3 -c "
+import sys, json
+try:
+    ns = json.load(sys.stdin)
+    match = next((n for n in ns if n.get('title') == 'field-push-subs'), None)
+    print(match['id'] if match else '')
+except: print('')
+" 2>/dev/null)
+
+          # Create if not found
+          if [ -z "$KV_ID" ]; then
+            echo "Creating KV namespace field-push-subs..."
+            OUTPUT=$(npx wrangler kv:namespace create "field-push-subs" 2>&1)
+            echo "$OUTPUT"
+            KV_ID=$(echo "$OUTPUT" | grep -oE '"id": "[a-f0-9]+"' | head -1 | grep -oE '[a-f0-9]{32}')
+          fi
+
+          if [ -z "$KV_ID" ]; then
+            echo "❌ Could not get KV namespace ID"; exit 1
+          fi
+
+          echo "✅ KV namespace ID: $KV_ID"
+          # Patch wrangler.toml in-place before deploy runs
+          sed -i "s/PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
+          grep "id" wrangler.toml | tail -3
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
