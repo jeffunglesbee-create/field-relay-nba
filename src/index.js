@@ -502,48 +502,62 @@ async function sendWebPush(sub, payload, env) {
 // Cron handler: poll ESPN scores, compute drama, push to subscribers
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
-    // Fetch ESPN today scoreboard (via own relay)
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
-    let games = [];
-    try {
-        const r = await fetch(`${RELAY}/espn-gambit/apis/site/v2/sports/basketball/nba/scoreboard`);
-        if (r.ok) {
-            const d = await r.json();
-            games = d?.events || [];
-        }
-    } catch(_) {}
 
-    // Find games with drama ≥ 85 (simple: close score + late period)
+    // ── Multi-sport ESPN polling ──────────────────────────────────
+    const SPORT_CONFIG = [
+        {sport:'NBA', path:'basketball/nba',  minPeriod:3, maxMargin:10, dramaBase:80},
+        {sport:'NHL', path:'hockey/nhl',      minPeriod:3, maxMargin:3,  dramaBase:78},
+        {sport:'MLB', path:'baseball/mlb',    minPeriod:7, maxMargin:4,  dramaBase:75},
+        {sport:'NFL', path:'football/nfl',    minPeriod:3, maxMargin:10, dramaBase:80},
+        {sport:'MLS', path:'soccer/usa.1',    minPeriod:2, maxMargin:2,  dramaBase:82},
+        {sport:'EPL', path:'soccer/eng.1',    minPeriod:2, maxMargin:2,  dramaBase:82},
+    ];
+
     const dramatic = [];
-    for (const ev of games) {
-        const comp = ev.competitions?.[0];
-        if (!comp) continue;
-        const status = comp.status?.type;
-        if (status?.completed) continue;                       // game over
-        if (!status?.detail?.includes('Q') && !status?.detail?.includes('2H') &&
-            !status?.detail?.includes("'")) continue;          // not live
-        const period = comp.status?.period || 0;
-        if (period < 3) continue;                              // not late enough
-        const [home, away] = comp.competitors || [];
-        const hScore = parseInt(home?.score||'0');
-        const aScore = parseInt(away?.score||'0');
-        const margin = Math.abs(hScore - aScore);
-        // Drama heuristic: late period + margin ≤ 8
-        if (margin > 10) continue;
-        const drama = Math.max(0, Math.min(100, 80 + (period-3)*5 + Math.max(0,5-margin)*2));
-        if (drama < 85) continue;
-        const broadcast = comp.broadcasts?.[0]?.names?.[0] || 'ESPN';
-        dramatic.push({
-            gameId: ev.id,
-            sport: 'NBA',
-            home: home?.team?.shortDisplayName || home?.team?.name || '',
-            away: away?.team?.shortDisplayName || away?.team?.name || '',
-            homeScore: hScore, awayScore: aScore,
-            periodLabel: status?.detail || `Q${period}`,
-            broadcast, drama: Math.round(drama),
-            watchUrl: null,
-            type: 'DRAMA_THRESHOLD',
-        });
+    for (const cfg of SPORT_CONFIG) {
+        try {
+            const r = await fetch(`${RELAY}/espn-gambit/apis/site/v2/sports/${cfg.path}/scoreboard`);
+            if (!r.ok) continue;
+            const d = await r.json();
+            const games = d?.events || [];
+
+            for (const ev of games) {
+                const comp = ev.competitions?.[0];
+                if (!comp) continue;
+                const status = comp.status?.type;
+                if (status?.completed) continue;
+                const detail = comp.status?.detail || '';
+                // Must be live (has period/time indicator)
+                if (!detail.includes('Q') && !detail.includes('P') && !detail.includes('H') &&
+                    !detail.includes("'") && !detail.includes('Inn') && !detail.includes('Top') &&
+                    !detail.includes('Bot') && !detail.includes('End')) continue;
+                const period = comp.status?.period || 0;
+                if (period < cfg.minPeriod) continue;
+                const [home, away] = comp.competitors || [];
+                const hScore = parseInt(home?.score||'0');
+                const aScore = parseInt(away?.score||'0');
+                const margin = Math.abs(hScore - aScore);
+                if (margin > cfg.maxMargin) continue;
+                // Drama heuristic: sport-specific base + period bonus + closeness bonus
+                const periodBonus = (period - cfg.minPeriod) * 5;
+                const closenessBonus = Math.max(0, cfg.maxMargin - margin) * 3;
+                const drama = Math.max(0, Math.min(100, cfg.dramaBase + periodBonus + closenessBonus));
+                if (drama < 85) continue;
+                const broadcast = comp.broadcasts?.[0]?.names?.[0] || cfg.sport;
+                dramatic.push({
+                    gameId: ev.id,
+                    sport: cfg.sport,
+                    home: home?.team?.shortDisplayName || home?.team?.name || '',
+                    away: away?.team?.shortDisplayName || away?.team?.name || '',
+                    homeScore: hScore, awayScore: aScore,
+                    periodLabel: detail || `Period ${period}`,
+                    broadcast, drama: Math.round(drama),
+                    watchUrl: null,
+                    type: 'DRAMA_THRESHOLD',
+                });
+            }
+        } catch(_) { /* sport unavailable — skip */ }
     }
 
     if (!dramatic.length) return;
