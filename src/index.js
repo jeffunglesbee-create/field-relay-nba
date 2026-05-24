@@ -29,6 +29,39 @@ function nbaAllowed(path) {
     return NBA_ALLOWED_PREFIXES.some(p => path.startsWith(p));
 }
 
+// ── MLS Stats API ──────────────────────────────────────────────────────────
+// Source: stats-api.mlssoccer.com — official MLS stats API powering mlssoccer.com
+// Auth: none required (plain GET; User-Agent recommended)
+// CORS: blocked for browser origins — relay required
+// Provides: live match state, schedule, standings, goals, commentary
+// Key benefit: canonical opta_id team IDs (numeric) — eliminates name-string collisions
+// 2026 season: MLS-COM-000001 / MLS-SEA-0001KA
+const MLS_STATS_BASE = 'https://stats-api.mlssoccer.com';
+const MLS_STATS_HEADERS = {
+    'User-Agent': 'FIELD-Sports-Intelligence/1.0',
+    'Accept':     'application/json',
+};
+const MLS_STATS_TTL_LIVE      = 30;    // /v1/matches — live match state
+const MLS_STATS_TTL_GOALS     = 60;    // /v1/goals — goalscorer events
+const MLS_STATS_TTL_SCHEDULE  = 300;   // /matches/seasons/* — schedule
+const MLS_STATS_TTL_STANDINGS = 3600;  // /competitions/*/standings
+const MLS_STATS_ALLOWED_PREFIXES = [
+    '/v1/matches',       // today's scores + match details
+    '/v1/goals',         // goalscorer events
+    '/v1/commentaries',  // full event stream
+    '/matches/seasons/', // schedule by season
+    '/competitions/',    // standings + season list
+];
+function mlsStatsAllowed(path) {
+    return MLS_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
+}
+function mlsStatsTtl(path) {
+    if (path.startsWith('/competitions/')) return MLS_STATS_TTL_STANDINGS;
+    if (path.startsWith('/matches/seasons/')) return MLS_STATS_TTL_SCHEDULE;
+    if (path.startsWith('/v1/goals') || path.startsWith('/v1/commentaries')) return MLS_STATS_TTL_GOALS;
+    return MLS_STATS_TTL_LIVE; // /v1/matches
+}
+
 // ── NHL Web API ────────────────────────────────────────────────────────────
 // Source: api-web.nhle.com — same API the NHL website uses, undocumented but
 // well-documented by community (github.com/Zmalski/NHL-API-Reference)
@@ -492,6 +525,17 @@ export default {
         if (pathname === '/field/data/today') {
             const dataUrl = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/field-data-today.json';
             return relayFetch(dataUrl, { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }, 300, 'field-data', ctx);
+        }
+
+        // /mls/stats/* → stats-api.mlssoccer.com (official MLS stats + live data)
+        // Auth-free, CORS-restricted. Provides: match state, scores, goals, schedule, standings.
+        // Canonical opta_id team IDs eliminate name-string key collisions in FIELD.
+        if (pathname.startsWith('/mls/stats')) {
+            const cleanPath = pathname.replace(/^\/mls\/stats/, '') || '/';
+            if (!mlsStatsAllowed(cleanPath))
+                return new Response('MLS Stats path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'mls-stats-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${MLS_STATS_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, MLS_STATS_HEADERS, mlsStatsTtl(cleanPath), 'mls-stats', ctx);
         }
 
         // /nba/* → NBA CDN
