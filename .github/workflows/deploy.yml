@@ -14,45 +14,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── KV Bootstrap: create field-push-subs namespace if it doesn't exist ──
-      # Uses CF REST API directly (curl) — no wrangler install, clean JSON, always works.
-      # Idempotent: lists first, creates only if missing.
-      # Patches wrangler.toml placeholder with real ID before wrangler deploy runs.
+      # ── KV Bootstrap: create field-push-subs if missing, patch wrangler.toml ──
       - name: Bootstrap KV namespace (field-push-subs)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          CF_BASE="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
-          AUTH_HDR="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
-
-          # List existing KV namespaces
-          LIST=$(curl -s -H "$AUTH_HDR" "$CF_BASE/storage/kv/namespaces?per_page=100")
-          KV_ID=$(echo "$LIST" | python3 -c "
-import sys,json
-try:
-  ns=json.load(sys.stdin).get('result',[])
-  m=next((n for n in ns if n.get('title')=='field-push-subs'),None)
-  print(m['id'] if m else '')
-except: print('')
-")
-
-          # Create if not found
-          if [ -z "$KV_ID" ]; then
-            echo "Creating KV namespace field-push-subs..."
-            RESP=$(curl -s -X POST -H "$AUTH_HDR" -H "Content-Type: application/json"               -d '{"title":"field-push-subs"}' "$CF_BASE/storage/kv/namespaces")
-            echo "CF response: $RESP"
-            KV_ID=$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['id'])" 2>/dev/null)
+          CF="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          KV_ID=$(curl -s -H "$AUTH" "$CF/storage/kv/namespaces?per_page=100" | jq -r '.result[] | select(.title=="field-push-subs") | .id' 2>/dev/null)
+          if [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ]; then
+            RESP=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d '{"title":"field-push-subs"}' "$CF/storage/kv/namespaces")
+            KV_ID=$(echo "$RESP" | jq -r '.result.id' 2>/dev/null)
+            echo "Created KV namespace: $RESP"
           fi
-
-          if [ -z "$KV_ID" ]; then
-            echo "❌ Could not get or create KV namespace ID"; exit 1
-          fi
-
-          echo "✅ KV namespace ID: $KV_ID"
+          [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ] && { echo "❌ KV namespace ID not found"; exit 1; }
+          echo "✅ KV ID: $KV_ID"
           sed -i "s/PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
-          echo "wrangler.toml patched:"
-          grep -A3 "kv_namespaces" wrangler.toml | tail -5
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
