@@ -13,7 +13,15 @@ compatibility_date = "2026-05-16"
 binding = "PUSH_SUBS"
 id      = "PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID"
 
-# Cron trigger: heartbeat every 5 minutes
-# Wakes Worker, polls ESPN scores, sends drama notifications
+# ── O(1) Journalism (Layer 2 — May 25 2026) ──────────────────────────────────
+# KV namespace for pre-rendered journalism prose.
+# Relay cron generates prose every 15 min, stores here.
+# Clients read /journalism/tonight — zero AI calls from browser.
+# ADR-002 Rule A: this KV stores PROSE ONLY. No interest level values.
+[[kv_namespaces]]
+binding = "FIELD_JOURNALISM"
+id      = "JOURNALISM_PLACEHOLDER_REPLACE_WITH_REAL_ID"
+
+# Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/5 * * * *", "*/15 * * * *"]

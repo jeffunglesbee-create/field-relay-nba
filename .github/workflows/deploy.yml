@@ -32,6 +32,24 @@ jobs:
           echo "✅ KV ID: $KV_ID"
           sed -i "s/PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
 
+      # ── KV Bootstrap: create field-journalism if missing (O(1) Newspaper L2) ──
+      - name: Bootstrap KV namespace (field-journalism)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          CF="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          KV_ID=$(curl -s -H "$AUTH" "$CF/storage/kv/namespaces?per_page=100" | jq -r '.result[] | select(.title=="field-journalism") | .id' 2>/dev/null)
+          if [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ]; then
+            RESP=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d '{"title":"field-journalism"}' "$CF/storage/kv/namespaces")
+            KV_ID=$(echo "$RESP" | jq -r '.result.id' 2>/dev/null)
+            echo "Created KV namespace: $RESP"
+          fi
+          [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ] && { echo "❌ field-journalism KV ID not found"; exit 1; }
+          echo "✅ field-journalism KV ID: $KV_ID"
+          sed -i "s/JOURNALISM_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

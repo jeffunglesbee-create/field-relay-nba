@@ -593,10 +593,122 @@ async function handleCron(env) {
     }
 }
 
+// ── O(1) Newspaper: Journalism Cycle (Layer 2 — May 25 2026) ─────────────────
+// ADR-002 Rule A: generates PROSE ONLY. No game classification server-side.
+// No interest level values. No drama scores. Just cached journalism text.
+// Runs every */15 min via cron. Fetches ESPN, calls Claude proxy once per
+// sport section, stores prose in FIELD_JOURNALISM KV. All users read from KV.
+// Client makes ZERO AI calls when relay has fresh content.
+// Layer 3 delta: hashes game context before each AI call — skips if unchanged.
+
+const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
+const JOURNALISM_TTL_SECS = 900; // 15 min — matches cron frequency
+
+async function handleJournalismCycle(env) {
+  if (!env.FIELD_JOURNALISM) return; // KV not configured yet
+  const now = Date.now();
+  const dateKey = new Date().toISOString().slice(0, 10); // "2026-05-25"
+  const hour = new Date().getUTCHours();
+  // Only run during live hours: 10am-2am UTC (covers US primetime)
+  const isLiveHours = hour >= 10 || hour <= 2;
+  if (!isLiveHours) return;
+
+  try {
+    // 1. Fetch ESPN scoreboard for major leagues (prose only — no classification)
+    const LEAGUES = [
+      {sport:'basketball',league:'nba'},
+      {sport:'hockey',league:'nhl'},
+      {sport:'baseball',league:'mlb'},
+    ];
+    const gameLines = [];
+    for (const {sport,league} of LEAGUES) {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const events = d?.events || [];
+        for (const ev of events) {
+          const comp = ev.competitions?.[0];
+          if (!comp) continue;
+          const [home, away] = comp.competitors || [];
+          const status = comp.status?.type?.description || '';
+          const score = home && away
+            ? `${away?.team?.shortDisplayName||''} ${away?.score||0} @ ${home?.team?.shortDisplayName||''} ${home?.score||0}`
+            : '';
+          const broadcast = comp.broadcasts?.[0]?.names?.[0] || league.toUpperCase();
+          if (score) gameLines.push(`${score} · ${status} · ${broadcast}`);
+        }
+      } catch(_) {}
+    }
+
+    if (!gameLines.length) return; // nothing to write about
+
+    // 2. Layer 3: delta hash — skip AI if game context unchanged
+    const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
+    const existingRaw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
+    if (existingRaw) {
+      try {
+        const existing = JSON.parse(existingRaw);
+        if (existing.contextHash === contextHash) return; // no change, skip AI call
+      } catch(_) {}
+    }
+
+    // 3. Call Claude proxy ONCE — prose only, no classification (ADR-002 Rule A)
+    const prompt = [
+      'Write a FIELD Brief for tonight\'s sports slate.',
+      '',
+      'TONIGHT\'S GAMES:',
+      ...gameLines.map(l => `- ${l}`),
+      '',
+      'RULES:',
+      '- 100-120 words. 2 short paragraphs. No headers.',
+      '- Lead with the most important story.',
+      '- CORRECTNESS: write only from the data above. Never invent scores or stats.',
+      '- STYLE: specificity over metaphor. Numbers over adjectives. Active voice.',
+      '- VOICE: third person only. Write like a columnist, not a chatbot.',
+      '- Plain prose only. Complete sentences.',
+    ].join('\n');
+
+    const proxyResp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{role: 'user', content: prompt}],
+      }),
+    });
+
+    if (!proxyResp.ok) return;
+    const data = await proxyResp.json();
+    const prose = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
+    if (!prose || prose.length < 50) return;
+
+    // 4. Store prose + metadata in KV (ADR-002: prose ONLY, no scores)
+    await env.FIELD_JOURNALISM.put(
+      `journalism:${dateKey}`,
+      JSON.stringify({
+        brief: prose,
+        generatedAt: now,
+        contextHash,
+        gameCount: gameLines.length,
+        cycleId: crypto.randomUUID(),
+      }),
+      { expirationTtl: 86400 }
+    );
+  } catch(e) {
+    // Silent fail — client falls back to direct AI call
+    console.error('[journalism-cycle] error:', e.message);
+  }
+}
+
 export default {
-    // Cron trigger (*/5 * * * *): poll scores, send drama push notifications
+    // Cron triggers:
+    //   */5  * * * * → push notification heartbeat (drama threshold)
+    //   */15 * * * * → journalism cycle (O(1) Newspaper — Layer 2)
     async scheduled(event, env, ctx) {
         ctx.waitUntil(handleCron(env));
+        ctx.waitUntil(handleJournalismCycle(env));
     },
 
     async fetch(request, env, ctx) {
@@ -793,7 +905,20 @@ export default {
             return relayFetch(targetUrl, MLS_STATS_HEADERS, mlsStatsTtl(cleanPath), 'mls-stats', ctx);
         }
 
-        // /nba/* → NBA CDN
+        // ── /journalism/* — O(1) Newspaper: pre-rendered prose from KV ──────────
+        // ADR-002: KV stores PROSE ONLY. No classification. No interest values.
+        // Client reads this instead of calling AI. Falls back gracefully if empty.
+        if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
+            if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({error:'not configured'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
+            const dateKey = new Date().toISOString().slice(0,10);
+            const raw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
+            if (!raw) return new Response(JSON.stringify({brief:null,generatedAt:null}),{status:200,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'public,max-age=60'}});
+            const data = JSON.parse(raw);
+            const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
+            return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
+        }
+
+        // ── /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
         if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
         const nbaTtl = nbaPath.startsWith('/liveData/standings') ? NBA_STANDINGS_TTL : NBA_CACHE_TTL;
