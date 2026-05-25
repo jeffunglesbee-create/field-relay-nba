@@ -33,10 +33,22 @@ function nbaAllowed(path) {
 // Source: stats-api.mlssoccer.com — official MLS stats API powering mlssoccer.com
 // Auth: none required (plain GET; User-Agent recommended)
 // CORS: blocked for browser origins — relay required
-// Provides: live match state, schedule, standings, goals, commentary
-// Key benefit: canonical opta_id team IDs (numeric) — eliminates name-string collisions
-// 2026 season: MLS-COM-000001 / MLS-SEA-0001KA
-const MLS_STATS_BASE = 'https://stats-api.mlssoccer.com';
+// ── MLB Stats API (Item 6 — journalism depth) ─────────────────────────────
+// Free, no auth, no key. Provides: boxscore, pitcher stats, team batting avg.
+// Used to inject "Cole: 7.0 IP, 9K, 2.14 ERA" into journalism prompts.
+// gamePk = game.sourceId stored on allData MLB game objects.
+const MLB_STATS_API_BASE = 'https://statsapi.mlb.com/api/v1';
+const MLB_STATS_API_ALLOWED_PREFIXES = [
+    '/game/',       // /game/{gamePk}/boxscore + /game/{gamePk}/feed/live
+    '/people/',     // /people/{playerId}/stats — career/season stats
+];
+function mlbStatsApiAllowed(path) {
+    return MLB_STATS_API_ALLOWED_PREFIXES.some(p => path.startsWith(p));
+}
+const MLB_STATS_API_TTL = 60; // live game data — 60s cache
+const MLB_STATS_API_HEADERS = { 'User-Agent': 'FIELD-Sports-Intelligence/1.0' };
+
+// ── MLS Stats API ──────────────────────────────────────────────────────────
 const MLS_STATS_HEADERS = {
     'User-Agent': 'FIELD-Sports-Intelligence/1.0',
     'Accept':     'application/json',
@@ -897,6 +909,17 @@ export default {
         // /mls/stats/* → stats-api.mlssoccer.com (official MLS stats + live data)
         // Auth-free, CORS-restricted. Provides: match state, scores, goals, schedule, standings.
         // Canonical opta_id team IDs eliminate name-string key collisions in FIELD.
+        // ── /mlb-stats/* → MLB Stats API (Item 6 — boxscore + pitcher stats) ──
+        // Free, no auth. gamePk from game.sourceId. Provides pitcher IP/K/ERA,
+        // team batting avg, box score leaders for journalism depth.
+        if (pathname.startsWith('/mlb-stats')) {
+            const cleanPath = pathname.replace(/^\/mlb-stats/, '') || '/';
+            if (!mlbStatsApiAllowed(cleanPath))
+                return new Response('MLB Stats path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'mlb-stats-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${MLB_STATS_API_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, MLB_STATS_API_HEADERS, MLB_STATS_API_TTL, 'mlb-stats', ctx);
+        }
+
         if (pathname.startsWith('/mls/stats')) {
             const cleanPath = pathname.replace(/^\/mls\/stats/, '') || '/';
             if (!mlsStatsAllowed(cleanPath))
