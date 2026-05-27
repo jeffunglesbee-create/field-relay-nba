@@ -1033,7 +1033,7 @@ export default {
         // TTL: 43200 (12h) — updated Monday, FIELD refreshes mid-week on reload
         const MLB_STATS_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/mlb';
         const MLB_STATS_ALLOWED  = ['team_abs.json','expected_stats.json','sprint_speed.json',
-                                     'pitch_tempo.json','pitch_arsenals.json'];
+                                     'pitch_tempo.json','pitch_arsenals.json','umpire_abs.json'];
         if (pathname.startsWith('/mlb-stats/')) {
             const file = pathname.replace(/^\/mlb-stats\//, '');
             if (!MLB_STATS_ALLOWED.includes(file))
