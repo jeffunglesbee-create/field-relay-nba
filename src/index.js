@@ -1014,7 +1014,7 @@ export default {
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
         }
 
-        // ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
+// ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
         // Serves pre-computed analytics JSON committed by GitHub Action pipelines.
         // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
         if (pathname.startsWith('/nflverse/')) {
@@ -1024,6 +1024,22 @@ export default {
             const targetUrl = `${NFLVERSE_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
             // TTL: 86400 (1 day) — files only change when pipelines run
+        }
+
+        // ── /mlb-stats/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/mlb ─
+        // Serves weekly-updated MLB analytics JSON from mlb-weekly-update.yml pipeline.
+        // Files: team_abs.json, expected_stats.json, sprint_speed.json,
+        //        pitch_tempo.json, pitch_arsenals.json
+        // TTL: 43200 (12h) — updated Monday, FIELD refreshes mid-week on reload
+        const MLB_STATS_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/mlb';
+        const MLB_STATS_ALLOWED  = ['team_abs.json','expected_stats.json','sprint_speed.json',
+                                     'pitch_tempo.json','pitch_arsenals.json'];
+        if (pathname.startsWith('/mlb-stats/')) {
+            const file = pathname.replace(/^\/mlb-stats\//, '');
+            if (!MLB_STATS_ALLOWED.includes(file))
+                return new Response('mlb-stats file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'mlb-stats-not-whitelisted', ...CORS } });
+            const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
+            return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
         }
 
         // ── /sportradar-ufl/* → api.sportradar.com/ufl/trial/v7/en ───────────────
