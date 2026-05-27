@@ -341,6 +341,35 @@ function bdlCacheTtl(path) {
 }
 
 
+// ── RealtimeSports API — Live NFL play-by-play, scores, odds, teams ──────────
+// Source: realtimesportsapi.com — JWT Bearer auth (server-side only)
+// Key: env.REALTIMESPORTS_KEY (set in CF dashboard → field-relay-nba secrets)
+// Free tier: 125 calls/month. Starter: $12/mo, 10k calls + WebSocket.
+// Route: /realtimesports/{path} → realtimesportsapi.com/api/v1/{path}
+// Primary purpose: NFL live play-by-play schema evaluation + future live EPA input.
+const REALTIMESPORTS_BASE = 'https://realtimesportsapi.com/api/v1';
+const REALTIMESPORTS_ALLOWED_PREFIXES = [
+    '/sports',
+    '/events/live',
+    '/nfl/events',
+    '/nfl/teams',
+    '/nfl/plays',
+    '/nfl/statistics',
+    '/nfl/odds',
+    '/nfl/athletes',
+];
+function realtimeSportsAllowed(path) {
+    return REALTIMESPORTS_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p + '?') || path.startsWith(p + '/'));
+}
+function realtimeSportsTtl(path) {
+    if (path.startsWith('/events/live'))   return 30;   // live game state
+    if (path.startsWith('/nfl/plays'))     return 30;   // near-live play-by-play
+    if (path.startsWith('/nfl/statistics')) return 60;  // game stats, updates each drive
+    if (path.startsWith('/nfl/odds'))      return 120;  // odds move slowly
+    if (path.startsWith('/nfl/events'))    return 120;  // schedule, score updates
+    return 3600; // teams, sports, reference data
+}
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -939,6 +968,21 @@ export default {
             const data = JSON.parse(raw);
             const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
+        }
+
+        // ── /realtimesports/* → realtimesportsapi.com/api/v1 ──────────────────
+        // JWT Bearer auth injected server-side from env.REALTIMESPORTS_KEY secret.
+        // Primary use: NFL live play-by-play schema evaluation + live EPA input.
+        // Secret must be set in CF dashboard → field-relay-nba → Settings → Variables.
+        if (pathname.startsWith('/realtimesports')) {
+            const cleanPath = pathname.replace(/^\/realtimesports/, '') || '/';
+            if (!realtimeSportsAllowed(cleanPath))
+                return new Response('RealtimeSports path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'realtimesports-not-whitelisted', ...CORS } });
+            const rtKey = env.REALTIMESPORTS_KEY;
+            if (!rtKey)
+                return new Response('REALTIMESPORTS_KEY not configured', { status: 503, headers: { 'X-RELAY-Error': 'realtimesports-no-key', ...CORS } });
+            const targetUrl = `${REALTIMESPORTS_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, { 'Authorization': `Bearer ${rtKey}`, 'Accept': 'application/json' }, realtimeSportsTtl(cleanPath), 'realtimesports', ctx);
         }
 
         // ── /nba/* → NBA CDN
