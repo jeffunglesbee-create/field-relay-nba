@@ -1,0 +1,20 @@
+name: Update Odds API Key
+on:
+  workflow_dispatch:
+
+jobs:
+  update-secret:
+    runs-on: ubuntu-latest
+    name: Set ODDS_API_KEY to 20K plan key
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install wrangler
+        run: npm install -g wrangler@3.109.0
+
+      - name: Update ODDS_API_KEY to 20K plan
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          echo "de44fdf870b3a4b5ee9d46993b2e1038" | wrangler secret put ODDS_API_KEY --name field-relay-nba
+          echo "✅ ODDS_API_KEY updated to 20K plan key"
