@@ -368,6 +368,25 @@ function realtimeSportsTtl(path) {
     return 300;
 }
 
+// ── nflverse output files — EPA table + analytics JSON served from repo ──────
+// Source: raw.githubusercontent.com/jubilant-bassoon/main/outbox/nfl/{file}
+// Files committed by GitHub Actions build pipelines (build-epa-table.yml etc.)
+// Route: /nflverse/{file.json} → raw.githubusercontent.com
+const NFLVERSE_OUT_ALLOWED = [
+    'epa_table.json',
+    'team_epa.json',
+    'qb_metrics.json',
+    'receiver_metrics.json',
+    'defense_metrics.json',
+    'schedule_refs.json',
+    'team_tendencies.json',
+    'bdb_route_entropy.json',
+    'bdb_xblock_pass_rush.json',
+    'bdb_tendency_fingerprint.json',
+    'bdb_separation.json',
+];
+const NFLVERSE_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nfl';
+
 // ── SportRadar UFL API — Official real-time play-by-play + full season data ──
 // Source: api.sportradar.com/ufl — OFFICIAL data provider (not ESPN proxy)
 // Key: env.SPORTRADAR_UFL_KEY (GitHub secret → CF Worker secret via deploy.yml)
@@ -993,6 +1012,18 @@ export default {
             const data = JSON.parse(raw);
             const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
+        }
+
+        // ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
+        // Serves pre-computed analytics JSON committed by GitHub Action pipelines.
+        // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
+        if (pathname.startsWith('/nflverse/')) {
+            const file = pathname.replace(/^\/nflverse\//, '');
+            if (!NFLVERSE_OUT_ALLOWED.includes(file))
+                return new Response('nflverse file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nflverse-not-whitelisted', ...CORS } });
+            const targetUrl = `${NFLVERSE_RAW_BASE}/${file}`;
+            return relayFetch(targetUrl, { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
+            // TTL: 86400 (1 day) — files only change when pipelines run
         }
 
         // ── /sportradar-ufl/* → api.sportradar.com/ufl/trial/v7/en ───────────────
