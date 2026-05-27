@@ -344,39 +344,28 @@ function bdlCacheTtl(path) {
 // ── RealtimeSports API — Live NFL play-by-play, scores, odds, teams ──────────
 // Source: realtimesportsapi.com — JWT Bearer auth (server-side only)
 // Key: env.REALTIMESPORTS_KEY (set in CF dashboard → field-relay-nba secrets)
-// Free tier: 125 calls/month. Starter: $12/mo, 10k calls + WebSocket.
-// IMPORTANT: Two separate API paths exist:
-//   /api/v1/* — generic sports catalog (no NFL data)
-//   /api/*    — production frontend API (has NFL via ?league=nfl param)
-// Route: /realtimesports/* → www.realtimesportsapi.com/api/*
-// Discovered from Network tab May 27 2026: correct path is /api/schedule?league=nfl
-const REALTIMESPORTS_BASE = 'https://www.realtimesportsapi.com/api';
+// CORRECT API STRUCTURE (discovered via Swagger UI May 27 2026):
+//   /api/v1/sports/{sport}/leagues/{league}/events/live  — live events
+//   /api/v1/sports/{sport}/leagues/{league}/events/{id}/boxscore
+//   /api/v1/sports/{sport}/leagues/{league}/teams
+//   /api/v1/sports/{sport}/leagues/{league}/athletes
+// Route: /realtimesports/* → www.realtimesportsapi.com/api/v1/*
+const REALTIMESPORTS_BASE = 'https://www.realtimesportsapi.com/api/v1';
 const REALTIMESPORTS_ALLOWED_PREFIXES = [
-    '/schedule',
-    '/events',
-    '/plays',
-    '/play-by-play',
-    '/pbp',
-    '/game',
-    '/teams',
-    '/statistics',
-    '/odds',
-    '/athletes',
-    '/leagues',
-    '/live',
     '/sports',
 ];
 function realtimeSportsAllowed(path) {
-    return REALTIMESPORTS_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p + '?') || path.startsWith(p + '/'));
+    // Allow any path under /sports/ — broad but gated by auth key
+    return path === '/sports' || path.startsWith('/sports/');
 }
 function realtimeSportsTtl(path) {
-    if (path.startsWith('/live'))        return 30;   // live game state
-    if (path.startsWith('/plays'))       return 30;   // near-live play-by-play
-    if (path.startsWith('/statistics'))  return 60;   // updates each drive
-    if (path.startsWith('/odds'))        return 120;  // odds move slowly
-    if (path.startsWith('/schedule'))    return 120;  // schedule + scores
-    if (path.startsWith('/events'))      return 120;  // event data
-    return 3600; // teams, sports, reference data
+    if (path.includes('/events/live'))   return 30;   // live game state
+    if (path.includes('/boxscore'))      return 30;   // live box score
+    if (path.includes('/plays'))         return 30;   // play-by-play
+    if (path.includes('/events'))        return 120;  // schedule/results
+    if (path.includes('/athletes'))      return 3600; // roster reference
+    if (path.includes('/teams'))         return 3600; // team reference
+    return 300;
 }
 
 // ── Shared CORS headers ────────────────────────────────────────────────────
