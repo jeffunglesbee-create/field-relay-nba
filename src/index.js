@@ -345,27 +345,34 @@ function bdlCacheTtl(path) {
 // Source: realtimesportsapi.com — JWT Bearer auth (server-side only)
 // Key: env.REALTIMESPORTS_KEY (set in CF dashboard → field-relay-nba secrets)
 // Free tier: 125 calls/month. Starter: $12/mo, 10k calls + WebSocket.
-// Route: /realtimesports/{path} → realtimesportsapi.com/api/v1/{path}
-// Primary purpose: NFL live play-by-play schema evaluation + future live EPA input.
-const REALTIMESPORTS_BASE = 'https://realtimesportsapi.com/api/v1';
+// IMPORTANT: Two separate API paths exist:
+//   /api/v1/* — generic sports catalog (no NFL data)
+//   /api/*    — production frontend API (has NFL via ?league=nfl param)
+// Route: /realtimesports/* → www.realtimesportsapi.com/api/*
+// Discovered from Network tab May 27 2026: correct path is /api/schedule?league=nfl
+const REALTIMESPORTS_BASE = 'https://www.realtimesportsapi.com/api';
 const REALTIMESPORTS_ALLOWED_PREFIXES = [
-    '/sports',
-    '/events',
-    '/nfl',
-    '/football',
-    '/american-football',
-    '/leagues',
     '/schedule',
+    '/events',
+    '/plays',
+    '/teams',
+    '/statistics',
+    '/odds',
+    '/athletes',
+    '/leagues',
+    '/live',
+    '/sports',
 ];
 function realtimeSportsAllowed(path) {
     return REALTIMESPORTS_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p + '?') || path.startsWith(p + '/'));
 }
 function realtimeSportsTtl(path) {
-    if (path.startsWith('/events/live'))   return 30;   // live game state
-    if (path.startsWith('/nfl/plays'))     return 30;   // near-live play-by-play
-    if (path.startsWith('/nfl/statistics')) return 60;  // game stats, updates each drive
-    if (path.startsWith('/nfl/odds'))      return 120;  // odds move slowly
-    if (path.startsWith('/nfl/events'))    return 120;  // schedule, score updates
+    if (path.startsWith('/live'))        return 30;   // live game state
+    if (path.startsWith('/plays'))       return 30;   // near-live play-by-play
+    if (path.startsWith('/statistics'))  return 60;   // updates each drive
+    if (path.startsWith('/odds'))        return 120;  // odds move slowly
+    if (path.startsWith('/schedule'))    return 120;  // schedule + scores
+    if (path.startsWith('/events'))      return 120;  // event data
     return 3600; // teams, sports, reference data
 }
 
