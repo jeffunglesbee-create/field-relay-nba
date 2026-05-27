@@ -368,6 +368,33 @@ function realtimeSportsTtl(path) {
     return 300;
 }
 
+// ── SportRadar UFL API — Official real-time play-by-play + full season data ──
+// Source: api.sportradar.com/ufl — OFFICIAL data provider (not ESPN proxy)
+// Key: env.SPORTRADAR_UFL_KEY (GitHub secret → CF Worker secret via deploy.yml)
+// Trial: 30-day trial key MV2ms... expires ~Jun 26 2026. 1 req/sec rate limit.
+// Play schema: start_situation.{down, yfd, yardline} + home_points + away_points
+//   + play_type + play_action + run_pass_option + fake_punt = ALL EPA fields.
+// Route: /sportradar-ufl/{path} → api.sportradar.com/ufl/trial/v7/en/{path}
+// Endpoint reference: developer.sportradar.com/football/reference/ufl-overview
+const SPORTRADAR_UFL_BASE = 'https://api.sportradar.com/ufl/trial/v7/en';
+const SPORTRADAR_UFL_ALLOWED_PREFIXES = [
+    '/games',
+    '/seasons',
+    '/league',
+    '/teams',
+];
+function sportradarUflAllowed(path) {
+    return SPORTRADAR_UFL_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p + '/'));
+}
+function sportradarUflTtl(path) {
+    if (path.includes('/pbp'))       return 30;   // live play-by-play
+    if (path.includes('/boxscore'))  return 30;   // live box score
+    if (path.includes('/schedule'))  return 300;  // schedule updates
+    if (path.includes('/summary'))   return 60;   // game summary
+    if (path.includes('/statistics'))return 300;  // stats update each drive
+    return 3600; // teams, league hierarchy, rosters
+}
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -966,6 +993,22 @@ export default {
             const data = JSON.parse(raw);
             const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
+        }
+
+        // ── /sportradar-ufl/* → api.sportradar.com/ufl/trial/v7/en ───────────────
+        // Official UFL data provider. Key appended server-side from env.SPORTRADAR_UFL_KEY.
+        // Play-by-play: /games/{id}/pbp.json — all EPA fields confirmed May 27 2026.
+        // Trial key expires ~Jun 26 2026. All 40 2026 UFL games available.
+        if (pathname.startsWith('/sportradar-ufl')) {
+            const cleanPath = pathname.replace(/^\/sportradar-ufl/, '') || '/';
+            if (!sportradarUflAllowed(cleanPath))
+                return new Response('sportradar-ufl path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'sr-ufl-not-whitelisted', ...CORS } });
+            const srKey = env.SPORTRADAR_UFL_KEY;
+            if (!srKey)
+                return new Response('SPORTRADAR_UFL_KEY not configured', { status: 503, headers: { 'X-RELAY-Error': 'sr-ufl-no-key', ...CORS } });
+            const sep      = cleanPath.includes('?') ? '&' : '?';
+            const targetUrl = `${SPORTRADAR_UFL_BASE}${cleanPath}${sep}api_key=${srKey}`;
+            return relayFetch(targetUrl, { 'Accept': 'application/json' }, sportradarUflTtl(cleanPath), 'sportradar-ufl', ctx);
         }
 
         // ── /realtimesports/* → realtimesportsapi.com/api/v1 ──────────────────

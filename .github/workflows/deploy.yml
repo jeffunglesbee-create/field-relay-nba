@@ -54,6 +54,12 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          secrets: |
+            SPORTRADAR_UFL_KEY
+            REALTIMESPORTS_KEY
+        env:
+          SPORTRADAR_UFL_KEY: ${{ secrets.SPORTRADAR_UFL_KEY }}
+          REALTIMESPORTS_KEY: ${{ secrets.REALTIMESPORTS_KEY }}
 
       - name: Deploy Courier Worker
         uses: cloudflare/wrangler-action@v3
