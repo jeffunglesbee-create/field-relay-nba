@@ -420,6 +420,69 @@ const CORS = {
     'Access-Control-Allow-Methods': 'GET',
 };
 
+// ── Umpire ABS scraper helpers ────────────────────────────────────────────────
+
+// Parse umpire data from Next.js __NEXT_DATA__ array format
+function _parseUmpireArray(arr) {
+    if (!Array.isArray(arr)) return null;
+    const out = {};
+    for (const item of arr) {
+        const name = item?.entity_name || item?.name || item?.umpire_name || '';
+        const challenged  = Number(item?.n_challenges   || item?.challenged  || 0);
+        const overturned  = Number(item?.n_overturns    || item?.overturned  || 0);
+        const rate        = Number(item?.rate_overturns || item?.rate        || 0);
+        if (!name || challenged < 3) continue;
+        const parts = name.trim().split(/\s+/);
+        const last  = parts[parts.length - 1].toLowerCase().replace(/[.']/g, '');
+        if (last.length < 2) continue;
+        out[last] = { challenged, overturned, rate: Math.round(rate * 1000) / 1000,
+                      pitchesCalled: Number(item?.pitches_called || 0),
+                      weakness: null, displayName: name };
+    }
+    return Object.keys(out).length ? out : null;
+}
+
+// Parse umpire data from raw HTML via regex (no DOM available in CF Workers)
+function _parseUmpireHTML(html) {
+    const out = {};
+    // Match all <tr> blocks
+    const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)];
+    for (const [, rowHtml] of rows) {
+        // Extract cell text, strip all tags
+        const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+            .map(([, inner]) => inner.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&')
+                                     .replace(/&#?\w+;/g,'').trim());
+        if (cells.length < 4) continue;
+        // Find the name cell: not purely numeric, contains a space, length > 4
+        let name = '', ni = -1;
+        for (let i = 0; i < Math.min(cells.length, 4); i++) {
+            if (cells[i] && !/^\d+\.?\d*%?$/.test(cells[i]) && cells[i].includes(' ') && cells[i].length > 4) {
+                name = cells[i]; ni = i; break;
+            }
+        }
+        if (!name || ni < 0) continue;
+        // Remaining cells should contain: challenged, overturned, rate%, pitches_called
+        const nums = cells.slice(ni + 1).map(c => {
+            const v = parseFloat(c.replace('%','').trim());
+            return isNaN(v) ? null : v;
+        });
+        // challenged: small integer 3-100
+        const challenged = nums.find(n => n !== null && n >= 3 && n <= 200);
+        // rate: value that could be 0-1 or 0-100
+        const rateRaw = nums.find(n => n !== null && n > 0 && n <= 100);
+        if (!challenged || challenged < 3) continue;
+        const rate = rateRaw > 1 ? rateRaw / 100 : rateRaw;
+        const overturned = Math.round(challenged * rate);
+        const parts = name.trim().split(/\s+/);
+        const last  = parts[parts.length - 1].toLowerCase().replace(/[.']/g,'');
+        if (last.length < 2 || /^\d+$/.test(last)) continue;
+        out[last] = { challenged: Math.round(challenged), overturned,
+                      rate: Math.round(rate * 1000) / 1000,
+                      pitchesCalled: 0, weakness: null, displayName: name };
+    }
+    return Object.keys(out).length >= 3 ? out : null;
+}
+
 // ── Shared relay fetch helper ──────────────────────────────────────────────
 async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     const cache    = caches.default;
@@ -1042,7 +1105,90 @@ export default {
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
         }
 
-        // ── /sportradar-ufl/* → api.sportradar.com/ufl/trial/v7/en ───────────────
+        // ── /mlb-umpire-scrape → Savant hp_umpire page scrape ────────────────────
+        // Reason this exists: Savant's csv=true crashes server-side for hp_umpire
+        // (TypeError: Cannot read properties of undefined (reading 'strikeout')).
+        // GitHub Actions IPs are bot-blocked by Savant. CF IPs are not.
+        // This Worker fetches the umpire leaderboard HTML from Savant and returns
+        // parsed JSON — keyed by last name to match UMPIRE_ABS_RATINGS in FIELD.
+        // Cache TTL: 14400s (4h) — data changes weekly, 4h is more than fresh enough.
+        if (pathname === '/mlb-umpire-scrape') {
+            const cacheKey = new Request('https://field-relay-cache/mlb-umpire-scrape-2026', request);
+            const cache = caches.default;
+            const hit = await cache.match(cacheKey);
+            if (hit) return new Response(hit.body, { ...hit, headers: { ...Object.fromEntries(hit.headers), 'X-Cache': 'HIT', ...CORS } });
+
+            const SAVANT_UMP = 'https://baseballsavant.mlb.com/leaderboard/abs-challenges' +
+                '?gameType=regular&groupBy=is_strike_calc&year=2026' +
+                '&challengeType=hp_umpire&level=mlb&minChal=3';
+            let html = '', status = 0;
+            try {
+                const r = await fetch(SAVANT_UMP, { headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,*/*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://baseballsavant.mlb.com/',
+                }});
+                status = r.status;
+                if (r.ok) html = await r.text();
+            } catch(e) {
+                return new Response(JSON.stringify({ error: `Savant fetch failed: ${e.message}` }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+
+            if (!html) return new Response(JSON.stringify({ error: `Savant returned HTTP ${status}` }),
+                { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+
+            // ── Parse strategy 1: __NEXT_DATA__ JSON blob ──────────────────────
+            // Next.js bakes SSR props into <script id="__NEXT_DATA__"> on every page.
+            // If the umpire table data is in there, this is the cleanest extraction.
+            let umpires = null;
+            const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]+?)<\/script>/);
+            if (ndMatch) {
+                try {
+                    const nd = JSON.parse(ndMatch[1]);
+                    // Walk common Next.js prop structures to find umpire rows
+                    const candidates = [
+                        nd?.props?.pageProps?.data,
+                        nd?.props?.pageProps?.leaderboard,
+                        nd?.props?.pageProps?.umpires,
+                        nd?.props?.pageProps?.results,
+                    ].filter(Boolean);
+                    for (const c of candidates) {
+                        const parsed = _parseUmpireArray(Array.isArray(c) ? c : Object.values(c));
+                        if (parsed && Object.keys(parsed).length >= 5) { umpires = parsed; break; }
+                    }
+                } catch(e) {}
+            }
+
+            // ── Parse strategy 2: HTML table regex ─────────────────────────────
+            // Extract <tr> rows, strip tags, find rows with umpire name + numbers.
+            if (!umpires) {
+                umpires = _parseUmpireHTML(html);
+            }
+
+            if (!umpires || Object.keys(umpires).length < 3) {
+                // Return debug info so the pipeline can diagnose
+                const snippet = html.slice(0, 500);
+                return new Response(JSON.stringify({
+                    error: 'Could not parse umpire table',
+                    htmlLength: html.length,
+                    snippet,
+                    hint: 'Check if Savant changed challengeType=hp_umpire page structure'
+                }), { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+
+            const result = JSON.stringify({
+                updated: new Date().toISOString(),
+                source: 'Savant via CF Worker',
+                data: umpires,
+            });
+            const resp = new Response(result, {
+                headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=14400', ...CORS }
+            });
+            ctx.waitUntil(cache.put(cacheKey, resp.clone()));
+            return resp;
+        }
         // Official UFL data provider. Key appended server-side from env.SPORTRADAR_UFL_KEY.
         // Play-by-play: /games/{id}/pbp.json — all EPA fields confirmed May 27 2026.
         // Trial key expires ~Jun 26 2026. All 40 2026 UFL games available.
