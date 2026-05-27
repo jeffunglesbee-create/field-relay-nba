@@ -350,13 +350,12 @@ function bdlCacheTtl(path) {
 const REALTIMESPORTS_BASE = 'https://realtimesportsapi.com/api/v1';
 const REALTIMESPORTS_ALLOWED_PREFIXES = [
     '/sports',
-    '/events/live',
-    '/nfl/events',
-    '/nfl/teams',
-    '/nfl/plays',
-    '/nfl/statistics',
-    '/nfl/odds',
-    '/nfl/athletes',
+    '/events',
+    '/nfl',
+    '/football',
+    '/american-football',
+    '/leagues',
+    '/schedule',
 ];
 function realtimeSportsAllowed(path) {
     return REALTIMESPORTS_ALLOWED_PREFIXES.some(p => path === p || path.startsWith(p + '?') || path.startsWith(p + '/'));
