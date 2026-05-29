@@ -949,6 +949,7 @@ async function handleJournalismCycle(env) {
       '- Plain prose only. Every sentence complete.',
     ].join('\n');
 
+    let _lastProxyStatus = '';
     const callProxy = async (promptText) => {
       const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
@@ -959,13 +960,17 @@ async function handleJournalismCycle(env) {
           messages: [{role: 'user', content: promptText}],
         }),
       });
-      if (!resp.ok) return null;
+      if (!resp.ok) {
+        const body = await resp.text().catch(()=>'');
+        _lastProxyStatus = `HTTP ${resp.status} ${body.slice(0,200)}`;
+        return null;
+      }
       const data = await resp.json();
       return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
     };
 
     let prose = await callProxy(buildPrompt());
-    if (!prose || prose.length < 50) return {ok:false, reason:`proxy returned no prose (len ${prose?prose.length:0}) — likely 429/proxy error`};
+    if (!prose || prose.length < 50) return {ok:false, reason:`proxy no prose (len ${prose?prose.length:0})`, proxyStatus:_lastProxyStatus};
 
     // 4. Layer 2: cliché detection + one retry
     const cliches = relayHasCliche(prose);
