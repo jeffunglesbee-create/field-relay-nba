@@ -650,22 +650,33 @@ async function sendWebPush(sub, payload, env) {
     return res;
 }
 
-// Cron handler: poll ESPN scores, compute drama, push to subscribers
+// Cron handler (ADR-002 Component 3 — independent push checker).
+// Sends FACTS only ("score changed"); the client (sw.js computePushDrama +
+// Drama Dial) evaluates excitement. Per ADR-002 Rule A/B the relay computes
+// NO drama score and NO classification server-side; per Rule D it fires on a
+// minimal standalone boolean over raw game state (late phase AND close margin),
+// never on an aggregated value crossing a threshold. Conforms code to the
+// documented architecture only — legal sufficiency is counsel's call
+// (ADR-002 PROPOSED; Numerical Usage Policy v2 bright line: never push on a
+// composite-value threshold).
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
     // ── Multi-sport ESPN polling ──────────────────────────────────
+    // minPeriod/maxMargin are per-dimension FACTUAL gates over raw game
+    // state (late phase, close margin). They are separate logical gates,
+    // never summed into a score. No dramaBase — no composite exists.
     const SPORT_CONFIG = [
-        {sport:'NBA', path:'basketball/nba',  minPeriod:3, maxMargin:10, dramaBase:80},
-        {sport:'NHL', path:'hockey/nhl',      minPeriod:3, maxMargin:3,  dramaBase:78},
-        {sport:'MLB', path:'baseball/mlb',    minPeriod:7, maxMargin:4,  dramaBase:75},
-        {sport:'NFL', path:'football/nfl',    minPeriod:3, maxMargin:10, dramaBase:80},
-        {sport:'MLS', path:'soccer/usa.1',    minPeriod:2, maxMargin:2,  dramaBase:82},
-        {sport:'EPL', path:'soccer/eng.1',    minPeriod:2, maxMargin:2,  dramaBase:82},
+        {sport:'NBA', path:'basketball/nba',  minPeriod:3, maxMargin:10},
+        {sport:'NHL', path:'hockey/nhl',      minPeriod:3, maxMargin:3 },
+        {sport:'MLB', path:'baseball/mlb',    minPeriod:7, maxMargin:4 },
+        {sport:'NFL', path:'football/nfl',    minPeriod:3, maxMargin:10},
+        {sport:'MLS', path:'soccer/usa.1',    minPeriod:2, maxMargin:2 },
+        {sport:'EPL', path:'soccer/eng.1',    minPeriod:2, maxMargin:2 },
     ];
 
-    const dramatic = [];
+    const live = [];
     for (const cfg of SPORT_CONFIG) {
         try {
             const r = await fetch(`${RELAY}/espn-gambit/apis/site/v2/sports/${cfg.path}/scoreboard`);
@@ -684,34 +695,36 @@ async function handleCron(env) {
                     !detail.includes("'") && !detail.includes('Inn') && !detail.includes('Top') &&
                     !detail.includes('Bot') && !detail.includes('End')) continue;
                 const period = comp.status?.period || 0;
-                if (period < cfg.minPeriod) continue;
                 const [home, away] = comp.competitors || [];
                 const hScore = parseInt(home?.score||'0');
                 const aScore = parseInt(away?.score||'0');
                 const margin = Math.abs(hScore - aScore);
-                if (margin > cfg.maxMargin) continue;
-                // Drama heuristic: sport-specific base + period bonus + closeness bonus
-                const periodBonus = (period - cfg.minPeriod) * 5;
-                const closenessBonus = Math.max(0, cfg.maxMargin - margin) * 3;
-                const drama = Math.max(0, Math.min(100, cfg.dramaBase + periodBonus + closenessBonus));
-                if (drama < 85) continue;
+
+                // STANDALONE BOOLEAN (ADR-002 Rule D): late phase AND close
+                // margin — two raw-data dimensional gates, logically ANDed.
+                // No score, no sum, no aggregated-value threshold.
+                const latePhase = period >= cfg.minPeriod;
+                const closeGame = margin <= cfg.maxMargin;
+                if (!(latePhase && closeGame)) continue;
+
                 const broadcast = comp.broadcasts?.[0]?.names?.[0] || cfg.sport;
-                dramatic.push({
+                live.push({
+                    type: 'SCORE_CHANGE',          // facts only — client evaluates excitement
                     gameId: ev.id,
                     sport: cfg.sport,
                     home: home?.team?.shortDisplayName || home?.team?.name || '',
                     away: away?.team?.shortDisplayName || away?.team?.name || '',
                     homeScore: hScore, awayScore: aScore,
-                    periodLabel: detail || `Period ${period}`,
-                    broadcast, drama: Math.round(drama),
+                    period: comp.status?.type?.shortDetail || detail || `Period ${period}`,
+                    clock: comp.status?.displayClock || '',
+                    broadcast,
                     watchUrl: null,
-                    type: 'DRAMA_THRESHOLD',
                 });
             }
         } catch(_) { /* sport unavailable — skip */ }
     }
 
-    if (!dramatic.length) return;
+    if (!live.length) return;
 
     // Get all subscribers from KV
     const list = await env.PUSH_SUBS.list();
@@ -723,17 +736,22 @@ async function handleCron(env) {
         const sub = subData.subscription;
         if (!sub?.endpoint) continue;
         const prefs = subData.prefs || {};
-        const minDrama = prefs.drama_min || 85;
+        // Factual opt-in only. No interest-value threshold here — the client
+        // applies the user's Drama Dial. drama_min is intentionally removed
+        // (it thresholded a server-side composite). If the subscriber has a
+        // sport allowlist, honor it as a factual filter.
+        const sportAllow = Array.isArray(prefs.sports) ? prefs.sports : null;
 
-        for (const game of dramatic) {
-            if (game.drama < minDrama) continue;
-            const firedKey = `${key.name}:${game.gameId}:DRAMA`;
+        for (const game of live) {
+            if (sportAllow && !sportAllow.includes(game.sport)) continue;
+            // Dedup on the SCORE STATE so a genuine score change re-notifies
+            // (matches the SCORE_CHANGE contract), rather than once-per-game.
+            const firedKey = `${key.name}:${game.gameId}:${game.homeScore}-${game.awayScore}`;
             const alreadyFired = await env.PUSH_SUBS.get(firedKey);
-            if (alreadyFired) continue; // already notified for this game
+            if (alreadyFired) continue;
             try {
                 const res = await sendWebPush(sub, game, env);
                 if (res.ok || res.status === 201) {
-                    // Mark as fired for this session (TTL: 8 hours)
                     await env.PUSH_SUBS.put(firedKey, '1', {expirationTtl: 28800});
                 }
             } catch(e) {
