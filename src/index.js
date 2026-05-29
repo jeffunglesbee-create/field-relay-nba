@@ -893,12 +893,12 @@ function buildGameLine(ev, league) {
 }
 
 async function handleJournalismCycle(env) {
-  if (!env.FIELD_JOURNALISM) return; // KV not configured yet
+  if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
   const dateKey = new Date().toISOString().slice(0, 10);
   const hour = new Date().getUTCHours();
   const isLiveHours = hour >= 10 || hour <= 2;
-  if (!isLiveHours) return;
+  if (!isLiveHours) return {ok:false, reason:`not live hours (UTC ${hour})`};
 
   try {
     // 1. Fetch ESPN scoreboard — richer context (Fix 5)
@@ -922,7 +922,7 @@ async function handleJournalismCycle(env) {
       } catch(_) {}
     }
 
-    if (!gameLines.length) return;
+    if (!gameLines.length) return {ok:false, reason:'no game lines from ESPN'};
 
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
@@ -930,7 +930,7 @@ async function handleJournalismCycle(env) {
     if (existingRaw) {
       try {
         const existing = JSON.parse(existingRaw);
-        if (existing.contextHash === contextHash) return;
+        if (existing.contextHash === contextHash) return {ok:false, reason:'context unchanged (already cached)'};
       } catch(_) {}
     }
 
@@ -965,7 +965,7 @@ async function handleJournalismCycle(env) {
     };
 
     let prose = await callProxy(buildPrompt());
-    if (!prose || prose.length < 50) return;
+    if (!prose || prose.length < 50) return {ok:false, reason:`proxy returned no prose (len ${prose?prose.length:0}) — likely 429/proxy error`};
 
     // 4. Layer 2: cliché detection + one retry
     const cliches = relayHasCliche(prose);
@@ -999,8 +999,10 @@ async function handleJournalismCycle(env) {
       }),
       { expirationTtl: 86400 }
     );
+    return {ok:true, reason:'written', score:finalScore, gameCount:gameLines.length, briefLen:prose.length};
   } catch(e) {
     console.error('[journalism-cycle] error:', e.message);
+    return {ok:false, reason:'exception: '+(e&&e.message||String(e))};
   }
 }
 
@@ -1228,8 +1230,8 @@ export default {
         // Lets us populate KV on demand (e.g. after KV creation) without waiting
         // for the next cron tick. Idempotent: skips if context hash unchanged.
         if (pathname === '/journalism/run' && request.method === 'POST') {
-          ctx.waitUntil(handleJournalismCycle(env));
-          return new Response(JSON.stringify({ok:true, triggered:'journalism-cycle'}),
+          const result = await handleJournalismCycle(env);
+          return new Response(JSON.stringify({triggered:'journalism-cycle', result}),
             {headers:{...CORS,'Content-Type':'application/json'}});
         }
 
