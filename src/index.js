@@ -301,12 +301,13 @@ function espnGambitAllowed(path) {
 }
 
 // ── ESPN Site API — Summary endpoint (Win Probability, play-by-play, scores) ───
-// Source: site.api.espn.com — public REST endpoint, no auth required
+// Source: site.web.api.espn.com — returns data.plays[] (substitutions) + data.boxscore
+// site.api.espn.com only returns WP; site.web.api.espn.com returns full game data
 // CORS: locked to espn.com origin — server-side relay required
 // Cache: 25s — aligns with FIELD's 30s poll; winprobability[] array is live-updated
-// Route: /espn-summary/* → site.api.espn.com/apis/site/v2/*
+// Route: /espn-summary/* → site.web.api.espn.com/apis/site/v2/*
 // Usage: /espn-summary/sports/basketball/nba/summary?event={gameId}
-const ESPN_SUMMARY_BASE    = 'https://site.api.espn.com/apis/site/v2';
+const ESPN_SUMMARY_BASE    = 'https://site.web.api.espn.com/apis/site/v2';
 const ESPN_SUMMARY_TTL     = 25;
 const ESPN_SUMMARY_HEADERS = {
     'Origin':  'https://www.espn.com',
