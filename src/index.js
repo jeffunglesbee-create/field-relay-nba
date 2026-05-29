@@ -1222,6 +1222,15 @@ export default {
         // ── /journalism/* — O(1) Newspaper: pre-rendered prose from KV ──────────
         // ADR-002: KV stores PROSE ONLY. No classification. No interest values.
         // Client reads this instead of calling AI. Falls back gracefully if empty.
+        // Manual journalism cycle trigger — runs the same logic as the */15 cron.
+        // Lets us populate KV on demand (e.g. after KV creation) without waiting
+        // for the next cron tick. Idempotent: skips if context hash unchanged.
+        if (pathname === '/journalism/run' && request.method === 'POST') {
+          ctx.waitUntil(handleJournalismCycle(env));
+          return new Response(JSON.stringify({ok:true, triggered:'journalism-cycle'}),
+            {headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
         if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
             if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({error:'not configured'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
             const dateKey = new Date().toISOString().slice(0,10);
