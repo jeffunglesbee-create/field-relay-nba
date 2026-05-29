@@ -1084,7 +1084,9 @@ export default {
             });
         }
 
-        if (request.method !== 'GET' && !(pathname === '/pgatour' && (request.method === 'POST' || request.method === 'OPTIONS')))
+        if (request.method !== 'GET'
+            && !(pathname === '/pgatour' && (request.method === 'POST' || request.method === 'OPTIONS'))
+            && !(pathname === '/journalism/run' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
