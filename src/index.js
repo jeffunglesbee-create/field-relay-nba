@@ -415,52 +415,7 @@ function sportradarUflTtl(path) {
     return 3600; // teams, league hierarchy, rosters
 }
 
-// ── PGA Tour GraphQL API ────────────────────────────────────────────────────
-// Source: orchestrator.pgatour.com/graphql — powers pgatour.com website
-// Auth: x-api-key embedded in PGA Tour's public JS bundle (community-documented
-//       since 2022, still active Sept 2025 in public automated repos).
-//       Not a secret — it's shipped in every pgatour.com browser session.
-//       Hardcoded here to avoid needing a CF Worker secret.
-// CORS: blocked for third-party browser origins — relay required.
-// Route: POST /pgatour → orchestrator.pgatour.com/graphql (POST proxy)
-// Supported operations (whitelist):
-//   StatDetails      — per-stat rankings: SG:Total/App/Putt/OTT/ARG/T2G, GIR, etc.
-//   statLeaders      — category-level leaders (STROKES_GAINED, PUTTING, etc.)
-//   playerDirectory  — all active PGA Tour players with IDs + OWGR
-//   Schedule         — season schedule with tournament IDs
-//   TournamentPastResults — historical results per tournament
-// Cache: 3600s for stats/schedule (changes daily max); 300s for live leaderboard
-// FIELD uses: course fit score, sustainability signal, season context per player
-const PGATOUR_GRAPHQL_URL = 'https://orchestrator.pgatour.com/graphql';
-const PGATOUR_API_KEY     = 'da2-gsrx5bibzbb4njvhl7t37wqyl4';
-const PGATOUR_HEADERS = {
-    'Content-Type': 'application/json',
-    'x-api-key':    PGATOUR_API_KEY,
-    'Origin':       'https://www.pgatour.com',
-    'Referer':      'https://www.pgatour.com/',
-    'User-Agent':   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-};
-// Only allow operations FIELD actually needs — block introspection, mutations, etc.
-const PGATOUR_ALLOWED_OPS = new Set([
-    'StatDetails',
-    'statLeaders',
-    'playerDirectory',
-    'Schedule',
-    'TournamentPastResults',
-    'leaderboard',
-    'player',
-]);
-function pgatourCacheTtl(op) {
-    if (op === 'leaderboard')           return 120;   // live — 2 min (tournaments run ~5h)
-    if (op === 'StatDetails')           return 3600;  // updated once daily max
-    if (op === 'statLeaders')           return 3600;
-    if (op === 'Schedule')              return 3600;
-    if (op === 'TournamentPastResults') return 86400; // historical — daily cache
-    if (op === 'playerDirectory')       return 86400; // roster changes weekly at most
-    if (op === 'player')                return 3600;
-    return 3600;
-}
-
+// PGA Tour GraphQL relay REMOVED 2026-05-29 (ToS compliance) — pgatour.com ToU bars automated copying/downloading; data is licensed/proprietary. Do not re-add without a licensed feed or counsel sign-off. See jubilant-bassoon docs/data-sourcing-legitimacy-2026-05-29.md
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -1058,7 +1013,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + pgatour', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -1096,7 +1051,6 @@ export default {
         }
 
         if (request.method !== 'GET'
-            && !(pathname === '/pgatour' && (request.method === 'POST' || request.method === 'OPTIONS'))
             && !(pathname === '/journalism/run' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
@@ -1394,95 +1348,6 @@ export default {
                 return new Response('REALTIMESPORTS_KEY not configured', { status: 503, headers: { 'X-RELAY-Error': 'realtimesports-no-key', ...CORS } });
             const targetUrl = `${REALTIMESPORTS_BASE}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, { 'Authorization': `Bearer ${rtKey}`, 'Accept': 'application/json' }, realtimeSportsTtl(cleanPath), 'realtimesports', ctx);
-        }
-
-        // ── POST /pgatour → orchestrator.pgatour.com/graphql ──────────────────
-        // PGA Tour GraphQL: SG splits, player directory, schedule, leaderboard.
-        // POST only (GraphQL spec). Key injected server-side. Op whitelist enforced.
-        // CORS headers allow browser fetch from any origin (incl. jubilant-bassoon).
-        if (pathname === '/pgatour') {
-            // CORS preflight
-            if (request.method === 'OPTIONS') {
-                return new Response(null, { status: 204, headers: {
-                    'Access-Control-Allow-Origin':  '*',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type',
-                    'Access-Control-Max-Age':       '86400',
-                }});
-            }
-            if (request.method !== 'POST')
-                return new Response('PGA Tour relay requires POST', { status: 405, headers: CORS });
-
-            let body;
-            try { body = await request.json(); }
-            catch(_) { return new Response('Invalid JSON body', { status: 400, headers: CORS }); }
-
-            const op = body?.operationName || '';
-            if (!op || !PGATOUR_ALLOWED_OPS.has(op))
-                return new Response(
-                    JSON.stringify({ error: `Operation '${op}' not allowed. Permitted: ${[...PGATOUR_ALLOWED_OPS].join(', ')}` }),
-                    { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } }
-                );
-
-            // Edge cache keyed on op + variables
-            const cacheKeyStr = `https://field-relay-pgatour/${op}/${JSON.stringify(body.variables||{})}`;
-            const cacheKey    = new Request(cacheKeyStr, { method: 'GET' });
-            const cache       = caches.default;
-            const cached      = await cache.match(cacheKey);
-            if (cached) {
-                const headers = new Headers(cached.headers);
-                headers.set('Access-Control-Allow-Origin', '*');
-                headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-                headers.set('X-FIELD-Cache', 'HIT');
-                return new Response(cached.body, { status: 200, headers });
-            }
-
-            let upstream;
-            try {
-                upstream = await fetch(PGATOUR_GRAPHQL_URL, {
-                    method:  'POST',
-                    headers: PGATOUR_HEADERS,
-                    body:    JSON.stringify(body),
-                });
-            } catch(err) {
-                return new Response(
-                    JSON.stringify({ error: `PGA Tour upstream error: ${err.message}` }),
-                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
-                );
-            }
-
-            if (!upstream.ok) {
-                const errBody = await upstream.text().catch(() => '');
-                return new Response(
-                    JSON.stringify({ error: `PGA Tour returned ${upstream.status}`, detail: errBody.slice(0, 200) }),
-                    { status: upstream.status, headers: { ...CORS, 'Content-Type': 'application/json' } }
-                );
-            }
-
-            const ttl      = pgatourCacheTtl(op);
-            const respBody = await upstream.text();
-
-            // Validate JSON before caching
-            try { JSON.parse(respBody); } catch(_) {
-                return new Response(
-                    JSON.stringify({ error: 'PGA Tour returned non-JSON', preview: respBody.slice(0, 100) }),
-                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
-                );
-            }
-
-            const response = new Response(respBody, {
-                status: 200,
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Cache-Control': `public, max-age=${ttl}`,
-                    'X-FIELD-Proxy': 'relay-pgatour',
-                    'X-Cache-TTL':   String(ttl),
-                    'X-PGA-Op':      op,
-                    ...CORS,
-                },
-            });
-            ctx.waitUntil(cache.put(cacheKey, response.clone()));
-            return response;
         }
 
         // ── /nba/* → NBA CDN
