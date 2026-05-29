@@ -655,10 +655,269 @@ async function sendWebPush(sub, payload, env) {
 // Drama Dial) evaluates excitement. Per ADR-002 Rule A/B the relay computes
 // NO drama score and NO classification server-side; per Rule D it fires on a
 // minimal standalone boolean over raw game state (late phase AND close margin),
+// ═══════════════════════════════════════════════════════════════════════════
+// V2 NORMALIZED ROUTES — FieldGame schema (Phase 0, May 2026)
+// ESPN paths remain live in parallel. This layer is additive only.
+// All /v2/* routes disabled on client until FIELD_V2_SOURCES flag is set.
+// Spec: docs/espn-pivot-phase0-1-2026-05-29.md
+// ADR-002: relay stays a dumb relay — no classification, no interest values.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// League IDs for api-sports.io queries, keyed by FIELD sport identifier
+const V2_LEAGUES = {
+    'nba':        { sport: 'basketball', leagueId: 12,  season: '2025-2026' },
+    'nhl':        { sport: 'hockey',     leagueId: 57,  season: '2025-2026' },
+    'mlb':        { sport: 'baseball',   leagueId: 1,   season: '2026'      },
+    'epl':        { sport: 'football',   leagueId: 39,  season: '2025'      },
+    'mls':        { sport: 'football',   leagueId: 253, season: '2026'      },
+    'ucl':        { sport: 'football',   leagueId: 2,   season: '2025'      },
+    'laliga':     { sport: 'football',   leagueId: 140, season: '2025'      },
+    'seriea':     { sport: 'football',   leagueId: 135, season: '2025'      },
+    'bundesliga': { sport: 'football',   leagueId: 78,  season: '2025'      },
+    'ligue1':     { sport: 'football',   leagueId: 61,  season: '2025'      },
+};
+
+// Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
+function v2State(sport, statusShort) {
+    const s = (statusShort || '').toUpperCase();
+    if (sport === 'football') {
+        if (['1H','2H','HT','ET','P','BT','LIVE'].includes(s)) return 'live';
+        if (['FT','AET','PEN','AWD'].includes(s))              return 'final';
+        return 'pre';
+    }
+    if (sport === 'basketball') {
+        if (['Q1','Q2','Q3','Q4','OT','BT','HT'].includes(s)) return 'live';
+        if (['FT','AOT','ABD'].includes(s))                    return 'final';
+        return 'pre';
+    }
+    if (sport === 'hockey') {
+        if (['P1','P2','P3','OT','SO','BT'].includes(s)) return 'live';
+        if (['FT','AOT','APN','ABD'].includes(s))        return 'final';
+        return 'pre';
+    }
+    if (sport === 'baseball') {
+        if (['FT','FT_IN','POST','PPD','ABD'].includes(s)) return 'final';
+        if (['NS','TBD','PST'].includes(s))                return 'pre';
+        return 'live'; // BT1-BT9, T1-T9, M1-M9 (top/bot/mid inning)
+    }
+    return 'pre';
+}
+
+// Map raw game + status → { periodNum, periodLabel }
+function v2Period(sport, status, game) {
+    const s = (status?.short || '').toUpperCase();
+    if (sport === 'basketball') {
+        const map = { 'Q1':1,'Q2':2,'Q3':3,'Q4':4,'OT':5,'BT':game?.periods?.current||0 };
+        const num = map[s] ?? (game?.periods?.current || 0);
+        const lbl = { 1:'Q1',2:'Q2',3:'Q3',4:'Q4',5:'OT' }[num] || (num > 4 ? `OT${num-4}` : '');
+        return { periodNum: num, periodLabel: lbl };
+    }
+    if (sport === 'hockey') {
+        const map = { 'P1':1,'P2':2,'P3':3,'OT':4,'SO':5 };
+        const num = map[s] ?? (game?.periods?.current || 0);
+        const lbl = { 1:'1st',2:'2nd',3:'3rd',4:'OT',5:'SO' }[num] || '';
+        return { periodNum: num, periodLabel: lbl };
+    }
+    if (sport === 'baseball') {
+        const inn = game?.innings?.current || 0;
+        const half = s.startsWith('T') ? 'Top' : s.startsWith('B') ? 'Bot' : s.startsWith('M') ? 'Mid' : '';
+        return { periodNum: inn, periodLabel: half ? `${half} ${inn}` : (inn ? `Inn ${inn}` : '') };
+    }
+    if (sport === 'football') {
+        const el = status?.elapsed;
+        const clock = el != null ? `${el}'` : '';
+        if (s === '1H') return { periodNum: 1, periodLabel: clock || '1st Half' };
+        if (s === '2H') return { periodNum: 2, periodLabel: clock || '2nd Half' };
+        if (s === 'HT') return { periodNum: 1, periodLabel: 'HT' };
+        if (s === 'ET') return { periodNum: 3, periodLabel: clock || 'ET' };
+        if (s === 'P')  return { periodNum: 4, periodLabel: 'Pen' };
+        return { periodNum: 0, periodLabel: '' };
+    }
+    return { periodNum: 0, periodLabel: '' };
+}
+
+function v2Clock(sport, status) {
+    if (!status) return '';
+    if (sport === 'football') return status.elapsed != null ? `${status.elapsed}'` : '';
+    if (status.timer != null) return String(status.timer);
+    return '';
+}
+
+// ── Per-sport adapters: raw api-sports.io → FieldGame ───────────────────
+// Shape normalization ONLY. No classification, no interest values (ADR-002).
+// Field paths marked [VERIFY] should be confirmed against a live response
+// before Phase 1 cutover.
+
+function adaptBasketball(g) {
+    const sport = 'basketball', state = v2State(sport, g?.status?.short);
+    const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    return {
+        id:          `bball:${g.id}`,                          // FIELD-stable id
+        sport:       'nba',
+        league:      g?.league?.name || 'NBA',
+        state,
+        start:       g.date || '',                             // [VERIFY] ISO 8601 with tz
+        home:        { name: g?.teams?.home?.name || '', abbr: '', score: g?.scores?.home?.total ?? null },
+        away:        { name: g?.teams?.away?.name || '', abbr: '', score: g?.scores?.away?.total ?? null },
+        periodNum,
+        periodLabel,
+        clock:       v2Clock(sport, g?.status),               // [VERIFY] status.timer field
+        venue:       g?.arena?.name || '',                    // [VERIFY] arena vs venue key
+    };
+}
+
+function adaptHockey(g) {
+    const sport = 'hockey', state = v2State(sport, g?.status?.short);
+    const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    return {
+        id:          `hockey:${g.id}`,
+        sport:       'nhl',
+        league:      g?.league?.name || 'NHL',
+        state,
+        start:       g.date || '',
+        home:        { name: g?.teams?.home?.name || '', abbr: '', score: g?.scores?.home?.total ?? null },
+        away:        { name: g?.teams?.away?.name || '', abbr: '', score: g?.scores?.away?.total ?? null },
+        periodNum,
+        periodLabel,
+        clock:       v2Clock(sport, g?.status),
+        venue:       g?.venue || '',                          // [VERIFY] top-level venue string
+    };
+}
+
+function adaptBaseball(g) {
+    const sport = 'baseball', state = v2State(sport, g?.status?.short);
+    const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    const s = (g?.status?.short || '').toUpperCase();
+    const situation = state === 'live' ? {
+        inning:  g?.innings?.current ?? null,               // [VERIFY] innings.current
+        isTop:   s.startsWith('T'),
+        outs:    null,                                       // not in /games — needs detail call
+    } : null;
+    return {
+        id:          `baseball:${g.id}`,
+        sport:       'mlb',
+        league:      g?.league?.name || 'MLB',
+        state,
+        start:       g.date || '',
+        home:        { name: g?.teams?.home?.name || '', abbr: '', score: g?.scores?.home?.total ?? null },
+        away:        { name: g?.teams?.away?.name || '', abbr: '', score: g?.scores?.away?.total ?? null },
+        periodNum,
+        periodLabel,
+        clock:       '',
+        venue:       '',
+        situation,
+    };
+}
+
+// v3.football.api-sports.io: response shape differs from v1 — data nested under .fixture
+function adaptFootball(item, sportKey) {
+    const fix = item?.fixture || {};
+    const status = fix.status || {};
+    const sport = 'football', state = v2State(sport, status?.short);
+    const { periodNum, periodLabel } = v2Period(sport, status, {});
+    const el = status?.elapsed;
+    return {
+        id:          `football:${fix.id}`,
+        sport:       sportKey || 'football',
+        league:      item?.league?.name || '',
+        state,
+        start:       fix.date || '',                         // [VERIFY] fixture.date ISO 8601
+        home:        { name: item?.teams?.home?.name || '', abbr: '', score: item?.goals?.home ?? null },
+        away:        { name: item?.teams?.away?.name || '', abbr: '', score: item?.goals?.away ?? null },
+        periodNum,
+        periodLabel,
+        clock:       el != null ? `${el}'` : '',
+        venue:       fix.venue?.name || '',
+    };
+}
+
+// ── /v2/games route handler ──────────────────────────────────────────────
+// GET /v2/games?sport=nba|nhl|mlb|epl|mls[&date=YYYY-MM-DD]
+// Returns: { sport, date, games: FieldGame[], count, source, ts }
+async function handleV2Games(url, env) {
+    const sport = (url.searchParams.get('sport') || '').toLowerCase();
+    const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+    const cfg   = V2_LEAGUES[sport];
+    if (!cfg)
+        return new Response(JSON.stringify({ error: `Unknown sport: ${sport}`, supported: Object.keys(V2_LEAGUES) }),
+            { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const key = env.APISPORTS_KEY;
+    if (!key)
+        return new Response(JSON.stringify({ error: 'APISPORTS_KEY not configured' }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+    const host = APISPORTS_HOSTS[cfg.sport];
+    let targetUrl, adapt;
+    if (cfg.sport === 'football') {
+        targetUrl = `https://${host}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
+        adapt = items => items.map(f => adaptFootball(f, sport));
+    } else {
+        targetUrl = `https://${host}/games?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
+        if (cfg.sport === 'basketball') adapt = items => items.map(adaptBasketball);
+        else if (cfg.sport === 'hockey')  adapt = items => items.map(adaptHockey);
+        else if (cfg.sport === 'baseball') adapt = items => items.map(adaptBaseball);
+        else adapt = x => x;
+    }
+    try {
+        const resp = await fetch(targetUrl, {
+            headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
+            cf: { cacheTtl: 30, cacheEverything: false },
+        });
+        if (!resp.ok)
+            return new Response(JSON.stringify({ error: `Upstream ${resp.status}`, sport, date }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        const data  = await resp.json();
+        const raw   = data?.response || [];
+        const games = adapt(raw);
+        return new Response(
+            JSON.stringify({ sport, date, games, count: games.length, source: 'apisports', ts: Date.now() }),
+            { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } }
+        );
+    } catch(e) {
+        return new Response(JSON.stringify({ error: e.message, sport, date }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+}
+
+// ── /v2/standings route handler ──────────────────────────────────────────
+// GET /v2/standings?sport=nba|nhl|mlb|epl|mls
+// Returns raw api-sports.io standings response wrapped with metadata
+async function handleV2Standings(url, env) {
+    const sport = (url.searchParams.get('sport') || '').toLowerCase();
+    const cfg   = V2_LEAGUES[sport];
+    if (!cfg)
+        return new Response(JSON.stringify({ error: `Unknown sport: ${sport}` }),
+            { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const key = env.APISPORTS_KEY;
+    if (!key)
+        return new Response(JSON.stringify({ error: 'APISPORTS_KEY not configured' }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const host = APISPORTS_HOSTS[cfg.sport];
+    const targetUrl = `https://${host}/standings?league=${cfg.leagueId}&season=${cfg.season}`;
+    try {
+        const resp = await fetch(targetUrl, {
+            headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
+            cf: { cacheTtl: 3600, cacheEverything: false },
+        });
+        if (!resp.ok)
+            return new Response(JSON.stringify({ error: `Upstream ${resp.status}` }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        const data = await resp.json();
+        return new Response(
+            JSON.stringify({ sport, standings: data?.response || [], source: 'apisports', ts: Date.now() }),
+            { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } }
+        );
+    } catch(e) {
+        return new Response(JSON.stringify({ error: e.message }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+}
+
 // never on an aggregated value crossing a threshold. Conforms code to the
 // documented architecture only — legal sufficiency is counsel's call
 // (ADR-002 PROPOSED; Numerical Usage Policy v2 bright line: never push on a
 // composite-value threshold).
+
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -1031,11 +1290,19 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
         }
+
+        // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
+        if (pathname.startsWith('/v2/')) {
+            if (pathname === '/v2/games')     return handleV2Games(url, env);
+            if (pathname === '/v2/standings') return handleV2Standings(url, env);
+            return new Response('V2 endpoint not found', { status: 404, headers: CORS });
+        }
+
         // POST /dropbox/upload — Dropbox file upload (FIELD storage)
         if (pathname === '/dropbox/upload' && request.method === 'POST') {
             const filename = url.searchParams.get('filename') || 'upload.html';
