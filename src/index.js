@@ -668,13 +668,14 @@ const V2_LEAGUES = {
     'nba':        { sport: 'basketball', leagueId: 12,  season: '2025-2026' },
     'nhl':        { sport: 'hockey',     leagueId: 57,  season: '2025-2026' },
     'mlb':        { sport: 'baseball',   leagueId: 1,   season: '2026'      },
-    'epl':        { sport: 'football',   leagueId: 39,  season: '2025'      },
+    'epl':        { sport: 'football',   leagueId: 39,  season: '2025'      }, // 2025-26 ended; bump to 2026 when 26-27 starts
     'mls':        { sport: 'football',   leagueId: 253, season: '2026'      },
     'ucl':        { sport: 'football',   leagueId: 2,   season: '2025'      },
     'laliga':     { sport: 'football',   leagueId: 140, season: '2025'      },
     'seriea':     { sport: 'football',   leagueId: 135, season: '2025'      },
     'bundesliga': { sport: 'football',   leagueId: 78,  season: '2025'      },
     'ligue1':     { sport: 'football',   leagueId: 61,  season: '2025'      },
+    'wc26':       { sport: 'football',   leagueId: 1,   season: '2026'      }, // FIFA World Cup 2026
 };
 
 // Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
