@@ -1084,7 +1084,8 @@ export default {
             });
         }
 
-        if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: CORS });
+        if (request.method !== 'GET' && !(pathname === '/pgatour' && (request.method === 'POST' || request.method === 'OPTIONS')))
+            return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
