@@ -953,7 +953,11 @@ async function handleJournalismCycle(env) {
     const callProxy = async (promptText) => {
       const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          // Server-to-server auth: proxy bypasses Origin check for the relay cron.
+          'X-FIELD-Relay': 'field-relay-cron-2026',
+        },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 1000,
