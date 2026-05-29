@@ -749,91 +749,196 @@ async function handleCron(env) {
 // sport section, stores prose in FIELD_JOURNALISM KV. All users read from KV.
 // Client makes ZERO AI calls when relay has fresh content.
 // Layer 3 delta: hashes game context before each AI call — skips if unchanged.
+//
+// Journalism Quality Layers (all three now active in relay):
+//   Layer 1: full FIELD_PROSE_STYLE + BANNED_PHRASES + lead sentence rule
+//   Layer 2: post-generation cliché detection + one retry before KV store
+//   Layer 3: prose score gate — re-prompt if score < 55 (specificity/variety/density)
+// Fix 5: richer ESPN context — series records, scoring leaders, game situation
 
 const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 const JOURNALISM_TTL_SECS = 900; // 15 min — matches cron frequency
 
+// ── Layer 1: banned phrases (mirrors index.html BANNED_PHRASES) ───────────────
+const RELAY_BANNED = [
+  'punch their ticket','the stage is set','make a statement',
+  'facing a must-win','looking to bounce back','all eyes on',
+  'put the league on notice','a tale of two halves','rise to the occasion',
+  'backs against the wall','do-or-die','prove the doubters wrong',
+  'send a message','weather the storm','turn the page',
+  'take care of business','control their own destiny','gut check',
+  'step up when it matters','battle-tested','high-octane',
+  'in the driver\'s seat','cement their legacy','the chess match continues',
+  'must-win situation','pivotal matchup','will look to',
+];
+
+function relayHasCliche(text) {
+  const lower = text.toLowerCase();
+  return RELAY_BANNED.filter(p => lower.includes(p));
+}
+
+// ── Layer 3: prose score (no Datamuse in worker — specificity+variety+density) ─
+function relayScoreProse(text) {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  const unique = new Set(words.map(w => w.toLowerCase()));
+  // Specificity: proper nouns (capital start) + numbers
+  const specifics = words.filter(w => /^[A-Z][a-z]/.test(w) || /\d/.test(w));
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
+  const specificity = specifics.length / words.length;       // 0-1
+  const variety     = unique.size    / words.length;          // 0-1
+  const density     = sentences.length ? specifics.length / sentences.length : 0; // facts/sentence
+  // Weighted score 0-100 (no freshness without Datamuse — weight redistributed)
+  return Math.min(100, Math.round(specificity * 45 + variety * 35 + Math.min(density, 4) * 5));
+}
+
+// ── Layer 1: full style block for relay prompt ────────────────────────────────
+const RELAY_STYLE_RULES = [
+  '- STYLE: specificity over metaphor. "48 minutes from their first Finals since 1999" not "looking to punch their ticket."',
+  '- STYLE: numbers over adjectives. "Brunson\'s 29.0 PPG this series" not "Brunson has been dominant."',
+  '- STYLE: active voice. "Wembanyama blocked 3 shots" not "3 shots were blocked."',
+  '- STYLE: concrete over abstract. "Game 4 starts at 8pm on ESPN" not "the stage is set for a pivotal matchup."',
+  '- STYLE: one metaphor max per brief — if you use one, make it original.',
+  '- STYLE: write like a well-prepared friend who watched every game, not like a press release. Short sentences. One thought per sentence.',
+  '- STYLE: if a sentence would work in any game recap for any sport, it is too generic — rewrite with details specific to THIS game.',
+  '- LEAD SENTENCE: never start a brief, paragraph, or sentence with "The [Team]..." — lead with the specific situation. "Wembanyama scored 34" not "The Spurs got a big performance." "Two years without a Finals appearance ends tonight" not "The Celtics are looking to make a statement."',
+  '- VOICE: third person only. Never use "you" or address the reader directly.',
+  '- BANNED PHRASES (never use): ' + RELAY_BANNED.join(', ') + '.',
+].join('\n');
+
+// ── Fix 5: richer game context from ESPN scoreboard ───────────────────────────
+function buildGameLine(ev, league) {
+  const comp = ev.competitions?.[0];
+  if (!comp) return null;
+  const teams = comp.competitors || [];
+  const home = teams.find(t => t.homeAway === 'home') || teams[0];
+  const away = teams.find(t => t.homeAway === 'away') || teams[1];
+  if (!home || !away) return null;
+
+  const homeName = home.team?.shortDisplayName || home.team?.abbreviation || '';
+  const awayName = away.team?.shortDisplayName || away.team?.abbreviation || '';
+  const homeScore = home.score ?? '';
+  const awayScore = away.score ?? '';
+  const status = comp.status?.type?.description || '';
+  const broadcast = comp.broadcasts?.[0]?.names?.[0] || league.toUpperCase();
+
+  // Series record (playoffs)
+  const series = comp.series?.summary || comp.series?.type?.text || '';
+
+  // Scoring leaders from competitor stats
+  const leaders = [];
+  for (const team of [home, away]) {
+    const topLeader = team.leaders?.[0]?.leaders?.[0];
+    if (topLeader?.displayValue && topLeader?.athlete?.displayName) {
+      leaders.push(`${topLeader.athlete.displayName} ${topLeader.displayValue}`);
+    }
+  }
+
+  // Situation context (live games: period + clock)
+  const situation = comp.status?.type?.state === 'in'
+    ? (comp.status?.displayClock ? `(${comp.status.displayClock} ${comp.status?.period ? 'P'+comp.status.period : ''})` : '')
+    : '';
+
+  let line = `${awayName} ${awayScore} @ ${homeName} ${homeScore} · ${status}${situation ? ' '+situation : ''} · ${broadcast}`;
+  if (series) line += ` · ${series}`;
+  if (leaders.length) line += ` · Leaders: ${leaders.join(', ')}`;
+  return line;
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return; // KV not configured yet
   const now = Date.now();
-  const dateKey = new Date().toISOString().slice(0, 10); // "2026-05-25"
+  const dateKey = new Date().toISOString().slice(0, 10);
   const hour = new Date().getUTCHours();
-  // Only run during live hours: 10am-2am UTC (covers US primetime)
   const isLiveHours = hour >= 10 || hour <= 2;
   if (!isLiveHours) return;
 
   try {
-    // 1. Fetch ESPN scoreboard for major leagues (prose only — no classification)
+    // 1. Fetch ESPN scoreboard — richer context (Fix 5)
     const LEAGUES = [
-      {sport:'basketball',league:'nba'},
-      {sport:'hockey',league:'nhl'},
-      {sport:'baseball',league:'mlb'},
+      {sport:'basketball',league:'nba',label:'NBA'},
+      {sport:'hockey',    league:'nhl',label:'NHL'},
+      {sport:'baseball',  league:'mlb',label:'MLB'},
+      {sport:'basketball',league:'wnba',label:'WNBA'},
     ];
     const gameLines = [];
-    for (const {sport,league} of LEAGUES) {
+    for (const {sport,league,label} of LEAGUES) {
       try {
         const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
         if (!r.ok) continue;
         const d = await r.json();
         const events = d?.events || [];
         for (const ev of events) {
-          const comp = ev.competitions?.[0];
-          if (!comp) continue;
-          const [home, away] = comp.competitors || [];
-          const status = comp.status?.type?.description || '';
-          const score = home && away
-            ? `${away?.team?.shortDisplayName||''} ${away?.score||0} @ ${home?.team?.shortDisplayName||''} ${home?.score||0}`
-            : '';
-          const broadcast = comp.broadcasts?.[0]?.names?.[0] || league.toUpperCase();
-          if (score) gameLines.push(`${score} · ${status} · ${broadcast}`);
+          const line = buildGameLine(ev, label);
+          if (line) gameLines.push(line);
         }
       } catch(_) {}
     }
 
-    if (!gameLines.length) return; // nothing to write about
+    if (!gameLines.length) return;
 
-    // 2. Layer 3: delta hash — skip AI if game context unchanged
+    // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
     const existingRaw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
     if (existingRaw) {
       try {
         const existing = JSON.parse(existingRaw);
-        if (existing.contextHash === contextHash) return; // no change, skip AI call
+        if (existing.contextHash === contextHash) return;
       } catch(_) {}
     }
 
-    // 3. Call Claude proxy ONCE — prose only, no classification (ADR-002 Rule A)
-    const prompt = [
+    // 3. Layer 1: full style prompt
+    const buildPrompt = () => [
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
       'TONIGHT\'S GAMES:',
       ...gameLines.map(l => `- ${l}`),
       '',
       'RULES:',
-      '- 100-120 words. 2 short paragraphs. No headers.',
-      '- Lead with the most important story.',
-      '- CORRECTNESS: write only from the data above. Never invent scores or stats.',
-      '- STYLE: specificity over metaphor. Numbers over adjectives. Active voice.',
-      '- VOICE: third person only. Write like a columnist, not a chatbot.',
-      '- Plain prose only. Complete sentences.',
+      '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
+      '- Lead with the most important story — the SPECIFIC situation, not the template.',
+      '- CORRECTNESS: write only from the data above. Never invent scores, stats, or facts not listed.',
+      RELAY_STYLE_RULES,
+      '- Plain prose only. Every sentence complete.',
     ].join('\n');
 
-    const proxyResp = await fetch(JOURNALISM_CLAUDE_PROXY, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{role: 'user', content: prompt}],
-      }),
-    });
+    const callProxy = async (promptText) => {
+      const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{role: 'user', content: promptText}],
+        }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
+    };
 
-    if (!proxyResp.ok) return;
-    const data = await proxyResp.json();
-    const prose = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
+    let prose = await callProxy(buildPrompt());
     if (!prose || prose.length < 50) return;
 
-    // 4. Store prose + metadata in KV (ADR-002: prose ONLY, no scores)
+    // 4. Layer 2: cliché detection + one retry
+    const cliches = relayHasCliche(prose);
+    if (cliches.length) {
+      const retryPrompt = buildPrompt() + `\n\nIMPORTANT: Your previous draft contained these banned phrases: ${cliches.join(', ')}. Replace each with a specific fact from the game data instead. No generic metaphors.`;
+      const retried = await callProxy(retryPrompt);
+      if (retried && retried.length > 50) prose = retried;
+    }
+
+    // 5. Layer 3: prose score gate — re-prompt if quality too low
+    const score = relayScoreProse(prose);
+    if (score < 55) {
+      const scoreRetryPrompt = buildPrompt() + `\n\nIMPORTANT: Your previous draft scored low on specificity (score: ${score}/100). Add more proper names, exact scores, and specific facts. Remove vague adjectives. Every sentence must contain at least one name, number, or concrete detail.`;
+      const retried = await callProxy(scoreRetryPrompt);
+      if (retried && retried.length > 50) prose = retried;
+    }
+
+    // 6. Store in KV
+    const finalScore = relayScoreProse(prose);
+    const finalCliches = relayHasCliche(prose);
     await env.FIELD_JOURNALISM.put(
       `journalism:${dateKey}`,
       JSON.stringify({
@@ -842,11 +947,12 @@ async function handleJournalismCycle(env) {
         contextHash,
         gameCount: gameLines.length,
         cycleId: crypto.randomUUID(),
+        proseScore: finalScore,
+        clicheCount: finalCliches.length,
       }),
       { expirationTtl: 86400 }
     );
   } catch(e) {
-    // Silent fail — client falls back to direct AI call
     console.error('[journalism-cycle] error:', e.message);
   }
 }
