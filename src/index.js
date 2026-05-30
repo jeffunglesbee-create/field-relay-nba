@@ -795,7 +795,7 @@ function adaptHockey(g) {
     const homeScore = g?.scores?.home?.total ?? sumPeriods('home');
     const awayScore = g?.scores?.away?.total ?? sumPeriods('away');
     return {
-        id:          ,
+        id:          g?.id || null,
         sport:       'nhl',
         league:      g?.league?.name || 'NHL',
         state,
