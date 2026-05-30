@@ -784,18 +784,28 @@ function adaptBasketball(g) {
 function adaptHockey(g) {
     const sport = 'hockey', state = v2State(sport, g?.status?.short);
     const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    // api-sports.io sometimes returns null for scores.home.total on finished games.
+    // Fallback: sum period scores (periods array) when total is null.
+    const sumPeriods = (side) => {
+        const periods = g?.scores?.[side]?.periods;
+        if (!periods || typeof periods !== 'object') return null;
+        const vals = Object.values(periods).map(v => parseInt(v) || 0);
+        return vals.length ? vals.reduce((a,b) => a+b, 0) : null;
+    };
+    const homeScore = g?.scores?.home?.total ?? sumPeriods('home');
+    const awayScore = g?.scores?.away?.total ?? sumPeriods('away');
     return {
-        id:          `hockey:${g.id}`,
+        id:          ,
         sport:       'nhl',
         league:      g?.league?.name || 'NHL',
         state,
         start:       g.date || '',
-        home:        { name: g?.teams?.home?.name || '', abbr: '', score: g?.scores?.home?.total ?? null },
-        away:        { name: g?.teams?.away?.name || '', abbr: '', score: g?.scores?.away?.total ?? null },
+        home:        { name: g?.teams?.home?.name || '', abbr: '', score: homeScore },
+        away:        { name: g?.teams?.away?.name || '', abbr: '', score: awayScore },
         periodNum,
         periodLabel,
         clock:       v2Clock(sport, g?.status),
-        venue:       g?.venue || '',                          // [VERIFY] top-level venue string
+        venue:       g?.venue || '',
     };
 }
 
