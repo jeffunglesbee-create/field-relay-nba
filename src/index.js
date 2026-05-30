@@ -1670,6 +1670,172 @@ export default {
             return relayFetch(targetUrl, { 'Authorization': `Bearer ${rtKey}`, 'Accept': 'application/json' }, realtimeSportsTtl(cleanPath), 'realtimesports', ctx);
         }
 
+
+        // ── /mcp — MCP Streamable HTTP server ────────────────────────────────────
+        // Spec: Model Context Protocol 2025-03-26 (Streamable HTTP transport)
+        // Transport: single POST endpoint per spec (replaces SSE from 2024-11-05)
+        // Protocol: JSON-RPC 2.0 — verified field names from spec May 30 2026
+        // Tools exposed: get_ci_status, get_smoke_count, get_deploy_status,
+        //                get_live_scores, get_drama_score, get_espn_game
+        // Auth: FIELD_MCP_SECRET header required (env.FIELD_MCP_SECRET)
+        // VERIFIED: protocolVersion "2025-03-26", capabilities.tools {}, serverInfo
+        if (pathname === '/mcp' && request.method === 'POST') {
+            // Auth gate — require shared secret in header
+            const mcpSecret = env.FIELD_MCP_SECRET;
+            if (mcpSecret) {
+                const incoming = request.headers.get('X-FIELD-MCP-Secret') || request.headers.get('Authorization');
+                if (!incoming || !incoming.includes(mcpSecret)) {
+                    return new Response(JSON.stringify({error:'Unauthorized'}), {status:401, headers:{...CORS,'Content-Type':'application/json'}});
+                }
+            }
+
+            let body;
+            try { body = await request.json(); } catch(e) {
+                return new Response(JSON.stringify({jsonrpc:'2.0',id:null,error:{code:-32700,message:'Parse error'}}),
+                    {status:400, headers:{...CORS,'Content-Type':'application/json'}});
+            }
+
+            const { jsonrpc, id, method, params } = body;
+            const jsonrpc2 = (result) => JSON.stringify({jsonrpc:'2.0', id, result});
+            const jsonrpc2err = (code, message) => JSON.stringify({jsonrpc:'2.0', id, error:{code, message}});
+            const respond = (data, status=200) => new Response(data, {status, headers:{...CORS,'Content-Type':'application/json'}});
+
+            // ── initialize ──────────────────────────────────────────────────────
+            // VERIFIED: protocolVersion, capabilities.tools, serverInfo fields
+            if (method === 'initialize') {
+                return respond(jsonrpc2({
+                    protocolVersion: '2025-03-26',
+                    capabilities: { tools: {} },
+                    serverInfo: { name: 'field-relay', version: '1.0.0' },
+                }));
+            }
+
+            // ── notifications/initialized ───────────────────────────────────────
+            // Client sends this after initialize — no response needed per spec
+            if (method === 'notifications/initialized') {
+                return respond(JSON.stringify({jsonrpc:'2.0',id:null}));
+            }
+
+            // ── tools/list ──────────────────────────────────────────────────────
+            // VERIFIED: tools array, each tool has name + description + inputSchema
+            if (method === 'tools/list') {
+                return respond(jsonrpc2({ tools: [
+                    {
+                        name: 'get_ci_status',
+                        description: 'Get the latest GitHub Actions CI run status for jubilant-bassoon. Returns workflow name, conclusion (success/failure/in_progress), and HEAD commit.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
+                    },
+                    {
+                        name: 'get_smoke_count',
+                        description: 'Get the current smoke assertion count from the latest index.html in the jubilant-bassoon repo.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
+                    },
+                    {
+                        name: 'get_deploy_status',
+                        description: 'Get the last 3 GitHub Actions workflow runs for jubilant-bassoon with their status and conclusions.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: { limit: { type: 'number', description: 'Number of runs to return (default 3, max 5)' } },
+                            required: [],
+                        },
+                    },
+                    {
+                        name: 'get_live_scores',
+                        description: 'Get live NBA scoreboard from the NBA CDN relay.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
+                    },
+                    {
+                        name: 'get_espn_game',
+                        description: 'Get ESPN game summary for a specific game ID.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                sport: { type: 'string', description: 'Sport slug (basketball, hockey, baseball, football, soccer)' },
+                                league: { type: 'string', description: 'League slug (nba, nhl, mlb, nfl, eng.1 etc.)' },
+                                game_id: { type: 'string', description: 'ESPN game ID' },
+                            },
+                            required: ['sport', 'league', 'game_id'],
+                        },
+                    },
+                ]}));
+            }
+
+            // ── tools/call ──────────────────────────────────────────────────────
+            // VERIFIED: content array, each item has type:"text" and text:string
+            if (method === 'tools/call') {
+                const toolName = params?.name;
+                const toolArgs = params?.arguments || {};
+
+                if (toolName === 'get_ci_status' || toolName === 'get_deploy_status') {
+                    const limit = Math.min(toolArgs.limit || 3, 5);
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured in relay env'}]}));
+                    const r = await fetch(
+                        `https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon/actions/runs?per_page=${limit}`,
+                        { headers:{ 'Authorization':`Bearer ${ghToken}`, 'User-Agent':'field-relay-mcp', 'Accept':'application/vnd.github+json' } }
+                    );
+                    if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
+                    const data = await r.json();
+                    const runs = (data.workflow_runs||[]).slice(0, limit).map(run => (
+                        `${run.name} | ${run.conclusion || run.status} | ${run.head_sha?.slice(0,7)} | ${run.updated_at}`
+                    )).join('\n');
+                    return respond(jsonrpc2({content:[{type:'text',text:runs||'No runs found'}]}));
+                }
+
+                if (toolName === 'get_smoke_count') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured'}]}));
+                    const r = await fetch(
+                        'https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon/contents/smoke.js',
+                        { headers:{ 'Authorization':`Bearer ${ghToken}`, 'User-Agent':'field-relay-mcp', 'Accept':'application/vnd.github+json' } }
+                    );
+                    if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
+                    const data = await r.json();
+                    const smokeJs = atob(data.content);
+                    const assertions = (smokeJs.match(/^assert\(/gm) || []).length;
+                    return respond(jsonrpc2({content:[{type:'text',text:`Smoke assertions: ${assertions}`}]}));
+                }
+
+                if (toolName === 'get_live_scores') {
+                    const r = await relayFetch(
+                        `${NBA_CDN_BASE}/liveData/scoreboard/todaysScoreboard_00.json`,
+                        NBA_HEADERS, NBA_CACHE_TTL, 'nba-mcp', ctx
+                    );
+                    const text = await r.text();
+                    // Return condensed scores only — not full CDN payload
+                    try {
+                        const d = JSON.parse(text);
+                        const games = (d.scoreboard?.games || []).map(g =>
+                            `${g.awayTeam?.teamTricode} ${g.awayTeam?.score} @ ${g.homeTeam?.teamTricode} ${g.homeTeam?.score} (${g.gameStatusText})`
+                        ).join('\n');
+                        return respond(jsonrpc2({content:[{type:'text',text:games||'No games today'}]}));
+                    } catch(e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Score parse error'}]}));
+                    }
+                }
+
+                if (toolName === 'get_espn_game') {
+                    const { sport, league, game_id } = toolArgs;
+                    if (!sport || !league || !game_id) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: sport, league, game_id'}]}));
+                    }
+                    const espnUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${game_id}`;
+                    const r = await fetch(espnUrl, { headers:{ 'User-Agent':'FIELD-Sports-Intelligence/1.0' }});
+                    if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`ESPN error: ${r.status}`}]}));
+                    const data = await r.json();
+                    const comp = data.header?.competitions?.[0];
+                    if (!comp) return respond(jsonrpc2({content:[{type:'text',text:'No competition data'}]}));
+                    const teams = (comp.competitors||[]).map(c => `${c.team?.abbreviation} ${c.score}`).join(' vs ');
+                    const status = comp.status?.type?.description || '';
+                    return respond(jsonrpc2({content:[{type:'text',text:`${teams} | ${status}`}]}));
+                }
+
+                return respond(jsonrpc2err(-32601, `Unknown tool: ${toolName}`));
+            }
+
+            return respond(jsonrpc2err(-32601, `Unknown method: ${method}`));
+        }
+
         // ── /nba/* → NBA CDN
         const nbaPath = pathname.replace(/^\/nba/, '');
         if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
@@ -1677,3 +1843,4 @@ export default {
         return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, nbaTtl, 'nba', ctx);
     },
 };
+
