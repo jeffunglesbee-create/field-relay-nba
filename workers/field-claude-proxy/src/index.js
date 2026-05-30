@@ -17,7 +17,7 @@
 //   X-FIELD-Proxy-Version: 4
 //   X-FIELD-Model: gemini-3.1-flash-lite  (or claude-sonnet-4 on fallback)
 
-const PROXY_VERSION = '6';
+const PROXY_VERSION = '7';
 
 const ALLOWED_ORIGINS = [
   'https://jubilant-bassoon.jeffunglesbee.workers.dev',
@@ -134,12 +134,22 @@ export default {
         result = await callGemini(JSON.parse(raw), gKey);
       } catch (e) {
         if (e.is429) {
-          return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: e.retryAfter }), {
-            status: 429,
-            headers: { 'Content-Type': 'application/json', 'Retry-After': e.retryAfter, ...cors(origin), ...version() },
-          });
-        }
-        if (aKey) {
+          // 429: try Claude fallback first — only send 429 to client if no Claude key
+          if (aKey) {
+            try { result = await callClaude(raw, aKey); }
+            catch (e2) {
+              return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: e.retryAfter }), {
+                status: 429,
+                headers: { 'Content-Type': 'application/json', 'Retry-After': e.retryAfter, ...cors(origin), ...version() },
+              });
+            }
+          } else {
+            return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: e.retryAfter }), {
+              status: 429,
+              headers: { 'Content-Type': 'application/json', 'Retry-After': e.retryAfter, ...cors(origin), ...version() },
+            });
+          }
+        } else if (aKey) {
           try { result = await callClaude(raw, aKey); }
           catch (e2) {
             return new Response(JSON.stringify({ error: 'Both backends failed.' }), {
