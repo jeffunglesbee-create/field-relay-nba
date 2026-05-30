@@ -1159,8 +1159,12 @@ function buildGameLine(ev, league) {
   const status = comp.status?.type?.description || '';
   const broadcast = comp.broadcasts?.[0]?.names?.[0] || league.toUpperCase();
 
-  // Series record (playoffs)
-  const series = comp.series?.summary || comp.series?.type?.text || '';
+  // Series record (playoffs) — include round name to prevent AI series confusion
+  const seriesSummary = comp.series?.summary || comp.series?.type?.text || '';
+  const seriesRound = ev?.notes?.[0]?.headline || ev?.season?.type?.slug === 'post' ? '' : '';
+  // Try to get round name from competition type or notes
+  const roundName = comp.type?.text || comp.notes?.[0]?.headline || '';
+  const series = [roundName, seriesSummary].filter(Boolean).join(' — ') || seriesSummary;
 
   // Scoring leaders from competitor stats
   const leaders = [];
@@ -1235,6 +1239,7 @@ async function handleJournalismCycle(env) {
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
       '- Lead with the most important story — the SPECIFIC situation, not the template.',
       '- CORRECTNESS: write only from the data above. Never invent scores, stats, or facts not listed.',
+      '- SERIES ACCURACY: A Conference Finals game is NEVER "the NBA Finals" or "the Championship." A Stanley Cup Final game is NEVER a "first-round matchup." Use only the round/series description in the game data. If the series context is unclear, describe it as "a playoff series" — never upgrade it to a championship.',
       RELAY_STYLE_RULES,
       '- Plain prose only. Every sentence complete.',
     ].join('\n');
@@ -1630,7 +1635,27 @@ export default {
             {headers:{...CORS,'Content-Type':'application/json'}});
         }
 
-        if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
+        // RSS proxy — routes first-party league RSS feeds to bypass browser CORS
+  if (pathname === '/rss-proxy') {
+    const feedUrl = url.searchParams.get('url');
+    if (!feedUrl) return new Response('Missing url param', {status:400, headers:corsHeaders});
+    const allowed = ['nba.com','nhl.com','mlb.com','nfl.com'];
+    const urlHost = new URL(feedUrl).hostname;
+    if (!allowed.some(d => urlHost.endsWith(d)))
+      return new Response('Domain not allowed', {status:403, headers:corsHeaders});
+    try {
+      const r = await fetch(feedUrl, {headers:{'User-Agent':'FIELD/1.0'}});
+      const text = await r.text();
+      return new Response(text, {
+        status: r.status,
+        headers: {...corsHeaders, 'Content-Type': r.headers.get('Content-Type') || 'application/rss+xml'},
+      });
+    } catch(e) {
+      return new Response('RSS fetch failed', {status:502, headers:corsHeaders});
+    }
+  }
+
+  if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
             if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({error:'not configured'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
             const dateKey = new Date().toISOString().slice(0,10);
             const raw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
