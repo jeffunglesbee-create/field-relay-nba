@@ -1096,14 +1096,37 @@ function relayScoreProse(text) {
   const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return 0;
   const unique = new Set(words.map(w => w.toLowerCase()));
-  // Specificity: proper nouns (capital start) + numbers
   const specifics = words.filter(w => /^[A-Z][a-z]/.test(w) || /\d/.test(w));
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
-  const specificity = specifics.length / words.length;       // 0-1
-  const variety     = unique.size    / words.length;          // 0-1
-  const density     = sentences.length ? specifics.length / sentences.length : 0; // facts/sentence
-  // Weighted score 0-100 (no freshness without Datamuse — weight redistributed)
-  return Math.min(100, Math.round(specificity * 45 + variety * 35 + Math.min(density, 4) * 5));
+  const nSent = Math.max(1, sentences.length);
+  const specificity = specifics.length / words.length;
+  const variety     = unique.size    / words.length;
+  const density     = specifics.length / nSent;
+
+  // Base 3 dimensions scaled to 130pts (no Datamuse on relay — weight redistributed)
+  const base = Math.min(130, Math.round(specificity * 58 + variety * 45 + Math.min(density, 4) * 6.75));
+
+  // Narrative Arc (0-40) — same syntactic rules as browser scorer
+  const first = sentences[0] || '';
+  const last  = sentences[sentences.length-1] || '';
+  const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
+  const stakes = /\b\d-\d\b/.test(first) ||
+    /\b(finals|championship|eliminated|advance|clinch|series|title|cup|playoffs)\b/i.test(first) ||
+    /\b(first since|since \d{4}|\d+ years?)\b/i.test(first);
+  const tension = sentences.some(s => {
+    const sw = s.split(/\s+/);
+    const hasPlayer = sw.some(w => /^[A-Z][a-z]{2,}/.test(w) && !sentStarts.has(w) && w.length > 3);
+    const hasStat   = /\d/.test(s) && (/\d+\.\d/.test(s) || /\d+%/.test(s) ||
+      /\b(pts?|points?|rebounds?|assists?|goals?|ppg|apg|rpg|saves?)\b/i.test(s));
+    return hasPlayer && hasStat;
+  });
+  const resolution = /\b(watch|look for|decide|force|need|must|whether|tonight|will|could)\b/i.test(last) ||
+    /\bif\b/i.test(last) || /\?/.test(last);
+  const arcScore = (stakes?10:0) + (tension?10:0) + (resolution?10:0) + (stakes&&tension&&resolution?10:0);
+
+  // Context Anchoring: N/A for relay slate briefs (no single game object)
+  // Total ceiling: 170 (130 base + 40 arc, no context for slate briefs)
+  return Math.min(170, base + arcScore);
 }
 
 // ── Layer 1: full style block for relay prompt ────────────────────────────────
@@ -1253,7 +1276,7 @@ async function handleJournalismCycle(env) {
 
     // 5. Layer 3: prose score gate — re-prompt if quality too low
     const score = relayScoreProse(prose);
-    if (score < 55) {
+    if (score < 90) { // 0-200 scale threshold
       const scoreRetryPrompt = buildPrompt() + `\n\nIMPORTANT: Your previous draft scored low on specificity (score: ${score}/100). Add more proper names, exact scores, and specific facts. Remove vague adjectives. Every sentence must contain at least one name, number, or concrete detail.`;
       const retried = await callProxy(scoreRetryPrompt);
       if (retried && retried.length > 50) prose = retried;
