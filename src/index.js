@@ -232,7 +232,8 @@ function oddsUrl(cleanPath, search, envKey) {
 
 const APISPORTS_HOSTS = {
     'football':          'v3.football.api-sports.io',
-    'basketball':        'v1.basketball.api-sports.io',
+    'nba':               'v2.nba.api-sports.io',        // dedicated NBA Pro plan — separate quota from basketball
+    'basketball':        'v1.basketball.api-sports.io', // WNBA-only after NBA routed to nba host
     'hockey':            'v1.hockey.api-sports.io',
     'baseball':          'v1.baseball.api-sports.io',
     'afl':               'v1.afl.api-sports.io',
@@ -668,7 +669,7 @@ async function sendWebPush(sub, payload, env) {
 
 // League IDs for api-sports.io queries, keyed by FIELD sport identifier
 const V2_LEAGUES = {
-    'nba':          { sport: 'basketball', leagueId: 12,  season: '2025-2026' },
+    'nba':          { sport: 'nba',        leagueId: null, season: '2025-2026' }, // routes to v2.nba.api-sports.io
     'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
     'mlb':          { sport: 'baseball',   leagueId: 1,   season: '2026'      },
     'wnba':         { sport: 'basketball', leagueId: 13,  season: '2026'      }, // [VERIFY leagueId]
@@ -883,7 +884,14 @@ async function handleV2Games(url, env) {
 
     const host = APISPORTS_HOSTS[cfg.sport];
     let targetUrl, adapt;
-    if (cfg.sport === 'football') {
+    if (cfg.sport === 'nba') {
+        // API-NBA: dedicated Pro plan at v2.nba.api-sports.io — no league/season params, date only.
+        // Separate quota from API-BASKETBALL (WNBA uses basketball + league=13).
+        // Schema matches v1.basketball.api-sports.io — reuse adaptBasketball.
+        // [VERIFY against first live response after deploy — confirm field paths match adaptBasketball]
+        targetUrl = `https://${host}/games?date=${date}`;
+        adapt = items => items.map(adaptBasketball);
+    } else if (cfg.sport === 'football') {
         targetUrl = `https://${host}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
         adapt = items => items.map(f => adaptFootball(f, sport));
     } else {
