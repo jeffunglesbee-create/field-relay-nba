@@ -248,14 +248,17 @@ const APISPORTS_ALLOWED = [
     '/standings',        // ?league=&season=
     '/odds',             // ?fixture= (pre-match)
     '/odds/',            // /odds/live?fixture=
-    '/predictions',      // ?fixture=
+    '/predictions',      // ?fixture= (football/soccer only)
     '/games',            // basketball/hockey/afl/nfl ?live=all
-    '/games/',           // /games/statistics?id=
+    '/games/',           // /games/statistics/teams?id=  /games/statistics/players?id=
+    '/teams',            // ?id= team info + /teams/statistics (season-level)
     '/leagues',          // ?id= (fixture ID lookup utility)
     '/seasons',          // utility — cached 24hr
     '/races',            // F1 /races?season=
     '/rounds',           // F1 /rounds?season=&current=true
     '/events',           // MMA /events
+    '/players',          // ?id= player info
+    '/players/',         // /players/statistics
 ];
 
 function apiSportsAllowed(path) {
