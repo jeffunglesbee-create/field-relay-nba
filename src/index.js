@@ -761,18 +761,23 @@ function v2Clock(sport, status) {
 function adaptBasketball(g) {
     const sport = 'basketball', state = v2State(sport, g?.status?.short);
     const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    // Per-quarter scores — VERIFIED 2026-05-30: field is scores.home.quarter_1..4 (not arena.name)
+    const qs = ['quarter_1','quarter_2','quarter_3','quarter_4'];
+    const homeLS = qs.map(q => g?.scores?.home?.[q]).filter(v => v !== null && v !== undefined);
+    const awayLS = qs.map(q => g?.scores?.away?.[q]).filter(v => v !== null && v !== undefined);
     return {
-        id:          `bball:${g.id}`,                          // FIELD-stable id
+        id:          `bball:${g.id}`,
         sport:       'nba',
         league:      g?.league?.name || 'NBA',
         state,
-        start:       g.date || '',                             // [VERIFY] ISO 8601 with tz
+        start:       g.date || '',
         home:        { name: g?.teams?.home?.name || '', abbr: '', score: g?.scores?.home?.total ?? null },
         away:        { name: g?.teams?.away?.name || '', abbr: '', score: g?.scores?.away?.total ?? null },
         periodNum,
         periodLabel,
-        clock:       v2Clock(sport, g?.status),               // [VERIFY] status.timer field
-        venue:       g?.arena?.name || '',                    // [VERIFY] arena vs venue key
+        clock:       v2Clock(sport, g?.status),
+        venue:       g?.venue || '',                          // VERIFIED: top-level string, not arena.name
+        linescores:  { home: homeLS, away: awayLS },          // VERIFIED: quarter_1..4 present
     };
 }
 
@@ -797,11 +802,20 @@ function adaptHockey(g) {
 function adaptBaseball(g) {
     const sport = 'baseball', state = v2State(sport, g?.status?.short);
     const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
+    // VERIFIED 2026-05-30: innings.current does NOT exist. Current inning is encoded in
+    // status.short: "T3" = top 3rd, "B5" = bottom 5th, "FT" = finished, "NS" = not started.
     const s = (g?.status?.short || '').toUpperCase();
+    const inningNum = (s.startsWith('T') || s.startsWith('B')) ? parseInt(s.slice(1)) || null : null;
+    // Per-inning runs: VERIFIED as object keyed "1".."9" + "extra" — not an array
+    const homeInnings = g?.scores?.home?.innings || {};
+    const awayInnings = g?.scores?.away?.innings || {};
+    const inningKeys  = ['1','2','3','4','5','6','7','8','9'];
+    const homeLS = inningKeys.map(k => homeInnings[k]).filter(v => v !== null && v !== undefined);
+    const awayLS = inningKeys.map(k => awayInnings[k]).filter(v => v !== null && v !== undefined);
     const situation = state === 'live' ? {
-        inning:  g?.innings?.current ?? null,               // [VERIFY] innings.current
+        inning:  inningNum,                                     // VERIFIED: parsed from status.short
         isTop:   s.startsWith('T'),
-        outs:    null,                                       // not in /games — needs detail call
+        outs:    null,                                          // not in /games — needs StatsAPI
     } : null;
     return {
         id:          `baseball:${g.id}`,
@@ -814,8 +828,9 @@ function adaptBaseball(g) {
         periodNum,
         periodLabel,
         clock:       '',
-        venue:       '',
+        venue:       '',                                        // VERIFIED: not present in baseball response
         situation,
+        linescores:  { home: homeLS, away: awayLS },            // per-inning runs (innings 1-9)
     };
 }
 
