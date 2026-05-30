@@ -669,7 +669,7 @@ async function sendWebPush(sub, payload, env) {
 // League IDs for api-sports.io queries, keyed by FIELD sport identifier
 const V2_LEAGUES = {
     'nba':          { sport: 'basketball', leagueId: 12,  season: '2025-2026' },
-    'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025-2026' },
+    'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
     'mlb':          { sport: 'baseball',   leagueId: 1,   season: '2026'      },
     'wnba':         { sport: 'basketball', leagueId: 13,  season: '2026'      }, // [VERIFY leagueId]
     'epl':          { sport: 'football',   leagueId: 39,  season: '2025'      },
