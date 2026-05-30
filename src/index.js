@@ -1259,9 +1259,10 @@ async function handleJournalismCycle(env) {
       if (retried && retried.length > 50) prose = retried;
     }
 
-    // 6. Store in KV
+    // 6. Store J3 brief in KV
     const finalScore = relayScoreProse(prose);
     const finalCliches = relayHasCliche(prose);
+    const cycleId = crypto.randomUUID();
     await env.FIELD_JOURNALISM.put(
       `journalism:${dateKey}`,
       JSON.stringify({
@@ -1269,13 +1270,100 @@ async function handleJournalismCycle(env) {
         generatedAt: now,
         contextHash,
         gameCount: gameLines.length,
-        cycleId: crypto.randomUUID(),
+        cycleId,
         proseScore: finalScore,
         clicheCount: finalCliches.length,
       }),
       { expirationTtl: 86400 }
     );
-    return {ok:true, reason:'written', score:finalScore, gameCount:gameLines.length, briefLen:prose.length};
+
+    // 7. Pre-generate per-game card briefs and store in KV
+    // These replace browser-side MLB/WNBA/Stakes/EPL brief calls — zero runtime AI calls
+    // Key: brief:game:{espnEventId}  TTL: 3600s (1hr — games change hourly)
+    const gameBriefResults = [];
+    for (const {sport, league, label} of LEAGUES) {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        for (const ev of (d?.events || [])) {
+          const comp = ev.competitions?.[0];
+          if (!comp) continue;
+          const eventId = ev.id;
+          if (!eventId) continue;
+
+          // Skip if already cached and context unchanged
+          const gameHash = (ev.id + (comp.status?.type?.description||'') + (comp.competitors?.map(c=>c.score).join('|')||'')).split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
+          const existingGame = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`).catch(()=>null);
+          if (existingGame) {
+            try {
+              const eg = JSON.parse(existingGame);
+              if (eg.contextHash === gameHash) continue; // unchanged — skip
+            } catch(_) {}
+          }
+
+          const gameLine = buildGameLine(ev, label);
+          if (!gameLine) continue;
+
+          // Build sport-specific brief prompt
+          const teams = comp.competitors || [];
+          const home = teams.find(t => t.homeAway === 'home') || teams[0];
+          const away = teams.find(t => t.homeAway === 'away') || teams[1];
+          const homeName = home?.team?.shortDisplayName || home?.team?.displayName || '';
+          const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '';
+          const series = comp.series?.summary || '';
+          const state = comp.status?.type?.state || 'pre';
+          const broadcast = comp.broadcasts?.[0]?.names?.[0] || label.toUpperCase();
+
+          const isPlayoff = !!(series || /playoff|final|series/i.test(ev.name||''));
+          const gamePrompt = [
+            `Write a FIELD Game Brief for this ${label} game.`,
+            `${awayName} @ ${homeName}.`,
+            series ? `Series: ${series}.` : '',
+            `Status: ${comp.status?.type?.description || 'Scheduled'}. Broadcast: ${broadcast}.`,
+            `Game data: ${gameLine}`,
+            '',
+            isPlayoff
+              ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
+              : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
+            ...RELAY_STYLE_RULES,
+            'Write only from data above. No invented stats.',
+          ].filter(Boolean).join('\n');
+
+          const brief = await callProxy(gamePrompt);
+          if (!brief || brief.length < 30) continue;
+
+          // Quality check — cliché retry
+          let finalBrief = brief;
+          const cliches = relayHasCliche(brief);
+          if (cliches.length) {
+            await new Promise(r => setTimeout(r, 2000)); // RPM guard
+            const retried = await callProxy(gamePrompt + `\n\nREWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact instead.`);
+            if (retried && retried.length > 30) finalBrief = retried;
+          }
+
+          await env.FIELD_JOURNALISM.put(
+            `brief:game:${eventId}`,
+            JSON.stringify({
+              brief: finalBrief,
+              generatedAt: now,
+              contextHash: gameHash,
+              sport: label,
+              home: homeName,
+              away: awayName,
+              cycleId,
+            }),
+            { expirationTtl: 3600 }
+          );
+          gameBriefResults.push(eventId);
+          await new Promise(r => setTimeout(r, 1500)); // RPM guard between games
+        }
+      } catch(e) {
+        console.warn(`[journalism-cycle] game briefs ${label} error:`, e.message);
+      }
+    }
+
+    return {ok:true, reason:'written', score:finalScore, gameCount:gameLines.length, briefLen:prose.length, gameBriefs:gameBriefResults.length};
   } catch(e) {
     console.error('[journalism-cycle] error:', e.message);
     return {ok:false, reason:'exception: '+(e&&e.message||String(e))};
@@ -1527,6 +1615,20 @@ export default {
             const data = JSON.parse(raw);
             const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,JOURNALISM_TTL_SECS-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Cycle':data.cycleId||''}});
+        }
+
+        // /journalism/game/{eventId} — serve pre-generated per-game brief from KV
+        // Generated by handleJournalismCycle every 15min. TTL 1hr.
+        // Browser card renderers check this before calling the proxy directly.
+        if (pathname.startsWith('/journalism/game/')) {
+            if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json'}});
+            const eventId = pathname.replace('/journalism/game/', '').replace(/[^a-zA-Z0-9_-]/g,'');
+            if (!eventId) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json'}});
+            const raw = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`);
+            if (!raw) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'public,max-age=60'}});
+            const data = JSON.parse(raw);
+            const age = Math.round((Date.now() - (data.generatedAt||0)) / 1000);
+            return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,3600-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Sport':data.sport||''}});
         }
 
 // ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
@@ -1844,4 +1946,5 @@ export default {
         return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, nbaTtl, 'nba', ctx);
     },
 };
+
 
