@@ -708,16 +708,24 @@ const V2_LEAGUES = {
 };
 
 // Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
+// Some upstreams (notably API-NBA) return numeric status codes instead of
+// strings — coerce to String() defensively so .toUpperCase() never throws.
 function v2State(sport, statusShort) {
-    const s = (statusShort || '').toUpperCase();
+    const s = String(statusShort ?? '').toUpperCase();
     if (sport === 'football') {
         if (['1H','2H','HT','ET','P','BT','LIVE'].includes(s)) return 'live';
         if (['FT','AET','PEN','AWD'].includes(s))              return 'final';
         return 'pre';
     }
+    // API-NBA integer codes (v2.nba.api-sports.io):
+    //   1 = NS, 2-5 = Q1-Q4, 6 = OT, 7 = HT, 8 = FT  [UNVERIFIED — probe before adapter]
     if (sport === 'basketball') {
+        // String form (API-BASKETBALL) — original behavior
         if (['Q1','Q2','Q3','Q4','OT','BT','HT'].includes(s)) return 'live';
         if (['FT','AOT','ABD'].includes(s))                    return 'final';
+        // Numeric form (API-NBA) — guarded by Rule 8 [UNVERIFIED] marker
+        if (['2','3','4','5','6','7'].includes(s)) return 'live';
+        if (s === '8')                              return 'final';
         return 'pre';
     }
     if (sport === 'hockey') {
@@ -930,6 +938,21 @@ async function handleV2Games(url, env) {
                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
         const data  = await resp.json();
         const raw   = data?.response || [];
+
+        // RUWT debug mode: ?debug=1 returns the raw response shape without adapting.
+        // Used to verify field paths against actual upstream data before writing
+        // adapter logic. Safe to leave in: only fires when ?debug=1 is explicitly passed.
+        if (url.searchParams.get('debug') === '1') {
+            return new Response(JSON.stringify({
+                sport, date,
+                upstream_status: resp.status,
+                upstream_results: data?.results ?? null,
+                first_game_raw: raw[0] || null,
+                game_count: raw.length,
+                ts: Date.now(),
+            }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         const games = adapt(raw);
         return new Response(
             JSON.stringify({ sport, date, games, count: games.length, source: 'apisports', ts: Date.now() }),
