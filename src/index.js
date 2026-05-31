@@ -1310,6 +1310,30 @@ async function handleJournalismCycle(env) {
     const finalScore   = qualityResult.score;
     const finalCliches = jqHasCliche(prose).length;
 
+    // ── WOW 7: write to Analytics Engine ──────────────────────────────────
+    // One row per cron slate-brief generation. Distinguished from live path
+    // by briefType='cron-slate'. Same dataset → unified queries can group
+    // both paths or filter to one.
+    try {
+      if (env.JQ_ANALYTICS) {
+        env.JQ_ANALYTICS.writeDataPoint({
+          indexes: ['cron-slate', 'multi'],
+          blobs:   [qualityResult.layers_fired.join(',') || 'none'],
+          doubles: [
+            finalScore,
+            qualityResult.retries,
+            qualityResult.ms,
+            jqHasCliche(qualityResult.text).length === finalCliches ? 0 : finalCliches, // initialCliches approx (we don't have pre-chain text here)
+            finalCliches,
+            0, // cron doesn't track initial cross-sport (would require rescan)
+            jqHasCrossSport(prose).length,
+            buildPrompt().length,
+            prose.length,
+          ],
+        });
+      }
+    } catch(_aeErr) { /* analytics failures must not affect cron */ }
+
     // 6. Store J3 brief in KV
     const cycleId = crypto.randomUUID();
     await env.FIELD_JOURNALISM.put(
@@ -1321,7 +1345,7 @@ async function handleJournalismCycle(env) {
         gameCount: gameLines.length,
         cycleId,
         proseScore: finalScore,
-        clicheCount: finalCliches.length,
+        clicheCount: finalCliches,  // was finalCliches.length — but finalCliches is now a number (length of array)
       }),
       { expirationTtl: 86400 }
     );
@@ -1542,7 +1566,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -1815,6 +1839,42 @@ export default {
               maxRetries: 6,
             });
 
+            // Compute audit values once (used both for response + analytics)
+            const _initialCliches    = jqHasCliche(initial).length;
+            const _finalCliches      = jqHasCliche(result.text).length;
+            const _initialCrossSport = jqHasCrossSport(initial).length;
+            const _finalCrossSport   = jqHasCrossSport(result.text).length;
+
+            // ── WOW 7: write to Analytics Engine ──────────────────────────
+            // One row per /journalism/generate call. Fire-and-forget, non-blocking.
+            // RUWT/ADR-002 compliance: records OUTCOMES of quality enforcement
+            // (Boolean rule application: did Layer X fire? did the score pass?)
+            // — NOT editorial decisions about interest level. The score field
+            // is prose-quality (specificity+variety+density+statDepth), not
+            // user-facing interest. Pure editorial-quality observability.
+            try {
+              if (env.JQ_ANALYTICS) {
+                env.JQ_ANALYTICS.writeDataPoint({
+                  indexes: [briefType, sport || 'none'],
+                  blobs:   [result.layers_fired.join(',') || 'none'],
+                  doubles: [
+                    result.score,
+                    result.retries,
+                    result.ms,
+                    _initialCliches,
+                    _finalCliches,
+                    _initialCrossSport,
+                    _finalCrossSport,
+                    body.prompt.length,
+                    result.text.length,
+                  ],
+                });
+              }
+            } catch(_aeErr) {
+              // Analytics write failures must not affect the response.
+              // Worst case: this row is lost. The brief still ships clean.
+            }
+
             return new Response(JSON.stringify({
               status: 'ok',
               briefType,
@@ -1823,11 +1883,12 @@ export default {
               retries: result.retries,
               layers_fired: result.layers_fired,
               ms: result.ms,
-              // Audit fields — useful for WOW 7 analytics later
-              initial_cliches: jqHasCliche(initial).length,
-              final_cliches:   jqHasCliche(result.text).length,
-              initial_cross_sport: jqHasCrossSport(initial).length,
-              final_cross_sport:   jqHasCrossSport(result.text).length,
+              // Audit fields — written to Analytics Engine above + returned
+              // here for browser-side debug panel display
+              initial_cliches: _initialCliches,
+              final_cliches:   _finalCliches,
+              initial_cross_sport: _initialCrossSport,
+              final_cross_sport:   _finalCrossSport,
             }), {
               status: 200,
               headers: {

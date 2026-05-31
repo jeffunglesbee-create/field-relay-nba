@@ -44,3 +44,19 @@ class_name = "GameDO"
 [[migrations]]
 tag         = "v1-game-do"
 new_classes = ["GameDO"]
+
+# ── Analytics Engine (WOW 7 — Journalism Quality observability, May 31 2026) ─
+# Append-only time-series sink for JQ Gate metrics. Bound as JQ_ANALYTICS in
+# src/index.js, written inside /journalism/generate after runQualityChain.
+# Schema per row:
+#   indexes: [briefType, sport]                  (filtering dimensions)
+#   blobs:   [layersFired]                        (comma-separated layer names)
+#   doubles: [score, retries, ms, initialCliches, finalCliches,
+#             initialCrossSport, finalCrossSport, promptLength, textLength]
+# Dataset auto-creates on first write. Queried via /accounts/{ID}/analytics_engine/sql.
+# RUWT/ADR-002 compliance: records OUTCOMES of quality enforcement, not
+# editorial decisions about interest level. We log what happened to the prose,
+# not what we decided to do with it. Pure editorial-quality observability.
+[[analytics_engine_datasets]]
+binding = "JQ_ANALYTICS"
+dataset = "field_jq_analytics"
