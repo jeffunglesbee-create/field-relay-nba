@@ -441,8 +441,9 @@ function sportradarUflTtl(path) {
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'GET, POST',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Expose-Headers': 'X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy',
 };
 
 // ── Umpire ABS scraper helpers ────────────────────────────────────────────────
@@ -1455,6 +1456,24 @@ export default {
     async fetch(request, env, ctx) {
         const url      = new URL(request.url);
         const pathname = url.pathname;
+
+        // CORS preflight handler — must be FIRST, before any route logic.
+        // Browsers issue OPTIONS preflight automatically for CORS-complex
+        // requests (e.g. POST with Content-Type: application/json).
+        // Without this, the method gate at the route-level returns 405 and
+        // preflight fails → all complex POSTs blocked.
+        // Reference: WOW 6 /journalism/generate CORS bug, May 31 2026.
+        if (request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    'Access-Control-Allow-Origin':  '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+                    'Access-Control-Max-Age':       '86400',
+                },
+            });
+        }
 
         // /push/subscribe — store push subscription in KV
         if (pathname === '/push/subscribe' && request.method === 'POST') {
