@@ -16,7 +16,7 @@ compatibility_flags = ["global_fetch_strictly_public"]
 # Binding name PUSH_SUBS is referenced in src/index.js.
 [[kv_namespaces]]
 binding = "PUSH_SUBS"
-id      = "PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID"
+id      = "46b6d8db59ea49eca8b1d89c576a6158"
 
 # ── O(1) Journalism (Layer 2 — May 25 2026) ──────────────────────────────────
 # KV namespace for pre-rendered journalism prose.
@@ -25,7 +25,7 @@ id      = "PUSH_SUBS_PLACEHOLDER_REPLACE_WITH_REAL_ID"
 # ADR-002 Rule A: this KV stores PROSE ONLY. No interest level values.
 [[kv_namespaces]]
 binding = "FIELD_JOURNALISM"
-id      = "JOURNALISM_PLACEHOLDER_REPLACE_WITH_REAL_ID"
+id      = "83edf19398da4ed184a42746cb85c9d7"
 
 # Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
 [triggers]
