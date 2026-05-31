@@ -143,6 +143,67 @@ jobs:
           echo "✅ CORS OK"
 
       # ══════════════════════════════════════════════════════════════
+      # STRUCTURAL 6 — WOW 6 Journalism Quality Gate end-to-end probe
+      # ══════════════════════════════════════════════════════════════
+      # Added 2026-05-31 PM after discovering the May 30 deploy shipped a
+      # broken X-FIELD-Relay value (field-relay-jq-2026 → 403 from proxy)
+      # that silently broke EVERY browser-triggered live brief for ~24 hours.
+      # The bug slipped through because no deploy-time check actually
+      # exercised the journalism/generate path end-to-end.
+      #
+      # This check POSTs a minimal prompt and asserts the full response
+      # shape: HTTP 200 + text present + score numeric + layers_fired array.
+      # Cost per deploy: ~1 Anthropic API call (~$0.001). Worth it for
+      # patent-critical path integrity.
+      #
+      # Failure modes this catches:
+      #   - X-FIELD-Relay value not in proxy whitelist → HTTP_403 in diagnostic
+      #   - CORS preflight breaks → 405 method not allowed
+      #   - Quality chain throws → empty text
+      #   - scoreProse + runQualityChain regression → missing score field
+      #   - Layer routing breaks → empty layers_fired
+      - name: STRUCTURAL 6 — WOW 6 /journalism/generate e2e
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          BODY='{"prompt":"Write one sentence about a baseball game.","sport":"baseball","briefType":"mlb-brief","max_tokens":100}'
+          STATUS=$(curl -s -o /tmp/wow6_body.json -w "%{http_code}" --max-time 20 \
+            -X POST "$RELAY/journalism/generate" \
+            -H "Content-Type: application/json" \
+            -H "Origin: https://jubilant-bassoon.jeffunglesbee.workers.dev" \
+            -d "$BODY")
+          echo "Status: $STATUS"
+          echo "Body (first 500): $(head -c 500 /tmp/wow6_body.json)"
+          [ "$STATUS" = "200" ] || { echo "❌ Expected HTTP 200, got $STATUS"; exit 1; }
+          python3 << 'PYEOF'
+          import json, sys
+          d = json.load(open('/tmp/wow6_body.json'))
+          errors = []
+          if d.get('status') != 'ok':
+              errors.append(f"status field expected 'ok', got: {d.get('status')}")
+          text = d.get('text', '') or ''
+          if len(text) < 20:
+              errors.append(f"text field missing or too short (len={len(text)})")
+          score = d.get('score')
+          if not isinstance(score, (int, float)):
+              errors.append(f"score field missing or non-numeric: {score}")
+          elif score < 50:
+              errors.append(f"score suspiciously low: {score}")
+          layers = d.get('layers_fired')
+          if not isinstance(layers, list):
+              errors.append(f"layers_fired must be array, got: {type(layers).__name__}")
+          ms = d.get('ms')
+          if not isinstance(ms, (int, float)) or ms <= 0:
+              errors.append(f"ms field missing or invalid: {ms}")
+          if errors:
+              print('❌ WOW 6 e2e shape assertions failed:')
+              for e in errors: print(f'  - {e}')
+              if d.get('proxy_diagnostic'):
+                  print(f'  proxy_diagnostic: {d["proxy_diagnostic"]}')
+              sys.exit(1)
+          print(f'✅ WOW 6 e2e OK — text={len(text)} chars, score={score}, layers={layers}, ms={ms}')
+          PYEOF
+
+      # ══════════════════════════════════════════════════════════════
       # UPSTREAM PROBES — informational only, never fail the workflow
       # These test that upstream APIs are reachable through the relay.
       # Failures are expected during CI cold starts, rate limiting, or
@@ -269,8 +330,8 @@ jobs:
           echo "  RELAY Deploy Complete"
           echo "  field-relay-nba.jeffunglesbee.workers.dev"
           echo ""
-          echo "  Structural checks (hard): 6"
-          echo "    Health + NBA/NHL/FPL/FD whitelist + CORS"
+          echo "  Structural checks (hard): 7"
+          echo "    Health + NBA/NHL/FPL/FD whitelist + CORS + WOW 6 e2e"
           echo "  Upstream probes (informational): 6"
           echo "    NBA CDN · NHL API · FPL bootstrap/fixtures · FD matches/standings"
           echo ""
