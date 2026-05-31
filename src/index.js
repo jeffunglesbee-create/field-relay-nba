@@ -1923,6 +1923,8 @@ export default {
             const scoreFloor  = body.scoreThreshold || 130;
 
             // callProxy closure: same shape used by handleJournalismCycle cron
+            // DIAGNOSTIC: capture real failure mode (vs silent try/catch swallow)
+            let _lastProxyDiag = 'none';
             const callProxy = async (promptText) => {
               try {
                 const resp = await fetch('https://field-claude-proxy.jeffunglesbee.workers.dev', {
@@ -1937,10 +1939,19 @@ export default {
                     messages: [{role:'user', content: promptText}],
                   }),
                 });
-                if (!resp.ok) return null;
+                if (!resp.ok) {
+                  const body = await resp.text().catch(()=>'(unreadable)');
+                  _lastProxyDiag = `HTTP_${resp.status}: ${body.slice(0,150)}`;
+                  return null;
+                }
                 const data = await resp.json();
-                return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
+                const text = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
+                if (!text) {
+                  _lastProxyDiag = `parsed_empty: keys=${Object.keys(data).join(',')} content_len=${(data.content||[]).length}`;
+                }
+                return text || null;
               } catch(e) {
+                _lastProxyDiag = `exception: ${e.message || String(e).slice(0,150)}`;
                 return null;
               }
             };
@@ -1951,6 +1962,7 @@ export default {
               return new Response(JSON.stringify({
                 error: 'proxy returned no prose',
                 proxy_text_length: initial ? initial.length : 0,
+                proxy_diagnostic: _lastProxyDiag,
               }), {status:502, headers:{...CORS,'Content-Type':'application/json'}});
             }
 
