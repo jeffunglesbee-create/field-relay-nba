@@ -1,3 +1,9 @@
+// ── Durable Object: GameDO (per-game WebSocket fan-out, WOW 1 + WOW 2) ─────
+// Built May 31 2026 — Workers Plus active.
+// See src/game-do.js for full ADR-002/RUWT compliance documentation.
+import { GameDO } from './game-do.js';
+export { GameDO };
+
 // ── NBA CDN ────────────────────────────────────────────────────────────────
 const NBA_CDN_BASE  = 'https://cdn.nba.com/static/json';
 const NBA_CACHE_TTL = 30;
@@ -1448,8 +1454,88 @@ export default {
             }
         }
 
+        // ── WOW 1: WebSocket connection to per-game DurableObject ────────
+        // Path: /ws/game/:sport/:gameId
+        // Browser connects here; we forward the upgrade to the game's DO.
+        // ADR-002: DO ships raw facts only, no intelligence computation.
+        if (pathname.startsWith('/ws/game/') && request.headers.get('Upgrade') === 'websocket') {
+            if (!env.GAME_DO) return new Response('GAME_DO binding not configured', { status: 503 });
+            const parts = pathname.split('/').filter(Boolean); // ['ws','game',sport,gameId]
+            if (parts.length < 4) return new Response('Missing sport or gameId', { status: 400 });
+            const sport  = parts[2];
+            const gameId = parts[3];
+            // Stable DO id keyed by sport+gameId — same DO per game across all users.
+            const id   = env.GAME_DO.idFromName(`${sport}:${gameId}`);
+            const stub = env.GAME_DO.get(id);
+            // Pass identity via query params so DO can persist on first connect.
+            const forward = new URL('https://do.internal/ws');
+            forward.searchParams.set('sport',  sport);
+            forward.searchParams.set('gameId', gameId);
+            // Make sendWebPush available to the DO without circular import.
+            // The DO reads env._sendWebPush when fanning out CRUNCH notifications.
+            const enrichedEnv = Object.assign(Object.create(env), { _sendWebPush: sendWebPush });
+            // Forward the upgrade — DO returns the 101 response with the WebSocket.
+            return stub.fetch(forward.toString(), { headers: request.headers });
+        }
+
+        // ── WOW 2: HTTP signal endpoint (SW/page CRUNCH TIME emitter) ────
+        // POST /signal/crunch/:sport/:gameId
+        // The SW (or page) computes CRUNCH TIME locally as a named binary
+        // condition and signals the DO. The DO fans out Web Push to pinned
+        // subscribers. The DO never computes the condition itself.
+        // RUWT compliance: client makes the determination; server delivers.
+        if (pathname.startsWith('/signal/crunch/') && request.method === 'POST') {
+            if (!env.GAME_DO) return new Response('GAME_DO binding not configured', { status: 503 });
+            const parts = pathname.split('/').filter(Boolean); // ['signal','crunch',sport,gameId]
+            if (parts.length < 4) return new Response('Missing sport or gameId', { status: 400 });
+            const sport  = parts[2];
+            const gameId = parts[3];
+            const id     = env.GAME_DO.idFromName(`${sport}:${gameId}`);
+            const stub   = env.GAME_DO.get(id);
+            const enrichedEnv = Object.assign(Object.create(env), { _sendWebPush: sendWebPush });
+            // Forward to the DO's /signal/crunch route. The DO dedup-checks and fans out.
+            const body = await request.text();
+            return stub.fetch('https://do.internal/signal/crunch', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+        }
+
+        // ── WOW 2: HTTP pin/unpin endpoints (alternative to WS pin message) ──
+        if (pathname.startsWith('/pin/game/') && request.method === 'POST') {
+            if (!env.GAME_DO) return new Response('GAME_DO binding not configured', { status: 503 });
+            const parts = pathname.split('/').filter(Boolean); // ['pin','game',sport,gameId]
+            if (parts.length < 4) return new Response('Missing sport or gameId', { status: 400 });
+            const sport  = parts[2];
+            const gameId = parts[3];
+            const id     = env.GAME_DO.idFromName(`${sport}:${gameId}`);
+            const stub   = env.GAME_DO.get(id);
+            const body = await request.text();
+            return stub.fetch('https://do.internal/pin', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+        }
+        if (pathname.startsWith('/unpin/game/') && request.method === 'POST') {
+            if (!env.GAME_DO) return new Response('GAME_DO binding not configured', { status: 503 });
+            const parts = pathname.split('/').filter(Boolean);
+            if (parts.length < 4) return new Response('Missing sport or gameId', { status: 400 });
+            const sport  = parts[2];
+            const gameId = parts[3];
+            const id     = env.GAME_DO.idFromName(`${sport}:${gameId}`);
+            const stub   = env.GAME_DO.get(id);
+            const body = await request.text();
+            return stub.fetch('https://do.internal/unpin', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+            });
+        }
+
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });

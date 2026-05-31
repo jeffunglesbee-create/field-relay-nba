@@ -30,3 +30,17 @@ id      = "JOURNALISM_PLACEHOLDER_REPLACE_WITH_REAL_ID"
 # Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
 [triggers]
 crons = ["*/5 * * * *", "*/15 * * * *"]
+
+# ── Durable Objects (WOW 1 + WOW 2 — May 31 2026, Workers Plus) ─────────────
+# GameDO: one DO per active game. Browsers WebSocket-connect for live score
+# fan-out (replaces N polls with 1). Browsers signal CRUNCH TIME → DO fans
+# out Web Push to pinned subscribers. ADR-002 compliant: DO ships raw facts
+# only, never computes interest levels. See src/game-do.js for full spec.
+[[durable_objects.bindings]]
+name       = "GAME_DO"
+class_name = "GameDO"
+
+# Migration: introduce the GameDO class. Required when first deploying a DO.
+[[migrations]]
+tag         = "v1-game-do"
+new_classes = ["GameDO"]
