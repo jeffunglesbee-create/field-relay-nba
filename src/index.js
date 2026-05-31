@@ -809,6 +809,62 @@ function adaptBasketball(g) {
     };
 }
 
+// API-NBA (v2.nba.api-sports.io) — different shape than API-BASKETBALL.
+// VERIFIED against live response 2026-05-31:
+//   - status.short is INTEGER (3 = Finished, others unmapped — probe required)
+//   - status.long is STRING ("Finished", presumably "Not Started"/"Live" etc)
+//   - teams.visitors instead of teams.away
+//   - scores.home.points instead of scores.home.total
+//   - scores.home.linescore[] (array) instead of quarter_1..4 fields
+//   - arena.name instead of top-level venue
+//   - date.start (object) instead of top-level date string
+//   - league is bare string ("standard") not object — hardcode "NBA"
+// State mapping uses status.long primary, with .short fallback.
+function adaptApiNba(g) {
+    // Use status.long (reliable string) as primary state signal.
+    const longRaw = String(g?.status?.long ?? '').toLowerCase();
+    let state = 'pre';
+    if (longRaw === 'finished')                                     state = 'final';
+    else if (longRaw.includes('quarter') || longRaw.includes('half')
+          || longRaw.includes('overtime') || longRaw === 'live')    state = 'live';
+    else                                                            state = 'pre';
+
+    const periodNum = g?.periods?.current || 0;
+    const periodLabel = state === 'final' ? '' :
+        (periodNum >= 1 && periodNum <= 4) ? `Q${periodNum}` :
+        (periodNum > 4) ? `OT${periodNum - 4}` : '';
+
+    const homeLS = Array.isArray(g?.scores?.home?.linescore)
+        ? g.scores.home.linescore.map(n => parseInt(n) || 0) : [];
+    const awayLS = Array.isArray(g?.scores?.visitors?.linescore)
+        ? g.scores.visitors.linescore.map(n => parseInt(n) || 0) : [];
+
+    return {
+        id:          `nba:${g.id}`,
+        sport:       'nba',
+        league:      'NBA',
+        state,
+        start:       g?.date?.start || '',
+        home:        {
+            name:   g?.teams?.home?.name || '',
+            abbr:   g?.teams?.home?.code || '',
+            score:  g?.scores?.home?.points ?? null,
+            teamId: g?.teams?.home?.id ?? null,
+        },
+        away:        {
+            name:   g?.teams?.visitors?.name || '',
+            abbr:   g?.teams?.visitors?.code || '',
+            score:  g?.scores?.visitors?.points ?? null,
+            teamId: g?.teams?.visitors?.id ?? null,
+        },
+        periodNum,
+        periodLabel,
+        clock:       g?.status?.clock || '',
+        venue:       g?.arena?.name || '',
+        linescores:  { home: homeLS, away: awayLS },
+    };
+}
+
 function adaptHockey(g) {
     const sport = 'hockey', state = v2State(sport, g?.status?.short);
     const { periodNum, periodLabel } = v2Period(sport, g?.status, g);
@@ -914,10 +970,9 @@ async function handleV2Games(url, env) {
     if (cfg.sport === 'nba') {
         // API-NBA: dedicated Pro plan at v2.nba.api-sports.io — no league/season params, date only.
         // Separate quota from API-BASKETBALL (WNBA uses basketball + league=13).
-        // Schema matches v1.basketball.api-sports.io — reuse adaptBasketball.
-        // [VERIFY against first live response after deploy — confirm field paths match adaptBasketball]
+        // Response shape differs from API-BASKETBALL — use adaptApiNba (verified 2026-05-31).
         targetUrl = `https://${host}/games?date=${date}`;
-        adapt = items => items.map(adaptBasketball);
+        adapt = items => items.map(adaptApiNba);
     } else if (cfg.sport === 'football') {
         targetUrl = `https://${host}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
         adapt = items => items.map(f => adaptFootball(f, sport));
