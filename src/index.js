@@ -4,6 +4,18 @@
 import { GameDO } from './game-do.js';
 export { GameDO };
 
+// ── Journalism Quality Gate (WOW 6 — May 31 2026) ──────────────────────────
+// Ports browser-side JQ chain (Layers 1, 2, 2b, 2c, 2d, 2e, 3, 3b) to the
+// relay so live journalism flows through structural quality enforcement.
+// See src/journalism-quality.js for full documentation.
+import {
+  FIELD_PROSE_STYLE as JQ_STYLE,
+  runQualityChain,
+  scoreProse as jqScoreProse,
+  hasCliche as jqHasCliche,
+  hasCrossSportHallucination as jqHasCrossSport,
+} from './journalism-quality.js';
+
 // ── NBA CDN ────────────────────────────────────────────────────────────────
 const NBA_CDN_BASE  = 'https://cdn.nba.com/static/json';
 const NBA_CACHE_TTL = 30;
@@ -1254,7 +1266,7 @@ async function handleJournalismCycle(env) {
       '- Lead with the most important story — the SPECIFIC situation, not the template.',
       '- CORRECTNESS: write only from the data above. Never invent scores, stats, or facts not listed.',
       '- SERIES ACCURACY: A Conference Finals game is NEVER "the NBA Finals" or "the Championship." A Stanley Cup Final game is NEVER a "first-round matchup." Use only the round/series description in the game data. If the series context is unclear, describe it as "a playoff series" — never upgrade it to a championship.',
-      RELAY_STYLE_RULES,
+      JQ_STYLE,  // WOW 6: unified style block (includes LEAGUE BOUNDARIES, SPARINGLY, [CHAMPION], [FEATURED STAT], etc.)
       '- Plain prose only. Every sentence complete.',
     ].join('\n');
 
@@ -1285,25 +1297,20 @@ async function handleJournalismCycle(env) {
     let prose = await callProxy(buildPrompt());
     if (!prose || prose.length < 50) return {ok:false, reason:`proxy no prose (len ${prose?prose.length:0})`, proxyStatus:_lastProxyStatus};
 
-    // 4. Layer 2: cliché detection + one retry
-    const cliches = relayHasCliche(prose);
-    if (cliches.length) {
-      const retryPrompt = buildPrompt() + `\n\nIMPORTANT: Your previous draft contained these banned phrases: ${cliches.join(', ')}. Replace each with a specific fact from the game data instead. No generic metaphors.`;
-      const retried = await callProxy(retryPrompt);
-      if (retried && retried.length > 50) prose = retried;
-    }
-
-    // 5. Layer 3: prose score gate — re-prompt if quality too low
-    const score = relayScoreProse(prose);
-    if (score < 90) { // 0-200 scale threshold
-      const scoreRetryPrompt = buildPrompt() + `\n\nIMPORTANT: Your previous draft scored low on specificity (score: ${score}/100). Add more proper names, exact scores, and specific facts. Remove vague adjectives. Every sentence must contain at least one name, number, or concrete detail.`;
-      const retried = await callProxy(scoreRetryPrompt);
-      if (retried && retried.length > 50) prose = retried;
-    }
+    // ── WOW 6: full quality chain (Layers 2, 2b, 2c, 2d, 2e, 3b) ───────────
+    // Replaces the previous cron-path Layer 2 + degraded Layer 3 with the
+    // unified chain that the live path also uses. Both paths now apply
+    // identical quality enforcement.
+    const qualityResult = await runQualityChain(buildPrompt(), prose, callProxy, {
+      sport: null, // slate brief covers multiple sports
+      scoreThreshold: 130,
+      maxRetries: 6,
+    });
+    prose = qualityResult.text;
+    const finalScore   = qualityResult.score;
+    const finalCliches = jqHasCliche(prose).length;
 
     // 6. Store J3 brief in KV
-    const finalScore = relayScoreProse(prose);
-    const finalCliches = relayHasCliche(prose);
     const cycleId = crypto.randomUUID();
     await env.FIELD_JOURNALISM.put(
       `journalism:${dateKey}`,
@@ -1368,7 +1375,7 @@ async function handleJournalismCycle(env) {
             isPlayoff
               ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
               : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
-            ...RELAY_STYLE_RULES,
+            JQ_STYLE,  // WOW 6: unified style block
             'Write only from data above. No invented stats.',
           ].filter(Boolean).join('\n');
 
@@ -1535,7 +1542,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -1737,6 +1744,106 @@ export default {
           const result = await handleJournalismCycle(env);
           return new Response(JSON.stringify({triggered:'journalism-cycle', result}),
             {headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
+        // ── /journalism/generate — WOW 6 Quality Gate (live-path) ─────────────
+        // Browser sends: { prompt, sport?, briefType?, max_tokens? }
+        // Relay calls field-claude-proxy → runs all 6 quality layers →
+        // returns: { text, score, retries, layers_fired, ms, status }
+        //
+        // This is the architectural patent point: journalism quality is
+        // enforced structurally on the relay before reaching the user.
+        // Per ADR-002, this is rule enforcement (banned phrases, sport vocab,
+        // lead pattern, stat presence, cross-sport facts, prose score) —
+        // NOT editorial interest determination.
+        //
+        // Token cost: same as direct proxy call (1 generation + up to 6 retries
+        // only when needed). Identical to browser-side chain that runs today.
+        //
+        // RUWT: no interest level computation. No threshold against composite
+        // value. The "score < 130" check is on prose QUALITY (specificity +
+        // variety + density + statDepth), not on interest. Pure editorial
+        // rule. ✅ CLEAN.
+        if (pathname === '/journalism/generate' && request.method === 'POST') {
+          try {
+            const body = await request.json().catch(()=>null);
+            if (!body || typeof body.prompt !== 'string' || body.prompt.length < 10) {
+              return new Response(JSON.stringify({error:'missing or invalid prompt'}),
+                {status:400, headers:{...CORS,'Content-Type':'application/json'}});
+            }
+            const sport       = body.sport || null;
+            const briefType   = body.briefType || 'generic';
+            const max_tokens  = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
+            const scoreFloor  = body.scoreThreshold || 130;
+
+            // callProxy closure: same shape used by handleJournalismCycle cron
+            const callProxy = async (promptText) => {
+              try {
+                const resp = await fetch('https://field-claude-proxy.jeffunglesbee.workers.dev', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-FIELD-Relay': 'field-relay-jq-2026', // server-to-server auth
+                  },
+                  body: JSON.stringify({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens,
+                    messages: [{role:'user', content: promptText}],
+                  }),
+                });
+                if (!resp.ok) return null;
+                const data = await resp.json();
+                return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
+              } catch(e) {
+                return null;
+              }
+            };
+
+            // First call: generate the initial prose
+            const initial = await callProxy(body.prompt);
+            if (!initial || initial.length < 30) {
+              return new Response(JSON.stringify({
+                error: 'proxy returned no prose',
+                proxy_text_length: initial ? initial.length : 0,
+              }), {status:502, headers:{...CORS,'Content-Type':'application/json'}});
+            }
+
+            // Run full quality chain
+            const result = await runQualityChain(body.prompt, initial, callProxy, {
+              sport,
+              scoreThreshold: scoreFloor,
+              maxRetries: 6,
+            });
+
+            return new Response(JSON.stringify({
+              status: 'ok',
+              briefType,
+              text: result.text,
+              score: result.score,
+              retries: result.retries,
+              layers_fired: result.layers_fired,
+              ms: result.ms,
+              // Audit fields — useful for WOW 7 analytics later
+              initial_cliches: jqHasCliche(initial).length,
+              final_cliches:   jqHasCliche(result.text).length,
+              initial_cross_sport: jqHasCrossSport(initial).length,
+              final_cross_sport:   jqHasCrossSport(result.text).length,
+            }), {
+              status: 200,
+              headers: {
+                ...CORS,
+                'Content-Type': 'application/json',
+                'X-JQ-Score': String(result.score),
+                'X-JQ-Retries': String(result.retries),
+                'X-JQ-Layers': result.layers_fired.join(',') || 'none',
+              },
+            });
+          } catch(e) {
+            return new Response(JSON.stringify({
+              error: 'journalism gate failure',
+              detail: e.message,
+            }), {status:500, headers:{...CORS,'Content-Type':'application/json'}});
+          }
         }
 
         // RSS proxy — routes first-party league RSS feeds to bypass browser CORS
