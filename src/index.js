@@ -1783,13 +1783,37 @@ export default {
         // /bdl/* → BallDontLie (player stats, season averages, standings)
         // apiKey injected via Authorization header — env.BDL_API_KEY secret takes priority
         // Falls back to registered key if secret not configured (key already public in FIELD client)
+        // 401 handling: free-tier key returns 401 on /season_averages and other GOAT-gated routes.
+        // Rather than propagating the 401 (which spams browser console), return 200 with empty
+        // data + tier_required marker. Browser code already checks data.length and falls through
+        // gracefully. Upgrade to BDL GOAT plan ($9.99/mo) to enable these endpoints.
         if (pathname.startsWith('/bdl')) {
             const cleanPath = pathname.replace(/^\/bdl/, '') || '/';
             if (!bdlAllowed(cleanPath))
                 return new Response('BDL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'bdl-path-not-whitelisted', ...CORS } });
             const bdlKey = env?.BDL_API_KEY || '4c881f4b-3845-4542-841f-a0e685c9f10e';
             const targetUrl = `${BDL_BASE}${cleanPath}${url.search || ''}`;
-            return relayFetch(targetUrl, { 'Authorization': bdlKey, 'Accept': 'application/json' }, bdlCacheTtl(cleanPath), 'bdl', ctx);
+            const bdlResp = await relayFetch(targetUrl, { 'Authorization': bdlKey, 'Accept': 'application/json' }, bdlCacheTtl(cleanPath), 'bdl', ctx);
+            // Special-case 401: free-tier subscription doesn't cover this endpoint.
+            // Return empty data so browser doesn't error in console + skips this data source.
+            if (bdlResp.status === 401) {
+                return new Response(JSON.stringify({
+                    data: [],
+                    meta: {
+                        tier_required: 'GOAT',
+                        upstream_status: 401,
+                        note: 'BDL subscription tier required for this endpoint',
+                    },
+                }), {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-RELAY-Tier-Gated': '1',
+                        ...CORS,
+                    },
+                });
+            }
+            return bdlResp;
         }
 
 
