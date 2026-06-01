@@ -2502,7 +2502,7 @@ export default {
     // (max_retries=3 from wrangler.toml). On final failure, writes a 'failed'
     // status row so the polling endpoint can report it.
     async queue(batch, env, ctx) {
-      const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev/journalism/generate';
+      const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
       for (const msg of batch.messages) {
         const job = msg.body || {};
         const jobId = job.jobId;
@@ -2524,10 +2524,9 @@ export default {
                 'X-FIELD-Relay': 'field-relay-cron-2026',
               },
               body: JSON.stringify({
-                prompt: promptText,
-                sport: job.sport,
-                briefType: job.briefType,
-                max_tokens: job.max_tokens,
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: job.max_tokens || 1000,
+                messages: [{role: 'user', content: promptText}],
               }),
             });
             if (r.status === 429) {
@@ -2536,7 +2535,8 @@ export default {
             }
             if (!r.ok) return null;
             const data = await r.json().catch(() => null);
-            return data?.text || null;
+            if (!data) return null;
+            return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
           };
           const initial = await callProxy(job.prompt);
           if (!initial) throw new Error('proxy returned no prose');
