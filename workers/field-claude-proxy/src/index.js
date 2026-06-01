@@ -62,8 +62,35 @@ function fromGemini(data) {
   });
 }
 
-async function callGemini(body, key) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
+// ── Cloudflare AI Gateway routing (May 31 2026) ─────────────────────────────
+// When env.CF_AI_GATEWAY_BASE is set (e.g. "https://gateway.ai.cloudflare.com/
+// v1/{account-id}/{gateway-id}"), all upstream calls route through the gateway.
+// AI Gateway provides:
+//   - Semantic caching (20-40% savings on repeated/similar prompts)
+//   - Request/response logging (observability)
+//   - Rate-limit visibility
+//   - Cost reporting per provider
+// Without the env var, the proxy routes directly to upstream APIs (today's
+// behavior). To enable: create gateway in CF dashboard, then
+//   echo "https://gateway.ai.cloudflare.com/v1/<acct>/<gw>" \
+//     | wrangler secret put CF_AI_GATEWAY_BASE --name field-claude-proxy
+// Provider path segments per Cloudflare docs:
+//   Google AI Studio: /google-ai-studio
+//   Anthropic:        /anthropic
+function geminiUrl(env, key) {
+  const path = `/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
+  return env.CF_AI_GATEWAY_BASE
+    ? `${env.CF_AI_GATEWAY_BASE}/google-ai-studio${path}`
+    : `https://generativelanguage.googleapis.com${path}`;
+}
+function anthropicUrl(env) {
+  return env.CF_AI_GATEWAY_BASE
+    ? `${env.CF_AI_GATEWAY_BASE}/anthropic/v1/messages`
+    : 'https://api.anthropic.com/v1/messages';
+}
+
+async function callGemini(body, key, env) {
+  const url = geminiUrl(env, key);
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -77,8 +104,8 @@ async function callGemini(body, key) {
   return { text: fromGemini(await r.json()), model: 'gemini-3.1-flash-lite', status: 200 };
 }
 
-async function callClaude(raw, key) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+async function callClaude(raw, key, env) {
+  const r = await fetch(anthropicUrl(env), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: raw,
@@ -131,12 +158,12 @@ export default {
 
     if (gKey && !hasVision) {
       try {
-        result = await callGemini(JSON.parse(raw), gKey);
+        result = await callGemini(JSON.parse(raw), gKey, env);
       } catch (e) {
         if (e.is429) {
           // 429: try Claude fallback first — only send 429 to client if no Claude key
           if (aKey) {
-            try { result = await callClaude(raw, aKey); }
+            try { result = await callClaude(raw, aKey, env); }
             catch (e2) {
               return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: e.retryAfter }), {
                 status: 429,
@@ -150,7 +177,7 @@ export default {
             });
           }
         } else if (aKey) {
-          try { result = await callClaude(raw, aKey); }
+          try { result = await callClaude(raw, aKey, env); }
           catch (e2) {
             return new Response(JSON.stringify({ error: 'Both backends failed.' }), {
               status: 502, headers: { 'Content-Type': 'application/json', ...cors(origin), ...version() },
@@ -163,7 +190,7 @@ export default {
         }
       }
     } else {
-      try { result = await callClaude(raw, aKey); }
+      try { result = await callClaude(raw, aKey, env); }
       catch (e) {
         return new Response(JSON.stringify({ error: `Claude failed: ${e.message}` }), {
           status: 502, headers: { 'Content-Type': 'application/json', ...cors(origin), ...version() },
