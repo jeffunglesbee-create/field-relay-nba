@@ -1291,6 +1291,23 @@ function buildGameLine(ev, league) {
   return line;
 }
 
+// ── PF-1: Markdown header/bold stripper (June 1 2026) ───────────────────────
+// LLMs occasionally wrap output in '#' headers or '**bold**' even when not
+// asked. The bottom sheet renders plain text, so any markdown leaks through
+// as raw characters. Shared by /journalism/generate (sync path) and the
+// queue consumer (WOW 8 async path) so both surfaces stay clean.
+function stripMarkdown(s) {
+  if (!s) return s;
+  return s
+    .replace(/^#{1,6}\s+/gm, '')          // # ## ### headers
+    .replace(/\*\*(.+?)\*\*/g, '$1')      // **bold**
+    .replace(/__(.+?)__/g, '$1')          // __bold__
+    .replace(/`(.+?)`/g, '$1')            // `inline code`
+    .replace(/^[-*+]\s+/gm, '')           // bullet list markers
+    .replace(/\n{3,}/g, '\n\n')           // collapse triple newlines
+    .trim();
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
@@ -1988,17 +2005,7 @@ export default {
             // or bold ("**X**") even when not asked. The bottom sheet renders
             // plain text, so any markdown leaks through as raw '#' / '**'.
             // Strip at relay so cron-generated KV briefs benefit too.
-            const stripMarkdown = (s) => {
-              if (!s) return s;
-              return s
-                .replace(/^#{1,6}\s+/gm, '')          // # ## ### headers
-                .replace(/\*\*(.+?)\*\*/g, '$1')      // **bold**
-                .replace(/__(.+?)__/g, '$1')          // __bold__
-                .replace(/`(.+?)`/g, '$1')            // `inline code`
-                .replace(/^[-*+]\s+/gm, '')           // bullet list markers
-                .replace(/\n{3,}/g, '\n\n')           // collapse triple newlines
-                .trim();
-            };
+            // stripMarkdown helper is hoisted to module scope (see PF-1 above).
             result.text = stripMarkdown(result.text);
 
             // Compute audit values once (used both for response + analytics)
@@ -2545,11 +2552,14 @@ export default {
             scoreThreshold: job.scoreThreshold || undefined,
             maxRetries: 6,
           });
+          // PF-1 parity: strip markdown headers/bold before persisting, so the
+          // queue consumer's KV output matches the sync /journalism/generate path.
+          const cleanText = stripMarkdown(result.text);
           // Persist completed result.
           await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
             JSON.stringify({
               status: 'done',
-              text: result.text,
+              text: cleanText,
               score: result.score,
               retries: result.retries,
               layers_fired: result.layers_fired,
