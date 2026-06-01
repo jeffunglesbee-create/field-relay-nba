@@ -77,6 +77,50 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: workers/field-claude-proxy
 
+      # ── Sync CF AI Gateway secrets onto field-claude-proxy (idempotent) ──
+      # CF_AI_GATEWAY_BASE — gateway URL (not secret per se, but treated same)
+      # CF_AIG_TOKEN       — Authenticated Gateway token (cfut_... — IS secret)
+      #
+      # These are set via the CF API directly (api.cloudflare.com from CI runner
+      # has unrestricted access). Worker secrets persist across deploys, so this
+      # step is idempotent — re-running keeps the same values. To rotate the
+      # token: update the GitHub Actions secret CF_AIG_TOKEN, push any change,
+      # this step re-syncs on next deploy.
+      #
+      # Sequencing: this runs AFTER wrangler-action so the worker exists before
+      # we try to set its secrets. Failure here does not block STRUCTURAL 6 — if
+      # secrets are missing or stale, the proxy gracefully falls back to direct
+      # routing (CF_AI_GATEWAY_BASE unset) or unauthenticated gateway (CF_AIG_TOKEN
+      # unset, gateway auth ON → 401 → fallback in caller).
+      - name: Sync AI Gateway secrets to field-claude-proxy
+        if: ${{ secrets.CF_AIG_TOKEN != '' }}
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
+        run: |
+          ACCT="b57e9af57ab46c52ca9215804e689c29"
+          WORKER="field-claude-proxy"
+          BASE_URL="https://gateway.ai.cloudflare.com/v1/${ACCT}/field-journalism"
+          API="https://api.cloudflare.com/client/v4/accounts/${ACCT}/workers/scripts/${WORKER}/secrets"
+
+          set_secret() {
+            local NAME="$1"; local VAL="$2"
+            STATUS=$(curl -s -o /tmp/cfsec.json -w "%{http_code}" -X PUT "$API" \
+              -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\":\"$NAME\",\"text\":\"$VAL\",\"type\":\"secret_text\"}")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ $NAME synced (HTTP $STATUS)"
+            else
+              echo "❌ $NAME failed (HTTP $STATUS):"
+              cat /tmp/cfsec.json | head -c 300
+              echo ""
+            fi
+          }
+
+          set_secret "CF_AI_GATEWAY_BASE" "$BASE_URL"
+          set_secret "CF_AIG_TOKEN" "$CF_AIG_TOKEN"
+
       - name: Wait for propagation
         run: sleep 15
 
