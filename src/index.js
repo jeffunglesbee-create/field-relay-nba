@@ -1301,11 +1301,17 @@ async function handleJournalismCycle(env) {
 
   try {
     // 1. Fetch ESPN scoreboard — richer context (Fix 5)
+    // O(1) Newspaper coverage — added EPL May 31 2026.
+    // Each league here is iterated TWICE per cron cycle: once for the slate
+    // brief context (gameLines), once for per-game brief generation. Adding
+    // a league to this array immediately expands cache coverage for the
+    // 97% LLM-cost-reduction path.
     const LEAGUES = [
       {sport:'basketball',league:'nba',label:'NBA'},
       {sport:'hockey',    league:'nhl',label:'NHL'},
       {sport:'baseball',  league:'mlb',label:'MLB'},
       {sport:'basketball',league:'wnba',label:'WNBA'},
+      {sport:'soccer',    league:'eng.1',label:'EPL'},
     ];
     const gameLines = [];
     for (const {sport,league,label} of LEAGUES) {
