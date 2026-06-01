@@ -77,6 +77,15 @@ function fromGemini(data) {
 // Provider path segments per Cloudflare docs:
 //   Google AI Studio: /google-ai-studio
 //   Anthropic:        /anthropic
+//
+// AUTHENTICATED GATEWAY (May 31 2026, post-init):
+// When env.CF_AIG_TOKEN is set, requests include cf-aig-authorization: Bearer <token>.
+// Required when the gateway has "Authenticated Gateway" turned on in the dashboard
+// (recommended — prevents URL leaks from being exploited to dump logs/cache).
+// Token is created in dashboard → AI Gateway → field-journalism → Settings →
+// "Create authentication token" with scope: Account / AI Gateway / Run.
+// Without CF_AIG_TOKEN, no header is sent — works for unauthenticated gateways
+// or direct (non-gateway) routing.
 function geminiUrl(env, key) {
   const path = `/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
   return env.CF_AI_GATEWAY_BASE
@@ -88,12 +97,15 @@ function anthropicUrl(env) {
     ? `${env.CF_AI_GATEWAY_BASE}/anthropic/v1/messages`
     : 'https://api.anthropic.com/v1/messages';
 }
+function aigAuthHeaders(env) {
+  return env.CF_AIG_TOKEN ? { 'cf-aig-authorization': `Bearer ${env.CF_AIG_TOKEN}` } : {};
+}
 
 async function callGemini(body, key, env) {
   const url = geminiUrl(env, key);
   const r = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...aigAuthHeaders(env) },
     body: JSON.stringify(toGemini(body)),
   });
   if (r.status === 429) {
@@ -107,7 +119,12 @@ async function callGemini(body, key, env) {
 async function callClaude(raw, key, env) {
   const r = await fetch(anthropicUrl(env), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      ...aigAuthHeaders(env),
+    },
     body: raw,
   });
   return { text: await r.text(), model: 'claude-sonnet-4', status: r.status };
