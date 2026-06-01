@@ -1264,20 +1264,57 @@ function buildGameLine(ev, league) {
   const status = comp.status?.type?.description || '';
   const broadcast = comp.broadcasts?.[0]?.names?.[0] || league.toUpperCase();
 
+  // Team records (overall W-L) — context for the model: standings position
+  const homeRec = (home.records || []).find(r => r.type === 'total')?.summary || '';
+  const awayRec = (away.records || []).find(r => r.type === 'total')?.summary || '';
+
+  // Venue (with indoor flag) — relevant for weather context and atmosphere
+  const venueName = comp.venue?.fullName || '';
+  const indoorFlag = comp.venue?.indoor ? ' [indoor]' : '';
+
   // Series record (playoffs) — include round name to prevent AI series confusion
   const seriesSummary = comp.series?.summary || comp.series?.type?.text || '';
-  const seriesRound = ev?.notes?.[0]?.headline || ev?.season?.type?.slug === 'post' ? '' : '';
-  // Try to get round name from competition type or notes
   const roundName = comp.type?.text || comp.notes?.[0]?.headline || '';
   const series = [roundName, seriesSummary].filter(Boolean).join(' — ') || seriesSummary;
 
-  // Scoring leaders from competitor stats
+  // Extended leader extraction: top 3 categories per team (was top 1).
+  // For MLB: BA, HR, RBI. For NBA/WNBA: PPG, RPG, APG. For NHL: G, A, PTS.
+  // Voice diversity in the brief depends on the model having multiple stat
+  // types to draw from — single-category extraction was forcing batting-average
+  // monotony across nine MLB games.
   const leaders = [];
   for (const team of [home, away]) {
-    const topLeader = team.leaders?.[0]?.leaders?.[0];
-    if (topLeader?.displayValue && topLeader?.athlete?.displayName) {
-      leaders.push(`${topLeader.athlete.displayName} ${topLeader.displayValue}`);
+    const teamAbbr = team.team?.abbreviation || '';
+    const teamLeaders = [];
+    const leaderCategories = team.leaders || [];
+    for (const lg of leaderCategories.slice(0, 3)) {
+      const top = lg.leaders?.[0];
+      if (top?.displayValue && top?.athlete?.displayName) {
+        const cat = lg.shortDisplayName || lg.abbreviation || '';
+        const nameStat = `${top.athlete.displayName} ${top.displayValue}${cat ? ' '+cat : ''}`.trim();
+        teamLeaders.push(nameStat);
+      }
     }
+    if (teamLeaders.length) leaders.push(`${teamAbbr}: ${teamLeaders.join(', ')}`);
+  }
+
+  // Probable starting pitchers (MLB only — empty for other sports, populated
+  // inconsistently within MLB depending on ESPN's data lag). Provides a hook
+  // for the model to lead per-game writing with pitching matchup context.
+  const probables = [];
+  for (const team of [home, away]) {
+    const prob = team.probables?.[0];
+    const ath = prob?.athlete;
+    if (!ath?.displayName) continue;
+    const stats = prob.statistics || [];
+    const wins = stats.find(s => s.abbreviation === 'W')?.displayValue;
+    const losses = stats.find(s => s.abbreviation === 'L')?.displayValue;
+    const era = stats.find(s => s.abbreviation === 'ERA')?.displayValue;
+    const teamAbbr = team.team?.abbreviation || '';
+    const recStr = (wins !== undefined && losses !== undefined && era !== undefined)
+      ? `${wins}-${losses}, ${era} ERA`
+      : era ? `${era} ERA` : '';
+    probables.push(recStr ? `${ath.displayName} (${teamAbbr}, ${recStr})` : `${ath.displayName} (${teamAbbr})`);
   }
 
   // Situation context (live games: period + clock)
@@ -1285,9 +1322,15 @@ function buildGameLine(ev, league) {
     ? (comp.status?.displayClock ? `(${comp.status.displayClock} ${comp.status?.period ? 'P'+comp.status.period : ''})` : '')
     : '';
 
-  let line = `${awayName} ${awayScore} @ ${homeName} ${homeScore} · ${status}${situation ? ' '+situation : ''} · ${broadcast}`;
+  // Format: team (record) score @ team (record) score · status · venue · broadcast · series · leaders · probables
+  const awayLabel = `${awayName}${awayRec ? ` (${awayRec})` : ''} ${awayScore}`.trim();
+  const homeLabel = `${homeName}${homeRec ? ` (${homeRec})` : ''} ${homeScore}`.trim();
+  let line = `${awayLabel} @ ${homeLabel} · ${status}${situation ? ' '+situation : ''}`;
+  if (venueName) line += ` · ${venueName}${indoorFlag}`;
+  line += ` · ${broadcast}`;
   if (series) line += ` · ${series}`;
-  if (leaders.length) line += ` · Leaders: ${leaders.join(', ')}`;
+  if (leaders.length) line += ` · ${leaders.join(' · ')}`;
+  if (probables.length) line += ` · Probables: ${probables.join(', ')}`;
   return line;
 }
 
