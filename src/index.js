@@ -2068,6 +2068,72 @@ export default {
           }
         }
 
+        // ── /journalism/enqueue — WOW 8 async pipeline producer ────────────────
+        // Browser sends: { prompt, sport?, briefType?, max_tokens?, scoreThreshold? }
+        // Worker enqueues to JOURNALISM_QUEUE, returns { jobId } immediately (202).
+        // Consumer (queue handler below) drains at upstream-permitted rate with
+        // 429-aware retry. Replaces the 400/700/1000ms synchronous stagger.
+        // Result lands in FIELD_JOURNALISM KV under jobs:{jobId} — fetch via
+        // GET /journalism/result/:jobId.
+        if (pathname === '/journalism/enqueue' && request.method === 'POST') {
+          if (!env.JOURNALISM_QUEUE) {
+            return new Response(JSON.stringify({error:'queue not configured'}),
+              {status:503, headers:{...CORS,'Content-Type':'application/json'}});
+          }
+          try {
+            const body = await request.json();
+            if (!body.prompt || typeof body.prompt !== 'string') {
+              return new Response(JSON.stringify({error:'prompt required'}),
+                {status:400, headers:{...CORS,'Content-Type':'application/json'}});
+            }
+            const jobId = crypto.randomUUID();
+            await env.JOURNALISM_QUEUE.send({
+              jobId,
+              prompt: body.prompt,
+              sport: body.sport || null,
+              briefType: body.briefType || 'queued',
+              max_tokens: body.max_tokens || 1000,
+              scoreThreshold: body.scoreThreshold || null,
+              enqueuedAt: Date.now(),
+            });
+            // Seed status row in KV so result endpoint can report "queued" before processing.
+            if (env.FIELD_JOURNALISM) {
+              await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
+                JSON.stringify({status:'queued', enqueuedAt: Date.now()}),
+                {expirationTtl: 86400});
+            }
+            return new Response(JSON.stringify({jobId, status:'queued'}),
+              {status:202, headers:{...CORS,'Content-Type':'application/json'}});
+          } catch(e) {
+            return new Response(JSON.stringify({error:'enqueue failure', detail:e.message}),
+              {status:500, headers:{...CORS,'Content-Type':'application/json'}});
+          }
+        }
+
+        // ── /journalism/result/:jobId — WOW 8 result polling endpoint ──────────
+        // Browser polls this after /journalism/enqueue to retrieve completed prose.
+        // Returns: 200 { status:'done', text, score, retries, layers_fired, ms }
+        //   or:   200 { status:'queued' | 'processing' | 'failed', ... }
+        //   or:   404 if jobId unknown / expired (24h KV TTL).
+        if (pathname.startsWith('/journalism/result/') && request.method === 'GET') {
+          if (!env.FIELD_JOURNALISM) {
+            return new Response(JSON.stringify({error:'storage not configured'}),
+              {status:503, headers:{...CORS,'Content-Type':'application/json'}});
+          }
+          const jobId = pathname.slice('/journalism/result/'.length);
+          if (!jobId || !/^[0-9a-f-]{8,}$/i.test(jobId)) {
+            return new Response(JSON.stringify({error:'invalid jobId'}),
+              {status:400, headers:{...CORS,'Content-Type':'application/json'}});
+          }
+          const raw = await env.FIELD_JOURNALISM.get(`jobs:${jobId}`);
+          if (!raw) {
+            return new Response(JSON.stringify({status:'unknown', jobId}),
+              {status:404, headers:{...CORS,'Content-Type':'application/json'}});
+          }
+          return new Response(raw,
+            {status:200, headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
         // RSS proxy — routes first-party league RSS feeds to bypass browser CORS
   if (pathname === '/rss-proxy') {
     const feedUrl = url.searchParams.get('url');
@@ -2425,6 +2491,85 @@ export default {
         if (!nbaAllowed(nbaPath)) return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
         const nbaTtl = nbaPath.startsWith('/liveData/standings') ? NBA_STANDINGS_TTL : NBA_CACHE_TTL;
         return relayFetch(`${NBA_CDN_BASE}${nbaPath}`, NBA_HEADERS, nbaTtl, 'nba', ctx);
+    },
+
+    // ── Queue consumer (WOW 8 — June 1 2026) ─────────────────────────────────
+    // Drains field-journalism-queue at upstream-permitted rate.
+    // For each job: runs full quality chain identical to /journalism/generate,
+    // persists result to FIELD_JOURNALISM KV under jobs:{jobId} for 24h.
+    // On 429 from upstream, throws to trigger CF Queues automatic retry/backoff
+    // (max_retries=3 from wrangler.toml). On final failure, writes a 'failed'
+    // status row so the polling endpoint can report it.
+    async queue(batch, env, ctx) {
+      const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev/journalism/generate';
+      for (const msg of batch.messages) {
+        const job = msg.body || {};
+        const jobId = job.jobId;
+        if (!jobId || !env.FIELD_JOURNALISM) {
+          msg.ack();
+          continue;
+        }
+        try {
+          // Mark processing.
+          await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
+            JSON.stringify({status:'processing', enqueuedAt: job.enqueuedAt, startedAt: Date.now()}),
+            {expirationTtl: 86400});
+          // First proxy call to seed the chain.
+          const callProxy = async (promptText) => {
+            const r = await fetch(PROXY_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-FIELD-Relay': 'field-relay-cron-2026',
+              },
+              body: JSON.stringify({
+                prompt: promptText,
+                sport: job.sport,
+                briefType: job.briefType,
+                max_tokens: job.max_tokens,
+              }),
+            });
+            if (r.status === 429) {
+              // 429 → throw so CF Queues retries this message with backoff.
+              throw new Error('upstream 429 rate-limited');
+            }
+            if (!r.ok) return null;
+            const data = await r.json().catch(() => null);
+            return data?.text || null;
+          };
+          const initial = await callProxy(job.prompt);
+          if (!initial) throw new Error('proxy returned no prose');
+          const result = await runQualityChain(job.prompt, initial, callProxy, {
+            sport: job.sport,
+            scoreThreshold: job.scoreThreshold || undefined,
+            maxRetries: 6,
+          });
+          // Persist completed result.
+          await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
+            JSON.stringify({
+              status: 'done',
+              text: result.text,
+              score: result.score,
+              retries: result.retries,
+              layers_fired: result.layers_fired,
+              ms: result.ms,
+              completedAt: Date.now(),
+            }),
+            {expirationTtl: 86400});
+          msg.ack();
+        } catch (e) {
+          // Let CF Queues retry up to max_retries. If we've already retried max,
+          // CF will move on; record a 'failed' marker so the polling endpoint reports it.
+          if (msg.attempts && msg.attempts >= 3) {
+            await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
+              JSON.stringify({status:'failed', error:e.message, failedAt: Date.now()}),
+              {expirationTtl: 86400}).catch(() => {});
+            msg.ack();
+          } else {
+            msg.retry();
+          }
+        }
+      }
     },
 };
 

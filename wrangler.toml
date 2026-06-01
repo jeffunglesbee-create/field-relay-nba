@@ -60,3 +60,20 @@ new_classes = ["GameDO"]
 [[analytics_engine_datasets]]
 binding = "JQ_ANALYTICS"
 dataset = "field_jq_analytics"
+
+# ── Queues (WOW 8 — Async journalism pipeline, June 1 2026) ──────────────────
+# Queue created via CF API: id 88f2861897ce4439af2a3c78f58b0508
+# Producer binding (writer) — called from /journalism/enqueue endpoint to defer
+# heavy journalism generation off the live request path. Consumer (queue handler
+# in src/index.js) drains the queue at upstream-permitted rate with retry on 429.
+# Result persisted to FIELD_JOURNALISM KV by jobId; browser polls /journalism/result/:jobId.
+# Eliminates the synchronous 400/700/1000ms stagger that was the prior workaround.
+[[queues.producers]]
+binding    = "JOURNALISM_QUEUE"
+queue      = "field-journalism-queue"
+
+[[queues.consumers]]
+queue              = "field-journalism-queue"
+max_batch_size     = 5
+max_batch_timeout  = 30
+max_retries        = 3
