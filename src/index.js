@@ -1312,6 +1312,13 @@ async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
   const dateKey = new Date().toISOString().slice(0, 10);
+  // ESPN scoreboard endpoint accepts ?dates=YYYYMMDD to return ONLY events for
+  // that calendar date. Without it, ESPN serves the most recent matchday when
+  // the league has no current fixture — which for off-season leagues (EPL
+  // post-May 24 2026) means stale Final Day games leak into TONIGHT'S GAMES
+  // and the model writes about them as if they happened tonight. Fixed
+  // June 1 2026 after the EPL phantom incident.
+  const espnDate = dateKey.replace(/-/g, ''); // YYYY-MM-DD → YYYYMMDD
   const hour = new Date().getUTCHours();
   const isLiveHours = hour >= 10 || hour <= 2;
   if (!isLiveHours) return {ok:false, reason:`not live hours (UTC ${hour})`};
@@ -1333,7 +1340,7 @@ async function handleJournalismCycle(env) {
     const gameLines = [];
     for (const {sport,league,label} of LEAGUES) {
       try {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
         if (!r.ok) continue;
         const d = await r.json();
         const events = d?.events || [];
@@ -1367,6 +1374,7 @@ async function handleJournalismCycle(env) {
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
       '- Lead with the most important story — the SPECIFIC situation, not the template.',
       '- CORRECTNESS: write only from the data above. Never invent scores, stats, or facts not listed.',
+      '- SLATE BOUNDARY (mandatory): every league or sport you reference must appear in TONIGHT\'S GAMES above. If the Premier League, La Liga, Serie A, Ligue 1, Bundesliga, MLS, or any other league has no game in tonight\'s slate, DO NOT mention it, recap it, or include any result from it. Saying "In England, Man United routed Brighton 3-0" is FABRICATION when no EPL game is in the slate. The brief covers ONLY what is on tonight\'s slate.',
       '- SERIES ACCURACY: A Conference Finals game is NEVER "the NBA Finals" or "the Championship." A Stanley Cup Final game is NEVER a "first-round matchup." Use only the round/series description in the game data. If the series context is unclear, describe it as "a playoff series" — never upgrade it to a championship.',
       JQ_STYLE,  // WOW 6: unified style block (includes LEAGUE BOUNDARIES, SPARINGLY, [CHAMPION], [FEATURED STAT], etc.)
       '- Plain prose only. Every sentence complete.',
@@ -1458,7 +1466,7 @@ async function handleJournalismCycle(env) {
     const gameBriefResults = [];
     for (const {sport, league, label} of LEAGUES) {
       try {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard`);
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
         if (!r.ok) continue;
         const d = await r.json();
         for (const ev of (d?.events || [])) {
