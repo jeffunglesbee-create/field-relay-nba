@@ -1976,6 +1976,24 @@ export default {
               maxRetries: 6,
             });
 
+            // ── PF-1: Strip markdown bleed (May 31 2026) ──────────────────
+            // LLMs sometimes wrap output in markdown headers ("# FIELD Brief")
+            // or bold ("**X**") even when not asked. The bottom sheet renders
+            // plain text, so any markdown leaks through as raw '#' / '**'.
+            // Strip at relay so cron-generated KV briefs benefit too.
+            const stripMarkdown = (s) => {
+              if (!s) return s;
+              return s
+                .replace(/^#{1,6}\s+/gm, '')          // # ## ### headers
+                .replace(/\*\*(.+?)\*\*/g, '$1')      // **bold**
+                .replace(/__(.+?)__/g, '$1')          // __bold__
+                .replace(/`(.+?)`/g, '$1')            // `inline code`
+                .replace(/^[-*+]\s+/gm, '')           // bullet list markers
+                .replace(/\n{3,}/g, '\n\n')           // collapse triple newlines
+                .trim();
+            };
+            result.text = stripMarkdown(result.text);
+
             // Compute audit values once (used both for response + analytics)
             const _initialCliches    = jqHasCliche(initial).length;
             const _finalCliches      = jqHasCliche(result.text).length;
