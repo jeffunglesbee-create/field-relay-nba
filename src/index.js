@@ -1717,6 +1717,7 @@ export default {
         if (request.method !== 'GET'
             && !(pathname === '/journalism/run' && request.method === 'POST')
             && !(pathname === '/journalism/generate' && request.method === 'POST')
+            && !(pathname === '/journalism/enqueue' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
