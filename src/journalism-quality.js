@@ -274,12 +274,32 @@ export function hasCrossSportHallucination(text) {
   return flagged;
 }
 
-// ── Layer 3: 5-dimension prose scoring (no Datamuse — Workers can call it
-// from worker context, but for now we use the structural-only 4-dimension
-// approximation. Datamuse integration is Phase 2b future work.) ──────────────
-// Mirrors browser scoreProse() except for the freshness dimension that
-// requires Datamuse. Until that ships on relay, we redistribute weight.
-export function scoreProse(text) {
+// ── Layer 3: 5-dimension prose scoring (Datamuse freshness wired May 31 2026) ─
+// Mirrors browser scoreProse() including the freshness dimension via Datamuse.
+// Workers Plus enables outbound fetch with sufficient CPU budget. Freshness
+// contribution capped at 20 pts so the ceiling (140 base + 40 arc = 180)
+// remains stable for existing callers.
+const _STOP_WORDS_RE = /^(their|about|would|could|which|should|after|before|against|during|while|other|first|since|still|being|where|these|those|there|every|until|under|again|from|with|this|that|have|will|they|been|were|what|when|into|than|then|also|each|over|more|most|such|both|some|only|very|just|like|well|even|back|game|team|play|year|time|week)$/i;
+async function _datamuseFreshness(words) {
+  const contentWords = words.filter(w => w.length > 4 && !_STOP_WORDS_RE.test(w) && /^[a-z]/i.test(w)).slice(0, 5);
+  if (!contentWords.length) return 83; // fallback (matches JQ Spec default)
+  try {
+    const freqs = await Promise.all(contentWords.map(async w => {
+      try {
+        const r = await fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(w.toLowerCase())}&md=f&max=1`, {
+          signal: AbortSignal.timeout(2000),
+        });
+        if (!r.ok) return 50;
+        const d = await r.json();
+        const tag = d?.[0]?.tags?.find(t => typeof t === 'string' && t.startsWith('f:'));
+        return tag ? parseFloat(tag.slice(2)) : 50;
+      } catch { return 50; }
+    }));
+    const avgFreq = freqs.reduce((a,b) => a+b, 0) / freqs.length;
+    return Math.max(0, Math.min(100, 100 - (avgFreq / 3)));
+  } catch { return 83; }
+}
+export async function scoreProse(text) {
   if (!text) return 0;
   const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return 0;
@@ -293,7 +313,7 @@ export function scoreProse(text) {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
   const nSent = Math.max(1, sentences.length);
   const density = specifics.length / nSent;
-  // Dim 5: statistical depth — count distinct sport-stat patterns
+  // Dim 4: statistical depth — count distinct sport-stat patterns
   const statPatterns = [
     /\b\d{1,3}(?:\.\d{1,2})?\s*(?:PPG|APG|RPG|BPG|SPG|MPG|ERA|WHIP|OPS|WAR|DRTG|ORTG|PACE)\b/gi,
     /\b\d{1,3}(?:\.\d{1,2})?%/g,
@@ -302,9 +322,11 @@ export function scoreProse(text) {
   const stats = new Set();
   for (const p of statPatterns) (text.match(p)||[]).forEach(m=>stats.add(m));
   const statDepth = Math.min(1, stats.size / 4); // 4+ stats = max
-  // Base 4 dimensions (without Datamuse freshness) scaled to 140 pts
+  // Dim 5: freshness via Datamuse (0-100, capped at 20-pt contribution below)
+  const freshness = await _datamuseFreshness(words);
+  // 5-dimension base scaled to 140 pts; freshness contributes up to 20 pts
   const base = Math.min(140,
-    Math.round(specificity * 50 + variety * 38 + Math.min(density, 4) * 6 + statDepth * 28)
+    Math.round(specificity * 50 + variety * 38 + Math.min(density, 4) * 6 + statDepth * 28 + (freshness / 100) * 20)
   );
   // Narrative Arc (0-40)
   const first = sentences[0] || '';
@@ -426,20 +448,20 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
   }
 
   // 3b: score-triggered rewrite if total below threshold
-  const score = scoreProse(text);
-  const THRESHOLD = opts.scoreThreshold || 130; // 180-scale (no Datamuse) — ~72%
+  const score = await scoreProse(text);
+  const THRESHOLD = opts.scoreThreshold || 130; // 180-scale (with Datamuse freshness baked in) — ~72%
   if (score < THRESHOLD && retries < maxRetries) {
     const retryPrompt = prompt +
       `\n\nQUALITY SCORE LOW (${score}/180): the previous draft scored below our quality threshold. Add more specific facts: proper names, exact numbers, stats with units, and concrete details. Every sentence should contain at least one specific fact (name, number, stat, or concrete detail). Remove vague adjectives and generic transitions.`;
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) {
-      const newScore = scoreProse(retried);
+      const newScore = await scoreProse(retried);
       if (newScore >= score) { text = retried.trim(); retries++; layers_fired.push('3b'); }
       // If new score is worse, keep the original
     }
   }
 
-  const finalScore = scoreProse(text);
+  const finalScore = await scoreProse(text);
   return {
     text,
     score: finalScore,
