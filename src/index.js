@@ -2432,7 +2432,9 @@ export default {
             if (!mcpSecret) {
                 return new Response(JSON.stringify({error:'Server misconfigured: FIELD_MCP_SECRET not set on worker'}), {status:503, headers:{...CORS,'Content-Type':'application/json'}});
             }
-            const incoming = request.headers.get('X-FIELD-MCP-Secret') || request.headers.get('Authorization');
+            const incoming = request.headers.get('X-FIELD-MCP-Secret')
+                          || request.headers.get('Authorization')
+                          || url.searchParams.get('token');
             if (!incoming || !incoming.includes(mcpSecret)) {
                 return new Response(JSON.stringify({error:'Unauthorized'}), {status:401, headers:{...CORS,'Content-Type':'application/json'}});
             }
