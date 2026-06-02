@@ -1,0 +1,51 @@
+name: Debug Log Probe
+
+# Reads /debug/recent-requests on the relay (FIELD_MCP_SECRET-gated).
+# Shows what claude.ai (and other callers) sent to .well-known, /oauth/*, /mcp,
+# /debug/recent-requests in the last 1h. Results written to outbox/.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch debug log
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="outbox/debug-log-${TS}.json"
+          mkdir -p outbox
+          curl -sS \
+            -H "Authorization: Bearer $FIELD_MCP_SECRET" \
+            -H "User-Agent: Mozilla/5.0 debug-probe" \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/debug/recent-requests" \
+            | python3 -m json.tool > "$OUT" 2>&1 || \
+            curl -sS \
+              -H "Authorization: Bearer $FIELD_MCP_SECRET" \
+              -H "User-Agent: Mozilla/5.0 debug-probe" \
+              "https://field-relay-nba.jeffunglesbee.workers.dev/debug/recent-requests" > "$OUT"
+          echo "=== File: $OUT ==="
+          head -200 "$OUT"
+          echo "OUT=$OUT" >> $GITHUB_ENV
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "Debug-Probe"
+          git add outbox/
+          git commit -m "debug-log probe [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+        env:
+          OUT: ${{ env.OUT }}
