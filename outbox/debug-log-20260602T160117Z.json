@@ -1,0 +1,219 @@
+{
+    "count": 14,
+    "entries": [
+        {
+            "ts": "2026-06-02T15:53:07.923Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/mcp",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "65",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-field-mcp-secret": "***REDACTED-FIELD-MCP-SECRET***",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:07.764Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/token",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "146",
+                "content-type": "application/x-www-form-urlencoded",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:07.719Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/mcp",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "authorization": "Bearer ***REDACTED-OAUTH-TOKEN***",
+                "connection": "Keep-Alive",
+                "content-length": "65",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:07.114Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/token",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "333",
+                "content-type": "application/x-www-form-urlencoded",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:06.916Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/authorize",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "288",
+                "content-type": "application/x-www-form-urlencoded",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:06.648Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/register",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "217",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:06.607Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/mcp",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:06.551Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/.well-known/oauth-protected-resource",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:53:06.502Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/.well-known/oauth-authorization-server",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:49:04.269Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/authorize",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "288",
+                "content-type": "application/x-www-form-urlencoded",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:49:03.997Z",
+            "label": "route",
+            "method": "POST",
+            "path": "/oauth/register",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "content-length": "217",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:49:03.963Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/mcp",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:49:03.921Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/.well-known/oauth-protected-resource",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        },
+        {
+            "ts": "2026-06-02T15:49:03.867Z",
+            "label": "route",
+            "method": "GET",
+            "path": "/.well-known/oauth-authorization-server",
+            "query": {},
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "x-forwarded-proto": "https"
+            }
+        }
+    ]
+}
