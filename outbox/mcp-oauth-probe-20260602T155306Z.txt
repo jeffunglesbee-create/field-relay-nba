@@ -1,0 +1,35 @@
+=== MCP OAuth E2E Probe [20260602T155306Z] ===
+Worker: https://field-relay-nba.jeffunglesbee.workers.dev
+
+
+--- STEP 1: GET /.well-known/oauth-authorization-server ---
+✅ issuer=https://field-relay-nba.jeffunglesbee.workers.dev, S256 advertised, all required fields present
+
+--- STEP 2: GET /.well-known/oauth-protected-resource ---
+✅ resource=https://field-relay-nba.jeffunglesbee.workers.dev, authorization_servers=['https://field-relay-nba.jeffunglesbee.workers.dev']
+
+--- STEP 3: GET /mcp (discovery probe) ---
+✅ 401 + WWW-Authenticate present: Bearer realm="MCP", resource_metadata="https://field-relay-nba.jeffunglesbee.workers.dev/.well-known...
+
+--- STEP 4: POST /oauth/register (Dynamic Client Registration) ---
+✅ client_id=6427893b95971fa1ee660cdde1447a02, client_secret=5b41c6d3...
+
+--- STEP 5: Generate PKCE verifier + S256 challenge ---
+✅ verifier=xtIiRaMqlytN..., challenge=XG5hAk0kwh-i...
+
+--- STEP 6: POST /oauth/authorize (verify password, mint code) ---
+✅ 302 redirect → code=aec189a7ca65..., state preserved
+
+--- STEP 7: POST /oauth/token (exchange code with PKCE verifier) ---
+✅ access_token=a981e2b3b285..., expires_in=3600, refresh_token issued
+
+--- STEP 8: POST /mcp tools/list (with OAuth bearer) ---
+✅ 8 tools returned via OAuth bearer: ['get_ci_status', 'get_deploy_status', 'get_espn_game', 'get_head_sha', 'get_live_scores', 'get_smoke_count', 'read_handoff', 'write_handoff']
+
+--- STEP 9: POST /oauth/token (refresh_token grant) ---
+✅ new access_token=31a376b7a0cb...
+
+--- STEP 10: POST /mcp tools/list (with FIELD_MCP_SECRET — legacy/CI path) ---
+✅ legacy path still works: 8 tools returned
+
+🎉 ALL 10 STEPS PASSED — OAuth surface fully operational
