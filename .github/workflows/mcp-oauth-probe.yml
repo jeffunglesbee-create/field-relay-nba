@@ -50,12 +50,17 @@ jobs:
           PASS = '✅'
           FAIL = '❌'
 
+          # Cloudflare's Browser Integrity Check (BIC) returns 1010 for the
+          # default Python-urllib UA. Set a realistic UA on every request.
+          UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+
           def step(n, label): print(f"\n--- STEP {n}: {label} ---")
           def passmsg(m): print(f"{PASS} {m}")
           def failmsg(m): print(f"{FAIL} {m}"); sys.exit(1)
 
           def http(method, url, body=None, headers=None, follow_redirects=True):
               h = headers or {}
+              h.setdefault('User-Agent', UA)
               data = None
               if body is not None:
                   if isinstance(body, dict):
@@ -135,7 +140,8 @@ jobs:
           parsed = urllib.parse.urlparse(meta['authorization_endpoint'])
           conn = http.client.HTTPSConnection(parsed.netloc)
           conn.request('POST', parsed.path, authz_form,
-                        {'Content-Type': 'application/x-www-form-urlencoded'})
+                        {'Content-Type': 'application/x-www-form-urlencoded',
+                         'User-Agent': UA})
           resp = conn.getresponse()
           if resp.status != 302: failmsg(f"expected 302, got {resp.status} body={resp.read()[:200]}")
           location = resp.getheader('Location', '')
