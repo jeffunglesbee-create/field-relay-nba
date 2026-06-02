@@ -50,6 +50,24 @@ jobs:
           echo "✅ field-journalism KV ID: $KV_ID"
           sed -i "s/JOURNALISM_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
 
+      # ── KV Bootstrap: create field-mcp-oauth if missing (Tier 1 Phase 2) ───
+      - name: Bootstrap KV namespace (field-mcp-oauth)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          CF="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID"
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          KV_ID=$(curl -s -H "$AUTH" "$CF/storage/kv/namespaces?per_page=100" | jq -r '.result[] | select(.title=="field-mcp-oauth") | .id' 2>/dev/null)
+          if [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ]; then
+            RESP=$(curl -s -X POST -H "$AUTH" -H "Content-Type: application/json" -d '{"title":"field-mcp-oauth"}' "$CF/storage/kv/namespaces")
+            KV_ID=$(echo "$RESP" | jq -r '.result.id' 2>/dev/null)
+            echo "Created KV namespace: $RESP"
+          fi
+          [ -z "$KV_ID" ] || [ "$KV_ID" = "null" ] && { echo "❌ field-mcp-oauth KV ID not found"; exit 1; }
+          echo "✅ field-mcp-oauth KV ID: $KV_ID"
+          sed -i "s/MCP_OAUTH_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

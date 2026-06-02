@@ -16,6 +16,24 @@ import {
   hasCrossSportHallucination as jqHasCrossSport,
 } from './journalism-quality.js';
 
+// ── MCP OAuth 2.1 + PKCE + DCR (Tier 1 Phase 2 — June 2 2026 PM-14) ────────
+// Adds OAuth surface required for claude.ai's custom-connector MCP discovery.
+// /mcp keeps FIELD_MCP_SECRET bearer for CI probes; additionally accepts
+// OAuth access tokens minted by /oauth/token (validated via validateBearer).
+// See src/mcp-oauth.js for full documentation.
+import {
+  authServerMetadata as oauthAuthServerMetadata,
+  protectedResourceMetadata as oauthProtectedResourceMetadata,
+  register as oauthRegister,
+  authorizeGet as oauthAuthorizeGet,
+  authorizePost as oauthAuthorizePost,
+  token as oauthToken,
+  revoke as oauthRevoke,
+  validateBearer as oauthValidateBearer,
+  debugRecentRequests as oauthDebugRecentRequests,
+  logRequest as oauthLogRequest,
+} from './mcp-oauth.js';
+
 // ── NBA CDN ────────────────────────────────────────────────────────────────
 const NBA_CDN_BASE  = 'https://cdn.nba.com/static/json';
 const NBA_CACHE_TTL = 30;
@@ -1663,6 +1681,58 @@ export default {
             });
         }
 
+        // ── MCP OAuth surface (Tier 1 Phase 2 — June 2 2026 PM-14) ──────────
+        // Log every /.well-known, /oauth, /mcp, /debug/recent-requests request
+        // to MCP_OAUTH KV (1h TTL) for diagnostic. ctx.waitUntil so the log
+        // write doesn't block the response.
+        if (env.MCP_OAUTH && (
+            pathname.startsWith('/.well-known/') ||
+            pathname.startsWith('/oauth/') ||
+            pathname === '/mcp' ||
+            pathname === '/debug/recent-requests'
+        )) {
+            ctx.waitUntil(oauthLogRequest(env, request, 'route'));
+        }
+
+        // /.well-known/oauth-authorization-server (RFC 8414)
+        if (pathname === '/.well-known/oauth-authorization-server' && request.method === 'GET') {
+            return oauthAuthServerMetadata(url.origin);
+        }
+        // /.well-known/oauth-protected-resource (RFC 9728)
+        if (pathname === '/.well-known/oauth-protected-resource' && request.method === 'GET') {
+            return oauthProtectedResourceMetadata(url.origin);
+        }
+        // POST /oauth/register — Dynamic Client Registration (RFC 7591)
+        if (pathname === '/oauth/register' && request.method === 'POST') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthRegister(request, env);
+        }
+        // GET /oauth/authorize — render password form (PKCE-bound)
+        if (pathname === '/oauth/authorize' && request.method === 'GET') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthAuthorizeGet(url, env);
+        }
+        // POST /oauth/authorize — verify password, mint code, 302 to redirect_uri
+        if (pathname === '/oauth/authorize' && request.method === 'POST') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthAuthorizePost(request, env);
+        }
+        // POST /oauth/token — authorization_code or refresh_token grant
+        if (pathname === '/oauth/token' && request.method === 'POST') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthToken(request, env);
+        }
+        // POST /oauth/revoke — token revocation (RFC 7009)
+        if (pathname === '/oauth/revoke' && request.method === 'POST') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthRevoke(request, env);
+        }
+        // GET /debug/recent-requests — read OAuth/MCP request log (FIELD_MCP_SECRET-gated)
+        if (pathname === '/debug/recent-requests' && request.method === 'GET') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            return oauthDebugRecentRequests(request, env);
+        }
+
         // /push/subscribe — store push subscription in KV
         if (pathname === '/push/subscribe' && request.method === 'POST') {
             if (!env.PUSH_SUBS) return new Response('KV not configured', {status:503, headers:CORS});
@@ -2422,21 +2492,64 @@ export default {
         // Protocol: JSON-RPC 2.0 — verified field names from spec May 30 2026
         // Tools exposed: get_ci_status, get_smoke_count, get_deploy_status,
         //                get_live_scores, get_drama_score, get_espn_game
-        // Auth: FIELD_MCP_SECRET header required (env.FIELD_MCP_SECRET)
+        // Auth: FIELD_MCP_SECRET header OR OAuth Bearer (Tier 1 Phase 2)
         // VERIFIED: protocolVersion "2025-03-26", capabilities.tools {}, serverInfo
+
+        // GET /mcp — discovery-only response. Some MCP clients probe with GET
+        // before POSTing tools/list. Return 401 with WWW-Authenticate so the
+        // client can discover the OAuth metadata URL and start the flow.
+        if (pathname === '/mcp' && request.method === 'GET') {
+            const wwwAuth = `Bearer realm="MCP", resource_metadata="${url.origin}/.well-known/oauth-protected-resource"`;
+            return new Response(JSON.stringify({
+                error: 'unauthorized',
+                error_description: 'MCP endpoint requires OAuth Bearer token. See WWW-Authenticate header for discovery.',
+            }), {
+                status: 401,
+                headers: {
+                    ...CORS,
+                    'Content-Type': 'application/json',
+                    'WWW-Authenticate': wwwAuth,
+                },
+            });
+        }
+
         if (pathname === '/mcp' && request.method === 'POST') {
-            // Auth gate — REQUIRE shared secret in header (default-deny if unset).
+            // Auth gate — accepts THREE credentials, any one suffices:
+            //   1. OAuth Bearer access token (claude.ai custom connector path)
+            //      → validateBearer reads MCP_OAUTH KV (Tier 1 Phase 2)
+            //   2. FIELD_MCP_SECRET in Authorization / X-FIELD-MCP-Secret / ?token=
+            //      → CI probes (post-probe.yml), Artifact callers
             // Hardened June 2 2026: previous "if (mcpSecret)" let unconfigured worker
             // expose all tools wide open. Now: no secret on worker → 503 Misconfigured.
+            // 401 carries WWW-Authenticate per RFC 6750 + MCP spec, advertising
+            // OAuth metadata so MCP clients can complete discovery.
             const mcpSecret = env.FIELD_MCP_SECRET;
             if (!mcpSecret) {
                 return new Response(JSON.stringify({error:'Server misconfigured: FIELD_MCP_SECRET not set on worker'}), {status:503, headers:{...CORS,'Content-Type':'application/json'}});
             }
-            const incoming = request.headers.get('X-FIELD-MCP-Secret')
-                          || request.headers.get('Authorization')
-                          || url.searchParams.get('token');
-            if (!incoming || !incoming.includes(mcpSecret)) {
-                return new Response(JSON.stringify({error:'Unauthorized'}), {status:401, headers:{...CORS,'Content-Type':'application/json'}});
+
+            const authHeader = request.headers.get('Authorization');
+            const xSecret    = request.headers.get('X-FIELD-MCP-Secret');
+            const qToken     = url.searchParams.get('token');
+
+            // 1. Try OAuth bearer token (Tier 1 Phase 2 path)
+            const oauthCheck = await oauthValidateBearer(authHeader, env);
+            const oauthOK = oauthCheck.valid;
+
+            // 2. Fall back to FIELD_MCP_SECRET match (legacy/CI path)
+            const incomingLegacy = xSecret || authHeader || qToken;
+            const legacyOK = incomingLegacy && incomingLegacy.includes(mcpSecret);
+
+            if (!oauthOK && !legacyOK) {
+                const wwwAuth = `Bearer realm="MCP", resource_metadata="${url.origin}/.well-known/oauth-protected-resource"`;
+                return new Response(JSON.stringify({error:'Unauthorized'}), {
+                    status: 401,
+                    headers: {
+                        ...CORS,
+                        'Content-Type': 'application/json',
+                        'WWW-Authenticate': wwwAuth,
+                    },
+                });
             }
 
             let body;
