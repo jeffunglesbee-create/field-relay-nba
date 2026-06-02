@@ -2425,13 +2425,16 @@ export default {
         // Auth: FIELD_MCP_SECRET header required (env.FIELD_MCP_SECRET)
         // VERIFIED: protocolVersion "2025-03-26", capabilities.tools {}, serverInfo
         if (pathname === '/mcp' && request.method === 'POST') {
-            // Auth gate — require shared secret in header
+            // Auth gate — REQUIRE shared secret in header (default-deny if unset).
+            // Hardened June 2 2026: previous "if (mcpSecret)" let unconfigured worker
+            // expose all tools wide open. Now: no secret on worker → 503 Misconfigured.
             const mcpSecret = env.FIELD_MCP_SECRET;
-            if (mcpSecret) {
-                const incoming = request.headers.get('X-FIELD-MCP-Secret') || request.headers.get('Authorization');
-                if (!incoming || !incoming.includes(mcpSecret)) {
-                    return new Response(JSON.stringify({error:'Unauthorized'}), {status:401, headers:{...CORS,'Content-Type':'application/json'}});
-                }
+            if (!mcpSecret) {
+                return new Response(JSON.stringify({error:'Server misconfigured: FIELD_MCP_SECRET not set on worker'}), {status:503, headers:{...CORS,'Content-Type':'application/json'}});
+            }
+            const incoming = request.headers.get('X-FIELD-MCP-Secret') || request.headers.get('Authorization');
+            if (!incoming || !incoming.includes(mcpSecret)) {
+                return new Response(JSON.stringify({error:'Unauthorized'}), {status:401, headers:{...CORS,'Content-Type':'application/json'}});
             }
 
             let body;
@@ -2501,6 +2504,28 @@ export default {
                             },
                             required: ['sport', 'league', 'game_id'],
                         },
+                    },
+                    {
+                        name: 'read_handoff',
+                        description: 'Read the current HANDOFF.md from the jubilant-bassoon FIELD repo. Returns content and SHA as JSON in text field.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
+                    },
+                    {
+                        name: 'write_handoff',
+                        description: 'Replace HANDOFF.md in jubilant-bassoon with new content and commit on main. Commit message is prefixed with [skip ci] automatically (HANDOFF.md is paths-ignored anyway; this is belt-and-suspenders).',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                content: { type: 'string', description: 'Full new content of HANDOFF.md (UTF-8 text)' },
+                                commit_message: { type: 'string', description: 'Commit message body (will be prefixed with [skip ci])' },
+                            },
+                            required: ['content', 'commit_message'],
+                        },
+                    },
+                    {
+                        name: 'get_head_sha',
+                        description: 'Get the current HEAD SHA of jubilant-bassoon main branch. Useful for memory anchor updates after write_handoff.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
                     },
                 ]}));
             }
@@ -2573,6 +2598,76 @@ export default {
                     const teams = (comp.competitors||[]).map(c => `${c.team?.abbreviation} ${c.score}`).join(' vs ');
                     const status = comp.status?.type?.description || '';
                     return respond(jsonrpc2({content:[{type:'text',text:`${teams} | ${status}`}]}));
+                }
+
+                // ── HANDOFF tools (Tier 1 MCP handoff write-channel, June 2 2026) ──
+                // PAT scope = repo (sufficient for read + write Contents API on
+                // jubilant-bassoon). Tools deliberately hard-code repo + path —
+                // no path/repo input accepted from the caller, so a tool call
+                // cannot target index.html or any other repo/file.
+                const HANDOFF_API_BASE = 'https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon';
+                const ghHeaders = (token) => ({
+                    'Authorization': `Bearer ${token}`,
+                    'User-Agent': 'field-relay-mcp',
+                    'Accept': 'application/vnd.github+json',
+                });
+
+                if (toolName === 'read_handoff') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const r = await fetch(`${HANDOFF_API_BASE}/contents/HANDOFF.md`, { headers: ghHeaders(ghToken) });
+                    if (!r.ok) {
+                        const txt = await r.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub read failed: ${r.status} ${txt}`}], isError:true}));
+                    }
+                    const data = await r.json();
+                    // GitHub returns base64 with embedded newlines; strip, decode, UTF-8-safe
+                    const bytes = atob(data.content.replace(/\n/g, ''));
+                    const content = decodeURIComponent(escape(bytes));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({content, sha:data.sha})}]}));
+                }
+
+                if (toolName === 'write_handoff') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { content, commit_message } = toolArgs;
+                    if (typeof content !== 'string' || typeof commit_message !== 'string') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: content (string), commit_message (string)'}], isError:true}));
+                    }
+                    // Fetch current SHA (required by GitHub Contents PUT to prevent blind overwrite)
+                    const curR = await fetch(`${HANDOFF_API_BASE}/contents/HANDOFF.md`, { headers: ghHeaders(ghToken) });
+                    if (!curR.ok) {
+                        const txt = await curR.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub SHA read failed: ${curR.status} ${txt}`}], isError:true}));
+                    }
+                    const cur = await curR.json();
+                    // UTF-8-safe base64 encode of new content
+                    const utf8 = unescape(encodeURIComponent(content));
+                    const b64 = btoa(utf8);
+                    const msg = commit_message.includes('[skip ci]') ? commit_message : `${commit_message} [skip ci]`;
+                    const putR = await fetch(`${HANDOFF_API_BASE}/contents/HANDOFF.md`, {
+                        method: 'PUT',
+                        headers: { ...ghHeaders(ghToken), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg, content: b64, sha: cur.sha, branch: 'main' }),
+                    });
+                    if (!putR.ok) {
+                        const txt = await putR.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub write failed: ${putR.status} ${txt}`}], isError:true}));
+                    }
+                    const putData = await putR.json();
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({commit: putData.commit.sha, message: msg})}]}));
+                }
+
+                if (toolName === 'get_head_sha') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const r = await fetch(`${HANDOFF_API_BASE}/git/refs/heads/main`, { headers: ghHeaders(ghToken) });
+                    if (!r.ok) {
+                        const txt = await r.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub ref read failed: ${r.status} ${txt}`}], isError:true}));
+                    }
+                    const data = await r.json();
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({sha: data.object.sha, branch: 'main'})}]}));
                 }
 
                 return respond(jsonrpc2err(-32601, `Unknown tool: ${toolName}`));

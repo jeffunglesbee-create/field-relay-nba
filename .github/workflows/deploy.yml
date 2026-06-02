@@ -59,11 +59,15 @@ jobs:
             REALTIMESPORTS_KEY
             VAPID_PUBLIC_KEY
             VAPID_PRIVATE_KEY
+            FIELD_MCP_SECRET
+            GITHUB_PAT
         env:
           SPORTRADAR_UFL_KEY: ${{ secrets.SPORTRADAR_UFL_KEY }}
           REALTIMESPORTS_KEY: ${{ secrets.REALTIMESPORTS_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          GITHUB_PAT: ${{ secrets.RELAY_GH_PAT }}
 
       - name: Deploy Courier Worker
         uses: cloudflare/wrangler-action@v3
