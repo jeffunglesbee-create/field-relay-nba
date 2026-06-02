@@ -58,7 +58,7 @@ jobs:
           def passmsg(m): print(f"{PASS} {m}")
           def failmsg(m): print(f"{FAIL} {m}"); sys.exit(1)
 
-          def http(method, url, body=None, headers=None, follow_redirects=True):
+          def req(method, url, body=None, headers=None, follow_redirects=True):
               h = headers or {}
               h.setdefault('User-Agent', UA)
               data = None
@@ -77,7 +77,7 @@ jobs:
 
           # ── STEP 1: Discovery metadata ──────────────────────────────────────
           step(1, "GET /.well-known/oauth-authorization-server")
-          status, hdrs, body = http('GET', f'{BASE}/.well-known/oauth-authorization-server')
+          status, hdrs, body = req('GET', f'{BASE}/.well-known/oauth-authorization-server')
           if status != 200: failmsg(f"status={status}, body={body[:200]}")
           meta = json.loads(body)
           required = ['issuer','authorization_endpoint','token_endpoint','registration_endpoint',
@@ -89,14 +89,14 @@ jobs:
 
           # ── STEP 2: Protected resource metadata ─────────────────────────────
           step(2, "GET /.well-known/oauth-protected-resource")
-          status, hdrs, body = http('GET', f'{BASE}/.well-known/oauth-protected-resource')
+          status, hdrs, body = req('GET', f'{BASE}/.well-known/oauth-protected-resource')
           if status != 200: failmsg(f"status={status}, body={body[:200]}")
           rmeta = json.loads(body)
           passmsg(f"resource={rmeta['resource']}, authorization_servers={rmeta['authorization_servers']}")
 
           # ── STEP 3: GET /mcp returns 401 + WWW-Authenticate ─────────────────
           step(3, "GET /mcp (discovery probe)")
-          status, hdrs, body = http('GET', f'{BASE}/mcp')
+          status, hdrs, body = req('GET', f'{BASE}/mcp')
           if status != 401: failmsg(f"expected 401, got {status}")
           www_auth = hdrs.get('Www-Authenticate') or hdrs.get('WWW-Authenticate', '')
           if 'resource_metadata' not in www_auth: failmsg(f"WWW-Authenticate missing resource_metadata: {www_auth}")
@@ -111,7 +111,7 @@ jobs:
               'response_types': ['code'],
               'token_endpoint_auth_method': 'client_secret_post',
           }
-          status, hdrs, body = http('POST', meta['registration_endpoint'], body=dcr_body)
+          status, hdrs, body = req('POST', meta['registration_endpoint'], body=dcr_body)
           if status not in (200, 201): failmsg(f"status={status}, body={body[:200]}")
           client = json.loads(body)
           if 'client_id' not in client: failmsg("no client_id in response")
@@ -165,7 +165,7 @@ jobs:
               'client_secret': client['client_secret'],
               'code_verifier': verifier,
           })
-          status, hdrs, body = http('POST', meta['token_endpoint'], body=token_form,
+          status, hdrs, body = req('POST', meta['token_endpoint'], body=token_form,
                                       headers={'Content-Type': 'application/x-www-form-urlencoded'})
           if status != 200: failmsg(f"status={status}, body={body[:300]}")
           tok = json.loads(body)
@@ -179,7 +179,7 @@ jobs:
           # ── STEP 8: POST /mcp tools/list with OAuth bearer ──────────────────
           step(8, "POST /mcp tools/list (with OAuth bearer)")
           mcp_body = {'jsonrpc':'2.0','id':1,'method':'tools/list','params':{}}
-          status, hdrs, body = http('POST', f'{BASE}/mcp', body=mcp_body,
+          status, hdrs, body = req('POST', f'{BASE}/mcp', body=mcp_body,
                                       headers={'Authorization': f'Bearer {access}',
                                               'Content-Type': 'application/json'})
           if status != 200: failmsg(f"status={status}, body={body[:300]}")
@@ -200,7 +200,7 @@ jobs:
               'refresh_token': refresh,
               'client_id': client['client_id'],
           })
-          status, hdrs, body = http('POST', meta['token_endpoint'], body=refresh_form,
+          status, hdrs, body = req('POST', meta['token_endpoint'], body=refresh_form,
                                       headers={'Content-Type': 'application/x-www-form-urlencoded'})
           if status != 200: failmsg(f"status={status}, body={body[:300]}")
           tok2 = json.loads(body)
@@ -210,7 +210,7 @@ jobs:
 
           # ── STEP 10: Legacy FIELD_MCP_SECRET still works ────────────────────
           step(10, "POST /mcp tools/list (with FIELD_MCP_SECRET — legacy/CI path)")
-          status, hdrs, body = http('POST', f'{BASE}/mcp', body=mcp_body,
+          status, hdrs, body = req('POST', f'{BASE}/mcp', body=mcp_body,
                                       headers={'X-FIELD-MCP-Secret': SECRET,
                                               'Content-Type': 'application/json'})
           if status != 200: failmsg(f"legacy path broken: status={status}, body={body[:300]}")
