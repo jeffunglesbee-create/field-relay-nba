@@ -47,6 +47,42 @@ function nbaAllowed(path) {
     return NBA_ALLOWED_PREFIXES.some(p => path.startsWith(p));
 }
 
+// ── stats.nba.com (NBA Stats API) ──────────────────────────────────────────
+// Source: stats.nba.com/stats — NBA's public stats site API (officially
+//   undocumented but stable; widely used by nba_api, basketball-reference, etc.)
+// Auth: none required server-side. Probe-verified June 1 2026: plain curl
+//   from a cloud host returns 200 with Access-Control-Allow-Origin: *.
+//   The relay still sends browser-like headers (UA + Referer + Origin) as a
+//   stability hedge against future upstream tightening / bot heuristics.
+// Rule 45 source-clearance: ADR-003 records Jeff's explicit accept-the-risk
+//   decision on June 1 2026 (Drive 1XUPoayJUTh2Ki_DYXgw8uOAYZoGtpDt2c7510vGq64w).
+//   nba.com/termsofuse restricts NBA Statistics to "legitimate news reporting
+//   or private, non-commercial purposes" AND requires "prominent attribution
+//   to NBA.com" wherever the data is displayed. App-side consumer MUST surface
+//   the attribution. USPTO commercial transition is a re-evaluation trigger.
+// Initial scope: /leagueLeaders only. Adding any other endpoint requires
+//   a new Rule 45 review (do NOT broaden NBA_STATS_ALLOWED_PATHS without one).
+const NBA_STATS_BASE      = 'https://stats.nba.com/stats';
+const NBA_STATS_CACHE_TTL = 900; // 15 min — matches NHL playoff leaders cadence
+const NBA_STATS_HEADERS = {
+    'User-Agent':      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Referer':         'https://www.nba.com/stats/',
+    'Origin':          'https://www.nba.com',
+    'Accept':          'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control':   'no-cache',
+    'Pragma':          'no-cache',
+};
+const NBA_STATS_ALLOWED_PATHS = [
+    '/leagueLeaders',
+];
+function nbaStatsAllowed(path) {
+    // Strip query string before matching; only the path is whitelisted,
+    // query-string params (Season, SeasonType, StatCategory, etc.) pass through.
+    const cleanPath = path.split('?')[0];
+    return NBA_STATS_ALLOWED_PATHS.includes(cleanPath);
+}
+
 // ── MLS Stats API ──────────────────────────────────────────────────────────
 // Source: stats-api.mlssoccer.com — official MLS stats API powering mlssoccer.com
 // Auth: none required (plain GET; User-Agent recommended)
@@ -2543,6 +2579,19 @@ export default {
             }
 
             return respond(jsonrpc2err(-32601, `Unknown method: ${method}`));
+        }
+
+        // ── /nba-stats/* → stats.nba.com/stats (ADR-003 accept-the-risk)
+        // Must be tested BEFORE /nba/* below — otherwise the /nba/* catch-all
+        // strips the leading /nba and the remaining "-stats/..." path falls
+        // through nbaAllowed() and returns 403.
+        if (pathname.startsWith('/nba-stats')) {
+            const nbaStatsPath = pathname.replace(/^\/nba-stats/, '') || '/';
+            if (!nbaStatsAllowed(nbaStatsPath)) {
+                return new Response('Path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'path-not-whitelisted', ...CORS } });
+            }
+            const upstream = `${NBA_STATS_BASE}${nbaStatsPath}${url.search || ''}`;
+            return relayFetch(upstream, NBA_STATS_HEADERS, NBA_STATS_CACHE_TTL, 'nba-stats', ctx);
         }
 
         // ── /nba/* → NBA CDN
