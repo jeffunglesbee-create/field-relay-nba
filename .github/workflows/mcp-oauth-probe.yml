@@ -1,0 +1,233 @@
+name: MCP OAuth E2E Probe
+
+# Simulates the full claude.ai MCP custom-connector flow from CI:
+#   1. Fetch /.well-known/oauth-authorization-server
+#   2. POST /oauth/register (DCR) → client_id + client_secret
+#   3. Generate PKCE verifier + challenge
+#   4. POST /oauth/authorize with password = FIELD_MCP_SECRET → 302 with code
+#   5. POST /oauth/token with code + verifier → access_token
+#   6. POST /mcp with Bearer access_token → tools/list returns 8 tools
+#
+# Result: outbox/mcp-oauth-probe-{ts}.txt with pass/fail for each step.
+# Commit with [skip ci] (so this workflow doesn't loop on its own commits).
+#
+# Trigger: push outbox/.trigger-mcp-oauth-probe (no [skip ci])
+#         OR workflow_dispatch.
+
+on:
+  push:
+    paths: ['outbox/.trigger-mcp-oauth-probe']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run E2E OAuth probe
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          WORKER_BASE: https://field-relay-nba.jeffunglesbee.workers.dev
+        run: |
+          set -e
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          OUT="outbox/mcp-oauth-probe-${TS}.txt"
+          echo "=== MCP OAuth E2E Probe [$TS] ===" > "$OUT"
+          echo "Worker: $WORKER_BASE" >> "$OUT"
+          echo "" >> "$OUT"
+
+          python3 << 'PYEOF' >> "$OUT" 2>&1
+          import os, sys, json, base64, hashlib, secrets, urllib.parse
+          import urllib.request, urllib.error
+
+          BASE = os.environ['WORKER_BASE']
+          SECRET = os.environ['FIELD_MCP_SECRET']
+          PASS = '✅'
+          FAIL = '❌'
+
+          def step(n, label): print(f"\n--- STEP {n}: {label} ---")
+          def passmsg(m): print(f"{PASS} {m}")
+          def failmsg(m): print(f"{FAIL} {m}"); sys.exit(1)
+
+          def http(method, url, body=None, headers=None, follow_redirects=True):
+              h = headers or {}
+              data = None
+              if body is not None:
+                  if isinstance(body, dict):
+                      data = json.dumps(body).encode()
+                      h.setdefault('Content-Type', 'application/json')
+                  elif isinstance(body, str):
+                      data = body.encode()
+              req = urllib.request.Request(url, data=data, method=method, headers=h)
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, dict(r.headers), r.read().decode('utf-8', 'replace')
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers), e.read().decode('utf-8', 'replace')
+
+          # ── STEP 1: Discovery metadata ──────────────────────────────────────
+          step(1, "GET /.well-known/oauth-authorization-server")
+          status, hdrs, body = http('GET', f'{BASE}/.well-known/oauth-authorization-server')
+          if status != 200: failmsg(f"status={status}, body={body[:200]}")
+          meta = json.loads(body)
+          required = ['issuer','authorization_endpoint','token_endpoint','registration_endpoint',
+                      'code_challenge_methods_supported','grant_types_supported']
+          for k in required:
+              if k not in meta: failmsg(f"missing field: {k}")
+          if 'S256' not in meta['code_challenge_methods_supported']: failmsg("S256 not advertised")
+          passmsg(f"issuer={meta['issuer']}, S256 advertised, all required fields present")
+
+          # ── STEP 2: Protected resource metadata ─────────────────────────────
+          step(2, "GET /.well-known/oauth-protected-resource")
+          status, hdrs, body = http('GET', f'{BASE}/.well-known/oauth-protected-resource')
+          if status != 200: failmsg(f"status={status}, body={body[:200]}")
+          rmeta = json.loads(body)
+          passmsg(f"resource={rmeta['resource']}, authorization_servers={rmeta['authorization_servers']}")
+
+          # ── STEP 3: GET /mcp returns 401 + WWW-Authenticate ─────────────────
+          step(3, "GET /mcp (discovery probe)")
+          status, hdrs, body = http('GET', f'{BASE}/mcp')
+          if status != 401: failmsg(f"expected 401, got {status}")
+          www_auth = hdrs.get('Www-Authenticate') or hdrs.get('WWW-Authenticate', '')
+          if 'resource_metadata' not in www_auth: failmsg(f"WWW-Authenticate missing resource_metadata: {www_auth}")
+          passmsg(f"401 + WWW-Authenticate present: {www_auth[:100]}...")
+
+          # ── STEP 4: DCR — register a client ─────────────────────────────────
+          step(4, "POST /oauth/register (Dynamic Client Registration)")
+          dcr_body = {
+              'redirect_uris': ['https://claude.ai/mcp/callback'],
+              'client_name': 'E2E-Probe',
+              'grant_types': ['authorization_code', 'refresh_token'],
+              'response_types': ['code'],
+              'token_endpoint_auth_method': 'client_secret_post',
+          }
+          status, hdrs, body = http('POST', meta['registration_endpoint'], body=dcr_body)
+          if status not in (200, 201): failmsg(f"status={status}, body={body[:200]}")
+          client = json.loads(body)
+          if 'client_id' not in client: failmsg("no client_id in response")
+          if 'client_secret' not in client: failmsg("no client_secret in response")
+          passmsg(f"client_id={client['client_id']}, client_secret={client['client_secret'][:8]}...")
+
+          # ── STEP 5: PKCE — generate verifier + challenge ───────────────────
+          step(5, "Generate PKCE verifier + S256 challenge")
+          verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip('=')
+          challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
+          passmsg(f"verifier={verifier[:12]}..., challenge={challenge[:12]}...")
+
+          # ── STEP 6: POST /oauth/authorize with password ─────────────────────
+          step(6, "POST /oauth/authorize (verify password, mint code)")
+          authz_form = urllib.parse.urlencode({
+              'password': SECRET,
+              'client_id': client['client_id'],
+              'redirect_uri': 'https://claude.ai/mcp/callback',
+              'state': 'probe-state-123',
+              'scope': 'mcp',
+              'code_challenge': challenge,
+              'code_challenge_method': 'S256',
+          })
+          # Don't follow the 302 — we want to capture the redirect Location
+          import http.client
+          parsed = urllib.parse.urlparse(meta['authorization_endpoint'])
+          conn = http.client.HTTPSConnection(parsed.netloc)
+          conn.request('POST', parsed.path, authz_form,
+                        {'Content-Type': 'application/x-www-form-urlencoded'})
+          resp = conn.getresponse()
+          if resp.status != 302: failmsg(f"expected 302, got {resp.status} body={resp.read()[:200]}")
+          location = resp.getheader('Location', '')
+          if 'code=' not in location: failmsg(f"no code in Location: {location}")
+          # Parse code from redirect URL
+          parsed_loc = urllib.parse.urlparse(location)
+          q = urllib.parse.parse_qs(parsed_loc.query)
+          code = q.get('code', [None])[0]
+          state_back = q.get('state', [None])[0]
+          if not code: failmsg(f"no code: {location}")
+          if state_back != 'probe-state-123': failmsg(f"state mismatch: {state_back}")
+          passmsg(f"302 redirect → code={code[:12]}..., state preserved")
+
+          # ── STEP 7: POST /oauth/token exchange code for access_token ────────
+          step(7, "POST /oauth/token (exchange code with PKCE verifier)")
+          token_form = urllib.parse.urlencode({
+              'grant_type': 'authorization_code',
+              'code': code,
+              'redirect_uri': 'https://claude.ai/mcp/callback',
+              'client_id': client['client_id'],
+              'client_secret': client['client_secret'],
+              'code_verifier': verifier,
+          })
+          status, hdrs, body = http('POST', meta['token_endpoint'], body=token_form,
+                                      headers={'Content-Type': 'application/x-www-form-urlencoded'})
+          if status != 200: failmsg(f"status={status}, body={body[:300]}")
+          tok = json.loads(body)
+          if 'access_token' not in tok: failmsg(f"no access_token: {body}")
+          if tok.get('token_type') != 'Bearer': failmsg(f"token_type not Bearer: {tok}")
+          if 'refresh_token' not in tok: failmsg("no refresh_token")
+          access = tok['access_token']
+          refresh = tok['refresh_token']
+          passmsg(f"access_token={access[:12]}..., expires_in={tok.get('expires_in')}, refresh_token issued")
+
+          # ── STEP 8: POST /mcp tools/list with OAuth bearer ──────────────────
+          step(8, "POST /mcp tools/list (with OAuth bearer)")
+          mcp_body = {'jsonrpc':'2.0','id':1,'method':'tools/list','params':{}}
+          status, hdrs, body = http('POST', f'{BASE}/mcp', body=mcp_body,
+                                      headers={'Authorization': f'Bearer {access}',
+                                              'Content-Type': 'application/json'})
+          if status != 200: failmsg(f"status={status}, body={body[:300]}")
+          result = json.loads(body)
+          tools = result.get('result', {}).get('tools', [])
+          if len(tools) != 8: failmsg(f"expected 8 tools, got {len(tools)}: {[t['name'] for t in tools]}")
+          tool_names = sorted([t['name'] for t in tools])
+          expected = sorted(['get_ci_status','get_smoke_count','get_deploy_status',
+                              'get_live_scores','get_espn_game','read_handoff',
+                              'write_handoff','get_head_sha'])
+          if tool_names != expected: failmsg(f"tool names mismatch: got {tool_names}")
+          passmsg(f"8 tools returned via OAuth bearer: {tool_names}")
+
+          # ── STEP 9: Refresh token flow ──────────────────────────────────────
+          step(9, "POST /oauth/token (refresh_token grant)")
+          refresh_form = urllib.parse.urlencode({
+              'grant_type': 'refresh_token',
+              'refresh_token': refresh,
+              'client_id': client['client_id'],
+          })
+          status, hdrs, body = http('POST', meta['token_endpoint'], body=refresh_form,
+                                      headers={'Content-Type': 'application/x-www-form-urlencoded'})
+          if status != 200: failmsg(f"status={status}, body={body[:300]}")
+          tok2 = json.loads(body)
+          if 'access_token' not in tok2: failmsg("refresh did not return new access_token")
+          if tok2['access_token'] == access: failmsg("refresh returned same access_token (should be new)")
+          passmsg(f"new access_token={tok2['access_token'][:12]}...")
+
+          # ── STEP 10: Legacy FIELD_MCP_SECRET still works ────────────────────
+          step(10, "POST /mcp tools/list (with FIELD_MCP_SECRET — legacy/CI path)")
+          status, hdrs, body = http('POST', f'{BASE}/mcp', body=mcp_body,
+                                      headers={'X-FIELD-MCP-Secret': SECRET,
+                                              'Content-Type': 'application/json'})
+          if status != 200: failmsg(f"legacy path broken: status={status}, body={body[:300]}")
+          result = json.loads(body)
+          tools = result.get('result', {}).get('tools', [])
+          if len(tools) != 8: failmsg(f"legacy: expected 8 tools, got {len(tools)}")
+          passmsg(f"legacy path still works: 8 tools returned")
+
+          print(f"\n🎉 ALL 10 STEPS PASSED — OAuth surface fully operational")
+          PYEOF
+
+          echo "OUT=$OUT" >> $GITHUB_ENV
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "OAuth-Probe"
+          git add "$OUT" || git add outbox/
+          git commit -m "mcp-oauth-probe result [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+        env:
+          OUT: ${{ env.OUT }}
