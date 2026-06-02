@@ -1,0 +1,26 @@
+=== MCP OAuth E2E Probe [20260602T154903Z] ===
+Worker: https://field-relay-nba.jeffunglesbee.workers.dev
+
+
+--- STEP 1: GET /.well-known/oauth-authorization-server ---
+✅ issuer=https://field-relay-nba.jeffunglesbee.workers.dev, S256 advertised, all required fields present
+
+--- STEP 2: GET /.well-known/oauth-protected-resource ---
+✅ resource=https://field-relay-nba.jeffunglesbee.workers.dev, authorization_servers=['https://field-relay-nba.jeffunglesbee.workers.dev']
+
+--- STEP 3: GET /mcp (discovery probe) ---
+✅ 401 + WWW-Authenticate present: Bearer realm="MCP", resource_metadata="https://field-relay-nba.jeffunglesbee.workers.dev/.well-known...
+
+--- STEP 4: POST /oauth/register (Dynamic Client Registration) ---
+✅ client_id=dc840bfa705f8547ee3c15edf86f3605, client_secret=74fd1bda...
+
+--- STEP 5: Generate PKCE verifier + S256 challenge ---
+✅ verifier=vfbd74CuViO2..., challenge=TvYlVY0K5ns5...
+
+--- STEP 6: POST /oauth/authorize (verify password, mint code) ---
+✅ 302 redirect → code=6aeb248443fa..., state preserved
+
+--- STEP 7: POST /oauth/token (exchange code with PKCE verifier) ---
+Traceback (most recent call last):
+  File "<stdin>", line 124, in <module>
+TypeError: 'module' object is not callable
