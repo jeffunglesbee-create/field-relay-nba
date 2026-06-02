@@ -1,0 +1,6 @@
+=== MCP OAuth E2E Probe [20260602T154732Z] ===
+Worker: https://field-relay-nba.jeffunglesbee.workers.dev
+
+
+--- STEP 1: GET /.well-known/oauth-authorization-server ---
+❌ status=403, body=error code: 1010
