@@ -2677,7 +2677,7 @@ export default {
                     if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
                     const data = await r.json();
                     const smokeJs = atob(data.content);
-                    const assertions = (smokeJs.match(/^assert\(/gm) || []).length;
+                    const assertions = (smokeJs.match(/^\s*assert\(/gm) || []).length;
                     return respond(jsonrpc2({content:[{type:'text',text:`Smoke assertions: ${assertions}`}]}));
                 }
 
