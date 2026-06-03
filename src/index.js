@@ -16,6 +16,14 @@ import {
   hasCrossSportHallucination as jqHasCrossSport,
 } from './journalism-quality.js';
 
+// ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
+// Pre-loaded historical narrative depth for the 2026 Finals (SAS vs NYK,
+// CAR vs VGK). Injected into the cron slate brief journalism prompt when
+// either Finals matchup is on tonight's slate. Phase 1 inline; Phase 2
+// R2 migration deferred to WC2026 build week.
+// See src/finals-context.js for full documentation and source citations.
+import { buildFinalsContextBlock } from './finals-context.js';
+
 // ── MCP OAuth 2.1 + PKCE + DCR (Tier 1 Phase 2 — June 2 2026 PM-14) ────────
 // Adds OAuth surface required for claude.ai's custom-connector MCP discovery.
 // /mcp keeps FIELD_MCP_SECRET bearer for CI probes; additionally accepts
@@ -1466,6 +1474,7 @@ async function handleJournalismCycle(env) {
       '',
       'TONIGHT\'S GAMES:',
       ...gameLines.map(l => `- ${l}`),
+      buildFinalsContextBlock(gameLines),
       '',
       'RULES:',
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
