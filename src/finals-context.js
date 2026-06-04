@@ -51,9 +51,10 @@ const NHL_SCF_2026_CONTEXT = [
   "- CAR first Stanley Cup Final since winning the Cup in 2006 (20 years). The 2006 Final: CAR defeated Edmonton Oilers 4-3 in 7 games; rookie goalie Cam Ward won Conn Smythe; Rod Brind'Amour captained the win — CAR's 1st championship and 2nd-ever Final appearance (also 2002, lost to Detroit). (Source: Wikipedia 2006 Stanley Cup Final; ESPN 2006 box scores.)",
   "- VGK making 3rd Final in 9 years (franchise founded 2017 as expansion). 2018: lost 4-1 to Washington Capitals in VGK's inaugural season (Ovechkin's first Cup). 2023: won 4-1 over Florida Panthers; Mark Stone hat trick in clinching G5 (9-3) — VGK's 1st championship, in just its 6th season. (Source: CBS 2023 SCF coverage; PBS; The Hockey Writers.)",
   '- Path to 2026 SCF: CAR completed ECF 4-1 over Montreal (Andersen shutout in G4, 6-1 G5 win). VGK swept Colorado 4-0 in WCF (Stone GWG in G4, outscored COL 14-7 across series). (Source: FIELD codebase matchupNote line 7456-7458, 7476.)',
+  '- G1 result (June 2, Lenovo Center): VGK 5-4. Ehlers scored 25 seconds in (fastest SCF G1 goal since Reggie Leach 1976) and scored again for 2-0 CAR lead. VGK came back with 3 straight goals, score tied at 2-2, 3-3, 4-4. Hertl GWG with 3:24 left. VGK first road team in NHL history to come back from 2-0 in SCF G1. Theodore 1G/2A, McNabb 3A. Andersen allowed 5 on 23 shots. VGK leads series 1-0.',
   '- Venues: CAR hosts G1/G2/G5/G7 at Lenovo Center. VGK hosts G3/G4/G6 at T-Mobile Arena, Las Vegas. (Source: FIELD codebase line 7463-7469.)',
   '- ABC crew: Sean McDonough play-by-play, Ray Ferraro analyst. (Source: FIELD codebase line 7463.)',
-  '- Key CAR players: Andrei Svechnikov, Sebastian Aho, Frederik Andersen (G). (Source: FIELD codebase matchupNote line 7463.)',
+  '- Key CAR players: Nikolaj Ehlers (scored first two goals of G1 in 25 seconds and 12:08 of P1 — built the 2-0 lead VGK erased), Andrei Svechnikov, Sebastian Aho, Frederik Andersen (G, allowed 5 on 23 in G1). (Source: FIELD codebase matchupNote; G1 NHL.com recap.)',
   '- Key VGK players: Mark Stone (captain), Pavel Dorofeyev, Jonathan Marchessault. (Source: FIELD codebase matchupNote line 7463.)',
   '- Franchise championships: CAR has 1 (2006). VGK has 1 (2023). (Source: nhl.com history.)',
 ].join('\n');
