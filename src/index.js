@@ -24,6 +24,12 @@ import {
 // See src/finals-context.js for full documentation and source citations.
 import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
+import {
+  computeLiveWP,
+  computeAdvancementProb,
+  oddsToLambda,
+  winProbsFromLambda,
+} from './soccer-wp.js';
 
 // ── MCP OAuth 2.1 + PKCE + DCR (Tier 1 Phase 2 — June 2 2026 PM-14) ────────
 // Adds OAuth surface required for claude.ai's custom-connector MCP discovery.
@@ -991,19 +997,93 @@ function adaptBaseball(g) {
     };
 }
 
+// ── Football statistics parser (Gap 1) ──────────────────────────────────────
+// Parses API-Sports /fixtures/statistics response into a flat stats object.
+// Used to populate the situation object in adaptFootball for live games.
+function parseFootballStats(statsResponse) {
+  const teams = statsResponse?.response || [];
+  if (teams.length < 2) return null;
+
+  function getStat(teamStats, type) {
+    const found = (teamStats || []).find(s => s.type === type);
+    const v = found?.value;
+    if (v === null || v === undefined) return 0;
+    if (typeof v === 'string') {
+      // Handle "62%" possession format
+      const n = parseInt(v);
+      return isNaN(n) ? 0 : n;
+    }
+    return typeof v === 'number' ? v : 0;
+  }
+
+  const home = teams[0]?.statistics || [];
+  const away = teams[1]?.statistics || [];
+
+  return {
+    homeSOT:        getStat(home, 'Shots on Goal'),
+    awaySOT:        getStat(away, 'Shots on Goal'),
+    homeShots:      getStat(home, 'Total Shots'),
+    awayShots:      getStat(away, 'Total Shots'),
+    homeRedCards:   getStat(home, 'Red Cards'),
+    awayRedCards:   getStat(away, 'Red Cards'),
+    homeYellows:    getStat(home, 'Yellow Cards'),
+    awayYellows:    getStat(away, 'Yellow Cards'),
+    homeCorners:    getStat(home, 'Corner Kicks'),
+    awayCorners:    getStat(away, 'Corner Kicks'),
+    homePossession: getStat(home, 'Ball Possession'),  // parsed as int (e.g. 62 for "62%")
+    awayPossession: getStat(away, 'Ball Possession'),
+  };
+}
+
+// Derive which team has the man advantage from red card counts
+// Returns 'home' | 'away' | null
+function deriveManAdvantage(stats) {
+  if (!stats) return null;
+  const hRC = stats.homeRedCards || 0;
+  const aRC = stats.awayRedCards || 0;
+  if (hRC > aRC) return 'away'; // home has MORE red cards → AWAY has advantage
+  if (aRC > hRC) return 'home';
+  return null;
+}
+
+
 // v3.football.api-sports.io: response shape differs from v1 — data nested under .fixture
-function adaptFootball(item, sportKey) {
+// Gap 1: accepts optional statsData (from /fixtures/statistics) for live games
+// Gap 2: returns situation object with WP-relevant fields (mirrors baseball {inning,isTop,outs})
+function adaptFootball(item, sportKey, statsData) {
     const fix = item?.fixture || {};
     const status = fix.status || {};
     const sport = 'football', state = v2State(sport, status?.short);
     const { periodNum, periodLabel } = v2Period(sport, status, {});
     const el = status?.elapsed;
+
+    // Build situation object for live games (Gap 2)
+    // isStoppage: API reports elapsed=90 but time remains — Gap 5 correction in soccer-wp.js
+    const isLive = state === 'live';
+    const shortStatus = (status?.short || '').toUpperCase();
+    const situation = isLive ? {
+        elapsed:        el || 0,
+        isStoppage:     el != null && el >= 90,
+        isShootout:     shortStatus === 'P' || periodNum === 5,
+        manAdvantage:   deriveManAdvantage(statsData),   // 'home' | 'away' | null
+        homeSOT:        statsData?.homeSOT        || 0,
+        awaySOT:        statsData?.awaySOT        || 0,
+        homeShots:      statsData?.homeShots      || 0,
+        awayShots:      statsData?.awayShots      || 0,
+        homeRedCards:   statsData?.homeRedCards   || 0,
+        awayRedCards:   statsData?.awayRedCards   || 0,
+        homeCorners:    statsData?.homeCorners    || 0,
+        awayCorners:    statsData?.awayCorners    || 0,
+        homePossession: statsData?.homePossession || null,
+        hasStats:       statsData != null,
+    } : null;
+
     return {
         id:          `football:${fix.id}`,
         sport:       sportKey || 'football',
         league:      item?.league?.name || '',
         state,
-        start:       fix.date || '',                         // [VERIFY] fixture.date ISO 8601
+        start:       fix.date || '',
         home:        { name: item?.teams?.home?.name || '', abbr: '', score: item?.goals?.home ?? null },
         away:        { name: item?.teams?.away?.name || '', abbr: '', score: item?.goals?.away ?? null },
         periodNum,
@@ -1011,6 +1091,7 @@ function adaptFootball(item, sportKey) {
         clock:       el != null ? `${el}'` : '',
         venue:       fix.venue?.name || '',
         round:       item?.league?.round || '', // WC group detection: "Group Stage - Group A"
+        situation,
     };
 }
 
@@ -1108,7 +1189,38 @@ async function handleWCThirdPlace(env) {
         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
 }
 
-// POST /wc/admin/seed  — manual result entry for testing + group-stage
+// GET /wc/wp/verify — Gap 4: verify Odds API covers soccer_fifa_world_cup
+// Tests that the WC sport key exists and returns active markets.
+// Safe to call any time — read-only, no writes.
+async function handleWCWPVerify(env) {
+    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    try {
+        const resp = await fetch(
+            `https://api.the-odds-api.com/v4/sports?apiKey=${key}`,
+            { cf: { cacheTtl: 3600, cacheEverything: true } }
+        );
+        if (!resp.ok) {
+            return new Response(JSON.stringify({ ok: false, error: `Odds API ${resp.status}` }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        const sports = await resp.json();
+        const wc = Array.isArray(sports)
+            ? sports.find(s => s.key === 'soccer_fifa_world_cup')
+            : null;
+        return new Response(JSON.stringify({
+            ok:        !!wc,
+            wcSport:   wc || null,
+            message:   wc ? `soccer_fifa_world_cup confirmed active=${wc.active}` : 'soccer_fifa_world_cup NOT FOUND',
+            remaining: resp.headers.get('x-requests-remaining') || 'unknown',
+            ts:        Date.now(),
+        }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    } catch (e) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+}
+
+
 // Body: { game_id, group_id, home, away, home_score, away_score, match_date }
 // Gated by FIELD_MCP_SECRET (same as other admin endpoints)
 async function handleWCAdminSeed(request, env) {
@@ -1162,7 +1274,8 @@ async function handleV2Games(url, env) {
         adapt = items => items.map(adaptApiNba);
     } else if (cfg.sport === 'football') {
         targetUrl = `https://${host}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
-        adapt = items => items.map(f => adaptFootball(f, sport));
+        // adapt set to null — football handled separately below with stats enrichment
+        adapt = null;
     } else {
         targetUrl = `https://${host}/games?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
         if (cfg.sport === 'basketball') adapt = items => items.map(adaptBasketball);
@@ -1195,7 +1308,123 @@ async function handleV2Games(url, env) {
             }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
-        const games = adapt(raw);
+        // ── Football: stats fetch + WP computation (Gaps 1-3, 5-6) ─────────────
+        // For football sport types, adapt with optional live statistics.
+        // For all other sports, use the adapt() function set above.
+        let games;
+        if (cfg.sport === 'football') {
+            // Gap 1: identify live fixtures; fetch /fixtures/statistics in parallel
+            const LIVE_STATUS = new Set(['1H','HT','2H','ET','BT','P','LIVE']);
+            const liveFixIds = raw
+                .filter(f => LIVE_STATUS.has((f?.fixture?.status?.short || '').toUpperCase()))
+                .map(f => f?.fixture?.id)
+                .filter(Boolean);
+
+            // Fetch stats for each live fixture in parallel (non-blocking failures tolerated)
+            const statsMap = {};
+            if (liveFixIds.length > 0) {
+                const statsPromises = liveFixIds.map(async fId => {
+                    try {
+                        const sr = await fetch(
+                            `https://${host}/fixtures/statistics?fixture=${fId}`,
+                            { headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
+                              cf: { cacheTtl: 30, cacheEverything: false } }
+                        );
+                        if (!sr.ok) return { fId, stats: null };
+                        return { fId, stats: parseFootballStats(await sr.json()) };
+                    } catch (_) { return { fId, stats: null }; }
+                });
+                const settled = await Promise.allSettled(statsPromises);
+                for (const r of settled) {
+                    if (r.status === 'fulfilled' && r.value?.stats) {
+                        statsMap[r.value.fId] = r.value.stats;
+                    }
+                }
+            }
+
+            // Adapt all fixtures — live ones with stats attached (Gap 1+2)
+            games = raw.map(f => adaptFootball(f, sport, statsMap[f?.fixture?.id] || null));
+
+            // Gap 3+5+6: WP computation for live games
+            for (const g of games) {
+                if (g.state !== 'live' || !g.situation) continue;
+                const { situation: sit } = g;
+                const hGoals = g.home.score ?? 0;
+                const aGoals = g.away.score ?? 0;
+
+                // Gap 2+5: compute live win probability with stoppage correction
+                const wp = computeLiveWP({
+                    homeGoals:    hGoals,
+                    awayGoals:    aGoals,
+                    homeSOT:      sit.homeSOT,
+                    awaySOT:      sit.awaySOT,
+                    elapsedMin:   sit.elapsed,
+                    isStoppage:   sit.isStoppage,   // Gap 5 handled inside computeLiveWP
+                    manAdvantage: sit.manAdvantage,
+                    isShootout:   sit.isShootout,
+                });
+                g.winProb = wp;
+
+                // Gap 3: advancement probability for WC group stage games
+                if (sport === 'wc26' && env.WC2026_DB) {
+                    const gLetter = extractWCGroup(g.round);
+                    if (gLetter) {
+                        try {
+                            const [standingsRes, thirdRes] = await Promise.allSettled([
+                                env.WC2026_DB.prepare(
+                                    'SELECT * FROM wc_group WHERE group_id = ? ORDER BY points DESC, gd DESC, gf DESC'
+                                ).bind(gLetter).all(),
+                                env.WC2026_DB.prepare(
+                                    'SELECT * FROM wc_third_place_standings'
+                                ).all(),
+                            ]);
+                            const standings = standingsRes.status === 'fulfilled'
+                                ? standingsRes.value?.results : [];
+                            const thirdPlace = thirdRes.status === 'fulfilled'
+                                ? thirdRes.value?.results : null;
+                            if (standings?.length) {
+                                g.advancementProb = computeAdvancementProb(
+                                    standings, g.home.name, g.away.name, wp, thirdPlace
+                                );
+                            }
+                        } catch (_) {} // non-blocking
+                    }
+                }
+
+                // Gap 6: named soccer CRUNCH conditions + GameDO broadcast
+                // Relay-is-dumb: classifying factual game state (binary conditions)
+                // Drama assessment stays client-side. Only factual states here.
+                const scoreDiff = Math.abs(hGoals - aGoals);
+                let crunchCondition = null;
+                if      (sit.isShootout)                          crunchCondition = 'penalty_shootout';
+                else if (sit.manAdvantage && scoreDiff <= 1)      crunchCondition = 'man_advantage';
+                else if (sit.isStoppage   && scoreDiff <= 1)      crunchCondition = 'added_time';
+                else if (sit.elapsed > 60 && scoreDiff > 0) {
+                    // WP < 15% for trailing team late in game → near-decided
+                    const loserWP = hGoals > aGoals ? wp.awayWin : wp.homeWin;
+                    if (loserWP < 0.15)                           crunchCondition = 'late_deficit';
+                }
+                if (crunchCondition) {
+                    g._crunch = crunchCondition;
+                    // Fire CRUNCH signal to GameDO for fan-out to connected clients
+                    if (env.GAME_DO) {
+                        try {
+                            const doId   = env.GAME_DO.idFromName(g.id);
+                            const doStub = env.GAME_DO.get(doId);
+                            // Internal fetch — non-blocking, fire-and-forget
+                            doStub.fetch(new Request('https://field/crunch', {
+                                method:  'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body:    JSON.stringify({ condition: crunchCondition, gameId: g.id, ts: Date.now() }),
+                            })).catch(() => {}); // swallow — CRUNCH failure must not fail main response
+                        } catch (_) {}
+                    }
+                }
+            }
+        } else {
+            games = adapt(raw);
+        }
+
 
         // WC D1 auto-write (wc26 only) — idempotent INSERT OR IGNORE
         // Relay-is-dumb: writes scores only, no interest-level computation.
@@ -2000,7 +2229,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -2010,6 +2239,7 @@ export default {
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
+            if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
