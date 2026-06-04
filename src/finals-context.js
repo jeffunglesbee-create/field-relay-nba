@@ -25,6 +25,12 @@
 //
 // SHIPPED: June 3 2026 (salvage of June 1 build, committed verbatim from
 // handoff doc 1w5Ypy1ME6LlKKkyWh1_0IJyRm5iics61jhyBswO9uT8).
+//
+// P0.2 FIX (June 4 2026): detection patterns updated to match ESPN short
+// display names ("Spurs", "Knicks", "Hurricanes", "Canes", "Golden Knights",
+// "Knights") and "NBA Finals"/"Stanley Cup Final" without year suffix.
+// buildGameLine() in the cron uses shortDisplayName from ESPN API, not full
+// team names, so the original full-name-only detection silently failed for G1.
 // ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -55,30 +61,38 @@ const NHL_SCF_2026_CONTEXT = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detection: scan gameLines for the confirmed Finals matchups.
-// Both team-name AND series-label patterns are checked for robustness.
+//
+// buildGameLine() uses ESPN's shortDisplayName ("Spurs", "Knicks") not full
+// team names, and ESPN's series text is "NBA Finals" not "NBA Finals 2026".
+// Detection must handle all three cases:
+//   1. Full team names in same line (non-ESPN data sources, direct injection)
+//   2. Short display names in same line (ESPN scoreboard — primary cron source)
+//   3. "NBA Finals" / "Stanley Cup Final" label without year (ESPN series field)
 // ─────────────────────────────────────────────────────────────────────────────
-
-
-const NBA_FINALS_TEAMS = /\b(San Antonio Spurs|New York Knicks)\b/i;
-const NBA_FINALS_LABEL = /NBA Finals 2026/i;
-const NHL_SCF_TEAMS    = /\b(Carolina Hurricanes|Vegas Golden Knights)\b/i;
-const NHL_SCF_LABEL    = /Stanley Cup Final/i;
 
 
 function slateHasNBAFinals(gameLines) {
   return gameLines.some(l =>
-    NBA_FINALS_LABEL.test(l) ||
-    // both teams must appear in same line (defensive: avoid firing on
-    // an SAS or NYK reg-season game tail in another context)
-    (/\bSan Antonio Spurs\b/.test(l) && /\bNew York Knicks\b/.test(l))
+    // Case 3: ESPN series field — "NBA Finals" with or without year
+    /\bNBA Finals\b/i.test(l) ||
+    // Case 1: full team names in same line (direct data / non-ESPN sources)
+    (/\bSan Antonio Spurs\b/.test(l) && /\bNew York Knicks\b/.test(l)) ||
+    // Case 2: ESPN short display names — "Spurs" + "Knicks" in same game line.
+    // Safe: "Spurs" without "Knicks" matches Tottenham in EPL lines; combined
+    // check prevents false positives across sports.
+    (/\bSpurs\b/.test(l) && /\bKnicks\b/.test(l))
   );
 }
 
 
 function slateHasSCF(gameLines) {
   return gameLines.some(l =>
-    NHL_SCF_LABEL.test(l) ||
-    (/\bCarolina Hurricanes\b/.test(l) && /\bVegas Golden Knights\b/.test(l))
+    // Case 3: ESPN series field — "Stanley Cup Final" with or without year
+    /\bStanley Cup Final\b/i.test(l) ||
+    // Case 1: full team names in same line
+    (/\bCarolina Hurricanes\b/.test(l) && /\bVegas Golden Knights\b/.test(l)) ||
+    // Case 2: ESPN short display names — "Hurricanes" or "Canes" + "Golden Knights" or "Knights"
+    (/\b(Hurricanes|Canes)\b/.test(l) && /\b(Golden Knights|Knights)\b/.test(l))
   );
 }
 
