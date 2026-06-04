@@ -23,6 +23,7 @@ import {
 // R2 migration deferred to WC2026 build week.
 // See src/finals-context.js for full documentation and source citations.
 import { buildFinalsContextBlock } from './finals-context.js';
+import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
 
 // ── MCP OAuth 2.1 + PKCE + DCR (Tier 1 Phase 2 — June 2 2026 PM-14) ────────
 // Adds OAuth surface required for claude.ai's custom-connector MCP discovery.
@@ -1610,12 +1611,18 @@ async function handleJournalismCycle(env) {
     }
 
     // 3. Layer 1: full style prompt
+    // WC2026 team context — async (queries D1 for live standings)
+    const wcTeamContext = slateHasWorldCup(gameLines)
+      ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB)
+      : '';
+
     const buildPrompt = () => [
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
       'TONIGHT\'S GAMES:',
       ...gameLines.map(l => `- ${l}`),
       buildFinalsContextBlock(gameLines),
+      wcTeamContext,  // WC2026 team narrative (D1 + static)
       '',
       'RULES:',
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
@@ -1993,7 +2000,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
