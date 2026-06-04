@@ -1207,6 +1207,74 @@ async function handleWCThirdPlace(env) {
         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
 }
 
+// GET /wc/odds-probs — no-vig match probabilities from The Odds API h2h market.
+// Returns per-game {home_team, away_team, pHome, pDraw, pAway} for upcoming WC games.
+// Cached 5 minutes (probabilities change slowly; saves API credits).
+// Budget: 1 credit per call. Called once per WC tab open, cached in CF edge.
+async function handleWCOddsProbs(env) {
+    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    if (!key) {
+        return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+    try {
+        const resp = await fetch(
+            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h&regions=us,eu&oddsFormat=decimal`,
+            { cf: { cacheTtl: 300, cacheEverything: true } }
+        );
+        if (!resp.ok) {
+            return new Response(JSON.stringify({ ok: false, probs: [], error: `Odds API ${resp.status}` }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        const games = await resp.json();
+        // No-vig probability calculation across available bookmakers.
+        // For each game: average decimal odds per outcome, then remove vig.
+        const probs = [];
+        for (const game of (Array.isArray(games) ? games : [])) {
+            // Collect all h2h outcomes across bookmakers
+            const sums = { home: 0, draw: 0, away: 0, n: 0 };
+            for (const bm of (game.bookmakers || [])) {
+                const market = (bm.markets || []).find(m => m.key === 'h2h');
+                if (!market) continue;
+                const homeOut = market.outcomes.find(o => o.name === game.home_team);
+                const awayOut = market.outcomes.find(o => o.name === game.away_team);
+                const drawOut = market.outcomes.find(o => o.name === 'Draw');
+                if (!homeOut || !awayOut || !drawOut) continue;
+                // Decimal odds → implied probability = 1/odds
+                sums.home += 1 / homeOut.price;
+                sums.draw += 1 / drawOut.price;
+                sums.away += 1 / awayOut.price;
+                sums.n++;
+            }
+            if (sums.n === 0) continue;
+            // Average implied probs across bookmakers, then no-vig normalize
+            const rH = sums.home / sums.n;
+            const rD = sums.draw / sums.n;
+            const rA = sums.away / sums.n;
+            const total = rH + rD + rA;
+            if (total <= 0) continue;
+            probs.push({
+                home_team:  game.home_team,
+                away_team:  game.away_team,
+                commence:   game.commence_time,
+                pHome:      parseFloat((rH / total).toFixed(4)),
+                pDraw:      parseFloat((rD / total).toFixed(4)),
+                pAway:      parseFloat((rA / total).toFixed(4)),
+                bookmakers: sums.n,
+            });
+        }
+        return new Response(JSON.stringify({
+            ok: true,
+            probs,
+            remaining: resp.headers.get('x-requests-remaining') || 'unknown',
+            ts: Date.now(),
+        }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } });
+    } catch (e) {
+        return new Response(JSON.stringify({ ok: false, probs: [], error: e.message }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+}
+
 // GET /wc/wp/verify — Gap 4: verify Odds API covers soccer_fifa_world_cup
 // Tests that the WC sport key exists and returns active markets.
 // Safe to call any time — read-only, no writes.
@@ -2257,6 +2325,7 @@ export default {
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
             if (pathname === '/wc/results')     return handleWCResults(url, env);
+            if (pathname === '/wc/odds-probs')  return handleWCOddsProbs(env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
@@ -3238,6 +3307,7 @@ export default {
                         '/wc/wp/verify',
                         '/wc/standings',
                         '/wc/results',
+                        '/wc/odds-probs',
                         '/wc/third-place',
                         '/v2/games',
                         '/v2/standings',
