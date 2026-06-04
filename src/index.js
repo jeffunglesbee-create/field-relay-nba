@@ -1648,6 +1648,39 @@ async function handleV2Games(url, env) {
                     }
                 }
             }
+
+            // ── GameDO WP state updates (parallel across all live games) ────────────
+            // Writes openingWP + lastWP + wpHistory to each game's DO instance.
+            // Returns wpDelta + openingWP + recentHistory for attachment to game object.
+            // Parallel to minimise added latency (typically 1-2ms per DO round-trip).
+            if (env.GAME_DO) {
+                const liveWithWP = games.filter(g => g.state === 'live' && g.winProb);
+                if (liveWithWP.length > 0) {
+                    const wpResults = await Promise.allSettled(
+                        liveWithWP.map(async g => {
+                            const doStub = env.GAME_DO.get(env.GAME_DO.idFromName(g.id));
+                            const resp = await doStub.fetch(new Request('https://field/wp', {
+                                method:  'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body:    JSON.stringify({
+                                    wp:      g.winProb,
+                                    elapsed: g.situation?.elapsed ?? null,
+                                    ts:      Date.now(),
+                                }),
+                            }));
+                            if (!resp.ok) return null;
+                            return { g, state: await resp.json() };
+                        })
+                    );
+                    for (const result of wpResults) {
+                        if (result.status !== 'fulfilled' || !result.value?.state?.ok) continue;
+                        const { g, state } = result.value;
+                        g.openingWP      = state.openingWP      ?? null;
+                        g.wpDelta        = state.wpDelta        ?? null;
+                        g.recentWPHistory = state.recentHistory ?? [];
+                    }
+                }
+            }
         } else {
             games = adapt(raw);
         }

@@ -47,7 +47,11 @@ const ALLOWED_CLIENT_MSG_TYPES = new Set([
 const SPORT_TO_V2 = {
     'nba': 'nba', 'nhl': 'nhl', 'mlb': 'mlb', 'wnba': 'wnba',
     'epl': 'epl', 'mls': 'mls', 'ucl': 'ucl',
+    'wc26': 'wc26',  // WC 2026 added June 4 2026
 };
+
+// Max WP history entries per game (~180 = full 90 min at 30s poll cadence)
+const WP_HISTORY_MAX = 180;
 
 export class GameDO {
     constructor(ctx, env) {
@@ -161,6 +165,89 @@ export class GameDO {
                     { headers: { 'Content-Type': 'application/json' } });
             } catch(e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500 });
+            }
+        }
+
+        // ── POST /crunch — relay-side CRUNCH signal (fire-and-forget from V2 loop) ──
+        // Relay computes named condition (binary fact); DO fans out to push subscribers.
+        // Fixes route mismatch: relay fires to /crunch, browser fires via WebSocket signal-crunch.
+        if (pathname.endsWith('/crunch') && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const { condition, gameId } = body || {};
+                if (!condition) return new Response(JSON.stringify({ ok: false, error: 'Missing condition' }),
+                    { headers: { 'Content-Type': 'application/json' } });
+                // Dedup per (gameId, condition) per 30 min
+                const dedupKey = `crunch:${gameId || this.gameId}:${condition}`;
+                const last = await this.ctx.storage.get(dedupKey);
+                if (last && (Date.now() - last) < CRUNCH_DEDUP_TTL_MS) {
+                    return new Response(JSON.stringify({ ok: true, deduped: true }),
+                        { headers: { 'Content-Type': 'application/json' } });
+                }
+                await this.ctx.storage.put(dedupKey, Date.now());
+                const sent = await this._fanoutCrunch(body);
+                return new Response(JSON.stringify({ ok: true, sent }),
+                    { headers: { 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500 });
+            }
+        }
+
+        // ── POST /wp — relay writes live win probability; DO stores state and returns delta ──
+        // Called by relay V2 polling loop for every live football game with winProb computed.
+        // DO stores: openingWP (immutable first-live value), lastWP, wpHistory (bounded).
+        // Returns: {openingWP, wpDelta, recentHistory} — relay attaches to game object.
+        //
+        // ADR-002 compliance: DO stores and returns probability FACTS only.
+        // Drama computation, display thresholds — all browser-side.
+        if (pathname.endsWith('/wp') && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const { wp, elapsed } = body || {};
+                if (!wp || typeof wp.homeWin !== 'number') {
+                    return new Response(JSON.stringify({ ok: false, error: 'Invalid wp object' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                // Load current WP state from DO storage
+                const stored = await this.ctx.storage.get(['openingWP', 'lastWP', 'wpHistory']);
+                const openingWP  = stored.get('openingWP')  ?? null;
+                const lastWP     = stored.get('lastWP')     ?? null;
+                const wpHistory  = stored.get('wpHistory')  ?? [];
+
+                // Compute delta vs previous poll
+                const wpDelta = lastWP !== null ? {
+                    homeWin: parseFloat((wp.homeWin - lastWP.homeWin).toFixed(4)),
+                    awayWin: parseFloat((wp.awayWin - lastWP.awayWin).toFixed(4)),
+                    draw:    parseFloat((wp.draw    - lastWP.draw   ).toFixed(4)),
+                } : null;
+
+                // Store opening WP once (immutable — pre-game lambda baked in at kickoff)
+                const newOpeningWP = openingWP ?? { ...wp, elapsed: elapsed ?? 0, storedAt: Date.now() };
+
+                // Append to history (bounded — discard oldest when full)
+                const entry = { elapsed: elapsed ?? 0, homeWin: wp.homeWin, draw: wp.draw };
+                const newHistory = [...wpHistory, entry].slice(-WP_HISTORY_MAX);
+
+                // Persist (single put batches all keys)
+                await this.ctx.storage.put({
+                    openingWP: newOpeningWP,
+                    lastWP:    { ...wp, elapsed: elapsed ?? 0, ts: Date.now() },
+                    wpHistory: newHistory,
+                });
+
+                // Fan out WP update to connected WebSocket clients
+                this._broadcast({ type: 'wp', wp, elapsed, wpDelta, ts: Date.now() });
+
+                return new Response(JSON.stringify({
+                    ok:            true,
+                    openingWP:     newOpeningWP,
+                    wpDelta,
+                    recentHistory: newHistory.slice(-20),  // last 20 points for sparkline
+                    historyLen:    newHistory.length,
+                }), { headers: { 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { 'Content-Type': 'application/json' } });
             }
         }
 
