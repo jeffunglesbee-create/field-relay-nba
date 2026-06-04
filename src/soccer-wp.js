@@ -127,7 +127,9 @@ export function lambdaFromTotalsAndH2H(lambdaTotal, pHome, pDraw) {
   return { lh, la: Math.max(0.05, lt - lh) };
 }
 
-
+/**
+ * Invert market probabilities to expected goals λ values.
+ * Simple Newton-step optimization (25 iterations converges for typical odds).
  *
  * @param {number} pHome  Market P(home win)
  * @param {number} pDraw  Market P(draw)
