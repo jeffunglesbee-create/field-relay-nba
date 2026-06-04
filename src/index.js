@@ -1177,6 +1177,24 @@ async function handleWCStandings(url, env) {
         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
 }
 
+// GET /wc/results[?group=A] — per-match scores from wc_results D1 table.
+// Enables browser-side H2H tiebreaker computation (FIFA tiebreakers 4-6).
+// Returns [] before tournament starts (table is empty).
+async function handleWCResults(url, env) {
+    if (!env.WC2026_DB)
+        return new Response(JSON.stringify({ error: 'WC2026_DB not bound' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const filterGroup = (url.searchParams.get('group') || '').toUpperCase() || null;
+    const sql = filterGroup
+        ? 'SELECT * FROM wc_results WHERE group_id = ? ORDER BY match_date ASC'
+        : 'SELECT * FROM wc_results ORDER BY group_id ASC, match_date ASC';
+    const { results } = filterGroup
+        ? await env.WC2026_DB.prepare(sql).bind(filterGroup).all()
+        : await env.WC2026_DB.prepare(sql).all();
+    return new Response(JSON.stringify({ results, ts: Date.now() }),
+        { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=30' } });
+}
+
 // GET /wc/third-place — return third-place standings cross-group
 async function handleWCThirdPlace(env) {
     if (!env.WC2026_DB)
@@ -2238,6 +2256,7 @@ export default {
         // /wc/* — World Cup D1 standings (WC D1, June 4 2026)
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
+            if (pathname === '/wc/results')     return handleWCResults(url, env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
@@ -3218,6 +3237,7 @@ export default {
                         '/health',
                         '/wc/wp/verify',
                         '/wc/standings',
+                        '/wc/results',
                         '/wc/third-place',
                         '/v2/games',
                         '/v2/standings',
