@@ -1251,6 +1251,13 @@ const RELAY_BANNED = [
   'step up when it matters','battle-tested','high-octane',
   'in the driver\'s seat','cement their legacy','the chess match continues',
   'must-win situation','pivotal matchup','will look to',
+  // P0.2 additions (June 4 2026): clunky wire-copy patterns observed in Morning Report
+  'secured a victory','secured a win','secured the win','secured the victory',
+  'capitalized on scoring opportunities','capitalize on scoring',
+  'finalize a','finalize the',
+  'overcome the','to overcome','managed to overcome',
+  'result moved','result moves',                   // "this result moves X into..."
+  'continued their','extended their','maintained their momentum',
 ];
 
 function relayHasCliche(text) {
