@@ -88,3 +88,14 @@ queue              = "field-journalism-queue"
 max_batch_size     = 5
 max_batch_timeout  = 30
 max_retries        = 3
+
+# ── D1 World Cup Group Table (WC D1 — June 4 2026) ───────────────────────────
+# SQLite at edge. Stores WC2026 group standings + results for permutations engine.
+# Database: wc2026 (ID: f26669de-e772-4b56-a6d1-f8fdea08a4d4, region: ENAM)
+# Tables: wc_group, wc_results | View: wc_third_place_standings
+# Auto-written when /v2/games?sport=wc26 returns final-state group games.
+# Relay-is-dumb: relay writes arithmetic facts (scores) only. No intelligence.
+[[d1_databases]]
+binding       = "WC2026_DB"
+database_name = "wc2026"
+database_id   = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"

@@ -1009,7 +1009,131 @@ function adaptFootball(item, sportKey) {
         periodLabel,
         clock:       el != null ? `${el}'` : '',
         venue:       fix.venue?.name || '',
+        round:       item?.league?.round || '', // WC group detection: "Group Stage - Group A"
     };
+}
+
+// ── WC D1 helpers ────────────────────────────────────────────────────────
+// Relay-is-dumb: these write arithmetic facts (scores/standings) to D1 only.
+// No editorial intelligence, no interest levels. Pure score bookkeeping.
+
+// Extract group letter from API-Sports round string:
+// "Group Stage - Group A" → 'A'  |  "Group A" → 'A'  |  "Round of 32" → null
+function extractWCGroup(round) {
+    const m = (round || '').match(/Group\s+([A-L])\b/i);
+    return m ? m[1].toUpperCase() : null;
+}
+
+// Recompute wc_group standings for one group from wc_results (idempotent)
+async function recomputeGroupStandings(db, groupId) {
+    await db.prepare('DELETE FROM wc_group WHERE group_id = ?').bind(groupId).run();
+    await db.prepare(`
+      INSERT INTO wc_group (group_id, team, played, won, drawn, lost, gf, ga, gd, points)
+      SELECT group_id, team,
+             SUM(played) AS played,
+             SUM(won)    AS won,
+             SUM(drawn)  AS drawn,
+             SUM(lost)   AS lost,
+             SUM(gf)     AS gf,
+             SUM(ga)     AS ga,
+             SUM(gf) - SUM(ga)      AS gd,
+             SUM(won)*3 + SUM(drawn) AS points
+      FROM (
+        SELECT group_id, home AS team, 1 AS played,
+               CASE WHEN home_score > away_score THEN 1 ELSE 0 END AS won,
+               CASE WHEN home_score = away_score THEN 1 ELSE 0 END AS drawn,
+               CASE WHEN home_score < away_score THEN 1 ELSE 0 END AS lost,
+               home_score AS gf, away_score AS ga
+        FROM wc_results WHERE group_id = ?
+        UNION ALL
+        SELECT group_id, away AS team, 1 AS played,
+               CASE WHEN away_score > home_score THEN 1 ELSE 0 END AS won,
+               CASE WHEN away_score = home_score THEN 1 ELSE 0 END AS drawn,
+               CASE WHEN away_score < home_score THEN 1 ELSE 0 END AS lost,
+               away_score AS gf, home_score AS ga
+        FROM wc_results WHERE group_id = ?
+      ) r
+      GROUP BY group_id, team
+    `).bind(groupId, groupId).run();
+}
+
+// Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
+async function writeWCResult(db, game) {
+    const groupId = extractWCGroup(game.round);
+    if (!groupId) return; // knockout stage or no round info — skip
+    const matchDate = (game.start || '').slice(0, 10);
+    const homeScore = game.home?.score ?? 0;
+    const awayScore = game.away?.score ?? 0;
+    await db.prepare(`
+      INSERT OR IGNORE INTO wc_results
+        (game_id, group_id, home, away, home_score, away_score, phase, match_date)
+      VALUES (?, ?, ?, ?, ?, ?, 'group', ?)
+    `).bind(game.id, groupId, game.home?.name || '', game.away?.name || '',
+            homeScore, awayScore, matchDate).run();
+    await recomputeGroupStandings(db, groupId);
+}
+
+// GET /wc/standings[?group=A]  — return D1 standings as JSON
+async function handleWCStandings(url, env) {
+    if (!env.WC2026_DB)
+        return new Response(JSON.stringify({ error: 'WC2026_DB not bound' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const filterGroup = (url.searchParams.get('group') || '').toUpperCase() || null;
+    const sql = filterGroup
+        ? 'SELECT * FROM wc_group WHERE group_id = ? ORDER BY points DESC, gd DESC, gf DESC'
+        : 'SELECT * FROM wc_group ORDER BY group_id ASC, points DESC, gd DESC, gf DESC';
+    const { results } = filterGroup
+        ? await env.WC2026_DB.prepare(sql).bind(filterGroup).all()
+        : await env.WC2026_DB.prepare(sql).all();
+    // Group by group_id for client convenience
+    const grouped = {};
+    for (const row of results) {
+        if (!grouped[row.group_id]) grouped[row.group_id] = [];
+        grouped[row.group_id].push(row);
+    }
+    return new Response(JSON.stringify({ groups: grouped, ts: Date.now() }),
+        { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
+}
+
+// GET /wc/third-place — return third-place standings cross-group
+async function handleWCThirdPlace(env) {
+    if (!env.WC2026_DB)
+        return new Response(JSON.stringify({ error: 'WC2026_DB not bound' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const { results } = await env.WC2026_DB.prepare(
+        'SELECT * FROM wc_third_place_standings'
+    ).all();
+    return new Response(JSON.stringify({ third_place: results, ts: Date.now() }),
+        { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
+}
+
+// POST /wc/admin/seed  — manual result entry for testing + group-stage
+// Body: { game_id, group_id, home, away, home_score, away_score, match_date }
+// Gated by FIELD_MCP_SECRET (same as other admin endpoints)
+async function handleWCAdminSeed(request, env) {
+    const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
+    if (auth !== env.FIELD_MCP_SECRET)
+        return new Response('Unauthorized', { status: 401, headers: CORS });
+    if (!env.WC2026_DB)
+        return new Response('WC2026_DB not bound', { status: 503, headers: CORS });
+    let body;
+    try { body = await request.json(); } catch { return new Response('Invalid JSON', { status: 400, headers: CORS }); }
+    const { game_id, group_id, home, away, home_score, away_score, match_date } = body || {};
+    if (!game_id || !group_id || !home || !away)
+        return new Response('Missing required fields: game_id, group_id, home, away', { status: 400, headers: CORS });
+    await env.WC2026_DB.prepare(`
+      INSERT OR REPLACE INTO wc_results
+        (game_id, group_id, home, away, home_score, away_score, phase, match_date)
+      VALUES (?, ?, ?, ?, ?, ?, 'group', ?)
+    `).bind(game_id, group_id.toUpperCase(), home, away,
+            parseInt(home_score)||0, parseInt(away_score)||0,
+            match_date || new Date().toISOString().slice(0,10)).run();
+    await recomputeGroupStandings(env.WC2026_DB, group_id.toUpperCase());
+    const { results } = await env.WC2026_DB.prepare(
+        'SELECT * FROM wc_group WHERE group_id = ? ORDER BY points DESC, gd DESC, gf DESC'
+    ).bind(group_id.toUpperCase()).all();
+    return new Response(JSON.stringify({ ok: true, group: group_id.toUpperCase(), standings: results }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
 // ── /v2/games route handler ──────────────────────────────────────────────
@@ -1071,6 +1195,16 @@ async function handleV2Games(url, env) {
         }
 
         const games = adapt(raw);
+
+        // WC D1 auto-write (wc26 only) — idempotent INSERT OR IGNORE
+        // Relay-is-dumb: writes scores only, no interest-level computation.
+        if (sport === 'wc26' && env.WC2026_DB) {
+            const finals = games.filter(g => g.state === 'final');
+            if (finals.length > 0) {
+                await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g)));
+            }
+        }
+
         return new Response(
             JSON.stringify({ sport, date, games, count: games.length, source: 'apisports', ts: Date.now() }),
             { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } }
@@ -1859,10 +1993,19 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
+        }
+
+        // /wc/* — World Cup D1 standings (WC D1, June 4 2026)
+        if (pathname.startsWith('/wc/')) {
+            if (pathname === '/wc/standings')   return handleWCStandings(url, env);
+            if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
+            if (pathname === '/wc/admin/seed' && request.method === 'POST')
+                return handleWCAdminSeed(request, env);
+            return new Response('WC endpoint not found', { status: 404, headers: CORS });
         }
 
         // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
