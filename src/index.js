@@ -3038,6 +3038,17 @@ export default {
                         description: 'Get the current HEAD SHA of jubilant-bassoon main branch. Useful for memory anchor updates after write_handoff.',
                         inputSchema: { type: 'object', properties: {}, required: [] },
                     },
+                    {
+                        name: 'probe_relay_route',
+                        description: 'GET an allow-listed relay route (self-fetch on the same worker) and return its status, content-type, and body. Bypasses the *.workers.dev sandbox block for deployed-route verification. Allow-list is hardcoded relay-side; non-allow-listed routes return an error and are never fetched.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                route: { type: 'string', description: 'Relay path starting with "/", e.g. "/wc/wp/verify". Query string allowed.' },
+                            },
+                            required: ['route'],
+                        },
+                    },
                 ]}));
             }
 
@@ -3179,6 +3190,67 @@ export default {
                     }
                     const data = await r.json();
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({sha: data.object.sha, branch: 'main'})}]}));
+                }
+
+                // ── probe_relay_route ────────────────────────────────────────────
+                // Self-fetch an allow-listed relay route via the worker's own
+                // public origin, so an MCP client (e.g. Claude in a sandboxed
+                // environment that cannot reach *.workers.dev directly) can
+                // verify deployed route behaviour without an outbox/.trigger-*
+                // CI bounce. GET-only. Allow-list is hardcoded below; routes
+                // outside it are rejected without a fetch attempt. Response
+                // body is truncated to 12 KB to fit the MCP tool-result budget.
+                if (toolName === 'probe_relay_route') {
+                    const route = toolArgs.route;
+                    if (typeof route !== 'string' || !route.startsWith('/')) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: route (string starting with "/")'}], isError:true}));
+                    }
+                    // Reject anything that looks like an MCP/auth/OAuth path —
+                    // probing those would either loop or expose secrets.
+                    const FORBIDDEN_PREFIX = ['/mcp', '/oauth', '/.well-known', '/debug', '/push'];
+                    if (FORBIDDEN_PREFIX.some(p => route === p || route.startsWith(p + '/') || route.startsWith(p + '?'))) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Route in forbidden-prefix list: ${FORBIDDEN_PREFIX.join(', ')}`}], isError:true}));
+                    }
+                    // Positive allow-list — extend deliberately, not speculatively.
+                    // Each entry is either an exact path or a prefix tested
+                    // against the route's pathname (query string is allowed).
+                    const ALLOWED_EXACT = new Set([
+                        '/health',
+                        '/wc/wp/verify',
+                        '/wc/standings',
+                        '/wc/third-place',
+                        '/v2/games',
+                        '/v2/standings',
+                    ]);
+                    const ALLOWED_PREFIX = ['/squiggle'];
+                    // Split off query string before allow-list comparison.
+                    const qIdx = route.indexOf('?');
+                    const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
+                    const allowed = ALLOWED_EXACT.has(routePath)
+                                 || ALLOWED_PREFIX.some(p => routePath === p || routePath.startsWith(p + '/'));
+                    if (!allowed) {
+                        const allowedList = [...ALLOWED_EXACT, ...ALLOWED_PREFIX.map(p => `${p}/*`)].join(', ');
+                        return respond(jsonrpc2({content:[{type:'text',text:`Route not in allow-list. Allowed: ${allowedList}`}], isError:true}));
+                    }
+                    const target = `${url.origin}${route}`;
+                    let r;
+                    try {
+                        r = await fetch(target, { method: 'GET', headers: { 'User-Agent': 'field-relay-probe', 'Accept': 'application/json, text/plain, */*' }, redirect: 'manual' });
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Probe fetch error: ${e.message}`}], isError:true}));
+                    }
+                    const bodyText = await r.text();
+                    const MAX_BODY = 12000;
+                    const truncated = bodyText.length > MAX_BODY
+                        ? bodyText.slice(0, MAX_BODY) + `\n…[truncated ${bodyText.length - MAX_BODY} bytes]`
+                        : bodyText;
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({
+                        target,
+                        status: r.status,
+                        contentType: r.headers.get('content-type') || '',
+                        bodyBytes: bodyText.length,
+                        body: truncated,
+                    }, null, 2)}]}));
                 }
 
                 return respond(jsonrpc2err(-32601, `Unknown tool: ${toolName}`));
