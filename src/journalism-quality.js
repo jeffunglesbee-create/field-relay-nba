@@ -36,6 +36,13 @@ export const BANNED_PHRASES = [
   'when it counts','dig deep','put this one away','get back on track',
   'on a mission','statement win','pivotal moment','defining moment',
   'all the marbles','one game at a time',
+  // P0.2 additions (June 4 2026): clunky wire-copy patterns seen in Morning Report
+  'secured a victory','secured a win','secured the win','secured the victory',
+  'capitalized on scoring opportunities','capitalize on scoring',
+  'finalize a','finalize the',
+  'overcome the','to overcome','managed to overcome',
+  'result moved','result moves',
+  'continued their','extended their','maintained their momentum',
 ];
 
 export const SPARINGLY_PHRASES = [
