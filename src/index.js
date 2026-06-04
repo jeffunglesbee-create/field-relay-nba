@@ -28,6 +28,7 @@ import {
   computeLiveWP,
   computeAdvancementProb,
   oddsToLambda,
+  lambdaFromTotalsAndH2H,
   winProbsFromLambda,
 } from './soccer-wp.js';
 
@@ -772,33 +773,43 @@ async function getWCPregameLambdas(env) {
     if (!key) return null;
     try {
         const r = await fetch(
-            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h&regions=us,eu&oddsFormat=decimal`,
+            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
         if (!r.ok) return null;
         const games = await r.json();
         const cache = new Map();
         for (const game of (Array.isArray(games) ? games : [])) {
-            // Average no-vig implied probs across bookmakers
-            const sums = { home: 0, draw: 0, away: 0, n: 0 };
+            const h2h = { home: 0, draw: 0, away: 0, n: 0 };
+            const tot = { line: 0, n: 0 };
             for (const bm of (game.bookmakers || [])) {
-                const mkt = (bm.markets || []).find(m => m.key === 'h2h');
-                if (!mkt) continue;
-                const hO = mkt.outcomes.find(o => o.name === game.home_team);
-                const aO = mkt.outcomes.find(o => o.name === game.away_team);
-                const dO = mkt.outcomes.find(o => o.name === 'Draw');
-                if (!hO || !aO || !dO) continue;
-                sums.home += 1 / hO.price;
-                sums.draw += 1 / dO.price;
-                sums.away += 1 / aO.price;
-                sums.n++;
+                const h2hMkt = (bm.markets || []).find(m => m.key === 'h2h');
+                const totMkt = (bm.markets || []).find(m => m.key === 'totals');
+                if (h2hMkt) {
+                    const hO = h2hMkt.outcomes.find(o => o.name === game.home_team);
+                    const aO = h2hMkt.outcomes.find(o => o.name === game.away_team);
+                    const dO = h2hMkt.outcomes.find(o => o.name === 'Draw');
+                    if (hO && aO && dO) {
+                        h2h.home += 1 / hO.price;
+                        h2h.draw += 1 / dO.price;
+                        h2h.away += 1 / aO.price;
+                        h2h.n++;
+                    }
+                }
+                if (totMkt) {
+                    const overO = totMkt.outcomes.find(o => o.name === 'Over' && o.point != null);
+                    if (overO) { tot.line += overO.point; tot.n++; }
+                }
             }
-            if (sums.n === 0) continue;
-            const rH = sums.home / sums.n, rD = sums.draw / sums.n, rA = sums.away / sums.n;
-            const tot = rH + rD + rA;
-            if (tot <= 0) continue;
-            // oddsToLambda: Poisson inversion from no-vig probs
-            const lams = oddsToLambda(rH / tot, rD / tot, rA / tot);
+            if (h2h.n === 0) continue;
+            const rH = h2h.home / h2h.n, rD = h2h.draw / h2h.n, rA = h2h.away / h2h.n;
+            const vigSum = rH + rD + rA;
+            if (vigSum <= 0) continue;
+            const pH = rH / vigSum, pD = rD / vigSum;
+            // Use totals market lambda when available (direct O/U read), else h2h inversion
+            const lams = tot.n > 0
+                ? lambdaFromTotalsAndH2H(tot.line / tot.n, pH, pD)
+                : oddsToLambda(pH, pD, 1 - pH - pD);
             cache.set(`${game.home_team}|${game.away_team}`, lams);
         }
         _wcLambdaCache = cache;
@@ -807,14 +818,37 @@ async function getWCPregameLambdas(env) {
     } catch (e) { return null; }
 }
 
-// Fuzzy team-name match for lambda lookup (Odds API vs API-Sports name formats)
+// Fuzzy team-name match for lambda lookup (Odds API vs API-Sports name formats).
+// Confirmed alias pairs from live /wc/odds-probs probe (June 4 2026).
 function wcTeamNameMatch(oddsName, fieldName) {
     if (!oddsName || !fieldName) return false;
-    const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+    // Normalize: lowercase, NFD decompose (removes diacritics), alphanum+space only
+    const norm = s => s.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
     const a = norm(oddsName), b = norm(fieldName);
     if (a === b) return true;
-    // Subword check (covers "United States" ↔ "USA" type mismatches)
-    return a.includes(b.slice(0, 6)) || b.includes(a.slice(0, 6));
+    // Bidirectional alias table (Odds API ↔ wc26Raw names)
+    const ALIASES = {
+        'usa':            'united states',
+        'united states':  'usa',
+        'turkey':         'turkiye',
+        'turkiye':        'turkey',
+        'czech republic': 'czechia',
+        'czechia':        'czech republic',
+        'dr congo':       'congo dr',
+        'congo dr':       'dr congo',
+        'ivory coast':    'cote d ivoire',
+        'cote d ivoire':  'ivory coast',
+    };
+    const aa = ALIASES[a] || a, bb = ALIASES[b] || b;
+    if (aa === bb || aa === b || a === bb) return true;
+    // 5-char prefix overlap (catches remaining edge cases like short names)
+    const pfx = 5;
+    if (a.length >= pfx && b.length >= pfx) {
+        if (b.includes(a.slice(0, pfx)) || a.includes(b.slice(0, pfx))) return true;
+    }
+    return false;
 }
 
 const V2_LEAGUES = {
@@ -1268,10 +1302,10 @@ async function handleWCThirdPlace(env) {
         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
 }
 
-// GET /wc/odds-probs — no-vig match probabilities from The Odds API h2h market.
-// Returns per-game {home_team, away_team, pHome, pDraw, pAway} for upcoming WC games.
-// Cached 5 minutes (probabilities change slowly; saves API credits).
-// Budget: 1 credit per call. Called once per WC tab open, cached in CF edge.
+// GET /wc/odds-probs — no-vig match probabilities + Poisson lambdas from Odds API.
+// Fetches h2h + totals markets. Totals O/U line gives λ_total directly;
+// binary-search lambdaFromTotalsAndH2H resolves λ_home/λ_away without iteration.
+// Budget: 2 credits per call (markets=h2h,totals). CF edge-cached 5 min.
 async function handleWCOddsProbs(env) {
     const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
     if (!key) {
@@ -1280,7 +1314,7 @@ async function handleWCOddsProbs(env) {
     }
     try {
         const resp = await fetch(
-            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h&regions=us,eu&oddsFormat=decimal`,
+            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
         if (!resp.ok) {
@@ -1288,40 +1322,59 @@ async function handleWCOddsProbs(env) {
                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
         const games = await resp.json();
-        // No-vig probability calculation across available bookmakers.
-        // For each game: average decimal odds per outcome, then remove vig.
         const probs = [];
         for (const game of (Array.isArray(games) ? games : [])) {
-            // Collect all h2h outcomes across bookmakers
-            const sums = { home: 0, draw: 0, away: 0, n: 0 };
+            // ── h2h: no-vig implied probs across bookmakers ──────────────────
+            const h2h = { home: 0, draw: 0, away: 0, n: 0 };
+            const tot = { over: 0, line: 0, n: 0 };  // totals accumulator
             for (const bm of (game.bookmakers || [])) {
-                const market = (bm.markets || []).find(m => m.key === 'h2h');
-                if (!market) continue;
-                const homeOut = market.outcomes.find(o => o.name === game.home_team);
-                const awayOut = market.outcomes.find(o => o.name === game.away_team);
-                const drawOut = market.outcomes.find(o => o.name === 'Draw');
-                if (!homeOut || !awayOut || !drawOut) continue;
-                // Decimal odds → implied probability = 1/odds
-                sums.home += 1 / homeOut.price;
-                sums.draw += 1 / drawOut.price;
-                sums.away += 1 / awayOut.price;
-                sums.n++;
+                const h2hMkt  = (bm.markets || []).find(m => m.key === 'h2h');
+                const totMkt  = (bm.markets || []).find(m => m.key === 'totals');
+                if (h2hMkt) {
+                    const hO = h2hMkt.outcomes.find(o => o.name === game.home_team);
+                    const aO = h2hMkt.outcomes.find(o => o.name === game.away_team);
+                    const dO = h2hMkt.outcomes.find(o => o.name === 'Draw');
+                    if (hO && aO && dO) {
+                        h2h.home += 1 / hO.price;
+                        h2h.draw += 1 / dO.price;
+                        h2h.away += 1 / aO.price;
+                        h2h.n++;
+                    }
+                }
+                if (totMkt) {
+                    const overO = totMkt.outcomes.find(o => o.name === 'Over' && o.point != null);
+                    if (overO) { tot.over += 1 / overO.price; tot.line += overO.point; tot.n++; }
+                }
             }
-            if (sums.n === 0) continue;
-            // Average implied probs across bookmakers, then no-vig normalize
-            const rH = sums.home / sums.n;
-            const rD = sums.draw / sums.n;
-            const rA = sums.away / sums.n;
-            const total = rH + rD + rA;
-            if (total <= 0) continue;
+            if (h2h.n === 0) continue;
+            const rH = h2h.home / h2h.n, rD = h2h.draw / h2h.n, rA = h2h.away / h2h.n;
+            const vigSum = rH + rD + rA;
+            if (vigSum <= 0) continue;
+            const pH = rH / vigSum, pD = rD / vigSum, pA = rA / vigSum;
+            // ── λ computation: prefer totals market, fall back to oddsToLambda ──
+            let lh, la, lambdaSource;
+            if (tot.n > 0) {
+                const lambdaTotal = tot.line / tot.n;  // average O/U line
+                const lams = lambdaFromTotalsAndH2H(lambdaTotal, pH, pD);
+                lh = lams.lh; la = lams.la;
+                lambdaSource = 'totals';
+            } else {
+                const lams = oddsToLambda(pH, pD, pA);
+                lh = lams.lh; la = lams.la;
+                lambdaSource = 'h2h-inversion';
+            }
             probs.push({
-                home_team:  game.home_team,
-                away_team:  game.away_team,
-                commence:   game.commence_time,
-                pHome:      parseFloat((rH / total).toFixed(4)),
-                pDraw:      parseFloat((rD / total).toFixed(4)),
-                pAway:      parseFloat((rA / total).toFixed(4)),
-                bookmakers: sums.n,
+                home_team:    game.home_team,
+                away_team:    game.away_team,
+                commence:     game.commence_time,
+                pHome:        parseFloat(pH.toFixed(4)),
+                pDraw:        parseFloat(pD.toFixed(4)),
+                pAway:        parseFloat(pA.toFixed(4)),
+                lambdaHome:   parseFloat(lh.toFixed(3)),
+                lambdaAway:   parseFloat(la.toFixed(3)),
+                lambdaTotal:  parseFloat((lh + la).toFixed(3)),
+                lambdaSource,
+                bookmakers:   h2h.n,
             });
         }
         return new Response(JSON.stringify({
