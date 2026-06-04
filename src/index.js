@@ -756,6 +756,67 @@ async function sendWebPush(sub, payload, env) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // League IDs for api-sports.io queries, keyed by FIELD sport identifier
+// ── WC 2026 pre-game lambda cache ─────────────────────────────────────────────
+// Fetches Odds API h2h market once per ~5 min, converts to Poisson lambdas via
+// oddsToLambda(), and stores in a module-level Map for use in the WP loop.
+// This wires pregameLh/pregameLa into computeLiveWP → source: 'odds-blended'.
+let _wcLambdaCache = null;      // Map: 'home|away' → { lh, la }
+let _wcLambdaCacheTs  = 0;
+const WC_LAMBDA_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getWCPregameLambdas(env) {
+    if (_wcLambdaCache && (Date.now() - _wcLambdaCacheTs) < WC_LAMBDA_CACHE_TTL_MS) {
+        return _wcLambdaCache;
+    }
+    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    if (!key) return null;
+    try {
+        const r = await fetch(
+            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h&regions=us,eu&oddsFormat=decimal`,
+            { cf: { cacheTtl: 300, cacheEverything: true } }
+        );
+        if (!r.ok) return null;
+        const games = await r.json();
+        const cache = new Map();
+        for (const game of (Array.isArray(games) ? games : [])) {
+            // Average no-vig implied probs across bookmakers
+            const sums = { home: 0, draw: 0, away: 0, n: 0 };
+            for (const bm of (game.bookmakers || [])) {
+                const mkt = (bm.markets || []).find(m => m.key === 'h2h');
+                if (!mkt) continue;
+                const hO = mkt.outcomes.find(o => o.name === game.home_team);
+                const aO = mkt.outcomes.find(o => o.name === game.away_team);
+                const dO = mkt.outcomes.find(o => o.name === 'Draw');
+                if (!hO || !aO || !dO) continue;
+                sums.home += 1 / hO.price;
+                sums.draw += 1 / dO.price;
+                sums.away += 1 / aO.price;
+                sums.n++;
+            }
+            if (sums.n === 0) continue;
+            const rH = sums.home / sums.n, rD = sums.draw / sums.n, rA = sums.away / sums.n;
+            const tot = rH + rD + rA;
+            if (tot <= 0) continue;
+            // oddsToLambda: Poisson inversion from no-vig probs
+            const lams = oddsToLambda(rH / tot, rD / tot, rA / tot);
+            cache.set(`${game.home_team}|${game.away_team}`, lams);
+        }
+        _wcLambdaCache = cache;
+        _wcLambdaCacheTs = Date.now();
+        return cache;
+    } catch (e) { return null; }
+}
+
+// Fuzzy team-name match for lambda lookup (Odds API vs API-Sports name formats)
+function wcTeamNameMatch(oddsName, fieldName) {
+    if (!oddsName || !fieldName) return false;
+    const norm = s => s.toLowerCase().replace(/[^a-z]/g, '');
+    const a = norm(oddsName), b = norm(fieldName);
+    if (a === b) return true;
+    // Subword check (covers "United States" ↔ "USA" type mismatches)
+    return a.includes(b.slice(0, 6)) || b.includes(a.slice(0, 6));
+}
+
 const V2_LEAGUES = {
     'nba':          { sport: 'nba',        leagueId: null, season: '2025-2026' }, // routes to v2.nba.api-sports.io
     'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
@@ -1431,6 +1492,9 @@ async function handleV2Games(url, env) {
             // Adapt all fixtures — live ones with stats attached (Gap 1+2)
             games = raw.map(f => adaptFootball(f, sport, statsMap[f?.fixture?.id] || null));
 
+            // Pre-fetch WC pre-game lambdas once (non-blocking; degrades gracefully if unavailable)
+            const wcLambdas = sport === 'wc26' ? await getWCPregameLambdas(env) : null;
+
             // Gap 3+5+6: WP computation for live games
             for (const g of games) {
                 if (g.state !== 'live' || !g.situation) continue;
@@ -1438,16 +1502,40 @@ async function handleV2Games(url, env) {
                 const hGoals = g.home.score ?? 0;
                 const aGoals = g.away.score ?? 0;
 
-                // Gap 2+5: compute live win probability with stoppage correction
+                // v1.3.2.1: resolve pre-game λ from Odds API cache for odds-blended source
+                let pregameLh = null, pregameLa = null;
+                if (wcLambdas) {
+                    // Try direct match first, then fuzzy cross-match
+                    const directKey = `${g.home.name}|${g.away.name}`;
+                    if (wcLambdas.has(directKey)) {
+                        const lams = wcLambdas.get(directKey);
+                        pregameLh = lams.lh; pregameLa = lams.la;
+                    } else {
+                        // Iterate for fuzzy match
+                        for (const [k, lams] of wcLambdas) {
+                            const [oddsHome, oddsAway] = k.split('|');
+                            if (wcTeamNameMatch(oddsHome, g.home.name) && wcTeamNameMatch(oddsAway, g.away.name)) {
+                                pregameLh = lams.lh; pregameLa = lams.la; break;
+                            }
+                            if (wcTeamNameMatch(oddsHome, g.away.name) && wcTeamNameMatch(oddsAway, g.home.name)) {
+                                pregameLh = lams.la; pregameLa = lams.lh; break; // reversed
+                            }
+                        }
+                    }
+                }
+
+                // Gap 2+5: compute live win probability with stoppage correction + pre-game λ
                 const wp = computeLiveWP({
                     homeGoals:    hGoals,
                     awayGoals:    aGoals,
                     homeSOT:      sit.homeSOT,
                     awaySOT:      sit.awaySOT,
                     elapsedMin:   sit.elapsed,
-                    isStoppage:   sit.isStoppage,   // Gap 5 handled inside computeLiveWP
+                    isStoppage:   sit.isStoppage,
                     manAdvantage: sit.manAdvantage,
                     isShootout:   sit.isShootout,
+                    pregameLh,    // null when odds unavailable → shots-proxy fallback
+                    pregameLa,
                 });
                 g.winProb = wp;
 
