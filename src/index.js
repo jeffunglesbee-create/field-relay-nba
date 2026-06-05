@@ -2576,11 +2576,13 @@ export default {
             if (pathname === '/wc/odds-probs')  return handleWCOddsProbs(env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
-            if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
         }
+
+        // /cfl/* — CFL odds from The Odds API
+        if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env);
 
         // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
         if (pathname.startsWith('/v2/')) {
