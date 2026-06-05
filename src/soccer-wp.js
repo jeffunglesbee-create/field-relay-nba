@@ -349,49 +349,58 @@ function groupPosition(sorted, teamName) {
 }
 
 /**
- * Convert group finish position to advancement probability.
- * 1st/2nd: guaranteed advance (probability = 1.0)
- * 3rd: ~50% chance of being best-8 third-place (refined by /wc/third-place endpoint)
- * 4th: eliminated (probability = 0.0)
+ * Estimate the probability that a group's 3rd-place team qualifies as best-8 third.
+ * Uses the actual cross_group_rank from the wc_third_place_standings VIEW when available.
+ * Pre-tournament (all zeroes): all 12 groups equally ranked → 8/12 = 66.7% default.
+ * During tournament: uses rank bucket for a smoother estimate than binary in/out.
+ *
+ * Rank buckets (out of 12 groups, best 8 advance):
+ *   1-6:  comfortably in — 95%
+ *   7-8:  in but close — 80% / 50%
+ *   9-10: outside looking in — 20% / 5%
+ *   11-12: very unlikely — 1%
+ *
+ * @param {object[]} thirdPlace  Rows from wc_third_place_standings VIEW
+ * @param {string}   groupId     Group letter to look up
+ * @returns {number} probability in [0,1]
  */
-function posToAdvanceProb(pos) {
-  if (pos === 1 || pos === 2) return 1.0;
-  if (pos === 3) return 0.5;  // Updated dynamically when third-place data available
-  return 0.0;
+function estimateThirdPlaceRate(thirdPlace, groupId) {
+  if (!thirdPlace?.length) return 0.667; // pre-tournament: 8/12 uniform
+  const entry = thirdPlace.find(t =>
+    t.group_id === groupId || t.group_id === `Group ${groupId}`
+  );
+  if (!entry) return 0.667;
+  const rank = entry.cross_group_rank; // 1 = best 3rd-place, 12 = worst
+  if (rank <= 6)  return 0.95;
+  if (rank === 7) return 0.80;
+  if (rank === 8) return 0.50;  // on the bubble
+  if (rank === 9) return 0.20;
+  if (rank === 10) return 0.05;
+  return 0.01; // 11-12
 }
 
 /**
- * Gap 3: Compute advancement probability for both teams in this game.
+ * Gap 3 v2: Compute advancement probability for both teams in this game.
+ * Simulates W/D/L outcomes against current D1 standings, weights by live WP.
+ * thirdPlaceRate now computed from actual cross-group D1 rank (not hardcoded).
  *
- * Simulates win/draw/loss outcomes across current D1 standings,
- * determines projected group finish, and weights by win probability.
- *
- * Simplified v1: single-game scenario analysis.
- * Full A1 Permutations Engine (simultaneous MD3 scenarios) is the follow-on.
- *
- * @param {object[]} standings  D1 wc_group rows for this group (4 teams)
- * @param {string}   homeTeam   Home team name (must match D1 team column)
+ * @param {object[]} standings   D1 wc_group rows for this group (4 teams)
+ * @param {string}   homeTeam   Home team name (D1 team column)
  * @param {string}   awayTeam   Away team name
- * @param {object}   wp         { homeWin, draw, awayWin } from computeLiveWP
- * @param {object[]} [thirdPlace]  Optional: /wc/third-place rows for better 3rd-place estimate
- * @returns {{ homeAdvance, awayAdvance, detail }}
+ * @param {object}   wp         {homeWin, draw, awayWin} from computeLiveWP
+ * @param {object[]} [thirdPlace]  Optional: wc_third_place_standings rows
+ * @returns {{ homeAdvance, awayAdvance, homePositions, awayPositions, thirdPlaceRate, method }}
  */
 export function computeAdvancementProb(standings, homeTeam, awayTeam, wp, thirdPlace = null) {
   if (!standings?.length || !wp || !homeTeam || !awayTeam) return null;
 
-  // If third-place cross-group data available, estimate 3rd-place advance rate
-  // based on current best-8 bubble (teams ranked 1-8 in cross_group_rank are advancing)
-  let thirdPlaceRate = 0.5; // default without cross-group data
-  if (thirdPlace?.length >= 8) {
-    // Approximate: if team is currently ranked ≤8, ~70%; if 9-12, ~20%
-    // (rough — Permutations Engine will refine this)
-    const inBubble = thirdPlace.slice(0, 8);
-    const onBubble = thirdPlace.slice(8, 12);
-    thirdPlaceRate = 0.6; // being tracked but not yet precisely
-    _ = inBubble; _ = onBubble; // suppress unused warning
-  }
+  // Determine this group from standings data
+  const groupId = standings[0]?.group_id || null;
 
-  // Scenario scores: representative (1-0, 0-0, 0-1)
+  // Third-place rate from actual D1 cross-group rank (v2 improvement)
+  const thirdPlaceRate = estimateThirdPlaceRate(thirdPlace, groupId);
+
+  // Scenario scores: representative minimum-margin (W=1-0, D=0-0, L=0-1)
   const winRows  = simulateResult(standings, homeTeam, awayTeam, 1, 0);
   const drawRows = simulateResult(standings, homeTeam, awayTeam, 0, 0);
   const lossRows = simulateResult(standings, homeTeam, awayTeam, 0, 1);
@@ -402,12 +411,9 @@ export function computeAdvancementProb(standings, homeTeam, awayTeam, wp, thirdP
     return 0.0;
   }
 
-  // Home team positions
   const hwPos = groupPosition(sortGroup(winRows),  homeTeam);
   const hdPos = groupPosition(sortGroup(drawRows), homeTeam);
   const hlPos = groupPosition(sortGroup(lossRows), homeTeam);
-
-  // Away team positions (win/draw/loss from AWAY perspective = loss/draw/win for home)
   const awPos = groupPosition(sortGroup(lossRows), awayTeam);
   const adPos = groupPosition(sortGroup(drawRows), awayTeam);
   const alPos = groupPosition(sortGroup(winRows),  awayTeam);
@@ -415,7 +421,6 @@ export function computeAdvancementProb(standings, homeTeam, awayTeam, wp, thirdP
   const homeAdvance = wp.homeWin * posAdvProb(hwPos)
                     + wp.draw    * posAdvProb(hdPos)
                     + wp.awayWin * posAdvProb(hlPos);
-
   const awayAdvance = wp.awayWin * posAdvProb(awPos)
                     + wp.draw    * posAdvProb(adPos)
                     + wp.homeWin * posAdvProb(alPos);
@@ -426,10 +431,6 @@ export function computeAdvancementProb(standings, homeTeam, awayTeam, wp, thirdP
     homePositions: { win: hwPos, draw: hdPos, loss: hlPos },
     awayPositions: { win: awPos, draw: adPos, loss: alPos },
     thirdPlaceRate,
-    method: 'single-game-scenario-v1',
-    note: 'Full MD3 permutations via A1 Engine pending',
+    method: 'single-game-scenario-v2',
   };
 }
-
-// Suppress lint warning for unused variable in thirdPlaceRate section
-let _ = null;
