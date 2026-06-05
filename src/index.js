@@ -1389,6 +1389,78 @@ async function handleWCOddsProbs(env) {
     }
 }
 
+
+// GET /cfl/odds-probs — no-vig win probabilities for CFL games from Odds API.
+// CFL has no draw market — h2h is home/away only. Includes spread + total lines.
+// Budget: 2 credits per call (markets=h2h,spreads,totals). CF edge-cached 2 min.
+async function handleCFLOddsProbs(env) {
+    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    if (!key) {
+        return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+    try {
+        const resp = await fetch(
+            `https://api.the-odds-api.com/v4/sports/americanfootball_cfl/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`,
+            { cf: { cacheTtl: 120, cacheEverything: true } }
+        );
+        if (!resp.ok) {
+            return new Response(JSON.stringify({ ok: false, probs: [], error: `Odds API ${resp.status}` }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        const games = await resp.json();
+        const probs = [];
+        for (const game of (Array.isArray(games) ? games : [])) {
+            // CFL: no draw — h2h has home/away only
+            const h2h    = { home: 0, away: 0, n: 0 };
+            const spread = { line: 0, n: 0 };
+            const tot    = { line: 0, n: 0 };
+            for (const bm of (game.bookmakers || [])) {
+                const h2hMkt = (bm.markets || []).find(m => m.key === 'h2h');
+                const spMkt  = (bm.markets || []).find(m => m.key === 'spreads');
+                const totMkt = (bm.markets || []).find(m => m.key === 'totals');
+                if (h2hMkt) {
+                    const hO = h2hMkt.outcomes.find(o => o.name === game.home_team);
+                    const aO = h2hMkt.outcomes.find(o => o.name === game.away_team);
+                    if (hO && aO) { h2h.home += 1 / hO.price; h2h.away += 1 / aO.price; h2h.n++; }
+                }
+                if (spMkt) {
+                    const hO = spMkt.outcomes.find(o => o.name === game.home_team && o.point != null);
+                    if (hO) { spread.line += hO.point; spread.n++; }
+                }
+                if (totMkt) {
+                    const ov = totMkt.outcomes.find(o => o.name === 'Over' && o.point != null);
+                    if (ov) { tot.line += ov.point; tot.n++; }
+                }
+            }
+            if (h2h.n === 0) continue;
+            const vigSum = (h2h.home + h2h.away) / h2h.n;
+            if (vigSum <= 0) continue;
+            const pH = (h2h.home / h2h.n) / vigSum;
+            const pA = (h2h.away / h2h.n) / vigSum;
+            probs.push({
+                home_team:  game.home_team,
+                away_team:  game.away_team,
+                commence:   game.commence_time,
+                pHome:      parseFloat(pH.toFixed(4)),
+                pAway:      parseFloat(pA.toFixed(4)),
+                spread:     spread.n > 0 ? parseFloat((spread.line / spread.n).toFixed(1)) : null,
+                total:      tot.n    > 0 ? parseFloat((tot.line    / tot.n   ).toFixed(1)) : null,
+                bookmakers: h2h.n,
+            });
+        }
+        return new Response(JSON.stringify({
+            ok: true,
+            probs,
+            remaining: resp.headers.get('x-requests-remaining') || 'unknown',
+            ts: Date.now(),
+        }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=120' } });
+    } catch (e) {
+        return new Response(JSON.stringify({ ok: false, probs: [], error: e.message }),
+            { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+}
+
 // GET /wc/wp/verify — Gap 4: verify Odds API covers soccer_fifa_world_cup
 // Tests that the WC sport key exists and returns active markets.
 // Safe to call any time — read-only, no writes.
@@ -2491,7 +2563,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -2504,6 +2576,7 @@ export default {
             if (pathname === '/wc/odds-probs')  return handleWCOddsProbs(env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
+            if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
@@ -3484,6 +3557,7 @@ export default {
                         '/wc/standings',
                         '/wc/results',
                         '/wc/odds-probs',
+                        '/cfl/odds-probs',
                         '/wc/third-place',
                         '/v2/games',
                         '/v2/standings',
