@@ -1,0 +1,75 @@
+name: Scoreboard P0 Probe
+
+# One-shot diagnostic for the Scoreboard P0 carry-forward.
+# Auto-runs on push (this file is created once, deleted after probe).
+# Result lands in outbox/ for sandbox readback via raw.githubusercontent.com.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/scoreboard-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe /nba/liveData/scoreboard/todaysScoreboard_00.json
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          BASE="outbox/scoreboard-probe-${TS}"
+          mkdir -p outbox
+
+          echo "Probe time: $(date -u)"
+          echo "Target: https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json"
+
+          curl -sS \
+            -H "User-Agent: scoreboard-p0-probe-from-claude-sandbox" \
+            -H "Accept: application/json" \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json" \
+            -o "${BASE}.body" \
+            -w "HTTP_CODE=%{http_code}\nSIZE_BYTES=%{size_download}\nCONTENT_TYPE=%{content_type}\nTIME_TOTAL=%{time_total}s\n" \
+            > "${BASE}.meta" 2>&1
+
+          echo "=== Meta ==="
+          cat "${BASE}.meta"
+
+          echo ""
+          echo "=== Body head (first 4KB) ==="
+          head -c 4000 "${BASE}.body" || true
+
+          echo ""
+          echo "=== Body structure summary ==="
+          if file "${BASE}.body" | grep -q "JSON"; then
+            python3 -c "
+import json
+with open('${BASE}.body') as f: d = json.load(f)
+sb = d.get('scoreboard', {})
+games = sb.get('games', [])
+print(f'scoreboard.gameDate: {sb.get(\"gameDate\")}')
+print(f'scoreboard.games count: {len(games)}')
+for g in games[:5]:
+    home = g.get('homeTeam', {})
+    away = g.get('awayTeam', {})
+    print(f'  - {away.get(\"teamTricode\")} @ {home.get(\"teamTricode\")} | gameStatus={g.get(\"gameStatus\")} | gameStatusText={g.get(\"gameStatusText\", \"\")[:30]} | gameId={g.get(\"gameId\")}')
+"
+          else
+            echo "(body is not JSON — first bytes shown above)"
+          fi
+
+      - name: Commit probe result to outbox
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "Scoreboard-P0-Probe"
+          git add outbox/
+          git commit -m "scoreboard P0 probe result [skip ci]" || echo "(nothing new)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
