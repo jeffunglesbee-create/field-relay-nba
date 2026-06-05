@@ -14,8 +14,22 @@
 //   Drama computation, CRUNCH TIME detection, watch verdicts — all browser-side.
 //   DO is a fact distributor + push fan-out, never an intelligence layer.
 //
-// RUWT (US 9,421,446 B2) COMPLIANCE
-//   No composite interest level value computed here.
+// RUWT PATENT DEFENSE (US 9,421,446 B2):
+//   This DO transmits MATHEMATICAL FACTS only. It does not compute composite
+//   interest/excitement levels. Specifically:
+//     winProb:          Poisson probability distribution output (factual)
+//     wpDelta:          change in outcome probability between polls (factual)
+//     _crunch:          relay-classified binary named condition (factual)
+//     openingWP:        baseline probability at kickoff (factual)
+//     openingAdvProb:   baseline advancement probability at kickoff (factual)
+//     wpHistory:        time series of probability values (factual)
+//   None of these are interest/excitement scores. The RUWT patent claims a
+//   composite interest level computed from multiple factors → threshold comparison
+//   → recommendation/notification. This DO never computes such a value.
+//   Interest determination is exclusively browser-side, client-local, and
+//   personalized via the Drama Dial (localStorage, never server-transmitted).
+//
+// RUWT compliance: NO composite interest level computed here.
 //   No threshold comparison here.
 //   CRUNCH TIME notifications fired here are TRIGGERED by browsers that
 //   compute the named condition locally — not by server-side scoring.
