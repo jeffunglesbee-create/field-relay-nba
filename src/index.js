@@ -3487,6 +3487,10 @@ export default {
                         '/wc/third-place',
                         '/v2/games',
                         '/v2/standings',
+                        // P0 carry-forward (2026-06-05): first step to diagnose
+                        // fetchNBAScoreboard()/_nbaGameIdMap path. NYK@SAS Finals
+                        // G2 is the first live exposure tonight.
+                        '/nba/liveData/scoreboard/todaysScoreboard_00.json',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
