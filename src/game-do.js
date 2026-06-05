@@ -203,16 +203,17 @@ export class GameDO {
         if (pathname.endsWith('/wp') && request.method === 'POST') {
             try {
                 const body = await request.json();
-                const { wp, elapsed } = body || {};
+                const { wp, elapsed, advanceProb } = body || {};
                 if (!wp || typeof wp.homeWin !== 'number') {
                     return new Response(JSON.stringify({ ok: false, error: 'Invalid wp object' }),
                         { status: 400, headers: { 'Content-Type': 'application/json' } });
                 }
                 // Load current WP state from DO storage
-                const stored = await this.ctx.storage.get(['openingWP', 'lastWP', 'wpHistory']);
-                const openingWP  = stored.get('openingWP')  ?? null;
-                const lastWP     = stored.get('lastWP')     ?? null;
-                const wpHistory  = stored.get('wpHistory')  ?? [];
+                const stored = await this.ctx.storage.get(['openingWP', 'lastWP', 'wpHistory', 'openingAdvanceProb']);
+                const openingWP         = stored.get('openingWP')         ?? null;
+                const lastWP            = stored.get('lastWP')            ?? null;
+                const wpHistory         = stored.get('wpHistory')         ?? [];
+                const openingAdvanceProb = stored.get('openingAdvanceProb') ?? null;
 
                 // Compute delta vs previous poll
                 const wpDelta = lastWP !== null ? {
@@ -221,29 +222,36 @@ export class GameDO {
                     draw:    parseFloat((wp.draw    - lastWP.draw   ).toFixed(4)),
                 } : null;
 
-                // Store opening WP once (immutable — pre-game lambda baked in at kickoff)
+                // Immutable baselines — stored once on first live poll
                 const newOpeningWP = openingWP ?? { ...wp, elapsed: elapsed ?? 0, storedAt: Date.now() };
+                // openingAdvanceProb: store relay-computed advancementProb at kickoff.
+                // Relay passes this from computeAdvancementProb(D1 standings, homeTeam, awayTeam, wp, thirdPlace).
+                // Provides the qualification-probability baseline for L3c Qual Surprise layer.
+                const newOpeningAdvanceProb = openingAdvanceProb
+                    ?? (advanceProb && typeof advanceProb.homeAdvance === 'number' ? advanceProb : null);
 
-                // Append to history (bounded — discard oldest when full)
+                // Append to history (bounded at WP_HISTORY_MAX)
                 const entry = { elapsed: elapsed ?? 0, homeWin: wp.homeWin, draw: wp.draw };
                 const newHistory = [...wpHistory, entry].slice(-WP_HISTORY_MAX);
 
-                // Persist (single put batches all keys)
+                // Persist all fields in one batch
                 await this.ctx.storage.put({
-                    openingWP: newOpeningWP,
-                    lastWP:    { ...wp, elapsed: elapsed ?? 0, ts: Date.now() },
-                    wpHistory: newHistory,
+                    openingWP:          newOpeningWP,
+                    lastWP:             { ...wp, elapsed: elapsed ?? 0, ts: Date.now() },
+                    wpHistory:          newHistory,
+                    openingAdvanceProb: newOpeningAdvanceProb,
                 });
 
                 // Fan out WP update to connected WebSocket clients
                 this._broadcast({ type: 'wp', wp, elapsed, wpDelta, ts: Date.now() });
 
                 return new Response(JSON.stringify({
-                    ok:            true,
-                    openingWP:     newOpeningWP,
+                    ok:                 true,
+                    openingWP:          newOpeningWP,
                     wpDelta,
-                    recentHistory: newHistory.slice(-20),  // last 20 points for sparkline
-                    historyLen:    newHistory.length,
+                    recentHistory:      newHistory.slice(-20),
+                    historyLen:         newHistory.length,
+                    openingAdvanceProb: newOpeningAdvanceProb,
                 }), { headers: { 'Content-Type': 'application/json' } });
             } catch (e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),

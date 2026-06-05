@@ -1663,9 +1663,10 @@ async function handleV2Games(url, env) {
                                 method:  'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body:    JSON.stringify({
-                                    wp:      g.winProb,
-                                    elapsed: g.situation?.elapsed ?? null,
-                                    ts:      Date.now(),
+                                    wp:          g.winProb,
+                                    elapsed:     g.situation?.elapsed ?? null,
+                                    advanceProb: g.advancementProb ?? null,
+                                    ts:          Date.now(),
                                 }),
                             }));
                             if (!resp.ok) return null;
@@ -1675,9 +1676,10 @@ async function handleV2Games(url, env) {
                     for (const result of wpResults) {
                         if (result.status !== 'fulfilled' || !result.value?.state?.ok) continue;
                         const { g, state } = result.value;
-                        g.openingWP      = state.openingWP      ?? null;
-                        g.wpDelta        = state.wpDelta        ?? null;
-                        g.recentWPHistory = state.recentHistory ?? [];
+                        g.openingWP          = state.openingWP          ?? null;
+                        g.wpDelta            = state.wpDelta            ?? null;
+                        g.recentWPHistory    = state.recentHistory      ?? [];
+                        g.openingAdvanceProb = state.openingAdvanceProb ?? null;
                     }
                 }
             }
