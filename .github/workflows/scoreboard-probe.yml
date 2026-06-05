@@ -1,9 +1,5 @@
 name: Scoreboard P0 Probe
 
-# One-shot diagnostic for the Scoreboard P0 carry-forward.
-# Auto-runs on push (this file is created once, deleted after probe).
-# Result lands in outbox/ for sandbox readback via raw.githubusercontent.com.
-
 on:
   push:
     paths:
@@ -19,50 +15,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Probe /nba/liveData/scoreboard/todaysScoreboard_00.json
+      - name: Probe scoreboard route
         run: |
           TS=$(date -u +%Y%m%dT%H%M%SZ)
           BASE="outbox/scoreboard-probe-${TS}"
           mkdir -p outbox
-
-          echo "Probe time: $(date -u)"
-          echo "Target: https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json"
-
+          echo "Probe time: $(date -u)" | tee "${BASE}.meta"
+          echo "Target: https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json" | tee -a "${BASE}.meta"
           curl -sS \
-            -H "User-Agent: scoreboard-p0-probe-from-claude-sandbox" \
+            -H "User-Agent: scoreboard-p0-probe-claude-sandbox" \
             -H "Accept: application/json" \
             "https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json" \
             -o "${BASE}.body" \
             -w "HTTP_CODE=%{http_code}\nSIZE_BYTES=%{size_download}\nCONTENT_TYPE=%{content_type}\nTIME_TOTAL=%{time_total}s\n" \
-            > "${BASE}.meta" 2>&1
-
+            | tee -a "${BASE}.meta"
           echo "=== Meta ==="
           cat "${BASE}.meta"
-
           echo ""
           echo "=== Body head (first 4KB) ==="
           head -c 4000 "${BASE}.body" || true
 
-          echo ""
-          echo "=== Body structure summary ==="
-          if file "${BASE}.body" | grep -q "JSON"; then
-            python3 -c "
-import json
-with open('${BASE}.body') as f: d = json.load(f)
-sb = d.get('scoreboard', {})
-games = sb.get('games', [])
-print(f'scoreboard.gameDate: {sb.get(\"gameDate\")}')
-print(f'scoreboard.games count: {len(games)}')
-for g in games[:5]:
-    home = g.get('homeTeam', {})
-    away = g.get('awayTeam', {})
-    print(f'  - {away.get(\"teamTricode\")} @ {home.get(\"teamTricode\")} | gameStatus={g.get(\"gameStatus\")} | gameStatusText={g.get(\"gameStatusText\", \"\")[:30]} | gameId={g.get(\"gameId\")}')
-"
-          else
-            echo "(body is not JSON — first bytes shown above)"
-          fi
-
-      - name: Commit probe result to outbox
+      - name: Commit probe result
         if: always()
         run: |
           git config user.email "probe@field"
