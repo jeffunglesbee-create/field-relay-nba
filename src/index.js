@@ -3573,6 +3573,7 @@ export default {
                         '/stat/platform/workday/status',
                         '/stat/platform/greenhouse/status',
                         '/stat/platform/lever/status',
+                        '/stat/learning',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
