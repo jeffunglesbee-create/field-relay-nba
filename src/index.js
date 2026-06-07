@@ -3567,6 +3567,12 @@ export default {
                         // fetchNBAScoreboard()/_nbaGameIdMap path. NYK@SAS Finals
                         // G2 is the first live exposure tonight.
                         '/nba/liveData/scoreboard/todaysScoreboard_00.json',
+                        // STAT Worker diagnostic routes (bypasses *.workers.dev sandbox block)
+                        '/stat/logs',
+                        '/stat/status',
+                        '/stat/platform/workday/status',
+                        '/stat/platform/greenhouse/status',
+                        '/stat/platform/lever/status',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
@@ -3603,6 +3609,29 @@ export default {
             }
 
             return respond(jsonrpc2err(-32601, `Unknown method: ${method}`));
+        }
+
+        // ── /stat/* → STAT Job Watcher Worker ──────────────────────────────────
+        // Proxies Claude sandbox-accessible GET requests to the STAT Worker.
+        // No caching — STAT endpoints return live DO state.
+        // Allows probe_relay_route to read /stat/logs, /stat/status, etc.
+        // without the *.workers.dev sandbox block.
+        if (pathname.startsWith('/stat/')) {
+            const statPath = pathname.replace(/^\/stat/, '');
+            const statBase = 'https://stat-job-watcher.jeffunglesbee.workers.dev';
+            const statUrl  = `${statBase}${statPath}${url.search || ''}`;
+            const statRes  = await fetch(statUrl, {
+                method: 'GET',
+                headers: { 'User-Agent': 'field-relay-stat-probe', 'Accept': 'application/json, */*' },
+            });
+            const body = await statRes.text();
+            return new Response(body, {
+                status: statRes.status,
+                headers: {
+                    'Content-Type': statRes.headers.get('content-type') || 'application/json',
+                    ...CORS,
+                },
+            });
         }
 
         // ── /nba-stats/* → stats.nba.com/stats (ADR-003 accept-the-risk)
