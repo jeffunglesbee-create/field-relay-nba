@@ -3544,35 +3544,103 @@ export default {
                 }
 
                 // ── html_probe ──────────────────────────────────────────────────────
-                // POST /stat/html-probe via the relay — fetches any URL from CF IP.
-                // CF IPs bypass Workday/HC/Oracle WAFs that block GitHub runner IPs.
+                // Fetch any URL DIRECTLY from relay CF IP — no STAT Worker hop needed.
+                // CF Worker IPs bypass WAFs that block GitHub runner IPs and direct
+                // Node.js fetches (Workday, HiringCafe, Oracle HCM, SelectMinds, etc.)
+                // Returns structured analysis: visibleText, metaTags, jsonLd, frameworks,
+                // dataAutomationIds, hiddenInputs, htmlSnippet.
                 if (toolName === 'html_probe') {
                     const targetUrl = toolArgs.url;
                     const maxBytes  = toolArgs.maxBytes ?? 500_000;
                     if (!targetUrl || !targetUrl.startsWith('http')) {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: url (string starting with http)'}], isError:true}));
                     }
-                    const statBase = 'https://stat-job-watcher.jeffunglesbee.workers.dev';
-                    let r;
                     try {
-                        r = await fetch(`${statBase}/html-probe`, {
-                            method: 'POST',
+                        const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+                        const res = await fetch(targetUrl, {
                             headers: {
-                                'User-Agent': 'field-relay-html-probe',
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
+                                'User-Agent': UA,
+                                'Accept': 'text/html,application/xhtml+xml,application/json,*/*;q=0.9',
+                                'Accept-Language': 'en-US,en;q=0.9',
+                                'Cache-Control': 'no-cache',
                             },
-                            body: JSON.stringify({ url: targetUrl, maxBytes }),
+                            redirect: 'follow',
                         });
+                        const httpStatus = res.status;
+                        const contentType = res.headers.get('content-type') ?? '';
+                        let html = await res.text();
+                        if (html.length > maxBytes) html = html.slice(0, maxBytes);
+                        const bytes = html.length;
+
+                        if (!res.ok) {
+                            return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:false,url:targetUrl,httpStatus,bytes,contentType,error:`HTTP ${httpStatus}`,snippet:html.slice(0,500)})}]}));
+                        }
+
+                        // Visible text
+                        const visibleText = html
+                            .replace(/<script[\s\S]*?<\/script>/gi, '')
+                            .replace(/<style[\s\S]*?<\/style>/gi, '')
+                            .replace(/<[^>]+>/g, ' ')
+                            .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                            .replace(/\s+/g, ' ').trim().slice(0, 3000);
+
+                        // Meta tags
+                        const metaTags = {};
+                        for (const m of html.matchAll(/<meta[^>]+>/gi)) {
+                            const tag = m[0];
+                            const nameM = tag.match(/(?:name|property)="([^"]+)"/i);
+                            const contM = tag.match(/content="([^"]{0,500})"/i);
+                            if (nameM && contM) metaTags[nameM[1]] = contM[1];
+                        }
+
+                        // JSON-LD
+                        let jsonLd = null;
+                        const ldMatch = html.match(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i);
+                        if (ldMatch) { try { jsonLd = JSON.parse(ldMatch[1].trim()); } catch {} }
+
+                        // Framework detection
+                        const frameworks = {};
+                        for (const [kw, label] of [
+                            ['__NEXT_DATA__','nextjs'],['_ngcontent','angular'],['ember','ember'],
+                            ['data-bind=','knockout'],['react-dom','react'],['workday','workday'],
+                            ['inforcloudsuite','infor'],['oraclecloud','oracle'],['taleo','taleo'],
+                            ['successfactors','successfactors'],['selectminds','selectminds'],
+                            ['cx-jobs','workday-cx'],['application/ld+json','json-ld'],
+                        ]) {
+                            const count = (html.match(new RegExp(kw, 'gi')) ?? []).length;
+                            if (count > 0) frameworks[label] = count;
+                        }
+
+                        // data-automation-ids
+                        const dataAutomationIds = [...new Set(
+                            [...html.matchAll(/data-automation-id="([^"]+)"/gi)].map(m => m[1])
+                        )].slice(0, 30);
+
+                        // Hidden inputs
+                        const hiddenInputs = [];
+                        for (const m of html.matchAll(/<input[^>]+type="hidden"[^>]*>/gi)) {
+                            const tag = m[0];
+                            const nameM = tag.match(/\bname="([^"]+)"/i);
+                            const idM   = tag.match(/\bid="([^"]+)"/i);
+                            const valM  = tag.match(/\bvalue="([^"]{0,200})"/i);
+                            if ((nameM || idM) && valM) hiddenInputs.push({name: nameM?.[1] ?? idM?.[1], value: valM[1].slice(0,200)});
+                        }
+
+                        // Job links (Workday/SelectMinds pattern)
+                        const jobLinks = [...new Set([...html.matchAll(/href="([^"]*(?:job|career|position)[^"]*\d{4,}[^"]*?)"/gi)].map(m=>m[1]))].slice(0,20);
+
+                        const result = {ok:true, url:targetUrl, httpStatus, bytes, contentType,
+                            visibleText, metaTags, jsonLd, frameworks, dataAutomationIds,
+                            hiddenInputs: hiddenInputs.slice(0,20), jobLinks,
+                            htmlSnippet: html.slice(0, 2000)};
+
+                        const out = JSON.stringify(result);
+                        const MAX_BODY = 14000;
+                        const truncated = out.length > MAX_BODY ? out.slice(0, MAX_BODY) + '…[truncated]' : out;
+                        return respond(jsonrpc2({content:[{type:'text',text:truncated}]}));
                     } catch (e) {
-                        return respond(jsonrpc2({content:[{type:'text',text:`html_probe fetch error: ${e.message}`}], isError:true}));
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:false,url:targetUrl,error:e.message})}], isError:true}));
                     }
-                    const bodyText = await r.text();
-                    const MAX_BODY = 14000;
-                    const truncated = bodyText.length > MAX_BODY
-                        ? bodyText.slice(0, MAX_BODY) + `\n…[truncated ${bodyText.length - MAX_BODY} bytes]`
-                        : bodyText;
-                    return respond(jsonrpc2({content:[{type:'text',text:truncated}]}));
                 }
 
                 // ── probe_relay_route ────────────────────────────────────────────
