@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// FIELD Journalism Quality Module — WOW 6 (May 31 2026)
+// FIELD Journalism Quality Module — JQ v3 (Jun 8 2026, 300-point scale)
 // ═══════════════════════════════════════════════════════════════════════════
 // Ports the full client-side journalism quality chain to the relay so that
 // the live-browser path (J3 brief, J5 Night Owl, J2 series, MLB brief, Stakes
@@ -281,15 +281,18 @@ export function hasCrossSportHallucination(text) {
   return flagged;
 }
 
-// ── Layer 3: 5-dimension prose scoring (Datamuse freshness wired May 31 2026) ─
-// Mirrors browser scoreProse() including the freshness dimension via Datamuse.
-// Workers Plus enables outbound fetch with sufficient CPU budget. Freshness
-// contribution capped at 20 pts so the ceiling (140 base + 40 arc = 180)
-// remains stable for existing callers.
+// ── Layer 3: 10-dimension prose scoring (JQ v3 — Jun 8 2026, 0-300 scale) ───
+// Mirrors browser scoreProse() — same 300-point ceiling, same 10 dimensions.
+// Worker runtime: no localStorage, no DOM, game object not available (relay
+// scores without game context — Dims 7/10 return N/A, ceiling reduces to 245).
+//
+// Ceiling breakdown: 150(base) + 45(arc) + 25(ctx=N/A→0) + 20(temporal) +
+//                    30(voice) + 30(matchup=N/A→0) = 245 without game context
 const _STOP_WORDS_RE = /^(their|about|would|could|which|should|after|before|against|during|while|other|first|since|still|being|where|these|those|there|every|until|under|again|from|with|this|that|have|will|they|been|were|what|when|into|than|then|also|each|over|more|most|such|both|some|only|very|just|like|well|even|back|game|team|play|year|time|week)$/i;
+
 async function _datamuseFreshness(words) {
   const contentWords = words.filter(w => w.length > 4 && !_STOP_WORDS_RE.test(w) && /^[a-z]/i.test(w)).slice(0, 5);
-  if (!contentWords.length) return 83; // fallback (matches JQ Spec default)
+  if (!contentWords.length) return 83;
   try {
     const freqs = await Promise.all(contentWords.map(async w => {
       try {
@@ -306,42 +309,95 @@ async function _datamuseFreshness(words) {
     return Math.max(0, Math.min(100, 100 - (avgFreq / 3)));
   } catch { return 83; }
 }
-export async function scoreProse(text) {
+
+// Dim 8: Temporal Precision (0-20) — port from browser computeTemporalPrecision
+function _temporalPrecision(text) {
+  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+  const STAT_RE = /\d+\.?\d*\s*(ppg|apg|rpg|pts?|points?|rebounds?|assists?|goals?|saves?|era|ops|mph|yards?|rbi|%|\+\/\-)/i;
+  const TEMPORAL_RE = /\b(this series|this season|this postseason|in game \d|game \d|in \d{4}|since \d{4}|last \d+ games?|per game|on the year|this year|career|tonight|in the playoffs?|in these playoffs?)\b/i;
+  let statSentences = 0, anchored = 0;
+  for (const s of sentences) {
+    if (STAT_RE.test(s)) { statSentences++; if (TEMPORAL_RE.test(s)) anchored++; }
+  }
+  if (statSentences === 0) return 10; // neutral
+  return Math.round((anchored / statSentences) * 20);
+}
+
+// Dim 9: Voice Consistency (0-30) — port from browser computeVoiceConsistency
+function _voiceConsistency(text, sport) {
+  const tl = text.toLowerCase();
+  const s = (sport || '').toLowerCase();
+  let score = 15;
+  if (s.includes('nba') || s.includes('basketball')) {
+    const pos = [/quarter/i,/\bq[1-4]\b/i,/half-court/i,/\bpace\b/i,/\bspacing\b/i,/pick.and.roll/i].filter(r=>r.test(tl)).length;
+    const neg = [/inning/i,/\bperiod\b/i,/\bpower play/i].filter(r=>r.test(tl)).length;
+    score = Math.min(30, Math.max(0, 15 + pos * 4 - neg * 8));
+  } else if (s.includes('nhl') || s.includes('hockey')) {
+    const pos = [/\bperiod\b/i,/power play/i,/\bpp\b/i,/\bpk\b/i,/\bsave/i,/\bgoalie/i].filter(r=>r.test(tl)).length;
+    const neg = [/inning/i,/quarter/i,/\byards\b/i].filter(r=>r.test(tl)).length;
+    score = Math.min(30, Math.max(0, 15 + pos * 3 - neg * 8));
+  } else if (s.includes('mlb') || s.includes('baseball')) {
+    const pos = [/inning/i,/\bera\b/i,/\bwhip\b/i,/bullpen/i,/rotation/i].filter(r=>r.test(tl)).length;
+    const neg = [/quarter/i,/\bperiod\b/i,/power play/i].filter(r=>r.test(tl)).length;
+    score = Math.min(30, Math.max(0, 15 + pos * 3 - neg * 8));
+  } else if (s.includes('soccer') || s.includes('mls') || s.includes('wc26') || s.includes('fifa')) {
+    const pos = [/\bmatch\b/i,/possession/i,/\bminute\b/i,/\bhalf\b/i,/\bpressing\b/i].filter(r=>r.test(tl)).length;
+    const neg = [/quarter/i,/inning/i].filter(r=>r.test(tl)).length;
+    score = Math.min(30, Math.max(0, 15 + pos * 4 - neg * 5));
+  }
+  return score;
+}
+
+export async function scoreProse(text, opts = {}) {
+  // opts.sport — string for voice consistency scoring
   if (!text) return 0;
   const words = text.split(/\s+/).filter(Boolean);
   if (!words.length) return 0;
-  const unique = new Set(words.map(w => w.toLowerCase()));
-  // Dim 1: specificity — proper nouns + numbers
-  const specifics = words.filter(w => /^[A-Z][a-z]/.test(w) || /\d/.test(w));
-  const specificity = specifics.length / words.length;
-  // Dim 2: variety — type-token ratio
-  const variety = unique.size / words.length;
-  // Dim 3: density — specifics per sentence
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
+  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 3);
   const nSent = Math.max(1, sentences.length);
-  const density = specifics.length / nSent;
-  // Dim 4: statistical depth — count distinct sport-stat patterns
+  const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
+
+  // Dim 1: Specificity (0→30)
+  const properNouns = words.filter(w => /^[A-Z]/.test(w) && !sentStarts.has(w) && w.length > 1);
+  const numbersAll  = words.filter(w => /\d/.test(w));
+  const specificity = (properNouns.length + numbersAll.length) / words.length;
+
+  // Dim 2: StatDepth (0→38)
   const statPatterns = [
     /\b\d{1,3}(?:\.\d{1,2})?\s*(?:PPG|APG|RPG|BPG|SPG|MPG|ERA|WHIP|OPS|WAR|DRTG|ORTG|PACE)\b/gi,
     /\b\d{1,3}(?:\.\d{1,2})?%/g,
     /\b\d{1,3}-\d{1,3}\b/g,
+    /\b\d+\s*(?:pts?|points?|rebounds?|assists?|goals?|saves?|yards?|rbi)\b/gi,
   ];
   const stats = new Set();
   for (const p of statPatterns) (text.match(p)||[]).forEach(m=>stats.add(m));
-  const statDepth = Math.min(1, stats.size / 4); // 4+ stats = max
-  // Dim 5: freshness via Datamuse (0-100, capped at 20-pt contribution below)
+  const statDepth = Math.min(1, stats.size / 4);
+
+  // Dim 3: Variety (0→30)
+  const uniqueW = new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g,'')).filter(w=>w.length>2));
+  const variety = uniqueW.size / words.length;
+
+  // Dim 4: Density (0→16)
+  const density = (properNouns.length + numbersAll.length) / nSent;
+
+  // Dim 5: Freshness via Datamuse (0→36)
   const freshness = await _datamuseFreshness(words);
-  // 5-dimension base scaled to 140 pts; freshness contributes up to 20 pts
-  const base = Math.min(140,
-    Math.round(specificity * 50 + variety * 38 + Math.min(density, 4) * 6 + statDepth * 28 + (freshness / 100) * 20)
+
+  const W = { spec:30, statDepth:38, variety:30, density:16, fresh:36 };
+  const base = Math.round(
+    specificity * W.spec +
+    statDepth   * W.statDepth +
+    variety     * W.variety +
+    density     * W.density +
+    freshness   * (W.fresh / 100)
   );
-  // Narrative Arc (0-40)
+
+  // Dim 6: Narrative Arc (0-45) — Stakes(10)+Tension(10)+Resolution(10)+Bonus(15)
   const first = sentences[0] || '';
   const last  = sentences[sentences.length-1] || '';
-  const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
   const stakes = /\b\d-\d\b/.test(first) ||
     /\b(finals|championship|eliminated|advance|clinch|series|title|cup|playoffs)\b/i.test(first) ||
-    /\b(first since|since \d{4}|\d+ years?)\b/i.test(first);
+    /\b(first since|since \d{4}|\d+ years?|hasn.t.*since)\b/i.test(first);
   const tension = sentences.some(s => {
     const sw = s.split(/\s+/);
     const hasPlayer = sw.some(w => /^[A-Z][a-z]{2,}/.test(w) && !sentStarts.has(w) && w.length > 3);
@@ -349,11 +405,25 @@ export async function scoreProse(text) {
       /\b(pts?|points?|rebounds?|assists?|goals?|ppg|apg|rpg|saves?)\b/i.test(s));
     return hasPlayer && hasStat;
   });
-  const resolution = /\b(watch|look for|decide|force|need|must|whether|tonight|will|could)\b/i.test(last) ||
-    /\bif\b/i.test(last) || /\?/.test(last);
-  const arcScore = (stakes?10:0) + (tension?10:0) + (resolution?10:0) + (stakes&&tension&&resolution?10:0);
-  // Total ceiling: 180 (140 base + 40 arc, no Datamuse freshness)
-  return Math.min(180, base + arcScore);
+  const resolution = /\b(watch|look for|decide|determine|force|need|must|whether|tonight|expect|key|swing)\b/i.test(last) ||
+    /\bif\b/i.test(last) || /\?/.test(last) ||
+    sentences.length >= 2 && /\b(will|could|may|might)\b/i.test(last);
+  const bonus = stakes && tension && resolution;
+  const arcScore = (stakes?10:0) + (tension?10:0) + (resolution?10:0) + (bonus?15:0);
+
+  // Dim 7: Context Anchoring — N/A at relay (no game object). Ceiling reduces by 25.
+  // Dim 8: Temporal Precision (0-20)
+  const temporalScore = _temporalPrecision(text);
+  // Dim 9: Voice Consistency (0-30)
+  const voiceScore = _voiceConsistency(text, opts.sport || '');
+  // Dim 10: Matchup Depth — N/A at relay (no game.matchupNote). Ceiling reduces by 30.
+
+  // Relay ceiling: 300 - 25(ctx N/A) - 30(matchup N/A) = 245
+  const RELAY_CEILING = 245;
+  const total = Math.min(RELAY_CEILING, Math.max(0,
+    base + arcScore + temporalScore + voiceScore
+  ));
+  return total;
 }
 
 // ── Layer 1: style block (synced from FIELD_PROSE_STYLE) ────────────────────
@@ -456,11 +526,11 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
   }
 
   // 3b: score-triggered rewrite if total below threshold
-  const score = await scoreProse(text);
-  const THRESHOLD = opts.scoreThreshold || 130; // 180-scale (with Datamuse freshness baked in) — ~72%
+  const score = await scoreProse(text, { sport });
+  const THRESHOLD = opts.scoreThreshold || 175; // 245-scale relay ceiling — ~72% (JQ v3 Jun 8 2026)
   if (score < THRESHOLD && retries < maxRetries) {
     const retryPrompt = prompt +
-      `\n\nQUALITY SCORE LOW (${score}/180): the previous draft scored below our quality threshold. Add more specific facts: proper names, exact numbers, stats with units, and concrete details. Every sentence should contain at least one specific fact (name, number, stat, or concrete detail). Remove vague adjectives and generic transitions.`;
+      `\n\nQUALITY SCORE LOW (${score}/245): the previous draft scored below our quality threshold. Add more specific facts: proper names, exact numbers, stats with units, and concrete details. Every sentence should contain at least one specific fact. Anchor every stat to a time period (this series, this postseason, tonight). Name at least one non-star player with a specific role stat (assists, +/-, 3P%, PP%, DRTG).`;
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) {
       const newScore = await scoreProse(retried);
@@ -469,7 +539,7 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     }
   }
 
-  const finalScore = await scoreProse(text);
+  const finalScore = await scoreProse(text, { sport });
   return {
     text,
     score: finalScore,
