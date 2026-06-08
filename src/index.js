@@ -3400,6 +3400,17 @@ export default {
                             required: ['url'],
                         },
                     },
+                    {
+                        name: 'stat_status',
+                        description: 'Get live STAT job intelligence system status without CI overhead. Returns DO health, watchedCompanies, seenJobIds, SelectMinds cursor position, and platform-specific status for a given ATS. Bypasses *.workers.dev sandbox block via CF Worker IP relay. ~2s round-trip vs ~80s CI probe.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                platform: { type: 'string', description: 'Optional ATS platform to get detailed status for (e.g. "selectminds", "workday", "greenhouse"). Omit for overview only.' },
+                            },
+                            required: [],
+                        },
+                    },
                 ]}));
             }
 
@@ -3643,6 +3654,48 @@ export default {
                     }
                 }
 
+                // ── stat_status ──────────────────────────────────────────────────
+                // Direct STAT Worker status — no CI round-trip.
+                // Fetches /stat/ (overview) and optionally /stat/platform/{ats}/status.
+                // ~2s vs ~80s for worker-probe CI cycle.
+                if (toolName === 'stat_status') {
+                    const statBase = `${url.origin}/stat`;
+                    const platform = toolArgs.platform?.toLowerCase().trim();
+
+                    // Always fetch overview
+                    let overview = null;
+                    try {
+                        const r = await fetch(`${statBase}/`, {
+                            headers: { 'User-Agent': 'field-relay-stat-mcp', 'Accept': 'application/json' },
+                        });
+                        if (r.ok) {
+                            const d = await r.json();
+                            overview = {
+                                activeDOs:        d.activeDOs,
+                                watchedCompanies: d.watchedCompanies,
+                                seenJobIds:       d.seenJobIds,
+                                fitScoring:       d.fitScoring,
+                                salary:           d.salary?.status,
+                            };
+                        }
+                    } catch (e) { overview = { error: e.message }; }
+
+                    // Optionally fetch platform-specific status
+                    let platformStatus = null;
+                    if (platform) {
+                        try {
+                            const r = await fetch(`${statBase}/platform/${platform}/status`, {
+                                headers: { 'User-Agent': 'field-relay-stat-mcp', 'Accept': 'application/json' },
+                            });
+                            if (r.ok) platformStatus = await r.json();
+                            else platformStatus = { error: `HTTP ${r.status}` };
+                        } catch (e) { platformStatus = { error: e.message }; }
+                    }
+
+                    const result = { overview, ...(platformStatus ? { [platform]: platformStatus } : {}) };
+                    return respond(jsonrpc2({ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }));
+                }
+
                 // ── probe_relay_route ────────────────────────────────────────────
                 // Self-fetch an allow-listed relay route via the worker's own
                 // public origin, so an MCP client (e.g. Claude in a sandboxed
@@ -3692,6 +3745,14 @@ export default {
                         '/stat/profile',
                         '/stat/hc-probe',
                         '/stat/html-probe',
+                        '/stat/platform/selectminds/status',
+                        '/stat/platform/taleo/status',
+                        '/stat/platform/oracle_hcm/status',
+                        '/stat/platform/infor_hcm/status',
+                        '/stat/platform/icims/status',
+                        '/stat/platform/successfactors/status',
+                        '/stat/platform/ashby/status',
+                        '/stat/',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
