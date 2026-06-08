@@ -3576,6 +3576,7 @@ export default {
                         '/stat/learning',
                         '/stat/jobhive-manifest',
                         '/stat/jobhive-sample',
+                        '/stat/jobhive-scan',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
