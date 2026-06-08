@@ -3388,6 +3388,18 @@ export default {
                             required: ['route'],
                         },
                     },
+                    {
+                        name: 'html_probe',
+                        description: 'Fetch any URL from the Cloudflare Worker IP and return structured HTML analysis for ATS reverse engineering. CF Worker IPs bypass WAFs that block GitHub runner IPs (Workday, HiringCafe, Oracle HCM, Infor HCM, etc.). Returns: visibleText (3000 chars), metaTags, jsonLd, frameworks detected, dataAutomationIds, hiddenInputs, htmlSnippet (2000 chars).',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                url: { type: 'string', description: 'Full URL to fetch, e.g. "https://aah.wd5.myworkdayjobs.com/en-US/External?q=epic"' },
+                                maxBytes: { type: 'number', description: 'Max bytes of HTML to process (default 500000)' },
+                            },
+                            required: ['url'],
+                        },
+                    },
                 ]}));
             }
 
@@ -3531,6 +3543,38 @@ export default {
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({sha: data.object.sha, branch: 'main'})}]}));
                 }
 
+                // ── html_probe ──────────────────────────────────────────────────────
+                // POST /stat/html-probe via the relay — fetches any URL from CF IP.
+                // CF IPs bypass Workday/HC/Oracle WAFs that block GitHub runner IPs.
+                if (toolName === 'html_probe') {
+                    const targetUrl = toolArgs.url;
+                    const maxBytes  = toolArgs.maxBytes ?? 500_000;
+                    if (!targetUrl || !targetUrl.startsWith('http')) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: url (string starting with http)'}], isError:true}));
+                    }
+                    const statBase = 'https://stat-job-watcher.jeffunglesbee.workers.dev';
+                    let r;
+                    try {
+                        r = await fetch(`${statBase}/html-probe`, {
+                            method: 'POST',
+                            headers: {
+                                'User-Agent': 'field-relay-html-probe',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({ url: targetUrl, maxBytes }),
+                        });
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`html_probe fetch error: ${e.message}`}], isError:true}));
+                    }
+                    const bodyText = await r.text();
+                    const MAX_BODY = 14000;
+                    const truncated = bodyText.length > MAX_BODY
+                        ? bodyText.slice(0, MAX_BODY) + `\n…[truncated ${bodyText.length - MAX_BODY} bytes]`
+                        : bodyText;
+                    return respond(jsonrpc2({content:[{type:'text',text:truncated}]}));
+                }
+
                 // ── probe_relay_route ────────────────────────────────────────────
                 // Self-fetch an allow-listed relay route via the worker's own
                 // public origin, so an MCP client (e.g. Claude in a sandboxed
@@ -3578,6 +3622,8 @@ export default {
                         '/stat/jobhive-sample',
                         '/stat/jobhive-scan',
                         '/stat/profile',
+                        '/stat/hc-probe',
+                        '/stat/html-probe',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle'];
                     // Split off query string before allow-list comparison.
@@ -3625,6 +3671,30 @@ export default {
             const statPath = pathname.replace(/^\/stat/, '');
             const statBase = 'https://stat-job-watcher.jeffunglesbee.workers.dev';
             const statUrl  = `${statBase}${statPath}${url.search || ''}`;
+
+            // POST endpoints: /html-probe and /hc-probe accept JSON body
+            if (request.method === 'POST' && (statPath === '/html-probe' || statPath === '/hc-probe')) {
+                let body = '{}';
+                try { body = await request.text(); } catch {}
+                const statRes = await fetch(statUrl, {
+                    method: 'POST',
+                    headers: {
+                        'User-Agent': 'field-relay-stat-probe',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, */*',
+                    },
+                    body,
+                });
+                const resBody = await statRes.text();
+                return new Response(resBody, {
+                    status: statRes.status,
+                    headers: {
+                        'Content-Type': statRes.headers.get('content-type') || 'application/json',
+                        ...CORS,
+                    },
+                });
+            }
+
             const statRes  = await fetch(statUrl, {
                 method: 'GET',
                 headers: { 'User-Agent': 'field-relay-stat-probe', 'Accept': 'application/json, */*' },
