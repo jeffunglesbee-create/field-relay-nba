@@ -16,6 +16,9 @@
 //
 // R2 key: nhl/scf-2026/series-stats.json
 // Relay route: /nhl-series/{series}/stats → R2-first
+// Also computes series PDO (shooting% + save%) from top-level bs.sog + bs.score.
+// Raw PDO (all situations, not score-adjusted) is sufficient for journalism context.
+// NST blocked (CF Turnstile 403) — NHL boxscore data makes NST dependency moot.
 // Cron: after each SCF game (runs every 15 min — picks up new games automatically)
 //
 // Verified: api-web.nhle.com returns 200 from Workers Plus IPs (June 10 2026)
@@ -112,7 +115,7 @@ export async function runNHLSeriesUpdate(env) {
       [awayAbbr, awayPP.ppGoals, awayPPOpps, false],
       [homeAbbr, homePP.ppGoals, homePPOpps, true],
     ]) {
-      if (!stats[abbr]) stats[abbr] = { ppGoals: 0, ppOpps: 0, pkGoalsAgainst: 0, pkOpps: 0, games: 0, wins: 0 };
+      if (!stats[abbr]) stats[abbr] = { ppGoals: 0, ppOpps: 0, pkGoalsAgainst: 0, pkOpps: 0, games: 0, wins: 0, goalsFor: 0, shotsFor: 0, goalsAgainst: 0, shotsAgainst: 0 };
       stats[abbr].ppGoals += ppGoals;
       stats[abbr].ppOpps  += ppOpps;
       // PK stats: this team's PK opportunities = opponent's PP opportunities
@@ -122,12 +125,17 @@ export async function runNHLSeriesUpdate(env) {
       stats[abbr].pkOpps          += awayPPOpps + homePPOpps - (isHome ? homePPOpps : awayPPOpps);
       stats[abbr].pkGoalsAgainst  += oppPPGoals;
       stats[abbr].games           += 1;
-      // Win: compare scores
-      const homeScore = bs.homeTeam?.score ?? 0;
-      const awayScore = bs.awayTeam?.score ?? 0;
-      if ((isHome && homeScore > awayScore) || (!isHome && awayScore > homeScore)) {
-        stats[abbr].wins += 1;
-      }
+      // Goals + SOG for PDO computation (top-level team fields, all situations)
+      const teamScore = isHome ? (bs.homeTeam?.score ?? 0) : (bs.awayTeam?.score ?? 0);
+      const teamSOG   = isHome ? (bs.homeTeam?.sog   ?? 0) : (bs.awayTeam?.sog   ?? 0);
+      const oppScore  = isHome ? (bs.awayTeam?.score ?? 0) : (bs.homeTeam?.score ?? 0);
+      const oppSOG    = isHome ? (bs.awayTeam?.sog   ?? 0) : (bs.homeTeam?.sog   ?? 0);
+      stats[abbr].goalsFor     += teamScore;
+      stats[abbr].shotsFor     += teamSOG;
+      stats[abbr].goalsAgainst += oppScore;
+      stats[abbr].shotsAgainst += oppSOG;
+      // Win
+      if (teamScore > oppScore) stats[abbr].wins += 1;
     }
 
     processedIds.add(gameId);
@@ -138,12 +146,25 @@ export async function runNHLSeriesUpdate(env) {
   for (const [abbr, s] of Object.entries(stats)) {
     const ppPct = s.ppOpps > 0 ? Math.round(s.ppGoals / s.ppOpps * 1000) / 10 : null;
     const pkPct = s.pkOpps > 0 ? Math.round((1 - s.pkGoalsAgainst / s.pkOpps) * 1000) / 10 : null;
+    // PDO = series shooting% + series save% (raw, all situations)
+    // Directionally correct for journalism: "running hot/cold in this series"
+    // Not score-adjusted (no NST dependency — computed from NHL boxscore sog/score)
+    const shootPct = s.shotsFor > 0 ? s.goalsFor / s.shotsFor : null;
+    const savePct  = s.shotsAgainst > 0 ? 1 - (s.goalsAgainst / s.shotsAgainst) : null;
+    const pdo = shootPct !== null && savePct !== null
+      ? Math.round((shootPct + savePct) * 1000) / 1000
+      : null;
+    const pdoLabel = pdo !== null
+      ? `${pdo.toFixed(3)} PDO (${(shootPct*100).toFixed(1)}% sh + ${(savePct*100).toFixed(1)}% sv, ${s.games}-game series window)`
+      : null;
     teamsOut[abbr] = {
       ...s,
-      seriesPP: ppPct,    // % (e.g. 33.3 = 33.3%)
-      seriesPK: pkPct,    // % (e.g. 91.7 = 91.7%)
-      ppLabel: ppPct !== null ? `${ppPct}% PP (${s.ppGoals}/${s.ppOpps} series)` : null,
-      pkLabel: pkPct !== null ? `${pkPct}% PK (${s.pkGoalsAgainst} GA on ${s.pkOpps} opp series)` : null,
+      seriesPP:  ppPct,
+      seriesPK:  pkPct,
+      seriesPDO: pdo,
+      ppLabel:   ppPct !== null ? `${ppPct}% PP (${s.ppGoals}/${s.ppOpps} series)` : null,
+      pkLabel:   pkPct !== null ? `${pkPct}% PK (${s.pkGoalsAgainst} GA on ${s.pkOpps} opp series)` : null,
+      pdoLabel,
     };
   }
 
