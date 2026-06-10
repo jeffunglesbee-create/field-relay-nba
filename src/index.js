@@ -24,6 +24,7 @@ import {
 // See src/finals-context.js for full documentation and source citations.
 import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
+import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import {
   computeLiveWP,
   computeAdvancementProb,
@@ -2596,6 +2597,13 @@ export default {
     async scheduled(event, env, ctx) {
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
+        // MLB Savant → R2 weekly update: Monday 6AM ET (UTC 10-12 window)
+        // Runs alongside the journalism cron — does not block push/journalism.
+        // Guards: only fires on Monday (day=1) between UTC 10-13, with FIELD_DATA bound.
+        const _now = new Date();
+        if (_now.getUTCDay() === 1 && _now.getUTCHours() >= 10 && _now.getUTCHours() <= 13 && env.FIELD_DATA) {
+            ctx.waitUntil(runMLBSavantUpdate(env).catch(e => console.error('[MLB-R2]', e.message)));
+        }
     },
 
     async fetch(request, env, ctx) {
@@ -3321,8 +3329,50 @@ export default {
             const file = pathname.replace(/^\/mlb-stats\//, '');
             if (!MLB_STATS_ALLOWED.includes(file))
                 return new Response('mlb-stats file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'mlb-stats-not-whitelisted', ...CORS } });
+
+            // R2-first: read from FIELD_DATA R2 bucket (MLB-A pipeline, June 10 2026).
+            // R2 is populated by runMLBSavantUpdate() (Monday cron or /mlb-savant-update).
+            // Falls back to raw.githubusercontent.com/jubilant-bassoon outbox/mlb/ if R2 miss.
+            // This makes GitHub Actions mlb-weekly-update.yml optional (not a hard dependency).
+            if (env.FIELD_DATA && !file.includes('umpire_abs')) {
+                try {
+                    const r2Key = `mlb/2026/${file}`;
+                    const r2obj = await env.FIELD_DATA.get(r2Key);
+                    if (r2obj) {
+                        const body = await r2obj.text();
+                        return new Response(body, {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Cache-Control': 'public, max-age=43200',
+                                'X-Source': 'r2',
+                                ...CORS
+                            }
+                        });
+                    }
+                } catch(e_) { /* R2 miss — fall through to GitHub raw */ }
+            }
+            // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
+        }
+
+        // ── /mlb-savant-update → on-demand MLB Savant → R2 update (admin) ──────────
+        // Triggers runMLBSavantUpdate() immediately. Useful for mid-week data refresh
+        // or debugging. Requires X-FIELD-Admin: 1 header to prevent abuse.
+        if (pathname === '/mlb-savant-update' && request.method === 'POST') {
+            if (request.headers.get('X-FIELD-Admin') !== '1')
+                return new Response('Forbidden', { status: 403, headers: CORS });
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ error: 'FIELD_DATA R2 not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            try {
+                const result = await runMLBSavantUpdate(env);
+                return new Response(JSON.stringify(result),
+                    { status: result.ok ? 200 : 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            } catch(e) {
+                return new Response(JSON.stringify({ error: e.message }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
         }
 
         // ── /mlb-umpire-scrape → Savant hp_umpire page scrape ────────────────────
