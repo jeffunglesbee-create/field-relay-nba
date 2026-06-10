@@ -27,6 +27,8 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch 
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
+import { runNBACluichUpdate } from './nba-clutch-r2.js';
+import { runNHLGSAXUpdate } from './nhl-gsax-r2.js';
 import {
   computeLiveWP,
   computeAdvancementProb,
@@ -2620,12 +2622,24 @@ export default {
         if (_utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
             ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
         }
-        // NHL SCF series-adjusted PP/PK: runs every 15-min journalism tick during playoff season.
-        // Incremental: skips already-processed games. No-op when no new completed games.
-        // Covers June (SCF window) only — saves CPU outside playoff season.
-        const _month = _now.getUTCMonth() + 1; // 1-12
+        // NHL SCF series-adjusted PP/PK: every 15-min journalism tick, April-July.
+        const _month = _now.getUTCMonth() + 1;
         if ((_month >= 4 && _month <= 7) && env.FIELD_DATA) {
             ctx.waitUntil(runNHLSeriesUpdate(env).catch(e => console.error('[NHL-SERIES]', e.message)));
+        }
+        // NBA clutch stats (relay-native — no GH Actions needed, stats.nba.com works with headers):
+        // Mon/Wed/Fri during Finals window (June-July), Wed-only outside.
+        // Avoids running every 15min — clutch stats update daily at most.
+        const _isFinalsWindow = _month === 6 || _month === 7;
+        const _isMWF = _utcDay === 1 || _utcDay === 3 || _utcDay === 5;
+        if (_isFinalsWindow && _isMWF && _utcHour === 12 && env.FIELD_DATA) {
+            ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
+        } else if (!_isFinalsWindow && _utcDay === 3 && _utcHour === 12 && env.FIELD_DATA) {
+            ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
+        }
+        // NHL MoneyPuck GSAX (NHL-B): weekly during playoffs, April-July.
+        if ((_month >= 4 && _month <= 7) && _utcDay === 1 && _utcHour === 11 && env.FIELD_DATA) {
+            ctx.waitUntil(runNHLGSAXUpdate(env).catch(e => console.error('[NHL-GSAX]', e.message)));
         }
     },
 
@@ -2813,7 +2827,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series + nba-clutch', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series + nba-clutch + nhl-gsax', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3440,6 +3454,27 @@ export default {
             }
         }
 
+        // ── /nhl-gsax/{file} → MoneyPuck GSAX from R2 (NHL-B) ──────────────────────
+        if (pathname.startsWith('/nhl-gsax/')) {
+            const gFile = pathname.replace(/^\/nhl-gsax\//, '');
+            if (!['playoffs.json', 'regular.json'].includes(gFile))
+                return new Response('nhl-gsax file not allowed', { status: 403, headers: CORS });
+            if (env.FIELD_DATA) {
+                try {
+                    const r2obj = await env.FIELD_DATA.get(`nhl/2026/gsax-${gFile}`);
+                    if (r2obj) {
+                        return new Response(await r2obj.text(), {
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=86400',
+                                       'X-Source': 'r2', ...CORS }
+                        });
+                    }
+                } catch(e_) {}
+            }
+            return new Response(JSON.stringify({ error: 'no GSAX data yet' }),
+                { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+        }
+
         // ── /nhl-series/{series}/stats → series-adjusted PP/PK from R2 ────────────
         // R2 key: nhl/{series}/series-stats.json
         // Populated by runNHLSeriesUpdate() cron (every 15min during playoffs).
@@ -3514,6 +3549,23 @@ export default {
             // Fallback: GitHub raw outbox/soccer/
             const sfRaw = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/soccer';
             return relayFetch(`${sfRaw}/${sfFile}`, { 'Accept': 'application/json' }, 86400, 'soccer-fbref', ctx);
+        }
+
+        // ── /nba-clutch-update → on-demand NBA clutch → R2 update (admin) ─────────
+        if (pathname === '/nba-clutch-update' && request.method === 'POST') {
+            if (request.headers.get('X-FIELD-Admin') !== '1')
+                return new Response('Forbidden', { status: 403, headers: CORS });
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ error: 'FIELD_DATA R2 not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            try {
+                const result = await runNBACluichUpdate(env);
+                return new Response(JSON.stringify(result),
+                    { status: result.ok ? 200 : 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            } catch(e) {
+                return new Response(JSON.stringify({ error: e.message }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
         }
 
         // ── /nfl-r2-update → on-demand nflverse → R2 update (admin) ──────────────
