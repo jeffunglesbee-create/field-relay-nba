@@ -140,6 +140,7 @@ const MLB_STATS_API_BASE = 'https://statsapi.mlb.com/api/v1';
 const MLB_STATS_API_ALLOWED_PREFIXES = [
     '/game/',       // /game/{gamePk}/boxscore + /game/{gamePk}/feed/live
     '/people/',     // /people/{playerId}/stats — career/season stats
+    '/schedule',    // /schedule — probable pitchers for today's games (MLB pitcher init)
 ];
 function mlbStatsApiAllowed(path) {
     return MLB_STATS_API_ALLOWED_PREFIXES.some(p => path.startsWith(p));
