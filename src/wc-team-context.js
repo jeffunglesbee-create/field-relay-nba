@@ -754,7 +754,7 @@ function _wcAdvancementSentences(rows, home, away, isMD3) {
 
 // ── Main injection function ────────────────────────────────────────────────────
 // Async because it queries D1 for live standings (MD2+ only)
-export async function buildWCTeamContextBlock(gameLines, d1db) {
+export async function buildWCTeamContextBlock(gameLines, d1db, patches = {}) {
   if (!slateHasWorldCup(gameLines)) return '';
   const games = extractWCGames(gameLines);
   if (!games.length) return '';
@@ -770,8 +770,12 @@ export async function buildWCTeamContextBlock(gameLines, d1db) {
     const homeCtx  = homeCode ? WC_TEAM_CONTEXT[homeCode] : null;
     const awayCtx  = awayCode ? WC_TEAM_CONTEXT[awayCode] : null;
 
-    for (const ctx of [homeCtx, awayCtx]) {
+    for (let ctx of [homeCtx, awayCtx]) {
       if (!ctx) continue;
+      // Apply R2 patch if one exists for this team
+      if (patches && patches[ctx.fifaCode]) {
+        ctx = applyWCPatch(ctx, patches[ctx.fifaCode]);
+      }
       // Debut teams get the first-ever appearance opener
       const historyLine = ctx.debutFlag
         ? `FIRST EVER World Cup appearance for ${ctx.displayName} (${ctx.qualifyingNote}).`
@@ -821,4 +825,40 @@ export async function buildWCTeamContextBlock(gameLines, d1db) {
   // Note on rankings currency
   lines.push('Note: FIFA rankings as of April 1 2026. Updated June 9 2026 (day before tournament).');
   return lines.join('\n');
+}
+
+// ── WC team context patches (R2 amendment layer) ─────────────────────────────
+// Tournament-static inline context cannot update without a relay deploy.
+// Patches stored in R2 soccer/wc2026-patches.json override specific fields
+// for specific teams — injuries, form notes, tactical shifts, guardrail updates.
+//
+// Patch format: { "USA": { "narrativeNote": "...", "guardrail": "..." }, ... }
+// Only fields present in the patch object are overridden; all others use inline.
+//
+// Written via POST /wc-context-patch admin endpoint (X-FIELD-Admin: 1).
+// Read via buildWCTeamContextBlock at journalism prompt time.
+
+let _wcPatchCache = null;
+let _wcPatchFetchedAt = 0;
+const WC_PATCH_TTL = 900000; // 15 min
+
+export async function loadWCPatches(env) {
+  if (!env.FIELD_DATA) return {};
+  const now = Date.now();
+  if (_wcPatchCache && now - _wcPatchFetchedAt < WC_PATCH_TTL) return _wcPatchCache;
+  try {
+    const r2obj = await env.FIELD_DATA.get('soccer/wc2026-patches.json');
+    if (!r2obj) return (_wcPatchCache = {});
+    const patches = JSON.parse(await r2obj.text());
+    _wcPatchFetchedAt = now;
+    return (_wcPatchCache = patches.teams || patches || {});
+  } catch(e_) {
+    return (_wcPatchCache || {});
+  }
+}
+
+export function applyWCPatch(ctx, patch) {
+  if (!patch) return ctx;
+  // Only override fields that are present in the patch
+  return { ...ctx, ...patch };
 }
