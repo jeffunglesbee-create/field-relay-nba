@@ -1524,7 +1524,7 @@ async function handleWCAdminSeed(request, env) {
 // ── /v2/games route handler ──────────────────────────────────────────────
 // GET /v2/games?sport=nba|nhl|mlb|epl|mls[&date=YYYY-MM-DD]
 // Returns: { sport, date, games: FieldGame[], count, source, ts }
-async function handleV2Games(url, env) {
+async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
     const cfg   = V2_LEAGUES[sport];
@@ -1765,7 +1765,15 @@ async function handleV2Games(url, env) {
         if (sport === 'wc26' && env.WC2026_DB) {
             const finals = games.filter(g => g.state === 'final');
             if (finals.length > 0) {
-                await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g)));
+                // Non-blocking: D1 writes run after response is returned.
+                // ctx.waitUntil keeps the Worker alive until writes complete.
+                // On MD3 (up to 6 simultaneous finals) this unblocks ~200ms
+                // of D1 latency from the hot /v2/games response path.
+                if (ctx?.waitUntil) {
+                    ctx.waitUntil(Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g))));
+                } else {
+                    await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g)));
+                }
             }
         }
 
@@ -1890,24 +1898,24 @@ async function handleTubiPreGameAlerts(env) {
             ts:        now,
         };
 
-        // Fan out to all subscribers (no sport-filter for free-game alerts —
-        // this is a one-time broadcast, not a score notification)
+        // Fan out to all subscribers in parallel (no sport-filter for free-game alerts)
         const list = await env.PUSH_SUBS.list();
-        let sent = 0;
-        for (const key of list.keys) {
-            const raw = await env.PUSH_SUBS.get(key.name);
-            if (!raw) continue;
-            let subData;
-            try { subData = JSON.parse(raw); } catch(_) { continue; }
-            const sub = subData.subscription;
-            if (!sub?.endpoint) continue;
-            // Skip dedup keys and other metadata keys (not subscriptions)
-            if (!subData.subscription?.keys) continue;
-            try {
-                const res = await sendWebPush(sub, payload, env);
-                if (res.ok || res.status === 201) sent++;
-            } catch(_) { /* subscriber gone — skip */ }
-        }
+        const subRecs = await Promise.allSettled(
+            list.keys.map(async key => {
+                const raw = await env.PUSH_SUBS.get(key.name);
+                if (!raw) return null;
+                try {
+                    const d = JSON.parse(raw);
+                    if (!d.subscription?.endpoint || !d.subscription?.keys) return null;
+                    return d.subscription;
+                } catch(_) { return null; }
+            })
+        );
+        const validSubs = subRecs.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean);
+        const results = await Promise.allSettled(
+            validSubs.map(sub => sendWebPush(sub, payload, env).catch(() => null))
+        );
+        let sent = results.filter(r => r.status === 'fulfilled' && (r.value?.ok || r.value?.status === 201)).length;
     }
 }
 
@@ -1981,40 +1989,46 @@ async function handleCron(env) {
 
     if (!live.length) return;
 
-    // Get all subscribers from KV
+    // Get all subscribers — load all keys + values in parallel then fan out
+    // Old pattern: sequential KV.get per subscriber per game — O(subscribers × games) serial.
+    // New pattern: parallel key reads, then parallel push sends.
+    // ctx.waitUntil not available here (handleCron is already inside waitUntil).
+    // Promise.allSettled parallelises the sends; push is best-effort so no retry needed.
     const list = await env.PUSH_SUBS.list();
-    for (const key of list.keys) {
-        const raw = await env.PUSH_SUBS.get(key.name);
-        if (!raw) continue;
-        let subData;
-        try { subData = JSON.parse(raw); } catch(_) { continue; }
-        const sub = subData.subscription;
-        if (!sub?.endpoint) continue;
-        const prefs = subData.prefs || {};
-        // Factual opt-in only. No interest-value threshold here — the client
-        // applies the user's Drama Dial. drama_min is intentionally removed
-        // (it thresholded a server-side composite). If the subscriber has a
-        // sport allowlist, honor it as a factual filter.
-        const sportAllow = Array.isArray(prefs.sports) ? prefs.sports : null;
-
-        for (const game of live) {
-            if (sportAllow && !sportAllow.includes(game.sport)) continue;
-            // Dedup on the SCORE STATE so a genuine score change re-notifies
-            // (matches the SCORE_CHANGE contract), rather than once-per-game.
-            const firedKey = `${key.name}:${game.gameId}:${game.homeScore}-${game.awayScore}`;
-            const alreadyFired = await env.PUSH_SUBS.get(firedKey);
-            if (alreadyFired) continue;
+    // Parallel-load all subscriber records
+    const subRecords = await Promise.allSettled(
+        list.keys.map(async key => {
+            const raw = await env.PUSH_SUBS.get(key.name);
+            if (!raw) return null;
             try {
-                const res = await sendWebPush(sub, game, env);
-                if (res.ok || res.status === 201) {
-                    await env.PUSH_SUBS.put(firedKey, '1', {expirationTtl: 28800});
+                const subData = JSON.parse(raw);
+                if (!subData.subscription?.endpoint) return null;
+                return { keyName: key.name, sub: subData.subscription, prefs: subData.prefs || {} };
+            } catch(_) { return null; }
+        })
+    );
+    const subs = subRecords.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean);
+
+    // Parallel fan-out: one send per (subscriber × game) pair, deduped
+    await Promise.allSettled(subs.flatMap(({ keyName, sub, prefs }) => {
+        const sportAllow = Array.isArray(prefs.sports) ? prefs.sports : null;
+        return live
+            .filter(game => !sportAllow || sportAllow.includes(game.sport))
+            .map(async game => {
+                const firedKey = `${keyName}:${game.gameId}:${game.homeScore}-${game.awayScore}`;
+                const alreadyFired = await env.PUSH_SUBS.get(firedKey);
+                if (alreadyFired) return;
+                try {
+                    const res = await sendWebPush(sub, game, env);
+                    if (res.ok || res.status === 201) {
+                        await env.PUSH_SUBS.put(firedKey, '1', {expirationTtl: 28800});
+                    }
+                } catch(e) {
+                    if (typeof captureFieldError === 'function')
+                        captureFieldError('push-send', e.message);
                 }
-            } catch(e) {
-                if (typeof captureFieldError === 'function')
-                    captureFieldError('push-send', e.message);
-            }
-        }
-    }
+            });
+    }));
 }
 
 // ── O(1) Newspaper: Journalism Cycle (Layer 2 — May 25 2026) ─────────────────
@@ -2490,89 +2504,81 @@ async function handleJournalismCycle(env) {
       { expirationTtl: 86400 }
     );
 
-    // 7. Pre-generate per-game card briefs and store in KV
-    // These replace browser-side MLB/WNBA/Stakes/EPL brief calls — zero runtime AI calls
-    // Key: brief:game:{espnEventId}  TTL: 3600s (1hr — games change hourly)
+    // 7. Pre-generate per-game card briefs — enqueue via JOURNALISM_QUEUE
+    // Replaces the previous sequential loop + setTimeout stagger (1500ms/game).
+    // On a 12-game WC day the old loop consumed ~18s of cron CPU budget.
+    // New: each game is a Queue message; consumer drains at its own pace.
+    // Consumer handles AI call + quality chain + KV write (same path as wc-morning).
+    // Falls back to old sync path if Queue not bound.
     const gameBriefResults = [];
-    for (const {sport, league, label} of LEAGUES) {
-      try {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
-        if (!r.ok) continue;
-        const d = await r.json();
-        for (const ev of (d?.events || [])) {
-          const comp = ev.competitions?.[0];
-          if (!comp) continue;
-          const eventId = ev.id;
-          if (!eventId) continue;
+    if (env.JOURNALISM_QUEUE) {
+      for (const {sport, league, label} of LEAGUES) {
+        try {
+          const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+          if (!r.ok) continue;
+          const d = await r.json();
+          for (const ev of (d?.events || [])) {
+            const comp = ev.competitions?.[0];
+            if (!comp) continue;
+            const eventId = ev.id;
+            if (!eventId) continue;
 
-          // Skip if already cached and context unchanged
-          const gameHash = (ev.id + (comp.status?.type?.description||'') + (comp.competitors?.map(c=>c.score).join('|')||'')).split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
-          const existingGame = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`).catch(()=>null);
-          if (existingGame) {
-            try {
-              const eg = JSON.parse(existingGame);
-              if (eg.contextHash === gameHash) continue; // unchanged — skip
-            } catch(_) {}
-          }
+            // Skip if already cached and context unchanged
+            const gameHash = (ev.id + (comp.status?.type?.description||'') + (comp.competitors?.map(c=>c.score).join('|')||'')).split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
+            const existingGame = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`).catch(()=>null);
+            if (existingGame) {
+              try {
+                const eg = JSON.parse(existingGame);
+                if (eg.contextHash === gameHash) continue;
+              } catch(_) {}
+            }
 
-          const gameLine = buildGameLine(ev, label);
-          if (!gameLine) continue;
+            const gameLine = buildGameLine(ev, label);
+            if (!gameLine) continue;
 
-          // Build sport-specific brief prompt
-          const teams = comp.competitors || [];
-          const home = teams.find(t => t.homeAway === 'home') || teams[0];
-          const away = teams.find(t => t.homeAway === 'away') || teams[1];
-          const homeName = home?.team?.shortDisplayName || home?.team?.displayName || '';
-          const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '';
-          const series = comp.series?.summary || '';
-          const state = comp.status?.type?.state || 'pre';
-          const broadcast = comp.broadcasts?.[0]?.names?.[0] || label.toUpperCase();
+            const teams = comp.competitors || [];
+            const home = teams.find(t => t.homeAway === 'home') || teams[0];
+            const away = teams.find(t => t.homeAway === 'away') || teams[1];
+            const homeName = home?.team?.shortDisplayName || home?.team?.displayName || '';
+            const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '';
+            const series = comp.series?.summary || '';
+            const broadcast = comp.broadcasts?.[0]?.names?.[0] || label.toUpperCase();
+            const isPlayoff = !!(series || /playoff|final|series/i.test(ev.name||''));
 
-          const isPlayoff = !!(series || /playoff|final|series/i.test(ev.name||''));
-          const gamePrompt = [
-            `Write a FIELD Game Brief for this ${label} game.`,
-            `${awayName} @ ${homeName}.`,
-            series ? `Series: ${series}.` : '',
-            `Status: ${comp.status?.type?.description || 'Scheduled'}. Broadcast: ${broadcast}.`,
-            `Game data: ${gameLine}`,
-            '',
-            isPlayoff
-              ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
-              : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
-            JQ_STYLE,  // WOW 6: unified style block
-            'Write only from data above. No invented stats.',
-          ].filter(Boolean).join('\n');
+            const gamePrompt = [
+              `Write a FIELD Game Brief for this ${label} game.`,
+              `${awayName} @ ${homeName}.`,
+              series ? `Series: ${series}.` : '',
+              `Status: ${comp.status?.type?.description || 'Scheduled'}. Broadcast: ${broadcast}.`,
+              `Game data: ${gameLine}`,
+              '',
+              isPlayoff
+                ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
+                : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
+              JQ_STYLE,
+              'Write only from data above. No invented stats.',
+            ].filter(Boolean).join('\n');
 
-          const brief = await callProxy(gamePrompt);
-          if (!brief || brief.length < 30) continue;
-
-          // Quality check — cliché retry
-          let finalBrief = brief;
-          const cliches = relayHasCliche(brief);
-          if (cliches.length) {
-            await new Promise(r => setTimeout(r, 2000)); // RPM guard
-            const retried = await callProxy(gamePrompt + `\n\nREWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact instead.`);
-            if (retried && retried.length > 30) finalBrief = retried;
-          }
-
-          await env.FIELD_JOURNALISM.put(
-            `brief:game:${eventId}`,
-            JSON.stringify({
-              brief: finalBrief,
-              generatedAt: now,
-              contextHash: gameHash,
-              sport: label,
-              home: homeName,
-              away: awayName,
+            const jobId = crypto.randomUUID();
+            await env.JOURNALISM_QUEUE.send({
+              type:       'game-brief',
+              jobId,
+              eventId,
+              gameHash,
+              sport:      label,
+              home:       homeName,
+              away:       awayName,
               cycleId,
-            }),
-            { expirationTtl: 3600 }
-          );
-          gameBriefResults.push(eventId);
-          await new Promise(r => setTimeout(r, 1500)); // RPM guard between games
+              prompt:     gamePrompt,
+              max_tokens: 400,
+              scoreThreshold: 110,
+              enqueuedAt: now,
+            });
+            gameBriefResults.push(eventId);
+          }
+        } catch(e) {
+          console.warn(`[journalism-cycle] game briefs enqueue ${label} error:`, e.message);
         }
-      } catch(e) {
-        console.warn(`[journalism-cycle] game briefs ${label} error:`, e.message);
       }
     }
 
@@ -2799,7 +2805,7 @@ export default {
 
         // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
         if (pathname.startsWith('/v2/')) {
-            if (pathname === '/v2/games')     return handleV2Games(url, env);
+            if (pathname === '/v2/games')     return handleV2Games(url, env, ctx);
             if (pathname === '/v2/standings') return handleV2Standings(url, env);
             return new Response('V2 endpoint not found', { status: 404, headers: CORS });
         }
@@ -4082,6 +4088,57 @@ export default {
       const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
       for (const msg of batch.messages) {
         const job = msg.body || {};
+
+        // ── Route: game-brief (per-game card brief, enqueued by journalism cron) ──
+        // Replaces the old synchronous loop + setTimeout stagger in handleJournalismCycle.
+        if (job.type === 'game-brief') {
+          if (!env.FIELD_JOURNALISM) { msg.ack(); continue; }
+          try {
+            const callProxy = async (promptText) => {
+              const r = await fetch(PROXY_URL, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-FIELD-Relay':'field-relay-cron-2026'},
+                body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens: job.max_tokens||400,
+                  messages:[{role:'user',content:promptText}]}),
+              });
+              if (r.status === 429) throw new Error('upstream 429');
+              if (!r.ok) return null;
+              const d = await r.json().catch(()=>null);
+              return d ? (d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
+            };
+            const initial = await callProxy(job.prompt);
+            if (!initial) throw new Error('proxy returned no prose');
+            // Light quality chain for game briefs: cliché + lead sentence only (no score gate)
+            let finalText = initial;
+            const cliches = jqHasCliche(initial);
+            if (cliches.length) {
+              const retried = await callProxy(job.prompt + `
+
+REWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact instead.`);
+              if (retried && retried.length > 30) finalText = retried;
+            }
+            finalText = stripMarkdown(finalText);
+            await env.FIELD_JOURNALISM.put(
+              `brief:game:${job.eventId}`,
+              JSON.stringify({
+                brief: finalText,
+                generatedAt: Date.now(),
+                contextHash: job.gameHash,
+                sport: job.sport,
+                home: job.home,
+                away: job.away,
+                cycleId: job.cycleId,
+              }),
+              {expirationTtl: 3600}
+            );
+            msg.ack();
+          } catch(e) {
+            if (msg.attempts >= 3) { msg.ack(); } else { msg.retry(); }
+          }
+          continue;
+        }
+
+        // ── Route: journalism jobs (wc-morning, async /journalism/enqueue) ────────
         const jobId = job.jobId;
         if (!jobId || !env.FIELD_JOURNALISM) {
           msg.ack();
