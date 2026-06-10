@@ -1818,8 +1818,104 @@ async function handleV2Standings(url, env) {
 // (ADR-002 PROPOSED; Numerical Usage Policy v2 bright line: never push on a
 // composite-value threshold).
 
+
+// ── WC Free Game (Tubi) Pre-Game Push Alert ───────────────────────────────────
+// Fires once per free WC game, 30-60 minutes before kickoff.
+// Hardcoded list — WC free games are tournament-static (only 2: MEX/RSA + USA/PAR).
+// Deduplication: PUSH_SUBS KV key `tubi-alert:{gameId}` with 24hr TTL.
+// Payload type FREE_GAME_ALERT — client surfaces as "free to watch" notification.
+//
+// Wired into handleCron so it runs every 5 minutes on the cron tick.
+// Does NOT require live game data — fires purely on wall-clock proximity to kickoff.
+
+const WC_FREE_GAMES = [
+    {
+        gameId:    'wc26_g11_mex_rsa',
+        home:      'Mexico',
+        away:      'South Africa',
+        startUtc:  '2026-06-11T19:00:00Z',   // 3pm ET — FOX OTA + Tubi
+        label:     'FIFA World Cup Opening Match',
+        broadcast: 'FOX / Tubi (free)',
+        note:      'Free on Tubi (live 4K) + FOX OTA. Opening game of the 2026 World Cup.',
+    },
+    {
+        gameId:    'wc26_g12_usa_par',
+        home:      'United States',
+        away:      'Paraguay',
+        startUtc:  '2026-06-13T01:00:00Z',   // 9pm ET June 12 — Tubi + FOX OTA
+        label:     'USMNT World Cup Opener — Group D',
+        broadcast: 'Tubi (free, live 4K) + FOX OTA',
+        note:      'Free on Tubi (live 4K) + FOX OTA. 3-hour pregame starts 6pm ET.',
+    },
+];
+
+// ALERT_WINDOW_MS: fire when kickoff is between 30 and 65 minutes away.
+// 65-min upper bound means a 5-min cron always has at least one tick in the window.
+const TUBI_ALERT_WINDOW_EARLY_MS = 65 * 60 * 1000;
+const TUBI_ALERT_WINDOW_LATE_MS  = 30 * 60 * 1000;
+
+async function handleTubiPreGameAlerts(env) {
+    if (!env.PUSH_SUBS) return;
+    const now = Date.now();
+
+    for (const game of WC_FREE_GAMES) {
+        const kickoff = new Date(game.startUtc).getTime();
+        const msToKickoff = kickoff - now;
+
+        // Outside the alert window — skip
+        if (msToKickoff > TUBI_ALERT_WINDOW_EARLY_MS) continue;
+        if (msToKickoff < TUBI_ALERT_WINDOW_LATE_MS)  continue;
+
+        // Already fired for this game?
+        const dedupKey = `tubi-alert:${game.gameId}`;
+        const alreadyFired = await env.PUSH_SUBS.get(dedupKey);
+        if (alreadyFired) continue;
+
+        // Mark as fired before sending (prevents double-fire if push is slow)
+        await env.PUSH_SUBS.put(dedupKey, '1', {expirationTtl: 86400});
+
+        // Build payload
+        const minToKickoff = Math.round(msToKickoff / 60000);
+        const payload = {
+            type:      'FREE_GAME_ALERT',
+            gameId:    game.gameId,
+            sport:     'WC26',
+            home:      game.home,
+            away:      game.away,
+            label:     game.label,
+            broadcast: game.broadcast,
+            note:      game.note,
+            minToKickoff,
+            startUtc:  game.startUtc,
+            ts:        now,
+        };
+
+        // Fan out to all subscribers (no sport-filter for free-game alerts —
+        // this is a one-time broadcast, not a score notification)
+        const list = await env.PUSH_SUBS.list();
+        let sent = 0;
+        for (const key of list.keys) {
+            const raw = await env.PUSH_SUBS.get(key.name);
+            if (!raw) continue;
+            let subData;
+            try { subData = JSON.parse(raw); } catch(_) { continue; }
+            const sub = subData.subscription;
+            if (!sub?.endpoint) continue;
+            // Skip dedup keys and other metadata keys (not subscriptions)
+            if (!subData.subscription?.keys) continue;
+            try {
+                const res = await sendWebPush(sub, payload, env);
+                if (res.ok || res.status === 201) sent++;
+            } catch(_) { /* subscriber gone — skip */ }
+        }
+    }
+}
+
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
+
+    // ── Tubi free-game pre-game alert (independent of live-game check) ────────
+    await handleTubiPreGameAlerts(env);
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
     // ── Multi-sport ESPN polling ──────────────────────────────────
