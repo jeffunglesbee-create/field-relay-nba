@@ -676,6 +676,82 @@ export function extractWCGames(gameLines) {
     .filter(g => g.home && g.away);
 }
 
+
+// ── Advancement sentence generator ───────────────────────────────────────────
+// Converts D1 standings rows into plain-English journalism sentences for the
+// two teams in the current match. Injected as [WC ADVANCEMENT] in journalism
+// prompts only — not surfaced in the standings UI.
+//
+// rows: sorted D1 result [{team, played, points, gd, gf, won, drawn, lost}]
+// home/away: team display names matching rows[].team
+// isMD3: boolean — final matchday (simultaneous kickoffs)
+// Returns an array of 1-2 strings, one per team. Returns [] pre-tournament.
+function _wcAdvancementSentences(rows, home, away, isMD3) {
+  if (!rows || rows.length < 4) return [];
+  const GAMES = 3, PTS_WIN = 3;
+  const sentences = [];
+
+  for (const teamName of [home, away]) {
+    if (!teamName) continue;
+    const idx = rows.findIndex(r => r.team === teamName);
+    if (idx < 0) continue;
+    const t = rows[idx];
+    const remaining = GAMES - t.played;
+    const maxPts = t.points + remaining * PTS_WIN;
+    const secondPts = rows[1]?.points ?? 0;
+    const thirdPts  = rows[2]?.points ?? 0;
+
+    // Already guaranteed through
+    if (t.points >= 6 && t.played <= 2) {
+      sentences.push(`${teamName}: already through to the Round of 32 (${t.points} pts).`);
+      continue;
+    }
+    // Mathematically eliminated
+    if (idx === 3 && maxPts < secondPts) {
+      sentences.push(`${teamName}: mathematically eliminated — ${t.points} pts, cannot reach ${secondPts} pts for 2nd.`);
+      continue;
+    }
+
+    // Final matchday — explicit stakes
+    if (isMD3) {
+      if (idx <= 1) {
+        const canBeOvertaken = thirdPts + PTS_WIN > t.points;
+        if (canBeOvertaken) {
+          sentences.push(`${teamName}: in the top 2 (${t.points} pts) but can be overtaken — cannot afford a heavy loss.`);
+        } else {
+          sentences.push(`${teamName}: secured top-2 going into final matchday (${t.points} pts).`);
+        }
+      } else if (idx === 2) {
+        const gap = secondPts - t.points;
+        if (gap === 0) {
+          sentences.push(`${teamName}: level with 2nd place on ${t.points} pts — a win advances them; a draw depends on the parallel game.`);
+        } else if (gap <= PTS_WIN) {
+          sentences.push(`${teamName}: ${t.points} pts, ${gap} behind 2nd — must win; other group result also matters.`);
+        } else {
+          sentences.push(`${teamName}: ${t.points} pts — must win and needs help from the other Group game.`);
+        }
+      } else {
+        sentences.push(`${teamName}: ${t.points} pts — must win and rely on results elsewhere; goal difference likely decisive.`);
+      }
+      continue;
+    }
+
+    // MD1 / MD2
+    if (idx === 0 && t.points >= 4) {
+      sentences.push(`${teamName}: top of Group with ${t.points} pts — a point from this match all but guarantees advancement.`);
+    } else if (idx <= 1 && t.points >= 3) {
+      sentences.push(`${teamName}: ${t.points} pts — in an advancing position but not yet secure.`);
+    } else if (t.points >= 3) {
+      sentences.push(`${teamName}: ${t.points} pts — a win puts them in firm control of advancement.`);
+    } else if (t.points === 1) {
+      sentences.push(`${teamName}: 1 pt — must win here; a draw leaves advancement dependent on final-game results.`);
+    } else {
+      sentences.push(`${teamName}: 0 pts — must win; a draw almost certainly ends their tournament.`);
+    }
+  }
+  return sentences;
+}
+
 // ── Main injection function ────────────────────────────────────────────────────
 // Async because it queries D1 for live standings (MD2+ only)
 export async function buildWCTeamContextBlock(gameLines, d1db) {
@@ -710,7 +786,7 @@ export async function buildWCTeamContextBlock(gameLines, d1db) {
     if (d1db && game.group) {
       try {
         const { results: rows } = await d1db.prepare(
-          `SELECT team, played, points, gd, gf
+          `SELECT team, played, points, gd, gf, won, drawn, lost
            FROM wc_group WHERE group_id = ?
            ORDER BY points DESC, gd DESC, gf DESC`
         ).bind(game.group).all();
@@ -721,6 +797,17 @@ export async function buildWCTeamContextBlock(gameLines, d1db) {
           lines.push(`  Group ${game.group} current standings: ${tableStr}`);
           if (game.isMD3) {
             lines.push(`  [FINAL MATCHDAY] Both Group ${game.group} games kick off simultaneously (FIFA anti-collusion rule). Top 2 advance automatically. 3rd place may advance as one of the 8 best third-place teams.`);
+          }
+
+          // Advancement sentences — one per team in this match, for journalism
+          // Only generated when games have been played (MD1+)
+          const hasResults = rows.some(r => r.played > 0);
+          if (hasResults) {
+            const advLines = _wcAdvancementSentences(rows, game.home, game.away, game.isMD3);
+            if (advLines.length) {
+              lines.push(`  [WC ADVANCEMENT]`);
+              for (const s of advLines) lines.push(`  ${s}`);
+            }
           }
         }
       } catch (_) {
