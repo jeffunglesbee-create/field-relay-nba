@@ -112,6 +112,12 @@ const NBA_STATS_HEADERS = {
 };
 const NBA_STATS_ALLOWED_PATHS = [
     '/leagueLeaders',
+    // ADR-003 Rule 45 extension approved June 10 2026:
+    // All additions are public aggregate stats, same category as leagueLeaders.
+    '/leaguedashteamclutch',    // NBA-B: team clutch stats (last 5 min, within 5 pts)
+    '/leaguedashteamstats',     // team DRTG/ORTG/pace full-season and playoff splits
+    '/teamdashboardbygeneralsplits', // per-team home/away/clutch splits
+    '/leaguedashplayerclutch',  // per-player clutch stats (for Finals Desk depth)
 ];
 function nbaStatsAllowed(path) {
     // Strip query string before matching; only the path is whitelisted,
