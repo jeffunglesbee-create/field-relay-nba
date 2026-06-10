@@ -25,6 +25,7 @@ import {
 import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
+import { runNFLR2Update } from './nfl-r2.js';
 import {
   computeLiveWP,
   computeAdvancementProb,
@@ -2597,12 +2598,17 @@ export default {
     async scheduled(event, env, ctx) {
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
-        // MLB Savant → R2 weekly update: Monday 6AM ET (UTC 10-12 window)
-        // Runs alongside the journalism cron — does not block push/journalism.
-        // Guards: only fires on Monday (day=1) between UTC 10-13, with FIELD_DATA bound.
+        // R2 weekly updates — run alongside journalism cron, non-blocking
         const _now = new Date();
-        if (_now.getUTCDay() === 1 && _now.getUTCHours() >= 10 && _now.getUTCHours() <= 13 && env.FIELD_DATA) {
+        const _utcDay  = _now.getUTCDay();
+        const _utcHour = _now.getUTCHours();
+        // MLB Savant → R2: Monday 6AM ET (UTC 10-13)
+        if (_utcDay === 1 && _utcHour >= 10 && _utcHour <= 13 && env.FIELD_DATA) {
             ctx.waitUntil(runMLBSavantUpdate(env).catch(e => console.error('[MLB-R2]', e.message)));
+        }
+        // nflverse → R2: Wednesday 8AM ET (UTC 12-15) — nflverse releases after Tuesday games
+        if (_utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
+            ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
         }
     },
 
@@ -2790,7 +2796,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3310,11 +3316,24 @@ export default {
         // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
         if (pathname.startsWith('/nflverse/')) {
             const file = pathname.replace(/^\/nflverse\//, '');
+            const NFL_R2_FILES = ['player-stats.json', 'ngs-passing.json', 'pfr-rec.json'];
+            // R2-first for nflverse pipeline files (NFL-A, June 10 2026)
+            if (NFL_R2_FILES.includes(file) && env.FIELD_DATA) {
+                try {
+                    const r2obj = await env.FIELD_DATA.get(`nfl/2026/${file}`);
+                    if (r2obj) {
+                        return new Response(await r2obj.text(), {
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=86400',
+                                       'X-Source': 'r2', ...CORS }
+                        });
+                    }
+                } catch(e_) {}
+            }
             if (!NFLVERSE_OUT_ALLOWED.includes(file))
                 return new Response('nflverse file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nflverse-not-whitelisted', ...CORS } });
             const targetUrl = `${NFLVERSE_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
-            // TTL: 86400 (1 day) — files only change when pipelines run
         }
 
         // ── /mlb-stats/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/mlb ─
@@ -3354,6 +3373,23 @@ export default {
             // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
+        }
+
+        // ── /nfl-r2-update → on-demand nflverse → R2 update (admin) ──────────────
+        if (pathname === '/nfl-r2-update' && request.method === 'POST') {
+            if (request.headers.get('X-FIELD-Admin') !== '1')
+                return new Response('Forbidden', { status: 403, headers: CORS });
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ error: 'FIELD_DATA R2 not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            try {
+                const result = await runNFLR2Update(env);
+                return new Response(JSON.stringify(result),
+                    { status: result.ok ? 200 : 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            } catch(e) {
+                return new Response(JSON.stringify({ error: e.message }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
         }
 
         // ── /mlb-savant-update → on-demand MLB Savant → R2 update (admin) ──────────
