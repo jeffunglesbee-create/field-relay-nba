@@ -23,7 +23,7 @@ import {
 // R2 migration deferred to WC2026 build week.
 // See src/finals-context.js for full documentation and source citations.
 import { buildFinalsContextBlock } from './finals-context.js';
-import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
+import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch } from './wc-team-context.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -2405,8 +2405,11 @@ async function handleJournalismCycle(env) {
 
     // 3. Layer 1: full style prompt
     // WC2026 team context — async (queries D1 for live standings)
+    // Load WC team context patches from R2 (amendment layer — 15min cache)
+    // Patches override specific inline WC_TEAM_CONTEXT fields without a deploy.
+    const _wcPatches = slateHasWorldCup(gameLines) ? await loadWCPatches(env) : {};
     const wcTeamContext = slateHasWorldCup(gameLines)
-      ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB)
+      ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB, _wcPatches)
       : '';
 
     const buildPrompt = () => [
@@ -3381,6 +3384,54 @@ export default {
             // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
+        }
+
+        // ── POST /wc-context-patch → write team context patch to R2 ───────────────
+        // Stores amendment layer for WC_TEAM_CONTEXT inline data.
+        // Body: { "teams": { "USA": { "narrativeNote": "...", "guardrail": "..." } } }
+        // Relay merges patches at buildWCTeamContextBlock() call time.
+        // Use for: injury updates, form notes, tactical shifts mid-tournament.
+        if (pathname === '/wc-context-patch' && request.method === 'POST') {
+            if (request.headers.get('X-FIELD-Admin') !== '1')
+                return new Response('Forbidden', { status: 403, headers: CORS });
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ error: 'FIELD_DATA R2 not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            try {
+                const body = await request.json();
+                if (!body || typeof body !== 'object')
+                    return new Response(JSON.stringify({ error: 'invalid body' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                const payload = JSON.stringify({
+                    updated: new Date().toISOString(),
+                    note: 'WC team context patches — applied at buildWCTeamContextBlock() call time',
+                    teams: body.teams || body,
+                });
+                await env.FIELD_DATA.put('soccer/wc2026-patches.json', payload,
+                    { httpMetadata: { contentType: 'application/json' } });
+                return new Response(JSON.stringify({ ok: true, teams: Object.keys(body.teams || body) }),
+                    { headers: { 'Content-Type': 'application/json', ...CORS } });
+            } catch(e) {
+                return new Response(JSON.stringify({ error: e.message }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+        }
+
+        // ── GET /wc-context-patch → read current patches ─────────────────────────
+        if (pathname === '/wc-context-patch' && request.method === 'GET') {
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ teams: {} }),
+                    { headers: { 'Content-Type': 'application/json', ...CORS } });
+            try {
+                const r2obj = await env.FIELD_DATA.get('soccer/wc2026-patches.json');
+                if (!r2obj) return new Response(JSON.stringify({ teams: {} }),
+                    { headers: { 'Content-Type': 'application/json', ...CORS } });
+                return new Response(await r2obj.text(),
+                    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ...CORS } });
+            } catch(e) {
+                return new Response(JSON.stringify({ error: e.message }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
         }
 
         // ── /nhl-series/{series}/stats → series-adjusted PP/PK from R2 ────────────
