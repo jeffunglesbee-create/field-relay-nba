@@ -2796,7 +2796,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3373,6 +3373,34 @@ export default {
             // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
+        }
+
+        // ── /soccer-fbref/{file} → FBref WC squad stats (SOCCER-A hybrid) ──────────
+        // FBref is CF-blocked (bot detection). GitHub Actions fetches on ubuntu-latest,
+        // writes to R2 (field-relay-data/soccer/fbref/wc2026.json) via CF REST API.
+        // Falls back to raw.githubusercontent.com/jubilant-bassoon/outbox/soccer/ if R2 miss.
+        // Cron: soccer-fbref-wc.yml every 3 days during WC group stage.
+        if (pathname.startsWith('/soccer-fbref/')) {
+            const sfFile = pathname.replace(/^\/soccer-fbref\//, '');
+            const SF_ALLOWED = ['wc2026.json'];
+            if (!SF_ALLOWED.includes(sfFile))
+                return new Response('soccer-fbref file not allowed', { status: 403, headers: { ...CORS } });
+            // R2-first
+            if (env.FIELD_DATA) {
+                try {
+                    const r2obj = await env.FIELD_DATA.get(`soccer/fbref/${sfFile}`);
+                    if (r2obj) {
+                        return new Response(await r2obj.text(), {
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=86400',
+                                       'X-Source': 'r2', ...CORS }
+                        });
+                    }
+                } catch(e_) {}
+            }
+            // Fallback: GitHub raw outbox/soccer/
+            const sfRaw = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/soccer';
+            return relayFetch(`${sfRaw}/${sfFile}`, { 'Accept': 'application/json' }, 86400, 'soccer-fbref', ctx);
         }
 
         // ── /nfl-r2-update → on-demand nflverse → R2 update (admin) ──────────────
