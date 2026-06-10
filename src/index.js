@@ -2807,7 +2807,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series + nba-clutch', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3458,6 +3458,30 @@ export default {
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
         }
 
+        // ── /nba-clutch/{file} → NBA clutch stats (GitHub Actions hybrid) ──────────
+        // stats.nba.com returns 520 from CF Workers — GH Actions fetches on ubuntu-latest.
+        // R2 key: nba/2026/{file} | GitHub raw fallback: outbox/nba/{file}
+        if (pathname.startsWith('/nba-clutch/')) {
+            const nbaFile = pathname.replace(/^\/nba-clutch\//, '');
+            const NBA_CLUTCH_ALLOWED = ['clutch_playoffs.json', 'clutch_regular.json'];
+            if (!NBA_CLUTCH_ALLOWED.includes(nbaFile))
+                return new Response('nba-clutch file not allowed', { status: 403, headers: CORS });
+            if (env.FIELD_DATA) {
+                try {
+                    const r2obj = await env.FIELD_DATA.get(`nba/2026/${nbaFile}`);
+                    if (r2obj) {
+                        return new Response(await r2obj.text(), {
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=86400',
+                                       'X-Source': 'r2', ...CORS }
+                        });
+                    }
+                } catch(e_) {}
+            }
+            const nbaCDN = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nba';
+            return relayFetch(`${nbaCDN}/${nbaFile}`, { 'Accept': 'application/json' }, 86400, 'nba-clutch', ctx);
+        }
+
         // ── /soccer-fbref/{file} → FBref WC squad stats (SOCCER-A hybrid) ──────────
         // FBref is CF-blocked (bot detection). GitHub Actions fetches on ubuntu-latest,
         // writes to R2 (field-relay-data/soccer/fbref/wc2026.json) via CF REST API.
@@ -3465,7 +3489,7 @@ export default {
         // Cron: soccer-fbref-wc.yml every 3 days during WC group stage.
         if (pathname.startsWith('/soccer-fbref/')) {
             const sfFile = pathname.replace(/^\/soccer-fbref\//, '');
-            const SF_ALLOWED = ['wc2026.json'];
+            const SF_ALLOWED = ['wc2026.json','epl.json','laliga.json','bundesliga.json','seriea.json','ligue1.json'];
             if (!SF_ALLOWED.includes(sfFile))
                 return new Response('soccer-fbref file not allowed', { status: 403, headers: { ...CORS } });
             // R2-first
