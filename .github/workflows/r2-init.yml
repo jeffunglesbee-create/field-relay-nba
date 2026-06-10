@@ -1,0 +1,27 @@
+name: R2 Initial Population
+
+on:
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: 'Admin endpoint to trigger (nba-clutch-update, nhl-gsax, mlb-savant-update, nfl-r2-update)'
+        required: true
+        default: 'nba-clutch-update'
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger relay admin endpoint
+        run: |
+          echo "Triggering https://field-relay-nba.jeffunglesbee.workers.dev/${{ github.event.inputs.endpoint }}"
+          RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "X-FIELD-Admin: 1" \
+            -H "Content-Type: application/json" \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/${{ github.event.inputs.endpoint }}")
+          echo "$RESP"
+          STATUS=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          if [ "$STATUS" != "200" ]; then
+            echo "ERROR: endpoint returned $STATUS"
+            exit 1
+          fi
