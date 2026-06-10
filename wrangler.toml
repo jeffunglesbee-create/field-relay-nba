@@ -89,6 +89,17 @@ max_batch_size     = 5
 max_batch_timeout  = 30
 max_retries        = 3
 
+
+# ── R2 Data Store (field-relay-data — June 10 2026) ──────────────────────────
+# General-purpose R2 bucket for relay-generated analytics data.
+# First use: MLB weekly Savant pipeline (5 tables, Monday 6AM ET cron).
+# Future: nflverse Pipeline 2, FBref soccer analytics (when not CF-blocked),
+#         Wimbledon draw context, NHL GSAX/PDO, NBA clutch/play-type profiles.
+# Binding: FIELD_DATA — accessible in src/index.js as env.FIELD_DATA
+[[r2_buckets]]
+binding  = "FIELD_DATA"
+bucket_name = "field-relay-data"
+
 # ── D1 World Cup Group Table (WC D1 — June 4 2026) ───────────────────────────
 # SQLite at edge. Stores WC2026 group standings + results for permutations engine.
 # Database: wc2026 (ID: f26669de-e772-4b56-a6d1-f8fdea08a4d4, region: ENAM)
