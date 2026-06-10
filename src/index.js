@@ -2237,11 +2237,16 @@ async function handleJournalismCycle(env) {
     // a league to this array immediately expands cache coverage for the
     // 97% LLM-cost-reduction path.
     const LEAGUES = [
-      {sport:'basketball',league:'nba',label:'NBA'},
-      {sport:'hockey',    league:'nhl',label:'NHL'},
-      {sport:'baseball',  league:'mlb',label:'MLB'},
-      {sport:'basketball',league:'wnba',label:'WNBA'},
-      {sport:'soccer',    league:'eng.1',label:'EPL'},
+      {sport:'basketball',league:'nba',        label:'NBA'},
+      {sport:'hockey',    league:'nhl',        label:'NHL'},
+      {sport:'baseball',  league:'mlb',        label:'MLB'},
+      {sport:'basketball',league:'wnba',       label:'WNBA'},
+      {sport:'soccer',    league:'eng.1',      label:'EPL'},
+      // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
+      // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
+      // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
+      // isLiveHours gate (UTC 10-2) covers all WC group-stage kickoffs (UTC 17-01).
+      {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
     ];
     const gameLines = [];
     for (const {sport,league,label} of LEAGUES) {
