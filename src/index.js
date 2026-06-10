@@ -26,6 +26,7 @@ import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup } from './wc-team-context.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
+import { runNHLSeriesUpdate } from './nhl-series-r2.js';
 import {
   computeLiveWP,
   computeAdvancementProb,
@@ -2610,6 +2611,13 @@ export default {
         if (_utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
             ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
         }
+        // NHL SCF series-adjusted PP/PK: runs every 15-min journalism tick during playoff season.
+        // Incremental: skips already-processed games. No-op when no new completed games.
+        // Covers June (SCF window) only — saves CPU outside playoff season.
+        const _month = _now.getUTCMonth() + 1; // 1-12
+        if ((_month >= 4 && _month <= 7) && env.FIELD_DATA) {
+            ctx.waitUntil(runNHLSeriesUpdate(env).catch(e => console.error('[NHL-SERIES]', e.message)));
+        }
     },
 
     async fetch(request, env, ctx) {
@@ -2796,7 +2804,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3373,6 +3381,30 @@ export default {
             // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
+        }
+
+        // ── /nhl-series/{series}/stats → series-adjusted PP/PK from R2 ────────────
+        // R2 key: nhl/{series}/series-stats.json
+        // Populated by runNHLSeriesUpdate() cron (every 15min during playoffs).
+        // Client reads this to enrich NHL journalism context and Scout's Pick signals.
+        if (pathname.startsWith('/nhl-series/') && pathname.endsWith('/stats')) {
+            const series = pathname.split('/')[2];
+            if (!series || !/^[a-z0-9-]+$/.test(series))
+                return new Response('invalid series', { status: 400, headers: CORS });
+            if (env.FIELD_DATA) {
+                try {
+                    const r2obj = await env.FIELD_DATA.get(`nhl/${series}/series-stats.json`);
+                    if (r2obj) {
+                        return new Response(await r2obj.text(), {
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=900',
+                                       'X-Source': 'r2', ...CORS }
+                        });
+                    }
+                } catch(e_) {}
+            }
+            return new Response(JSON.stringify({ error: 'no series data yet' }),
+                { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
         }
 
         // ── /soccer-fbref/{file} → FBref WC squad stats (SOCCER-A hybrid) ──────────
