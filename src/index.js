@@ -504,6 +504,10 @@ const NFLVERSE_OUT_ALLOWED = [
     'bdb_xblock_pass_rush.json',
     'bdb_tendency_fingerprint.json',
     'bdb_separation.json',
+    // NFL-B: nflverse parquet pipeline (ngs-update.yml)
+    'ngs-receiving.json',
+    'ngs-rushing.json',
+    'nfl-injuries.json',
 ];
 const NFLVERSE_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nfl';
 
@@ -3032,7 +3036,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + soccer-fbref + nhl-series + nba-clutch + nhl-gsax', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3660,11 +3664,17 @@ export default {
         // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
         if (pathname.startsWith('/nflverse/')) {
             const file = pathname.replace(/^\/nflverse\//, '');
-            const NFL_R2_FILES = ['player-stats.json', 'ngs-passing.json', 'pfr-rec.json'];
+            const NFL_R2_FILES = [
+                'player-stats.json', 'ngs-passing.json', 'pfr-rec.json',
+                // NFL-B: nflverse parquet pipeline
+                'ngs-receiving.json', 'ngs-rushing.json', 'nfl-injuries.json',
+            ];
+            // Dynamic year: use current NFL season year
+            const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
             // R2-first for nflverse pipeline files (NFL-A, June 10 2026)
             if (NFL_R2_FILES.includes(file) && env.FIELD_DATA) {
                 try {
-                    const r2obj = await env.FIELD_DATA.get(`nfl/2026/${file}`);
+                    const r2obj = await env.FIELD_DATA.get(`nfl/${nflYear}/${file}`);
                     if (r2obj) {
                         return new Response(await r2obj.text(), {
                             headers: { 'Content-Type': 'application/json',
