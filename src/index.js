@@ -1973,6 +1973,7 @@ async function runWCTournamentProjections(env) {
             home: g.home_team, away: g.away_team,
             pHome: g.pHome, pDraw: g.pDraw || (1 - g.pHome - g.pAway) / 2,
             pAway: g.pAway,
+            lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
         }));
 
     // Teams that played today (have commence within last 24h)

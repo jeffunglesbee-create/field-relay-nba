@@ -88,8 +88,8 @@ export function deriveTeamStrengths(oddsProbs) {
   for (const g of (oddsProbs || [])) {
     const lH = g.lambdaHome || 1.0;
     const lA = g.lambdaAway || 1.0;
-    acc(g.home_team, lH, lA);   // home team: lH is their attack
-    acc(g.away_team, lA, lH);   // away team: lA is their attack
+    acc(normalizeTeamName(g.home_team), lH, lA);
+    acc(normalizeTeamName(g.away_team), lA, lH);
   }
 
   const strengths = {};
@@ -171,15 +171,37 @@ function simulateGroupStage(currentStandings, remainingFixtures, rng) {
     }
   }
 
+  // Register any teams appearing in remaining fixtures but absent from standings.
+  // Happens on Day 1 before any results exist. Look up group from WC_TEAM_CONTEXT.
+  const allCtx = Object.values(WC_TEAM_CONTEXT);
+  const nameToGroup = {};
+  for (const c of allCtx) nameToGroup[c.displayName] = c.group;
+
+  for (const fix of (remainingFixtures || [])) {
+    for (const side of [fix.home, fix.away]) {
+      const normSide = normalizeTeamName(side);
+      if (!group[normSide]) {
+        const grp = nameToGroup[normSide] || null;
+        if (grp) { group[normSide] = grp; pts[normSide] = 0; gf[normSide] = 0; ga[normSide] = 0; }
+      }
+    }
+  }
+
   // Simulate remaining games
   for (const fix of (remainingFixtures || [])) {
-    const res = sampleGroupResult(fix.home, fix.away,
+    const home = normalizeTeamName(fix.home);
+    const away = normalizeTeamName(fix.away);
+    const res = sampleGroupResult(home, away,
       fix.pHome, fix.pDraw, fix.pAway, rng);
-    pts[fix.home]  = (pts[fix.home]  || 0) + (res.home === 1 ? 3 : res.home === 0 ? 1 : 0);
-    pts[fix.away]  = (pts[fix.away]  || 0) + (res.away === 1 ? 3 : res.away === 0 ? 1 : 0);
-    gf[fix.home]   = (gf[fix.home]   || 0) + (res.home || 0) + (rng() < 0.5 ? 1 : 0) + (rng() < 0.3 ? 1 : 0);
-    gf[fix.away]   = (gf[fix.away]   || 0) + (res.away || 0) + (rng() < 0.5 ? 1 : 0) + (rng() < 0.3 ? 1 : 0);
-    ga[fix.home]   = (ga[fix.home]   || 0) + (gf[fix.away] - (gf[fix.away] || 0));  // approximate
+    pts[home]  = (pts[home]  || 0) + (res.home === 1 ? 3 : res.home === 0 ? 1 : 0);
+    pts[away]  = (pts[away]  || 0) + (res.away === 1 ? 3 : res.away === 0 ? 1 : 0);
+    const lH = fix.lambdaHome || 1.3, lA = fix.lambdaAway || 0.8;
+    const goalsH = poissonSample(res.home === 1 ? Math.max(lH, 0.5) : res.home === 0 ? 0 : 0, rng);
+    const goalsA = poissonSample(res.away === 1 ? Math.max(lA, 0.5) : res.away === 0 ? 0 : 0, rng);
+    gf[home]  = (gf[home]  || 0) + goalsH + (res.home === 1 ? 1 : 0);
+    ga[home]  = (ga[home]  || 0) + goalsA + (res.away === 1 ? 1 : 0);
+    gf[away]  = (gf[away]  || 0) + goalsA + (res.away === 1 ? 1 : 0);
+    ga[away]  = (ga[away]  || 0) + goalsH + (res.home === 1 ? 1 : 0);
   }
 
   // Rebuild sorted group tables
@@ -327,6 +349,17 @@ export function computeTournamentProjections({
 } = {}) {
   const rng = Math.random;
   const strengths = deriveTeamStrengths(oddsProbs);
+
+  // Auto-build remainingFixtures from oddsProbs if caller didn't provide them.
+  // Uses commence timestamp to exclude already-played games; on Day 1 all are future.
+  const effectiveRemaining = remainingFixtures.length > 0
+    ? remainingFixtures
+    : oddsProbs.map(g => ({
+        home: g.home_team, away: g.away_team,
+        pHome: g.pHome, pDraw: g.pDraw || Math.max(0, 1 - g.pHome - g.pAway),
+        pAway: g.pAway,
+        lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
+      }));
   const counts = {};  // { teamName: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 } }
 
   const initCounts = (name) => {
@@ -338,7 +371,7 @@ export function computeTournamentProjections({
 
   for (let i = 0; i < N; i++) {
     // 1. Simulate group stage
-    const tables = simulateGroupStage(currentStandings, remainingFixtures, rng);
+    const tables = simulateGroupStage(currentStandings, effectiveRemaining, rng);
     // 2. Pick best 8 third
     const best8 = pickBest8Third(tables);
     // 3. Build R32 matchups
@@ -489,5 +522,29 @@ export function buildMoversBriefPrompt(movers, projections) {
   return lines.join('\n');
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── ODDS API name aliases ─────────────────────────────────────────────────────
+// Maps Odds API team names to WC_TEAM_CONTEXT displayName.
+// Mismatches arise from FIFA name evolution vs. common usage.
+const ODDS_NAME_ALIAS = {
+  'Czech Republic':           'Czechia',
+  'Bosnia & Herzegovina':     'Bosnia and Herzegovina',
+  'Bosnia And Herzegovina':   'Bosnia and Herzegovina',
+  'DR Congo':                 'Congo DR',
+  'Republic of Ireland':      'Republic of Ireland',  // same
+  'USA':                      'United States',
+  'Ivory Coast':              'Ivory Coast',           // same
+};
+
+function normalizeTeamName(name) {
+  return ODDS_NAME_ALIAS[name] || name;
+}
+
+// Sample from Poisson distribution (simple truncated series)
+function poissonSample(lambda, rng) {
+  if (lambda <= 0) return 0;
+  let L = Math.exp(-lambda), k = 0, p = 1;
+  do { k++; p *= rng(); } while (p > L && k < 10);
+  return k - 1;
+}
+
 function round2(v) { return Math.round(v * 1000) / 1000; }
