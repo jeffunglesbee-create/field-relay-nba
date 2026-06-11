@@ -2761,17 +2761,12 @@ export default {
         } else if (!_isFinalsWindow && _utcDay === 3 && _utcHour === 12 && env.FIELD_DATA) {
             ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
         }
-        // WC Tournament Projections — run every 60 min during group stage (June 11–26),
-        // every 30 min during knockout phase (June 27+). Stores in FIELD_JOURNALISM KV.
+        // WC Tournament Projections — run every 15 min during group stage (June 11–26),
+        // every 15 min during knockout phase (June 27+). Stores in FIELD_JOURNALISM KV.
         const _wcOpen  = new Date('2026-06-11T00:00:00Z');
         const _wcClose = new Date('2026-07-20T00:00:00Z');
         const _isWCWindow = _now >= _wcOpen && _now < _wcClose;
-        const _isKnockout = _now >= new Date('2026-06-27T00:00:00Z');
-        const _runWCProj = _isWCWindow && (
-            _isKnockout ? (_now.getUTCMinutes() < 15 || (_now.getUTCMinutes() >= 30 && _now.getUTCMinutes() < 45))
-                        : _now.getUTCMinutes() < 15  // top of each hour only
-        );
-        if (_runWCProj && env.FIELD_JOURNALISM) {
+        if (_isWCWindow && env.FIELD_JOURNALISM) {
             ctx.waitUntil(runWCTournamentProjections(env).catch(e =>
                 console.error('[WC-PROJ]', e.message)));
         }
