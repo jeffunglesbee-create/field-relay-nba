@@ -51,10 +51,21 @@ crons = ["*/5 * * * *", "*/15 * * * *"]
 name       = "GAME_DO"
 class_name = "GameDO"
 
+# UserDO — per-user FIELD state (June 11 2026)
+# No PII. UUID-keyed. Stores watchHistory, seriesLedger, dramaticMomentsMissed.
+[[durable_objects.bindings]]
+name       = "USER_DO"
+class_name = "UserDO"
+
 # Migration: introduce the GameDO class. Required when first deploying a DO.
 [[migrations]]
 tag         = "v1-game-do"
 new_classes = ["GameDO"]
+
+# Migration: introduce the UserDO class (June 11 2026).
+[[migrations]]
+tag         = "v2-user-do"
+new_classes = ["UserDO"]
 
 # ── Analytics Engine (WOW 7 — Journalism Quality observability, May 31 2026) ─
 # Append-only time-series sink for JQ Gate metrics. Bound as JQ_ANALYTICS in

@@ -4,6 +4,12 @@
 import { GameDO } from './game-do.js';
 export { GameDO };
 
+// ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
+// No PII. UUID-keyed. Stores seriesLedger, watchHistory, dramaticMomentsMissed.
+// Powers NW-2 catch-up brief, NW-3 rival intelligence, PREF-SYNC-QR upgrade.
+import { UserDO } from './user-do.js';
+export { UserDO };
+
 // ── Journalism Quality Gate (WOW 6 — May 31 2026) ──────────────────────────
 // Ports browser-side JQ chain (Layers 1, 2, 2b, 2c, 2d, 2e, 3, 3b) to the
 // relay so live journalism flows through structural quality enforcement.
@@ -2716,6 +2722,32 @@ export default {
         if (pathname === '/debug/recent-requests' && request.method === 'GET') {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
             return oauthDebugRecentRequests(request, env);
+        }
+
+        // ── UserDO routes (June 11 2026) ──────────────────────────────────
+        // /user/init   POST — create or verify UserDO for a given userId UUID
+        // /user/state  GET  — return user state (watchHistory, seriesLedger, etc.)
+        // /user/event  POST — append a user event (watch_open, series_game, peak_missed)
+        // Privacy: no PII stored. UUID is the only identifier.
+        if (pathname.startsWith('/user/') && env.USER_DO) {
+            const userId = url.searchParams.get('userId') || '';
+            if (!userId || userId.length < 8) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing userId' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const doId = env.USER_DO.idFromName(userId);
+            const stub = env.USER_DO.get(doId);
+            const doUrl = new URL(request.url);
+            doUrl.hostname = 'user-do-internal';
+            return stub.fetch(new Request(doUrl.toString(), {
+                method:  request.method,
+                headers: request.headers,
+                body:    request.method === 'POST' ? request.body : undefined,
+            }));
+        }
+        if (pathname.startsWith('/user/') && !env.USER_DO) {
+            return new Response(JSON.stringify({ ok: false, error: 'USER_DO not configured' }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // /push/subscribe — store push subscription in KV
