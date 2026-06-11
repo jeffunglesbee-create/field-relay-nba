@@ -10,6 +10,14 @@ export { GameDO };
 import { UserDO } from './user-do.js';
 export { UserDO };
 
+// ── WC Tournament Projections (June 11 2026) ─────────────────────────────────
+import {
+  computeTournamentProjections,
+  computeMovers,
+  buildMoversBriefPrompt,
+  deriveTeamStrengths,
+} from './wc-tournament-projections.js';
+
 // ── Journalism Quality Gate (WOW 6 — May 31 2026) ──────────────────────────
 // Ports browser-side JQ chain (Layers 1, 2, 2b, 2c, 2d, 2e, 3, 3b) to the
 // relay so live journalism flows through structural quality enforcement.
@@ -1937,6 +1945,114 @@ async function handleTubiPreGameAlerts(env) {
     }
 }
 
+// ── runWCTournamentProjections ────────────────────────────────────────────────
+// Compute tournament path probabilities for all 48 teams.
+// Stores current projections + movers in FIELD_JOURNALISM KV.
+// Generates a journalism brief via Claude if movers are significant.
+// Runs from cron (top of hour during WC window).
+async function runWCTournamentProjections(env) {
+    const KV    = env.FIELD_JOURNALISM;
+    const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+
+    // 1. Fetch WC data (standings, odds-probs)
+    const [standingsRes, oddsRes] = await Promise.allSettled([
+        fetch(`${RELAY}/wc/standings`, { cache: 'no-store' }),
+        fetch(`${RELAY}/wc/odds-probs`, { cache: 'no-store' }),
+    ]);
+
+    const standings  = standingsRes.status === 'fulfilled' && standingsRes.value.ok
+        ? ((await standingsRes.value.json()).groups || {}) : {};
+    const oddsProbs  = oddsRes.status === 'fulfilled' && oddsRes.value.ok
+        ? ((await oddsRes.value.json()).probs  || []) : [];
+
+    // 2. Build remainingFixtures from oddsProbs: future fixtures have commence > now
+    const nowMs = Date.now();
+    const remainingFixtures = oddsProbs
+        .filter(g => new Date(g.commence).getTime() > nowMs)
+        .map(g => ({
+            home: g.home_team, away: g.away_team,
+            pHome: g.pHome, pDraw: g.pDraw || (1 - g.pHome - g.pAway) / 2,
+            pAway: g.pAway,
+        }));
+
+    // Teams that played today (have commence within last 24h)
+    const day24h = nowMs - 86400000;
+    const playedTodaySet = new Set(
+        oddsProbs
+            .filter(g => new Date(g.commence).getTime() > day24h &&
+                         new Date(g.commence).getTime() <= nowMs)
+            .flatMap(g => [g.home_team, g.away_team])
+    );
+
+    // 3. Compute projections
+    const curr = computeTournamentProjections({
+        currentStandings: standings,
+        remainingFixtures,
+        oddsProbs,
+        N: 2000,
+    });
+
+    // 4. Load previous snapshot for movers diff
+    let prev = null;
+    try {
+        const prevJson = await KV.get('wc:projections:prev');
+        if (prevJson) prev = JSON.parse(prevJson);
+    } catch (_) {}
+
+    // 5. Compute movers
+    const movers = prev ? computeMovers(prev, curr, playedTodaySet) : null;
+
+    // 6. Persist: rotate curr → prev, write new curr
+    if (prev) {
+        await KV.put('wc:projections:prev', JSON.stringify(prev), { expirationTtl: 7 * 86400 });
+    }
+    await KV.put('wc:projections:current', JSON.stringify(curr), { expirationTtl: 7 * 86400 });
+    if (movers) {
+        await KV.put('wc:movers:current', JSON.stringify(movers), { expirationTtl: 86400 });
+    }
+
+    // 7. Generate journalism brief if movers are significant (any team moved > 3% pFinal)
+    const hasSignificantMovers = movers && [...(movers.gainers || []), ...(movers.losers || [])]
+        .some(d => Math.abs(d.deltaFinal) > 0.03);
+    if (hasSignificantMovers && env.ANTHROPIC_API_KEY) {
+        const prompt = buildMoversBriefPrompt(movers, curr);
+        if (prompt) {
+            try {
+                const briefRes = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': env.ANTHROPIC_API_KEY,
+                        'anthropic-version': '2023-06-01',
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 350,
+                        messages: [{ role: 'user', content: prompt }],
+                    }),
+                });
+                if (briefRes.ok) {
+                    const briefData = await briefRes.json();
+                    const text = briefData.content?.find(b => b.type === 'text')?.text || '';
+                    if (text.length > 50) {
+                        await KV.put('wc:brief:movers', JSON.stringify({
+                            text,
+                            generatedAt: curr.generatedAt,
+                            movers: {
+                                topGainer: movers.gainers?.[0]?.name,
+                                topLoser:  movers.losers?.[0]?.name,
+                                topSecondary: movers.secondaryBeneficiaries?.[0]?.name,
+                            },
+                        }), { expirationTtl: 86400 });
+                    }
+                }
+            } catch (_) {}
+        }
+    }
+
+    console.log(`[WC-PROJ] Done. ${curr.teams.length} teams · ${remainingFixtures.length} remaining fixtures · movers: ${movers ? 'yes' : 'no'}`);
+}
+
 async function handleCron(env) {
     if (!env.PUSH_SUBS) return; // KV not configured
 
@@ -2644,9 +2760,19 @@ export default {
         } else if (!_isFinalsWindow && _utcDay === 3 && _utcHour === 12 && env.FIELD_DATA) {
             ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
         }
-        // NHL MoneyPuck GSAX (NHL-B): weekly during playoffs, April-July.
-        if ((_month >= 4 && _month <= 7) && _utcDay === 1 && _utcHour === 11 && env.FIELD_DATA) {
-            ctx.waitUntil(runNHLGSAXUpdate(env).catch(e => console.error('[NHL-GSAX]', e.message)));
+        // WC Tournament Projections — run every 60 min during group stage (June 11–26),
+        // every 30 min during knockout phase (June 27+). Stores in FIELD_JOURNALISM KV.
+        const _wcOpen  = new Date('2026-06-11T00:00:00Z');
+        const _wcClose = new Date('2026-07-20T00:00:00Z');
+        const _isWCWindow = _now >= _wcOpen && _now < _wcClose;
+        const _isKnockout = _now >= new Date('2026-06-27T00:00:00Z');
+        const _runWCProj = _isWCWindow && (
+            _isKnockout ? (_now.getUTCMinutes() < 15 || (_now.getUTCMinutes() >= 30 && _now.getUTCMinutes() < 45))
+                        : _now.getUTCMinutes() < 15  // top of each hour only
+        );
+        if (_runWCProj && env.FIELD_JOURNALISM) {
+            ctx.waitUntil(runWCTournamentProjections(env).catch(e =>
+                console.error('[WC-PROJ]', e.message)));
         }
     },
 
@@ -2875,6 +3001,52 @@ export default {
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
+
+            // ── WC Tournament Projections (June 11 2026) ───────────────────────
+            // GET  /wc/projections          — current per-team path probabilities
+            // GET  /wc/movers               — today's movers + secondary beneficiaries
+            // GET  /wc/brief/tournament     — journalism brief from latest movers
+            // POST /wc/projections/refresh  — manual trigger (no auth needed — idempotent read)
+            if (pathname === '/wc/projections') {
+                const raw = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:projections:current') : null;
+                if (!raw) {
+                    // Not computed yet — trigger immediately and return placeholder
+                    if (env.FIELD_JOURNALISM) {
+                        ctx.waitUntil(runWCTournamentProjections(env).catch(() => {}));
+                    }
+                    return new Response(JSON.stringify({ ok: true, pending: true,
+                        message: 'Projections computing — retry in 30s' }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                return new Response(raw, {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300' } });
+            }
+            if (pathname === '/wc/movers') {
+                const raw = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:movers:current') : null;
+                if (!raw) return new Response(JSON.stringify({ ok: true, movers: null }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                return new Response(raw, {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300' } });
+            }
+            if (pathname === '/wc/brief/tournament') {
+                const raw = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:brief:movers') : null;
+                if (!raw) return new Response(JSON.stringify({ ok: true, brief: null }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                return new Response(raw, {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=1800' } });
+            }
+            if (pathname === '/wc/projections/refresh' && request.method === 'POST') {
+                ctx.waitUntil(runWCTournamentProjections(env).catch(() => {}));
+                return new Response(JSON.stringify({ ok: true, message: 'Refresh triggered' }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
         }
 
@@ -4257,6 +4429,9 @@ export default {
                         '/wc/odds-probs',
                         '/cfl/odds-probs',
                         '/wc/third-place',
+                        '/wc/projections',
+                        '/wc/movers',
+                        '/wc/brief/tournament',
                         '/v2/games',
                         '/v2/standings',
                         // P0 carry-forward (2026-06-05): first step to diagnose
