@@ -1,0 +1,493 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// WC Tournament Projections — Monte Carlo path probability engine
+// Built: June 11 2026
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// PURPOSE
+//   For each of the 48 WC 2026 teams, compute the probability of reaching
+//   every knockout round: R32, R16, QF, SF, Final, Champion.
+//   Run daily (or after each matchday) and diff against yesterday's snapshot
+//   to produce: (a) biggest movers, (b) secondary beneficiaries, (c) journalism.
+//
+// ALGORITHM
+//   1. Derive team attack/defense strengths from group-stage Poisson lambdas
+//      (lambdaHome, lambdaAway from /wc/odds-probs response).
+//   2. Monte Carlo N=2000 simulations:
+//      a. For each group: complete remaining fixtures via Poisson sampling.
+//      b. Rank all 12 3rd-place teams → take top 8.
+//      c. Apply R32 bracket (FIFA Annex C slots).
+//      d. Simulate R32 → R16 → QF → SF → Final using team lambdas.
+//   3. Per-team path probabilities = count / N.
+//   4. Diff against KV snapshot ('wc:projections:prev') → movers.
+//   5. Secondary beneficiaries: pFinal improved but team had no game today.
+//
+// LIMITATIONS
+//   - Knockout stage uses neutral-venue lambdas (no home advantage).
+//   - Extra time / penalties: loser eliminated, winner continues regardless
+//     of how they won (probability-based selection, not simulated ET/PKs).
+//   - 3rd-place qualification uses simplified ordering (Pts → GD → GF).
+//     Full FIFA fair-play tiebreaker not implemented.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { winProbsFromLambda } from './soccer-wp.js';
+import { WC_TEAM_CONTEXT, WC_NAME_TO_CODE } from './wc-team-context.js';
+
+// ── R32 bracket slots (FIFA Annex C, matches 73–88) ─────────────────────────
+// Mirrors WC_R32_SLOTS in index.html — kept in sync manually.
+const R32_SLOTS = [
+  { match:73, home:{pos:2,group:'A'}, away:{pos:2,group:'B'}       },
+  { match:74, home:{pos:1,group:'E'}, away:{pos:3,eligible:'ABCDF'}},
+  { match:75, home:{pos:1,group:'F'}, away:{pos:2,group:'C'}       },
+  { match:76, home:{pos:1,group:'C'}, away:{pos:2,group:'F'}       },
+  { match:77, home:{pos:1,group:'I'}, away:{pos:3,eligible:'CDFGH'}},
+  { match:78, home:{pos:2,group:'E'}, away:{pos:2,group:'I'}       },
+  { match:79, home:{pos:1,group:'A'}, away:{pos:3,eligible:'CEFHI'}},
+  { match:80, home:{pos:1,group:'L'}, away:{pos:3,eligible:'EHIJK'}},
+  { match:81, home:{pos:1,group:'D'}, away:{pos:3,eligible:'BEFIJ'}},
+  { match:82, home:{pos:1,group:'G'}, away:{pos:3,eligible:'AEHIJ'}},
+  { match:83, home:{pos:2,group:'K'}, away:{pos:2,group:'L'}       },
+  { match:84, home:{pos:1,group:'H'}, away:{pos:2,group:'J'}       },
+  { match:85, home:{pos:1,group:'B'}, away:{pos:3,eligible:'EFGIJ'}},
+  { match:86, home:{pos:1,group:'J'}, away:{pos:2,group:'H'}       },
+  { match:87, home:{pos:1,group:'K'}, away:{pos:3,eligible:'DEIJL'}},
+  { match:88, home:{pos:2,group:'D'}, away:{pos:2,group:'G'}       },
+];
+
+// R16 bracket: winners of adjacent R32 matches face each other
+// {a: R32 matchA, b: R32 matchB} → winner(a) vs winner(b)
+const R16_PAIRINGS = [
+  {a:49,b:50}, {a:51,b:52}, {a:53,b:54}, {a:55,b:56},  // upper half
+  {a:57,b:58}, {a:59,b:60}, {a:61,b:62}, {a:63,b:64},  // lower half
+];
+// FIFA 2026 actual R16 pairing: winners of R32 matches pair as:
+// M73 winner vs M74 winner → R16 match
+// M75 winner vs M76 winner → R16 match
+// etc. (adjacent pair in sequential order)
+const R32_TO_R16_PAIRS = [
+  [73,74], [75,76], [77,78], [79,80],
+  [81,82], [83,84], [85,86], [87,88],
+];
+const R16_TO_QF_PAIRS   = [[0,1],[2,3],[4,5],[6,7]];   // indices into R16 results
+const QF_TO_SF_PAIRS    = [[0,1],[2,3]];
+const SF_TO_FINAL_PAIRS = [[0,1]];
+
+// ── deriveTeamStrengths ──────────────────────────────────────────────────────
+// From /wc/odds-probs array, derive each team's attack and defense lambda.
+// Each team plays 3 group stage games; average lambdas across their fixtures.
+// Returns: { 'Mexico': {attack, defense}, ... }
+export function deriveTeamStrengths(oddsProbs) {
+  const agg = {};  // { name: { attackSum, defenseSum, count } }
+
+  function acc(name, att, def) {
+    if (!agg[name]) agg[name] = { attackSum:0, defenseSum:0, count:0 };
+    agg[name].attackSum  += att;
+    agg[name].defenseSum += def;
+    agg[name].count++;
+  }
+
+  for (const g of (oddsProbs || [])) {
+    const lH = g.lambdaHome || 1.0;
+    const lA = g.lambdaAway || 1.0;
+    acc(g.home_team, lH, lA);   // home team: lH is their attack
+    acc(g.away_team, lA, lH);   // away team: lA is their attack
+  }
+
+  const strengths = {};
+  for (const [name, v] of Object.entries(agg)) {
+    strengths[name] = {
+      attack:  v.attackSum  / v.count,
+      defense: v.defenseSum / v.count,
+    };
+  }
+
+  // Fill any missing teams (unlikely) with league average
+  const avgAtt = Object.values(strengths).reduce((s,v) => s+v.attack,  0)
+               / (Object.keys(strengths).length || 1);
+  const avgDef = Object.values(strengths).reduce((s,v) => s+v.defense, 0)
+               / (Object.keys(strengths).length || 1);
+  for (const name of getAllTeamNames()) {
+    if (!strengths[name]) strengths[name] = { attack: avgAtt, defense: avgDef };
+  }
+  return strengths;
+}
+
+// ── getAllTeamNames ──────────────────────────────────────────────────────────
+// Returns all 48 WC team display names from WC_TEAM_CONTEXT.
+function getAllTeamNames() {
+  return Object.values(WC_TEAM_CONTEXT).map(t => t.displayName);
+}
+
+// ── h2hLambdas ───────────────────────────────────────────────────────────────
+// Head-to-head expected goals for teamA vs teamB on a neutral venue.
+// Based on attack/defense strengths: λA = BASE * attack_A * (1/defense_B)
+const BASE_LAMBDA = 1.15;  // ~WC knockout average per team per 90 min
+function h2hLambdas(teamA, teamB, strengths) {
+  const A = strengths[teamA] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+  const B = strengths[teamB] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+  const lA = BASE_LAMBDA * (A.attack / BASE_LAMBDA) * (BASE_LAMBDA / B.defense);
+  const lB = BASE_LAMBDA * (B.attack / BASE_LAMBDA) * (BASE_LAMBDA / A.defense);
+  return [Math.max(0.2, lA), Math.max(0.2, lB)];
+}
+
+// ── simulateMatch ────────────────────────────────────────────────────────────
+// Simulate one knockout match, returning 'A' or 'B' as the winner.
+// Uses Poisson WP; draws are broken randomly 50/50 (ET/PKs abstraction).
+function simulateMatch(teamA, teamB, strengths, rng) {
+  const [lA, lB] = h2hLambdas(teamA, teamB, strengths);
+  const wp = winProbsFromLambda(lA, lB);
+  const r = rng();
+  if (r < wp.homeWin) return teamA;
+  if (r < wp.homeWin + wp.awayWin) return teamB;
+  return rng() < 0.5 ? teamA : teamB;  // draw → 50/50 ET/PKs
+}
+
+// ── sampleGroupResult ────────────────────────────────────────────────────────
+// For a single group game, sample W/D/L using odds probabilities.
+// Returns { winner: name|null, draw: bool, loser: name }
+function sampleGroupResult(home, away, pHome, pDraw, pAway, rng) {
+  const r = rng();
+  if (r < pHome)           return { home: 1, away: 0 };  // home win
+  if (r < pHome + pDraw)   return { home: 0, away: 0 };  // draw
+  return                          { home: 0, away: 1 };  // away win
+}
+
+// ── simulateGroupStage ───────────────────────────────────────────────────────
+// Complete all remaining group stage games for all 12 groups.
+// Returns: { A: [{name, pts, gf, ga}], B: [...], ... } sorted by pts→GD→GF.
+//
+// completedResults: [{home, away, homeScore, awayScore}] already played
+// remainingFixtures: [{home, away, pHome, pDraw, pAway}]
+// currentStandings: { A: [{name,pts,gf,ga,...}], ... }
+function simulateGroupStage(currentStandings, remainingFixtures, rng) {
+  // Copy standings
+  const pts  = {}, gf = {}, ga = {}, group = {};
+  for (const [g, rows] of Object.entries(currentStandings || {})) {
+    for (const r of (rows || [])) {
+      const n = r.name || r.team;
+      pts[n]   = r.points || r.pts || 0;
+      gf[n]    = r.gf || 0;
+      ga[n]    = r.ga || 0;
+      group[n] = g;
+    }
+  }
+
+  // Simulate remaining games
+  for (const fix of (remainingFixtures || [])) {
+    const res = sampleGroupResult(fix.home, fix.away,
+      fix.pHome, fix.pDraw, fix.pAway, rng);
+    pts[fix.home]  = (pts[fix.home]  || 0) + (res.home === 1 ? 3 : res.home === 0 ? 1 : 0);
+    pts[fix.away]  = (pts[fix.away]  || 0) + (res.away === 1 ? 3 : res.away === 0 ? 1 : 0);
+    gf[fix.home]   = (gf[fix.home]   || 0) + (res.home || 0) + (rng() < 0.5 ? 1 : 0) + (rng() < 0.3 ? 1 : 0);
+    gf[fix.away]   = (gf[fix.away]   || 0) + (res.away || 0) + (rng() < 0.5 ? 1 : 0) + (rng() < 0.3 ? 1 : 0);
+    ga[fix.home]   = (ga[fix.home]   || 0) + (gf[fix.away] - (gf[fix.away] || 0));  // approximate
+  }
+
+  // Rebuild sorted group tables
+  const tables = {};
+  const groups = {};
+  for (const [name, g] of Object.entries(group)) {
+    if (!groups[g]) groups[g] = [];
+    groups[g].push({ name, pts: pts[name]||0, gf: gf[name]||0, ga: ga[name]||0,
+                     gd: (gf[name]||0)-(ga[name]||0) });
+  }
+  for (const [g, rows] of Object.entries(groups)) {
+    tables[g] = rows.sort((a,b) => (b.pts-a.pts)||(b.gd-a.gd)||(b.gf-a.gf));
+  }
+  return tables;
+}
+
+// ── pickBest8Third ───────────────────────────────────────────────────────────
+// Pick the best 8 of 12 third-place teams by pts → GD → GF.
+// Returns array of 8 {name, group} objects.
+function pickBest8Third(tables) {
+  const thirds = Object.entries(tables)
+    .map(([g, rows]) => rows[2] ? { ...rows[2], group: g } : null)
+    .filter(Boolean);
+  thirds.sort((a,b) => (b.pts-a.pts)||(b.gd-a.gd)||(b.gf-a.gf));
+  return thirds.slice(0, 8);
+}
+
+// ── resolveR32Teams ──────────────────────────────────────────────────────────
+// Given final group tables and best8Third, resolve who plays in each R32 match.
+// Returns: { 73: {home: 'Mexico', away: 'USA'}, 74: {...}, ... }
+function resolveR32Teams(tables, best8Third) {
+  // For 3rd-place slots: given eligible groups, pick the best 3rd from those
+  // groups that's in best8Third. Simplified: first eligible group with a best-8 qualifier.
+  const qualifiedThirds = new Set(best8Third.map(t => t.group));
+
+  const matchups = {};
+  for (const slot of R32_SLOTS) {
+    const resolveTeam = (side) => {
+      if (side.pos === 1 || side.pos === 2) {
+        const row = (tables[side.group] || [])[side.pos - 1];
+        return row?.name || `${side.pos===1?'W':'RU'}-${side.group}`;
+      }
+      // Best 3rd from eligible groups
+      const eligibleGroups = (side.eligible || '').split('');
+      const candidates = best8Third
+        .filter(t => eligibleGroups.includes(t.group))
+        .sort((a,b) => (b.pts-a.pts)||(b.gd-a.gd)||(b.gf-a.gf));
+      return candidates[0]?.name || `3rd-${side.eligible}`;
+    };
+    matchups[slot.match] = { home: resolveTeam(slot.home), away: resolveTeam(slot.away) };
+  }
+  return matchups;
+}
+
+// ── simulateKnockoutBracket ──────────────────────────────────────────────────
+// Given R32 matchups, simulate all knockout rounds.
+// Returns: { reached: { teamName: maxRound } }
+// Rounds: 'R32', 'R16', 'QF', 'SF', 'Final', 'Champion'
+const ROUND_NAMES = ['R32', 'R16', 'QF', 'SF', 'Final', 'Champion'];
+
+function simulateKnockoutBracket(r32Matchups, strengths, rng) {
+  const reached = {};  // teamName → last round reached
+  const track = (team, round) => {
+    if (!reached[team] || ROUND_NAMES.indexOf(round) > ROUND_NAMES.indexOf(reached[team])) {
+      reached[team] = round;
+    }
+  };
+
+  // R32: 16 matches
+  const r32Winners = {};
+  for (const slot of R32_SLOTS) {
+    const m = r32Matchups[slot.match];
+    if (!m) continue;
+    track(m.home, 'R32'); track(m.away, 'R32');
+    const winner = simulateMatch(m.home, m.away, strengths, rng);
+    r32Winners[slot.match] = winner;
+  }
+
+  // R16: 8 matches from R32 winner pairs
+  const r16Winners = [];
+  for (const [matchA, matchB] of R32_TO_R16_PAIRS) {
+    const tA = r32Winners[matchA], tB = r32Winners[matchB];
+    if (!tA || !tB) { r16Winners.push(null); continue; }
+    track(tA, 'R16'); track(tB, 'R16');
+    r16Winners.push(simulateMatch(tA, tB, strengths, rng));
+  }
+
+  // QF: 4 matches
+  const qfWinners = [];
+  for (const [iA, iB] of R16_TO_QF_PAIRS) {
+    const tA = r16Winners[iA], tB = r16Winners[iB];
+    if (!tA || !tB) { qfWinners.push(null); continue; }
+    track(tA, 'QF'); track(tB, 'QF');
+    qfWinners.push(simulateMatch(tA, tB, strengths, rng));
+  }
+
+  // SF: 2 matches
+  const sfWinners = [];
+  for (const [iA, iB] of QF_TO_SF_PAIRS) {
+    const tA = qfWinners[iA], tB = qfWinners[iB];
+    if (!tA || !tB) { sfWinners.push(null); continue; }
+    track(tA, 'SF'); track(tB, 'SF');
+    sfWinners.push(simulateMatch(tA, tB, strengths, rng));
+  }
+
+  // Final
+  const tA = sfWinners[0], tB = sfWinners[1];
+  if (tA && tB) {
+    track(tA, 'Final'); track(tB, 'Final');
+    const champion = simulateMatch(tA, tB, strengths, rng);
+    track(champion, 'Champion');
+  }
+
+  return reached;
+}
+
+// ── seededRng ────────────────────────────────────────────────────────────────
+// Deterministic PRNG (xorshift32) for reproducible tests. Not used in production
+// (production uses Math.random for actual Monte Carlo randomness).
+export function seededRng(seed) {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+// ── computeTournamentProjections ─────────────────────────────────────────────
+// Main entry point. Given current data, return per-team probabilities.
+//
+// Params:
+//   currentStandings: { A: [{name/team, points, gf, ga}], ... }
+//   remainingFixtures: [{home, away, pHome, pDraw, pAway}] — yet to be played
+//   oddsProbs:         [{home_team, away_team, lambdaHome, lambdaAway}] all group games
+//   N:                 number of simulations (default 2000)
+//
+// Returns:
+//   { teams: [{name, group, fifaCode, pR32, pR16, pQF, pSF, pFinal, pChamp}],
+//     generatedAt: ISO timestamp, N: number }
+export function computeTournamentProjections({
+  currentStandings = {},
+  remainingFixtures = [],
+  oddsProbs         = [],
+  N                 = 2000,
+} = {}) {
+  const rng = Math.random;
+  const strengths = deriveTeamStrengths(oddsProbs);
+  const counts = {};  // { teamName: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 } }
+
+  const initCounts = (name) => {
+    if (!counts[name]) counts[name] = { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 };
+  };
+
+  // Ensure all 48 teams have a counter even if they never appear
+  for (const ctx of Object.values(WC_TEAM_CONTEXT)) initCounts(ctx.displayName);
+
+  for (let i = 0; i < N; i++) {
+    // 1. Simulate group stage
+    const tables = simulateGroupStage(currentStandings, remainingFixtures, rng);
+    // 2. Pick best 8 third
+    const best8 = pickBest8Third(tables);
+    // 3. Build R32 matchups
+    const r32 = resolveR32Teams(tables, best8);
+    // 4. Simulate knockout
+    const reached = simulateKnockoutBracket(r32, strengths, rng);
+    // 5. Tally
+    for (const [team, round] of Object.entries(reached)) {
+      initCounts(team);
+      const roundIdx = ROUND_NAMES.indexOf(round);
+      for (let r = 0; r <= roundIdx; r++) {
+        counts[team][ROUND_NAMES[r]]++;
+      }
+    }
+  }
+
+  // Build output: look up FIFA code + group from WC_TEAM_CONTEXT
+  const nameToCtx = {};
+  for (const ctx of Object.values(WC_TEAM_CONTEXT)) nameToCtx[ctx.displayName] = ctx;
+  const codeToCtx = {};
+  for (const ctx of Object.values(WC_TEAM_CONTEXT)) codeToCtx[ctx.fifaCode] = ctx;
+
+  const teams = Object.entries(counts).map(([name, c]) => {
+    const ctx = nameToCtx[name] || {};
+    return {
+      name,
+      fifaCode:  ctx.fifaCode  || '',
+      group:     ctx.group     || '',
+      fifaRank:  ctx.fifaRank  || 99,
+      pR32:      round2(c.R32    / N),
+      pR16:      round2(c.R16    / N),
+      pQF:       round2(c.QF     / N),
+      pSF:       round2(c.SF     / N),
+      pFinal:    round2(c.Final  / N),
+      pChamp:    round2(c.Champion / N),
+    };
+  });
+
+  // Sort by pChamp desc — filter out abstract placeholders (no fifaCode)
+  teams.sort((a,b) => b.pChamp - a.pChamp);
+  return { teams: teams.filter(t => t.fifaCode), generatedAt: new Date().toISOString(), N };
+}
+
+// ── computeMovers ─────────────────────────────────────────────────────────────
+// Compare prev and curr projections. Return biggest movers + secondary beneficiaries.
+//
+// "Secondary beneficiary": team whose pFinal changed significantly but had no
+// fixture in remainingFixtures today (they didn't play).
+//
+// Params:
+//   prev: output of computeTournamentProjections from previous run
+//   curr: current output
+//   teamsPlayedToday: Set of team names that had a fixture today
+//
+// Returns:
+//   { gainers: [...], losers: [...], secondaryBeneficiaries: [...],
+//     secondaryLosers: [...], topMover: {...} }
+export function computeMovers(prev, curr, teamsPlayedToday = new Set()) {
+  if (!prev?.teams || !curr?.teams) return null;
+
+  const prevByName = {};
+  for (const t of prev.teams) prevByName[t.name] = t;
+
+  const diffs = curr.teams.map(t => {
+    const p = prevByName[t.name];
+    if (!p) return null;
+    const deltaFinal = t.pFinal - p.pFinal;
+    const deltaChamp = t.pChamp - p.pChamp;
+    const played = teamsPlayedToday.has(t.name);
+    return { name: t.name, fifaCode: t.fifaCode, group: t.group,
+             pFinal: t.pFinal, prevFinal: p.pFinal, deltaFinal,
+             pChamp: t.pChamp, prevChamp: p.pChamp, deltaChamp,
+             played };
+  }).filter(Boolean);
+
+  // Sort by absolute change in pFinal
+  const byDelta = [...diffs].sort((a,b) => Math.abs(b.deltaFinal) - Math.abs(a.deltaFinal));
+
+  const gainers               = byDelta.filter(d => d.deltaFinal > 0.005 &&  d.played).slice(0, 5);
+  const losers                = byDelta.filter(d => d.deltaFinal < -0.005 && d.played).slice(0, 5);
+  const secondaryBeneficiaries = byDelta.filter(d => d.deltaFinal > 0.005 && !d.played).slice(0, 5);
+  const secondaryLosers        = byDelta.filter(d => d.deltaFinal < -0.005 && !d.played).slice(0, 5);
+  const topMover               = byDelta[0] || null;
+
+  return { gainers, losers, secondaryBeneficiaries, secondaryLosers, topMover,
+           generatedAt: curr.generatedAt };
+}
+
+// ── buildMoversBriefPrompt ────────────────────────────────────────────────────
+// Build the Claude prompt for daily movers journalism.
+// Returns a prompt string; caller sends to Claude and caches in KV.
+export function buildMoversBriefPrompt(movers, projections) {
+  if (!movers) return null;
+
+  const pct = v => `${Math.round(v * 100)}%`;
+
+  const fmtTeam = (d) => {
+    const ctx = Object.values(WC_TEAM_CONTEXT).find(c => c.displayName === d.name);
+    const note = ctx?.narrativeNote || '';
+    return `${d.name} (Group ${d.group}): Final probability ${pct(d.prevFinal)} → ${pct(d.pFinal)} (${d.deltaFinal > 0 ? '+' : ''}${pct(d.deltaFinal)}). Championship odds ${pct(d.prevChamp)} → ${pct(d.pChamp)}. Context: ${note}`;
+  };
+
+  const lines = [
+    'You are FIELD, a sports intelligence product. Write a 3-paragraph World Cup tournament outlook brief.',
+    '',
+    'RULES:',
+    '- Maximum 120 words total.',
+    '- No bullet points. Flowing prose only.',
+    '- No drama scores, no "must-watch", no excitement ratings.',
+    '- Only factual statements about probability changes and why they happened.',
+    '- Paragraph 1: biggest direct movers (teams that played and gained/lost).',
+    '- Paragraph 2: secondary beneficiaries or losers (teams that shifted without playing).',
+    '- Paragraph 3: the most surprising single result and what it means for the bracket.',
+    '- DO NOT INVENT results. Only reference data provided below.',
+    '',
+    'TOURNAMENT PROJECTIONS DATA:',
+    `Generated: ${movers.generatedAt}`,
+    '',
+  ];
+
+  if (movers.gainers?.length) {
+    lines.push('DIRECT GAINERS (played today):');
+    movers.gainers.forEach(d => lines.push(fmtTeam(d)));
+    lines.push('');
+  }
+  if (movers.losers?.length) {
+    lines.push('DIRECT LOSERS (played today):');
+    movers.losers.forEach(d => lines.push(fmtTeam(d)));
+    lines.push('');
+  }
+  if (movers.secondaryBeneficiaries?.length) {
+    lines.push('SECONDARY BENEFICIARIES (did NOT play today but improved):');
+    movers.secondaryBeneficiaries.forEach(d => lines.push(fmtTeam(d)));
+    lines.push('');
+  }
+  if (movers.secondaryLosers?.length) {
+    lines.push('SECONDARY LOSERS (did NOT play today but declined):');
+    movers.secondaryLosers.forEach(d => lines.push(fmtTeam(d)));
+    lines.push('');
+  }
+
+  if (projections?.teams) {
+    lines.push('TOP 8 CHAMPIONSHIP PROBABILITIES (current):');
+    projections.teams.slice(0, 8).forEach(t =>
+      lines.push(`${t.name}: ${pct(t.pChamp)} to win · ${pct(t.pFinal)} to reach Final`));
+  }
+
+  return lines.join('\n');
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+function round2(v) { return Math.round(v * 1000) / 1000; }
