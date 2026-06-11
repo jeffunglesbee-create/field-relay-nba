@@ -294,6 +294,8 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
       reached[team] = round;
     }
   };
+  // slotWinners: slot ID → winning team name for THIS simulation
+  const slotWinners = {};
 
   // R32: 16 matches
   const r32Winners = {};
@@ -303,33 +305,43 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(m.home, 'R32'); track(m.away, 'R32');
     const winner = simulateMatch(m.home, m.away, strengths, rng);
     r32Winners[slot.match] = winner;
+    slotWinners[`R32_${slot.match}`] = winner;
   }
 
   // R16: 8 matches from R32 winner pairs
   const r16Winners = [];
-  for (const [matchA, matchB] of R32_TO_R16_PAIRS) {
+  for (let i = 0; i < R32_TO_R16_PAIRS.length; i++) {
+    const [matchA, matchB] = R32_TO_R16_PAIRS[i];
     const tA = r32Winners[matchA], tB = r32Winners[matchB];
     if (!tA || !tB) { r16Winners.push(null); continue; }
     track(tA, 'R16'); track(tB, 'R16');
-    r16Winners.push(simulateMatch(tA, tB, strengths, rng));
+    const wR16 = simulateMatch(tA, tB, strengths, rng);
+    r16Winners.push(wR16);
+    slotWinners[`R16_${i}`] = wR16;
   }
 
   // QF: 4 matches
   const qfWinners = [];
-  for (const [iA, iB] of R16_TO_QF_PAIRS) {
+  for (let i = 0; i < R16_TO_QF_PAIRS.length; i++) {
+    const [iA, iB] = R16_TO_QF_PAIRS[i];
     const tA = r16Winners[iA], tB = r16Winners[iB];
     if (!tA || !tB) { qfWinners.push(null); continue; }
     track(tA, 'QF'); track(tB, 'QF');
-    qfWinners.push(simulateMatch(tA, tB, strengths, rng));
+    const wQF = simulateMatch(tA, tB, strengths, rng);
+    qfWinners.push(wQF);
+    slotWinners[`QF_${i}`] = wQF;
   }
 
   // SF: 2 matches
   const sfWinners = [];
-  for (const [iA, iB] of QF_TO_SF_PAIRS) {
+  for (let i = 0; i < QF_TO_SF_PAIRS.length; i++) {
+    const [iA, iB] = QF_TO_SF_PAIRS[i];
     const tA = qfWinners[iA], tB = qfWinners[iB];
     if (!tA || !tB) { sfWinners.push(null); continue; }
     track(tA, 'SF'); track(tB, 'SF');
-    sfWinners.push(simulateMatch(tA, tB, strengths, rng));
+    const wSF = simulateMatch(tA, tB, strengths, rng);
+    sfWinners.push(wSF);
+    slotWinners[`SF_${i}`] = wSF;
   }
 
   // Final
@@ -338,9 +350,11 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(tA, 'Final'); track(tB, 'Final');
     const champion = simulateMatch(tA, tB, strengths, rng);
     track(champion, 'Champion');
+    slotWinners['Final'] = champion;
+    slotWinners['Champion'] = champion;
   }
 
-  return { reached, finishPositions };
+  return { reached, finishPositions, slotWinners };
 }
 
 // ── seededRng ────────────────────────────────────────────────────────────────
@@ -389,6 +403,12 @@ export function computeTournamentProjections({
   // countsByPos: { teamName: { 1: {R32,R16,...,Champion,total}, 2: {...}, 3: {...} } }
   // Tracks outcomes split by whether team finished 1st, 2nd, or 3rd in group.
   const countsByPos = {};
+  // slotCounts: { slotId: { teamName: count } } — tracks most-frequent winner per bracket slot
+  const slotCounts = {};
+  const tallySlot = (slotId, team) => {
+    if (!slotCounts[slotId]) slotCounts[slotId] = {};
+    slotCounts[slotId][team] = (slotCounts[slotId][team] || 0) + 1;
+  };
 
   const initCounts = (name) => {
     if (!counts[name]) counts[name] = { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 };
@@ -417,7 +437,11 @@ export function computeTournamentProjections({
       });
     }
     // 5. Simulate knockout
-    const { reached } = simulateKnockoutBracket(r32, strengths, rng, simFinishPos);
+    const { reached, slotWinners: simSlots } = simulateKnockoutBracket(r32, strengths, rng, simFinishPos);
+    // 5b. Tally slot winners for bracket tree
+    for (const [slotId, team] of Object.entries(simSlots)) {
+      if (team) tallySlot(slotId, team);
+    }
     // 6. Tally global counts + per-position counts
     for (const [team, round] of Object.entries(reached)) {
       initCounts(team);
@@ -465,7 +489,24 @@ export function computeTournamentProjections({
   // Detect bracket traps using position-conditional counts
   const bracketTraps = detectBracketTraps(countsByPos, N, nameToCtx);
 
-  return { teams: filteredTeams, bracketTraps, generatedAt: new Date().toISOString(), N };
+  // Build bracketSlots: most-probable winner per slot with probability
+  const bracketSlots = {};
+  for (const [slotId, teamCounts] of Object.entries(slotCounts)) {
+    let best = null, bestCount = 0;
+    for (const [team, count] of Object.entries(teamCounts)) {
+      if (count > bestCount) { best = team; bestCount = count; }
+    }
+    if (best) {
+      const ctx = nameToCtx[best] || {};
+      bracketSlots[slotId] = {
+        team:     best,
+        fifaCode: ctx.fifaCode || '',
+        prob:     Math.round(bestCount / N * 1000) / 1000,
+      };
+    }
+  }
+
+  return { teams: filteredTeams, bracketTraps, bracketSlots, generatedAt: new Date().toISOString(), N };
 }
 
 // ── detectBracketTraps ────────────────────────────────────────────────────────
