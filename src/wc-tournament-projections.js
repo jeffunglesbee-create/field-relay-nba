@@ -532,6 +532,7 @@ const ODDS_NAME_ALIAS = {
   'DR Congo':                 'Congo DR',
   'Republic of Ireland':      'Republic of Ireland',  // same
   'USA':                      'United States',
+  'Turkey':                   'Türkiye',
   'Ivory Coast':              'Ivory Coast',           // same
 };
 
