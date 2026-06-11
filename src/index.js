@@ -2062,6 +2062,11 @@ async function runWCTournamentProjections(env) {
         await KV.put('wc:projections:prev', JSON.stringify(prev), { expirationTtl: 7 * 86400 });
     }
     await KV.put('wc:projections:current', JSON.stringify(curr), { expirationTtl: 7 * 86400 });
+    // Store bracket slots separately for /wc/bracket endpoint
+    if (curr.bracketSlots && Object.keys(curr.bracketSlots).length > 0) {
+        const bracketPayload = { bracketSlots: curr.bracketSlots, generatedAt: curr.generatedAt, N: curr.N };
+        await KV.put('wc:bracket:current', JSON.stringify(bracketPayload), { expirationTtl: 7 * 86400 });
+    }
     if (movers) {
         await KV.put('wc:movers:current', JSON.stringify(movers), { expirationTtl: 86400 });
     }
@@ -3116,6 +3121,20 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'parse error' }),
                         { headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+            }
+
+            // GET /wc/bracket — most-probable filled bracket from Monte Carlo simulations
+            if (pathname === '/wc/bracket') {
+                const cached = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:bracket:current') : null;
+                if (cached) {
+                    return new Response(cached, {
+                        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=1800', ...CORS }
+                    });
+                }
+                return new Response(JSON.stringify({ ok: true, bracketSlots: {}, generatedAt: null }), {
+                    headers: { 'Content-Type': 'application/json', ...CORS }
+                });
             }
 
             // GET /wc/injuries — player injury reports for WC 2026
@@ -4549,6 +4568,7 @@ export default {
                         '/wc/third-place',
                         '/wc/projections',
                         '/wc/traps',
+                        '/wc/bracket',
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
