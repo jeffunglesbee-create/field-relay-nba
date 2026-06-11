@@ -374,6 +374,7 @@ const APISPORTS_ALLOWED = [
     '/events',           // MMA /events
     '/players',          // ?id= player info
     '/players/',         // /players/statistics
+    '/injuries',         // ?league=&season= player injury reports
 ];
 
 function apiSportsAllowed(path) {
@@ -1945,6 +1946,55 @@ async function handleTubiPreGameAlerts(env) {
     }
 }
 
+// ── fetchWCInjuries ───────────────────────────────────────────────────────────
+// Fetch injury reports for WC 2026 (league=1, season=2026) from api-sports.io.
+// Normalises the response into a compact shape keyed by FIFA team name.
+// Caches in FIELD_JOURNALISM KV at 'wc:injuries:current' with a 1hr TTL.
+// Returns { ok, teams: { 'France': [{player, type, reason, status}], ... },
+//           raw_count, generatedAt }
+async function fetchWCInjuries(env) {
+    const key = env.APISPORTS_KEY;
+    if (!key) throw new Error('APISPORTS_KEY not configured');
+
+    const url = 'https://v3.football.api-sports.io/injuries?league=1&season=2026';
+    const resp = await fetch(url, {
+        headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
+        cf: { cacheTtl: 0, cacheEverything: false },  // no CF edge cache — we use KV
+    });
+    if (!resp.ok) throw new Error(`api-sports injuries upstream ${resp.status}`);
+
+    const data = await resp.json();
+    const raw  = data?.response || [];
+
+    // Compact shape: group by team name, keep player + injury meta only
+    const teams = {};
+    for (const item of raw) {
+        const teamName = item?.team?.name || 'Unknown';
+        const player   = item?.player?.name || 'Unknown';
+        const type     = item?.injury?.type   || null;  // e.g. "Muscle Injury"
+        const reason   = item?.injury?.reason || null;  // e.g. "Muscle problems"
+        const status   = item?.player?.reason || null;  // status string from API
+        if (!teams[teamName]) teams[teamName] = [];
+        teams[teamName].push({ player, type, reason, status });
+    }
+
+    const result = {
+        ok:          true,
+        teams,
+        raw_count:   raw.length,
+        generatedAt: new Date().toISOString(),
+    };
+
+    if (env.FIELD_JOURNALISM) {
+        await env.FIELD_JOURNALISM.put(
+            'wc:injuries:current',
+            JSON.stringify(result),
+            { expirationTtl: 3600 }  // 1hr TTL — injuries change infrequently
+        );
+    }
+    return result;
+}
+
 // ── runWCTournamentProjections ────────────────────────────────────────────────
 // Compute tournament path probabilities for all 48 teams.
 // Stores current projections + movers in FIELD_JOURNALISM KV.
@@ -3041,6 +3091,47 @@ export default {
                 ctx.waitUntil(runWCTournamentProjections(env).catch(() => {}));
                 return new Response(JSON.stringify({ ok: true, message: 'Refresh triggered' }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            // GET /wc/injuries — player injury reports for WC 2026
+            // Served from KV (1hr TTL). Live fetch on cache miss.
+            if (pathname === '/wc/injuries') {
+                const raw = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:injuries:current') : null;
+                if (raw) {
+                    return new Response(raw, {
+                        headers: { ...CORS, 'Content-Type': 'application/json',
+                                   'Cache-Control': 'public, max-age=3600',
+                                   'X-Injuries-Source': 'kv-cache' },
+                    });
+                }
+                // Cache miss — fetch live and return
+                try {
+                    const result = await fetchWCInjuries(env);
+                    return new Response(JSON.stringify(result), {
+                        headers: { ...CORS, 'Content-Type': 'application/json',
+                                   'Cache-Control': 'public, max-age=3600',
+                                   'X-Injuries-Source': 'live' },
+                    });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
+            // POST /wc/injuries/refresh — manual cache bust
+            if (pathname === '/wc/injuries/refresh' && request.method === 'POST') {
+                try {
+                    const result = await fetchWCInjuries(env);
+                    return new Response(JSON.stringify({
+                        ok: true, message: 'Injuries refreshed',
+                        raw_count: result.raw_count, teams: Object.keys(result.teams).length,
+                        generatedAt: result.generatedAt,
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
             }
 
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
@@ -4428,6 +4519,7 @@ export default {
                         '/wc/projections',
                         '/wc/movers',
                         '/wc/brief/tournament',
+                        '/wc/injuries',
                         '/v2/games',
                         '/v2/standings',
                         // P0 carry-forward (2026-06-05): first step to diagnose
