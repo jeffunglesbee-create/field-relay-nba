@@ -94,17 +94,36 @@ export function deriveTeamStrengths(oddsProbs) {
 
   const strengths = {};
   for (const [name, v] of Object.entries(agg)) {
+    // Each team plays exactly 3 group games. Pad any missing games toward the
+    // raw agg average so a single Curaçao blowout doesn't dominate Ecuador's rating.
+    // Re-compute averages after padding below.
     strengths[name] = {
       attack:  v.attackSum  / v.count,
       defense: v.defenseSum / v.count,
+      count:   v.count,
     };
   }
 
-  // Fill any missing teams (unlikely) with league average
-  const avgAtt = Object.values(strengths).reduce((s,v) => s+v.attack,  0)
-               / (Object.keys(strengths).length || 1);
-  const avgDef = Object.values(strengths).reduce((s,v) => s+v.defense, 0)
-               / (Object.keys(strengths).length || 1);
+  // Tournament averages from measured fixtures
+  const measuredTeams = Object.values(strengths);
+  const rawAvgAtt = measuredTeams.reduce((s,v) => s+v.attack,  0) / (measuredTeams.length || 1);
+  const rawAvgDef = measuredTeams.reduce((s,v) => s+v.defense, 0) / (measuredTeams.length || 1);
+
+  // Pad teams with < 3 fixtures toward the tournament average
+  for (const name in strengths) {
+    const s = strengths[name];
+    const missing = Math.max(0, 3 - (s.count || 0));
+    if (missing > 0) {
+      const total = s.count + missing;
+      s.attack  = (s.attack  * s.count + rawAvgAtt * missing) / total;
+      s.defense = (s.defense * s.count + rawAvgDef * missing) / total;
+    }
+    delete s.count;
+  }
+
+  // Fill any missing teams (no odds data at all) with tournament average
+  const avgAtt = rawAvgAtt;
+  const avgDef = rawAvgDef;
   for (const name of getAllTeamNames()) {
     if (!strengths[name]) strengths[name] = { attack: avgAtt, defense: avgDef };
   }
@@ -119,13 +138,19 @@ function getAllTeamNames() {
 
 // ── h2hLambdas ───────────────────────────────────────────────────────────────
 // Head-to-head expected goals for teamA vs teamB on a neutral venue.
-// Based on attack/defense strengths: λA = BASE * attack_A * (1/defense_B)
+// Formula: λA = BASE × (attackA/BASE) × (defenseB/BASE)
+//               = attackA × defenseB / BASE
+// defense = avg lambda conceded (goals opponents score vs this team).
+// High defense value → leaky defense → easier to score against ✅
+// Low defense value  → strong defense → harder to score against ✅
 const BASE_LAMBDA = 1.15;  // ~WC knockout average per team per 90 min
 function h2hLambdas(teamA, teamB, strengths) {
   const A = strengths[teamA] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
   const B = strengths[teamB] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
-  const lA = BASE_LAMBDA * (A.attack / BASE_LAMBDA) * (BASE_LAMBDA / B.defense);
-  const lB = BASE_LAMBDA * (B.attack / BASE_LAMBDA) * (BASE_LAMBDA / A.defense);
+  // defense is how many goals this team CONCEDES on average;
+  // higher defense = more porous → scale up opponent's expected goals
+  const lA = A.attack * (B.defense / BASE_LAMBDA);
+  const lB = B.attack * (A.defense / BASE_LAMBDA);
   return [Math.max(0.2, lA), Math.max(0.2, lB)];
 }
 
