@@ -287,7 +287,7 @@ function resolveR32Teams(tables, best8Third) {
 // Rounds: 'R32', 'R16', 'QF', 'SF', 'Final', 'Champion'
 const ROUND_NAMES = ['R32', 'R16', 'QF', 'SF', 'Final', 'Champion'];
 
-function simulateKnockoutBracket(r32Matchups, strengths, rng) {
+function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = {}) {
   const reached = {};  // teamName → last round reached
   const track = (team, round) => {
     if (!reached[team] || ROUND_NAMES.indexOf(round) > ROUND_NAMES.indexOf(reached[team])) {
@@ -340,7 +340,7 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng) {
     track(champion, 'Champion');
   }
 
-  return reached;
+  return { reached, finishPositions };
 }
 
 // ── seededRng ────────────────────────────────────────────────────────────────
@@ -386,9 +386,17 @@ export function computeTournamentProjections({
         lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
       }));
   const counts = {};  // { teamName: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 } }
+  // countsByPos: { teamName: { 1: {R32,R16,...,Champion,total}, 2: {...}, 3: {...} } }
+  // Tracks outcomes split by whether team finished 1st, 2nd, or 3rd in group.
+  const countsByPos = {};
 
   const initCounts = (name) => {
     if (!counts[name]) counts[name] = { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 };
+    if (!countsByPos[name]) countsByPos[name] = {
+      1: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0, total:0 },
+      2: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0, total:0 },
+      3: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0, total:0 },
+    };
   };
 
   // Ensure all 48 teams have a counter even if they never appear
@@ -401,14 +409,29 @@ export function computeTournamentProjections({
     const best8 = pickBest8Third(tables);
     // 3. Build R32 matchups
     const r32 = resolveR32Teams(tables, best8);
-    // 4. Simulate knockout
-    const reached = simulateKnockoutBracket(r32, strengths, rng);
-    // 5. Tally
+    // 4. Record each team's finish position for this simulation
+    const simFinishPos = {};  // { teamName: 1|2|3 }
+    for (const [g, rows] of Object.entries(tables)) {
+      rows.forEach((row, idx) => {
+        if (idx < 3) simFinishPos[row.name] = idx + 1;
+      });
+    }
+    // 5. Simulate knockout
+    const { reached } = simulateKnockoutBracket(r32, strengths, rng, simFinishPos);
+    // 6. Tally global counts + per-position counts
     for (const [team, round] of Object.entries(reached)) {
       initCounts(team);
       const roundIdx = ROUND_NAMES.indexOf(round);
       for (let r = 0; r <= roundIdx; r++) {
         counts[team][ROUND_NAMES[r]]++;
+      }
+      // Per-position tally
+      const pos = simFinishPos[team];
+      if (pos && countsByPos[team]?.[pos]) {
+        countsByPos[team][pos].total++;
+        for (let r = 0; r <= roundIdx; r++) {
+          countsByPos[team][pos][ROUND_NAMES[r]]++;
+        }
       }
     }
   }
@@ -437,7 +460,61 @@ export function computeTournamentProjections({
 
   // Sort by pChamp desc — filter out abstract placeholders (no fifaCode)
   teams.sort((a,b) => b.pChamp - a.pChamp);
-  return { teams: teams.filter(t => t.fifaCode), generatedAt: new Date().toISOString(), N };
+  const filteredTeams = teams.filter(t => t.fifaCode);
+
+  // Detect bracket traps using position-conditional counts
+  const bracketTraps = detectBracketTraps(countsByPos, N, nameToCtx);
+
+  return { teams: filteredTeams, bracketTraps, generatedAt: new Date().toISOString(), N };
+}
+
+// ── detectBracketTraps ────────────────────────────────────────────────────────
+// A "bracket trap" = finishing 1st in your group leads to a harder knockout
+// path such that pChamp_as_2nd > pChamp_as_1st by at least TRAP_THRESHOLD.
+//
+// Requires enough simulations in each position bucket to be meaningful.
+// MIN_SAMPLES: position must have appeared in at least 5% of simulations.
+//
+// Returns: [ { team, group, fifaCode,
+//              pChampIf1st, pChampIf2nd, delta,
+//              pFinalIf1st, pFinalIf2nd,
+//              note } ]
+// Sorted by delta desc (biggest trap first).
+const TRAP_THRESHOLD = 0.005;  // 0.5pp — meaningful path divergence
+const MIN_SAMPLES    = 0.05;   // position must appear in ≥5% of sims to count
+
+export function detectBracketTraps(countsByPos, N, nameToCtx) {
+  const traps = [];
+  for (const [name, byPos] of Object.entries(countsByPos)) {
+    const p1 = byPos[1], p2 = byPos[2];
+    if (!p1 || !p2) continue;
+    // Only evaluate if both positions have enough sample mass
+    if (p1.total < N * MIN_SAMPLES) continue;
+    if (p2.total < N * MIN_SAMPLES) continue;
+
+    const pChamp1 = p1.Champion / p1.total;
+    const pChamp2 = p2.Champion / p2.total;
+    const delta   = pChamp2 - pChamp1;  // positive = 2nd is better
+
+    if (delta < TRAP_THRESHOLD) continue;
+
+    const pFinal1 = p1.Final / p1.total;
+    const pFinal2 = p2.Final / p2.total;
+
+    const ctx = nameToCtx?.[name] || {};
+    traps.push({
+      team:       name,
+      group:      ctx.group    || '',
+      fifaCode:   ctx.fifaCode || '',
+      pChampIf1st: round2(pChamp1),
+      pChampIf2nd: round2(pChamp2),
+      delta:       round2(delta),
+      pFinalIf1st: round2(pFinal1),
+      pFinalIf2nd: round2(pFinal2),
+    });
+  }
+  traps.sort((a, b) => b.delta - a.delta);
+  return traps;
 }
 
 // ── computeMovers ─────────────────────────────────────────────────────────────
@@ -509,7 +586,7 @@ export function buildMoversBriefPrompt(movers, projections) {
     '- Only factual statements about probability changes and why they happened.',
     '- Paragraph 1: biggest direct movers (teams that played and gained/lost).',
     '- Paragraph 2: secondary beneficiaries or losers (teams that shifted without playing).',
-    '- Paragraph 3: the most surprising single result and what it means for the bracket.',
+    '- Paragraph 3: the most surprising bracket trap — a team where finishing 2nd leads to a better championship path than finishing 1st, and WHY (which specific opponents they avoid).',
     '- DO NOT INVENT results. Only reference data provided below.',
     '',
     'TOURNAMENT PROJECTIONS DATA:',
@@ -535,6 +612,16 @@ export function buildMoversBriefPrompt(movers, projections) {
   if (movers.secondaryLosers?.length) {
     lines.push('SECONDARY LOSERS (did NOT play today but declined):');
     movers.secondaryLosers.forEach(d => lines.push(fmtTeam(d)));
+    lines.push('');
+  }
+
+  if (projections?.bracketTraps?.length) {
+    lines.push('BRACKET TRAPS (finishing 2nd is better than 1st for pChamp):');
+    projections.bracketTraps.slice(0, 3).forEach(t => {
+      lines.push(
+        `${t.team} (Group ${t.group}): pChamp as 1st=${pct(t.pChampIf1st)}, as 2nd=${pct(t.pChampIf2nd)}, delta=+${pct(t.delta)}`
+      );
+    });
     lines.push('');
   }
 
