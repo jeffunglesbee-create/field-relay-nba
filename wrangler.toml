@@ -57,6 +57,13 @@ class_name = "GameDO"
 name       = "USER_DO"
 class_name = "UserDO"
 
+# BracketDO — WC bracket live state + narrative delta (June 11 2026)
+# Single instance ("wc2026") for the whole tournament.
+# Receives result pushes, recomputes projections, fans out via WebSocket.
+[[durable_objects.bindings]]
+name       = "BRACKET_DO"
+class_name = "BracketDO"
+
 # Migration: introduce the GameDO class. Required when first deploying a DO.
 [[migrations]]
 tag         = "v1-game-do"
@@ -66,6 +73,11 @@ new_classes = ["GameDO"]
 [[migrations]]
 tag         = "v2-user-do"
 new_classes = ["UserDO"]
+
+# Migration: introduce BracketDO (June 11 2026).
+[[migrations]]
+tag         = "v3-bracket-do"
+new_classes = ["BracketDO"]
 
 # ── Analytics Engine (WOW 7 — Journalism Quality observability, May 31 2026) ─
 # Append-only time-series sink for JQ Gate metrics. Bound as JQ_ANALYTICS in
