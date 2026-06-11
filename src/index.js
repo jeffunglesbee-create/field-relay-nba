@@ -3093,6 +3093,27 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // GET /wc/traps — bracket trap detection slice from latest projections
+            if (pathname === '/wc/traps') {
+                const raw = env.FIELD_JOURNALISM
+                    ? await env.FIELD_JOURNALISM.get('wc:projections:current') : null;
+                if (!raw) return new Response(JSON.stringify({ ok: true, bracketTraps: [], pending: true }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                try {
+                    const proj = JSON.parse(raw);
+                    return new Response(JSON.stringify({
+                        ok: true,
+                        bracketTraps: proj.bracketTraps || [],
+                        generatedAt: proj.generatedAt,
+                        N: proj.N,
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                                     'Cache-Control': 'public, max-age=300' } });
+                } catch {
+                    return new Response(JSON.stringify({ ok: false, error: 'parse error' }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             // GET /wc/injuries — player injury reports for WC 2026
             // Served from KV (1hr TTL). Live fetch on cache miss.
             if (pathname === '/wc/injuries') {
@@ -4517,6 +4538,7 @@ export default {
                         '/cfl/odds-probs',
                         '/wc/third-place',
                         '/wc/projections',
+                        '/wc/traps',
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
