@@ -10,6 +10,13 @@ export { GameDO };
 import { UserDO } from './user-do.js';
 export { UserDO };
 
+// ── Durable Object: BracketDO (WC bracket live state + narrative delta, June 11 2026) ──
+// Single instance ("wc2026"). Receives result pushes from writeWCResult(),
+// recomputes Monte Carlo projections, fans out bracket:updated to WS clients.
+// ADR-002/RUWT compliant: computes bracket probability facts only, no drama scores.
+import { BracketDO } from './bracket-do.js';
+export { BracketDO };
+
 // ── WC Tournament Projections (June 11 2026) ─────────────────────────────────
 import {
   computeTournamentProjections,
@@ -1266,7 +1273,7 @@ async function recomputeGroupStandings(db, groupId) {
 }
 
 // Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
-async function writeWCResult(db, game) {
+async function writeWCResult(db, game, env) {
     const groupId = extractWCGroup(game.round);
     if (!groupId) return; // knockout stage or no round info — skip
     const matchDate = (game.start || '').slice(0, 10);
@@ -1279,6 +1286,31 @@ async function writeWCResult(db, game) {
     `).bind(game.id, groupId, game.home?.name || '', game.away?.name || '',
             homeScore, awayScore, matchDate).run();
     await recomputeGroupStandings(db, groupId);
+
+    // Notify BracketDO — triggers projection recompute + WS fan-out
+    // Fire-and-forget: D1 write already done, BracketDO update is async
+    if (env?.BRACKET_DO) {
+        try {
+            const doId = env.BRACKET_DO.idFromName('wc2026');
+            const stub = env.BRACKET_DO.get(doId);
+            // Don't await — non-blocking notification
+            stub.fetch('https://bracket-do/bracket/result', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gameId:     game.id,
+                    group_id:   groupId,
+                    home:       game.home?.name || '',
+                    away:       game.away?.name || '',
+                    home_score: homeScore,
+                    away_score: awayScore,
+                    matchDate,
+                }),
+            }).catch(e => console.error('[BracketDO notify]', e.message));
+        } catch (e) {
+            console.error('[BracketDO stub]', e.message);
+        }
+    }
 }
 
 // GET /wc/standings[?group=A]  — return D1 standings as JSON
@@ -1801,9 +1833,9 @@ async function handleV2Games(url, env, ctx) {
                 // On MD3 (up to 6 simultaneous finals) this unblocks ~200ms
                 // of D1 latency from the hot /v2/games response path.
                 if (ctx?.waitUntil) {
-                    ctx.waitUntil(Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g))));
+                    ctx.waitUntil(Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env))));
                 } else {
-                    await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g)));
+                    await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env)));
                 }
             }
         }
@@ -3041,7 +3073,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3135,6 +3167,45 @@ export default {
                 return new Response(JSON.stringify({ ok: true, bracketSlots: {}, generatedAt: null }), {
                     headers: { 'Content-Type': 'application/json', ...CORS }
                 });
+            }
+
+            // GET /wc/bracket/live — WebSocket upgrade to BracketDO for real-time bracket updates
+            // Browser connects once; receives bracket:current on connect, bracket:updated on each result.
+            if (pathname === '/wc/bracket/live') {
+                if (!env.BRACKET_DO)
+                    return new Response(JSON.stringify({ error: 'BracketDO not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const doId = env.BRACKET_DO.idFromName('wc2026');
+                const stub = env.BRACKET_DO.get(doId);
+                // Forward the WS upgrade to the DO (standard DO WebSocket proxy pattern)
+                return stub.fetch(request);
+            }
+
+            // GET /wc/bracket/state — REST poll fallback (no WS needed on simple clients)
+            if (pathname === '/wc/bracket/state') {
+                if (!env.BRACKET_DO)
+                    return new Response(JSON.stringify({ error: 'BracketDO not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const doId = env.BRACKET_DO.idFromName('wc2026');
+                const stub = env.BRACKET_DO.get(doId);
+                const res  = await stub.fetch('https://bracket-do/bracket/state');
+                const body = await res.text();
+                return new Response(body, {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=30' }
+                });
+            }
+
+            // POST /wc/bracket/refresh — force BracketDO projection recompute (admin)
+            if (pathname === '/wc/bracket/refresh' && request.method === 'POST') {
+                if (!env.BRACKET_DO)
+                    return new Response(JSON.stringify({ error: 'BracketDO not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const doId = env.BRACKET_DO.idFromName('wc2026');
+                const stub = env.BRACKET_DO.get(doId);
+                await stub.fetch('https://bracket-do/bracket/refresh', { method: 'POST' });
+                return new Response(JSON.stringify({ ok: true, message: 'BracketDO refresh triggered' }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
             // GET /wc/injuries — player injury reports for WC 2026
@@ -4569,6 +4640,7 @@ export default {
                         '/wc/projections',
                         '/wc/traps',
                         '/wc/bracket',
+                        '/wc/bracket/state',
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
