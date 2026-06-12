@@ -516,6 +516,54 @@ export function computeTournamentProjections({
     }
   }
 
+  // ── Deduplication pass ──────────────────────────────────────────────────────
+  // Independent mode-per-slot can place the same team in multiple R32 slots
+  // (e.g. a frequent "best 3rd" team). A real bracket has each team exactly once
+  // per round. Fix: within each round's _A/_B participant slots, keep highest-prob
+  // assignment and promote the next-best unused team for duplicate slots.
+  for (const round of ['R32', 'R16', 'QF', 'SF']) {
+    const participantSlots = Object.entries(bracketSlots)
+      .filter(([id]) => id.startsWith(round + '_') && (id.endsWith('_A') || id.endsWith('_B')))
+      .sort(([,a], [,b]) => b.prob - a.prob); // greedy: highest prob first
+    const placed = new Set();
+    for (const [slotId, data] of participantSlots) {
+      if (!placed.has(data.team)) {
+        placed.add(data.team);
+      } else {
+        // Duplicate — promote next-best team not yet placed in this round
+        const counts = slotCounts[slotId] || {};
+        const alt = Object.entries(counts)
+          .sort(([,a],[,b]) => b - a)
+          .find(([t]) => !placed.has(t));
+        if (alt) {
+          const [altTeam, altCount] = alt;
+          const ctx2 = nameToCtx[altTeam] || {};
+          bracketSlots[slotId] = {
+            team: altTeam, fifaCode: ctx2.fifaCode || '',
+            prob: Math.round(altCount / N * 1000) / 1000,
+          };
+          placed.add(altTeam);
+        }
+      }
+    }
+  }
+  // Final has only 2 participant slots — dedup naturally
+  if (bracketSlots['Final_A'] && bracketSlots['Final_B'] &&
+      bracketSlots['Final_A'].team === bracketSlots['Final_B'].team) {
+    const counts = slotCounts['Final_B'] || {};
+    const alt = Object.entries(counts)
+      .sort(([,a],[,b]) => b - a)
+      .find(([t]) => t !== bracketSlots['Final_A'].team);
+    if (alt) {
+      const [altTeam, altCount] = alt;
+      const ctx2 = nameToCtx[altTeam] || {};
+      bracketSlots['Final_B'] = {
+        team: altTeam, fifaCode: ctx2.fifaCode || '',
+        prob: Math.round(altCount / N * 1000) / 1000,
+      };
+    }
+  }
+
   return { teams: filteredTeams, bracketTraps, bracketSlots, generatedAt: new Date().toISOString(), N };
 }
 
