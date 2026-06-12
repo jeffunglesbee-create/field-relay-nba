@@ -2090,36 +2090,115 @@ async function runWCTournamentProjections(env) {
     const KV    = env.FIELD_JOURNALISM;
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
-    // 1. Fetch WC data (standings, odds-probs)
-    const [standingsRes, oddsRes] = await Promise.allSettled([
-        fetch(`${RELAY}/wc/standings`, { cache: 'no-store' }),
-        fetch(`${RELAY}/wc/odds-probs`, { cache: 'no-store' }),
+    // 1. Fetch WC data in parallel: standings + odds-probs + D1 results + today's live games
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const [standingsRes, oddsRes, resultsRes, liveGamesRes] = await Promise.allSettled([
+        fetch(`${RELAY}/wc/standings`,                         { cache: 'no-store' }),
+        fetch(`${RELAY}/wc/odds-probs`,                        { cache: 'no-store' }),
+        fetch(`${RELAY}/wc/results`,                           { cache: 'no-store' }),
+        fetch(`${RELAY}/v2/games?sport=wc26&date=${todayISO}`, { cache: 'no-store' }),
     ]);
 
-    const standings  = standingsRes.status === 'fulfilled' && standingsRes.value.ok
+    const standings = standingsRes.status === 'fulfilled' && standingsRes.value.ok
         ? ((await standingsRes.value.json()).groups || {}) : {};
-    const oddsProbs  = oddsRes.status === 'fulfilled' && oddsRes.value.ok
+    const oddsProbs = oddsRes.status === 'fulfilled' && oddsRes.value.ok
         ? ((await oddsRes.value.json()).probs  || []) : [];
 
-    // 2. Build remainingFixtures from oddsProbs: future fixtures have commence > now
+    // Gap 2: build authoritative played set from D1 results (not odds timing).
+    // Any fixture in wc_results is definitively complete regardless of commence time.
+    const d1Results = resultsRes.status === 'fulfilled' && resultsRes.value.ok
+        ? ((await resultsRes.value.json()).results || []) : [];
+    const normName = n => (n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const d1PlayedKeys = new Set(d1Results.map(r => `${normName(r.home)}|${normName(r.away)}`));
+    const isD1Played = (home, away) =>
+        d1PlayedKeys.has(`${normName(home)}|${normName(away)}`) ||
+        d1PlayedKeys.has(`${normName(away)}|${normName(home)}`);
+
+    // Gap 3: detect live games and compute live WP to override odds-derived probs.
+    // A live game's commence is in the past but it hasn't been written to D1 yet.
+    const todayGames = liveGamesRes.status === 'fulfilled' && liveGamesRes.value.ok
+        ? ((await liveGamesRes.value.json()).games || []) : [];
+    const liveWPOverrides = new Map(); // key: 'normHome|normAway' → {pHome, pDraw, pAway}
+    for (const g of todayGames) {
+        if (g.state !== 'live') continue;
+        const hName = g.home?.name || '';
+        const aName = g.away?.name  || '';
+        const key   = `${normName(hName)}|${normName(aName)}`;
+        const sit   = g.situation || {};
+        // Get pregame lambdas from odds cache for this matchup
+        let pregameLh = null, pregameLa = null;
+        for (const op of oddsProbs) {
+            if (isD1Played(op.home_team, op.away_team)) continue;
+            if (normName(op.home_team) === normName(hName) &&
+                normName(op.away_team) === normName(aName)) {
+                pregameLh = op.lambdaHome || null;
+                pregameLa = op.lambdaAway || null;
+                break;
+            }
+        }
+        try {
+            const liveWP = computeLiveWP({
+                homeGoals:    g.home?.score  ?? 0,
+                awayGoals:    g.away?.score  ?? 0,
+                homeSOT:      sit.homeSOT    || 0,
+                awaySOT:      sit.awaySOT    || 0,
+                elapsedMin:   sit.elapsed    || 0,
+                isStoppage:   sit.isStoppage || false,
+                manAdvantage: sit.manAdvantage || null,
+                isShootout:   sit.isShootout || false,
+                pregameLh,
+                pregameLa,
+            });
+            liveWPOverrides.set(key, {
+                pHome: liveWP.homeWin,
+                pDraw: liveWP.draw,
+                pAway: liveWP.awayWin,
+                lambdaHome: pregameLh,
+                lambdaAway: pregameLa,
+                _live: true,
+            });
+        } catch (_) {}
+    }
+
+    // 2. Build remainingFixtures:
+    //    - Exclude D1-played games (authoritative) — Gap 2
+    //    - Override live games with live WP — Gap 3
+    //    - Exclude past-commence games not in D1 and not live (assume complete, no data yet)
     const nowMs = Date.now();
     const remainingFixtures = oddsProbs
-        .filter(g => new Date(g.commence).getTime() > nowMs)
-        .map(g => ({
-            home: g.home_team, away: g.away_team,
-            pHome: g.pHome, pDraw: g.pDraw || (1 - g.pHome - g.pAway) / 2,
-            pAway: g.pAway,
-            lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
-        }));
+        .filter(g => {
+            if (isD1Played(g.home_team, g.away_team)) return false; // Gap 2: D1-authoritative
+            const liveKey = `${normName(g.home_team)}|${normName(g.away_team)}`;
+            if (liveWPOverrides.has(liveKey)) return true;           // Gap 3: keep live games
+            return new Date(g.commence).getTime() > nowMs;           // future only
+        })
+        .map(g => {
+            const liveKey = `${normName(g.home_team)}|${normName(g.away_team)}`;
+            const liveWP  = liveWPOverrides.get(liveKey);
+            return {
+                home: g.home_team, away: g.away_team,
+                pHome:      liveWP ? liveWP.pHome      : g.pHome,
+                pDraw:      liveWP ? liveWP.pDraw      : (g.pDraw || (1 - g.pHome - g.pAway) / 2),
+                pAway:      liveWP ? liveWP.pAway      : g.pAway,
+                lambdaHome: liveWP ? liveWP.lambdaHome : g.lambdaHome,
+                lambdaAway: liveWP ? liveWP.lambdaAway : g.lambdaAway,
+                _live:      liveWP ? true : false,
+            };
+        });
 
-    // Teams that played today (have commence within last 24h)
-    const day24h = nowMs - 86400000;
+    // Teams that played today: from D1 results created today (authoritative)
     const playedTodaySet = new Set(
-        oddsProbs
-            .filter(g => new Date(g.commence).getTime() > day24h &&
-                         new Date(g.commence).getTime() <= nowMs)
-            .flatMap(g => [g.home_team, g.away_team])
+        d1Results
+            .filter(r => r.match_date === todayISO)
+            .flatMap(r => [r.home, r.away])
     );
+    // Also include live-game teams as "in play today" for movers labeling
+    for (const g of todayGames) {
+        if (g.state === 'live') {
+            if (g.home?.name) playedTodaySet.add(g.home.name);
+            if (g.away?.name) playedTodaySet.add(g.away.name);
+        }
+    }
 
     // 3. Compute projections
     const curr = computeTournamentProjections({
