@@ -310,8 +310,8 @@ function pickBest8Third(tables) {
 // Returns: { 73: {home: 'Mexico', away: 'USA'}, 74: {...}, ... }
 function resolveR32Teams(tables, best8Third) {
   // For 3rd-place slots: given eligible groups, pick the best 3rd from those
-  // groups that's in best8Third. Simplified: first eligible group with a best-8 qualifier.
-  const qualifiedThirds = new Set(best8Third.map(t => t.group));
+  // groups that's in best8Third. Track assigned teams so each appears ONCE.
+  const assignedThirds = new Set(); // team names already placed in R32
 
   const matchups = {};
   for (const slot of R32_SLOTS) {
@@ -320,12 +320,14 @@ function resolveR32Teams(tables, best8Third) {
         const row = (tables[side.group] || [])[side.pos - 1];
         return row?.name || `${side.pos===1?'W':'RU'}-${side.group}`;
       }
-      // Best 3rd from eligible groups
+      // Best 3rd from eligible groups — exclude already-assigned teams
       const eligibleGroups = (side.eligible || '').split('');
       const candidates = best8Third
-        .filter(t => eligibleGroups.includes(t.group))
+        .filter(t => eligibleGroups.includes(t.group) && !assignedThirds.has(t.name))
         .sort((a,b) => (b.pts-a.pts)||(b.gd-a.gd)||(b.gf-a.gf));
-      return candidates[0]?.name || `3rd-${side.eligible}`;
+      const pick = candidates[0];
+      if (pick) assignedThirds.add(pick.name);
+      return pick?.name || `3rd-${side.eligible}`;
     };
     matchups[slot.match] = { home: resolveTeam(slot.home), away: resolveTeam(slot.away) };
   }
