@@ -1486,6 +1486,27 @@ async function handleWCOddsProbs(env) {
                 bookmakers:   h2h.n,
             });
         }
+        // ── Inject Germany vs Ecuador final matchday odds (June 25, 2026)
+        // Market consensus from screenshot data. Once Odds API lists this game,
+        // this entry is skipped (deduped by game key). Provides immediate calibration.
+        if (!probs.find(p => 
+          (p.home_team === 'Germany' && p.away_team === 'Ecuador') ||
+          (p.home_team === 'Ecuador' && p.away_team === 'Germany')
+        )) {
+          probs.push({
+            home_team:    'Germany',
+            away_team:    'Ecuador',
+            commence:     '2026-06-25T16:00:00Z',  // Final matchday kickoff
+            pHome:        0.5600,  // -135/-150 ML (screenshot)
+            pDraw:        0.2500,  // +290/+300 ML (screenshot)
+            pAway:        0.1900,  // +410 ML (screenshot)
+            lambdaHome:   1.75,    // From O/U 2.5 (screenshot)
+            lambdaAway:   0.35,
+            lambdaTotal:  2.10,
+            lambdaSource: 'market-consensus-injected',
+            bookmakers:   1,
+          });
+        }
         return new Response(JSON.stringify({
             ok: true,
             probs,

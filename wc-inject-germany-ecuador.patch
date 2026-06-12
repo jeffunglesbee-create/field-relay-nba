@@ -1,0 +1,24 @@
+// Add to handleWCOddsProbs after Odds API fetch, before response
+
+// ── Inject Germany vs Ecuador (June 25, final matchday)
+// Once this game appears in Odds API, this entry is ignored (deduped by game key)
+// Until then, provides market consensus from screenshot data
+if (!probs.find(p => 
+  (p.home_team === 'Germany' && p.away_team === 'Ecuador') ||
+  (p.home_team === 'Ecuador' && p.away_team === 'Germany')
+)) {
+  probs.push({
+    home_team:    'Germany',
+    away_team:    'Ecuador',
+    commence:     '2026-06-25T16:00:00Z',  // Final matchday simultaneous kickoff
+    pHome:        0.5600,  // -135/-150 ML → 56%
+    pDraw:        0.2500,  // +290/+300 → 25%
+    pAway:        0.1900,  // +410 → 19%
+    lambdaHome:   1.75,    // From O/U 2.5 line
+    lambdaAway:   0.35,
+    lambdaTotal:  2.10,
+    lambdaSource: 'injected-market-consensus',
+    bookmakers:   1,       // Placeholder count
+    _note:        'Injected from market data until Odds API lists this final-matchday game. Source: SportsLine, ESPN, Oddschecker (Jun 25 2026).'
+  });
+}
