@@ -1241,11 +1241,48 @@ function adaptFootball(item, sportKey, statsData) {
 // Relay-is-dumb: these write arithmetic facts (scores/standings) to D1 only.
 // No editorial intelligence, no interest levels. Pure score bookkeeping.
 
-// Extract group letter from API-Sports round string:
-// "Group Stage - Group A" → 'A'  |  "Group A" → 'A'  |  "Round of 32" → null
-function extractWCGroup(round) {
+// Extract group letter from API-Sports round string, with team-name fallback.
+// api-sports changed format mid-tournament: "Group Stage - Group A" → "Group Stage - 1"
+// Primary:  regex on round string — handles "Group Stage - Group A" and "Group A"
+// Fallback: derive from home/away team name — handles "Group Stage - 1" (matchday number)
+// Returns null for knockout rounds (Round of 32, etc.) regardless of team names.
+const _WC_TEAM_GROUP = {
+    // Group A
+    'mexico':'A','south africa':'A','south korea':'A','czechia':'A','czech republic':'A',
+    // Group B
+    'canada':'B','bosnia and herzegovina':'B','bosnia & herzegovina':'B','qatar':'B','switzerland':'B',
+    // Group C
+    'brazil':'C','morocco':'C','haiti':'C','scotland':'C',
+    // Group D
+    'united states':'D','usa':'D','paraguay':'D','australia':'D','turkey':'D','turkiye':'D',
+    // Group E
+    'germany':'E','curacao':'E','ivory coast':'E','ecuador':'E',
+    // Group F
+    'netherlands':'F','japan':'F','tunisia':'F','sweden':'F',
+    // Group G
+    'belgium':'G','egypt':'G','iran':'G','new zealand':'G',
+    // Group H
+    'spain':'H','cape verde':'H','saudi arabia':'H','uruguay':'H',
+    // Group I
+    'france':'I','senegal':'I','iraq':'I','norway':'I',
+    // Group J
+    'argentina':'J','algeria':'J','austria':'J','jordan':'J',
+    // Group K
+    'colombia':'K','congo dr':'K','dr congo':'K','portugal':'K','uzbekistan':'K',
+    // Group L
+    'panama':'L','england':'L','croatia':'L','ghana':'L',
+};
+function extractWCGroup(round, homeName, awayName) {
+    // Primary: round string contains explicit group letter
     const m = (round || '').match(/Group\s+([A-L])\b/i);
-    return m ? m[1].toUpperCase() : null;
+    if (m) return m[1].toUpperCase();
+    // Knockout guard: named knockout rounds never yield a group
+    if (/round of|quarter|semi|final/i.test(round || '')) return null;
+    // Fallback: derive from team name (handles "Group Stage - 1" matchday format)
+    const norm = s => (s || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const g = _WC_TEAM_GROUP[norm(homeName)] || _WC_TEAM_GROUP[norm(awayName)];
+    return g || null;
 }
 
 // Recompute wc_group standings for one group from wc_results (idempotent)
@@ -1283,7 +1320,7 @@ async function recomputeGroupStandings(db, groupId) {
 
 // Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
 async function writeWCResult(db, game, env) {
-    const groupId = extractWCGroup(game.round);
+    const groupId = extractWCGroup(game.round, game.home?.name, game.away?.name);
     if (!groupId) return; // knockout stage or no round info — skip
     const matchDate = (game.start || '').slice(0, 10);
     const homeScore = game.home?.score ?? 0;
@@ -1742,7 +1779,7 @@ async function handleV2Games(url, env, ctx) {
 
                 // Gap 3: advancement probability for WC group stage games
                 if (sport === 'wc26' && env.WC2026_DB) {
-                    const gLetter = extractWCGroup(g.round);
+                    const gLetter = extractWCGroup(g.round, g.home?.name, g.away?.name);
                     if (gLetter) {
                         try {
                             const [standingsRes, thirdRes] = await Promise.allSettled([
