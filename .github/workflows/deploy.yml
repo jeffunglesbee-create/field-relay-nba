@@ -69,6 +69,8 @@ jobs:
           sed -i "s/MCP_OAUTH_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
 
       - name: Deploy to Cloudflare Workers
+        id: wrangler_deploy
+        continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -86,6 +88,21 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
           GITHUB_PAT: ${{ secrets.RELAY_GH_PAT }}
+
+      # Hard gate: even with continue-on-error above, the code MUST be live.
+      # This catches genuine deploy failures (bad bundle, auth revoked) vs
+      # wrangler post-deploy secret-PUT errors (code live but wrangler exits 1).
+      - name: Deploy gate — confirm relay is live
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          for attempt in 1 2 3 4 5; do
+            BODY=$(curl -s --max-time 10 "$RELAY/health" 2>/dev/null)
+            echo "Attempt $attempt — $BODY"
+            echo "$BODY" | grep -q "RELAY OK" && { echo "✅ Relay is live"; exit 0; }
+            [ $attempt -lt 5 ] && { echo "⏳ Retrying in 8s..."; sleep 8; }
+          done
+          echo "❌ Relay not responding after deploy — genuine failure"
+          exit 1
 
       - name: Deploy Courier Worker
         uses: cloudflare/wrangler-action@v3
