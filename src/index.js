@@ -1630,7 +1630,11 @@ async function handleV2Games(url, env, ctx) {
     try {
         const resp = await fetch(targetUrl, {
             headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
-            cf: { cacheTtl: 30, cacheEverything: false },
+            // CF edge cache: key on URL only (exclude x-apisports-key from cache key).
+            // All users' polls for same sport+date hit the same CF cache entry.
+            // Result: api-sports calls = O(sports × time) not O(users × polls).
+            // Without this: N users × poll rate = unbounded api-sports quota burn.
+            cf: { cacheTtl: 30, cacheEverything: true, cacheKey: targetUrl },
         });
         if (!resp.ok)
             return new Response(JSON.stringify({ error: `Upstream ${resp.status}`, sport, date }),
@@ -1669,10 +1673,10 @@ async function handleV2Games(url, env, ctx) {
             if (liveFixIds.length > 0) {
                 const statsPromises = liveFixIds.map(async fId => {
                     try {
-                        const sr = await fetch(
-                            `https://${host}/fixtures/statistics?fixture=${fId}`,
+                        const statsUrl = `https://${host}/fixtures/statistics?fixture=${fId}`;
+                        const sr = await fetch(statsUrl,
                             { headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
-                              cf: { cacheTtl: 30, cacheEverything: false } }
+                              cf: { cacheTtl: 30, cacheEverything: true, cacheKey: statsUrl } }
                         );
                         if (!sr.ok) return { fId, stats: null };
                         return { fId, stats: parseFootballStats(await sr.json()) };
@@ -1877,7 +1881,7 @@ async function handleV2Standings(url, env) {
     try {
         const resp = await fetch(targetUrl, {
             headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
-            cf: { cacheTtl: 3600, cacheEverything: false },
+            cf: { cacheTtl: 3600, cacheEverything: true, cacheKey: targetUrl },
         });
         if (!resp.ok)
             return new Response(JSON.stringify({ error: `Upstream ${resp.status}` }),
@@ -3082,7 +3086,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
