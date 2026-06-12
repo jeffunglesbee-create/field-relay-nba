@@ -130,6 +130,57 @@ export function deriveTeamStrengths(oddsProbs) {
   return strengths;
 }
 
+// ── applyBayesianUpdate ─────────────────────────────────────────────────────
+// Blend odds-derived prior strengths with actual match performance from D1.
+// PRIOR_WEIGHT = 3: pre-tournament odds encode ~3 "equivalent games" of info.
+// After 1 game: ~75% prior + 25% observed. After 3 games: ~50-50.
+//
+// Opponent-strength adjustment:
+//   obsAttack  = goalsScored   × BASE / opponent_defense_prior
+//   obsDefense = goalsConceded × BASE / opponent_attack_prior
+// A team scoring 2 against a strong defense is more impressive than 2 against
+// a weak one. Same logic for goals conceded vs opponent attack quality.
+const PRIOR_WEIGHT = 3;
+
+function applyBayesianUpdate(strengths, d1Results) {
+  if (!d1Results || d1Results.length === 0) return;
+
+  const obs = {}; // { teamName: { attSum, defSum, games } }
+  const addObs = (name, att, def) => {
+    if (!obs[name]) obs[name] = { attSum: 0, defSum: 0, games: 0 };
+    obs[name].attSum += att;
+    obs[name].defSum += def;
+    obs[name].games++;
+  };
+
+  for (const r of d1Results) {
+    const home = normalizeTeamName(r.home);
+    const away = normalizeTeamName(r.away);
+    const hPrior = strengths[home] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+    const aPrior = strengths[away] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+    const hScore = r.home_score ?? 0;
+    const aScore = r.away_score ?? 0;
+
+    // Home: scored hScore against away's defense, conceded aScore from away's attack
+    addObs(home, hScore * BASE_LAMBDA / (aPrior.defense || BASE_LAMBDA),
+                 aScore * BASE_LAMBDA / (aPrior.attack  || BASE_LAMBDA));
+    // Away: scored aScore against home's defense, conceded hScore from home's attack
+    addObs(away, aScore * BASE_LAMBDA / (hPrior.defense || BASE_LAMBDA),
+                 hScore * BASE_LAMBDA / (hPrior.attack  || BASE_LAMBDA));
+  }
+
+  // Blend: posterior = (PRIOR_WEIGHT × prior + nGames × observed) / (PRIOR_WEIGHT + nGames)
+  for (const [name, o] of Object.entries(obs)) {
+    if (!strengths[name]) continue;
+    const prior = strengths[name];
+    const obsAtt = o.attSum / o.games;
+    const obsDef = o.defSum / o.games;
+    const w = PRIOR_WEIGHT + o.games;
+    strengths[name].attack  = (PRIOR_WEIGHT * prior.attack  + o.games * obsAtt) / w;
+    strengths[name].defense = (PRIOR_WEIGHT * prior.defense + o.games * obsDef) / w;
+  }
+}
+
 // ── getAllTeamNames ──────────────────────────────────────────────────────────
 // Returns all 48 WC team display names from WC_TEAM_CONTEXT.
 function getAllTeamNames() {
@@ -394,10 +445,15 @@ export function computeTournamentProjections({
   currentStandings = {},
   remainingFixtures = [],
   oddsProbs         = [],
+  d1Results         = [],
   N                 = 2000,
 } = {}) {
   const rng = Math.random;
   const strengths = deriveTeamStrengths(oddsProbs);
+
+  // Tier 1: Bayesian strength update from actual match results.
+  // Blend odds-derived priors with opponent-adjusted observed performance.
+  applyBayesianUpdate(strengths, d1Results);
 
   // Auto-build remainingFixtures from oddsProbs if caller didn't provide them.
   // Uses commence timestamp to exclude already-played games; on Day 1 all are future.
