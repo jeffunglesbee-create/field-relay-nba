@@ -319,7 +319,9 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(tA, 'R16'); track(tB, 'R16');
     const wR16 = simulateMatch(tA, tB, strengths, rng);
     r16Winners.push(wR16);
-    slotWinners[`R16_${i}`] = wR16;
+    slotWinners[`R16_${i}`] = wR16;        // winner (for QF pairing)
+    slotWinners[`R16_${i}_A`] = tA;        // both participants for full bracket display
+    slotWinners[`R16_${i}_B`] = tB;
   }
 
   // QF: 4 matches
@@ -331,7 +333,9 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(tA, 'QF'); track(tB, 'QF');
     const wQF = simulateMatch(tA, tB, strengths, rng);
     qfWinners.push(wQF);
-    slotWinners[`QF_${i}`] = wQF;
+    slotWinners[`QF_${i}`] = wQF;          // winner (for SF pairing)
+    slotWinners[`QF_${i}_A`] = tA;         // both participants for full bracket display
+    slotWinners[`QF_${i}_B`] = tB;
   }
 
   // SF: 2 matches
@@ -343,7 +347,9 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(tA, 'SF'); track(tB, 'SF');
     const wSF = simulateMatch(tA, tB, strengths, rng);
     sfWinners.push(wSF);
-    slotWinners[`SF_${i}`] = wSF;
+    slotWinners[`SF_${i}`] = wSF;          // winner (for Final pairing)
+    slotWinners[`SF_${i}_A`] = tA;         // both participants for full bracket display
+    slotWinners[`SF_${i}_B`] = tB;
   }
 
   // Final
@@ -352,7 +358,9 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(tA, 'Final'); track(tB, 'Final');
     const champion = simulateMatch(tA, tB, strengths, rng);
     track(champion, 'Champion');
-    slotWinners['Final'] = champion;
+    slotWinners['Final'] = champion;       // winner/champion
+    slotWinners['Final_A'] = tA;           // both participants for full bracket display
+    slotWinners['Final_B'] = tB;
     slotWinners['Champion'] = champion;
   }
 
