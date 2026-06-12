@@ -305,7 +305,9 @@ function simulateKnockoutBracket(r32Matchups, strengths, rng, finishPositions = 
     track(m.home, 'R32'); track(m.away, 'R32');
     const winner = simulateMatch(m.home, m.away, strengths, rng);
     r32Winners[slot.match] = winner;
-    slotWinners[`R32_${slot.match}`] = winner;
+    slotWinners[`R32_${slot.match}`]   = winner;  // existing: R32 winner (for R16 pairing)
+    slotWinners[`R32_${slot.match}_A`] = m.home;  // both participants for full bracket display
+    slotWinners[`R32_${slot.match}_B`] = m.away;
   }
 
   // R16: 8 matches from R32 winner pairs
