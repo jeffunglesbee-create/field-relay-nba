@@ -17,6 +17,15 @@ export { UserDO };
 import { BracketDO } from './bracket-do.js';
 export { BracketDO };
 
+// ── Durable Object: AmbientDO (cross-sport SSE ambient channel, June 11 2026) ──
+// Single instance ("field:ambient"). Alarm-driven: polls all active sports
+// every 30s, detects score/lead/final deltas, fans out via SSE to all browsers.
+// Unlocks: <3s lead change detection, multiview velocity, cross-sport ambient,
+// journalism timing, O(sports) API budget instead of O(users).
+// ADR-002 compliant: raw facts only, no composite scoring.
+import { AmbientDO } from './ambient-do.js';
+export { AmbientDO };
+
 // ── WC Tournament Projections (June 11 2026) ─────────────────────────────────
 import {
   computeTournamentProjections,
@@ -3073,7 +3082,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -3250,6 +3259,24 @@ export default {
             }
 
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
+        }
+
+        // ── /live/* — AmbientDO SSE ambient channel ───────────────────────────────
+        // GET /live/ambient  — SSE stream, one connection covers all sports
+        //   Emits: score, lead_change, final, all_final, ping
+        //   Client: AmbientEventSource in index.html feeds fieldEvents bus
+        //   Latency: <3s vs 15-30s polling (alarm-driven 30s poll in DO)
+        // GET /ambient/state — REST state snapshot (debug / health)
+        // POST /ambient/kick — manual poll trigger (admin)
+        if (pathname === '/live/ambient' || pathname.startsWith('/ambient/')) {
+            if (!env.AMBIENT_DO) {
+                return new Response(JSON.stringify({ error: 'AMBIENT_DO not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const doId = env.AMBIENT_DO.idFromName('field:ambient');
+            const stub = env.AMBIENT_DO.get(doId);
+            // Pass RELAY_BASE env for self-call pattern in AmbientDO._fetchSport()
+            return stub.fetch(request);
         }
 
         // /cfl/* — CFL odds from The Odds API
@@ -4644,6 +4671,7 @@ export default {
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
+                        '/ambient/state',
                         '/v2/games',
                         '/v2/standings',
                         // P0 carry-forward (2026-06-05): first step to diagnose

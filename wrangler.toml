@@ -64,6 +64,13 @@ class_name = "UserDO"
 name       = "BRACKET_DO"
 class_name = "BracketDO"
 
+# AmbientDO — cross-sport SSE ambient channel (June 11 2026)
+# Single instance ("field:ambient"). Alarm-driven 30s poll across all active
+# sports. Fans out score/lead_change/final/all_final SSE events to browsers.
+[[durable_objects.bindings]]
+name       = "AMBIENT_DO"
+class_name = "AmbientDO"
+
 # Migration: introduce the GameDO class. Required when first deploying a DO.
 [[migrations]]
 tag         = "v1-game-do"
@@ -78,6 +85,11 @@ new_classes = ["UserDO"]
 [[migrations]]
 tag         = "v3-bracket-do"
 new_classes = ["BracketDO"]
+
+# Migration: introduce AmbientDO (June 11 2026).
+[[migrations]]
+tag         = "v4-ambient-do"
+new_classes = ["AmbientDO"]
 
 # ── Analytics Engine (WOW 7 — Journalism Quality observability, May 31 2026) ─
 # Append-only time-series sink for JQ Gate metrics. Bound as JQ_ANALYTICS in
