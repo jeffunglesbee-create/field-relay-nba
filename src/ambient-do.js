@@ -47,7 +47,13 @@
 //   Always clears and resets on each alarm invocation
 // ═══════════════════════════════════════════════════════════════════════════
 
-const POLL_LIVE_MS  = 30_000;
+// POLL_LIVE_MS: 15s during live games.
+// With CF edge caching (cacheEverything:true, cacheKey:url) on /v2/games,
+// api-sports is called at most once per 30s per sport (the cache TTL).
+// More frequent DO polls hit the CF cache — zero extra api-sports quota cost.
+// Result: AmbientDO detects score changes within 15s of api-sports updating,
+// while api-sports quota is capped at 2/min × sports (not O(poll frequency)).
+const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
 const PING_MS       = 20_000;
 

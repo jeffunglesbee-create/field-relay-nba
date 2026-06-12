@@ -145,3 +145,10 @@ bucket_name = "field-relay-data"
 binding       = "WC2026_DB"
 database_name = "wc2026"
 database_id   = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"
+
+# ── Worker environment variables ─────────────────────────────────────────────
+# RELAY_BASE: self-referencing URL for internal calls (AmbientDO self-call).
+# The CF edge cache on /v2/games means AmbientDO polls hit cached responses —
+# no extra api-sports quota cost for more frequent DO alarms.
+[vars]
+RELAY_BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
