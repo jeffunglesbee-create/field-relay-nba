@@ -2226,6 +2226,7 @@ async function runWCTournamentProjections(env) {
         currentStandings: standings,
         remainingFixtures,
         oddsProbs,
+        d1Results,
         N: 2000,
     });
 
