@@ -555,69 +555,126 @@ export function computeTournamentProjections({
   // Detect bracket traps using position-conditional counts
   const bracketTraps = detectBracketTraps(countsByPos, N, nameToCtx);
 
-  // Build bracketSlots: most-probable winner per slot with probability
-  const bracketSlots = {};
-  for (const [slotId, teamCounts] of Object.entries(slotCounts)) {
-    let best = null, bestCount = 0;
-    for (const [team, count] of Object.entries(teamCounts)) {
-      if (count > bestCount) { best = team; bestCount = count; }
-    }
-    if (best) {
-      const ctx = nameToCtx[best] || {};
-      bracketSlots[slotId] = {
-        team:     best,
-        fifaCode: ctx.fifaCode || '',
-        prob:     Math.round(bestCount / N * 1000) / 1000,
-      };
-    }
-  }
+  // ── Coherent bracket builder ─────────────────────────────────────────────
+  // Instead of independent mode-per-slot (which causes team duplication and
+  // cross-round inconsistency), build a single coherent bracket:
+  //   1. Modal group finishing order (most frequent 1st/2nd/3rd per group)
+  //   2. Best 8 third-place from modal 3rd-place teams
+  //   3. R32 matchups from FIFA Annex C rules
+  //   4. Each knockout match: Poisson probability → deterministic favorite
+  //   5. Winners feed forward: R32→R16→QF→SF→Final→Champion
+  // Result: each team appears exactly once, bracket flows logically.
+  // Probabilities shown = team's Monte Carlo advancement rate for that round.
 
-  // ── Deduplication pass ──────────────────────────────────────────────────────
-  // Independent mode-per-slot can place the same team in multiple R32 slots
-  // (e.g. a frequent "best 3rd" team). A real bracket has each team exactly once
-  // per round. Fix: within each round's _A/_B participant slots, keep highest-prob
-  // assignment and promote the next-best unused team for duplicate slots.
-  for (const round of ['R32', 'R16', 'QF', 'SF']) {
-    const participantSlots = Object.entries(bracketSlots)
-      .filter(([id]) => id.startsWith(round + '_') && (id.endsWith('_A') || id.endsWith('_B')))
-      .sort(([,a], [,b]) => b.prob - a.prob); // greedy: highest prob first
+  // Step 1: Modal group finishing order
+  const groups = 'ABCDEFGHIJKL'.split('');
+  const modalTables = {};
+  for (const g of groups) {
+    const groupTeams = Object.values(WC_TEAM_CONTEXT)
+      .filter(ctx => ctx.group === g)
+      .map(ctx => ctx.displayName);
+    const rows = [];
     const placed = new Set();
-    for (const [slotId, data] of participantSlots) {
-      if (!placed.has(data.team)) {
-        placed.add(data.team);
-      } else {
-        // Duplicate — promote next-best team not yet placed in this round
-        const counts = slotCounts[slotId] || {};
-        const alt = Object.entries(counts)
-          .sort(([,a],[,b]) => b - a)
-          .find(([t]) => !placed.has(t));
-        if (alt) {
-          const [altTeam, altCount] = alt;
-          const ctx2 = nameToCtx[altTeam] || {};
-          bracketSlots[slotId] = {
-            team: altTeam, fifaCode: ctx2.fifaCode || '',
-            prob: Math.round(altCount / N * 1000) / 1000,
-          };
-          placed.add(altTeam);
-        }
+    for (const pos of [0, 1, 2, 3]) { // 0=1st, 1=2nd, 2=3rd, 3=4th
+      let bestTeam = null, bestCount = 0;
+      for (const team of groupTeams) {
+        if (placed.has(team)) continue;
+        const cPos = pos < 3 ? (countsByPos[team]?.[pos + 1]?.total || 0) : 0;
+        // For 4th place: use N minus sum of other positions
+        const count = pos < 3 ? cPos : N;
+        if (count > bestCount || !bestTeam) { bestTeam = team; bestCount = count; }
+      }
+      if (bestTeam) {
+        rows.push({ name: bestTeam, group: g, pts: 0, gd: 0, gf: 0 });
+        placed.add(bestTeam);
       }
     }
+    modalTables[g] = rows;
   }
-  // Final has only 2 participant slots — dedup naturally
-  if (bracketSlots['Final_A'] && bracketSlots['Final_B'] &&
-      bracketSlots['Final_A'].team === bracketSlots['Final_B'].team) {
-    const counts = slotCounts['Final_B'] || {};
-    const alt = Object.entries(counts)
-      .sort(([,a],[,b]) => b - a)
-      .find(([t]) => t !== bracketSlots['Final_A'].team);
-    if (alt) {
-      const [altTeam, altCount] = alt;
-      const ctx2 = nameToCtx[altTeam] || {};
-      bracketSlots['Final_B'] = {
-        team: altTeam, fifaCode: ctx2.fifaCode || '',
-        prob: Math.round(altCount / N * 1000) / 1000,
-      };
+
+  // Step 2: Pick best 8 third-place teams (by R32 qualification frequency)
+  const modalThirds = groups.map(g => {
+    const thirdTeam = modalTables[g]?.[2]?.name;
+    if (!thirdTeam) return null;
+    const r32AsThird = countsByPos[thirdTeam]?.[3]?.R32 || 0;
+    return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0, qualRate: r32AsThird / N };
+  }).filter(Boolean).sort((a, b) => b.qualRate - a.qualRate);
+  const modalBest8 = modalThirds.slice(0, 8);
+
+  // Step 3: Build R32 matchups via FIFA Annex C
+  const modalR32 = resolveR32Teams(modalTables, modalBest8);
+
+  // Step 4+5: Forward-simulate bracket (deterministic — pick Poisson favorite)
+  const bracketSlots = {};
+  const _pmf = (l, k) => { let r = Math.exp(-l); for (let i = 1; i <= k; i++) r *= l / i; return r; };
+  const _pickFav = (tA, tB) => {
+    const sA = strengths[tA] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+    const sB = strengths[tB] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
+    const lA = sA.attack * sB.defense / BASE_LAMBDA;
+    const lB = sB.attack * sA.defense / BASE_LAMBDA;
+    let pA = 0, pDraw = 0;
+    for (let a = 0; a <= 8; a++) for (let b = 0; b <= 8; b++) {
+      const p = _pmf(lA, a) * _pmf(lB, b);
+      if (a > b) pA += p; else if (a === b) pDraw += p;
     }
+    pA += pDraw * 0.5; // knockout draws → ~50/50 penalties
+    return pA >= 0.5 ? tA : tB;
+  };
+  const _slot = (name, round) => {
+    const ctx = nameToCtx[name] || {};
+    const c = counts[name] || {};
+    return { team: name, fifaCode: ctx.fifaCode || '', prob: round2((c[round] || 0) / N) };
+  };
+
+  // R32: 16 matches
+  const r32Winners = {};
+  for (const slot of R32_SLOTS) {
+    const m = modalR32[slot.match];
+    if (!m?.home || !m?.away) continue;
+    bracketSlots[`R32_${slot.match}_A`] = _slot(m.home, 'R32');
+    bracketSlots[`R32_${slot.match}_B`] = _slot(m.away, 'R32');
+    r32Winners[slot.match] = _pickFav(m.home, m.away);
+  }
+
+  // R16: 8 matches from R32 winner pairs
+  const r16Winners = [];
+  for (let i = 0; i < R32_TO_R16_PAIRS.length; i++) {
+    const [matchA, matchB] = R32_TO_R16_PAIRS[i];
+    const tA = r32Winners[matchA], tB = r32Winners[matchB];
+    if (!tA || !tB) { r16Winners.push(null); continue; }
+    bracketSlots[`R16_${i}_A`] = _slot(tA, 'R16');
+    bracketSlots[`R16_${i}_B`] = _slot(tB, 'R16');
+    r16Winners.push(_pickFav(tA, tB));
+  }
+
+  // QF: 4 matches
+  const qfWinners = [];
+  for (let i = 0; i < R16_TO_QF_PAIRS.length; i++) {
+    const [iA, iB] = R16_TO_QF_PAIRS[i];
+    const tA = r16Winners[iA], tB = r16Winners[iB];
+    if (!tA || !tB) { qfWinners.push(null); continue; }
+    bracketSlots[`QF_${i}_A`] = _slot(tA, 'QF');
+    bracketSlots[`QF_${i}_B`] = _slot(tB, 'QF');
+    qfWinners.push(_pickFav(tA, tB));
+  }
+
+  // SF: 2 matches
+  const sfWinners = [];
+  for (let i = 0; i < QF_TO_SF_PAIRS.length; i++) {
+    const [iA, iB] = QF_TO_SF_PAIRS[i];
+    const tA = qfWinners[iA], tB = qfWinners[iB];
+    if (!tA || !tB) { sfWinners.push(null); continue; }
+    bracketSlots[`SF_${i}_A`] = _slot(tA, 'SF');
+    bracketSlots[`SF_${i}_B`] = _slot(tB, 'SF');
+    sfWinners.push(_pickFav(tA, tB));
+  }
+
+  // Final
+  if (sfWinners[0] && sfWinners[1]) {
+    bracketSlots['Final_A'] = _slot(sfWinners[0], 'Final');
+    bracketSlots['Final_B'] = _slot(sfWinners[1], 'Final');
+    const champion = _pickFav(sfWinners[0], sfWinners[1]);
+    bracketSlots['Champion'] = _slot(champion, 'Champion');
   }
 
   return { teams: filteredTeams, bracketTraps, bracketSlots, generatedAt: new Date().toISOString(), N };
