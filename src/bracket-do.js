@@ -256,7 +256,20 @@ export class BracketDO {
             ]);
         }
 
-        // 8. Fan out to all WebSocket clients
+        // 8. Write movers/delta to FIELD_JOURNALISM KV for /wc/movers endpoint
+        if (delta && this.env.FIELD_JOURNALISM) {
+            try {
+                await this.env.FIELD_JOURNALISM.put('wc:movers:current', JSON.stringify(delta), { expirationTtl: 86400 });
+            } catch (_) {}
+        }
+        // Also rotate prev in KV for the cron path
+        if (this.env.FIELD_JOURNALISM) {
+            try {
+                await this.env.FIELD_JOURNALISM.put('wc:projections:prev', JSON.stringify(newSnapshot), { expirationTtl: 7 * 86400 });
+            } catch (_) {}
+        }
+
+        // 9. Fan out to all WebSocket clients
         const message = JSON.stringify({
             type:    'bracket:updated',
             delta,
