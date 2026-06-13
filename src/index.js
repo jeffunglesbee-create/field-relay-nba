@@ -3345,8 +3345,9 @@ export default {
                 });
             }
 
-            // POST /wc/bracket/refresh — force BracketDO projection recompute (admin)
-            if (pathname === '/wc/bracket/refresh' && request.method === 'POST') {
+            // GET|POST /wc/bracket/refresh — force BracketDO projection recompute
+            // Accepts GET for MCP probe_relay_route compatibility + POST for admin
+            if (pathname === '/wc/bracket/refresh' && (request.method === 'POST' || request.method === 'GET')) {
                 if (!env.BRACKET_DO)
                     return new Response(JSON.stringify({ error: 'BracketDO not bound' }),
                         { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -4808,6 +4809,7 @@ export default {
                         '/wc/traps',
                         '/wc/bracket',
                         '/wc/bracket/state',
+                        '/wc/bracket/refresh',
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
