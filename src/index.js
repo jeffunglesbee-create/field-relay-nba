@@ -1757,9 +1757,14 @@ async function handleV2Games(url, env, ctx) {
             headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
             cf: { cacheTtl: _cacheTtl, cacheEverything: true, cacheKey: targetUrl },
         });
-        if (!resp.ok)
-            return new Response(JSON.stringify({ error: `Upstream ${resp.status}`, sport, date }),
-                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        if (!resp.ok) {
+            // 429 = upstream rate limit. Return 503 no-store so the client keeps
+            // last-known state and the empty error isn't cached. Other errors → 502.
+            const isRateLimit = resp.status === 429;
+            return new Response(JSON.stringify({ error: `Upstream ${resp.status}`, sport, date, retryable: isRateLimit }),
+                { status: isRateLimit ? 503 : 502,
+                  headers: { ...CORS, 'Content-Type': 'application/json', ...(isRateLimit ? { 'Cache-Control': 'no-store' } : {}) } });
+        }
         const data  = await resp.json();
         const raw   = data?.response || [];
 
