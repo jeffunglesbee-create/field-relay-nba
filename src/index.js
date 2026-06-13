@@ -1357,6 +1357,39 @@ async function writeWCResult(db, game, env) {
             console.error('[BracketDO stub]', e.message);
         }
     }
+
+    // Enqueue per-game brief (Night Owl style) for WC games
+    if (env?.JOURNALISM_QUEUE) {
+        const prompt = [
+            `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
+            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+            `Include: key moments, standout performers, what this means for the group.`,
+            ``,
+            `RESULT: ${home} ${homeScore} - ${awayScore} ${away}`,
+            `Group: ${groupId}`,
+            `Venue: (Group stage match)`,
+            `Date: ${matchDate}`,
+            ``,
+            `Write the brief as a single paragraph. No headers, no bullet points.`,
+        ].join('\n');
+        try {
+            const kvKey = `wc:brief:game:${gameId}`;
+            await env.JOURNALISM_QUEUE.send({
+                type: 'game-brief',
+                prompt,
+                eventId: gameId,
+                max_tokens: 250,
+                sport: 'wc26',
+                home: home,
+                away: away,
+                homeScore,
+                awayScore,
+                enqueuedAt: Date.now(),
+            });
+        } catch (e) {
+            console.error('[WC game-brief enqueue]', e.message);
+        }
+    }
 }
 
 // GET /wc/standings[?group=A]  — return D1 standings as JSON
