@@ -3989,7 +3989,7 @@ export default {
         // Browser card renderers check this before calling the proxy directly.
         if (pathname.startsWith('/journalism/game/')) {
             if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json'}});
-            const eventId = pathname.replace('/journalism/game/', '').replace(/[^a-zA-Z0-9_-]/g,'');
+            const eventId = pathname.replace('/journalism/game/', '').replace(/[^a-zA-Z0-9_:-]/g,'');
             if (!eventId) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json'}});
             const raw = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`);
             if (!raw) return new Response(JSON.stringify({brief:null}),{status:200,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'public,max-age=60'}});
