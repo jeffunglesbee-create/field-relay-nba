@@ -4904,7 +4904,7 @@ export default {
                         '/stat/platform/ashby/status',
                         '/stat/',
                     ]);
-                    const ALLOWED_PREFIX = ['/squiggle'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
