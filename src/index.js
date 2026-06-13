@@ -2240,10 +2240,8 @@ async function runWCTournamentProjections(env) {
     // 5. Compute movers
     const movers = prev ? computeMovers(prev, curr, playedTodaySet) : null;
 
-    // 6. Persist: rotate curr → prev, write new curr
-    if (prev) {
-        await KV.put('wc:projections:prev', JSON.stringify(prev), { expirationTtl: 7 * 86400 });
-    }
+    // 6. Persist: rotate curr → prev for next cycle's movers diff, write new curr
+    await KV.put('wc:projections:prev', JSON.stringify(curr), { expirationTtl: 7 * 86400 });
     await KV.put('wc:projections:current', JSON.stringify(curr), { expirationTtl: 7 * 86400 });
     // Store bracket slots separately for /wc/bracket endpoint
     if (curr.bracketSlots && Object.keys(curr.bracketSlots).length > 0) {
