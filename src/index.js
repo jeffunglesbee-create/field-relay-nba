@@ -1360,25 +1360,54 @@ async function writeWCResult(db, game, env) {
 
     // Enqueue per-game brief (Night Owl style) for WC games
     if (env?.JOURNALISM_QUEUE) {
+        // Fetch match events (goals, cards, subs) from api-sports for richer brief
+        let eventsContext = '';
+        try {
+            const numericId = String(game.id).replace('football:', '');
+            const evRes = await fetch(
+                `https://v3.football.api-sports.io/fixtures/events?fixture=${numericId}`,
+                { headers: { 'x-apisports-key': env.APISPORTS_KEY || '' } }
+            );
+            if (evRes.ok) {
+                const evData = await evRes.json();
+                const events = evData?.response || [];
+                const lines = events.map(ev => {
+                    const min = ev.time?.elapsed || '?';
+                    const extra = ev.time?.extra ? `+${ev.time.extra}` : '';
+                    const player = ev.player?.name || '';
+                    const assist = ev.assist?.name ? ` (${ev.assist.name} ast)` : '';
+                    const team = ev.team?.name || '';
+                    const type = ev.type || '';
+                    const detail = ev.detail || '';
+                    if (type === 'Goal') return `⚽ ${min}${extra}' ${player}${assist} — ${team}${detail === 'Own Goal' ? ' (OG)' : detail === 'Penalty' ? ' (PEN)' : ''}`;
+                    if (type === 'Card' && detail === 'Red Card') return `🟥 ${min}${extra}' ${player} — ${team}`;
+                    if (type === 'Card' && detail === 'Yellow Card') return `🟨 ${min}${extra}' ${player} — ${team}`;
+                    if (type === 'subst') return `🔄 ${min}${extra}' ${player} on for ${ev.assist?.name || '?'} — ${team}`;
+                    return null;
+                }).filter(Boolean);
+                if (lines.length) eventsContext = '\n\nMATCH EVENTS:\n' + lines.join('\n');
+            }
+        } catch (_) {}
+
         const prompt = [
             `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
             `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
-            `Include: key moments, standout performers, what this means for the group.`,
+            `Include: key goalscorers with minutes, standout performances, what this means for the group.`,
+            `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
             ``,
             `RESULT: ${home} ${homeScore} - ${awayScore} ${away}`,
             `Group: ${groupId}`,
-            `Venue: (Group stage match)`,
             `Date: ${matchDate}`,
+            eventsContext,
             ``,
             `Write the brief as a single paragraph. No headers, no bullet points.`,
         ].join('\n');
         try {
-            const kvKey = `wc:brief:game:${gameId}`;
             await env.JOURNALISM_QUEUE.send({
                 type: 'game-brief',
                 prompt,
                 eventId: gameId,
-                max_tokens: 250,
+                max_tokens: 300,
                 sport: 'wc26',
                 home: home,
                 away: away,
