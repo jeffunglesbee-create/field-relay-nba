@@ -17,7 +17,7 @@
 //   X-FIELD-Proxy-Version: 4
 //   X-FIELD-Model: gemini-3.1-flash-lite  (or claude-sonnet-4 on fallback)
 
-const PROXY_VERSION = '7';
+const PROXY_VERSION = '8';
 
 const ALLOWED_ORIGINS = [
   'https://jubilant-bassoon.jeffunglesbee.workers.dev',
@@ -166,14 +166,17 @@ export default {
     });
 
     // Vision requests (contain image content) must use Claude — Gemini adapter strips images
+    // Force-Claude header: server-to-server callers (STAT apply agent, Courier) can force
+    // Claude routing for complex multi-turn/tool-use conversations that Gemini can't handle
     let bodyParsed; try { bodyParsed = JSON.parse(raw); } catch { bodyParsed = null; }
     const hasVision = bodyParsed?.messages?.some(m =>
       Array.isArray(m.content) && m.content.some(c => c.type === 'image')
     );
+    const forceClaude = request.headers.get('X-FIELD-Force-Claude') === 'true';
 
     let result;
 
-    if (gKey && !hasVision) {
+    if (gKey && !hasVision && !forceClaude) {
       try {
         result = await callGemini(JSON.parse(raw), gKey, env);
       } catch (e) {
