@@ -1748,19 +1748,33 @@ async function handleV2Games(url, env, ctx) {
         else adapt = x => x;
     }
     try {
+        // CF edge cache: key on URL only (exclude x-apisports-key from cache key).
+        // All users' polls for same sport+date hit the same CF cache entry.
+        // Football uses 15s (live scores need freshness near kickoff); others 30s.
+        // Without this: N users × poll rate = unbounded api-sports quota burn.
+        const _cacheTtl = cfg.sport === 'football' ? 15 : 30;
         const resp = await fetch(targetUrl, {
             headers: { 'x-apisports-key': key, 'Accept': 'application/json' },
-            // CF edge cache: key on URL only (exclude x-apisports-key from cache key).
-            // All users' polls for same sport+date hit the same CF cache entry.
-            // Result: api-sports calls = O(sports × time) not O(users × polls).
-            // Without this: N users × poll rate = unbounded api-sports quota burn.
-            cf: { cacheTtl: 30, cacheEverything: true, cacheKey: targetUrl },
+            cf: { cacheTtl: _cacheTtl, cacheEverything: true, cacheKey: targetUrl },
         });
         if (!resp.ok)
             return new Response(JSON.stringify({ error: `Upstream ${resp.status}`, sport, date }),
                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
         const data  = await resp.json();
         const raw   = data?.response || [];
+
+        // Rate-limit guard: api-sports returns {errors:{rateLimit:...}, results:0}
+        // when quota/min is exceeded. Don't serve this as a valid empty schedule —
+        // return 503 so the client keeps its last-known game state (with live scores)
+        // rather than wiping cards to nothing. The 15s cache won't store a 503.
+        const _rateLimited = data?.errors && (
+            data.errors.rateLimit ||
+            (typeof data.errors === 'object' && Object.keys(data.errors).some(k => /rate|limit|requests/i.test(k + String(data.errors[k]))))
+        );
+        if (_rateLimited && url.searchParams.get('debug') !== '1') {
+            return new Response(JSON.stringify({ error: 'upstream rate limited — retry', sport, date, retryable: true }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+        }
 
         // RUWT debug mode: ?debug=1 returns the raw response shape without adapting.
         // Used to verify field paths against actual upstream data before writing
