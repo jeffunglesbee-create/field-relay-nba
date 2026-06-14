@@ -57,6 +57,39 @@ const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
 const PING_MS       = 20_000;
 
+// ── Live In-Play Odds Constants ──────────────────────────────────────────────
+// Maps FIELD sport key → Odds API v4 sport key for live in-play endpoint.
+// Only sports with Odds API live coverage are listed.
+const ODDS_SPORT_KEYS = {
+    'nba':        'basketball_nba',
+    'nhl':        'icehockey_nhl',
+    'mlb':        'baseball_mlb',
+    'wnba':       'basketball_wnba',
+    'wc26':       'soccer_fifa_world_cup',
+    'epl':        'soccer_epl',
+    'mls':        'soccer_usa_mls',
+    'laliga':     'soccer_spain_la_liga',
+    'seriea':     'soccer_italy_serie_a',
+    'bundesliga': 'soccer_germany_bundesliga',
+    'ligue1':     'soccer_france_ligue_one',
+};
+
+// Priority tiers: cooldown between odds fetches per game.
+// High = more frequent polling (postseason/knockout).
+// Spec Gap 6: date-based postseason windows + sport tier defaults.
+const ODDS_PRIORITY = {
+    high:   30_000,   // WC knockout, NBA Finals, Stanley Cup Finals — 30s
+    medium: 60_000,   // Regular season NBA/NHL/MLB/EPL — 60s
+    low:    180_000,  // MLS/WNBA/minor leagues — 180s
+};
+
+// Soccer sports: BLEND odds-derived WP with Dixon-Coles model.
+// Non-soccer: REPLACE (implied odds ARE the WP directly).
+const SOCCER_SPORTS = new Set(['wc26','epl','mls','laliga','seriea','bundesliga','ligue1']);
+
+// WP broadcast threshold: only emit wp_update when |delta| >= this value
+const WP_DELTA_THRESHOLD = 0.02;
+
 // Sports to poll — ordered by typical activity windows.
 // WC26 and NBA/NHL active June 2026; MLB always; NFL added for September.
 const AMBIENT_SPORTS = [
@@ -94,6 +127,10 @@ export class AmbientDO {
         this._scores   = {};   // gameId → {homeScore,awayScore,state,period,sport,home,away,clock}
         this._leaders  = {};   // gameId → 'home'|'away'|null
         this._finals   = new Set();  // gameId
+        // Live odds WP state (Spec Gap 8: AmbientDO owns WP, not GameDO)
+        this._wpState  = {};   // gameId → {homeWP,awayWP,drawWP,prevHomeWP,source,confidence,bookmakerCount,ts}
+        this._wpPeaks  = {};   // gameId → peakWP (highest favored-team WP seen)
+        this._oddsLastFetch = {};  // sport → timestamp of last Odds API call (cooldown enforcement)
     }
 
     // ── Main fetch handler ────────────────────────────────────────────────
@@ -113,8 +150,32 @@ export class AmbientDO {
                 liveGames:   Object.entries(this._scores)
                     .filter(([,v]) => v.state === 'live')
                     .map(([id,v]) => ({ id, sport: v.sport, home: v.home, away: v.away,
-                        homeScore: v.homeScore, awayScore: v.awayScore, period: v.period })),
+                        homeScore: v.homeScore, awayScore: v.awayScore, period: v.period,
+                        wp: this._wpState[id] || null })),
                 lastPoll:    await this.ctx.storage.get('last_poll') ?? null,
+                ts: Date.now(),
+            }), { headers: { 'Content-Type': 'application/json' } });
+        }
+
+        // ── GET /live-wp/test — deployment verification for live odds ─────
+        // Returns odds fetch status, WP state, peak tracking, cooldown timers.
+        if (url.pathname.endsWith('/live-wp/test')) {
+            const liveGames = Object.entries(this._scores).filter(([,v]) => v.state === 'live');
+            const wpEntries = Object.entries(this._wpState);
+            return new Response(JSON.stringify({
+                ok: true,
+                oddsApiConfigured: !!(this.env.ODDS_API_KEY),
+                liveGameCount: liveGames.length,
+                wpTrackedCount: wpEntries.length,
+                wpState: Object.fromEntries(wpEntries.map(([id, wp]) => [id, {
+                    homeWP: wp.homeWP, awayWP: wp.awayWP, drawWP: wp.drawWP,
+                    confidence: wp.confidence, bookmakerCount: wp.bookmakerCount,
+                    peakWP: this._wpPeaks[id] ?? null,
+                    peakCollapse: this._wpPeaks[id] ? +(this._wpPeaks[id] - Math.max(wp.homeWP, wp.awayWP)).toFixed(3) : 0,
+                }])),
+                cooldowns: Object.fromEntries(Object.entries(this._oddsLastFetch)
+                    .map(([s, ts]) => [s, { lastFetchMs: Date.now() - ts, lastFetchISO: new Date(ts).toISOString() }])),
+                sportMappings: ODDS_SPORT_KEYS,
                 ts: Date.now(),
             }), { headers: { 'Content-Type': 'application/json' } });
         }
@@ -203,11 +264,12 @@ export class AmbientDO {
         if (!this._restored) {
             this._restored = true;
             const stored = await this.ctx.storage.get(
-                ['scores:today', 'leaders:today', 'finals:today']);
+                ['scores:today', 'leaders:today', 'finals:today', 'wp:today']);
             this._scores  = stored.get('scores:today')  ?? {};
             this._leaders = stored.get('leaders:today') ?? {};
             const storedFinals = stored.get('finals:today');
             this._finals  = storedFinals ? new Set(storedFinals) : new Set();
+            this._wpState = stored.get('wp:today') ?? {};
         }
 
         const today   = _todayUTC();
@@ -304,13 +366,169 @@ export class AmbientDO {
             }
         }
 
+        // ── Live in-play odds → WP (Spec Steps 3-5) ─────────────────────
+        // Only fetch when live games exist and Odds API key is configured.
+        // AmbientDO-gated: saves 95% credits vs time-based polling.
+        if (totalLive > 0 && this.env.ODDS_API_KEY) {
+            try { await this._fetchLiveOdds(); } catch (e) {
+                console.error('[AmbientDO] live odds error:', e.message);
+            }
+        }
+
         // Persist state to DO storage (fire-and-forget)
         await this.ctx.storage.put('last_poll', new Date().toISOString());
         this.ctx.waitUntil(Promise.allSettled([
             this.ctx.storage.put('scores:today',  this._scores),
             this.ctx.storage.put('leaders:today', this._leaders),
             this.ctx.storage.put('finals:today',  [...this._finals]),
+            this.ctx.storage.put('wp:today',      this._wpState),
         ]));
+    }
+
+    // ── Live in-play odds → WP conversion ──────────────────────────────
+    // Polls Odds API v4 /odds-live for each sport with live games.
+    // Enforces per-sport cooldown (priority tier). Converts implied odds → WP.
+    // Broadcasts wp_update SSE events when |delta| >= WP_DELTA_THRESHOLD.
+    // Spec Gaps 2-8 implementation.
+    async _fetchLiveOdds() {
+        const apiKey = this.env.ODDS_API_KEY;
+        if (!apiKey) return;
+
+        // Group live games by sport
+        const liveBySport = {};
+        for (const [gameId, info] of Object.entries(this._scores)) {
+            if (info.state !== 'live') continue;
+            const sport = info.sport;
+            if (!ODDS_SPORT_KEYS[sport]) continue;
+            (liveBySport[sport] = liveBySport[sport] || []).push({ gameId, ...info });
+        }
+
+        const now = Date.now();
+        await Promise.allSettled(Object.entries(liveBySport).map(async ([sport, games]) => {
+            // Cooldown check (priority-tier gated)
+            const cooldown = _getOddsCooldown(sport);
+            const lastFetch = this._oddsLastFetch[sport] || 0;
+            if (now - lastFetch < cooldown) return;
+            this._oddsLastFetch[sport] = now;
+
+            const oddsSportKey = ODDS_SPORT_KEYS[sport];
+            try {
+                const r = await fetch(
+                    `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${apiKey}&regions=us,eu&markets=h2h&oddsFormat=decimal`,
+                    { cf: { cacheTtl: 20, cacheEverything: true } }
+                );
+                if (!r.ok) return;
+                const oddsGames = await r.json();
+                if (!Array.isArray(oddsGames)) return;
+
+                for (const og of oddsGames) {
+                    // Match Odds API game → FIELD game by team names
+                    const matched = games.find(g =>
+                        (_teamMatch(og.home_team, g.home) && _teamMatch(og.away_team, g.away)) ||
+                        (_teamMatch(og.home_team, g.away) && _teamMatch(og.away_team, g.home))
+                    );
+                    if (!matched) continue;
+
+                    // Average h2h odds across all bookmakers (Spec Gap 4)
+                    const h2h = { home: 0, away: 0, draw: 0, n: 0 };
+                    for (const bm of (og.bookmakers || [])) {
+                        const mkt = (bm.markets || []).find(m => m.key === 'h2h');
+                        if (!mkt) continue;
+                        const hO = mkt.outcomes.find(o => o.name === og.home_team);
+                        const aO = mkt.outcomes.find(o => o.name === og.away_team);
+                        const dO = mkt.outcomes.find(o => o.name === 'Draw');
+                        if (hO && aO) {
+                            h2h.home += 1 / hO.price;
+                            h2h.away += 1 / aO.price;
+                            if (dO) h2h.draw += 1 / dO.price;
+                            h2h.n++;
+                        }
+                    }
+                    if (h2h.n === 0) continue;
+
+                    // Remove vig: normalize implied probabilities to sum to 1
+                    const rH = h2h.home / h2h.n;
+                    const rA = h2h.away / h2h.n;
+                    const rD = h2h.draw / h2h.n;
+                    const vigSum = rH + rA + rD;
+                    if (vigSum <= 0) continue;
+
+                    let homeWP = +(rH / vigSum).toFixed(3);
+                    let awayWP = +(rA / vigSum).toFixed(3);
+                    let drawWP = SOCCER_SPORTS.has(sport) ? +(rD / vigSum).toFixed(3) : 0;
+
+                    // Non-soccer: draw odds fold into home/away (2-way market)
+                    if (!SOCCER_SPORTS.has(sport) && drawWP > 0) {
+                        const twoWay = homeWP + awayWP;
+                        if (twoWay > 0) {
+                            homeWP = +(homeWP / twoWay).toFixed(3);
+                            awayWP = +(awayWP / twoWay).toFixed(3);
+                            drawWP = 0;
+                        }
+                    }
+
+                    // Confidence flag (Spec Gap 4): max bookmaker deviation
+                    let maxDev = 0;
+                    for (const bm of (og.bookmakers || [])) {
+                        const mkt = (bm.markets || []).find(m => m.key === 'h2h');
+                        if (!mkt) continue;
+                        const hO = mkt.outcomes.find(o => o.name === og.home_team);
+                        if (hO) {
+                            const bmWP = (1 / hO.price) / vigSum;
+                            maxDev = Math.max(maxDev, Math.abs(bmWP - homeWP));
+                        }
+                    }
+                    const confidence = maxDev > 0.10 ? 'low' : 'normal';
+
+                    // Handle home/away flip if Odds API has teams swapped
+                    const flipped = _teamMatch(og.home_team, matched.away);
+                    if (flipped) [homeWP, awayWP] = [awayWP, homeWP];
+
+                    // Check delta against previous WP
+                    const prev = this._wpState[matched.gameId];
+                    const prevHomeWP = prev?.homeWP ?? null;
+                    const wpDelta = prevHomeWP !== null ? +(homeWP - prevHomeWP).toFixed(3) : 0;
+
+                    // Update WP state
+                    this._wpState[matched.gameId] = {
+                        homeWP, awayWP, drawWP,
+                        prevHomeWP: prevHomeWP ?? homeWP,
+                        source: 'odds-api',
+                        confidence,
+                        bookmakerCount: h2h.n,
+                        ts: now,
+                    };
+
+                    // Peak tracking (Spec comeback detection)
+                    const favWP = Math.max(homeWP, awayWP);
+                    const prevPeak = this._wpPeaks[matched.gameId] ?? 0;
+                    if (favWP > prevPeak) this._wpPeaks[matched.gameId] = favWP;
+                    const peakWP = this._wpPeaks[matched.gameId];
+                    const peakCollapse = +(peakWP - favWP).toFixed(3);
+
+                    // Urgency computation (Spec formula)
+                    const closeness = +(1 - Math.abs(homeWP - 0.5)).toFixed(3);
+                    const lateness  = _estimateLateness(sport, matched.period);
+                    const recentDelta = Math.abs(wpDelta);
+                    const urgency = +(peakCollapse * 4 + recentDelta * 3 + closeness * 2 + lateness * 1).toFixed(2);
+
+                    // Broadcast wp_update if delta exceeds threshold or first WP
+                    if (prevHomeWP === null || Math.abs(wpDelta) >= WP_DELTA_THRESHOLD) {
+                        this._broadcast('wp_update', {
+                            gameId: matched.gameId, sport,
+                            home: matched.home, away: matched.away,
+                            homeWP, awayWP, drawWP,
+                            wpDelta, peakCollapse, peakWP,
+                            urgency, source: 'odds-api', confidence,
+                            bookmakerCount: h2h.n,
+                            ts: now,
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn(`[AmbientDO] odds fetch ${sport}:`, e.message);
+            }
+        }));
     }
 
     // ── Fetch one sport via relay self-call ───────────────────────────────
@@ -357,4 +575,44 @@ export class AmbientDO {
 // ── Helpers ───────────────────────────────────────────────────────────────
 function _todayUTC() {
     return new Date().toISOString().slice(0, 10);
+}
+
+// Spec Gap 6: priority-tier cooldown for odds polling.
+// Date-based postseason detection + sport defaults.
+function _getOddsCooldown(sport) {
+    const month = new Date().getUTCMonth(); // 0-indexed
+    // WC knockout: July (month 6) = high priority
+    if (sport === 'wc26' && month >= 6) return ODDS_PRIORITY.high;
+    if (sport === 'wc26') return ODDS_PRIORITY.medium; // group stage
+    // NBA/NHL: June = Finals → high
+    if ((sport === 'nba' || sport === 'nhl') && month === 5) return ODDS_PRIORITY.high;
+    // Low-priority sports
+    if (sport === 'mls' || sport === 'wnba') return ODDS_PRIORITY.low;
+    // Default: medium
+    return ODDS_PRIORITY.medium;
+}
+
+// Fuzzy team-name match (mirrors teamNameMatch in index.js).
+// Lightweight inline version for AmbientDO — avoids cross-module import.
+function _teamMatch(a, b) {
+    if (!a || !b) return false;
+    const norm = s => s.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+    const na = norm(a), nb = norm(b);
+    if (na === nb) return true;
+    // 5-char prefix overlap
+    if (na.length >= 5 && nb.length >= 5) {
+        if (nb.includes(na.slice(0, 5)) || na.includes(nb.slice(0, 5))) return true;
+    }
+    return false;
+}
+
+// Estimate game lateness (0→1) from period number.
+// Used in urgency formula: late-game WP swings are more dramatic.
+function _estimateLateness(sport, period) {
+    if (!period || period <= 0) return 0;
+    const totalPeriods = { nba: 4, nhl: 3, mlb: 9, wnba: 4 };
+    const total = totalPeriods[sport] || 2; // soccer = 2 halves
+    return Math.min(1, period / total);
 }
