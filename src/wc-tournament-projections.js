@@ -310,28 +310,70 @@ function pickBest8Third(tables) {
 // Given final group tables and best8Third, resolve who plays in each R32 match.
 // Returns: { 73: {home: 'Mexico', away: 'USA'}, 74: {...}, ... }
 function resolveR32Teams(tables, best8Third) {
-  // For 3rd-place slots: given eligible groups, pick the best 3rd from those
-  // groups that's in best8Third. Track assigned teams so each appears ONCE.
-  const assignedThirds = new Set(); // team names already placed in R32
-
   const matchups = {};
+
+  // Step 1: Resolve all 1st/2nd place slots (no ordering issue)
+  const thirdSlots = []; // collect 3rd-place slots for constraint-first assignment
   for (const slot of R32_SLOTS) {
-    const resolveTeam = (side) => {
+    const resolveFixed = (side) => {
       if (side.pos === 1 || side.pos === 2) {
         const row = (tables[side.group] || [])[side.pos - 1];
         return row?.name || `${side.pos===1?'W':'RU'}-${side.group}`;
       }
-      // Best 3rd from eligible groups — exclude already-assigned teams
-      const eligibleGroups = (side.eligible || '').split('');
-      const candidates = best8Third
-        .filter(t => eligibleGroups.includes(t.group) && !assignedThirds.has(t.name))
-        .sort((a,b) => (b.pts-a.pts)||(b.gd-a.gd)||(b.gf-a.gf));
-      const pick = candidates[0];
-      if (pick) assignedThirds.add(pick.name);
-      return pick?.name || `3rd-${side.eligible}`;
+      return null; // 3rd-place — handle below
     };
-    matchups[slot.match] = { home: resolveTeam(slot.home), away: resolveTeam(slot.away) };
+    const home = resolveFixed(slot.home);
+    const away = resolveFixed(slot.away);
+    if (home && away) {
+      matchups[slot.match] = { home, away };
+    } else {
+      // One side is a 3rd-place slot
+      const fixedSide = home ? 'home' : 'away';
+      const thirdSide = home ? slot.away : slot.home;
+      matchups[slot.match] = { [fixedSide]: home || away };
+      thirdSlots.push({ match: slot.match, side: home ? 'away' : 'home', eligible: thirdSide.eligible });
+    }
   }
+
+  // Step 2: Constraint-first assignment for 3rd-place slots
+  // Build candidate sets per slot
+  const best8Set = new Set(best8Third.map(t => t.group));
+  const b8ByGroup = {};
+  for (const t of best8Third) b8ByGroup[t.group] = t.name;
+  for (const ts of thirdSlots) {
+    ts.candidates = (ts.eligible || '').split('')
+      .filter(g => best8Set.has(g));
+  }
+
+  // Sort by fewest candidates first (most constrained first)
+  thirdSlots.sort((a, b) => a.candidates.length - b.candidates.length);
+
+  // Backtracking solver: assign one group per slot, no group reused
+  const usedGroups = new Set();
+  const slotAssignment = new Array(thirdSlots.length).fill(null); // index → group letter
+
+  function backtrack(idx) {
+    if (idx >= thirdSlots.length) return true;
+    const ts = thirdSlots[idx];
+    for (const g of ts.candidates) {
+      if (usedGroups.has(g)) continue;
+      usedGroups.add(g);
+      slotAssignment[idx] = g;
+      if (backtrack(idx + 1)) return true;
+      usedGroups.delete(g);
+      slotAssignment[idx] = null;
+    }
+    return false;
+  }
+  backtrack(0);
+
+  // Apply: each slot gets the team from its assigned group
+  for (let i = 0; i < thirdSlots.length; i++) {
+    const ts = thirdSlots[i];
+    const g = slotAssignment[i];
+    matchups[ts.match][ts.side] = g ? (b8ByGroup[g] || `3rd-${g}`) : `3rd-${ts.eligible}`;
+  }
+
   return matchups;
 }
 
