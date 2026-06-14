@@ -3410,7 +3410,19 @@ export default {
                     profile: `${base}/user/profile/basic`,
                 };
                 
-                const result = { fetched_at: new Date().toISOString(), days };
+                const result = { 
+                    fetched_at: new Date().toISOString(), 
+                    days,
+                    _debug: {
+                        has_client_id: !!env.WHOOP_CLIENT_ID,
+                        has_client_secret: !!env.WHOOP_CLIENT_SECRET,
+                        token_len: token.length,
+                        token_prefix: token.substring(0, 8),
+                        was_refreshed: token !== row.access_token,
+                        expires_at: row.expires_at,
+                        now: new Date().toISOString()
+                    }
+                };
                 
                 for (const [name, epUrl] of Object.entries(endpoints)) {
                     try {
