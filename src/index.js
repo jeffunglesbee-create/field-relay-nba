@@ -2088,6 +2088,95 @@ async function handleV2Games(url, env, ctx) {
             }
         }
 
+        // ── NHL brief auto-generation ─────────────────────────────────────────
+        // Same pattern as NBA/WC: final games → KV dedup → stats fetch → enqueue.
+        // Stats from api-sports /games/statistics/players (hockey).
+        // Hockey stats: goals, assists, saves, pim — different shape from basketball.
+        if (sport === 'nhl' && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+            const nhlFinals = games.filter(g => g.state === 'final');
+            if (nhlFinals.length > 0) {
+                const enqueueNHLBriefs = async () => {
+                    for (const g of nhlFinals) {
+                        const kvKey = `brief:game:${g.id}`;
+                        const existing = await env.FIELD_JOURNALISM.get(kvKey).catch(() => null);
+                        if (existing) continue;
+
+                        const home = g.home?.name || '';
+                        const away = g.away?.name || '';
+                        const homeScore = g.home?.score ?? 0;
+                        const awayScore = g.away?.score ?? 0;
+
+                        // Fetch player stats from api-sports hockey
+                        let statsContext = '';
+                        try {
+                            const statsRes = await fetch(
+                                `https://v1.hockey.api-sports.io/games/statistics/players?id=${g.id}`,
+                                { headers: { 'x-apisports-key': env.APISPORTS_KEY || '' } }
+                            );
+                            if (statsRes.ok) {
+                                const statsData = await statsRes.json();
+                                const teams = statsData?.response || [];
+                                const lines = [];
+                                for (const team of teams) {
+                                    const teamName = team?.team?.name || '';
+                                    const players = team?.players || [];
+                                    if (!players.length) continue;
+                                    // Skaters: sort by goals+assists (points)
+                                    const skaters = players.filter(p => (p?.statistics?.goals != null || p?.statistics?.assists != null) && !p?.statistics?.saves);
+                                    skaters.sort((a, b) => ((b?.statistics?.goals ?? 0) + (b?.statistics?.assists ?? 0)) - ((a?.statistics?.goals ?? 0) + (a?.statistics?.assists ?? 0)));
+                                    const topSkaters = skaters.slice(0, 3).map(p => {
+                                        const name = p?.player?.name || '';
+                                        const g_ = p?.statistics?.goals ?? 0;
+                                        const a_ = p?.statistics?.assists ?? 0;
+                                        return `${name}: ${g_}G/${a_}A`;
+                                    }).filter(Boolean);
+                                    // Goalie: saves + save%
+                                    const goalie = players.find(p => p?.statistics?.saves != null);
+                                    const goalieStr = goalie ? `${goalie?.player?.name || 'Goalie'}: ${goalie?.statistics?.saves ?? 0} saves` : '';
+                                    const parts = [...topSkaters];
+                                    if (goalieStr) parts.push(goalieStr);
+                                    if (parts.length) lines.push(`${teamName}: ${parts.join(', ')}`);
+                                }
+                                if (lines.length) statsContext = '\n\nKEY PERFORMERS:\n' + lines.join('\n');
+                            }
+                        } catch (_) {}
+
+                        const prompt = [
+                            `Write a 2-3 sentence post-game brief for this NHL result.`,
+                            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+                            `Include: key goal scorers, goaltender performance, what this means for the series or standings.`,
+                            `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+                            ``,
+                            `RESULT: ${away} ${awayScore} at ${home} ${homeScore}`,
+                            g.venue ? `Venue: ${g.venue}` : '',
+                            statsContext,
+                            ``,
+                            `Write the brief as a single paragraph. No headers, no bullet points.`,
+                        ].filter(Boolean).join('\n');
+
+                        try {
+                            await env.JOURNALISM_QUEUE.send({
+                                type: 'game-brief',
+                                prompt,
+                                eventId: g.id,
+                                max_tokens: 300,
+                                sport: 'nhl',
+                                home,
+                                away,
+                                homeScore,
+                                awayScore,
+                                enqueuedAt: Date.now(),
+                            });
+                        } catch (e) {
+                            console.error('[NHL game-brief enqueue]', e.message);
+                        }
+                    }
+                };
+                if (ctx?.waitUntil) ctx.waitUntil(enqueueNHLBriefs());
+                else await enqueueNHLBriefs();
+            }
+        }
+
         return new Response(
             JSON.stringify({ sport, date, games, count: games.length, source: 'apisports', ts: Date.now() }),
             { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } }
