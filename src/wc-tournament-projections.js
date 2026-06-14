@@ -902,7 +902,11 @@ const ODDS_NAME_ALIAS = {
   'Republic of Ireland':      'Republic of Ireland',  // same
   'USA':                      'United States',
   'Turkey':                   'Türkiye',
+  'Turkiye':                  'Türkiye',               // no-umlaut variant
+  'Curacao':                  'Curaçao',               // no-cedilla variant
   'Ivory Coast':              'Ivory Coast',           // same
+  "Cote d'Ivoire":            'Ivory Coast',           // French name variant
+  'Cote dIvoire':             'Ivory Coast',           // no-apostrophe variant
 };
 
 function normalizeTeamName(name) {
