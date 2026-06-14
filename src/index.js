@@ -3332,11 +3332,18 @@ export default {
                 if (tokenData.access_token) {
                     // Store in D1
                     await env.DB.prepare(
-                        `INSERT OR REPLACE INTO whoop_tokens (id, access_token, refresh_token, expires_at, updated_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' seconds'), datetime('now'))`
-                    ).bind('primary', tokenData.access_token, tokenData.refresh_token || '', tokenData.expires_in || 3600).run();
+                        `INSERT OR REPLACE INTO whoop_tokens (id, access_token, refresh_token, expires_at, updated_at) VALUES (?, ?, ?, ?, datetime('now'))`
+                    ).bind('primary', tokenData.access_token, tokenData.refresh_token || '', new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString()).run();
+                    
+                    // Test the token immediately
+                    const testResp = await fetch('https://api.prod.whoop.com/developer/v1/user/profile/basic', {
+                        headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
+                    });
+                    const testStatus = testResp.status;
+                    const testBody = testStatus === 200 ? await testResp.json() : await testResp.text();
                     
                     return new Response(
-                        '<html><body style="background:#1a1a2e;color:#0f0;font-family:monospace;padding:40px;text-align:center"><h1>WHOOP AUTH SUCCESS</h1><p>Tokens stored. You can close this tab.</p><p>Refresh token: ' + (tokenData.refresh_token ? 'YES' : 'NO') + '</p><p>Expires in: ' + tokenData.expires_in + 's</p></body></html>',
+                        '<html><body style="background:#1a1a2e;color:#0f0;font-family:monospace;padding:40px;text-align:center"><h1>WHOOP AUTH SUCCESS</h1><p>Tokens stored. You can close this tab.</p><p>Refresh token: ' + (tokenData.refresh_token ? 'YES' : 'NO') + '</p><p>Expires in: ' + tokenData.expires_in + 's</p><p>API test: HTTP ' + testStatus + '</p><pre>' + JSON.stringify(testBody).substring(0,300) + '</pre></body></html>',
                         { status: 200, headers: { 'Content-Type': 'text/html' } }
                     );
                 } else {
