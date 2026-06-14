@@ -239,7 +239,7 @@ function simulateGroupStage(currentStandings, remainingFixtures, rng) {
   const pts  = {}, gf = {}, ga = {}, group = {};
   for (const [g, rows] of Object.entries(currentStandings || {})) {
     for (const r of (rows || [])) {
-      const n = r.name || r.team;
+      const n = normalizeTeamName(r.name || r.team);
       pts[n]   = r.points || r.pts || 0;
       gf[n]    = r.gf || 0;
       ga[n]    = r.ga || 0;
