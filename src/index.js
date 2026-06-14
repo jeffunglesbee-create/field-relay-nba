@@ -1992,6 +1992,102 @@ async function handleV2Games(url, env, ctx) {
             }
         }
 
+        // ── NBA brief auto-generation ─────────────────────────────────────────
+        // When NBA games go final, enqueue a post-game brief to JOURNALISM_QUEUE.
+        // KV dedup: skip if brief already exists. Player stats fetched from
+        // api-sports /games/statistics/players for richer context.
+        // Mirrors WC brief pipeline: queue consumer → Haiku → cliché check → KV.
+        if (sport === 'nba' && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+            const nbaFinals = games.filter(g => g.state === 'final');
+            if (nbaFinals.length > 0) {
+                const enqueueNBABriefs = async () => {
+                    for (const g of nbaFinals) {
+                        const kvKey = `brief:game:${g.id}`;
+                        const existing = await env.FIELD_JOURNALISM.get(kvKey).catch(() => null);
+                        if (existing) continue;
+
+                        const home = g.home?.name || '';
+                        const away = g.away?.name || '';
+                        const homeScore = g.home?.score ?? 0;
+                        const awayScore = g.away?.score ?? 0;
+
+                        // Fetch player stats for richer brief context
+                        let statsContext = '';
+                        try {
+                            const numericId = String(g.id).replace('nba:', '');
+                            const statsRes = await fetch(
+                                `https://v2.nba.api-sports.io/games/statistics/players?id=${numericId}`,
+                                { headers: { 'x-apisports-key': env.APISPORTS_KEY || '' } }
+                            );
+                            if (statsRes.ok) {
+                                const statsData = await statsRes.json();
+                                const players = statsData?.response || [];
+                                if (players.length) {
+                                    // Group by team, sort by points, take top 3 per team
+                                    const byTeam = {};
+                                    players.forEach(p => {
+                                        const tid = p?.team?.id;
+                                        if (tid == null) return;
+                                        (byTeam[tid] = byTeam[tid] || []).push(p);
+                                    });
+                                    const formatTop = (teamPlayers, teamName) => {
+                                        if (!teamPlayers?.length) return '';
+                                        teamPlayers.sort((a, b) => (b?.points ?? 0) - (a?.points ?? 0));
+                                        return teamPlayers.slice(0, 3).map(p => {
+                                            const raw = p?.player?.name || '';
+                                            const name = raw.includes(' ') ? raw.split(' ').reverse().join(' ') : raw;
+                                            const pts = p?.points ?? 0;
+                                            const reb = p?.totReb ?? 0;
+                                            const ast = p?.assists ?? 0;
+                                            return `${name}: ${pts}pts/${reb}reb/${ast}ast`;
+                                        }).join(', ');
+                                    };
+                                    const teamIds = Object.keys(byTeam);
+                                    const lines = teamIds.map(tid => {
+                                        const tName = byTeam[tid][0]?.team?.name || '';
+                                        return `${tName}: ${formatTop(byTeam[tid], tName)}`;
+                                    });
+                                    if (lines.length) statsContext = '\n\nKEY PERFORMERS:\n' + lines.join('\n');
+                                }
+                            }
+                        } catch (_) {}
+
+                        const prompt = [
+                            `Write a 2-3 sentence post-game brief for this NBA result.`,
+                            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+                            `Include: key performers with stats, decisive run or moment, what this means for the standings or series.`,
+                            `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+                            ``,
+                            `RESULT: ${away} ${awayScore} at ${home} ${homeScore}`,
+                            g.venue ? `Venue: ${g.venue}` : '',
+                            statsContext,
+                            ``,
+                            `Write the brief as a single paragraph. No headers, no bullet points.`,
+                        ].filter(Boolean).join('\n');
+
+                        try {
+                            await env.JOURNALISM_QUEUE.send({
+                                type: 'game-brief',
+                                prompt,
+                                eventId: g.id,
+                                max_tokens: 300,
+                                sport: 'nba',
+                                home,
+                                away,
+                                homeScore,
+                                awayScore,
+                                enqueuedAt: Date.now(),
+                            });
+                        } catch (e) {
+                            console.error('[NBA game-brief enqueue]', e.message);
+                        }
+                    }
+                };
+                if (ctx?.waitUntil) ctx.waitUntil(enqueueNBABriefs());
+                else await enqueueNBABriefs();
+            }
+        }
+
         return new Response(
             JSON.stringify({ sport, date, games, count: games.length, source: 'apisports', ts: Date.now() }),
             { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } }
