@@ -865,9 +865,10 @@ async function getWCPregameLambdas(env) {
     } catch (e) { return null; }
 }
 
-// Fuzzy team-name match for lambda lookup (Odds API vs API-Sports name formats).
-// Confirmed alias pairs from live /wc/odds-probs probe (June 4 2026).
-function wcTeamNameMatch(oddsName, fieldName) {
+// Fuzzy team-name match for odds lookup (Odds API vs API-Sports name formats).
+// Generalized from WC-only (June 4 probe) to all sports (June 14 2026).
+// Used by: WC lambda cache, live in-play odds → WP matching in AmbientDO.
+function teamNameMatch(oddsName, fieldName) {
     if (!oddsName || !fieldName) return false;
     // Normalize: lowercase, NFD decompose (removes diacritics), alphanum+space only
     const norm = s => s.toLowerCase()
@@ -875,18 +876,38 @@ function wcTeamNameMatch(oddsName, fieldName) {
         .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
     const a = norm(oddsName), b = norm(fieldName);
     if (a === b) return true;
-    // Bidirectional alias table (Odds API ↔ wc26Raw names)
+    // Bidirectional alias table — Odds API ↔ api-sports/FIELD names
+    // WC (verified June 4 2026 live probe)
+    // NBA/NHL/MLB: common Odds API ↔ api-sports divergences
     const ALIASES = {
-        'usa':            'united states',
-        'united states':  'usa',
-        'turkey':         'turkiye',
-        'turkiye':        'turkey',
-        'czech republic': 'czechia',
-        'czechia':        'czech republic',
-        'dr congo':       'congo dr',
-        'congo dr':       'dr congo',
-        'ivory coast':    'cote d ivoire',
-        'cote d ivoire':  'ivory coast',
+        // WC / International
+        'usa':                  'united states',
+        'united states':        'usa',
+        'turkey':               'turkiye',
+        'turkiye':              'turkey',
+        'czech republic':       'czechia',
+        'czechia':              'czech republic',
+        'dr congo':             'congo dr',
+        'congo dr':             'dr congo',
+        'ivory coast':          'cote d ivoire',
+        'cote d ivoire':        'ivory coast',
+        'south korea':          'korea republic',
+        'korea republic':       'south korea',
+        'curacao':              'curacao',
+        // NBA
+        'la clippers':          'los angeles clippers',
+        'los angeles clippers': 'la clippers',
+        'la lakers':            'los angeles lakers',
+        'los angeles lakers':   'la lakers',
+        // NHL
+        'montreal canadiens':   'montreal canadiens',
+        // MLS
+        'inter miami':          'inter miami cf',
+        'inter miami cf':       'inter miami',
+        'la galaxy':            'los angeles galaxy',
+        'los angeles galaxy':   'la galaxy',
+        'lafc':                 'los angeles fc',
+        'los angeles fc':       'lafc',
     };
     const aa = ALIASES[a] || a, bb = ALIASES[b] || b;
     if (aa === bb || aa === b || a === bb) return true;
@@ -1854,10 +1875,10 @@ async function handleV2Games(url, env, ctx) {
                         // Iterate for fuzzy match
                         for (const [k, lams] of wcLambdas) {
                             const [oddsHome, oddsAway] = k.split('|');
-                            if (wcTeamNameMatch(oddsHome, g.home.name) && wcTeamNameMatch(oddsAway, g.away.name)) {
+                            if (teamNameMatch(oddsHome, g.home.name) && teamNameMatch(oddsAway, g.away.name)) {
                                 pregameLh = lams.lh; pregameLa = lams.la; break;
                             }
-                            if (wcTeamNameMatch(oddsHome, g.away.name) && wcTeamNameMatch(oddsAway, g.home.name)) {
+                            if (teamNameMatch(oddsHome, g.away.name) && teamNameMatch(oddsAway, g.home.name)) {
                                 pregameLh = lams.la; pregameLa = lams.lh; break; // reversed
                             }
                         }
@@ -3813,12 +3834,13 @@ export default {
 
         // ── /live/* — AmbientDO SSE ambient channel ───────────────────────────────
         // GET /live/ambient  — SSE stream, one connection covers all sports
-        //   Emits: score, lead_change, final, all_final, ping
+        //   Emits: score, lead_change, final, all_final, ping, wp_update
         //   Client: AmbientEventSource in index.html feeds fieldEvents bus
         //   Latency: <3s vs 15-30s polling (alarm-driven 30s poll in DO)
         // GET /ambient/state — REST state snapshot (debug / health)
         // POST /ambient/kick — manual poll trigger (admin)
-        if (pathname === '/live/ambient' || pathname.startsWith('/ambient/')) {
+        // GET /live-wp/test  — live odds deployment verification (Spec Step 8)
+        if (pathname === '/live/ambient' || pathname.startsWith('/ambient/') || pathname.startsWith('/live-wp/')) {
             if (!env.AMBIENT_DO) {
                 return new Response(JSON.stringify({ error: 'AMBIENT_DO not bound' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
