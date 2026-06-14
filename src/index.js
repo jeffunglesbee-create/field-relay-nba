@@ -3374,7 +3374,7 @@ export default {
                 const now = new Date().toISOString();
                 
                 // Refresh if expired
-                if (row.expires_at && row.expires_at < now) {
+                if (row.expires_at && new Date(row.expires_at + 'Z') < new Date()) {
                     const refreshResp = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
