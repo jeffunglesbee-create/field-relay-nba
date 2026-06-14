@@ -3309,6 +3309,60 @@ export default {
             });
         }
 
+        // /whoop/callback — OAuth callback, exchanges code for tokens instantly
+        if (pathname === '/whoop/callback') {
+            const code = url.searchParams.get('code');
+            if (!code) return new Response('Missing code parameter', { status: 400 });
+            
+            try {
+                const tokenResp = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        grant_type: 'authorization_code',
+                        code: code,
+                        client_id: env.WHOOP_CLIENT_ID,
+                        client_secret: env.WHOOP_CLIENT_SECRET,
+                        redirect_uri: 'https://field-relay-nba.jeffunglesbee.workers.dev/whoop/callback'
+                    }).toString()
+                });
+                
+                const tokenData = await tokenResp.json();
+                
+                if (tokenData.access_token) {
+                    // Store in D1
+                    await env.DB.prepare(
+                        `INSERT OR REPLACE INTO whoop_tokens (id, access_token, refresh_token, expires_at, updated_at) VALUES (?, ?, ?, datetime('now', '+' || ? || ' seconds'), datetime('now'))`
+                    ).bind('primary', tokenData.access_token, tokenData.refresh_token || '', tokenData.expires_in || 3600).run();
+                    
+                    return new Response(
+                        '<html><body style="background:#1a1a2e;color:#0f0;font-family:monospace;padding:40px;text-align:center"><h1>WHOOP AUTH SUCCESS</h1><p>Tokens stored. You can close this tab.</p><p>Refresh token: ' + (tokenData.refresh_token ? 'YES' : 'NO') + '</p><p>Expires in: ' + tokenData.expires_in + 's</p></body></html>',
+                        { status: 200, headers: { 'Content-Type': 'text/html' } }
+                    );
+                } else {
+                    return new Response(JSON.stringify(tokenData), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+            } catch (e) {
+                return new Response('Token exchange error: ' + e.message, { status: 500 });
+            }
+        }
+        
+        // /whoop/tokens — read stored tokens (MCP auth required)
+        if (pathname === '/whoop/tokens') {
+            const authHeader = request.headers.get('Authorization') || '';
+            const token = authHeader.replace('Bearer ', '');
+            if (token !== env.FIELD_MCP_SECRET) {
+                return new Response('Unauthorized', { status: 401 });
+            }
+            try {
+                const row = await env.DB.prepare('SELECT access_token, refresh_token, expires_at, updated_at FROM whoop_tokens WHERE id = ?').bind('primary').first();
+                if (!row) return new Response(JSON.stringify({error: 'no tokens stored'}), { status: 404, headers: { 'Content-Type': 'application/json' } });
+                return new Response(JSON.stringify(row), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({error: e.message}), { status: 500, headers: { 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /wc/* — World Cup D1 standings (WC D1, June 4 2026)
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
