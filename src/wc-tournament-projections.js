@@ -269,8 +269,9 @@ function simulateGroupStage(currentStandings, remainingFixtures, rng) {
     const away = normalizeTeamName(fix.away);
     const res = sampleGroupResult(home, away,
       fix.pHome, fix.pDraw, fix.pAway, rng);
-    pts[home]  = (pts[home]  || 0) + (res.home === 1 ? 3 : res.home === 0 ? 1 : 0);
-    pts[away]  = (pts[away]  || 0) + (res.away === 1 ? 3 : res.away === 0 ? 1 : 0);
+    const draw = res.home + res.away === 0;
+    pts[home]  = (pts[home]  || 0) + (res.home === 1 ? 3 : draw ? 1 : 0);
+    pts[away]  = (pts[away]  || 0) + (res.away === 1 ? 3 : draw ? 1 : 0);
     const lH = fix.lambdaHome || 1.3, lA = fix.lambdaAway || 0.8;
     const goalsH = poissonSample(res.home === 1 ? Math.max(lH, 0.5) : res.home === 0 ? 0 : 0, rng);
     const goalsA = poissonSample(res.away === 1 ? Math.max(lA, 0.5) : res.away === 0 ? 0 : 0, rng);
