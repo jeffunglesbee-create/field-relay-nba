@@ -157,3 +157,4 @@ RELAY_BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
 [vars]
 WHOOP_CLIENT_ID = "a4c9151b-0a51-461c-808a-120fe5735bfc"
 WHOOP_CLIENT_SECRET = "03dcff790c95a368e8f294a56d9134a5ee7c545b456d36cf61dfc7b33775d8b0"
+# redeploy Sun Jun 14 02:43:54 UTC 2026
