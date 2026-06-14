@@ -155,3 +155,9 @@ RELAY_BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
 WHOOP_CLIENT_ID = "a4c9151b-0a51-461c-808a-120fe5735bfc"
 WHOOP_CLIENT_SECRET = "03dcff790c95a368e8f294a56d9134a5ee7c545b456d36cf61dfc7b33775d8b0"
 
+
+# ── D1 Database (shared with FIELD client — WC + health tokens) ──────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "field-d1"
+database_id = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"
