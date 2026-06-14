@@ -3405,7 +3405,7 @@ export default {
                 const days = parseInt(url.searchParams.get('days') || '7');
                 const start = new Date(Date.now() - days * 86400000).toISOString();
                 const end = new Date().toISOString();
-                const params = `start=${start}&end=${end}&limit=50`;
+                const params = `start=${start}&end=${end}&limit=25`;
                 const base = 'https://api.prod.whoop.com/developer/v1';
                 const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
                 
