@@ -3363,6 +3363,73 @@ export default {
             }
         }
 
+
+        // /whoop/fetch — fetch Whoop data using D1-stored tokens (MCP probe allowed)
+        if (pathname === '/whoop/fetch') {
+            try {
+                const row = await env.DB.prepare('SELECT access_token, refresh_token, expires_at FROM whoop_tokens WHERE id = ?').bind('primary').first();
+                if (!row) return new Response(JSON.stringify({error: 'no tokens — run OAuth first'}), {status: 404, headers: {'Content-Type': 'application/json', ...CORS}});
+                
+                let token = row.access_token;
+                const now = new Date().toISOString();
+                
+                // Refresh if expired
+                if (row.expires_at && row.expires_at < now) {
+                    const refreshResp = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({
+                            grant_type: 'refresh_token',
+                            refresh_token: row.refresh_token,
+                            client_id: env.WHOOP_CLIENT_ID,
+                            client_secret: env.WHOOP_CLIENT_SECRET
+                        }).toString()
+                    });
+                    const refreshData = await refreshResp.json();
+                    if (refreshData.access_token) {
+                        token = refreshData.access_token;
+                        await env.DB.prepare(
+                            `UPDATE whoop_tokens SET access_token = ?, refresh_token = ?, expires_at = datetime('now', '+' || ? || ' seconds'), updated_at = datetime('now') WHERE id = ?`
+                        ).bind(token, refreshData.refresh_token || row.refresh_token, refreshData.expires_in || 3600, 'primary').run();
+                    }
+                }
+                
+                const days = parseInt(url.searchParams.get('days') || '7');
+                const start = new Date(Date.now() - days * 86400000).toISOString();
+                const end = new Date().toISOString();
+                const params = `start=${start}&end=${end}&limit=50`;
+                const base = 'https://api.prod.whoop.com/developer/v1';
+                const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+                
+                const endpoints = {
+                    recovery: `${base}/recovery?${params}`,
+                    cycle: `${base}/cycle?${params}`,
+                    sleep: `${base}/activity/sleep?${params}`,
+                    workout: `${base}/activity/workout?${params}`,
+                    body: `${base}/user/measurement/body`,
+                    profile: `${base}/user/profile/basic`,
+                };
+                
+                const result = { fetched_at: new Date().toISOString(), days };
+                
+                for (const [name, epUrl] of Object.entries(endpoints)) {
+                    try {
+                        const r = await fetch(epUrl, { headers });
+                        result[name] = { status: r.status, data: r.status === 200 ? await r.json() : await r.text() };
+                    } catch (e) {
+                        result[name] = { status: 0, error: e.message };
+                    }
+                }
+                
+                return new Response(JSON.stringify(result), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json', ...CORS }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({error: e.message}), {status: 500, headers: {'Content-Type': 'application/json', ...CORS}});
+            }
+        }
+
         // /wc/* — World Cup D1 standings (WC D1, June 4 2026)
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
