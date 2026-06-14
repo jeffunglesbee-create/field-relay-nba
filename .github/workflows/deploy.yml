@@ -104,6 +104,17 @@ jobs:
           echo "❌ Relay not responding after deploy — genuine failure"
           exit 1
 
+      - name: Post-deploy — refresh WC bracket projections
+        continue-on-error: true
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -X POST "$RELAY/wc/bracket/refresh" \
+            -H "User-Agent: FIELD-CI/1.0")
+          echo "Bracket refresh: HTTP $STATUS"
+          [ "$STATUS" = "200" ] && echo "✅ BracketDO recomputed with latest code" \
+            || echo "⚠️ Bracket refresh returned $STATUS — projections may be stale until next game final"
+
       - name: Deploy Courier Worker
         uses: cloudflare/wrangler-action@v3
         with:
