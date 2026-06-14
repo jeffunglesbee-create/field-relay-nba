@@ -3386,7 +3386,7 @@ export default {
                         }).toString()
                     });
                     const refreshData = await refreshResp.json();
-                    result._debug_refresh = { status: refreshResp.status, body: JSON.stringify(refreshData).substring(0, 200) };
+                    var _refreshDebug = { status: refreshResp.status, body: JSON.stringify(refreshData).substring(0, 200) };
                     if (refreshData.access_token) {
                         token = refreshData.access_token;
                         await env.DB.prepare(
@@ -3421,6 +3421,7 @@ export default {
                         token_prefix: token.substring(0, 8),
                         was_refreshed: token !== row.access_token,
                         refresh_attempted: new Date(row.expires_at + 'Z') < new Date(),
+                        refresh_result: typeof _refreshDebug !== 'undefined' ? _refreshDebug : 'not attempted',
                         expires_at: row.expires_at,
                         now: new Date().toISOString()
                     }
