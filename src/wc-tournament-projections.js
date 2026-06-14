@@ -907,6 +907,8 @@ const ODDS_NAME_ALIAS = {
   'Ivory Coast':              'Ivory Coast',           // same
   "Cote d'Ivoire":            'Ivory Coast',           // French name variant
   'Cote dIvoire':             'Ivory Coast',           // no-apostrophe variant
+  'Korea Republic':           'South Korea',           // FIFA official name
+  'Republic of Korea':        'South Korea',           // alternate formal name
 };
 
 function normalizeTeamName(name) {
