@@ -3832,6 +3832,84 @@ export default {
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
         }
 
+        // ── /archive/* — Game Archive D1 (June 15 2026) ───────────────────────────
+        // Read-only endpoints backed by field-archive D1.
+        // ADR-002: CLEAN — factual game data, no drama/interest scores.
+        if (pathname.startsWith('/archive/')) {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            // GET /archive/series/:key — full series with all games
+            if (pathname.startsWith('/archive/series/')) {
+                const key = decodeURIComponent(pathname.slice('/archive/series/'.length));
+                if (!key) return new Response(JSON.stringify({ ok: false, error: 'missing series key' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const series = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM postseason_series WHERE series_key = ?'
+                ).bind(key).first();
+                const games = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM postseason_games WHERE series_key = ? ORDER BY game_number'
+                ).bind(key).all();
+                return new Response(JSON.stringify({ ok: true, series, games: games.results }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/last-meeting?home=X&away=Y
+            if (pathname === '/archive/last-meeting') {
+                const home = url.searchParams.get('home') || '';
+                const away = url.searchParams.get('away') || '';
+                if (!home || !away) return new Response(JSON.stringify({ ok: false, error: 'missing home/away' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const game = await env.ARCHIVE_DB.prepare(
+                    `SELECT * FROM regular_season_games
+                     WHERE (home LIKE ? AND away LIKE ?) OR (home LIKE ? AND away LIKE ?)
+                     ORDER BY date DESC LIMIT 1`
+                ).bind(`%${home}%`, `%${away}%`, `%${away}%`, `%${home}%`).first();
+                return new Response(JSON.stringify({ ok: true, game }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/date/:iso — all games on a date
+            if (pathname.startsWith('/archive/date/')) {
+                const iso = decodeURIComponent(pathname.slice('/archive/date/'.length));
+                const reg = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM regular_season_games WHERE date = ?'
+                ).bind(iso).all();
+                const ps = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM postseason_games WHERE date = ?'
+                ).bind(iso).all();
+                return new Response(JSON.stringify({ ok: true, games: [...reg.results, ...ps.results] }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/tagged/:tag — games with a specific tag
+            if (pathname.startsWith('/archive/tagged/')) {
+                const tag = decodeURIComponent(pathname.slice('/archive/tagged/'.length));
+                const tagged = await env.ARCHIVE_DB.prepare(
+                    `SELECT * FROM regular_season_games WHERE tags LIKE ? ORDER BY date DESC`
+                ).bind(`%"${tag}"%`).all();
+                return new Response(JSON.stringify({ ok: true, games: tagged.results }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/sport/:sport — all games for a sport
+            if (pathname.startsWith('/archive/sport/')) {
+                const sport = decodeURIComponent(pathname.slice('/archive/sport/'.length));
+                const reg = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM regular_season_games WHERE sport = ? ORDER BY date DESC'
+                ).bind(sport).all();
+                const ps = await env.ARCHIVE_DB.prepare(
+                    'SELECT * FROM postseason_games WHERE sport = ? ORDER BY date DESC'
+                ).bind(sport).all();
+                return new Response(JSON.stringify({ ok: true, games: [...reg.results, ...ps.results] }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            return new Response('Archive endpoint not found', { status: 404, headers: CORS });
+        }
+
         // ── /live/* — AmbientDO SSE ambient channel ───────────────────────────────
         // GET /live/ambient  — SSE stream, one connection covers all sports
         //   Emits: score, lead_change, final, all_final, ping, wp_update

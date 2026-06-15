@@ -161,3 +161,12 @@ WHOOP_CLIENT_SECRET = "03dcff790c95a368e8f294a56d9134a5ee7c545b456d36cf61dfc7b33
 binding = "DB"
 database_name = "field-d1"
 database_id = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"
+
+# ── D1 Game Archive (June 15 2026) ───────────────────────────────────────────
+# FIELD's institutional memory — completed games with editorial notes.
+# Tables: postseason_games, postseason_series, regular_season_games
+# ADR-002: CLEAN — factual game data only, no drama/interest scores.
+[[d1_databases]]
+binding       = "ARCHIVE_DB"
+database_name = "field-archive"
+database_id   = "cc49101c-0569-4d41-8e7a-be139cde4f26"
