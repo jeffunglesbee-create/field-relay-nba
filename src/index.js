@@ -2918,6 +2918,84 @@ async function ensureBriefsTable(env) {
   _briefsReady = true;
 }
 
+// ── Backfill prompt builder ─────────────────────────────────────────────────
+// Reconstructs a FIELD Brief prompt for a past slate from archived game rows.
+// Mirrors handleJournalismCycle's prompt voice (rules, JQ_STYLE) but in a
+// historical/recap register since these are completed games.
+//
+// Inputs:
+//   date  — ISO date string YYYY-MM-DD
+//   games — array of rows mixed from regular_season_games + postseason_games.
+//           Postseason rows are identified by the presence of `series_key`.
+//   seriesNarratives — { [series_key]: narrative string } from postseason_series
+//
+// Returns null when the slate is too thin to produce quality output
+// (no scored games AND no notes/matchupNotes — pure schedule placeholders).
+// Returns the prompt string otherwise.
+function buildBackfillPrompt(date, games, seriesNarratives) {
+  if (!Array.isArray(games) || !games.length) return null;
+
+  const postseason = games.filter(g => g && g.series_key);
+  const regular    = games.filter(g => g && !g.series_key);
+
+  // Thinness check: skip dates with no scored games and no notes.
+  const hasScored = games.some(g =>
+    g && g.home_score !== null && g.home_score !== undefined &&
+         g.away_score !== null && g.away_score !== undefined);
+  const hasNotes = games.some(g => g && (g.note || g.matchupNote));
+  if (!hasScored && !hasNotes) return null;
+
+  const fmt = (g) => {
+    const parts = [];
+    const league = g.league || g.sport || '';
+    if (league) parts.push(`[${league}]`);
+    parts.push(`${g.away} @ ${g.home}`);
+    if (g.home_score !== null && g.home_score !== undefined &&
+        g.away_score !== null && g.away_score !== undefined) {
+      parts.push(`final ${g.away} ${g.away_score}, ${g.home} ${g.home_score}`);
+    }
+    if (g.venue)         parts.push(`venue: ${g.venue}`);
+    if (g.series_record) parts.push(`series: ${g.series_record}`);
+    if (g.note)          parts.push(`note: ${g.note}`);
+    if (g.matchupNote)   parts.push(`matchup: ${g.matchupNote}`);
+    if (g.crew)          parts.push(`crew: ${g.crew}`);
+    if (g.streams)       parts.push(`broadcast: ${g.streams}`);
+    return parts.join(' | ');
+  };
+
+  const sections = [
+    `Write a FIELD Brief reconstructing the sports slate for ${date}.`,
+    '',
+  ];
+
+  if (postseason.length) {
+    sections.push('POSTSEASON GAMES:');
+    for (const g of postseason) {
+      sections.push(`- ${fmt(g)}`);
+      const narr = seriesNarratives && g.series_key ? seriesNarratives[g.series_key] : null;
+      if (narr) sections.push(`  series narrative: ${narr}`);
+    }
+    sections.push('');
+  }
+  if (regular.length) {
+    sections.push('REGULAR SEASON GAMES:');
+    for (const g of regular) sections.push(`- ${fmt(g)}`);
+    sections.push('');
+  }
+
+  sections.push('RULES:');
+  sections.push('- 100-120 words. 2 short paragraphs. No headers. No bullet points.');
+  sections.push('- HISTORICAL VOICE: this is a backfill brief reconstructing a past slate. Use past tense for completed games. Reference the slate date in context.');
+  sections.push('- Lead with the most important story — the SPECIFIC situation, not the template. Lead with a name, a number, or a situation — not a team name in subject position.');
+  sections.push('- CORRECTNESS: write only from the data above. Never invent scores, stats, or facts not listed.');
+  sections.push('- SLATE BOUNDARY (mandatory): every league or sport you reference must appear in the GAMES sections above. Do not invoke leagues with no game in this slate.');
+  sections.push('- SERIES ACCURACY: A Conference Finals game is NEVER "the NBA Finals" or "the Championship." A Stanley Cup Final game is NEVER a "first-round matchup." Use only the round/series description in the data. If unclear, describe as "a playoff series" — never upgrade to a championship.');
+  sections.push(JQ_STYLE);
+  sections.push('- Plain prose only. Every sentence complete.');
+
+  return sections.join('\n');
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
