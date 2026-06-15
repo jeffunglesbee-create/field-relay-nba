@@ -3935,6 +3935,48 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
             }
 
+            // POST /archive/brief — persist AI-generated brief text to briefs D1.
+            // Client-side archiveBrief() in jubilant-bassoon fires fire-and-forget;
+            // relay returns "ok" on success / JSON error on validation failure.
+            // INSERT OR UPDATE on id collision so re-archives (e.g. quality-chain
+            // re-runs) overwrite text/word_count/source without disturbing the
+            // primary key or created_at.
+            if (pathname === '/archive/brief' && request.method === 'POST') {
+                await ensureBriefsTable(env);
+                let body;
+                try { body = await request.json(); }
+                catch (_) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const { id, brief_type, date, sport, game_id, brief_text,
+                        model, quality_score, context_hash, word_count, source } = body || {};
+                if (!id || !brief_type || !date || !brief_text) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing required fields (id, brief_type, date, brief_text)' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                await env.ARCHIVE_DB.prepare(
+                    `INSERT INTO briefs
+                       (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     ON CONFLICT(id) DO UPDATE SET
+                       brief_text = excluded.brief_text,
+                       word_count = excluded.word_count,
+                       source = excluded.source`
+                ).bind(
+                    id, date, brief_type,
+                    sport || null,
+                    game_id || null,
+                    brief_text,
+                    model || null,
+                    typeof quality_score === 'number' ? quality_score : null,
+                    context_hash || null,
+                    typeof word_count === 'number' ? word_count : null,
+                    source || 'client'
+                ).run();
+                return new Response('ok', { status: 200, headers: CORS });
+            }
+
             return new Response('Archive endpoint not found', { status: 404, headers: CORS });
         }
 
