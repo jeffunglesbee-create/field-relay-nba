@@ -2890,6 +2890,34 @@ function stripMarkdown(s) {
     .trim();
 }
 
+// ── Brief archive table — idempotent migration ──────────────────────────────
+// Belt-and-suspenders helper for deploy safety. The briefs table is already
+// created in field-archive D1 via Cloudflare MCP (per docs/brief-archive-spec.md);
+// this CREATE IF NOT EXISTS guarantees the relay self-heals if the row in
+// sqlite_master is ever lost. Memoized via _briefsReady so subsequent calls
+// are no-ops.
+let _briefsReady = false;
+async function ensureBriefsTable(env) {
+  if (_briefsReady) return;
+  if (!env.ARCHIVE_DB) return;
+  await env.ARCHIVE_DB.prepare(`
+    CREATE TABLE IF NOT EXISTS briefs (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      brief_type TEXT NOT NULL,
+      sport TEXT,
+      game_id TEXT,
+      brief_text TEXT NOT NULL,
+      model TEXT,
+      quality_score REAL,
+      context_hash TEXT,
+      word_count INTEGER,
+      created_at TEXT DEFAULT (datetime('now')),
+      source TEXT DEFAULT 'live'
+    )`).run();
+  _briefsReady = true;
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
