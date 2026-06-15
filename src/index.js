@@ -3197,6 +3197,31 @@ async function handleJournalismCycle(env) {
       { expirationTtl: 86400 }
     );
 
+    // 6b. Archive slate brief to D1 briefs table.
+    // Archive failure must NEVER break journalism (CLAUDE.md Rule 5) — wrapped
+    // in try/catch with silent swallow. Stored before per-game brief enqueue
+    // so a slow D1 write doesn't delay queue dispatch.
+    try {
+      await ensureBriefsTable(env);
+      await env.ARCHIVE_DB.prepare(
+        `INSERT INTO briefs
+           (id, date, brief_type, sport, brief_text, model, quality_score, context_hash, word_count, source)
+         VALUES (?, ?, 'slate', NULL, ?, ?, ?, ?, ?, 'cron')
+         ON CONFLICT(id) DO UPDATE SET
+           brief_text = excluded.brief_text,
+           quality_score = excluded.quality_score,
+           word_count = excluded.word_count`
+      ).bind(
+        `slate_${dateKey}_cron`,
+        dateKey,
+        prose,
+        'gemini-3.1-flash-lite',
+        finalScore,
+        contextHash,
+        prose.split(/\s+/).length
+      ).run();
+    } catch (_archiveErr) { /* archive failure must not break journalism cron */ }
+
     // 7. Pre-generate per-game card briefs — enqueue via JOURNALISM_QUEUE
     // Replaces the previous sequential loop + setTimeout stagger (1500ms/game).
     // On a 12-game WC day the old loop consumed ~18s of cron CPU budget.
