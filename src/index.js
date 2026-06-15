@@ -3006,6 +3006,15 @@ async function executeBackfill(env, date) {
 
   await ensureBriefsTable(env);
 
+  // Skip-existing hard check: never overwrite a backfill with another backfill.
+  // Avoids wasting Gemini calls + protects existing prose from re-runs.
+  const existing = await env.ARCHIVE_DB.prepare(
+    `SELECT id FROM briefs WHERE date = ? AND source = 'backfill' LIMIT 1`
+  ).bind(date).first();
+  if (existing) {
+    return {ok:true, skipped:true, reason:'backfill already exists', date, existing_id: existing.id};
+  }
+
   // Pull games for the date from both tables.
   const regResult = await env.ARCHIVE_DB.prepare(
     'SELECT * FROM regular_season_games WHERE date = ?'
@@ -3069,10 +3078,7 @@ async function executeBackfill(env, date) {
     `INSERT INTO briefs
        (id, date, brief_type, sport, brief_text, model, quality_score, word_count, source)
      VALUES (?, ?, 'slate', NULL, ?, 'gemini-3.1-flash-lite', ?, ?, 'backfill')
-     ON CONFLICT(id) DO UPDATE SET
-       brief_text = excluded.brief_text,
-       quality_score = excluded.quality_score,
-       word_count = excluded.word_count`
+     ON CONFLICT(id) DO NOTHING`
   ).bind(
     `slate_${date}_backfill`,
     date,
