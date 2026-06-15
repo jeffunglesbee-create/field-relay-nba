@@ -2996,6 +2996,123 @@ function buildBackfillPrompt(date, games, seriesNarratives) {
   return sections.join('\n');
 }
 
+// ── Backfill execution — shared by /archive/backfill and dead-hour cron ─────
+// Reads archived games + series narratives for a date, calls Gemini via the
+// journalism proxy, runs the result through the quality chain, INSERTs into
+// the briefs table with source='backfill'. Returns a structured result.
+async function executeBackfill(env, date) {
+  if (!env.ARCHIVE_DB)        return {ok:false, reason:'ARCHIVE_DB not bound'};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return {ok:false, reason:'invalid date (YYYY-MM-DD)'};
+
+  await ensureBriefsTable(env);
+
+  // Pull games for the date from both tables.
+  const regResult = await env.ARCHIVE_DB.prepare(
+    'SELECT * FROM regular_season_games WHERE date = ?'
+  ).bind(date).all();
+  const psResult = await env.ARCHIVE_DB.prepare(
+    'SELECT * FROM postseason_games WHERE date = ?'
+  ).bind(date).all();
+  const games = [...(regResult.results || []), ...(psResult.results || [])];
+  if (!games.length) return {ok:false, skipped:true, reason:'no archived games for date', date};
+
+  // Fetch series narratives for any postseason series_keys we saw.
+  const seriesKeys = [...new Set(games.map(g => g.series_key).filter(Boolean))];
+  const seriesNarratives = {};
+  if (seriesKeys.length) {
+    const placeholders = seriesKeys.map(() => '?').join(',');
+    const sRes = await env.ARCHIVE_DB.prepare(
+      `SELECT series_key, narrative FROM postseason_series WHERE series_key IN (${placeholders})`
+    ).bind(...seriesKeys).all();
+    for (const row of (sRes.results || [])) {
+      if (row.narrative) seriesNarratives[row.series_key] = row.narrative;
+    }
+  }
+
+  const prompt = buildBackfillPrompt(date, games, seriesNarratives);
+  if (!prompt) return {ok:false, skipped:true, reason:'insufficient data', date, gameCount: games.length};
+
+  // Same proxy shape as handleJournalismCycle's callProxy — proxy routes to
+  // Gemini 3.1 Flash-Lite primary, Claude Haiku 4.5 fallback (CLAUDE.md).
+  const callProxy = async (promptText) => {
+    const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-FIELD-Relay': 'field-relay-cron-2026',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{role: 'user', content: promptText}],
+      }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null;
+  };
+
+  const initial = await callProxy(prompt);
+  if (!initial || initial.length < 50) {
+    return {ok:false, reason:'proxy returned no prose', date};
+  }
+
+  const qResult = await runQualityChain(prompt, initial, callProxy, {
+    sport: null,
+    scoreThreshold: 130,
+    maxRetries: 6,
+  });
+  const prose = qResult.text;
+  const score = qResult.score;
+
+  await env.ARCHIVE_DB.prepare(
+    `INSERT INTO briefs
+       (id, date, brief_type, sport, brief_text, model, quality_score, word_count, source)
+     VALUES (?, ?, 'slate', NULL, ?, 'gemini-3.1-flash-lite', ?, ?, 'backfill')
+     ON CONFLICT(id) DO UPDATE SET
+       brief_text = excluded.brief_text,
+       quality_score = excluded.quality_score,
+       word_count = excluded.word_count`
+  ).bind(
+    `slate_${date}_backfill`,
+    date,
+    prose,
+    score,
+    prose.split(/\s+/).length
+  ).run();
+
+  return {
+    ok: true,
+    date,
+    gameCount: games.length,
+    postseasonCount: games.filter(g => g.series_key).length,
+    brief_text: prose,
+    quality_score: score,
+    retries: qResult.retries,
+    layers_fired: qResult.layers_fired,
+  };
+}
+
+// Pick the next backfill date during dead-hour cron ticks.
+// Postseason dates first (sorted ascending), then regular season — skipping any
+// date that already has a source='backfill' brief.
+async function pickNextBackfillDate(env) {
+  if (!env.ARCHIVE_DB) return null;
+  const ps = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT date FROM postseason_games
+      WHERE date NOT IN (SELECT date FROM briefs WHERE source = 'backfill')
+      ORDER BY date ASC LIMIT 1`
+  ).all();
+  if (ps.results && ps.results.length) return ps.results[0].date;
+  const rs = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT date FROM regular_season_games
+      WHERE date NOT IN (SELECT date FROM briefs WHERE source = 'backfill')
+      ORDER BY date ASC LIMIT 1`
+  ).all();
+  if (rs.results && rs.results.length) return rs.results[0].date;
+  return null;
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   const now = Date.now();
@@ -3009,7 +3126,32 @@ async function handleJournalismCycle(env) {
   const espnDate = dateKey.replace(/-/g, ''); // YYYY-MM-DD → YYYYMMDD
   const hour = new Date().getUTCHours();
   const isLiveHours = hour >= 10 || hour <= 2;
-  if (!isLiveHours) return {ok:false, reason:`not live hours (UTC ${hour})`};
+  if (!isLiveHours) {
+    // Dead hours (UTC 2:00–10:00) — no live brief generation. Use the window
+    // to run ONE backfill date per tick (15-min cron => up to 4 dates/hour
+    // through dead hours). Cursor stored in FIELD_JOURNALISM KV for telemetry;
+    // the authoritative skip-check lives in pickNextBackfillDate which queries
+    // briefs.source='backfill'. Archive failure must NEVER break journalism
+    // (CLAUDE.md Rule 5) — entire block wrapped in try/catch.
+    if (env.ARCHIVE_DB) {
+      try {
+        const nextDate = await pickNextBackfillDate(env);
+        if (!nextDate) return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
+        const r = await executeBackfill(env, nextDate);
+        try {
+          await env.FIELD_JOURNALISM.put('backfill_cursor', JSON.stringify({
+            lastDate: nextDate,
+            lastResult: r.ok ? 'ok' : (r.skipped ? 'skipped' : 'error'),
+            lastAt: now,
+          }), { expirationTtl: 7 * 86400 });
+        } catch (_) { /* cursor write best-effort */ }
+        return {ok:r.ok, reason:`backfill ${nextDate}: ${r.reason || (r.ok ? 'wrote brief' : 'no result')}`, backfill: r};
+      } catch (e) {
+        return {ok:false, reason:`backfill error: ${e.message}`};
+      }
+    }
+    return {ok:false, reason:`not live hours (UTC ${hour})`};
+  }
   // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
   // Runs in the gap between the live-hours cron (UTC 10am–2am) and the
   // next live window. Queries D1 for WC group results completed in the
@@ -4036,6 +4178,29 @@ export default {
                 ).bind(sport).all();
                 return new Response(JSON.stringify({ ok: true, games: [...reg.results, ...ps.results] }),
                     { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/backfill?date=YYYY-MM-DD — manual backfill trigger.
+            // Reads regular_season_games + postseason_games for the date,
+            // pulls series narratives, builds the backfill prompt, runs Gemini
+            // + the J3 quality chain, INSERTs a source='backfill' brief.
+            // Returns the produced prose + quality score, or {skipped:true}
+            // when the slate is too thin to reconstruct.
+            if (pathname === '/archive/backfill' && (request.method === 'GET' || request.method === 'POST')) {
+                const date = url.searchParams.get('date');
+                if (!date) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing ?date=YYYY-MM-DD' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                try {
+                    const result = await executeBackfill(env, date);
+                    const status = result.ok ? 200 : (result.skipped ? 200 : 500);
+                    return new Response(JSON.stringify(result),
+                        { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
             }
 
             // POST /archive/brief — persist AI-generated brief text to briefs D1.
