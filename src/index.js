@@ -5688,6 +5688,13 @@ export default {
                         '/stat/platform/successfactors/status',
                         '/stat/platform/ashby/status',
                         '/stat/',
+                        // Brief archive (2026-06-15). /archive/brief is POST-only
+                        // in practice (GET falls through to /archive/* 404),
+                        // /archive/backfill accepts GET with ?date=YYYY-MM-DD.
+                        // Listed so discovery probes can confirm the routes
+                        // exist relay-side without bouncing through CI.
+                        '/archive/brief',
+                        '/archive/backfill',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
