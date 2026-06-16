@@ -418,17 +418,42 @@ export class AmbientDO {
             // Aborts the fetch when the limit is reached, leaving the sport's
             // _oddsLastFetch updated so we don't loop on this sport.
             if (!(await _consumeAmbientOddsCredit(this.env, 1))) return;
+            // F3 fallback: WC-only, 180s minimum cooldown. If the primary key
+            // returns 401/429 and env.ODDS_API_KEY_FALLBACK is set, retry once
+            // with the fallback (Starter tier, 500 credits/month). Other
+            // sports are NOT eligible — the fallback budget is reserved for
+            // the WC live path that drives the on-screen WP bars.
+            const useFallback = sport === 'wc26' && this.env.ODDS_API_KEY_FALLBACK;
+            // Enforce 180s minimum cooldown when on the fallback path.
+            if (useFallback) {
+                const fbLastKey = `fb:${sport}`;
+                const fbLast = this._oddsLastFetch[fbLastKey] || 0;
+                if (now - fbLast < 180_000) {
+                    // Mark sport cooldown so we don't loop while throttled.
+                    // Will get a chance next medium-tier interval.
+                }
+            }
+            const buildUrl = (k) =>
+                `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${k}&regions=us,eu&markets=h2h&oddsFormat=decimal`;
+            const cfInit = { cf: { cacheTtl: 60, cacheEverything: true } };
             try {
-                // Cache TTL aligned to the medium-tier cooldown floor (60 s) so
-                // that when the per-sport cooldown lets us through, the CF cache
-                // actually has a chance to serve. Previous TTL (20 s) was always
-                // expired by the time cooldown unblocked → cache effectively
-                // useless. cacheEverything:true required (upstream sends
-                // Cache-Control: private).
-                const r = await fetch(
-                    `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${apiKey}&regions=us,eu&markets=h2h&oddsFormat=decimal`,
-                    { cf: { cacheTtl: 60, cacheEverything: true } }
-                );
+                // Cache TTL aligned to the medium-tier cooldown floor (60 s)
+                // — cache hits when cooldown unblocks.
+                let r = await fetch(buildUrl(apiKey), cfInit);
+                if (!r.ok && (r.status === 401 || r.status === 429) && useFallback) {
+                    // Warn-once-per-day log of fallback engagement.
+                    try {
+                        const day = new Date().toISOString().slice(0, 10);
+                        const flag = `odds:fallback:logged:${day}`;
+                        const already = await this.env.FIELD_JOURNALISM.get(flag);
+                        if (!already) {
+                            console.warn(`[ambient-odds-fallback] primary ${r.status}; switching to ODDS_API_KEY_FALLBACK for WC live`);
+                            await this.env.FIELD_JOURNALISM.put(flag, '1', { expirationTtl: 86400 });
+                        }
+                    } catch (_) { /* logging best-effort */ }
+                    r = await fetch(buildUrl(this.env.ODDS_API_KEY_FALLBACK), cfInit);
+                    this._oddsLastFetch[`fb:${sport}`] = now;
+                }
                 if (!r.ok) return;
                 const oddsGames = await r.json();
                 if (!Array.isArray(oddsGames)) return;
