@@ -2923,6 +2923,8 @@ async function ensureBriefsTable(env) {
 // so the journalism prompt can include factual odds context. Every fetch
 // records the X-Requests-Remaining header and bails when the free-tier quota
 // drops below the safety floor — quota is shared across the whole worker.
+// Cron LEAGUES (sport, league) -> Odds API sport_key. Used when the
+// journalism cron iterates ESPN scoreboard sports.
 const ODDS_SPORT_KEYS = {
   'basketball|nba':       'basketball_nba',
   'basketball|wnba':      'basketball_wnba',
@@ -2931,11 +2933,36 @@ const ODDS_SPORT_KEYS = {
   'soccer|eng.1':         'soccer_epl',
   'soccer|fifa.world':    'soccer_fifa_world_cup',
 };
+// Archive `sport` column (uppercase short codes — D1 introspection
+// 2026-06-16: regular_season has MLB/WNBA/EPL/MLS/CFL/AFL/IPL/La Liga/
+// Ligue 1; postseason has NBA/NHL/UFL) -> Odds API sport_key.
+// Case-insensitive lookup applied in archiveSportToOddsKey().
+const ARCHIVE_SPORT_TO_ODDS_KEY = {
+  nba:        'basketball_nba',
+  wnba:       'basketball_wnba',
+  nhl:        'icehockey_nhl',
+  mlb:        'baseball_mlb',
+  epl:        'soccer_epl',
+  mls:        'soccer_usa_mls',
+  'la liga':  'soccer_spain_la_liga',
+  'ligue 1':  'soccer_france_ligue_one',
+  bundesliga: 'soccer_germany_bundesliga',
+  'serie a':  'soccer_italy_serie_a',
+  cfl:        'americanfootball_cfl',
+  nfl:        'americanfootball_nfl',
+  ufl:        'americanfootball_ufl',
+  afl:        'aussierules_afl',
+  ipl:        'cricket_ipl',
+};
 const ODDS_QUOTA_FLOOR = 50;        // stop calling the API below this
 const ODDS_PREFERRED_BOOK = 'draftkings';
 
 function _oddsSportKeyFor(sport, league) {
   return ODDS_SPORT_KEYS[`${sport}|${league}`] || null;
+}
+function archiveSportToOddsKey(sport) {
+  if (!sport) return null;
+  return ARCHIVE_SPORT_TO_ODDS_KEY[String(sport).toLowerCase()] || null;
 }
 
 function _normTeam(s) {
@@ -2987,26 +3014,31 @@ async function fetchSportOddsLive(env, sportKey) {
   return { games: Array.isArray(games) ? games : [], quotaRemaining, ok: true };
 }
 
-// Per-cron snapshot. For each (sport, league) in the live slate, if any
-// archive row for today still has opening_odds IS NULL, fetch the live odds
-// once and UPDATE matching rows. Bails when the quota approaches the floor.
-async function snapshotCronOdds(env, dateKey, LEAGUES) {
+// Per-cron snapshot. Discovers which sports have pending opening_odds rows
+// for today directly from the archive (decoupled from the cron's LEAGUES
+// list — archive sport vocabulary is uppercase short codes, not the
+// {sport,league} ESPN shape), then fetches live odds once per sport and
+// UPDATEs matching rows. Bails when the quota approaches the floor.
+async function snapshotCronOdds(env, dateKey) {
   if (!env.ARCHIVE_DB) return null;
+  const rsP = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT sport FROM regular_season_games
+      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL`
+  ).bind(dateKey).all();
+  const psP = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT sport FROM postseason_games
+      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL`
+  ).bind(dateKey).all();
+  const sports = [...new Set([
+    ...(rsP.results || []).map(r => r.sport),
+    ...(psP.results || []).map(r => r.sport),
+  ].filter(Boolean))];
+  if (!sports.length) return null;
+
   let lastQuota = null;
-  for (const {sport, league} of LEAGUES) {
-    const sportKey = _oddsSportKeyFor(sport, league);
+  for (const sport of sports) {
+    const sportKey = archiveSportToOddsKey(sport);
     if (!sportKey) continue;
-    const rsPending = await env.ARCHIVE_DB.prepare(
-      `SELECT id, home, away FROM regular_season_games
-        WHERE date = ? AND sport = ? AND opening_odds IS NULL`
-    ).bind(dateKey, sport).all();
-    const psPending = await env.ARCHIVE_DB.prepare(
-      `SELECT id, home, away FROM postseason_games
-        WHERE date = ? AND sport = ? AND opening_odds IS NULL`
-    ).bind(dateKey, sport).all();
-    const rsRows = rsPending.results || [];
-    const psRows = psPending.results || [];
-    if (!rsRows.length && !psRows.length) continue;
     if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) return lastQuota;
 
     const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);
@@ -3018,8 +3050,12 @@ async function snapshotCronOdds(env, dateKey, LEAGUES) {
     for (const g of games) {
       byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
     }
-    const apply = async (rows, table) => {
-      for (const row of rows) {
+    for (const table of ['regular_season_games', 'postseason_games']) {
+      const rows = await env.ARCHIVE_DB.prepare(
+        `SELECT id, home, away FROM ${table}
+          WHERE date = ? AND sport = ? AND opening_odds IS NULL`
+      ).bind(dateKey, sport).all();
+      for (const row of (rows.results || [])) {
         const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
         if (!og) continue;
         const odds = extractOddsForGame(og);
@@ -3027,9 +3063,7 @@ async function snapshotCronOdds(env, dateKey, LEAGUES) {
         const sql = `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`;
         await env.ARCHIVE_DB.prepare(sql).bind(JSON.stringify(odds), row.id).run();
       }
-    };
-    await apply(rsRows, 'regular_season_games');
-    await apply(psRows, 'postseason_games');
+    }
   }
   return lastQuota;
 }
@@ -3081,15 +3115,18 @@ async function runOddsBackfillForDate(env, isoDate) {
   }
 
   // Bucket pending rows by Odds API sport key.
+  // Archive sport column is uppercase short-code vocabulary (MLB / NBA / WNBA
+  // / EPL / La Liga / …) — use archiveSportToOddsKey() rather than the
+  // {sport,league} ESPN-cron map.
   const buckets = new Map(); // sportKey -> { rs:[], ps:[] }
-  const bucketOf = (sport, league) => {
-    const sk = _oddsSportKeyFor(sport, league || '');
+  const bucketOf = (sport) => {
+    const sk = archiveSportToOddsKey(sport);
     if (!sk) return null;
     if (!buckets.has(sk)) buckets.set(sk, { rs: [], ps: [] });
     return buckets.get(sk);
   };
-  for (const row of rsRows) { const b = bucketOf(row.sport, row.league); if (b) b.rs.push(row); }
-  for (const row of psRows) { const b = bucketOf(row.sport, row.league); if (b) b.ps.push(row); }
+  for (const row of rsRows) { const b = bucketOf(row.sport); if (b) b.rs.push(row); }
+  for (const row of psRows) { const b = bucketOf(row.sport); if (b) b.ps.push(row); }
 
   let oddsPopulated = 0;
   let oddsSkipped  = 0;
@@ -3637,7 +3674,7 @@ async function handleJournalismCycle(env) {
     // NULL opening_odds — quota-aware, bails below ODDS_QUOTA_FLOOR.
     // Wrapped in try/catch per CLAUDE.md Rule 5; the cycle MUST NOT break if
     // the Odds API is down or the snapshot throws.
-    try { await snapshotCronOdds(env, dateKey, LEAGUES); }
+    try { await snapshotCronOdds(env, dateKey); }
     catch (_) { /* odds snapshot failure cannot break journalism */ }
 
     // ── Odds annotations for prompt injection ───────────────────────────────
