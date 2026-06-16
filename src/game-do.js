@@ -360,10 +360,51 @@ export class GameDO {
             this.lastSeen = Date.now();
             return;
         }
+        const prevState = this.lastFacts?.state || null;
         this.lastFacts = facts;
         this.lastSeen  = Date.now();
         await this.ctx.storage.put({ lastFacts: facts, lastSeen: this.lastSeen });
         this._broadcast({ type: 'facts', ...facts });
+
+        // ── Final-state archive hook ─────────────────────────────────────
+        // When the game transitions into 'final' state (v2/games normalizes
+        // status to 'pre'|'live'|'final' — confirmed src/index.js L942-969),
+        // fire-and-forget POST to the relay's /archive/game endpoint so the
+        // completed game lands in field-archive automatically.
+        //
+        // RELAY-IS-DUMB: DO forwards facts only. Relay-side handler does the
+        // table classification + INSERT. Archive failure must NEVER affect
+        // the DO's primary fan-out function (CLAUDE.md Rule 5) — every step
+        // is in try/catch, the fetch is .catch(()=>{}) fire-and-forget.
+        //
+        // Dedup: an 'archived' flag in DO storage prevents re-firing on every
+        // subsequent poll once the game is already final.
+        if (facts.state === 'final' && prevState !== 'final') {
+            try {
+                const already = await this.ctx.storage.get('archived');
+                if (!already) {
+                    await this.ctx.storage.put('archived', Date.now());
+                    const relayBase = this.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+                    const date = new Date().toISOString().slice(0, 10);
+                    // Payload uses ONLY fields GameDO actually stores
+                    // (this.sport, this.gameId, facts.homeScore/awayScore).
+                    // Team names, venue, crew, streams, series_key etc. are
+                    // NOT in DO state — enrichment will fill them later.
+                    const payload = {
+                        sport:      this.sport,
+                        date,
+                        source_id:  this.gameId,
+                        home_score: facts.homeScore,
+                        away_score: facts.awayScore,
+                    };
+                    fetch(relayBase + '/archive/game', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    }).catch(() => { /* archive failure cannot affect DO */ });
+                }
+            } catch (_) { /* archive hook failure cannot affect DO */ }
+        }
     }
 
     // Fetch from API-Sports primary; fallback to ESPN if API-Sports returns nothing.
