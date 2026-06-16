@@ -3034,6 +3034,117 @@ async function snapshotCronOdds(env, dateKey, LEAGUES) {
   return lastQuota;
 }
 
+// Historical odds fetch — /v4/historical/sports/{sport}/odds at a snapshot ISO.
+// The Odds API charges 10 quota units per historical call (vs 1 for current),
+// so callers MUST check the quota_remaining return field before iterating.
+async function fetchSportOddsHistorical(env, sportKey, isoDate) {
+  const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  // Anchor to noon UTC on the requested date so the snapshot captures odds
+  // shortly before evening kickoff for most sports.
+  const snapshot = `${isoDate}T12:00:00Z`;
+  const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
+            + `?apiKey=${key}&date=${snapshot}`
+            + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
+  const r = await fetch(url, { cf: { cacheTtl: 86400 } });
+  const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
+  if (!r.ok) return { games: [], quotaRemaining, ok: false };
+  let payload = null;
+  try { payload = await r.json(); } catch (_) { payload = null; }
+  // Historical endpoint wraps in {timestamp, previous_timestamp, next_timestamp, data: [...]}
+  const games = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.data) ? payload.data : []);
+  return { games, quotaRemaining, ok: true };
+}
+
+// One-shot historical odds backfill for a single archive date. Per-sport
+// dispatch; cross-table (regular_season_games + postseason_games); only
+// touches rows where opening_odds IS NULL.
+async function runOddsBackfillForDate(env, isoDate) {
+  if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
+  const apiKey = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
+
+  const rs = await env.ARCHIVE_DB.prepare(
+    `SELECT id, sport, league, home, away FROM regular_season_games
+      WHERE date = ? AND opening_odds IS NULL`
+  ).bind(isoDate).all();
+  const ps = await env.ARCHIVE_DB.prepare(
+    `SELECT id, sport, league, home, away FROM postseason_games
+      WHERE date = ? AND opening_odds IS NULL`
+  ).bind(isoDate).all();
+
+  const rsRows = rs.results || [];
+  const psRows = ps.results || [];
+  const gamesFound = rsRows.length + psRows.length;
+  if (!gamesFound) {
+    return { ok: true, date: isoDate, games_found: 0, odds_populated: 0, odds_skipped: 0 };
+  }
+
+  // Bucket pending rows by Odds API sport key.
+  const buckets = new Map(); // sportKey -> { rs:[], ps:[] }
+  const bucketOf = (sport, league) => {
+    const sk = _oddsSportKeyFor(sport, league || '');
+    if (!sk) return null;
+    if (!buckets.has(sk)) buckets.set(sk, { rs: [], ps: [] });
+    return buckets.get(sk);
+  };
+  for (const row of rsRows) { const b = bucketOf(row.sport, row.league); if (b) b.rs.push(row); }
+  for (const row of psRows) { const b = bucketOf(row.sport, row.league); if (b) b.ps.push(row); }
+
+  let oddsPopulated = 0;
+  let oddsSkipped  = 0;
+  let lastQuota    = null;
+  let stopped      = false;
+  let stopReason   = null;
+
+  for (const [sportKey, group] of buckets) {
+    if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) {
+      stopped = true; stopReason = 'quota_low'; break;
+    }
+    const { games, quotaRemaining, ok } = await fetchSportOddsHistorical(env, sportKey, isoDate);
+    lastQuota = quotaRemaining;
+    if (!ok) { oddsSkipped += group.rs.length + group.ps.length; continue; }
+    if (quotaRemaining > 0 && quotaRemaining < ODDS_QUOTA_FLOOR) {
+      stopped = true; stopReason = 'quota_low';
+      // Still apply matches from THIS sport's already-paid-for response.
+    }
+
+    const byPair = new Map();
+    for (const g of games) {
+      byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
+    }
+    const apply = async (rows, table) => {
+      for (const row of rows) {
+        const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
+        if (!og) { oddsSkipped++; continue; }
+        const odds = extractOddsForGame(og);
+        if (!odds) { oddsSkipped++; continue; }
+        try {
+          const sql = `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`;
+          const upd = await env.ARCHIVE_DB.prepare(sql).bind(JSON.stringify(odds), row.id).run();
+          if (upd.meta && upd.meta.changes > 0) oddsPopulated++;
+          else oddsSkipped++;
+        } catch (_) { oddsSkipped++; }
+      }
+    };
+    await apply(group.rs, 'regular_season_games');
+    await apply(group.ps, 'postseason_games');
+
+    if (stopped) break;
+  }
+
+  return {
+    ok: true,
+    date: isoDate,
+    games_found: gamesFound,
+    odds_populated: oddsPopulated,
+    odds_skipped: oddsSkipped,
+    quota_remaining: lastQuota,
+    stopped: stopped || undefined,
+    reason: stopReason || undefined,
+  };
+}
+
 // ── Backfill prompt builder ─────────────────────────────────────────────────
 // Reconstructs a FIELD Brief prompt for a past slate from archived game rows.
 // Mirrors handleJournalismCycle's prompt voice (rules, JQ_STYLE) but in a
@@ -4450,6 +4561,33 @@ export default {
                 ).bind(sport).all();
                 return new Response(JSON.stringify({ ok: true, games: [...reg.results, ...ps.results] }),
                     { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+            }
+
+            // GET /archive/odds-backfill?date=YYYY-MM-DD — historical odds
+            // population for one archive date. Walks regular_season_games +
+            // postseason_games, sorts by sport, hits the Odds API's HISTORICAL
+            // endpoint for each sport once, matches games by team-pair, and
+            // UPDATEs opening_odds where NULL. Quota-aware: reads
+            // X-Requests-Remaining from each response and stops below
+            // ODDS_QUOTA_FLOOR.
+            //
+            // Same shape as /archive/backfill: returns
+            //   { ok, date, games_found, odds_populated, odds_skipped,
+            //     quota_remaining, stopped?, reason? }
+            if (pathname === '/archive/odds-backfill' && (request.method === 'GET' || request.method === 'POST')) {
+                const date = url.searchParams.get('date');
+                if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                try {
+                    const result = await runOddsBackfillForDate(env, date);
+                    return new Response(JSON.stringify(result),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
             }
 
             // GET /archive/backfill?date=YYYY-MM-DD — manual backfill trigger.
