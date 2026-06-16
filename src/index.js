@@ -6354,6 +6354,9 @@ export default {
                         // — GET falls through to /archive/* 404; listed so the
                         // allow-list reflects the surfaced route inventory.
                         '/archive/game',
+                        // Historical odds backfill (Odds Layer 2026-06-16) —
+                        // GET with ?date=YYYY-MM-DD, quota-aware.
+                        '/archive/odds-backfill',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
