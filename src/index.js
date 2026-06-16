@@ -32,6 +32,7 @@ import {
   computeMovers,
   buildMoversBriefPrompt,
   deriveTeamStrengths,
+  computeMatchWP,
 } from './wc-tournament-projections.js';
 
 // ── Journalism Quality Gate (WOW 6 — May 31 2026) ──────────────────────────
@@ -53,7 +54,8 @@ import {
 // R2 migration deferred to WC2026 build week.
 // See src/finals-context.js for full documentation and source citations.
 import { buildFinalsContextBlock } from './finals-context.js';
-import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch } from './wc-team-context.js';
+import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
+         WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -1523,6 +1525,81 @@ async function handleWCResults(url, env) {
         : await env.WC2026_DB.prepare(sql).all();
     return new Response(JSON.stringify({ results, ts: Date.now() }),
         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=30' } });
+}
+
+// GET /wc/match-wp?home=<name|code>&away=<name|code> — per-match win
+// probability derived from the Monte Carlo projection engine. Replaces
+// odds-implied WP when the Odds API is unavailable. Inputs accept either
+// the WC_TEAM_CONTEXT displayName ("France") or the FIFA-code ("FRA");
+// the route resolves both to displayName via WC_NAME_TO_CODE/WC_TEAM_CONTEXT
+// before delegating to computeMatchWP(). Returns
+//   { homeWP, awayWP, drawWP, source: 'monte-carlo', ... }
+// Cached at the edge for 15 min — matches the cron cadence that refreshes
+// /wc/odds-probs + /wc/results (the upstream inputs to the strength model).
+async function handleWCMatchWP(url, env) {
+    const rawHome = (url.searchParams.get('home') || '').trim();
+    const rawAway = (url.searchParams.get('away') || '').trim();
+    if (!rawHome || !rawAway) {
+        return new Response(JSON.stringify({ ok: false, error: 'missing home/away query params' }),
+            { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+    const resolveTeam = (raw) => {
+        if (!raw) return null;
+        // Try FIFA-code path first (3-letter alpha): look up in WC_TEAM_CONTEXT
+        const upper = raw.toUpperCase();
+        if (WC_TEAM_CONTEXT[upper] && WC_TEAM_CONTEXT[upper].displayName) {
+            return WC_TEAM_CONTEXT[upper].displayName;
+        }
+        // Then displayName path: present in WC_NAME_TO_CODE
+        if (WC_NAME_TO_CODE[raw]) return raw;
+        // Case-insensitive displayName lookup
+        const lower = raw.toLowerCase();
+        for (const name of Object.keys(WC_NAME_TO_CODE)) {
+            if (name.toLowerCase() === lower) return name;
+        }
+        return null;
+    };
+    const homeName = resolveTeam(rawHome);
+    const awayName = resolveTeam(rawAway);
+    if (!homeName || !awayName) {
+        return new Response(JSON.stringify({ ok: false, error: `unknown team: ${!homeName ? rawHome : rawAway}` }),
+            { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
+    // Best-effort: pull the same inputs the projection engine uses on its
+    // 15-min cron. Each fetch is independent; either may fail (Odds API
+    // 401, WC2026_DB unbound) without breaking the WP calculation —
+    // deriveTeamStrengths + applyBayesianUpdate gracefully degrade to
+    // BASE_LAMBDA defaults when the prior data is missing.
+    const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    const [oddsRes, resultsRes] = await Promise.allSettled([
+        fetch(`${RELAY}/wc/odds-probs`, { cache: 'no-store' }),
+        fetch(`${RELAY}/wc/results`,    { cache: 'no-store' }),
+    ]);
+    const oddsProbs = oddsRes.status === 'fulfilled' && oddsRes.value.ok
+        ? ((await oddsRes.value.json()).probs || []) : [];
+    const d1Results = resultsRes.status === 'fulfilled' && resultsRes.value.ok
+        ? ((await resultsRes.value.json()).results || []) : [];
+
+    const wp = computeMatchWP(homeName, awayName, { oddsProbs, d1Results });
+    const body = {
+        ok:       true,
+        home:     homeName,
+        away:     awayName,
+        homeWP:   wp.homeWP,
+        drawWP:   wp.drawWP,
+        awayWP:   wp.awayWP,
+        lambdaHome: wp.lambdaHome,
+        lambdaAway: wp.lambdaAway,
+        source:   'monte-carlo',
+        oddsAvailable: oddsProbs.length > 0,
+        resultsCount:  d1Results.length,
+        ts:       Date.now(),
+    };
+    return new Response(JSON.stringify(body), {
+        headers: { ...CORS, 'Content-Type': 'application/json',
+                   'Cache-Control': 'public, max-age=900' },
+    });
 }
 
 // GET /wc/third-place — return third-place standings cross-group
@@ -4554,6 +4631,7 @@ export default {
         if (pathname.startsWith('/wc/')) {
             if (pathname === '/wc/standings')   return handleWCStandings(url, env);
             if (pathname === '/wc/results')     return handleWCResults(url, env);
+            if (pathname === '/wc/match-wp')    return handleWCMatchWP(url, env);
             if (pathname === '/wc/odds-probs')  return handleWCOddsProbs(env);
             if (pathname === '/wc/third-place') return handleWCThirdPlace(env);
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
@@ -6482,6 +6560,7 @@ export default {
                     const ALLOWED_EXACT = new Set([
                         '/health',
                         '/wc/wp/verify',
+                        '/wc/match-wp',
                         '/wc/standings',
                         '/wc/results',
                         '/wc/odds-probs',
