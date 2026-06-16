@@ -3076,6 +3076,18 @@ function buildBackfillPrompt(date, games, seriesNarratives) {
     if (g.matchupNote)   parts.push(`matchup: ${g.matchupNote}`);
     if (g.crew)          parts.push(`crew: ${g.crew}`);
     if (g.streams)       parts.push(`broadcast: ${g.streams}`);
+    if (g.opening_odds) {
+      try {
+        const o = typeof g.opening_odds === 'string' ? JSON.parse(g.opening_odds) : g.opening_odds;
+        const oddsParts = [];
+        if (o.spread && typeof o.spread.home === 'number') {
+          oddsParts.push(`opened ${o.spread.home > 0 ? '+' : ''}${o.spread.home}`);
+        }
+        if (o.moneyline) oddsParts.push(`ML ${o.moneyline.home}/${o.moneyline.away}`);
+        if (o.total && typeof o.total.over === 'number') oddsParts.push(`O/U ${o.total.over}`);
+        if (oddsParts.length) parts.push(`odds: ${oddsParts.join(', ')}`);
+      } catch (_) { /* skip malformed odds JSON */ }
+    }
     return parts.join(' | ');
   };
 
@@ -3407,6 +3419,10 @@ async function handleJournalismCycle(env) {
       {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
     ];
     const gameLines = [];
+    // Parallel to gameLines — captures the sport + ESPN team names for each
+    // pushed line so the odds-injection step (below) can look up opening_odds
+    // in the archive without re-parsing the line string.
+    const gameMeta = [];
     for (const {sport,league,label} of LEAGUES) {
       try {
         const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
@@ -3415,7 +3431,18 @@ async function handleJournalismCycle(env) {
         const events = d?.events || [];
         for (const ev of events) {
           const line = buildGameLine(ev, label);
-          if (line) gameLines.push(line);
+          if (line) {
+            gameLines.push(line);
+            const comp = ev.competitions?.[0];
+            const teams = comp?.competitors || [];
+            const home = teams.find(t => t.homeAway === 'home') || teams[0];
+            const away = teams.find(t => t.homeAway === 'away') || teams[1];
+            gameMeta.push({
+              sport,
+              home: home?.team?.shortDisplayName || home?.team?.displayName || '',
+              away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+            });
+          }
         }
       } catch(_) {}
     }
@@ -3449,6 +3476,49 @@ async function handleJournalismCycle(env) {
     // the Odds API is down or the snapshot throws.
     try { await snapshotCronOdds(env, dateKey, LEAGUES); }
     catch (_) { /* odds snapshot failure cannot break journalism */ }
+
+    // ── Odds annotations for prompt injection ───────────────────────────────
+    // Read opening_odds rows from the archive for today's sports, build a
+    // map keyed by {sport}|{home_norm}|{away_norm}, and produce a parallel
+    // annotations array aligned with gameLines. Wrapped in try/catch per
+    // Rule 5 — annotations are an enhancement, not a requirement.
+    const oddsAnnotations = new Array(gameLines.length).fill('');
+    try {
+      if (env.ARCHIVE_DB && gameMeta.length) {
+        const sportsInSlate = [...new Set(gameMeta.map(m => m.sport))];
+        const placeholders = sportsInSlate.map(() => '?').join(',');
+        const oddsByPair = new Map();
+        if (sportsInSlate.length) {
+          const rs = await env.ARCHIVE_DB.prepare(
+            `SELECT home, away, sport, opening_odds FROM regular_season_games
+              WHERE date = ? AND sport IN (${placeholders}) AND opening_odds IS NOT NULL`
+          ).bind(dateKey, ...sportsInSlate).all();
+          const ps = await env.ARCHIVE_DB.prepare(
+            `SELECT home, away, sport, opening_odds FROM postseason_games
+              WHERE date = ? AND sport IN (${placeholders}) AND opening_odds IS NOT NULL`
+          ).bind(dateKey, ...sportsInSlate).all();
+          for (const row of [...(rs.results || []), ...(ps.results || [])]) {
+            oddsByPair.set(`${row.sport}|${_normTeam(row.home)}|${_normTeam(row.away)}`, row.opening_odds);
+          }
+        }
+        for (let i = 0; i < gameMeta.length; i++) {
+          const m = gameMeta[i];
+          const raw = oddsByPair.get(`${m.sport}|${_normTeam(m.home)}|${_normTeam(m.away)}`);
+          if (!raw) continue;
+          try {
+            const odds = JSON.parse(raw);
+            const parts = [];
+            if (odds.spread && typeof odds.spread.home === 'number') {
+              const s = odds.spread.home;
+              parts.push(`opened ${s > 0 ? '+' : ''}${s}`);
+            }
+            if (odds.moneyline) parts.push(`ML ${odds.moneyline.home}/${odds.moneyline.away}`);
+            if (odds.total && typeof odds.total.over === 'number') parts.push(`O/U ${odds.total.over}`);
+            if (parts.length) oddsAnnotations[i] = ` [ODDS: ${parts.join(', ')}]`;
+          } catch (_) { /* skip malformed odds JSON */ }
+        }
+      }
+    } catch (_) { /* odds annotations are an enhancement */ }
 
     // ── Closing-the-loop: temporal continuity + enrichment context ──────────
     // Both queries are ENHANCEMENTS — wrapped in try/catch per CLAUDE.md
@@ -3522,7 +3592,7 @@ async function handleJournalismCycle(env) {
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
       'TONIGHT\'S GAMES:',
-      ...gameLines.map(l => `- ${l}`),
+      ...gameLines.map((l, i) => `- ${l}${oddsAnnotations[i] || ''}`),
       buildFinalsContextBlock(gameLines),
       wcTeamContext,  // WC2026 team narrative (D1 + static)
       recentCoverageBlock,  // yesterday's slate brief (temporal continuity)
