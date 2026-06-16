@@ -967,6 +967,32 @@ function normalizeTeamName(name) {
   return ODDS_NAME_ALIAS[name] || name;
 }
 
+// ── computeMatchWP ──────────────────────────────────────────────────────────
+// Per-match win-probability for /wc/match-wp. Derives strengths the same way
+// the projection engine does (oddsProbs prior + d1Results Bayesian update) and
+// returns {homeWP, drawWP, awayWP} via the engine's h2hLambdas →
+// winProbsFromLambda path. Designed to replace odds-implied WP when the
+// Odds API is exhausted — the entire pipeline uses BASE_LAMBDA defaults
+// when oddsProbs is empty (no new ratings introduced).
+//
+// `homeName` / `awayName` are WC_TEAM_CONTEXT displayNames (already resolved
+// by the caller). `oddsProbs` and `d1Results` may be empty arrays.
+export function computeMatchWP(homeName, awayName, { oddsProbs = [], d1Results = [] } = {}) {
+  const strengths = deriveTeamStrengths(oddsProbs);
+  applyBayesianUpdate(strengths, d1Results);
+  const home = normalizeTeamName(homeName);
+  const away = normalizeTeamName(awayName);
+  const [lH, lA] = h2hLambdas(home, away, strengths);
+  const wp = winProbsFromLambda(lH, lA);
+  return {
+    homeWP: +wp.homeWin.toFixed(3),
+    drawWP: +wp.draw.toFixed(3),
+    awayWP: +wp.awayWin.toFixed(3),
+    lambdaHome: +lH.toFixed(3),
+    lambdaAway: +lA.toFixed(3),
+  };
+}
+
 // Sample from Poisson distribution (simple truncated series)
 function poissonSample(lambda, rng) {
   if (lambda <= 0) return 0;
