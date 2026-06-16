@@ -3325,6 +3325,48 @@ async function handleJournalismCycle(env) {
       ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB, _wcPatches)
       : '';
 
+    // ── Closing-the-loop: temporal continuity + enrichment context ──────────
+    // Both queries are ENHANCEMENTS — wrapped in try/catch per CLAUDE.md
+    // Rule 5. Failure must NEVER break the live journalism cycle.
+    let recentCoverageBlock = '';
+    try {
+      if (env.ARCHIVE_DB) {
+        const prev = await env.ARCHIVE_DB.prepare(
+          `SELECT brief_text, date, quality_score FROM briefs
+            WHERE brief_type = 'slate' AND source IN ('cron','backfill')
+              AND date < ?
+            ORDER BY date DESC LIMIT 1`
+        ).bind(dateKey).first();
+        if (prev && prev.brief_text) {
+          recentCoverageBlock = [
+            '',
+            "FIELD'S RECENT COVERAGE (for narrative continuity — build on this, don't repeat it):",
+            `[${prev.date}] ${prev.brief_text}`,
+          ].join('\n');
+        }
+      }
+    } catch (_) { /* temporal context is an enhancement, not a requirement */ }
+
+    let enrichmentBlock = '';
+    try {
+      if (env.ARCHIVE_DB) {
+        const enrich = await env.ARCHIVE_DB.prepare(
+          `SELECT brief_text FROM briefs
+            WHERE date <= ? AND source = 'enrichment'
+              AND brief_type IN ('narrative_context','standings_snapshot')
+            ORDER BY brief_type, date DESC LIMIT 10`
+        ).bind(dateKey).all();
+        const rows = (enrich && enrich.results) || [];
+        if (rows.length) {
+          enrichmentBlock = [
+            '',
+            'EDITORIAL CONTEXT (verified facts for depth — use naturally, don\'t list):',
+            rows.map(r => r.brief_text).filter(Boolean).join('\n'),
+          ].join('\n');
+        }
+      }
+    } catch (_) { /* enrichment context is an enhancement */ }
+
     const buildPrompt = () => [
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
@@ -3332,6 +3374,8 @@ async function handleJournalismCycle(env) {
       ...gameLines.map(l => `- ${l}`),
       buildFinalsContextBlock(gameLines),
       wcTeamContext,  // WC2026 team narrative (D1 + static)
+      recentCoverageBlock,  // yesterday's slate brief (temporal continuity)
+      enrichmentBlock,      // narrative_context + standings_snapshot rows
       '',
       'RULES:',
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
