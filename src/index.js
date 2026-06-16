@@ -4209,6 +4209,50 @@ export default {
                 }
             }
 
+            // GET /archive/query — parameterized read of the briefs table.
+            // All filter params optional. Builds the WHERE clause dynamically —
+            // only emits a clause + binding when the param is present. Column
+            // names are hardcoded (no interpolation of user input). Bind values
+            // are passed through D1's prepared-statement binding (no string
+            // interpolation), so SQL injection is not possible.
+            //
+            // Query string params: date, sport, team (LIKE search on brief_text),
+            //                      brief_type, source, limit (default 10, max 50)
+            // Returns: { ok:true, count, results: [...] }
+            if (pathname === '/archive/query' && request.method === 'GET') {
+                const sp = url.searchParams;
+                const date       = sp.get('date');
+                const sport      = sp.get('sport');
+                const team       = sp.get('team');
+                const briefType  = sp.get('brief_type');
+                const source     = sp.get('source');
+                const rawLimit   = parseInt(sp.get('limit') || '10', 10);
+                const limit      = Math.max(1, Math.min(50, isNaN(rawLimit) ? 10 : rawLimit));
+
+                const clauses = ['1=1'];
+                const binds = [];
+                if (date)      { clauses.push('date = ?');          binds.push(date); }
+                if (sport)     { clauses.push('sport = ?');         binds.push(sport); }
+                if (briefType) { clauses.push('brief_type = ?');    binds.push(briefType); }
+                if (source)    { clauses.push('source = ?');        binds.push(source); }
+                if (team)      { clauses.push('brief_text LIKE ?'); binds.push(`%${team}%`); }
+
+                const sql = `SELECT id, date, brief_type, sport, game_id, brief_text, model,
+                                    quality_score, word_count, source, created_at
+                             FROM briefs
+                             WHERE ${clauses.join(' AND ')}
+                             ORDER BY date DESC, created_at DESC
+                             LIMIT ?`;
+                binds.push(limit);
+
+                const r = await env.ARCHIVE_DB.prepare(sql).bind(...binds).all();
+                return new Response(JSON.stringify({
+                    ok: true,
+                    count: (r.results || []).length,
+                    results: r.results || [],
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             // POST /archive/brief — persist AI-generated brief text to briefs D1.
             // Client-side archiveBrief() in jubilant-bassoon fires fire-and-forget;
             // relay returns "ok" on success / JSON error on validation failure.
