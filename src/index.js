@@ -3367,6 +3367,32 @@ async function handleJournalismCycle(env) {
       }
     } catch (_) { /* enrichment context is an enhancement */ }
 
+    // Voice exemplars — top 3 quality_score slate briefs from the last 7 days.
+    // Shows the model what high-scoring FIELD prose looks like in its own voice.
+    // Enhancement — wrapped in try/catch per Rule 5.
+    let voiceExemplarBlock = '';
+    try {
+      if (env.ARCHIVE_DB) {
+        const ex = await env.ARCHIVE_DB.prepare(
+          `SELECT brief_text, quality_score FROM briefs
+            WHERE brief_type = 'slate' AND source IN ('cron','backfill')
+              AND quality_score IS NOT NULL
+              AND date >= date(?, '-7 days')
+            ORDER BY quality_score DESC LIMIT 3`
+        ).bind(dateKey).all();
+        const rows = (ex && ex.results) || [];
+        if (rows.length) {
+          const lines = ['', 'FIELD VOICE EXAMPLES (match this tone and style):'];
+          rows.forEach((r, i) => {
+            lines.push(`Example ${i + 1} (score: ${r.quality_score}):`);
+            lines.push(r.brief_text);
+            lines.push('');
+          });
+          voiceExemplarBlock = lines.join('\n');
+        }
+      }
+    } catch (_) { /* voice exemplars are an enhancement */ }
+
     const buildPrompt = () => [
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
@@ -3376,6 +3402,7 @@ async function handleJournalismCycle(env) {
       wcTeamContext,  // WC2026 team narrative (D1 + static)
       recentCoverageBlock,  // yesterday's slate brief (temporal continuity)
       enrichmentBlock,      // narrative_context + standings_snapshot rows
+      voiceExemplarBlock,   // top-3 quality_score briefs from last 7 days
       '',
       'RULES:',
       '- 100-120 words. 2 short paragraphs. No headers. No bullet points.',
