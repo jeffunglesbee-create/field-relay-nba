@@ -4370,8 +4370,59 @@ export default {
                         { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
 
-                return new Response(JSON.stringify({ ok: true, id, table: series_key ? 'postseason_games' : 'regular_season_games' }),
-                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                // ── KV brief capture ─────────────────────────────────────
+                // If the journalism cron pre-generated a per-game brief for
+                // this game and stashed it in FIELD_JOURNALISM KV with key
+                // shape 'brief:game:{eventId}' (handleJournalismCycle ~L3193)
+                // OR 'brief:game:{sport}:{eventId}', capture it into briefs D1
+                // with source='kv_capture' BEFORE the KV TTL expires (24h).
+                // ON CONFLICT DO NOTHING — never overwrite an existing capture.
+                // Wrapped in its own try/catch so brief capture failure does
+                // NOT affect the /archive/game response.
+                let briefCaptured = null;
+                try {
+                    if (env.FIELD_JOURNALISM && source_id) {
+                        const sportKey = String(sport).toLowerCase();
+                        const sid      = String(source_id);
+                        const candidates = [
+                            `brief:game:${sportKey}:${sid}`,
+                            `brief:game:${sid}`,
+                        ];
+                        let kvVal = null;
+                        for (const k of candidates) {
+                            kvVal = await env.FIELD_JOURNALISM.get(k);
+                            if (kvVal) break;
+                        }
+                        let briefText = kvVal;
+                        if (kvVal && kvVal[0] === '{') {
+                            try {
+                                const parsed = JSON.parse(kvVal);
+                                briefText = parsed.brief || parsed.brief_text || parsed.text || null;
+                            } catch (_) { /* treat as raw string */ }
+                        }
+                        if (briefText && briefText.length > 50) {
+                            await ensureBriefsTable(env);
+                            const briefId = `game_recap_${sportKey}_${sid}`;
+                            await env.ARCHIVE_DB.prepare(
+                                `INSERT INTO briefs
+                                   (id, date, brief_type, sport, game_id, brief_text, source, word_count)
+                                 VALUES (?, ?, 'game_recap', ?, ?, ?, 'kv_capture', ?)
+                                 ON CONFLICT(id) DO NOTHING`
+                            ).bind(
+                                briefId, date, sportKey, sid, briefText,
+                                briefText.split(/\s+/).length
+                            ).run();
+                            briefCaptured = briefId;
+                        }
+                    }
+                } catch (_) { /* brief capture failure never breaks /archive/game */ }
+
+                return new Response(JSON.stringify({
+                    ok: true,
+                    id,
+                    table: series_key ? 'postseason_games' : 'regular_season_games',
+                    brief_captured: briefCaptured,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
             // GET /archive/query — parameterized read of the briefs table.
