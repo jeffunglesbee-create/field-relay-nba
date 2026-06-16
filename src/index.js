@@ -2999,10 +2999,74 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
   return out;
 }
 
+// ── Odds API credit guard ───────────────────────────────────────────────────
+// Cross-cutting circuit breaker that wraps every odds-API fetch site. KV-
+// backed monthly counter (FIELD_JOURNALISM key `odds:credits:YYYY-MM`) tracks
+// cumulative cost; hard stops above ODDS_HARD_LIMIT (18 K — leaves 2 K
+// buffer below the 20 K paid-tier cap). Logs once per (50/75/90 %) threshold
+// per month so a runaway path surfaces in the logs without spam.
+//
+// This is intentionally NOT exact accounting — KV writes are eventually
+// consistent and we don't lock. It is an emergency floor to prevent another
+// quota wipeout, not an audit ledger.
+const ODDS_HARD_LIMIT = 18000;
+const ODDS_THRESHOLDS = [
+  { pct: 50, label: '50%' },
+  { pct: 75, label: '75%' },
+  { pct: 90, label: '90%' },
+];
+
+function _oddsCreditMonthKey() {
+  const d = new Date();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `odds:credits:${d.getUTCFullYear()}-${m}`;
+}
+
+// Returns true if the call is allowed to proceed; false to abort.
+// `units` is the credit cost of the planned fetch (1 for live odds with one
+// market; up to 30 for historical calls). Increments AFTER returning true.
+async function consumeOddsCredit(env, units) {
+  if (!env.FIELD_JOURNALISM) return true; // KV unavailable: degrade-open
+  try {
+    const key = _oddsCreditMonthKey();
+    const raw = await env.FIELD_JOURNALISM.get(key);
+    const used = raw ? parseInt(raw, 10) || 0 : 0;
+    if (used + units > ODDS_HARD_LIMIT) {
+      const warnedKey = `${key}:warned:limit`;
+      const already = await env.FIELD_JOURNALISM.get(warnedKey);
+      if (!already) {
+        console.warn(`[odds-guard] HARD LIMIT — used=${used} + ${units} > ${ODDS_HARD_LIMIT}; aborting odds calls for the rest of the month`);
+        await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
+      }
+      return false;
+    }
+    const next = used + units;
+    await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
+    for (const t of ODDS_THRESHOLDS) {
+      const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
+      if (used < cutoff && next >= cutoff) {
+        const warnedKey = `${key}:warned:${t.pct}`;
+        const already = await env.FIELD_JOURNALISM.get(warnedKey);
+        if (!already) {
+          console.warn(`[odds-guard] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
+          await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
+        }
+      }
+    }
+    return true;
+  } catch (_) {
+    return true; // KV failure: degrade-open rather than block live coverage
+  }
+}
+
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
 async function fetchSportOddsLive(env, sportKey) {
   const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  // 3 markets (h2h,spreads,totals) → ~3 credits/call
+  if (!(await consumeOddsCredit(env, 3))) {
+    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+  }
   const r = await fetch(
     `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`,
     { cf: { cacheTtl: 300 } }
@@ -3074,6 +3138,10 @@ async function snapshotCronOdds(env, dateKey) {
 async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  // Historical = 10× live cost; 3 markets → ~30 credits per call.
+  if (!(await consumeOddsCredit(env, 30))) {
+    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+  }
   // Anchor to noon UTC on the requested date so the snapshot captures odds
   // shortly before evening kickoff for most sports.
   const snapshot = `${isoDate}T12:00:00Z`;

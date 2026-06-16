@@ -412,6 +412,12 @@ export class AmbientDO {
             this._oddsLastFetch[sport] = now;
 
             const oddsSportKey = ODDS_SPORT_KEYS[sport];
+            // Cross-cutting monthly credit guard (KV-backed via
+            // FIELD_JOURNALISM). Hard floor at ODDS_HARD_LIMIT credits/month.
+            // Mirrors src/index.js consumeOddsCredit() — same KV key scheme.
+            // Aborts the fetch when the limit is reached, leaving the sport's
+            // _oddsLastFetch updated so we don't loop on this sport.
+            if (!(await _consumeAmbientOddsCredit(this.env, 1))) return;
             try {
                 const r = await fetch(
                     `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${apiKey}&regions=us,eu&markets=h2h&oddsFormat=decimal`,
@@ -575,6 +581,39 @@ export class AmbientDO {
 // ── Helpers ───────────────────────────────────────────────────────────────
 function _todayUTC() {
     return new Date().toISOString().slice(0, 10);
+}
+
+// ── Odds API credit guard (KV-backed, monthly) ───────────────────────────
+// Mirrors src/index.js consumeOddsCredit() using the same FIELD_JOURNALISM
+// KV key (`odds:credits:YYYY-MM`). Cross-process circuit breaker — when the
+// monthly cumulative cost hits ODDS_HARD_LIMIT we abort outgoing fetches.
+// Degrade-open on KV failure to avoid blocking live coverage on a KV blip.
+const _AMBIENT_ODDS_HARD_LIMIT = 18000;
+function _ambientOddsCreditMonthKey() {
+    const d = new Date();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `odds:credits:${d.getUTCFullYear()}-${m}`;
+}
+async function _consumeAmbientOddsCredit(env, units) {
+    if (!env || !env.FIELD_JOURNALISM) return true;
+    try {
+        const key = _ambientOddsCreditMonthKey();
+        const raw = await env.FIELD_JOURNALISM.get(key);
+        const used = raw ? parseInt(raw, 10) || 0 : 0;
+        if (used + units > _AMBIENT_ODDS_HARD_LIMIT) {
+            const warnedKey = `${key}:warned:limit`;
+            const already = await env.FIELD_JOURNALISM.get(warnedKey);
+            if (!already) {
+                console.warn(`[ambient-odds-guard] HARD LIMIT — used=${used} + ${units} > ${_AMBIENT_ODDS_HARD_LIMIT}; suppressing live odds fetches`);
+                await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
+            }
+            return false;
+        }
+        await env.FIELD_JOURNALISM.put(key, String(used + units), { expirationTtl: 60 * 86400 });
+        return true;
+    } catch (_) {
+        return true;
+    }
 }
 
 // Spec Gap 6: priority-tier cooldown for odds polling.
