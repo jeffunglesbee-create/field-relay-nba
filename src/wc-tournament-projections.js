@@ -106,8 +106,17 @@ export function deriveTeamStrengths(oddsProbs) {
 
   // Tournament averages from measured fixtures
   const measuredTeams = Object.values(strengths);
-  const rawAvgAtt = measuredTeams.reduce((s,v) => s+v.attack,  0) / (measuredTeams.length || 1);
-  const rawAvgDef = measuredTeams.reduce((s,v) => s+v.defense, 0) / (measuredTeams.length || 1);
+  // When NO oddsProbs are available (e.g. Odds API quota exhausted), fall back
+  // to BASE_LAMBDA so subsequent h2hLambdas / sampleGroupResult paths produce
+  // reasonable ~uniform probabilities instead of degenerating to 0-lambda.
+  // BASE_LAMBDA (1.15) is the engine's pre-existing default "WC knockout
+  // average per team per 90 min" — no new rating introduced.
+  const rawAvgAtt = measuredTeams.length
+    ? measuredTeams.reduce((s,v) => s+v.attack,  0) / measuredTeams.length
+    : BASE_LAMBDA;
+  const rawAvgDef = measuredTeams.length
+    ? measuredTeams.reduce((s,v) => s+v.defense, 0) / measuredTeams.length
+    : BASE_LAMBDA;
 
   // Pad teams with < 3 fixtures toward the tournament average
   for (const name in strengths) {
@@ -502,7 +511,7 @@ export function computeTournamentProjections({
 
   // Auto-build remainingFixtures from oddsProbs if caller didn't provide them.
   // Uses commence timestamp to exclude already-played games; on Day 1 all are future.
-  const effectiveRemaining = remainingFixtures.length > 0
+  let effectiveRemaining = remainingFixtures.length > 0
     ? remainingFixtures
     : oddsProbs.map(g => ({
         home: g.home_team, away: g.away_team,
@@ -510,6 +519,49 @@ export function computeTournamentProjections({
         pAway: g.pAway,
         lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
       }));
+
+  // Fallback: when the Odds API is unavailable AND the caller did not pass
+  // remainingFixtures, the WC group-stage round-robin schedule is synthesized
+  // from WC_TEAM_CONTEXT (the factual 12-groups-of-4 layout). Any fixture
+  // already represented in effectiveRemaining or already in d1Results is
+  // skipped. Probabilities come from h2hLambdas → winProbsFromLambda using
+  // the strengths derived above — no new rating system introduced.
+  const _normName = s => (s || '').toLowerCase().normalize('NFD')
+    .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  const haveKey = new Set();
+  for (const f of effectiveRemaining) {
+    haveKey.add(`${_normName(f.home)}|${_normName(f.away)}`);
+    haveKey.add(`${_normName(f.away)}|${_normName(f.home)}`);
+  }
+  for (const r of (d1Results || [])) {
+    haveKey.add(`${_normName(r.home)}|${_normName(r.away)}`);
+    haveKey.add(`${_normName(r.away)}|${_normName(r.home)}`);
+  }
+  const teamsByGroup = {};
+  for (const ctx of Object.values(WC_TEAM_CONTEXT)) {
+    if (!ctx.group || !ctx.displayName) continue;
+    (teamsByGroup[ctx.group] = teamsByGroup[ctx.group] || []).push(ctx.displayName);
+  }
+  const synthesized = [];
+  for (const teams of Object.values(teamsByGroup)) {
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        const home = teams[i], away = teams[j];
+        if (haveKey.has(`${_normName(home)}|${_normName(away)}`)) continue;
+        const [lH, lA] = h2hLambdas(home, away, strengths);
+        const wp = winProbsFromLambda(lH, lA);
+        synthesized.push({
+          home, away,
+          pHome:      +wp.homeWin.toFixed(3),
+          pDraw:      +wp.draw.toFixed(3),
+          pAway:      +wp.awayWin.toFixed(3),
+          lambdaHome: lH,
+          lambdaAway: lA,
+        });
+      }
+    }
+  }
+  if (synthesized.length) effectiveRemaining = effectiveRemaining.concat(synthesized);
   const counts = {};  // { teamName: { R32:0, R16:0, QF:0, SF:0, Final:0, Champion:0 } }
   // countsByPos: { teamName: { 1: {R32,R16,...,Champion,total}, 2: {...}, 3: {...} } }
   // Tracks outcomes split by whether team finished 1st, 2nd, or 3rd in group.
