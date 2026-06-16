@@ -3069,7 +3069,10 @@ async function fetchSportOddsLive(env, sportKey) {
   }
   const r = await fetch(
     `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`,
-    { cf: { cacheTtl: 300 } }
+    // cacheEverything: true is required — Odds API returns Cache-Control: private
+    // and Workers otherwise won't cache. TTL bumped to 900s to match the cron
+    // cadence (15-min ticks); same-tick re-calls now hit cache for free.
+    { cf: { cacheTtl: 900, cacheEverything: true } }
   );
   const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
@@ -3148,7 +3151,11 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-  const r = await fetch(url, { cf: { cacheTtl: 86400 } });
+  // cacheEverything: true is required — Odds API returns Cache-Control: private.
+  // Historical snapshots for a (sport, date, snapshot-time) are immutable, so
+  // 24h cache is safe — re-runs of the dead-hour cron walking the same date
+  // hit cache for free.
+  const r = await fetch(url, { cf: { cacheTtl: 86400, cacheEverything: true } });
   const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
   let payload = null;
@@ -3521,19 +3528,48 @@ async function handleJournalismCycle(env) {
         // Odds backfill — lower priority than brief backfill. Runs whether
         // brief backfill is complete OR ran this tick. One date per tick;
         // archive failure must NEVER break journalism (Rule 5).
+        //
+        // Skip-on-no-progress (F2): once a date has been attempted and made
+        // zero new populations (i.e. all remaining rows are persistent
+        // team-name mismatches), mark it 'tried' in KV so the cursor moves
+        // past it next tick. Without this, an un-finishable date would burn
+        // ~30 credits/tick × 32 dead-hour ticks/day forever.
         let oddsResult = null;
         try {
           const oddsDate = await pickNextOddsBackfillDate(env);
           if (oddsDate) {
-            oddsResult = await runOddsBackfillForDate(env, oddsDate);
-            try {
-              await env.FIELD_JOURNALISM.put('odds_backfill_cursor', JSON.stringify({
-                lastDate: oddsDate,
-                lastResult: (oddsResult && oddsResult.ok) ? 'ok' : 'error',
-                quotaRemaining: oddsResult ? oddsResult.quota_remaining : null,
-                lastAt: now,
-              }), { expirationTtl: 7 * 86400 });
-            } catch (_) { /* cursor write best-effort */ }
+            const triedKey = `odds:backfill:tried:${oddsDate}`;
+            const alreadyTried = await env.FIELD_JOURNALISM.get(triedKey).catch(() => null);
+            if (alreadyTried) {
+              try {
+                await env.FIELD_JOURNALISM.put('odds_backfill_cursor', JSON.stringify({
+                  lastDate: oddsDate,
+                  lastResult: 'skipped_tried',
+                  lastAt: now,
+                }), { expirationTtl: 7 * 86400 });
+              } catch (_) { /* best-effort */ }
+            } else {
+              oddsResult = await runOddsBackfillForDate(env, oddsDate);
+              try {
+                await env.FIELD_JOURNALISM.put('odds_backfill_cursor', JSON.stringify({
+                  lastDate: oddsDate,
+                  lastResult: (oddsResult && oddsResult.ok) ? 'ok' : 'error',
+                  populated: oddsResult ? oddsResult.odds_populated : 0,
+                  skipped: oddsResult ? oddsResult.odds_skipped : 0,
+                  quotaRemaining: oddsResult ? oddsResult.quota_remaining : null,
+                  lastAt: now,
+                }), { expirationTtl: 7 * 86400 });
+              } catch (_) { /* cursor write best-effort */ }
+              // Mark date 'tried' if this run populated nothing — the remaining
+              // rows are unmatched team names; further runs would burn ~30
+              // credits each for zero new data. 30-day TTL — re-attempted next
+              // month if anyone refreshes the archive.
+              if (oddsResult && oddsResult.odds_populated === 0) {
+                try {
+                  await env.FIELD_JOURNALISM.put(triedKey, '1', { expirationTtl: 30 * 86400 });
+                } catch (_) { /* best-effort */ }
+              }
+            }
           }
         } catch (_) { /* odds backfill failure cannot break journalism cron */ }
 

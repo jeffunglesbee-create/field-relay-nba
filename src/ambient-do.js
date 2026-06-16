@@ -419,9 +419,15 @@ export class AmbientDO {
             // _oddsLastFetch updated so we don't loop on this sport.
             if (!(await _consumeAmbientOddsCredit(this.env, 1))) return;
             try {
+                // Cache TTL aligned to the medium-tier cooldown floor (60 s) so
+                // that when the per-sport cooldown lets us through, the CF cache
+                // actually has a chance to serve. Previous TTL (20 s) was always
+                // expired by the time cooldown unblocked → cache effectively
+                // useless. cacheEverything:true required (upstream sends
+                // Cache-Control: private).
                 const r = await fetch(
                     `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${apiKey}&regions=us,eu&markets=h2h&oddsFormat=decimal`,
-                    { cf: { cacheTtl: 20, cacheEverything: true } }
+                    { cf: { cacheTtl: 60, cacheEverything: true } }
                 );
                 if (!r.ok) return;
                 const oddsGames = await r.json();
