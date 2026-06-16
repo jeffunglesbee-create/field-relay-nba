@@ -550,11 +550,12 @@ export function computeTournamentProjections({
         if (haveKey.has(`${_normName(home)}|${_normName(away)}`)) continue;
         const [lH, lA] = h2hLambdas(home, away, strengths);
         const wp = winProbsFromLambda(lH, lA);
+        // winProbsFromLambda returns { home, draw, away } — see soccer-wp.js:79.
         synthesized.push({
           home, away,
-          pHome:      +wp.homeWin.toFixed(3),
+          pHome:      +wp.home.toFixed(3),
           pDraw:      +wp.draw.toFixed(3),
-          pAway:      +wp.awayWin.toFixed(3),
+          pAway:      +wp.away.toFixed(3),
           lambdaHome: lH,
           lambdaAway: lA,
         });
@@ -984,10 +985,13 @@ export function computeMatchWP(homeName, awayName, { oddsProbs = [], d1Results =
   const away = normalizeTeamName(awayName);
   const [lH, lA] = h2hLambdas(home, away, strengths);
   const wp = winProbsFromLambda(lH, lA);
+  // winProbsFromLambda (src/soccer-wp.js:79) returns { home, draw, away } — NOT
+  // { homeWin, draw, awayWin }. (Other helpers in soccer-wp.js DO use the
+  // {homeWin/awayWin} shape; do not confuse them.)
   return {
-    homeWP: +wp.homeWin.toFixed(3),
+    homeWP: +wp.home.toFixed(3),
     drawWP: +wp.draw.toFixed(3),
-    awayWP: +wp.awayWin.toFixed(3),
+    awayWP: +wp.away.toFixed(3),
     lambdaHome: +lH.toFixed(3),
     lambdaAway: +lA.toFixed(3),
   };
