@@ -5816,6 +5816,10 @@ export default {
                         // exist relay-side without bouncing through CI.
                         '/archive/brief',
                         '/archive/backfill',
+                        // GET-friendly query endpoint (Close-the-Loop 2026-06-16).
+                        // Query string filters (date/sport/team/brief_type/source/
+                        // limit) all carry through the GET probe.
+                        '/archive/query',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
