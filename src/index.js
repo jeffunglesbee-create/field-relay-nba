@@ -4280,6 +4280,100 @@ export default {
                 }
             }
 
+            // POST /archive/game — receives game data (typically from GameDO
+            // on final-state transition) and writes to the appropriate archive
+            // table. Classification rule: series_key present → postseason_games,
+            // otherwise → regular_season_games (schema confirmed via D1: both
+            // tables have id PK, sport NOT NULL; postseason_games has
+            // series_key NOT NULL).
+            //
+            // ID strategy: `{sport}_{date}_{home_short}_{away_short}` when team
+            // names are present (LLM-friendly + sortable); falls back to
+            // `{sport}_{date}_{source_id}` when GameDO sends a minimal payload
+            // (its lastFacts has no team names — see src/game-do.js _fetchFacts).
+            // ON CONFLICT(id) DO UPDATE refreshes scores + notes so a pre-final
+            // archive write gets upgraded by the final-state write.
+            if (pathname === '/archive/game' && request.method === 'POST') {
+                let body;
+                try { body = await request.json(); }
+                catch (_) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const {
+                    sport, league, date, home, away, home_score, away_score,
+                    venue, streams, note, crew, series_key, series_record,
+                    game_number, round, importance, source_id,
+                } = body || {};
+                if (!sport || !date) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing required fields (sport, date)' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                const shortify = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const homeShort = shortify(home);
+                const awayShort = shortify(away);
+                const idTail = (homeShort && awayShort)
+                    ? `${homeShort}_${awayShort}`
+                    : (source_id ? `src${shortify(source_id)}` : `g${Date.now()}`);
+                const id = `${sport}_${date}_${idTail}`;
+
+                try {
+                    if (series_key) {
+                        await env.ARCHIVE_DB.prepare(
+                            `INSERT INTO postseason_games
+                               (id, sport, series_key, round, game_number, date, home, away,
+                                home_score, away_score, venue, streams, note, series_record,
+                                importance, league, crew)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             ON CONFLICT(id) DO UPDATE SET
+                               home_score    = COALESCE(excluded.home_score, home_score),
+                               away_score    = COALESCE(excluded.away_score, away_score),
+                               note          = COALESCE(excluded.note, note),
+                               series_record = COALESCE(excluded.series_record, series_record),
+                               venue         = COALESCE(excluded.venue, venue),
+                               streams       = COALESCE(excluded.streams, streams),
+                               crew          = COALESCE(excluded.crew, crew),
+                               importance    = COALESCE(excluded.importance, importance)`
+                        ).bind(
+                            id, sport, series_key,
+                            round || null, game_number ?? null, date,
+                            home || null, away || null,
+                            home_score ?? null, away_score ?? null,
+                            venue || null, streams || null,
+                            note || null, series_record || null,
+                            importance || null, league || null, crew || null
+                        ).run();
+                    } else {
+                        await env.ARCHIVE_DB.prepare(
+                            `INSERT INTO regular_season_games
+                               (id, sport, league, date, home, away,
+                                home_score, away_score, venue, streams, note, crew)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             ON CONFLICT(id) DO UPDATE SET
+                               home_score = COALESCE(excluded.home_score, home_score),
+                               away_score = COALESCE(excluded.away_score, away_score),
+                               note       = COALESCE(excluded.note, note),
+                               venue      = COALESCE(excluded.venue, venue),
+                               streams    = COALESCE(excluded.streams, streams),
+                               crew       = COALESCE(excluded.crew, crew)`
+                        ).bind(
+                            id, sport, league || null, date,
+                            home || null, away || null,
+                            home_score ?? null, away_score ?? null,
+                            venue || null, streams || null,
+                            note || null, crew || null
+                        ).run();
+                    }
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                return new Response(JSON.stringify({ ok: true, id, table: series_key ? 'postseason_games' : 'regular_season_games' }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             // GET /archive/query — parameterized read of the briefs table.
             // All filter params optional. Builds the WHERE clause dynamically —
             // only emits a clause + binding when the param is present. Column
