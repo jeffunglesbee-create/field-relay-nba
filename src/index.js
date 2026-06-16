@@ -5965,6 +5965,10 @@ export default {
                         // Query string filters (date/sport/team/brief_type/source/
                         // limit) all carry through the GET probe.
                         '/archive/query',
+                        // Game archive write (Event Pipeline 2026-06-16). POST-only
+                        // — GET falls through to /archive/* 404; listed so the
+                        // allow-list reflects the surfaced route inventory.
+                        '/archive/game',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
