@@ -2918,6 +2918,122 @@ async function ensureBriefsTable(env) {
   _briefsReady = true;
 }
 
+// ── Odds layer (api.the-odds-api.com) ───────────────────────────────────────
+// Captures opening_odds (and later closing_odds) into the archive game tables
+// so the journalism prompt can include factual odds context. Every fetch
+// records the X-Requests-Remaining header and bails when the free-tier quota
+// drops below the safety floor — quota is shared across the whole worker.
+const ODDS_SPORT_KEYS = {
+  'basketball|nba':       'basketball_nba',
+  'basketball|wnba':      'basketball_wnba',
+  'hockey|nhl':           'icehockey_nhl',
+  'baseball|mlb':         'baseball_mlb',
+  'soccer|eng.1':         'soccer_epl',
+  'soccer|fifa.world':    'soccer_fifa_world_cup',
+};
+const ODDS_QUOTA_FLOOR = 50;        // stop calling the API below this
+const ODDS_PREFERRED_BOOK = 'draftkings';
+
+function _oddsSportKeyFor(sport, league) {
+  return ODDS_SPORT_KEYS[`${sport}|${league}`] || null;
+}
+
+function _normTeam(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Extract a normalized odds payload from one /v4/.../odds game object.
+function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
+  const books = oddsGame.bookmakers || [];
+  if (!books.length) return null;
+  const bk = books.find(b => b.key === preferredBook) || books[0];
+  const markets = bk.markets || [];
+  const h2h     = markets.find(m => m.key === 'h2h');
+  const spreads = markets.find(m => m.key === 'spreads');
+  const totals  = markets.find(m => m.key === 'totals');
+  const home    = oddsGame.home_team;
+  const away    = oddsGame.away_team;
+  const out = { source: bk.key, captured_at: new Date().toISOString() };
+  if (h2h) {
+    const h = h2h.outcomes.find(o => o.name === home);
+    const a = h2h.outcomes.find(o => o.name === away);
+    if (h && a) out.moneyline = { home: h.price, away: a.price };
+  }
+  if (spreads) {
+    const h = spreads.outcomes.find(o => o.name === home);
+    const a = spreads.outcomes.find(o => o.name === away);
+    if (h && a) out.spread = { home: h.point, away: a.point };
+  }
+  if (totals) {
+    const over  = totals.outcomes.find(o => o.name === 'Over');
+    const under = totals.outcomes.find(o => o.name === 'Under');
+    if (over && under) out.total = { over: over.point, under: under.point };
+  }
+  return out;
+}
+
+// Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
+async function fetchSportOddsLive(env, sportKey) {
+  const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  const r = await fetch(
+    `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`,
+    { cf: { cacheTtl: 300 } }
+  );
+  const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
+  if (!r.ok) return { games: [], quotaRemaining, ok: false };
+  let games = [];
+  try { games = await r.json(); } catch (_) { games = []; }
+  return { games: Array.isArray(games) ? games : [], quotaRemaining, ok: true };
+}
+
+// Per-cron snapshot. For each (sport, league) in the live slate, if any
+// archive row for today still has opening_odds IS NULL, fetch the live odds
+// once and UPDATE matching rows. Bails when the quota approaches the floor.
+async function snapshotCronOdds(env, dateKey, LEAGUES) {
+  if (!env.ARCHIVE_DB) return null;
+  let lastQuota = null;
+  for (const {sport, league} of LEAGUES) {
+    const sportKey = _oddsSportKeyFor(sport, league);
+    if (!sportKey) continue;
+    const rsPending = await env.ARCHIVE_DB.prepare(
+      `SELECT id, home, away FROM regular_season_games
+        WHERE date = ? AND sport = ? AND opening_odds IS NULL`
+    ).bind(dateKey, sport).all();
+    const psPending = await env.ARCHIVE_DB.prepare(
+      `SELECT id, home, away FROM postseason_games
+        WHERE date = ? AND sport = ? AND opening_odds IS NULL`
+    ).bind(dateKey, sport).all();
+    const rsRows = rsPending.results || [];
+    const psRows = psPending.results || [];
+    if (!rsRows.length && !psRows.length) continue;
+    if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) return lastQuota;
+
+    const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);
+    lastQuota = quotaRemaining;
+    if (!ok) continue;
+    if (quotaRemaining > 0 && quotaRemaining < ODDS_QUOTA_FLOOR) return lastQuota;
+
+    const byPair = new Map();
+    for (const g of games) {
+      byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
+    }
+    const apply = async (rows, table) => {
+      for (const row of rows) {
+        const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
+        if (!og) continue;
+        const odds = extractOddsForGame(og);
+        if (!odds) continue;
+        const sql = `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`;
+        await env.ARCHIVE_DB.prepare(sql).bind(JSON.stringify(odds), row.id).run();
+      }
+    };
+    await apply(rsRows, 'regular_season_games');
+    await apply(psRows, 'postseason_games');
+  }
+  return lastQuota;
+}
+
 // ── Backfill prompt builder ─────────────────────────────────────────────────
 // Reconstructs a FIELD Brief prompt for a past slate from archived game rows.
 // Mirrors handleJournalismCycle's prompt voice (rules, JQ_STYLE) but in a
@@ -3324,6 +3440,15 @@ async function handleJournalismCycle(env) {
     const wcTeamContext = slateHasWorldCup(gameLines)
       ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB, _wcPatches)
       : '';
+
+    // ── Odds snapshot (opening_odds) ────────────────────────────────────────
+    // Captures pre-game odds onto archive game rows for tonight's slate. Only
+    // hits the Odds API for sports that have at least one archive row with
+    // NULL opening_odds — quota-aware, bails below ODDS_QUOTA_FLOOR.
+    // Wrapped in try/catch per CLAUDE.md Rule 5; the cycle MUST NOT break if
+    // the Odds API is down or the snapshot throws.
+    try { await snapshotCronOdds(env, dateKey, LEAGUES); }
+    catch (_) { /* odds snapshot failure cannot break journalism */ }
 
     // ── Closing-the-loop: temporal continuity + enrichment context ──────────
     // Both queries are ENHANCEMENTS — wrapped in try/catch per CLAUDE.md
