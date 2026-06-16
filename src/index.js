@@ -318,9 +318,52 @@ function fdCacheTtl(path) {
 //             J5 upset detection · totals pace · line movement · series odds
 const ODDS_BASE    = 'https://api.the-odds-api.com';
 // ODDS API key — rotate via Cloudflare dashboard (Workers > field-relay-nba > Settings > Variables)
-// Set: ODDS_API_KEY = <new key from api.the-odds-api.com>
-// Fallback to old key until secret is set (old key is exhausted — set secret ASAP)
-const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038'; 
+//   ODDS_API_KEY            primary paid-tier key (20K credits / month)
+//   ODDS_API_KEY_FALLBACK   Starter-tier key (500 credits / month) — used as a
+//                           runtime fallback when the primary returns 401/429
+//                           (exhausted or rate-limited). Set via dashboard.
+// The hard-coded constant below is the original exhausted free-tier key,
+// retained ONLY as a last-resort fallback when neither env var is set.
+const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038';
+
+// Pick the primary key with a graceful fallback to the env-configured Starter
+// key (and finally the hard-coded constant). The env fallback is meant for the
+// quota-exhaustion recovery path — see oddsFetchWithFallback().
+function _oddsPrimaryKey(env)  { return (env && env.ODDS_API_KEY)          || ODDS_API_KEY_FALLBACK; }
+function _oddsFallbackKey(env) { return (env && env.ODDS_API_KEY_FALLBACK) || null; }
+
+// Wraps a fetch to api.the-odds-api.com. If the primary key returns 401/429
+// AND env.ODDS_API_KEY_FALLBACK is set, retries once with the fallback key.
+// Caller passes a URL builder so the apiKey query param can be swapped.
+// `tag` is a free-form label used in the warn-once log line.
+async function oddsFetchWithFallback(env, buildUrl, fetchInit, tag) {
+  const primaryKey = _oddsPrimaryKey(env);
+  const url1 = buildUrl(primaryKey);
+  let r;
+  try { r = await fetch(url1, fetchInit); }
+  catch (e) { return { resp: null, error: e, key: 'primary' }; }
+  if (r.ok || (r.status !== 401 && r.status !== 429)) {
+    return { resp: r, key: 'primary' };
+  }
+  const fallbackKey = _oddsFallbackKey(env);
+  if (!fallbackKey) return { resp: r, key: 'primary' };
+  // Log fallback usage (warn-once per UTC day so it surfaces without spam).
+  if (env && env.FIELD_JOURNALISM) {
+    try {
+      const day = new Date().toISOString().slice(0, 10);
+      const flagKey = `odds:fallback:logged:${day}`;
+      const already = await env.FIELD_JOURNALISM.get(flagKey);
+      if (!already) {
+        console.warn(`[odds-fallback] primary key returned ${r.status} on ${tag}; switching to ODDS_API_KEY_FALLBACK for the day`);
+        await env.FIELD_JOURNALISM.put(flagKey, '1', { expirationTtl: 86400 });
+      }
+    } catch (_) { /* logging best-effort */ }
+  }
+  const url2 = buildUrl(fallbackKey);
+  try { r = await fetch(url2, fetchInit); }
+  catch (e) { return { resp: null, error: e, key: 'fallback' }; }
+  return { resp: r, key: 'fallback' };
+}
 const ODDS_TTL_ODDS   = 3600;  // odds — 1hr edge cache (was 5min, burned quota fast)
 const ODDS_TTL_SPORTS = 3600;  // sports list — stable within a season
 const ODDS_ALLOWED_EXACT    = ['/v4/sports', '/v4/usage'];
