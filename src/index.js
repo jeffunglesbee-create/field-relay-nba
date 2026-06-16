@@ -3338,6 +3338,26 @@ async function executeBackfill(env, date) {
   };
 }
 
+// Pick the next date for odds backfill during dead-hour cron ticks.
+// Postseason dates first (sorted ascending), then regular season. Returns null
+// when no archive row anywhere is missing opening_odds.
+async function pickNextOddsBackfillDate(env) {
+  if (!env.ARCHIVE_DB) return null;
+  const ps = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT date FROM postseason_games
+      WHERE opening_odds IS NULL AND date IS NOT NULL
+      ORDER BY date ASC LIMIT 1`
+  ).all();
+  if (ps.results && ps.results.length) return ps.results[0].date;
+  const rs = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT date FROM regular_season_games
+      WHERE opening_odds IS NULL AND date IS NOT NULL
+      ORDER BY date ASC LIMIT 1`
+  ).all();
+  if (rs.results && rs.results.length) return rs.results[0].date;
+  return null;
+}
+
 // Pick the next backfill date during dead-hour cron ticks.
 // Postseason dates first (sorted ascending), then regular season — skipping any
 // date that already has a source='backfill' brief.
@@ -3381,16 +3401,48 @@ async function handleJournalismCycle(env) {
     if (env.ARCHIVE_DB) {
       try {
         const nextDate = await pickNextBackfillDate(env);
-        if (!nextDate) return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
-        const r = await executeBackfill(env, nextDate);
+        let briefResult = null;
+        if (nextDate) {
+          briefResult = await executeBackfill(env, nextDate);
+          try {
+            await env.FIELD_JOURNALISM.put('backfill_cursor', JSON.stringify({
+              lastDate: nextDate,
+              lastResult: briefResult.ok ? 'ok' : (briefResult.skipped ? 'skipped' : 'error'),
+              lastAt: now,
+            }), { expirationTtl: 7 * 86400 });
+          } catch (_) { /* cursor write best-effort */ }
+        }
+
+        // Odds backfill — lower priority than brief backfill. Runs whether
+        // brief backfill is complete OR ran this tick. One date per tick;
+        // archive failure must NEVER break journalism (Rule 5).
+        let oddsResult = null;
         try {
-          await env.FIELD_JOURNALISM.put('backfill_cursor', JSON.stringify({
-            lastDate: nextDate,
-            lastResult: r.ok ? 'ok' : (r.skipped ? 'skipped' : 'error'),
-            lastAt: now,
-          }), { expirationTtl: 7 * 86400 });
-        } catch (_) { /* cursor write best-effort */ }
-        return {ok:r.ok, reason:`backfill ${nextDate}: ${r.reason || (r.ok ? 'wrote brief' : 'no result')}`, backfill: r};
+          const oddsDate = await pickNextOddsBackfillDate(env);
+          if (oddsDate) {
+            oddsResult = await runOddsBackfillForDate(env, oddsDate);
+            try {
+              await env.FIELD_JOURNALISM.put('odds_backfill_cursor', JSON.stringify({
+                lastDate: oddsDate,
+                lastResult: (oddsResult && oddsResult.ok) ? 'ok' : 'error',
+                quotaRemaining: oddsResult ? oddsResult.quota_remaining : null,
+                lastAt: now,
+              }), { expirationTtl: 7 * 86400 });
+            } catch (_) { /* cursor write best-effort */ }
+          }
+        } catch (_) { /* odds backfill failure cannot break journalism cron */ }
+
+        if (!nextDate && !oddsResult) {
+          return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
+        }
+        return {
+          ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok),
+          reason: nextDate
+            ? `backfill ${nextDate}: ${briefResult.reason || (briefResult.ok ? 'wrote brief' : 'no result')}`
+            : 'brief backfill complete; odds backfill ran',
+          backfill: briefResult,
+          oddsBackfill: oddsResult,
+        };
       } catch (e) {
         return {ok:false, reason:`backfill error: ${e.message}`};
       }
