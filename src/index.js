@@ -3842,6 +3842,9 @@ async function pickNextBackfillDate(env) {
 
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
+  // Load per-sport quality calibration once per cron tick. Lightweight D1
+  // read; failure is silent (Rule 5 — never blocks journalism delivery).
+  await loadQualityCalibration(env);
   const now = Date.now();
   const dateKey = new Date().toISOString().slice(0, 10);
   // ESPN scoreboard endpoint accepts ?dates=YYYYMMDD to return ONLY events for
