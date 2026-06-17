@@ -2865,6 +2865,19 @@ async function loadQualityCalibration(env) {
   } catch(e) { /* calibration failure never breaks journalism */ }
 }
 
+// Returns the quality retry threshold for a sport. Uses p25 from calibration
+// when ≥ 5 samples exist; falls back to hardcoded sport-specific defaults.
+// Initial calibration is anchored on slate briefs (game_recap rows have
+// quality_score=NULL until a future session adds per-game scoring).
+function getQualityTarget(sport) {
+  if (_qualityCalibration?.[sport]?.count >= 5) {
+    return _qualityCalibration[sport].p25;
+  }
+  // hardcoded fallback — sport-specific if defined, generic otherwise
+  const HARDCODED = { nba: 160, nhl: 155, mlb: 145, wnba: 150 };
+  return HARDCODED[sport?.toLowerCase()] || 150;
+}
+
 // ── Layer 1: banned phrases (mirrors index.html BANNED_PHRASES) ───────────────
 const RELAY_BANNED = [
   'punch their ticket','the stage is set','make a statement',
