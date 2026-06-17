@@ -3467,6 +3467,102 @@ function buildBackfillPrompt(date, games, seriesNarratives) {
   return sections.join('\n');
 }
 
+// ── Per-game backfill — brief_type='game_brief' for completed games ───────────
+// Fires in dead-hour cron when executeBackfill returns skipped (slate brief
+// already exists for the date). Max 3 games per invocation to stay within
+// Gemini rate limits. source='backfill'.
+async function executeGameBriefBackfill(env, date) {
+  if (!env.ARCHIVE_DB) return {ok:false, reason:'ARCHIVE_DB not bound'};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return {ok:false, reason:'invalid date'};
+
+  await ensureBriefsTable(env);
+
+  const regResult = await env.ARCHIVE_DB.prepare(
+    `SELECT * FROM regular_season_games WHERE date = ? AND home_score IS NOT NULL`
+  ).bind(date).all();
+  const psResult = await env.ARCHIVE_DB.prepare(
+    `SELECT * FROM postseason_games WHERE date = ? AND home_score IS NOT NULL`
+  ).bind(date).all();
+  const games = [...(regResult.results || []), ...(psResult.results || [])];
+  if (!games.length) return {ok:false, skipped:true, reason:'no completed games for date', date};
+
+  let games_processed = 0;
+  let games_skipped = 0;
+
+  for (const game of games.slice(0, 3)) {
+    const gameId = String(game.source_id || game.id || '');
+    const existing = await env.ARCHIVE_DB.prepare(
+      `SELECT id FROM briefs WHERE game_id = ? AND brief_type = 'game_brief' LIMIT 1`
+    ).bind(gameId).first();
+    if (existing) { games_skipped++; continue; }
+
+    const sport = game.sport || 'sport';
+    const home  = game.home || 'Home';
+    const away  = game.away || 'Away';
+    const isPostseason = !!game.series_key;
+
+    let seriesContext = '';
+    if (isPostseason && game.series_key) {
+      const series = await env.ARCHIVE_DB.prepare(
+        `SELECT * FROM postseason_series WHERE series_key = ? LIMIT 1`
+      ).bind(game.series_key).first().catch(() => null);
+      if (series) {
+        const hW = (await env.ARCHIVE_DB.prepare(
+          `SELECT COUNT(*) AS n FROM postseason_games
+           WHERE series_key = ? AND home_score > away_score AND home_score IS NOT NULL`
+        ).bind(game.series_key).first().catch(() => null))?.n || 0;
+        const aW = (await env.ARCHIVE_DB.prepare(
+          `SELECT COUNT(*) AS n FROM postseason_games
+           WHERE series_key = ? AND away_score > home_score AND away_score IS NOT NULL`
+        ).bind(game.series_key).first().catch(() => null))?.n || 0;
+        seriesContext = `\nSeries record: ${hW}-${aW}`;
+        if (series.narrative) seriesContext += `\nContext: ${series.narrative}`;
+      }
+    }
+
+    const gamePrompt = [
+      `Write a 50-70 word game brief for this ${sport}${isPostseason ? ' playoff' : ''} game.`,
+      `${away} ${game.away_score} at ${home} ${game.home_score}`,
+      `Date: ${date}`,
+      isPostseason ? `Round: ${game.round || 'postseason'}${seriesContext}` : '',
+      `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
+    ].filter(Boolean).join('\n');
+
+    const callProxy = async (promptText) => {
+      const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026'},
+        body: JSON.stringify({model: 'claude-haiku-4-5-20251001', max_tokens: 400,
+          messages: [{role: 'user', content: promptText}]}),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(() => null);
+      return data ? (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
+    };
+
+    const initial = await callProxy(gamePrompt);
+    if (!initial || initial.length < 30) { games_skipped++; continue; }
+
+    const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
+      sport, scoreThreshold: 90, maxRetries: 3,
+    });
+    const prose = stripMarkdown(qResult.text);
+
+    await env.ARCHIVE_DB.prepare(
+      `INSERT INTO briefs
+         (id, date, brief_type, sport, game_id, brief_text, model, quality_score, word_count, source)
+       VALUES (?, ?, 'game_brief', ?, ?, ?, 'gemini-3.1-flash-lite', ?, ?, 'backfill')
+       ON CONFLICT(id) DO NOTHING`
+    ).bind(
+      `game_brief_${sport}_${gameId}_${date}`,
+      date, sport, gameId, prose, qResult.score, prose.split(/\s+/).length
+    ).run();
+    games_processed++;
+  }
+
+  return {ok: games_processed > 0, date, games_processed, games_skipped, total: games.length};
+}
+
 // ── Backfill execution — shared by /archive/backfill and dead-hour cron ─────
 // Reads archived games + series narratives for a date, calls Gemini via the
 // journalism proxy, runs the result through the quality chain, INSERTs into
@@ -3737,11 +3833,21 @@ async function handleJournalismCycle(env) {
           }
         } catch(_) { /* sweep failure never breaks cron */ }
 
-        if (!nextDate && !oddsResult && !sweepResult) {
+        // Game brief backfill — per-game briefs for dates where slate brief already
+        // exists. Fires when executeBackfill returned skipped on nextDate, meaning
+        // the slate brief was pre-existing — use the same date for per-game briefs.
+        let gameBriefResult = null;
+        try {
+          if (env.ARCHIVE_DB && nextDate && briefResult && briefResult.skipped) {
+            gameBriefResult = await executeGameBriefBackfill(env, nextDate);
+          }
+        } catch(_) { /* game brief backfill failure never breaks cron */ }
+
+        if (!nextDate && !oddsResult && !sweepResult && !gameBriefResult) {
           return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
         }
         return {
-          ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok) || !!sweepResult,
+          ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok) || !!sweepResult || !!(gameBriefResult && gameBriefResult.ok),
           reason: nextDate
             ? `backfill ${nextDate}: ${briefResult.reason || (briefResult.ok ? 'wrote brief' : 'no result')}`
             : sweepResult ? `kv_sweep: ${sweepResult.swept} briefs captured`
@@ -3749,6 +3855,7 @@ async function handleJournalismCycle(env) {
           backfill: briefResult,
           oddsBackfill: oddsResult,
           kvSweep: sweepResult,
+          gameBriefBackfill: gameBriefResult,
         };
       } catch (e) {
         return {ok:false, reason:`backfill error: ${e.message}`};
