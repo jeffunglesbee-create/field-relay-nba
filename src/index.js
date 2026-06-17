@@ -2830,6 +2830,41 @@ async function handleCron(env) {
 const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 const JOURNALISM_TTL_SECS = 900; // 15 min — matches cron frequency
 
+// ── Per-sport quality calibration (data-driven scoreThreshold) ───────────────
+// Loaded once per cron tick from ARCHIVE_DB. p25 per sport becomes the retry
+// threshold: prose below the 25th percentile for that sport gets a quality-
+// chain rewrite. Falls back to hardcoded values when < 5 samples exist.
+// Calibration failure is silent and never blocks journalism delivery (Rule 5).
+let _qualityCalibration = null;
+
+async function loadQualityCalibration(env) {
+  try {
+    if (!env.ARCHIVE_DB) return;
+    const rows = await env.ARCHIVE_DB.prepare(
+      `SELECT sport, quality_score FROM briefs
+       WHERE quality_score IS NOT NULL AND sport IS NOT NULL
+       AND date >= date('now', '-30 days')
+       ORDER BY sport, quality_score`
+    ).all();
+    const bySport = {};
+    for (const row of (rows.results || [])) {
+      if (!bySport[row.sport]) bySport[row.sport] = [];
+      bySport[row.sport].push(row.quality_score);
+    }
+    _qualityCalibration = {};
+    for (const [sport, scores] of Object.entries(bySport)) {
+      if (scores.length < 5) continue; // not enough data, keep hardcoded fallback
+      scores.sort((a, b) => a - b);
+      _qualityCalibration[sport] = {
+        p25: scores[Math.floor(scores.length * 0.25)],
+        p50: scores[Math.floor(scores.length * 0.50)],
+        p75: scores[Math.floor(scores.length * 0.75)],
+        count: scores.length,
+      };
+    }
+  } catch(e) { /* calibration failure never breaks journalism */ }
+}
+
 // ── Layer 1: banned phrases (mirrors index.html BANNED_PHRASES) ───────────────
 const RELAY_BANNED = [
   'punch their ticket','the stage is set','make a statement',
