@@ -6779,6 +6779,30 @@ REWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact inste
               }),
               {expirationTtl: 3600}
             );
+            try {
+              if (env.ARCHIVE_DB) {
+                await ensureBriefsTable(env);
+                const briefDate = new Date(job.enqueuedAt || Date.now()).toISOString().slice(0, 10);
+                await env.ARCHIVE_DB.prepare(
+                  `INSERT INTO briefs
+                     (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
+                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, NULL, ?, ?, 'cron')
+                   ON CONFLICT(id) DO UPDATE SET
+                     brief_text = excluded.brief_text,
+                     word_count = excluded.word_count,
+                     source = excluded.source`
+                ).bind(
+                  `game_recap_${job.sport}_${job.eventId}`,
+                  briefDate,
+                  job.sport || null,
+                  String(job.eventId),
+                  finalText,
+                  'claude-haiku-4-5-20251001',
+                  job.gameHash || null,
+                  finalText.split(/\s+/).length
+                ).run();
+              }
+            } catch (_archiveErr) { /* archive failure must not break game-brief delivery */ }
             msg.ack();
           } catch(e) {
             if (msg.attempts >= 3) { msg.ack(); } else { msg.retry(); }
