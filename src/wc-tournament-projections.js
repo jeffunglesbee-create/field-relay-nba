@@ -71,6 +71,39 @@ const R16_TO_QF_PAIRS   = [[0,1],[2,3],[4,5],[6,7]];   // indices into R16 resul
 const QF_TO_SF_PAIRS    = [[0,1],[2,3]];
 const SF_TO_FINAL_PAIRS = [[0,1]];
 
+// ── rankBasedStrengths ──────────────────────────────────────────────────────
+// Build a 48-team strength map from WC_TEAM_CONTEXT.fifaRank when no odds
+// prior is available (or to fill teams with no measured odds). Confederation
+// multipliers are layered on in Change 2 — this commit only does the rank
+// component.
+//
+// rankFactor = (50 - clamp(rank, 1, 100)) / 50
+//   rank   1 → +0.98   (strongest)
+//   rank  50 →  0.00   (neutral)
+//   rank 100 → -1.00   (weakest)
+// attack  = BASE_LAMBDA + rankFactor * RANK_SPREAD              (clamped)
+// defense = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.6        (clamped)
+//
+// Defense scaling is 60% of attack — teams differentiate more by attack than
+// by defense in WC samples; tuned to keep the [0.4, 2.0] clamp from biting
+// the extreme tails (San Marino-class rank 100 teams).
+const RANK_SPREAD = 0.35;
+function rankBasedStrengths() {
+  const out = {};
+  for (const ctx of Object.values(WC_TEAM_CONTEXT)) {
+    if (!ctx.displayName) continue;
+    const rank = Math.max(1, Math.min(100, Number(ctx.fifaRank) || 50));
+    const rankFactor = (50 - rank) / 50;
+    const att = BASE_LAMBDA + rankFactor * RANK_SPREAD;
+    const def = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.6;
+    out[ctx.displayName] = {
+      attack:  Math.max(0.4, Math.min(2.0, att)),
+      defense: Math.max(0.4, Math.min(2.0, def)),
+    };
+  }
+  return out;
+}
+
 // ── deriveTeamStrengths ──────────────────────────────────────────────────────
 // From /wc/odds-probs array, derive each team's attack and defense lambda.
 // Each team plays 3 group stage games; average lambdas across their fixtures.
@@ -104,13 +137,17 @@ export function deriveTeamStrengths(oddsProbs) {
     };
   }
 
+  // Rank-derived priors (Change 1) — used both as the empty-odds fallback and
+  // as the per-team default for teams the odds market didn't cover.
+  const rankPriors = rankBasedStrengths();
+
   // Tournament averages from measured fixtures
   const measuredTeams = Object.values(strengths);
-  // When NO oddsProbs are available (e.g. Odds API quota exhausted), fall back
-  // to BASE_LAMBDA so subsequent h2hLambdas / sampleGroupResult paths produce
-  // reasonable ~uniform probabilities instead of degenerating to 0-lambda.
-  // BASE_LAMBDA (1.15) is the engine's pre-existing default "WC knockout
-  // average per team per 90 min" — no new rating introduced.
+  // When NO oddsProbs are available (e.g. Odds API quota exhausted), fall
+  // back to the rank-derived priors rather than flat BASE_LAMBDA — preserves
+  // strength differentiation across the 48 teams. rankBasedStrengths()
+  // intentionally returns values centered on BASE_LAMBDA, so the existing
+  // padding math still behaves correctly.
   const rawAvgAtt = measuredTeams.length
     ? measuredTeams.reduce((s,v) => s+v.attack,  0) / measuredTeams.length
     : BASE_LAMBDA;
@@ -118,23 +155,29 @@ export function deriveTeamStrengths(oddsProbs) {
     ? measuredTeams.reduce((s,v) => s+v.defense, 0) / measuredTeams.length
     : BASE_LAMBDA;
 
-  // Pad teams with < 3 fixtures toward the tournament average
+  // Pad teams with < 3 fixtures toward their rank-based prior (when known)
+  // OR the tournament average when the team isn't in WC_TEAM_CONTEXT.
   for (const name in strengths) {
     const s = strengths[name];
     const missing = Math.max(0, 3 - (s.count || 0));
     if (missing > 0) {
+      const fallback = rankPriors[name] || { attack: rawAvgAtt, defense: rawAvgDef };
       const total = s.count + missing;
-      s.attack  = (s.attack  * s.count + rawAvgAtt * missing) / total;
-      s.defense = (s.defense * s.count + rawAvgDef * missing) / total;
+      s.attack  = (s.attack  * s.count + fallback.attack  * missing) / total;
+      s.defense = (s.defense * s.count + fallback.defense * missing) / total;
     }
     delete s.count;
   }
 
-  // Fill any missing teams (no odds data at all) with tournament average
-  const avgAtt = rawAvgAtt;
-  const avgDef = rawAvgDef;
+  // Fill any missing teams (no odds data at all) with rank-based priors —
+  // the empty-odds path lands here with every team getting their FIFA-rank-
+  // derived strength instead of a flat BASE_LAMBDA.
   for (const name of getAllTeamNames()) {
-    if (!strengths[name]) strengths[name] = { attack: avgAtt, defense: avgDef };
+    if (!strengths[name]) {
+      strengths[name] = rankPriors[name]
+        ? { ...rankPriors[name] }
+        : { attack: rawAvgAtt, defense: rawAvgDef };
+    }
   }
   return strengths;
 }
