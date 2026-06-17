@@ -122,12 +122,12 @@ const CODE_TO_CONFED = {
 //   rank  50 →  0.00   (neutral)
 //   rank 100 → -1.00   (weakest)
 // attack  = BASE_LAMBDA + rankFactor * RANK_SPREAD              (clamped)
-// defense = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.6        (clamped)
+// defense = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.85        (clamped)
 //
-// Defense scaling is 60% of attack — teams differentiate more by attack than
+// Defense scaling is 85% of attack — teams differentiate more by attack than
 // by defense in WC samples; tuned to keep the [0.4, 2.0] clamp from biting
 // the extreme tails (San Marino-class rank 100 teams).
-const RANK_SPREAD = 0.35;
+const RANK_SPREAD = 0.55;
 function rankBasedStrengths() {
   const out = {};
   for (const ctx of Object.values(WC_TEAM_CONTEXT)) {
@@ -135,7 +135,7 @@ function rankBasedStrengths() {
     const rank = Math.max(1, Math.min(100, Number(ctx.fifaRank) || 50));
     const rankFactor = (50 - rank) / 50;
     let att = BASE_LAMBDA + rankFactor * RANK_SPREAD;
-    const def = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.6;
+    const def = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.85;
     // Change 2 — confederation multiplier on attack lambda only. Defense
     // stays a function of rank alone (defensive structure correlates more
     // with squad quality than continental style).
