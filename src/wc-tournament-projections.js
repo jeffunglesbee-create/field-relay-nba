@@ -156,18 +156,34 @@ function rankBasedStrengths() {
 export function deriveTeamStrengths(oddsProbs) {
   const agg = {};  // { name: { attackSum, defenseSum, count } }
 
-  function acc(name, att, def) {
+  function acc(name, att, def, w) {
     if (!agg[name]) agg[name] = { attackSum:0, defenseSum:0, count:0 };
-    agg[name].attackSum  += att;
-    agg[name].defenseSum += def;
-    agg[name].count++;
+    // Change 8 — temporal freshness weight scales the COUNT, not the lambdas
+    // (scaling lambdas would shrink them; we want odds to lose influence on
+    // the per-team average, not on the magnitude). count becomes a real
+    // weighted sum.
+    agg[name].attackSum  += att * w;
+    agg[name].defenseSum += def * w;
+    agg[name].count      += w;
   }
+
+  const now = Date.now();
+  const freshnessWeight = (commenceIso) => {
+    if (!commenceIso) return 1.0;
+    const t = Date.parse(commenceIso);
+    if (!Number.isFinite(t)) return 1.0;
+    const hours = (t - now) / 3_600_000;
+    if (hours < 24) return 1.0;
+    if (hours < 72) return 0.85;
+    return 0.7;
+  };
 
   for (const g of (oddsProbs || [])) {
     const lH = g.lambdaHome || 1.0;
     const lA = g.lambdaAway || 1.0;
-    acc(normalizeTeamName(g.home_team), lH, lA);
-    acc(normalizeTeamName(g.away_team), lA, lH);
+    const w  = freshnessWeight(g.commence);
+    acc(normalizeTeamName(g.home_team), lH, lA, w);
+    acc(normalizeTeamName(g.away_team), lA, lH, w);
   }
 
   const strengths = {};
