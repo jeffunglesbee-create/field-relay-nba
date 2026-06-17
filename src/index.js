@@ -3693,16 +3693,62 @@ async function handleJournalismCycle(env) {
           }
         } catch (_) { /* odds backfill failure cannot break journalism cron */ }
 
-        if (!nextDate && !oddsResult) {
+        // KV sweep — captures recent brief:game:* keys from FIELD_JOURNALISM into
+        // ARCHIVE_DB before the 1 h TTL expires. Complementary to /archive/game
+        // KV capture (~L5020). ON CONFLICT DO NOTHING — never overwrites existing
+        // rows. List limit=50 caps KV reads per tick.
+        let sweepResult = null;
+        try {
+          if (env.FIELD_JOURNALISM && env.ARCHIVE_DB) {
+            await ensureBriefsTable(env);
+            const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 50 });
+            let swept = 0;
+            for (const key of (listed.keys || [])) {
+              const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(() => null);
+              if (!kvVal) continue;
+              let briefText = kvVal;
+              let qualityScore = null;
+              if (kvVal[0] === '{') {
+                try {
+                  const p = JSON.parse(kvVal);
+                  briefText = p.brief || p.brief_text || p.text || kvVal;
+                  qualityScore = p.quality_score || p.score || null;
+                } catch(_) {}
+              }
+              if (!briefText || briefText.length < 50) continue;
+              // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
+              const parts = key.name.replace('brief:game:', '').split(':');
+              const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
+              const sport  = parts.length >= 2 ? parts[0] : null;
+              const sweepDate = new Date().toISOString().slice(0, 10);
+              await env.ARCHIVE_DB.prepare(
+                `INSERT INTO briefs
+                   (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
+                 VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, 'kv_sweep')
+                 ON CONFLICT(id) DO NOTHING`
+              ).bind(
+                `game_recap_${gameId}_${sweepDate}`,
+                sweepDate, sport, gameId, briefText, qualityScore,
+                briefText.split(/\s+/).length
+              ).run();
+              swept++;
+            }
+            if (swept > 0) sweepResult = { swept };
+          }
+        } catch(_) { /* sweep failure never breaks cron */ }
+
+        if (!nextDate && !oddsResult && !sweepResult) {
           return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
         }
         return {
-          ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok),
+          ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok) || !!sweepResult,
           reason: nextDate
             ? `backfill ${nextDate}: ${briefResult.reason || (briefResult.ok ? 'wrote brief' : 'no result')}`
+            : sweepResult ? `kv_sweep: ${sweepResult.swept} briefs captured`
             : 'brief backfill complete; odds backfill ran',
           backfill: briefResult,
           oddsBackfill: oddsResult,
+          kvSweep: sweepResult,
         };
       } catch (e) {
         return {ok:false, reason:`backfill error: ${e.message}`};
