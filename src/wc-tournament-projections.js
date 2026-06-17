@@ -292,13 +292,23 @@ function getAllTeamNames() {
 // High defense value → leaky defense → easier to score against ✅
 // Low defense value  → strong defense → harder to score against ✅
 const BASE_LAMBDA = 1.15;  // ~WC knockout average per team per 90 min
+// Change 3 — host nation home advantage. The three 2026 co-hosts get a
+// scoring uplift when they're in the lambda calc (every group game in their
+// home market, friendly crowd, no travel). HOST_BOOST is added to attack
+// lambda BEFORE the floor clamp.
+const HOST_CODES = new Set(['USA', 'MEX', 'CAN']);
+const HOST_BOOST = 0.18;
 function h2hLambdas(teamA, teamB, strengths) {
   const A = strengths[teamA] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
   const B = strengths[teamB] || { attack: BASE_LAMBDA, defense: BASE_LAMBDA };
   // defense is how many goals this team CONCEDES on average;
   // higher defense = more porous → scale up opponent's expected goals
-  const lA = A.attack * (B.defense / BASE_LAMBDA);
-  const lB = B.attack * (A.defense / BASE_LAMBDA);
+  let lA = A.attack * (B.defense / BASE_LAMBDA);
+  let lB = B.attack * (A.defense / BASE_LAMBDA);
+  const aCode = WC_NAME_TO_CODE[teamA];
+  const bCode = WC_NAME_TO_CODE[teamB];
+  if (aCode && HOST_CODES.has(aCode)) lA += HOST_BOOST;
+  if (bCode && HOST_CODES.has(bCode)) lB += HOST_BOOST;
   return [Math.max(0.2, lA), Math.max(0.2, lB)];
 }
 
