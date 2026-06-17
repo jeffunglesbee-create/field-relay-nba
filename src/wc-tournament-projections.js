@@ -182,6 +182,54 @@ export function deriveTeamStrengths(oddsProbs) {
     };
   }
 
+  // Change 6 — Cross-match triangulation. For each team with count < 2,
+  // borrow signal from teams that share an opponent in oddsProbs. When
+  // teamX has played opponent Z, and teamY has also played Z, teamY's
+  // observation against Z (scaled by Z's strength) is a proxy for what
+  // teamX's strength implies. Blend at weight 0.5 because it's transitive.
+  // Only active when oddsProbs has actual content.
+  if ((oddsProbs || []).length > 0) {
+    // For each (team, opponent) seen in oddsProbs, record the team's
+    // observed attack and defense vs that opponent.
+    const playedBy = {}; // opponent → [{team, att, def}]
+    for (const g of oddsProbs) {
+      const home = normalizeTeamName(g.home_team);
+      const away = normalizeTeamName(g.away_team);
+      const lH = g.lambdaHome || 1.0;
+      const lA = g.lambdaAway || 1.0;
+      (playedBy[away] = playedBy[away] || []).push({ team: home, att: lH, def: lA });
+      (playedBy[home] = playedBy[home] || []).push({ team: away, att: lA, def: lH });
+    }
+    for (const [name, s] of Object.entries(strengths)) {
+      if ((s.count || 0) >= 2) continue;
+      // Opponents this team played
+      const myOpponents = (playedBy[name] || []).map(o => o.team);
+      let triAtt = 0, triDef = 0, triN = 0;
+      for (const opp of myOpponents) {
+        const cohort = playedBy[opp] || [];
+        for (const c of cohort) {
+          if (c.team === name) continue;
+          const bridge = strengths[c.team];
+          if (!bridge) continue;
+          // inferredAtt = bridge.observedAtt × (BASE_LAMBDA / bridge.defense)
+          // inferredDef = bridge.observedDef × (BASE_LAMBDA / bridge.attack)
+          const inferredAtt = c.att * (BASE_LAMBDA / (bridge.defense || BASE_LAMBDA));
+          const inferredDef = c.def * (BASE_LAMBDA / (bridge.attack  || BASE_LAMBDA));
+          triAtt += inferredAtt;
+          triDef += inferredDef;
+          triN++;
+        }
+      }
+      if (triN > 0) {
+        const avgInfAtt = triAtt / triN;
+        const avgInfDef = triDef / triN;
+        // 0.5 / 0.5 blend — half the team's own thin signal, half the bridge.
+        s.attack  = 0.5 * s.attack  + 0.5 * avgInfAtt;
+        s.defense = 0.5 * s.defense + 0.5 * avgInfDef;
+      }
+    }
+  }
+
   // Rank-derived priors (Change 1) — used both as the empty-odds fallback and
   // as the per-team default for teams the odds market didn't cover.
   const rankPriors = rankBasedStrengths();
