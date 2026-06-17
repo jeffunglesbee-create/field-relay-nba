@@ -71,6 +71,46 @@ const R16_TO_QF_PAIRS   = [[0,1],[2,3],[4,5],[6,7]];   // indices into R16 resul
 const QF_TO_SF_PAIRS    = [[0,1],[2,3]];
 const SF_TO_FINAL_PAIRS = [[0,1]];
 
+// ── Confederation strength multiplier (Change 2) ────────────────────────────
+// Applied to attack lambda inside rankBasedStrengths(). Values reflect WC
+// performance differential by confederation across recent cycles (UEFA +
+// CONMEBOL teams have historically over-performed pure FIFA-rank expectation;
+// AFC/OFC have under-performed). Sourced from the drive spec.
+const CONFED_MULTIPLIER = {
+  UEFA:     1.06,
+  CONMEBOL: 1.04,
+  CONCACAF: 1.00,
+  CAF:      0.97,
+  AFC:      0.96,
+  OFC:      0.92,
+};
+const CODE_TO_CONFED = {
+  // Group A
+  MEX: 'CONCACAF', RSA: 'CAF',      KOR: 'AFC',      CZE: 'UEFA',
+  // Group B
+  CAN: 'CONCACAF', BIH: 'UEFA',     QAT: 'AFC',      SUI: 'UEFA',
+  // Group C
+  BRA: 'CONMEBOL', MAR: 'CAF',      HAI: 'CONCACAF', SCO: 'UEFA',
+  // Group D
+  USA: 'CONCACAF', PAR: 'CONMEBOL', AUS: 'AFC',      TUR: 'UEFA',
+  // Group E
+  GER: 'UEFA',     CUW: 'CONCACAF', CIV: 'CAF',      ECU: 'CONMEBOL',
+  // Group F
+  NED: 'UEFA',     JPN: 'AFC',      TUN: 'CAF',      SWE: 'UEFA',
+  // Group G
+  BEL: 'UEFA',     EGY: 'CAF',      IRN: 'AFC',      NZL: 'OFC',
+  // Group H
+  ESP: 'UEFA',     CPV: 'CAF',      KSA: 'AFC',      URU: 'CONMEBOL',
+  // Group I
+  FRA: 'UEFA',     SEN: 'CAF',      IRQ: 'AFC',      NOR: 'UEFA',
+  // Group J
+  ARG: 'CONMEBOL', ALG: 'CAF',      AUT: 'UEFA',     JOR: 'AFC',
+  // Group K
+  COL: 'CONMEBOL', COD: 'CAF',      POR: 'UEFA',     UZB: 'AFC',
+  // Group L
+  PAN: 'CONCACAF', ENG: 'UEFA',     CRO: 'UEFA',     GHA: 'CAF',
+};
+
 // ── rankBasedStrengths ──────────────────────────────────────────────────────
 // Build a 48-team strength map from WC_TEAM_CONTEXT.fifaRank when no odds
 // prior is available (or to fill teams with no measured odds). Confederation
@@ -94,8 +134,13 @@ function rankBasedStrengths() {
     if (!ctx.displayName) continue;
     const rank = Math.max(1, Math.min(100, Number(ctx.fifaRank) || 50));
     const rankFactor = (50 - rank) / 50;
-    const att = BASE_LAMBDA + rankFactor * RANK_SPREAD;
+    let att = BASE_LAMBDA + rankFactor * RANK_SPREAD;
     const def = BASE_LAMBDA - rankFactor * RANK_SPREAD * 0.6;
+    // Change 2 — confederation multiplier on attack lambda only. Defense
+    // stays a function of rank alone (defensive structure correlates more
+    // with squad quality than continental style).
+    const confed = ctx.fifaCode ? CODE_TO_CONFED[ctx.fifaCode] : null;
+    if (confed && CONFED_MULTIPLIER[confed]) att *= CONFED_MULTIPLIER[confed];
     out[ctx.displayName] = {
       attack:  Math.max(0.4, Math.min(2.0, att)),
       defense: Math.max(0.4, Math.min(2.0, def)),
