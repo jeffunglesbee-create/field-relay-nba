@@ -228,26 +228,38 @@ export function deriveTeamStrengths(oddsProbs) {
 }
 
 // ── applyBayesianUpdate ─────────────────────────────────────────────────────
-// Blend odds-derived prior strengths with actual match performance from D1.
-// PRIOR_WEIGHT = 3: pre-tournament odds encode ~3 "equivalent games" of info.
-// After 1 game: ~75% prior + 25% observed. After 3 games: ~50-50.
+// Blend prior strengths (rank-derived or odds-derived) with observed match
+// performance. Two refinements over the original "PRIOR_WEIGHT = 3" blend:
 //
-// Opponent-strength adjustment:
+// Change 4 (result quality): goalDiff scales each observation's weight by
+//   qualityWeight = 1 + 0.15 * |hScore - aScore|. A 3-0 result counts as
+//   ~1.45 observations vs 1.0 for a 0-0 draw. Decisive results cut through
+//   the prior faster — a small bump that compounds over the group stage.
+//
+// Change 5 (dynamic prior decay): the prior weight tapers from 3.0 at
+//   tournament start down to ~0.8 once all 72 group games are in:
+//     dynamicPrior = Math.max(0.5, 3.0 - nResults * 0.03)
+//   After matchday 1 (~24 results) → ~2.28
+//   After matchday 2 (~48 results) → ~1.56
+//   After matchday 3 (~72 results) → ~0.84
+//   The floor at 0.5 keeps the prior from disappearing entirely.
+//
+// Opponent-strength adjustment (unchanged):
 //   obsAttack  = goalsScored   × BASE / opponent_defense_prior
 //   obsDefense = goalsConceded × BASE / opponent_attack_prior
-// A team scoring 2 against a strong defense is more impressive than 2 against
-// a weak one. Same logic for goals conceded vs opponent attack quality.
-const PRIOR_WEIGHT = 3;
 
 function applyBayesianUpdate(strengths, d1Results) {
   if (!d1Results || d1Results.length === 0) return;
 
+  // Change 5 — dynamic prior decay. Computed once for the whole batch.
+  const dynamicPrior = Math.max(0.5, 3.0 - d1Results.length * 0.03);
+
   const obs = {}; // { teamName: { attSum, defSum, games } }
-  const addObs = (name, att, def) => {
+  const addObs = (name, att, def, weight) => {
     if (!obs[name]) obs[name] = { attSum: 0, defSum: 0, games: 0 };
-    obs[name].attSum += att;
-    obs[name].defSum += def;
-    obs[name].games++;
+    obs[name].attSum += att * weight;
+    obs[name].defSum += def * weight;
+    obs[name].games  += weight;
   };
 
   for (const r of d1Results) {
@@ -258,23 +270,27 @@ function applyBayesianUpdate(strengths, d1Results) {
     const hScore = r.home_score ?? 0;
     const aScore = r.away_score ?? 0;
 
-    // Home: scored hScore against away's defense, conceded aScore from away's attack
+    // Change 4 — result quality weight. 0-0 draw → 1.0; 1-0 → 1.15; 3-0 → 1.45.
+    const goalDiff = Math.abs(hScore - aScore);
+    const qualityWeight = 1 + 0.15 * goalDiff;
+
     addObs(home, hScore * BASE_LAMBDA / (aPrior.defense || BASE_LAMBDA),
-                 aScore * BASE_LAMBDA / (aPrior.attack  || BASE_LAMBDA));
-    // Away: scored aScore against home's defense, conceded hScore from home's attack
+                 aScore * BASE_LAMBDA / (aPrior.attack  || BASE_LAMBDA),
+                 qualityWeight);
     addObs(away, aScore * BASE_LAMBDA / (hPrior.defense || BASE_LAMBDA),
-                 hScore * BASE_LAMBDA / (hPrior.attack  || BASE_LAMBDA));
+                 hScore * BASE_LAMBDA / (hPrior.attack  || BASE_LAMBDA),
+                 qualityWeight);
   }
 
-  // Blend: posterior = (PRIOR_WEIGHT × prior + nGames × observed) / (PRIOR_WEIGHT + nGames)
+  // Blend: posterior = (dynamicPrior × prior + nGames × observed) / (dynamicPrior + nGames)
   for (const [name, o] of Object.entries(obs)) {
     if (!strengths[name]) continue;
     const prior = strengths[name];
     const obsAtt = o.attSum / o.games;
     const obsDef = o.defSum / o.games;
-    const w = PRIOR_WEIGHT + o.games;
-    strengths[name].attack  = (PRIOR_WEIGHT * prior.attack  + o.games * obsAtt) / w;
-    strengths[name].defense = (PRIOR_WEIGHT * prior.defense + o.games * obsDef) / w;
+    const w = dynamicPrior + o.games;
+    strengths[name].attack  = (dynamicPrior * prior.attack  + o.games * obsAtt) / w;
+    strengths[name].defense = (dynamicPrior * prior.defense + o.games * obsDef) / w;
   }
 }
 
