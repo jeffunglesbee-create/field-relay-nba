@@ -2116,8 +2116,12 @@ async function handleGolfEventlog(athleteId, season, env) {
 // stats fetches are wrapped in try/catch — a single failure does not break
 // the enrichment. Cached 600s KV golf:enriched:{date}.
 async function handleGolfEnriched(date, env, ctx) {
-    const date_clean = date.replace(/-/g, ''); // Accept both YYYY-MM-DD and YYYYMMDD
-    const cacheKey = `golf:enriched:${date_clean}`;
+    // Accept both YYYY-MM-DD and YYYYMMDD; ESPN expects YYYYMMDD.
+    // Both forms collapse to the same cache key.
+    const date_clean = String(date || '').replace(/-/g, '');
+    // Cache key versioned (v2) — bumped on the response-shape change to
+    // canonical field names so old KV entries don't leak through TTL.
+    const cacheKey = `golf:enriched:v2:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -2131,7 +2135,7 @@ async function handleGolfEnriched(date, env, ctx) {
             .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0] || null;
         const result = { active: false, nextEvent, schedule: scoreboard.schedule || [] };
         if (env.FIELD_JOURNALISM) {
-            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 1800 }); } catch (_) {}
         }
         return result;
     }
@@ -2148,34 +2152,39 @@ async function handleGolfEnriched(date, env, ctx) {
         } catch (_) { /* per-athlete failure must not break enrichment */ }
     }));
 
+    // Canonical field mapping — ESPN native names stay inside
+    // handleESPNGolfScoreboard / handleGolfCompetitorStats. The client never
+    // sees ESPN's naming. Mapping happens here, once.
     const enriched = lb.map(entry => {
         const s = entry.athleteId ? statsByAthlete[entry.athleteId] : null;
         return {
-            pos:              entry.position,
-            athleteId:        entry.athleteId,
-            name:             entry.name,
-            toPar:            entry.toPar,
-            today:            entry.today,
-            thru:             entry.thru,
-            round:            entry.round,
-            gir:              s ? s.gir : null,
-            driveDistAvg:     s ? s.driveDistAvg : null,
-            driveAccuracyPct: s ? s.driveAccuracyPct : null,
-            puttsGirAvg:      s ? s.puttsGirAvg : null,
-            sandSaves:        s ? s.sandSaves : null,
+            position: entry.position ?? entry.pos ?? null,
+            athleteId: entry.athleteId,
+            name: entry.name,
+            toPar: entry.toPar,
+            today: entry.today,
+            thru: entry.thru,
+            round: entry.round,
+            stats: {
+                gir:              s ? (s.gir ?? 0) : 0,
+                drivingDistance:  s ? (s.driveDistAvg ?? 0) : 0,
+                drivingAccuracy:  s ? (s.driveAccuracyPct ?? 0) : 0,
+                puttsPerGir:      s ? (s.puttsGirAvg ?? 0) : 0,
+                sandSaves:        s ? (s.sandSaves ?? 0) : 0,
+            },
         };
     });
 
     const result = {
         active: true,
         eventId,
-        eventName: scoreboard.eventName,
+        name: scoreboard.eventName || scoreboard.name || null,
         round: scoreboard.round,
         cutLine: scoreboard.cutLine ?? null,
         leaderboard: enriched,
     };
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 180 }); } catch (_) {}
     }
     return result;
 }
