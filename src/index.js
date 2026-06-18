@@ -2110,6 +2110,75 @@ async function handleGolfEventlog(athleteId, season, env) {
     return result;
 }
 
+// ── ESPN Golf enriched fan-out (primary journalism/client entry point) ──────
+// Calls handleESPNGolfScoreboard for active leaderboard, then fans out to
+// handleGolfCompetitorStats for the top 20 athletes in parallel. Per-athlete
+// stats fetches are wrapped in try/catch — a single failure does not break
+// the enrichment. Cached 600s KV golf:enriched:{date}.
+async function handleGolfEnriched(date, env, ctx) {
+    const cacheKey = `golf:enriched:${date}`;
+    if (env.FIELD_JOURNALISM) {
+        try {
+            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        } catch (_) {}
+    }
+    const scoreboard = await handleESPNGolfScoreboard(date, env, ctx);
+    if (!scoreboard.active) {
+        const nextEvent = (scoreboard.schedule || [])
+            .filter(s => s && s.startDate && new Date(s.startDate).getTime() >= Date.now())
+            .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0] || null;
+        const result = { active: false, nextEvent, schedule: scoreboard.schedule || [] };
+        if (env.FIELD_JOURNALISM) {
+            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+        }
+        return result;
+    }
+    const eventId   = scoreboard.eventId;
+    const lb        = Array.isArray(scoreboard.leaderboard) ? scoreboard.leaderboard : [];
+    const top20     = lb.slice(0, 20);
+
+    const statsByAthlete = {};
+    await Promise.all(top20.map(async entry => {
+        if (!entry.athleteId) return;
+        try {
+            const stats = await handleGolfCompetitorStats(eventId, entry.athleteId, env);
+            if (stats && stats.ok) statsByAthlete[entry.athleteId] = stats;
+        } catch (_) { /* per-athlete failure must not break enrichment */ }
+    }));
+
+    const enriched = lb.map(entry => {
+        const s = entry.athleteId ? statsByAthlete[entry.athleteId] : null;
+        return {
+            pos:              entry.position,
+            athleteId:        entry.athleteId,
+            name:             entry.name,
+            toPar:            entry.toPar,
+            today:            entry.today,
+            thru:             entry.thru,
+            round:            entry.round,
+            gir:              s ? s.gir : null,
+            driveDistAvg:     s ? s.driveDistAvg : null,
+            driveAccuracyPct: s ? s.driveAccuracyPct : null,
+            puttsGirAvg:      s ? s.puttsGirAvg : null,
+            sandSaves:        s ? s.sandSaves : null,
+        };
+    });
+
+    const result = {
+        active: true,
+        eventId,
+        eventName: scoreboard.eventName,
+        round: scoreboard.round,
+        cutLine: scoreboard.cutLine ?? null,
+        leaderboard: enriched,
+    };
+    if (env.FIELD_JOURNALISM) {
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 }); } catch (_) {}
+    }
+    return result;
+}
+
 async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
@@ -5776,6 +5845,14 @@ export default {
                     headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=3600' },
                 });
             }
+            if (pathname === '/v2/golf/enriched') {
+                const date = (url.searchParams.get('date') || new Date().toISOString().slice(0,10).replace(/-/g,''));
+                const payload = await handleGolfEnriched(date, env, ctx);
+                return new Response(JSON.stringify(payload), {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': `public,max-age=${payload.active ? 600 : 3600}` },
+                });
+            }
             if (pathname === '/v2/golf/eventlog') {
                 const athleteId = url.searchParams.get('athleteId') || '';
                 const season    = url.searchParams.get('season') || '2026';
@@ -7234,6 +7311,7 @@ export default {
                         '/v2/golf/player-stats',
                         '/v2/golf/competitor-stats',
                         '/v2/golf/eventlog',
+                        '/v2/golf/enriched',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
