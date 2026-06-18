@@ -2057,6 +2057,59 @@ async function handleGolfCompetitorStats(eventId, athleteId, env) {
     return result;
 }
 
+// ── ESPN Golf eventlog (per-athlete season schedule + $refs) ────────────────
+// Fetches sports.core.api.espn.com season eventlog for a PGA athlete. Each
+// item carries $ref URLs (event, competition, competitor, statistics) which
+// callers can use to fan out further. Skips non-PGA entries (e.g. tgl-league).
+async function handleGolfEventlog(athleteId, season, env) {
+    const cacheKey = `golf:eventlog:${athleteId}:${season}`;
+    if (env.FIELD_JOURNALISM) {
+        try {
+            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        } catch (_) {}
+    }
+    const url = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/seasons/${encodeURIComponent(season)}/athletes/${encodeURIComponent(athleteId)}/eventlog?limit=25`;
+    let data;
+    try {
+        const resp = await fetch(url, { cf: { cacheTtl: 21600, cacheEverything: true } });
+        if (!resp.ok) return { ok: false, error: `ESPN ${resp.status}`, athleteId, season, events: [] };
+        data = await resp.json();
+    } catch (err) {
+        return { ok: false, error: `network: ${err.message}`, athleteId, season, events: [] };
+    }
+    const items = Array.isArray(data?.events?.items) ? data.events.items
+                 : Array.isArray(data?.items) ? data.items : [];
+    const extractId = ref => {
+        if (!ref || typeof ref !== 'string') return null;
+        const m = ref.match(/\/(events|competitions|competitors)\/(\d+)/);
+        return m ? m[2] : null;
+    };
+    const extractLeague = ref => {
+        if (!ref || typeof ref !== 'string') return null;
+        const m = ref.match(/leagues\/([a-z0-9_-]+)/i);
+        return m ? m[1] : null;
+    };
+    const events = items
+        .map(item => {
+            const league = extractLeague(item?.event?.$ref) || extractLeague(item?.competition?.$ref) || null;
+            return {
+                eventId:        extractId(item?.event?.$ref),
+                competitionId:  extractId(item?.competition?.$ref),
+                competitorId:   extractId(item?.competitor?.$ref),
+                statisticsRef:  item?.statistics?.$ref || null,
+                played:         item?.played ?? null,
+                league,
+            };
+        })
+        .filter(ev => ev.league === 'pga');
+    const result = { ok: true, athleteId, season, events };
+    if (env.FIELD_JOURNALISM) {
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 }); } catch (_) {}
+    }
+    return result;
+}
+
 async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
@@ -5723,6 +5776,16 @@ export default {
                     headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=3600' },
                 });
             }
+            if (pathname === '/v2/golf/eventlog') {
+                const athleteId = url.searchParams.get('athleteId') || '';
+                const season    = url.searchParams.get('season') || '2026';
+                if (!athleteId) return new Response(JSON.stringify({ ok:false, error:'missing athleteId' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const payload = await handleGolfEventlog(athleteId, season, env);
+                return new Response(JSON.stringify(payload), {
+                    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=21600' },
+                });
+            }
             if (pathname === '/v2/golf/competitor-stats') {
                 const eventId   = url.searchParams.get('eventId') || '';
                 const athleteId = url.searchParams.get('athleteId') || '';
@@ -7170,6 +7233,7 @@ export default {
                         // GET-only; query strings carry through the probe.
                         '/v2/golf/player-stats',
                         '/v2/golf/competitor-stats',
+                        '/v2/golf/eventlog',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
