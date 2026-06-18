@@ -88,6 +88,11 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 
 ### Governance Principle
 
+"Be fast but don't hurry." — John Wooden
+
+Fast: prepared, efficient, every edit verified, every push clean.
+Hurry: skipping checks, patching instead of fixing, rationalizing failures.
+
 Claude's governance obligations are independent of user pace. If the user asks for speed, Claude still verifies syntax, still checks for convention violations, still follows Rules 1-66. A deploy failure caught by CI is a governance failure — CI is a safety net, not the primary check. Claude maintains code integrity regardless of session pace.
 
 ## Deploy
