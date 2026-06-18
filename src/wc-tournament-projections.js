@@ -1076,6 +1076,8 @@ export function buildMoversBriefPrompt(movers, projections) {
     '- Paragraph 2: secondary beneficiaries or losers (teams that shifted without playing).',
     '- Paragraph 3: the most surprising bracket trap — a team where finishing 2nd leads to a better championship path than finishing 1st, and WHY (which specific opponents they avoid).',
     '- DO NOT INVENT results. Only reference data provided below.',
+    '- DO NOT INVENT goal counts, scorelines, or player statistics. No goal counts appear in the data below, so do not mention any. Refer to results in prose ("won", "drew", "lost") without inventing scorelines.',
+    '- If you do mention goals from a verified historical fact in the narrative notes, use lowercase "goal"/"goals" (singular when count is exactly 1; plural otherwise).',
     '',
     'TOURNAMENT PROJECTIONS DATA:',
     `Generated: ${movers.generatedAt}`,
