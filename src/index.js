@@ -1864,7 +1864,7 @@ async function handleWCAdminSeed(request, env) {
 // tournament is live, or { active:false, schedule:[...] } between events.
 // ESPN response is JSON; CF Worker handles it without streaming. KV-cached
 // under v2:golf:scoreboard:{date} — TTL 300s active round, 3600s inactive.
-async function handleESPNGolfScoreboard(date, env, ctx) {
+async function handleESPNGolfScoreboard(date_clean, env, ctx) {
     const cacheKey = `v2:golf:scoreboard:${date}`;
     if (env.FIELD_JOURNALISM) {
         try {
@@ -2116,7 +2116,8 @@ async function handleGolfEventlog(athleteId, season, env) {
 // stats fetches are wrapped in try/catch — a single failure does not break
 // the enrichment. Cached 600s KV golf:enriched:{date}.
 async function handleGolfEnriched(date, env, ctx) {
-    const cacheKey = `golf:enriched:${date}`;
+    const date_clean = date.replace(/-/g, ''); // Accept both YYYY-MM-DD and YYYYMMDD
+    const cacheKey = `golf:enriched:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
