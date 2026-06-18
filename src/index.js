@@ -2204,6 +2204,7 @@ async function handleGolfEnriched(date, env, ctx) {
         name: scoreboard.eventName || scoreboard.name || null,
         round: scoreboard.round,
         cutLine: scoreboard.cutLine ?? null,
+        broadcasts: scoreboard.broadcasts || null,
         leaderboard: enriched,
     };
     if (env.FIELD_JOURNALISM) {
