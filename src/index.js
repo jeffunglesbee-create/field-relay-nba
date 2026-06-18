@@ -1944,6 +1944,62 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     return result;
 }
 
+// ── ESPN Golf player-stats (season-wide, per-tournament) ───────────────────
+// Fetches site.web.api.espn.com common/v3 athlete stats. Maps the
+// leaguesStats[0].eventsStats array into a FIELD-shaped per-tournament list.
+// Stats accessed by name field (driveDistAvg, driveAccuracyPct, gir, girPoss,
+// puttsGirAvg, sandSaves, sandSavesPoss, scoreToPar, regScore). linescores[]
+// becomes the rounds array.
+async function handleGolfPlayerStats(athleteId, season, env) {
+    const cacheKey = `golf:player-stats:${athleteId}:${season}`;
+    if (env.FIELD_JOURNALISM) {
+        try {
+            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        } catch (_) {}
+    }
+    const url = `https://site.web.api.espn.com/apis/common/v3/sports/golf/athletes/${encodeURIComponent(athleteId)}/stats?season=${encodeURIComponent(season)}`;
+    let data;
+    try {
+        const resp = await fetch(url, { cf: { cacheTtl: 600, cacheEverything: true } });
+        if (!resp.ok) return { ok: false, error: `ESPN ${resp.status}`, athleteId, season, events: [] };
+        data = await resp.json();
+    } catch (err) {
+        return { ok: false, error: `network: ${err.message}`, athleteId, season, events: [] };
+    }
+    const leagueStats   = Array.isArray(data?.leaguesStats) ? data.leaguesStats[0] : null;
+    const eventsStats   = leagueStats && Array.isArray(leagueStats.eventsStats) ? leagueStats.eventsStats : [];
+    const pickStat = (statsArr, name) => {
+        if (!Array.isArray(statsArr)) return null;
+        const s = statsArr.find(x => x?.name === name);
+        return s ? (s.value ?? s.displayValue ?? null) : null;
+    };
+    const events = eventsStats.map(ev => {
+        const stats = Array.isArray(ev.stats) ? ev.stats : [];
+        const lines = Array.isArray(ev.linescores) ? ev.linescores : [];
+        return {
+            eventId: ev.eventId ? String(ev.eventId) : (ev.id ? String(ev.id) : null),
+            eventName: ev.eventName || ev.name || ev.shortName || null,
+            date: ev.date || ev.startDate || null,
+            position: pickStat(stats, 'regScore') ?? ev.position ?? null,
+            scoreToPar: pickStat(stats, 'scoreToPar'),
+            rounds: lines.map(l => (l?.value ?? l?.displayValue ?? null)),
+            driveDistAvg:     pickStat(stats, 'driveDistAvg'),
+            driveAccuracyPct: pickStat(stats, 'driveAccuracyPct'),
+            gir:              pickStat(stats, 'gir'),
+            girPossible:      pickStat(stats, 'girPoss'),
+            puttsGirAvg:      pickStat(stats, 'puttsGirAvg'),
+            sandSaves:        pickStat(stats, 'sandSaves'),
+            sandSavesPossible: pickStat(stats, 'sandSavesPoss'),
+        };
+    });
+    const result = { ok: true, athleteId, season, events };
+    if (env.FIELD_JOURNALISM) {
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+    }
+    return result;
+}
+
 async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
@@ -5600,6 +5656,16 @@ export default {
         if (pathname.startsWith('/v2/')) {
             if (pathname === '/v2/games')     return handleV2Games(url, env, ctx);
             if (pathname === '/v2/standings') return handleV2Standings(url, env);
+            if (pathname === '/v2/golf/player-stats') {
+                const athleteId = url.searchParams.get('athleteId') || '';
+                const season    = url.searchParams.get('season') || '2026';
+                if (!athleteId) return new Response(JSON.stringify({ ok:false, error:'missing athleteId' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const payload = await handleGolfPlayerStats(athleteId, season, env);
+                return new Response(JSON.stringify(payload), {
+                    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=3600' },
+                });
+            }
             return new Response('V2 endpoint not found', { status: 404, headers: CORS });
         }
 
@@ -7033,6 +7099,9 @@ export default {
                         // Historical odds backfill (Odds Layer 2026-06-16) —
                         // GET with ?date=YYYY-MM-DD, quota-aware.
                         '/archive/odds-backfill',
+                        // ESPN Golf relay (2026-06-17). All four routes are
+                        // GET-only; query strings carry through the probe.
+                        '/v2/golf/player-stats',
                     ]);
                     const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
                     // Split off query string before allow-list comparison.
