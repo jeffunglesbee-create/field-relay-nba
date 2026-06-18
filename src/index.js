@@ -3047,7 +3047,8 @@ async function runWCTournamentProjections(env) {
                 });
                 if (briefRes.ok) {
                     const briefData = await briefRes.json();
-                    const text = briefData.content?.find(b => b.type === 'text')?.text || '';
+                    const rawText = briefData.content?.find(b => b.type === 'text')?.text || '';
+                    const text = sanitizeGoalsGrammar(rawText);
                     if (text.length > 50) {
                         await KV.put('wc:brief:movers', JSON.stringify({
                             text,
@@ -3422,6 +3423,25 @@ function stripMarkdown(s) {
     .replace(/^[-*+]\s+/gm, '')           // bullet list markers
     .replace(/\n{3,}/g, '\n\n')           // collapse triple newlines
     .trim();
+}
+
+// ── WC brief grammar sanitizer (June 18 2026) ──────────────────────────────
+// Claude/Gemini sometimes capitalize "Goals" mid-sentence and pluralize
+// "1 Goals" in the World Cup tournament brief. The prompt has no such
+// template — this is LLM hallucination. Targets only known bad patterns:
+//   1) `\d+ Goals`         → `\d+ goals`         (lowercase after a digit)
+//   2) word-number Goals   → word-number goals   (lowercase after spelled-out 0–10/no)
+//   3) `1 goals`           → `1 goal`            (singular when count is 1)
+// 0-goal phrasing left as `0 goals` — both that and `no goals` are acceptable
+// per the bug spec, and rewriting to `no goals` can mangle possessive context
+// (e.g. "Qatar's 0 goals" → "Qatar's no goals" reads worse).
+function sanitizeGoalsGrammar(s) {
+  if (!s) return s;
+  const NUMBER_WORDS = '(?:no|zero|one|two|three|four|five|six|seven|eight|nine|ten)';
+  return s
+    .replace(/(\d+\s+)Goals\b/g, '$1goals')
+    .replace(new RegExp(`(\\b${NUMBER_WORDS}\\s+)Goals\\b`, 'gi'), '$1goals')
+    .replace(/(^|[^\d])1\s+goals\b/g, '$11 goal');
 }
 
 // ── Brief archive table — idempotent migration ──────────────────────────────
