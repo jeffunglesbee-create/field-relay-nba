@@ -982,6 +982,7 @@ const V2_LEAGUES = {
     'bundesliga':   { sport: 'football',   leagueId: 78,  season: '2025'      },
     'ligue1':       { sport: 'football',   leagueId: 61,  season: '2025'      },
     'wc26':         { sport: 'football',   leagueId: 1,   season: '2026'      },
+    'pga':          { sport: 'golf',       league: 'pga', espnSource: true, leagueId: '1106' },
 };
 
 // Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
@@ -1864,6 +1865,16 @@ async function handleV2Games(url, env, ctx) {
     if (!cfg)
         return new Response(JSON.stringify({ error: `Unknown sport: ${sport}`, supported: Object.keys(V2_LEAGUES) }),
             { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    // ESPN-sourced sports (golf/PGA) bypass api-sports and route to ESPN scoreboard.
+    // No APISPORTS_KEY required.
+    if (cfg.espnSource && cfg.sport === 'golf') {
+        const espnDate = date.replace(/-/g, '');
+        const payload = await handleESPNGolfScoreboard(espnDate, env, ctx);
+        return new Response(JSON.stringify(payload), {
+            headers: { ...CORS, 'Content-Type': 'application/json',
+                       'Cache-Control': `public,max-age=${payload.active ? 300 : 3600}` },
+        });
+    }
     const key = env.APISPORTS_KEY;
     if (!key)
         return new Response(JSON.stringify({ error: 'APISPORTS_KEY not configured' }),
