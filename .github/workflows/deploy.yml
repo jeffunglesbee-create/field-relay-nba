@@ -306,8 +306,14 @@ jobs:
       # Failures are expected during CI cold starts, rate limiting, or
       # API downtime. They do NOT indicate a relay code problem.
       # ══════════════════════════════════════════════════════════════
+      # EXTERNAL SERVICE PROBES — informational, not blocking.
+      # These test upstream APIs (NBA CDN, FPL, Football-Data) that
+      # can fail for reasons outside FIELD's control. continue-on-error
+      # ensures downstream steps (Courier, OIDC, Summary) still run.
+      # STRUCTURAL checks above (steps 13-19) remain blocking.
 
       - name: PROBE A — NBA CDN scoreboard
+        continue-on-error: true  # External service — informational, not blocking
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           STATUS=$(curl -s -o /tmp/nba_sb.json --max-time 15 -w "%{http_code}" \
@@ -325,6 +331,7 @@ jobs:
           fi
 
       - name: PROBE A2 — NHL scoreboard
+        continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           STATUS=$(curl -s -o /tmp/nhl_sb.json --max-time 15 -w "%{http_code}" \
@@ -348,6 +355,7 @@ jobs:
           fi
 
       - name: PROBE B — FPL bootstrap
+        continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           STATUS=$(curl -s -o /tmp/fpl_bs.json --max-time 15 -w "%{http_code}" \
@@ -367,6 +375,7 @@ jobs:
           fi
 
       - name: PROBE C — FPL fixtures
+        continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           STATUS=$(curl -s -o /tmp/fpl_fx.json --max-time 15 -w "%{http_code}" \
@@ -384,6 +393,7 @@ jobs:
           fi
 
       - name: PROBE D — FD batch matches
+        continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           TODAY=$(date +%Y-%m-%d)
@@ -403,6 +413,7 @@ jobs:
           fi
 
       - name: PROBE E — FD standings
+        continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
           STATUS=$(curl -s -o /tmp/fd_st.json --max-time 15 -w "%{http_code}" \
