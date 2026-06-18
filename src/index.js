@@ -1923,11 +1923,33 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
             name:      athlete.displayName || athlete.fullName || null,
             position:  c.status?.position?.displayName || c.position || null,
             toPar:     findStat('scoreToPar') ?? c.score ?? null,
-            today:     findStat('today') ?? null,
-            thru:      findStat('thru') ?? c.status?.thru ?? null,
+            today:     (() => {
+                // Today's score is in linescores[0].displayValue (e.g. '-2')
+                const ls = Array.isArray(c.linescores) ? c.linescores[0] : null;
+                return ls?.displayValue ?? findStat('today') ?? null;
+            })(),
+            thru:      (() => {
+                // Holes completed = count of hole-level linescores
+                const ls = Array.isArray(c.linescores) ? c.linescores[0] : null;
+                const holes = Array.isArray(ls?.linescores) ? ls.linescores.length : 0;
+                return holes > 0 ? holes : (findStat('thru') ?? c.status?.thru ?? null);
+            })(),
             round:     c.status?.period || null,
         };
     });
+    // Extract broadcast from ESPN
+    const _broadcasts = comp?.broadcasts || [];
+    const _geoB = comp?.geoBroadcasts || [];
+    const broadcastNames = [];
+    for (const b of _broadcasts) {
+        if (Array.isArray(b.names)) broadcastNames.push(...b.names);
+    }
+    if (!broadcastNames.length) {
+        for (const g of _geoB) {
+            if (g.media?.shortName) broadcastNames.push(g.media.shortName);
+        }
+    }
+
     const result = {
         active: true,
         eventId,
@@ -1936,6 +1958,7 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         endDate,
         status,
         round,
+        broadcasts: broadcastNames.length ? broadcastNames : null,
         leaderboard,
     };
     if (env.FIELD_JOURNALISM) {
