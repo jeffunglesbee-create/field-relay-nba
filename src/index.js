@@ -1858,6 +1858,92 @@ async function handleWCAdminSeed(request, env) {
 // ── /v2/games route handler ──────────────────────────────────────────────
 // GET /v2/games?sport=nba|nhl|mlb|epl|mls[&date=YYYY-MM-DD]
 // Returns: { sport, date, games: FieldGame[], count, source, ts }
+// ── ESPN Golf scoreboard (PGA, league 1106) ────────────────────────────────
+// Fetches site.api.espn.com PGA scoreboard for a given YYYYMMDD date string.
+// Returns { active, eventId, eventName, round, leaderboard:[...] } when a
+// tournament is live, or { active:false, schedule:[...] } between events.
+// ESPN response is JSON; CF Worker handles it without streaming. KV-cached
+// under v2:golf:scoreboard:{date} — TTL 300s active round, 3600s inactive.
+async function handleESPNGolfScoreboard(date, env, ctx) {
+    const cacheKey = `v2:golf:scoreboard:${date}`;
+    if (env.FIELD_JOURNALISM) {
+        try {
+            const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+            if (cached) return JSON.parse(cached);
+        } catch (_) { /* KV read failure falls through to fetch */ }
+    }
+    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=${date}`;
+    let data;
+    try {
+        const resp = await fetch(url, { cf: { cacheTtl: 60, cacheEverything: true } });
+        if (!resp.ok) return { active: false, error: `ESPN ${resp.status}`, schedule: [] };
+        data = await resp.json();
+    } catch (err) {
+        return { active: false, error: `network: ${err.message}`, schedule: [] };
+    }
+    const events = Array.isArray(data?.events) ? data.events : [];
+    if (!events.length) {
+        // Between tournaments — return calendar if present
+        const calendar = Array.isArray(data?.leagues?.[0]?.calendar) ? data.leagues[0].calendar : [];
+        const schedule = calendar
+            .filter(c => c && c.startDate)
+            .map(c => ({
+                id: c.event?.$ref ? c.event.$ref.match(/events\/(\d+)/)?.[1] || null : null,
+                name: c.label || c.alternateLabel || null,
+                startDate: c.startDate || null,
+                endDate: c.endDate || null,
+            }));
+        const result = { active: false, schedule };
+        if (env.FIELD_JOURNALISM) {
+            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+        }
+        return result;
+    }
+    // Primary tournament — take first event
+    const ev = events[0];
+    const eventId   = String(ev.id || '');
+    const eventName = ev.name || ev.shortName || '';
+    const startDate = ev.date || null;
+    const endDate   = ev.endDate || null;
+    const status    = ev.status?.type?.description || null;
+    const round     = ev.status?.period || ev.status?.type?.shortDetail || null;
+
+    // Competitors live inside competitions[0].competitors during active rounds.
+    const comp     = Array.isArray(ev.competitions) ? ev.competitions[0] : null;
+    const entries  = comp && Array.isArray(comp.competitors) ? comp.competitors : [];
+    const leaderboard = entries.map(c => {
+        const athlete  = c.athlete || {};
+        const stats    = c.statistics || [];
+        const findStat = name => {
+            const s = stats.find(x => x?.name === name);
+            return s ? (s.displayValue ?? s.value ?? null) : null;
+        };
+        return {
+            athleteId: String(athlete.id || c.id || ''),
+            name:      athlete.displayName || athlete.fullName || null,
+            position:  c.status?.position?.displayName || c.position || null,
+            toPar:     findStat('scoreToPar') ?? c.score ?? null,
+            today:     findStat('today') ?? null,
+            thru:      findStat('thru') ?? c.status?.thru ?? null,
+            round:     c.status?.period || null,
+        };
+    });
+    const result = {
+        active: true,
+        eventId,
+        eventName,
+        startDate,
+        endDate,
+        status,
+        round,
+        leaderboard,
+    };
+    if (env.FIELD_JOURNALISM) {
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 }); } catch (_) {}
+    }
+    return result;
+}
+
 async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
