@@ -1,0 +1,116 @@
+# .github/workflows/drive-upload-outbox.yml
+#
+# FIELD OUTBOX -> Google Drive via Apps Script
+#
+# FIX (June 17 2026): HEAD~1 only checks the last commit in a push.
+# CC pushes 3-7 commits at once. Now uses github.event.before..HEAD
+# to scan the ENTIRE push range. Also adds workflow_dispatch for manual backfill.
+#
+# SECRETS REQUIRED:
+#   APPS_SCRIPT_URL    -- deployed Apps Script web app URL
+#   APPS_SCRIPT_SECRET -- shared verification token
+
+name: FIELD Outbox to Drive
+
+on:
+  push:
+    paths:
+      - 'outbox/**/*.md'
+      - 'outbox/*.md'
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      file_pattern:
+        description: 'Glob for outbox files to upload (default: all .md)'
+        required: false
+        default: ''
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    name: Upload CC output to Drive
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find new outbox .md files
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PATTERN="${{ github.event.inputs.file_pattern }}"
+            if [ -z "$PATTERN" ]; then
+              NEW=$(find outbox -name '*.md' -type f 2>/dev/null | sort)
+            else
+              NEW=$(find outbox -name "$PATTERN" -type f 2>/dev/null | sort)
+            fi
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              NEW=$(find outbox -name '*.md' -type f 2>/dev/null | sort)
+            else
+              NEW=$(git diff --name-only --diff-filter=A "$BEFORE" HEAD -- 'outbox/*.md' 2>/dev/null || echo "")
+            fi
+          fi
+
+          if [ -z "$NEW" ]; then
+            echo "No new outbox files found"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          else
+            COUNT=$(echo "$NEW" | wc -l | tr -d ' ')
+            echo "Found $COUNT new file(s):"
+            echo "$NEW"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "$NEW" > /tmp/new-files.txt
+          fi
+
+      - name: Upload to Drive via Apps Script
+        if: steps.files.outputs.found == 'true'
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          APPS_SCRIPT_SECRET: ${{ secrets.APPS_SCRIPT_SECRET }}
+        run: |
+          if [ -z "$APPS_SCRIPT_URL" ] || [ -z "$APPS_SCRIPT_SECRET" ]; then
+            echo "APPS_SCRIPT_URL or APPS_SCRIPT_SECRET not set"
+            exit 1
+          fi
+
+          FOLDER="0ABxH84VndHL7Uk9PVA"
+          SUCCESS=0
+          FAIL=0
+
+          echo 'import json,sys,urllib.request,urllib.error' > /tmp/upload.py
+          echo 'url,sec,ttl,fid,fp=sys.argv[1:6]' >> /tmp/upload.py
+          echo 'payload=json.dumps({"secret":sec,"title":ttl,"content":open(fp).read(),"folderId":fid}).encode()' >> /tmp/upload.py
+          echo 'req=urllib.request.Request(url,data=payload,headers={"Content-Type":"application/json"},method="POST")' >> /tmp/upload.py
+          echo 'try:' >> /tmp/upload.py
+          echo '  resp=urllib.request.urlopen(req); print(resp.read().decode())' >> /tmp/upload.py
+          echo 'except urllib.error.HTTPError as e:' >> /tmp/upload.py
+          echo '  print(json.dumps({"error":str(e),"code":e.code,"body":e.read().decode()[:200]}))' >> /tmp/upload.py
+          echo 'except Exception as e:' >> /tmp/upload.py
+          echo '  print(json.dumps({"error":str(e)}))' >> /tmp/upload.py
+
+          while IFS= read -r FILE; do
+            [ -z "$FILE" ] && continue
+            TITLE=$(head -1 "$FILE" | sed 's/^# //')
+            [ -z "$TITLE" ] && TITLE=$(basename "$FILE" .md)
+            echo "Uploading: $FILE"
+
+            RESULT=$(python3 /tmp/upload.py "$APPS_SCRIPT_URL" "$APPS_SCRIPT_SECRET" "$TITLE" "$FOLDER" "$FILE")
+
+            if echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null | grep -q .; then
+              DOC_ID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+              echo "OK $FILE -> Drive doc $DOC_ID"
+              SUCCESS=$((SUCCESS + 1))
+            else
+              echo "FAIL $FILE response: $RESULT"
+              FAIL=$((FAIL + 1))
+            fi
+          done < /tmp/new-files.txt
+
+          echo ""
+          echo "Results: $SUCCESS uploaded, $FAIL failed"
+          [ "$FAIL" -gt 0 ] && exit 1 || exit 0
