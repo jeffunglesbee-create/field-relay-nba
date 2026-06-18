@@ -1865,7 +1865,11 @@ async function handleWCAdminSeed(request, env) {
 // ESPN response is JSON; CF Worker handles it without streaming. KV-cached
 // under v2:golf:scoreboard:{date} — TTL 300s active round, 3600s inactive.
 async function handleESPNGolfScoreboard(date, env, ctx) {
-    const cacheKey = `v2:golf:scoreboard:${date}`;
+    // Cache key bumped to r2 (June 18 2026) — position/round shape change:
+    // position is now tied-position string ("T2") derived from c.order/c.score;
+    // round is derived from competitor linescores. Old r1 payloads carried
+    // position:null and round:null during live play and must not be served.
+    const cacheKey = `v2:golf:scoreboard:r2:${date}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -1906,11 +1910,50 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     const startDate = ev.date || null;
     const endDate   = ev.endDate || null;
     const status    = ev.status?.type?.description || null;
-    const round     = ev.status?.period || ev.status?.type?.shortDetail || null;
+    // Top-level round is computed below from competitor linescores; the
+    // event-level ev.status.period is unreliable during live rounds.
 
     // Competitors live inside competitions[0].competitors during active rounds.
     const comp     = Array.isArray(ev.competitions) ? ev.competitions[0] : null;
     const entries  = comp && Array.isArray(comp.competitors) ? comp.competitors : [];
+
+    // Tied-position computation: ESPN's live competitor objects do NOT carry
+    // c.status.position or c.position. They carry c.order (1-based rank,
+    // pre-sorted by score, NOT tie-aware) and c.score (the toPar value).
+    // Group competitors by score → first-encountered order becomes the
+    // shared position; groups with >1 entry get "T" prefix.
+    const scoreGroups = new Map();
+    for (const c of entries) {
+        const score = c.score ?? null;
+        const order = Number(c.order) || null;
+        if (score === null || order === null) continue;
+        const g = scoreGroups.get(score);
+        if (g) {
+            g.count++;
+            if (order < g.firstOrder) g.firstOrder = order;
+        } else {
+            scoreGroups.set(score, { firstOrder: order, count: 1 });
+        }
+    }
+    const positionForScore = (score) => {
+        if (score === null || score === undefined) return null;
+        const g = scoreGroups.get(score);
+        if (!g) return null;
+        return g.count > 1 ? `T${g.firstOrder}` : String(g.firstOrder);
+    };
+    // Per-player current round = count of linescores entries that have begun
+    // (have a displayValue OR a non-empty per-hole linescores array). Future
+    // rounds carry displayValue:null + linescores:[] / holes:0 so they don't
+    // count. Round 1 in-progress → returns 1. Round 2 after R1 final → 2.
+    const currentRoundFromLinescores = (lsArr) => {
+        if (!Array.isArray(lsArr)) return null;
+        const n = lsArr.filter(x =>
+            (x?.displayValue !== null && x?.displayValue !== undefined) ||
+            (Array.isArray(x?.linescores) && x.linescores.length > 0)
+        ).length;
+        return n > 0 ? n : null;
+    };
+
     const leaderboard = entries.map(c => {
         const athlete  = c.athlete || {};
         const stats    = c.statistics || [];
@@ -1921,7 +1964,10 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         return {
             athleteId: String(athlete.id || c.id || ''),
             name:      athlete.displayName || athlete.fullName || null,
-            position:  c.status?.position?.displayName || c.position || null,
+            position:  positionForScore(c.score ?? null)
+                       ?? c.status?.position?.displayName
+                       ?? c.position
+                       ?? null,
             toPar:     findStat('scoreToPar') ?? c.score ?? null,
             today:     (() => {
                 // Today's score is in linescores[0].displayValue (e.g. '-2')
@@ -1934,9 +1980,18 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
                 const holes = Array.isArray(ls?.linescores) ? ls.linescores.length : 0;
                 return holes > 0 ? holes : (findStat('thru') ?? c.status?.thru ?? null);
             })(),
-            round:     c.status?.period || null,
+            round:     currentRoundFromLinescores(c.linescores)
+                       ?? c.status?.period
+                       ?? null,
         };
     });
+    // Top-level round: prefer current-round derived from the first competitor's
+    // linescores during live play. Falls back to ev.status.period (set during
+    // off-play windows when ESPN populates it) then the short detail string.
+    const topRound = currentRoundFromLinescores(entries[0]?.linescores)
+        ?? ev.status?.period
+        ?? ev.status?.type?.shortDetail
+        ?? null;
     // Extract broadcast from ESPN
     const _broadcasts = comp?.broadcasts || [];
     const _geoB = comp?.geoBroadcasts || [];
@@ -1957,7 +2012,7 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         startDate,
         endDate,
         status,
-        round,
+        round: topRound,
         broadcasts: broadcastNames.length ? broadcastNames : null,
         leaderboard,
     };
@@ -2142,9 +2197,10 @@ async function handleGolfEnriched(date, env, ctx) {
     // Accept both YYYY-MM-DD and YYYYMMDD; ESPN expects YYYYMMDD.
     // Both forms collapse to the same cache key.
     const date_clean = String(date || '').replace(/-/g, '');
-    // Cache key versioned (v2) — bumped on the response-shape change to
-    // canonical field names so old KV entries don't leak through TTL.
-    const cacheKey = `golf:enriched:v2:${date_clean}`;
+    // Cache key versioned (v3) — bumped on the position/round shape fix
+    // (June 18 2026). v2 entries cached position:null and round:null during
+    // active rounds; this key bump invalidates them at deploy time.
+    const cacheKey = `golf:enriched:v3:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
