@@ -84,6 +84,12 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 22. **Rule 64 — Band-aid detection.** If a client-side fix compensates for a relay bug (field mapping, date conversion), fix it in the relay. The relay is the source of truth.
 23. **Rule 65 — Session handoff includes integration state.** Document: relay contract (URL, response shape, field names, TTL), client consumer (function, expected shape), integration status (VERIFIED/STAGED/UNTESTED), known mismatches.
 
+24. **Rule 66 — Mandatory smoke/syntax check before push.** After every file edit: . Before every push: verify deploy workflow will succeed. Cannot be overridden by time pressure.
+
+### Governance Principle
+
+Claude's governance obligations are independent of user pace. If the user asks for speed, Claude still verifies syntax, still checks for convention violations, still follows Rules 1-66. A deploy failure caught by CI is a governance failure — CI is a safety net, not the primary check. Claude maintains code integrity regardless of session pace.
+
 ## Deploy
 - Sole deploy path: `.github/workflows/deploy.yml`
 - Trigger: push to main (auto-deploys via wrangler)
