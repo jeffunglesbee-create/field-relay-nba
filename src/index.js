@@ -4185,6 +4185,35 @@ async function pickNextBackfillDate(env) {
   return null;
 }
 
+
+// ── Golf tournament context for slate brief cron ──────────────────────────
+// Called during live hours when a PGA tournament is active. Uses the same
+// handleESPNGolfScoreboard that powers /v2/golf/enriched. Returns a context
+// block for the slate prompt or '' when no tournament is live.
+async function buildGolfCronContext(espnDate, env) {
+  try {
+    const data = await handleESPNGolfScoreboard(espnDate, env, {});
+    if (!data || data.active === false) return '';
+    const evName = data.eventName || data.name || 'PGA Tour event';
+    const round = data.round ? `Round ${data.round}` : '';
+    const players = (data.leaderboard || []).slice(0, 10);
+    if (!players.length) return '';
+    const lbLines = players.map(p => {
+      const pos = p.pos || p.position || '';
+      const tp = p.toPar != null ? String(p.toPar) : 'E';
+      const today = p.today != null ? ` (today ${p.today})` : '';
+      const thru = p.thru ? ` thru ${p.thru}` : '';
+      return `  ${pos} ${p.name} ${tp}${today}${thru}`.trim();
+    });
+    return [
+      '',
+      `PGA TOUR — ${evName}${round ? ' · ' + round : ''}:`,
+      ...lbLines,
+      'Use leaderboard positions and scores only — never reference strokes gained.',
+    ].join('\n');
+  } catch (_) { return ''; /* golf context is an enhancement — Rule 5 */ }
+}
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   // Load per-sport quality calibration once per cron tick. Lightweight D1
@@ -4540,6 +4569,13 @@ async function handleJournalismCycle(env) {
       ? await buildWCTeamContextBlock(gameLines, env.WC2026_DB, _wcPatches)
       : '';
 
+    // Golf tournament context — active PGA events get a leaderboard block in
+    // the slate prompt. Uses handleESPNGolfScoreboard (same as /v2/golf/enriched).
+    // Enhancement — wrapped per Rule 5.
+    let golfContext = '';
+    try { golfContext = await buildGolfCronContext(espnDate, env); }
+    catch (_) { /* golf context failure cannot break journalism cron */ }
+
     // ── Odds snapshot (opening_odds) ────────────────────────────────────────
     // Captures pre-game odds onto archive game rows for tonight's slate. Only
     // hits the Odds API for sports that have at least one archive row with
@@ -4667,6 +4703,7 @@ async function handleJournalismCycle(env) {
       ...gameLines.map((l, i) => `- ${l}${oddsAnnotations[i] || ''}`),
       buildFinalsContextBlock(gameLines),
       wcTeamContext,  // WC2026 team narrative (D1 + static)
+      golfContext,    // PGA Tour leaderboard (active tournaments only)
       recentCoverageBlock,  // yesterday's slate brief (temporal continuity)
       enrichmentBlock,      // narrative_context + standings_snapshot rows
       voiceExemplarBlock,   // top-3 quality_score briefs from last 7 days
