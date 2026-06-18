@@ -74,6 +74,16 @@ CC commits pass CI but lack session context. Chat sessions verify: smoke delta, 
 ## CORS
 Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new routes.
 
+
+### Cross-Session Integration Rules (added June 18 2026 — golf layer incident)
+
+18. **Rule 60 — Relay owns the data contract.** This relay defines response field names and nesting for every endpoint. The client (jubilant-bassoon) consumes as-is. If the client needs a normalization layer, the relay is wrong — fix it here. Match client field names exactly (grep jubilant-bassoon for destructuring patterns before building endpoints).
+19. **Rule 61 — End-to-end before done.** A feature is not done until the full path works: data source → relay → client → DOM. If the session cannot verify (sandbox limits), document as STAGED with exact curl + expected shape in the outbox. Never declare SHIPPED without integration proof.
+20. **Rule 62 — Follow existing conventions.** grep this repo before writing new code. Date handling (handleV2Games converts YYYY-MM-DD → YYYYMMDD), response shapes (stats nested in objects), cache patterns — conventions exist. Do not invent new ones.
+21. **Rule 63 — No dead code in commits.** Every endpoint must have a consumer. Every function must have a caller. If staged for future use, mark with // STAGED comment and document in outbox.
+22. **Rule 64 — Band-aid detection.** If a client-side fix compensates for a relay bug (field mapping, date conversion), fix it in the relay. The relay is the source of truth.
+23. **Rule 65 — Session handoff includes integration state.** Document: relay contract (URL, response shape, field names, TTL), client consumer (function, expected shape), integration status (VERIFIED/STAGED/UNTESTED), known mismatches.
+
 ## Deploy
 - Sole deploy path: `.github/workflows/deploy.yml`
 - Trigger: push to main (auto-deploys via wrangler)
