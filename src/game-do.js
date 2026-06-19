@@ -421,7 +421,10 @@ export class GameDO {
                 if (resp.ok) {
                     const data  = await resp.json();
                     const games = data?.games || [];
-                    const match = games.find(g => String(g.id) === String(this.gameId));
+                    // V2 returns prefixed IDs (e.g. 'football:1489381') but client
+                    // strips the prefix before opening the socket. Match both forms.
+                    const _strip = id => String(id).replace(/^[a-z]+:/, '');
+                    const match = games.find(g => _strip(g.id) === _strip(this.gameId));
                     if (match) {
                         return {
                             gameId:     String(this.gameId),
