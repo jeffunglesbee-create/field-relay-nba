@@ -1385,9 +1385,29 @@ async function recomputeGroupStandings(db, groupId) {
     `).bind(groupId, groupId).run();
 }
 
+// ── WC team name normalization (June 18 2026) ─────────────────────────────
+// API-Sports sends inconsistent variants across matches ("Czech Republic"
+// vs "Czechia"), producing duplicate wc_results rows and split standings.
+// Mirrors jubilant-bassoon's client-side _WC_NAME_FIX so the relay D1 store
+// holds canonical FIELD names. recomputeGroupStandings then aggregates
+// correctly by team name.
+const WC_NAME_FIX = {
+    'Czech Republic':       'Czechia',
+    'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
+    'USA':                  'United States',
+    'Turkey':               'Türkiye',
+    'Curacao':              'Curaçao',
+    "Cote D'Ivoire":        'Ivory Coast',
+    'Korea Republic':       'South Korea',
+    'Cape Verde Islands':   'Cape Verde',
+};
+function wcFixName(n) { return WC_NAME_FIX[n] || n; }
+
 // Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
 async function writeWCResult(db, game, env) {
-    const groupId = extractWCGroup(game.round, game.home?.name, game.away?.name);
+    const homeName  = wcFixName(game.home?.name || '');
+    const awayName  = wcFixName(game.away?.name || '');
+    const groupId   = extractWCGroup(game.round, homeName, awayName);
     if (!groupId) return; // knockout stage or no round info — skip
     const matchDate = (game.start || '').slice(0, 10);
     const homeScore = game.home?.score ?? 0;
@@ -1396,7 +1416,7 @@ async function writeWCResult(db, game, env) {
       INSERT OR IGNORE INTO wc_results
         (game_id, group_id, home, away, home_score, away_score, phase, match_date)
       VALUES (?, ?, ?, ?, ?, ?, 'group', ?)
-    `).bind(game.id, groupId, game.home?.name || '', game.away?.name || '',
+    `).bind(game.id, groupId, homeName, awayName,
             homeScore, awayScore, matchDate).run();
     await recomputeGroupStandings(db, groupId);
 
@@ -1413,8 +1433,8 @@ async function writeWCResult(db, game, env) {
                 body: JSON.stringify({
                     gameId:     game.id,
                     group_id:   groupId,
-                    home:       game.home?.name || '',
-                    away:       game.away?.name || '',
+                    home:       homeName,
+                    away:       awayName,
                     home_score: homeScore,
                     away_score: awayScore,
                     matchDate,
@@ -1840,11 +1860,14 @@ async function handleWCAdminSeed(request, env) {
     const { game_id, group_id, home, away, home_score, away_score, match_date } = body || {};
     if (!game_id || !group_id || !home || !away)
         return new Response('Missing required fields: game_id, group_id, home, away', { status: 400, headers: CORS });
+    // Apply WC_NAME_FIX so the seed path matches the cron writeWCResult path.
+    const homeFixed = wcFixName(home);
+    const awayFixed = wcFixName(away);
     await env.WC2026_DB.prepare(`
       INSERT OR REPLACE INTO wc_results
         (game_id, group_id, home, away, home_score, away_score, phase, match_date)
       VALUES (?, ?, ?, ?, ?, ?, 'group', ?)
-    `).bind(game_id, group_id.toUpperCase(), home, away,
+    `).bind(game_id, group_id.toUpperCase(), homeFixed, awayFixed,
             parseInt(home_score)||0, parseInt(away_score)||0,
             match_date || new Date().toISOString().slice(0,10)).run();
     await recomputeGroupStandings(env.WC2026_DB, group_id.toUpperCase());
