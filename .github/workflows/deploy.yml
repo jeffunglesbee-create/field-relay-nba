@@ -378,9 +378,17 @@ jobs:
         continue-on-error: true
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          # Use current GW from bootstrap (written by PROBE B) instead of hardcoded value
+          GW=$(python3 -c "
+          import json
+          d = json.load(open('/tmp/fpl_bs.json'))
+          events = d.get('events', [])
+          cur = next((e for e in events if e.get('is_current')), None)
+          print(cur['id'] if cur else max(e['id'] for e in events))
+          " 2>/dev/null || echo "38")
           STATUS=$(curl -s -o /tmp/fpl_fx.json --max-time 15 -w "%{http_code}" \
-            "$RELAY/fpl/fixtures?event=37")
-          echo "FPL fixtures (GW37): $STATUS"
+            "$RELAY/fpl/fixtures?event=$GW")
+          echo "FPL fixtures (GW$GW): $STATUS"
           if [ "$STATUS" = "200" ]; then
             python3 -c "
           import json
