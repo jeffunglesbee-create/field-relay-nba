@@ -85,6 +85,7 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 23. **Rule 65 — Session handoff includes integration state.** Document: relay contract (URL, response shape, field names, TTL), client consumer (function, expected shape), integration status (VERIFIED/STAGED/UNTESTED), known mismatches.
 
 24. **Rule 66 — Mandatory smoke/syntax check before push.** After every file edit: . Before every push: verify deploy workflow will succeed. Cannot be overridden by time pressure.
+25. **Rule 67 — CC sessions must document to Drive.** Every CC session that produces code changes MUST write a session doc: date, HEAD progression, what was built per commit, what was verified E2E vs STAGED, open carry-forwards. If CC cannot access Drive, write to `outbox/cc-session-{date}-{scope}.md`. HANDOFF.md must reference the session doc. Absence = violation. See jubilant-bassoon STANDARDS.md Rule 67 for full spec.
 
 ### Governance Principle
 
