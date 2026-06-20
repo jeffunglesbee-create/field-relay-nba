@@ -62,6 +62,7 @@ const SPORT_TO_V2 = {
     'nba': 'nba', 'nhl': 'nhl', 'mlb': 'mlb', 'wnba': 'wnba',
     'epl': 'epl', 'mls': 'mls', 'ucl': 'ucl',
     'wc26': 'wc26',  // WC 2026 added June 4 2026
+    'afl': 'afl',    // AFL added June 20 2026 — flows through adaptAFL + GameDO archive
 };
 
 // Max WP history entries per game (~180 = full 90 min at 30s poll cadence)

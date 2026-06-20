@@ -983,6 +983,11 @@ const V2_LEAGUES = {
     'ligue1':       { sport: 'football',   leagueId: 61,  season: '2025'      },
     'wc26':         { sport: 'football',   leagueId: 1,   season: '2026'      },
     'pga':          { sport: 'golf',       league: 'pga', espnSource: true, leagueId: '1106' },
+    // AFL Premiership (verified June 20 2026 via /apisports/afl/leagues — id:1,
+    // season:2026 current:true). The api-sports AFL plan accepts only ?date=
+    // (no league/season filter) on a ±1 day rolling window; the dispatch in
+    // handleV2Games branches AFL to use ?date= only.
+    'afl':          { sport: 'afl',        leagueId: 1,   season: 2026        },
 };
 
 // Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
@@ -1016,6 +1021,15 @@ function v2State(sport, statusShort) {
         if (['NS','TBD','PST'].includes(s))                return 'pre';
         return 'live'; // BT1-BT9, T1-T9, M1-M9 (top/bot/mid inning)
     }
+    if (sport === 'afl') {
+        // VERIFIED 2026-06-20 via /apisports/afl/games?date=…
+        // Observed: NS (not started), HT (half time, mid-game), and the
+        // expected Q1-Q4/OT pattern that mirrors basketball. AFL has 4
+        // quarters; OT is rare but exists.
+        if (['FT','AOT','ABD','CANC'].includes(s)) return 'final';
+        if (['NS','TBD','POSTP','PPD','PST'].includes(s)) return 'pre';
+        return 'live'; // Q1-Q4, HT, BT, OT, EOQ, etc.
+    }
     return 'pre';
 }
 
@@ -1038,6 +1052,14 @@ function v2Period(sport, status, game) {
         const inn = game?.innings?.current || 0;
         const half = s.startsWith('T') ? 'Top' : s.startsWith('B') ? 'Bot' : s.startsWith('M') ? 'Mid' : '';
         return { periodNum: inn, periodLabel: half ? `${half} ${inn}` : (inn ? `Inn ${inn}` : '') };
+    }
+    if (sport === 'afl') {
+        // AFL has 4 quarters + OT. HT lands between Q2 and Q3 so we report
+        // periodNum=2 with the label 'HT' for clarity.
+        const map = { 'Q1':1,'Q2':2,'Q3':3,'Q4':4,'OT':5,'HT':2 };
+        const num = map[s] ?? 0;
+        const lbl = { 'Q1':'Q1','Q2':'Q2','Q3':'Q3','Q4':'Q4','OT':'OT','HT':'HT','FT':'FT' }[s] || '';
+        return { periodNum: num, periodLabel: lbl };
     }
     if (sport === 'football') {
         const el = status?.elapsed;
@@ -1203,6 +1225,50 @@ function adaptBaseball(g) {
         venue:       '',                                        // VERIFIED: not present in baseball response
         situation,
         linescores:  { home: homeLS, away: awayLS },            // per-inning runs (innings 1-9)
+    };
+}
+
+// ── AFL adapter ──────────────────────────────────────────────────────────────
+// Maps api-sports.io /v1/afl/games response items to the V2 FieldGame shape.
+// VERIFIED 2026-06-20 via /apisports/afl/games?date=2026-06-20 — top-level
+// `date`/`venue`/`round`/`status` and nested `game.id`/`teams`/`scores`. AFL
+// score breakdown carries goals + behinds (totalled as `score`) which we
+// surface as extra fields so the client can show "5.5.35" Australian-rules
+// score notation if desired.
+function adaptAFL(item) {
+    if (!item) return null;
+    const sport = 'afl';
+    const g     = item.game   || {};
+    const teams = item.teams  || {};
+    const sc    = item.scores || {};
+    const state = v2State(sport, item?.status?.short);
+    const { periodNum, periodLabel } = v2Period(sport, item?.status || {}, item);
+    return {
+        id:          g.id ? `afl:${g.id}` : null,
+        sport:       'afl',
+        league:      'AFL',
+        state,
+        start:       item.date || '',
+        home: {
+            name:    teams?.home?.name || '',
+            abbr:    '',
+            score:   sc?.home?.score   ?? null,
+            goals:   sc?.home?.goals   ?? null,
+            behinds: sc?.home?.behinds ?? null,
+        },
+        away: {
+            name:    teams?.away?.name || '',
+            abbr:    '',
+            score:   sc?.away?.score   ?? null,
+            goals:   sc?.away?.goals   ?? null,
+            behinds: sc?.away?.behinds ?? null,
+        },
+        periodNum,
+        periodLabel,
+        clock:       '',                          // api-sports AFL response carries no clock
+        venue:       item.venue || '',
+        round:       item.round || '',            // e.g. "Regular Season" / "Finals Week 1"
+        week:        item.week ?? null,
     };
 }
 
@@ -2322,6 +2388,12 @@ async function handleV2Games(url, env, ctx) {
         // Response shape differs from API-BASKETBALL — use adaptApiNba (verified 2026-05-31).
         targetUrl = `https://${host}/games?date=${date}`;
         adapt = items => items.map(adaptApiNba);
+    } else if (cfg.sport === 'afl') {
+        // VERIFIED 2026-06-20: the api-sports AFL plan rejects league/season
+        // filters ("Free plans do not have access to this season") but accepts
+        // ?date= on a ±1 day rolling window — same effective pattern as NBA.
+        targetUrl = `https://${host}/games?date=${date}`;
+        adapt = items => items.map(adaptAFL);
     } else if (cfg.sport === 'football') {
         targetUrl = `https://${host}/fixtures?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
         // adapt set to null — football handled separately below with stats enrichment
