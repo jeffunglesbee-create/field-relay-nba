@@ -562,6 +562,104 @@ async function runPhase9FieldPick(env, today) {
     return { aiCalls: line ? 1 : 0, pick: value };
 }
 
+// ── Phase 7: Streak Board (nightly) ────────────────────────────────────────
+// Detect consecutive hot (quality_score >= 130) or cold (< 80) streaks per
+// team over the last 14 days of briefs. JOINs briefs.game_id against
+// regular_season_games + postseason_games to recover home/away team names —
+// safer than regex over brief_text. No AI call; the detection IS the feature.
+async function runPhase7StreakBoard(env, date) {
+    const STREAK_LOOKBACK_DAYS = 14;
+    const STREAK_MIN = 3;
+    const HOT_THRESHOLD  = 130;
+    const COLD_THRESHOLD = 80;
+    const since = addDays(date, -STREAK_LOOKBACK_DAYS);
+
+    // Pull briefs joined to either game table for team identity. Two
+    // queries (regular + postseason) UNION'd in app code so we don't have
+    // to push a complex UNION into D1 prepared statements.
+    const [regRes, psRes] = await Promise.allSettled([
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.quality_score, b.sport, g.home, g.away
+            FROM briefs b JOIN regular_season_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.quality_score IS NOT NULL
+            ORDER BY b.date ASC
+        `).bind(since, date).all(),
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.quality_score, b.sport, g.home, g.away
+            FROM briefs b JOIN postseason_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.quality_score IS NOT NULL
+            ORDER BY b.date ASC
+        `).bind(since, date).all(),
+    ]);
+    const rows = []
+        .concat(regRes.status === 'fulfilled' ? (regRes.value.results || []) : [])
+        .concat(psRes.status  === 'fulfilled' ? (psRes.value.results  || []) : []);
+
+    if (rows.length < 3) {
+        // Insufficient data — graceful degradation per spec.
+        console.log(`[ANALYTICS] Phase 7 degraded: only ${rows.length} brief rows in window`);
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'streak_board',
+            sport: null,
+            value: { hot: [], cold: [], degraded: true, brief_rows: rows.length },
+            briefText: null,
+        });
+        return {};
+    }
+
+    // Index per-team series of (date, score). A brief covers both teams
+    // in its game, so each row contributes to two team timelines.
+    const perTeam = new Map();
+    for (const r of rows) {
+        for (const team of [r.home, r.away]) {
+            if (!team) continue;
+            const key = `${team}|${r.sport || ''}`;
+            if (!perTeam.has(key)) perTeam.set(key, []);
+            perTeam.get(key).push({ date: r.date, score: r.quality_score });
+        }
+    }
+
+    const hot = [], cold = [];
+    for (const [key, series] of perTeam) {
+        series.sort((a, b) => a.date.localeCompare(b.date));
+        const [team, sport] = key.split('|');
+
+        // Walk the series; reset both counters whenever a game breaks the
+        // streak. We only emit the most recent streak per team.
+        let hotRun = [], coldRun = [];
+        for (const g of series) {
+            if (g.score >= HOT_THRESHOLD) {
+                hotRun.push(g.date);
+                coldRun = [];
+            } else if (g.score < COLD_THRESHOLD) {
+                coldRun.push(g.date);
+                hotRun = [];
+            } else {
+                hotRun = [];
+                coldRun = [];
+            }
+        }
+        if (hotRun.length >= STREAK_MIN) {
+            hot.push({ team, sport: sport || null, streak: hotRun.length, dates: hotRun });
+        }
+        if (coldRun.length >= STREAK_MIN) {
+            cold.push({ team, sport: sport || null, streak: coldRun.length, dates: coldRun });
+        }
+    }
+    hot.sort((a, b) => b.streak - a.streak);
+    cold.sort((a, b) => b.streak - a.streak);
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'streak_board',
+        sport: null,
+        value: { hot, cold, lookback_days: STREAK_LOOKBACK_DAYS, hot_threshold: HOT_THRESHOLD, cold_threshold: COLD_THRESHOLD },
+        briefText: null,
+    });
+    return {};
+}
+
 // Process one date end-to-end. Returns the status record for this date.
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
@@ -659,6 +757,16 @@ async function processDate(env, date, { selfHealed }) {
         } catch (e) {
             phasesFailed.push('phase9');
             errors.push(`phase9: ${e.message}`);
+        }
+
+        // Phase 7: Streak Board — hot/cold runs over last 14 days of briefs
+        try {
+            await runPhase7StreakBoard(env, date);
+            featuresComputed++;
+            phasesCompleted.push('phase7');
+        } catch (e) {
+            phasesFailed.push('phase7');
+            errors.push(`phase7: ${e.message}`);
         }
 
         // Touch unused locals — they exist for downstream prompts.
