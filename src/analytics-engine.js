@@ -660,6 +660,86 @@ async function runPhase7StreakBoard(env, date) {
     return {};
 }
 
+// ── Phase 8: Quality Feedback (nightly) ────────────────────────────────────
+// Snapshot per-sport p25/p50/p75 of brief quality_score over the last 30
+// days into KV (field:quality_calibration) and analytics_output. Aligns
+// with the existing loadQualityCalibration() / getQualityTarget() system
+// in src/index.js (per Rule 62 — no parallel control loop). The journalism
+// cron still reads from its own in-memory load each tick; this phase
+// surfaces the same data to /analytics/* consumers + provides a daily
+// audit trail of what thresholds the journalism cron will see.
+const QUALITY_CALIBRATION_KV_KEY = 'field:quality_calibration';
+async function runPhase8QualityFeedback(env, date) {
+    const since = addDays(date, -30);
+    const rowsRes = await env.ARCHIVE_DB.prepare(`
+        SELECT sport, quality_score FROM briefs
+        WHERE date >= ? AND date <= ?
+          AND quality_score IS NOT NULL AND sport IS NOT NULL
+    `).bind(since, date).all();
+
+    const rows = rowsRes.results || [];
+    if (rows.length === 0) {
+        console.log('[ANALYTICS] Phase 8 skipped: no quality data');
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'quality_feedback',
+            sport: null,
+            value: { adjustments: [], degraded: true, reason: 'no quality data' },
+            briefText: null,
+        });
+        return { skipped: true };
+    }
+
+    const bySport = {};
+    for (const r of rows) {
+        if (!bySport[r.sport]) bySport[r.sport] = [];
+        bySport[r.sport].push(r.quality_score);
+    }
+
+    // Mirrors loadQualityCalibration() in src/index.js (sorted percentiles
+    // with a 5-sample minimum). Anything under 5 samples still gets a row
+    // — useful for /analytics/* visibility — but is flagged insufficient.
+    const calibration = {};
+    const adjustments = [];
+    for (const [sport, scores] of Object.entries(bySport)) {
+        scores.sort((a, b) => a - b);
+        const entry = {
+            p25: scores[Math.floor(scores.length * 0.25)] ?? null,
+            p50: scores[Math.floor(scores.length * 0.50)] ?? null,
+            p75: scores[Math.floor(scores.length * 0.75)] ?? null,
+            count: scores.length,
+            min: scores[0],
+            max: scores[scores.length - 1],
+            sufficient: scores.length >= 5,
+            snapshot_date: date,
+        };
+        calibration[sport] = entry;
+        adjustments.push({
+            sport,
+            threshold_p25: entry.p25,
+            samples: entry.count,
+            sufficient: entry.sufficient,
+        });
+    }
+
+    try {
+        if (env.FIELD_JOURNALISM) {
+            await env.FIELD_JOURNALISM.put(QUALITY_CALIBRATION_KV_KEY, JSON.stringify(calibration));
+        }
+    } catch (e) {
+        console.error('[ANALYTICS] quality_calibration KV put failed:', e.message);
+    }
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'quality_feedback',
+        sport: null,
+        value: { adjustments, sports: Object.keys(calibration).length, total_samples: rows.length },
+        briefText: null,
+    });
+    return { adjustments };
+}
+
 // Process one date end-to-end. Returns the status record for this date.
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
@@ -767,6 +847,16 @@ async function processDate(env, date, { selfHealed }) {
         } catch (e) {
             phasesFailed.push('phase7');
             errors.push(`phase7: ${e.message}`);
+        }
+
+        // Phase 8: Quality Feedback — snapshot per-sport p25/p50/p75
+        try {
+            const r = await runPhase8QualityFeedback(env, date);
+            if (!r.skipped) featuresComputed++;
+            phasesCompleted.push('phase8');
+        } catch (e) {
+            phasesFailed.push('phase8');
+            errors.push(`phase8: ${e.message}`);
         }
 
         // Touch unused locals — they exist for downstream prompts.
