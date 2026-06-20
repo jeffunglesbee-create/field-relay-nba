@@ -174,76 +174,91 @@ async function writeRunStatus(env, status) {
 }
 
 // Process one date end-to-end. Returns the status record for this date.
+// Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
+// other phase still surfaces an observable health record — fix for the
+// Prompt 1 carry-forward bug where /analytics/status returned null even
+// after the engine had run.
 async function processDate(env, date, { selfHealed }) {
     const t0 = Date.now();
     const phasesCompleted = [];
     const phasesFailed = [];
     const errors = [];
     let featuresComputed = 0;
+    let aiCallsMade = 0;
 
     phasesCompleted.push('phase0'); // already past Phase 0 by definition
 
-    // Phase 1: data collection
-    let ctx = null, odds = null, prevStars = null, prevBriefs = null, qualityScores = null;
+    let status;
     try {
-        const settled = await Promise.allSettled([
-            fetchContextGraph(env, date),
-            env.ARCHIVE_DB.prepare(`SELECT * FROM odds_history WHERE date = ?`).bind(date).all().catch(e => { throw new Error(`odds_history: ${e.message}`); }),
-            env.ARCHIVE_DB.prepare(`SELECT * FROM analytics_output WHERE feature = 'night_stars' ORDER BY date DESC LIMIT 14`).all(),
-            env.ARCHIVE_DB.prepare(`SELECT * FROM briefs WHERE date >= ? ORDER BY date DESC`).bind(sevenDaysAgo(date)).all(),
-            env.ARCHIVE_DB.prepare(`SELECT sport, AVG(quality_score) AS avg_q, COUNT(*) AS n FROM briefs WHERE date >= ? AND quality_score IS NOT NULL GROUP BY sport`).bind(sevenDaysAgo(date)).all(),
-        ]);
-        const [s1, s2, s3, s4, s5] = settled;
-        ctx           = s1.status === 'fulfilled' ? s1.value : null;
-        odds          = s2.status === 'fulfilled' ? s2.value : null;
-        prevStars     = s3.status === 'fulfilled' ? s3.value : null;
-        prevBriefs    = s4.status === 'fulfilled' ? s4.value : null;
-        qualityScores = s5.status === 'fulfilled' ? s5.value : null;
-        settled.forEach((s, i) => { if (s.status === 'rejected') errors.push(`phase1[${i}]: ${s.reason?.message || s.reason}`); });
-        phasesCompleted.push('phase1');
-    } catch (e) {
-        phasesFailed.push('phase1');
-        errors.push(`phase1 fatal: ${e.message}`);
+        // Phase 1: data collection
+        let ctx = null, odds = null, prevStars = null, prevBriefs = null, qualityScores = null;
+        try {
+            const settled = await Promise.allSettled([
+                fetchContextGraph(env, date),
+                env.ARCHIVE_DB.prepare(`SELECT * FROM odds_history WHERE date = ?`).bind(date).all().catch(e => { throw new Error(`odds_history: ${e.message}`); }),
+                env.ARCHIVE_DB.prepare(`SELECT * FROM analytics_output WHERE feature = 'night_stars' ORDER BY date DESC LIMIT 14`).all(),
+                env.ARCHIVE_DB.prepare(`SELECT * FROM briefs WHERE date >= ? ORDER BY date DESC`).bind(sevenDaysAgo(date)).all(),
+                env.ARCHIVE_DB.prepare(`SELECT sport, AVG(quality_score) AS avg_q, COUNT(*) AS n FROM briefs WHERE date >= ? AND quality_score IS NOT NULL GROUP BY sport`).bind(sevenDaysAgo(date)).all(),
+            ]);
+            const [s1, s2, s3, s4, s5] = settled;
+            ctx           = s1.status === 'fulfilled' ? s1.value : null;
+            odds          = s2.status === 'fulfilled' ? s2.value : null;
+            prevStars     = s3.status === 'fulfilled' ? s3.value : null;
+            prevBriefs    = s4.status === 'fulfilled' ? s4.value : null;
+            qualityScores = s5.status === 'fulfilled' ? s5.value : null;
+            settled.forEach((s, i) => { if (s.status === 'rejected') errors.push(`phase1[${i}]: ${s.reason?.message || s.reason}`); });
+            phasesCompleted.push('phase1');
+        } catch (e) {
+            phasesFailed.push('phase1');
+            errors.push(`phase1 fatal: ${e.message}`);
+        }
+
+        // Phase 2: Night Stars (needs Context Graph; skip if Phase 1 produced nothing)
+        try {
+            const allGames = ctx
+                ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
+                : [];
+            const stars = computeNightStars(allGames);
+            await writeAnalyticsOutput(env, {
+                date,
+                feature: 'night_stars',
+                sport:   null,
+                value:   stars,
+                briefText: null,
+            });
+            featuresComputed++;
+            phasesCompleted.push('phase2');
+        } catch (e) {
+            phasesFailed.push('phase2');
+            errors.push(`phase2: ${e.message}`);
+        }
+
+        // Touch unused locals — they exist for downstream prompts.
+        void odds; void prevStars; void prevBriefs; void qualityScores;
+    } finally {
+        // Phase 11 ALWAYS runs — even if an earlier phase throws past its
+        // try/catch, the engine still writes an observable health record.
+        status = {
+            last_run: new Date().toISOString(),
+            date_processed: date,
+            phases_completed: phasesCompleted,
+            phases_failed: phasesFailed,
+            features_computed: featuresComputed,
+            ai_calls_made: aiCallsMade,
+            duration_ms: Date.now() - t0,
+            self_healed: selfHealed ? 1 : 0,
+            errors,
+        };
+        try {
+            await writeRunStatus(env, status);
+            phasesCompleted.push('phase11');
+        } catch (e) {
+            // writeRunStatus already swallows individual KV/D1 failures; this
+            // outer catch protects against an unexpected throw so the finally
+            // never blocks the caller's loop.
+            console.error('[ANALYTICS] phase11 status write failed:', e.message);
+        }
     }
-
-    // Phase 2: Night Stars (needs Context Graph; skip if Phase 1 produced nothing)
-    try {
-        const allGames = ctx
-            ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
-            : [];
-        const stars = computeNightStars(allGames);
-        await writeAnalyticsOutput(env, {
-            date,
-            feature: 'night_stars',
-            sport:   null,
-            value:   stars,
-            briefText: null,
-        });
-        featuresComputed++;
-        phasesCompleted.push('phase2');
-    } catch (e) {
-        phasesFailed.push('phase2');
-        errors.push(`phase2: ${e.message}`);
-    }
-
-    // Phase 11: health/monitoring
-    const status = {
-        last_run: new Date().toISOString(),
-        date_processed: date,
-        phases_completed: phasesCompleted,
-        phases_failed: phasesFailed,
-        features_computed: featuresComputed,
-        ai_calls_made: 0,
-        duration_ms: Date.now() - t0,
-        self_healed: selfHealed ? 1 : 0,
-        errors,
-    };
-    await writeRunStatus(env, status);
-    phasesCompleted.push('phase11');
-
-    // Touch unused locals so a linter doesn't complain — they exist for
-    // downstream prompts (Streak Board, Contradiction, Truth-Is, etc.).
-    void odds; void prevStars; void prevBriefs; void qualityScores;
 
     return status;
 }
@@ -263,6 +278,24 @@ export async function analyticsEngine(env, opts = {}) {
     const dates = await planDates(env, target);
     if (dates.length === 0) {
         console.log(`[ANALYTICS] nothing to do — last_run already covers ${target}`);
+        // Refresh KV status so /analytics/status reflects this invocation
+        // rather than the previous run's stale state.
+        try {
+            await writeRunStatus(env, {
+                last_run: new Date().toISOString(),
+                date_processed: target,
+                phases_completed: ['phase0', 'phase11'],
+                phases_failed: [],
+                features_computed: 0,
+                ai_calls_made: 0,
+                duration_ms: Date.now() - startedAt,
+                self_healed: 0,
+                errors: [],
+                skipped: 'up-to-date',
+            });
+        } catch (e) {
+            console.error('[ANALYTICS] up-to-date status write failed:', e.message);
+        }
         return { ok: true, target, processed: [], skipped: 'up-to-date' };
     }
     if (dates.length > 1) {
