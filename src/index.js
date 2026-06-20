@@ -4722,6 +4722,15 @@ async function handleJournalismCycle(env) {
               const parts = key.name.replace('brief:game:', '').split(':');
               const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
               const sport  = parts.length >= 2 ? parts[0] : null;
+              // Rule 73 (CLAIM-CONTEXT-A): if sport is null (KV key has no sport prefix),
+              // check if a sport-tagged brief already exists for this game_id from the
+              // cron path. Skip if so — the cron brief is authoritative.
+              if (!sport) {
+                const existing = await env.ARCHIVE_DB.prepare(
+                  `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
+                ).bind(gameId).first().catch(() => null);
+                if (existing) continue;
+              }
               const sweepDate = new Date().toISOString().slice(0, 10);
               await env.ARCHIVE_DB.prepare(
                 `INSERT INTO briefs
@@ -4738,6 +4747,20 @@ async function handleJournalismCycle(env) {
             if (swept > 0) sweepResult = { swept };
           }
         } catch(_) { /* sweep failure never breaks cron */ }
+
+        // One-time cleanup: delete null-sport briefs where a sport-tagged sibling exists.
+        // Root cause: KV keys were brief:game:{id} without sport prefix. The sweep
+        // inserted with sport=null while the cron had already inserted with sport set
+        // using a different primary key. Result: duplicate briefs per game.
+        try {
+          if (env.ARCHIVE_DB) {
+            await env.ARCHIVE_DB.prepare(
+              `DELETE FROM briefs WHERE sport IS NULL AND game_id IN (
+                 SELECT game_id FROM briefs WHERE sport IS NOT NULL AND sport != '' GROUP BY game_id
+               )`
+            ).run();
+          }
+        } catch(_) { /* cleanup failure never breaks cron */ }
 
         // Game brief backfill — per-game briefs for dates where slate brief already
         // exists. Fires when executeBackfill returned skipped on nextDate, meaning
