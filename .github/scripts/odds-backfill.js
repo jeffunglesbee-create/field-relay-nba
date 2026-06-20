@@ -1,381 +1,377 @@
 #!/usr/bin/env node
-/**
- * odds-backfill.js — Backfill historical odds from The Odds API into D1.
- *
- * Rule 78 (API-COST-A): strict credit budget enforcement.
- * Daily cap: 2,700 credits (leaves 633 headroom from 3,333 daily budget).
- * Historical endpoint: 10 credits per region per market per event.
- * One snapshot per game (closing line — most editorially useful).
- *
- * Progress: tracks backfilled dates in D1 `odds_backfill_progress` table.
- * Skips dates already processed. Picks up where it left off.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD odds historical backfill — budget-aware, fully automated
+// ─────────────────────────────────────────────────────────────────────────────
+// Rule 78 / API-COST-A compliance: the 2,700 daily Odds API credit ceiling
+// is shared across ALL FIELD systems (live polling, WC projections, this
+// backfill). This script checks the global remaining quota FIRST via a
+// zero-cost /v4/sports call, computes the headroom, and only spends what
+// the broader budget allows.
+//
+// Automation contract:
+//   • Runs daily on cron (10:00 UTC). No required workflow_dispatch inputs.
+//   • Resumes from D1 odds_backfill_progress — never re-processes a date.
+//   • Walks dates oldest-first from 2026-06-11 → yesterday.
+//   • Once caught up, the daily run gap-fills only yesterday (~80 credits).
+//
+// Sources:
+//   • Game inventory comes from the relay's /context/date/{iso} (Context Graph)
+//   • Historical odds from /v4/historical/sports/{sport}/odds (10 cr × region × market)
+//   • Persists into ARCHIVE_DB.odds_history via Cloudflare D1 REST API.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const ACCOUNT_ID   = process.env.CLOUDFLARE_ACCOUNT_ID;
-const API_TOKEN    = process.env.CLOUDFLARE_API_TOKEN;
-const ODDS_KEY     = process.env.ODDS_API_KEY;
-const D1_DB_ID     = process.env.D1_DATABASE_ID;
-const RELAY_BASE   = process.env.RELAY_BASE;
-const CREDIT_CAP   = parseInt(process.env.DAILY_CREDIT_CAP || '2700', 10);
-const DRY_RUN      = process.env.DRY_RUN === 'true';
-const START_DATE   = process.env.START_DATE || '';
+'use strict';
 
-const D1_API = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${D1_DB_ID}/query`;
-const ODDS_API = 'https://api.the-odds-api.com/v4';
+// ── Config (all from GitHub secrets) ────────────────────────────────────────
+const CF_ACCOUNT  = process.env.CLOUDFLARE_ACCOUNT_ID;
+const CF_TOKEN    = process.env.CLOUDFLARE_API_TOKEN;
+const ODDS_KEY    = process.env.ODDS_API_KEY;
+const D1_DB_ID    = process.env.D1_DATABASE_ID    || 'cc49101c-0569-4d41-8e7a-be139cde4f26';
+const RELAY_BASE  = process.env.RELAY_BASE        || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
-// Credits used this run
-let creditsUsed = 0;
+const DAILY_CEILING    = 2700;           // global shared across all FIELD odds usage
+const PER_CALL_COST    = 20;             // historical /odds = 10 cr × 2 markets (h2h+totals); regions=us
+const MIN_BUDGET       = 20;             // need at least one sport-date worth
+const ODDS_API_DELAY_MS = 100;           // gentle rate-limit guard
+const BACKFILL_START_DATE = '2026-06-11'; // WC activation
+const ODDS_API_BASE = 'https://api.the-odds-api.com';
 
-// ── Sport key mapping ──────────────────────────────────────────────────────
-// Context Graph sport names → Odds API sport keys
-const SPORT_MAP = {
+if (!CF_ACCOUNT || !CF_TOKEN || !ODDS_KEY) {
+  console.error('[odds-backfill] missing one of CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ODDS_API_KEY');
+  process.exit(1);
+}
+
+// ── Sport → Odds API key map ────────────────────────────────────────────────
+// Drives both the historical odds fetch and the brief-type skip list.
+const SPORT_TO_ODDS_KEY = {
   'MLB':                    'baseball_mlb',
   'NBA':                    'basketball_nba',
   'NHL':                    'icehockey_nhl',
   'WNBA':                   'basketball_wnba',
-  'FIFA World Cup':          'soccer_fifa_world_cup',
-  'FIFA World Cup 2026':     'soccer_fifa_world_cup',
-  'EPL':                     'soccer_epl',
-  'MLS':                     'soccer_usa_mls',
+  'FIFA World Cup':         'soccer_fifa_world_cup',
+  'FIFA World Cup 2026':    'soccer_fifa_world_cup',
+  'EPL':                    'soccer_epl',
+  'MLS':                    'soccer_usa_mls',
 };
 
-// ── D1 helper ──────────────────────────────────────────────────────────────
+// Brief types that are NOT games — must be ignored when iterating /context/date.
+// (Spec lists narrative_context and standings_snapshot.)
+const NON_GAME_BRIEF_TYPES = new Set(['narrative_context', 'standings_snapshot']);
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function toIsoDate(d) { return d.toISOString().slice(0, 10); }
+
+function* dateRange(startIso, endIso) {
+  // Yields YYYY-MM-DD strings inclusive on both ends.
+  let cur = new Date(startIso + 'T00:00:00Z');
+  const end = new Date(endIso + 'T00:00:00Z');
+  while (cur <= end) {
+    yield toIsoDate(cur);
+    cur = new Date(cur.getTime() + 86400000);
+  }
+}
+
+function normTeam(s) {
+  // Loose team-name normalization for matching Context Graph rows to Odds
+  // API event team names — strip diacritics, lowercase, drop non-alnum.
+  return String(s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// ── Cloudflare D1 REST helpers ──────────────────────────────────────────────
 async function d1Query(sql, params = []) {
-  const res = await fetch(D1_API, {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database/${D1_DB_ID}/query`;
+  const resp = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_TOKEN}`,
-      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${CF_TOKEN}`,
+      'Content-Type':  'application/json',
     },
     body: JSON.stringify({ sql, params }),
   });
-  const data = await res.json();
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '');
+    throw new Error(`D1 ${resp.status}: ${t.slice(0, 200)}`);
+  }
+  const data = await resp.json();
   if (!data.success) {
-    console.error('[D1 ERROR]', JSON.stringify(data.errors));
-    return null;
+    throw new Error(`D1 query failed: ${JSON.stringify(data.errors).slice(0, 200)}`);
   }
-  return data.result?.[0] || null;
+  // D1 REST returns result: [{ results: [...], success, meta }]
+  return data.result?.[0]?.results || [];
 }
 
-// ── Ensure tables exist ────────────────────────────────────────────────────
 async function ensureTables() {
-  await d1Query(`
-    CREATE TABLE IF NOT EXISTS odds_history (
-      id TEXT PRIMARY KEY,
-      game_id TEXT NOT NULL,
-      sport TEXT NOT NULL,
-      date TEXT NOT NULL,
-      home_team TEXT,
-      away_team TEXT,
-      commence_time TEXT,
-      home_ml REAL,
-      away_ml REAL,
-      draw_ml REAL,
-      over_under REAL,
-      over_price REAL,
-      under_price REAL,
-      bookmaker TEXT DEFAULT 'consensus',
-      snapshot_time TEXT,
-      snapshot_type TEXT DEFAULT 'close',
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-  await d1Query(`
-    CREATE TABLE IF NOT EXISTS odds_backfill_progress (
-      date TEXT PRIMARY KEY,
-      games_processed INTEGER DEFAULT 0,
-      credits_used INTEGER DEFAULT 0,
-      completed_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-  console.log('[INIT] Tables ensured');
+  await d1Query(`CREATE TABLE IF NOT EXISTS odds_history (
+    id TEXT PRIMARY KEY,
+    game_id TEXT, sport TEXT, date TEXT,
+    home_team TEXT, away_team TEXT, commence_time TEXT,
+    home_ml REAL, away_ml REAL, draw_ml REAL,
+    over_under REAL, over_price REAL, under_price REAL,
+    bookmaker TEXT, snapshot_time TEXT,
+    snapshot_type TEXT DEFAULT 'close',
+    created_at TEXT DEFAULT (datetime('now'))
+  )`);
+  await d1Query(`CREATE TABLE IF NOT EXISTS odds_backfill_progress (
+    date TEXT PRIMARY KEY,
+    games_processed INTEGER,
+    credits_used INTEGER,
+    completed_at TEXT DEFAULT (datetime('now'))
+  )`);
 }
 
-// ── Get dates to backfill ──────────────────────────────────────────────────
-async function getDatesToBackfill() {
-  // Get already-processed dates
-  const progress = await d1Query(
-    `SELECT date FROM odds_backfill_progress ORDER BY date DESC`
+async function getProcessedDates() {
+  const rows = await d1Query(`SELECT date FROM odds_backfill_progress`);
+  return new Set(rows.map(r => r.date));
+}
+
+async function recordProgress(date, gamesProcessed, creditsUsed) {
+  await d1Query(
+    `INSERT OR REPLACE INTO odds_backfill_progress (date, games_processed, credits_used)
+     VALUES (?, ?, ?)`,
+    [date, gamesProcessed, creditsUsed]
   );
-  const done = new Set((progress?.results || []).map(r => r.date));
-
-  // Build date range: June 11 (WC start / wc26 active) through yesterday
-  const dates = [];
-  const start = START_DATE || '2026-06-11';
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const endStr = yesterday.toISOString().slice(0, 10);
-
-  let d = new Date(start + 'T00:00:00Z');
-  while (d.toISOString().slice(0, 10) <= endStr) {
-    const iso = d.toISOString().slice(0, 10);
-    if (!done.has(iso)) dates.push(iso);
-    d.setDate(d.getDate() + 1);
-  }
-
-  console.log(`[DATES] ${dates.length} dates to backfill (${done.size} already done)`);
-  return dates;
 }
 
-// ── Get games for a date from Context Graph ────────────────────────────────
-async function getGamesForDate(date) {
-  try {
-    const res = await fetch(`${RELAY_BASE}/context/date/${date}`);
-    const data = await res.json();
-    const briefs = data.briefs || [];
-
-    // Extract unique games with sport tags
-    const games = new Map();
-    for (const b of briefs) {
-      if (!b.game_id || !b.sport) continue;
-      // Skip non-game briefs (team narratives, standings snapshots)
-      if (b.brief_type === 'narrative_context' || b.brief_type === 'standings_snapshot') continue;
-      // Skip games we can't map to Odds API
-      const sportKey = SPORT_MAP[b.sport];
-      if (!sportKey) continue;
-
-      if (!games.has(b.game_id)) {
-        games.set(b.game_id, {
-          game_id: b.game_id,
-          sport: b.sport,
-          sportKey,
-          date,
-        });
-      }
-    }
-    return [...games.values()];
-  } catch (e) {
-    console.error(`[ERROR] Failed to get games for ${date}:`, e.message);
-    return [];
-  }
+async function insertOddsRow(row) {
+  await d1Query(
+    `INSERT OR IGNORE INTO odds_history
+       (id, game_id, sport, date, home_team, away_team, commence_time,
+        home_ml, away_ml, draw_ml, over_under, over_price, under_price,
+        bookmaker, snapshot_time, snapshot_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      row.id, row.game_id, row.sport, row.date,
+      row.home_team, row.away_team, row.commence_time,
+      row.home_ml, row.away_ml, row.draw_ml,
+      row.over_under, row.over_price, row.under_price,
+      row.bookmaker, row.snapshot_time, row.snapshot_type || 'close',
+    ]
+  );
 }
 
-// ── Fetch historical odds for a sport+date ─────────────────────────────────
-// Returns all events for that sport on that date with odds at close
-async function fetchHistoricalOdds(sportKey, date) {
-  // Snapshot at 11:59 PM UTC on the game date (closing line proxy)
-  const snapshotTime = `${date}T23:59:00Z`;
-  const url = `${ODDS_API}/historical/sports/${sportKey}/odds`
-    + `?apiKey=${ODDS_KEY}`
-    + `&regions=us`
-    + `&markets=h2h,totals`
-    + `&dateFormat=iso`
-    + `&oddsFormat=decimal`
-    + `&date=${snapshotTime}`;
-
-  try {
-    const res = await fetch(url);
-
-    // Track credits from response headers
-    const remaining = res.headers.get('x-requests-remaining');
-    const used = res.headers.get('x-requests-used');
-    if (remaining) console.log(`  [ODDS API] remaining: ${remaining}, used: ${used}`);
-
-    if (!res.ok) {
-      console.error(`  [ODDS API] ${res.status} for ${sportKey} on ${date}`);
-      return null;
-    }
-
-    const data = await res.json();
-    return data;
-  } catch (e) {
-    console.error(`  [ODDS API] fetch error for ${sportKey}:`, e.message);
-    return null;
-  }
+// ── Odds API helpers ────────────────────────────────────────────────────────
+function readQuotaHeaders(resp) {
+  const remaining = parseInt(resp.headers.get('x-requests-remaining') || '0', 10) || 0;
+  const used      = parseInt(resp.headers.get('x-requests-used')      || '0', 10) || 0;
+  return { remaining, used };
 }
 
-// ── Extract consensus odds from snapshot ────────────────────────────────────
-function extractConsensusOdds(event) {
-  const bookmakers = event.bookmakers || [];
-  if (!bookmakers.length) return null;
-
-  // Use first available bookmaker (API returns by preference)
-  // h2h market
-  let homeMl = null, awayMl = null, drawMl = null;
-  let overUnder = null, overPrice = null, underPrice = null;
-  let bookmakerName = 'unknown';
-
-  for (const bk of bookmakers) {
-    const h2h = bk.markets?.find(m => m.key === 'h2h');
-    if (h2h && !homeMl) {
-      bookmakerName = bk.key;
-      for (const o of h2h.outcomes) {
-        if (o.name === event.home_team) homeMl = o.price;
-        else if (o.name === event.away_team) awayMl = o.price;
-        else if (o.name === 'Draw') drawMl = o.price;
-      }
-    }
-    const totals = bk.markets?.find(m => m.key === 'totals');
-    if (totals && !overUnder) {
-      for (const o of totals.outcomes) {
-        if (o.name === 'Over') { overUnder = o.point; overPrice = o.price; }
-        if (o.name === 'Under') { underPrice = o.price; }
-      }
-    }
-    if (homeMl && overUnder) break;  // Got both markets
+async function checkQuota() {
+  // /v4/sports is a 0-credit endpoint per spec — used only for header read.
+  const url = `${ODDS_API_BASE}/v4/sports?apiKey=${ODDS_KEY}`;
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throw new Error(`Odds API quota check failed: HTTP ${resp.status}`);
   }
+  return readQuotaHeaders(resp);
+}
 
-  if (!homeMl) return null;
+async function fetchHistoricalOdds(sportKey, isoDate) {
+  // Closing line proxy: snapshot at 23:59:00Z on the game's date.
+  const snap = `${isoDate}T23:59:00Z`;
+  const url  = `${ODDS_API_BASE}/v4/historical/sports/${encodeURIComponent(sportKey)}/odds`
+             + `?apiKey=${ODDS_KEY}`
+             + `&regions=us&markets=h2h,totals&dateFormat=iso&oddsFormat=decimal`
+             + `&date=${encodeURIComponent(snap)}`;
+  const resp = await fetch(url);
+  const quota = readQuotaHeaders(resp);
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '');
+    return { ok: false, status: resp.status, error: t.slice(0, 200), quota, data: null };
+  }
+  const data = await resp.json();
+  return { ok: true, status: 200, quota, data };
+}
 
+// ── Game-row → odds-row mapping ─────────────────────────────────────────────
+function pickConsensus(event) {
+  // Take the first bookmaker that carries an h2h market; pull totals from the
+  // same one when present. This matches the spec's "consensus odds from the
+  // first bookmaker with h2h market" rule.
+  const books = Array.isArray(event?.bookmakers) ? event.bookmakers : [];
+  for (const b of books) {
+    const markets = Array.isArray(b.markets) ? b.markets : [];
+    const h2h = markets.find(m => m.key === 'h2h');
+    if (!h2h) continue;
+    const totals = markets.find(m => m.key === 'totals');
+    return {
+      bookmaker: b.key || null,
+      snapshot_time: b.last_update || null,
+      h2h,
+      totals: totals || null,
+    };
+  }
+  return null;
+}
+
+function buildOddsRow(game, event, consensus, sportKey, isoDate) {
+  const homeOutcome = consensus.h2h.outcomes.find(o => normTeam(o.name) === normTeam(event.home_team));
+  const awayOutcome = consensus.h2h.outcomes.find(o => normTeam(o.name) === normTeam(event.away_team));
+  const drawOutcome = consensus.h2h.outcomes.find(o => /^draw$/i.test(o.name || ''));
+  const overOutcome  = consensus.totals?.outcomes?.find(o => /^over$/i.test(o.name  || ''));
+  const underOutcome = consensus.totals?.outcomes?.find(o => /^under$/i.test(o.name || ''));
   return {
-    home_team: event.home_team,
-    away_team: event.away_team,
-    commence_time: event.commence_time,
-    home_ml: homeMl,
-    away_ml: awayMl,
-    draw_ml: drawMl,
-    over_under: overUnder,
-    over_price: overPrice,
-    under_price: underPrice,
-    bookmaker: bookmakerName,
+    id: `${game.id}_${consensus.bookmaker || 'unknown'}_close`,
+    game_id:       game.id,
+    sport:         game.sport || sportKey,
+    date:          isoDate,
+    home_team:     event.home_team || null,
+    away_team:     event.away_team || null,
+    commence_time: event.commence_time || null,
+    home_ml: homeOutcome ? Number(homeOutcome.price) : null,
+    away_ml: awayOutcome ? Number(awayOutcome.price) : null,
+    draw_ml: drawOutcome ? Number(drawOutcome.price) : null,
+    over_under:  overOutcome  ? Number(overOutcome.point)  : (underOutcome ? Number(underOutcome.point) : null),
+    over_price:  overOutcome  ? Number(overOutcome.price)  : null,
+    under_price: underOutcome ? Number(underOutcome.price) : null,
+    bookmaker:     consensus.bookmaker,
+    snapshot_time: consensus.snapshot_time,
+    snapshot_type: 'close',
   };
 }
 
-// ── Write odds to D1 ───────────────────────────────────────────────────────
-async function writeOddsToD1(gameId, sport, date, odds, snapshotTime) {
-  const id = `odds_${sport}_${gameId}_${date}`;
-
-  if (DRY_RUN) {
-    console.log(`  [DRY RUN] Would write: ${id} | ${odds.home_team} vs ${odds.away_team} | ML: ${odds.home_ml}/${odds.away_ml} | O/U: ${odds.over_under}`);
-    return true;
+// ── Context Graph: list games for a date ────────────────────────────────────
+async function fetchGamesForDate(isoDate) {
+  const resp = await fetch(`${RELAY_BASE}/context/date/${isoDate}`);
+  if (!resp.ok) {
+    return { ok: false, status: resp.status, games: [] };
   }
-
-  const result = await d1Query(
-    `INSERT OR IGNORE INTO odds_history
-     (id, game_id, sport, date, home_team, away_team, commence_time,
-      home_ml, away_ml, draw_ml, over_under, over_price, under_price,
-      bookmaker, snapshot_time, snapshot_type)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'close')`,
-    [id, gameId, sport, date, odds.home_team, odds.away_team, odds.commence_time,
-     odds.home_ml, odds.away_ml, odds.draw_ml, odds.over_under,
-     odds.over_price, odds.under_price, odds.bookmaker, snapshotTime]
-  );
-
-  return !!result;
+  const ctx = await resp.json().catch(() => null);
+  if (!ctx || !ctx.games) return { ok: true, games: [] };
+  const reg = Array.isArray(ctx.games.regular)    ? ctx.games.regular    : [];
+  const pst = Array.isArray(ctx.games.postseason) ? ctx.games.postseason : [];
+  return { ok: true, games: [...reg, ...pst] };
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+// ── One date worth of work ──────────────────────────────────────────────────
+async function processDate(isoDate, remainingBudgetRef) {
+  if (remainingBudgetRef.value < PER_CALL_COST) {
+    return { date: isoDate, status: 'skipped_budget', games_processed: 0, credits_used: 0 };
+  }
+
+  const { ok: ctxOk, games } = await fetchGamesForDate(isoDate);
+  if (!ctxOk) {
+    return { date: isoDate, status: 'context_graph_failed', games_processed: 0, credits_used: 0 };
+  }
+  if (!games.length) {
+    await recordProgress(isoDate, 0, 0);
+    return { date: isoDate, status: 'no_games', games_processed: 0, credits_used: 0 };
+  }
+
+  // Skip rows whose sport doesn't map AND brief-style narrative/standings rows.
+  const candidates = games.filter(g => {
+    if (NON_GAME_BRIEF_TYPES.has(g.brief_type)) return false;
+    const key = SPORT_TO_ODDS_KEY[g.sport];
+    return !!key;
+  });
+  if (!candidates.length) {
+    await recordProgress(isoDate, 0, 0);
+    return { date: isoDate, status: 'no_mappable_sports', games_processed: 0, credits_used: 0 };
+  }
+
+  // Group games by sport so each /historical/sports/{sport}/odds call covers
+  // the whole sport-day at once (20 credits per sport).
+  const bySport = new Map();
+  for (const g of candidates) {
+    const k = SPORT_TO_ODDS_KEY[g.sport];
+    if (!bySport.has(k)) bySport.set(k, []);
+    bySport.get(k).push(g);
+  }
+
+  let games_processed = 0;
+  let credits_used    = 0;
+
+  for (const [sportKey, sportGames] of bySport) {
+    if (remainingBudgetRef.value < PER_CALL_COST) break;
+    await sleep(ODDS_API_DELAY_MS);
+    const res = await fetchHistoricalOdds(sportKey, isoDate);
+    credits_used    += PER_CALL_COST;
+    remainingBudgetRef.value -= PER_CALL_COST;
+    if (!res.ok) {
+      console.warn(`[odds-backfill] ${isoDate} ${sportKey}: HTTP ${res.status} ${res.error}`);
+      continue;
+    }
+    // The historical endpoint nests { timestamp, previous_timestamp, next_timestamp, data: [events…] }
+    const events = Array.isArray(res.data?.data) ? res.data.data
+                  : Array.isArray(res.data)      ? res.data
+                  : [];
+    // Match by team-name pair
+    for (const g of sportGames) {
+      const ev = events.find(e =>
+        (normTeam(e.home_team) === normTeam(g.home) && normTeam(e.away_team) === normTeam(g.away)) ||
+        (normTeam(e.home_team) === normTeam(g.away) && normTeam(e.away_team) === normTeam(g.home))
+      );
+      if (!ev) continue;
+      const consensus = pickConsensus(ev);
+      if (!consensus) continue;
+      try {
+        const row = buildOddsRow(g, ev, consensus, sportKey, isoDate);
+        await insertOddsRow(row);
+        games_processed++;
+      } catch (e) {
+        console.warn(`[odds-backfill] insert failed for ${g.id}: ${e.message}`);
+      }
+    }
+  }
+
+  await recordProgress(isoDate, games_processed, credits_used);
+  return { date: isoDate, status: 'ok', games_processed, credits_used };
+}
+
+// ── Main ────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('═══════════════════════════════════════════════════');
-  console.log('ODDS HISTORY BACKFILL');
-  console.log(`Credit cap: ${CREDIT_CAP} | Dry run: ${DRY_RUN}`);
-  console.log('═══════════════════════════════════════════════════');
+  console.log('[odds-backfill] start', new Date().toISOString());
 
+  // 1. Schema (idempotent).
   await ensureTables();
-  const dates = await getDatesToBackfill();
 
-  if (!dates.length) {
-    console.log('[DONE] All dates already backfilled');
+  // 2. Read global quota — this is the budget guard (Rule 78).
+  const { remaining, used } = await checkQuota();
+  const backfillBudget = Math.max(0, DAILY_CEILING - used);
+  console.log(`[odds-backfill] quota: remaining=${remaining}, used_today=${used}, daily_ceiling=${DAILY_CEILING}, backfill_budget=${backfillBudget}`);
+  if (backfillBudget < MIN_BUDGET) {
+    console.log(`[odds-backfill] insufficient budget (${backfillBudget} < ${MIN_BUDGET}); exiting clean`);
     return;
   }
 
-  let totalGames = 0;
-  let totalWritten = 0;
+  // 3. Compute the date list: oldest unprocessed first, up to yesterday.
+  const yesterday = new Date(Date.now() - 86400000);
+  const endIso = toIsoDate(yesterday);
+  const processed = await getProcessedDates();
+  const todo = [];
+  for (const iso of dateRange(BACKFILL_START_DATE, endIso)) {
+    if (!processed.has(iso)) todo.push(iso);
+  }
+  if (todo.length === 0) {
+    console.log(`[odds-backfill] all dates complete (${BACKFILL_START_DATE} → ${endIso})`);
+    return;
+  }
+  console.log(`[odds-backfill] ${todo.length} unprocessed date(s); oldest: ${todo[0]}, newest: ${todo[todo.length - 1]}`);
 
-  for (const date of dates) {
-    if (creditsUsed >= CREDIT_CAP) {
-      console.log(`\n[CAP] Credit cap reached (${creditsUsed}/${CREDIT_CAP}). Resuming tomorrow.`);
+  // 4. Walk dates oldest-first until budget exhausted.
+  const budgetRef = { value: backfillBudget };
+  let totalGames = 0, totalCredits = 0, datesDone = 0;
+  for (const iso of todo) {
+    if (budgetRef.value < PER_CALL_COST) {
+      console.log(`[odds-backfill] budget exhausted at ${iso}; stopping (used=${totalCredits})`);
       break;
     }
-
-    console.log(`\n── ${date} ──────────────────────────────`);
-
-    const games = await getGamesForDate(date);
-    if (!games.length) {
-      console.log(`  No mappable games for ${date}`);
-      // Still mark as processed so we don't retry
-      if (!DRY_RUN) {
-        await d1Query(
-          `INSERT OR IGNORE INTO odds_backfill_progress (date, games_processed, credits_used) VALUES (?, 0, 0)`,
-          [date]
-        );
-      }
-      continue;
-    }
-
-    // Group games by sport key to batch API calls
-    const bySport = {};
-    for (const g of games) {
-      if (!bySport[g.sportKey]) bySport[g.sportKey] = [];
-      bySport[g.sportKey].push(g);
-    }
-
-    let dateGames = 0;
-    let dateCredits = 0;
-
-    for (const [sportKey, sportGames] of Object.entries(bySport)) {
-      // Each historical call returns ALL events for that sport+date
-      // Cost: 10 credits per region(1) per market(2: h2h+totals) = 20 credits per sport-date
-      const estimatedCost = 20;  // 10 per market × 2 markets (h2h + totals)
-
-      if (creditsUsed + estimatedCost > CREDIT_CAP) {
-        console.log(`  [CAP] Skipping ${sportKey} — would exceed cap (${creditsUsed}+${estimatedCost} > ${CREDIT_CAP})`);
-        continue;
-      }
-
-      console.log(`  Fetching ${sportKey} (${sportGames.length} games, ~${estimatedCost} credits)...`);
-      const snapshot = await fetchHistoricalOdds(sportKey, date);
-      creditsUsed += estimatedCost;
-      dateCredits += estimatedCost;
-
-      if (!snapshot?.data) {
-        console.log(`  No data returned for ${sportKey}`);
-        continue;
-      }
-
-      const snapshotTime = snapshot.timestamp || `${date}T23:59:00Z`;
-      const events = snapshot.data || [];
-      console.log(`  ${events.length} events in snapshot`);
-
-      // Match Context Graph games to Odds API events
-      for (const game of sportGames) {
-        // Find matching event by team names (fuzzy)
-        const match = events.find(ev => {
-          const home = (ev.home_team || '').toLowerCase();
-          const away = (ev.away_team || '').toLowerCase();
-          // Context Graph game_ids vary — try matching by partial team name
-          const gid = (game.game_id || '').toLowerCase();
-          return gid.includes(home.split(' ').pop()) || gid.includes(away.split(' ').pop())
-            || home.includes(gid) || away.includes(gid);
-        });
-
-        if (!match) continue;
-
-        const odds = extractConsensusOdds(match);
-        if (!odds) continue;
-
-        const written = await writeOddsToD1(
-          game.game_id, game.sport, date, odds, snapshotTime
-        );
-        if (written) {
-          totalWritten++;
-          dateGames++;
-        }
-      }
-
-      // Rate limit: 100ms between API calls
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    totalGames += dateGames;
-
-    // Record progress
-    if (!DRY_RUN) {
-      await d1Query(
-        `INSERT OR REPLACE INTO odds_backfill_progress (date, games_processed, credits_used) VALUES (?, ?, ?)`,
-        [date, dateGames, dateCredits]
-      );
-    }
-    console.log(`  ✓ ${date}: ${dateGames} games, ${dateCredits} credits`);
+    const r = await processDate(iso, budgetRef);
+    console.log(`[odds-backfill] ${r.date}: ${r.status} games=${r.games_processed} credits=${r.credits_used}`);
+    totalGames   += r.games_processed;
+    totalCredits += r.credits_used;
+    datesDone    += (r.status === 'ok' || r.status === 'no_games' || r.status === 'no_mappable_sports') ? 1 : 0;
   }
 
-  console.log('\n═══════════════════════════════════════════════════');
-  console.log(`COMPLETE: ${totalWritten} games written, ${creditsUsed} credits used`);
-  console.log('═══════════════════════════════════════════════════');
+  console.log(`[odds-backfill] done: dates=${datesDone}/${todo.length} games=${totalGames} credits=${totalCredits}`);
 }
 
-main().catch(e => {
-  console.error('[FATAL]', e);
+main().catch(err => {
+  console.error('[odds-backfill] fatal:', err && err.stack || err);
   process.exit(1);
 });
