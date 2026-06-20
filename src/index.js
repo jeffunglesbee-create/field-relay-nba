@@ -1544,7 +1544,7 @@ async function writeWCResult(db, game, env) {
 
         const prompt = [
             `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
-            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+            `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
             `Include: key goalscorers with minutes, standout performances, what this means for the group.`,
             `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
             ``,
@@ -2746,7 +2746,7 @@ async function handleV2Games(url, env, ctx) {
 
                         const prompt = [
                             `Write a 2-3 sentence post-game brief for this NBA result.`,
-                            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+                            `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
                             `Include: key performers with stats, decisive run or moment, what this means for the standings or series.`,
                             `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
                             ``,
@@ -2835,7 +2835,7 @@ async function handleV2Games(url, env, ctx) {
 
                         const prompt = [
                             `Write a 2-3 sentence post-game brief for this NHL result.`,
-                            `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+                            `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
                             `Include: key goal scorers, goaltender performance, what this means for the series or standings.`,
                             `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
                             ``,
@@ -5089,7 +5089,7 @@ async function handleJournalismCycle(env) {
 
             const prompt = [
               `Write a 2-3 sentence recap of Round ${roundNum} at the ${evName}.`,
-              `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+              `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
               `Include: leader and their margin, any notable moves up/down the leaderboard, and the cut line if it's Round 2.`,
               `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
               ``,
