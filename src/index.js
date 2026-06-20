@@ -4937,6 +4937,12 @@ async function handleJournalismCycle(env) {
               sport,
               home: home?.team?.shortDisplayName || home?.team?.displayName || '',
               away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+              homeScore: home?.score ?? null,
+              awayScore: away?.score ?? null,
+              isFinal: comp?.status?.type?.completed === true,
+              venue: comp?.venue?.fullName || '',
+              eventId: String(ev.id || ''),
+              league: label,
             });
           }
         }
@@ -4944,6 +4950,47 @@ async function handleJournalismCycle(env) {
     }
 
     if (!gameLines.length) return {ok:false, reason:'no game lines from ESPN'};
+
+    // ── Archive catch-up: server-side gap-fill (Rule 68 case study) ───
+    // Games that went final while no client was watching have no GameDO
+    // archive row. This fills the gap every cron tick. ON CONFLICT in the
+    // /archive/game handler means: no row → INSERT, skeleton row → UPDATE
+    // scores, complete row → no-op via COALESCE.
+    let _catchupFilled = 0;
+    try {
+      const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+      for (const gm of gameMeta) {
+        if (!gm.isFinal || !gm.eventId) continue;
+        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
+        if (!shortId) continue;
+        const existing = await env.ARCHIVE_DB.prepare(
+          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+           UNION ALL
+           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           LIMIT 1`
+        ).bind(shortId, shortId).first().catch(() => null);
+        if (existing && existing.home_score !== null) continue;
+        await fetch(relayBase + '/archive/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            league: gm.league,
+            date: dateKey,
+            home: gm.home,
+            away: gm.away,
+            home_score: gm.homeScore,
+            away_score: gm.awayScore,
+            venue: gm.venue,
+            source_id: gm.eventId,
+          }),
+        }).catch(() => {});
+        _catchupFilled++;
+      }
+    } catch (_) { /* catch-up failure never breaks journalism */ }
+    if (_catchupFilled > 0) {
+      console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
+    }
 
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
@@ -6516,14 +6563,19 @@ export default {
                         }
                         if (briefText && briefText.length > 50) {
                             await ensureBriefsTable(env);
-                            const briefId = `game_recap_${sportKey}_${sid}`;
+                            // Brief type classification: presence of scores
+                            // distinguishes a true game recap from a pre-game
+                            // / narrative-only brief stored under the same
+                            // brief:game:* KV key shape.
+                            const briefType = (home_score !== null && home_score !== undefined) ? 'game_recap' : 'narrative_context';
+                            const briefId = `${briefType}_${sportKey}_${sid}`;
                             await env.ARCHIVE_DB.prepare(
                                 `INSERT INTO briefs
                                    (id, date, brief_type, sport, game_id, brief_text, source, word_count)
-                                 VALUES (?, ?, 'game_recap', ?, ?, ?, 'kv_capture', ?)
+                                 VALUES (?, ?, ?, ?, ?, ?, 'kv_capture', ?)
                                  ON CONFLICT(id) DO NOTHING`
                             ).bind(
-                                briefId, date, sportKey, sid, briefText,
+                                briefId, date, briefType, sportKey, sid, briefText,
                                 briefText.split(/\s+/).length
                             ).run();
                             briefCaptured = briefId;
