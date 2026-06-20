@@ -7821,7 +7821,10 @@ export default {
                         '/v2/golf/eventlog',
                         '/v2/golf/enriched',
                     ]);
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports'];
+                    // Context Graph API (2026-06-18) — both routes carry a
+                    // segment after the prefix (id or YYYY-MM-DD), so they
+                    // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
