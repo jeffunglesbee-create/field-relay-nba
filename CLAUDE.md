@@ -18,6 +18,8 @@ Cloudflare Workers relay for the FIELD Global Sports Intelligence PWA. Handles d
 
 ## Rules (non-negotiable)
 
+**PRIME DIRECTIVE: DO NOT RATIONALIZE (Rule 77 / NO-RATIONALIZE-A).** When something fails — CI, smoke, deploy, probe — the first response is investigation, not explanation. "That's expected because..." prevents investigation. Investigate first. Always. See jubilant-bassoon STANDARDS.md Rule 77 for full spec.
+
 ### Core principles
 1. **RELAY-IS-DUMB (Rule 47 / ADR-002)** — The relay performs arithmetic and classification ONLY. It NEVER computes drama scores, watch verdicts, interest levels, or editorial recommendations. It stores and serves facts. The browser does all intelligence. This is the single most important rule in this repo.
 2. **DO NOT INVENT** — Never fabricate data, stats, scores, or content.
