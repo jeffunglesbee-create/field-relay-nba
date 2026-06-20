@@ -85,6 +85,44 @@ import {
   logRequest as oauthLogRequest,
 } from './mcp-oauth.js';
 
+// ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
+// Single hardcoded repo target for all L5 tools and /repo/archive. The relay
+// is the sole credential holder (Rule 80 / CREDENTIAL-BOUNDARY-A): the PAT
+// never leaves the worker. Path allowlists below are the enforcement seam
+// for Rule 81 (WRITE-GATE-A) and Rule 83 (NO-EXFIL-A).
+const REPO_OWNER = 'jeffunglesbee-create';
+const REPO_NAME  = 'jubilant-bassoon';
+const REPO_API   = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+
+// READ_ALLOWLIST: prefixes (path.startsWith) that read_file / read_source /
+// read_lines may target. Keep narrow; expand only with an explicit prompt.
+const READ_ALLOWLIST = [
+    'index.html',
+    'src/',
+    'docs/',
+    'scripts/',
+    '.github/',
+    'CODE_MAP.json',
+    'HANDOFF.md',
+    'STANDARDS.md',
+    'README.md',
+    'CLAUDE.md',
+];
+// WRITE_ALLOWLIST: prefixes that commit_file may write to. Tighter than READ
+// because writes mutate production. HANDOFF.md is already covered by the
+// legacy write_handoff tool; included here so commit_file can replace it.
+const WRITE_ALLOWLIST = [
+    'docs/',
+    'HANDOFF.md',
+    'CODE_MAP.json',
+];
+function isPathAllowed(path, allowlist) {
+    if (typeof path !== 'string' || path.length === 0) return false;
+    if (path.includes('..')) return false;
+    if (path.startsWith('/')) return false;
+    return allowlist.some(prefix => path === prefix || path.startsWith(prefix));
+}
+
 // ── NBA CDN ────────────────────────────────────────────────────────────────
 const NBA_CDN_BASE  = 'https://cdn.nba.com/static/json';
 const NBA_CACHE_TTL = 30;
@@ -3652,6 +3690,53 @@ export default {
             return oauthDebugRecentRequests(request, env);
         }
 
+        // ── /repo/archive — HMAC-signed tarball proxy for L5 ────────────────
+        // Caller mints the URL via the MCP get_archive_url tool. Signature
+        // and expiry verified relay-side; the relay then forwards the request
+        // to GitHub's tarball endpoint using the relay-held PAT, so the PAT
+        // never leaves the worker (Rule 80 / CREDENTIAL-BOUNDARY-A).
+        if (pathname === '/repo/archive' && request.method === 'GET') {
+            const secret = env.FIELD_MCP_SECRET;
+            if (!secret) return new Response('FIELD_MCP_SECRET not configured', { status: 503, headers: CORS });
+            const ghToken = env.GITHUB_PAT;
+            if (!ghToken) return new Response('GITHUB_PAT not configured', { status: 503, headers: CORS });
+            const exp = parseInt(url.searchParams.get('exp') || '0', 10);
+            const sig = url.searchParams.get('sig') || '';
+            if (!exp || !sig) return new Response('Missing exp or sig', { status: 400, headers: CORS });
+            if (Math.floor(Date.now() / 1000) > exp) return new Response('Signed URL expired', { status: 403, headers: CORS });
+            const payload = `repo-archive:${exp}`;
+            const key = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(secret),
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign'],
+            );
+            const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+            const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+            if (sigHex !== sig) return new Response('Invalid signature', { status: 403, headers: CORS });
+            const tarR = await fetch(`${REPO_API}/tarball/main`, {
+                headers: {
+                    'Authorization': `Bearer ${ghToken}`,
+                    'User-Agent': 'field-relay-mcp',
+                    'Accept': 'application/vnd.github+json',
+                },
+                redirect: 'follow',
+            });
+            if (!tarR.ok) {
+                const txt = await tarR.text();
+                return new Response(`GitHub tarball failed: ${tarR.status} ${txt}`, { status: 502, headers: CORS });
+            }
+            return new Response(tarR.body, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/gzip',
+                    'Content-Disposition': `attachment; filename="${REPO_NAME}-main.tar.gz"`,
+                    'Access-Control-Allow-Origin': '*',
+                },
+            });
+        }
+
         // ── UserDO routes (June 11 2026) ──────────────────────────────────
         // /user/init   POST — create or verify UserDO for a given userId UUID
         // /user/state  GET  — return user state (watchHistory, seriesLedger, etc.)
@@ -5343,6 +5428,68 @@ export default {
                             required: [],
                         },
                     },
+                    // ── L5: Repo Source Access (FIELD Session Memory) ──
+                    {
+                        name: 'read_file',
+                        description: 'Read a single file from jubilant-bassoon main branch. Path must be in READ_ALLOWLIST (index.html, src/, docs/, scripts/, .github/, CODE_MAP.json, HANDOFF.md, STANDARDS.md, README.md, CLAUDE.md). Returns { path, sha, size, content } as JSON text.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                path: { type: 'string', description: 'Repo-relative path, e.g. "src/index.js" or "index.html"' },
+                            },
+                            required: ['path'],
+                        },
+                    },
+                    {
+                        name: 'read_source',
+                        description: 'Search jubilant-bassoon for a literal string and return matching files with sha and size. Use this before read_file when locating where a function/symbol lives. Limited to READ_ALLOWLIST paths.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                query: { type: 'string', description: 'Literal substring to search for, e.g. "function renderAll"' },
+                                max_results: { type: 'number', description: 'Max results to return (default 10, max 25)' },
+                            },
+                            required: ['query'],
+                        },
+                    },
+                    {
+                        name: 'read_lines',
+                        description: 'Read a line range of a single file (1-indexed, inclusive). Useful for cheap surgical reads when full file would blow context. Path must be in READ_ALLOWLIST.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                path:  { type: 'string', description: 'Repo-relative path' },
+                                start: { type: 'number', description: '1-indexed first line' },
+                                end:   { type: 'number', description: '1-indexed last line (inclusive)' },
+                            },
+                            required: ['path', 'start', 'end'],
+                        },
+                    },
+                    {
+                        name: 'commit_file',
+                        description: 'Replace one file in jubilant-bassoon and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json). Caller MUST pass parent_sha (the sha returned by read_file/read_source); a stale parent_sha is rejected to prevent blind overwrite. Commit message is auto-prefixed with [skip ci].',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                path: { type: 'string', description: 'Repo-relative path to overwrite' },
+                                content: { type: 'string', description: 'Full new file content (UTF-8)' },
+                                commit_message: { type: 'string', description: 'Commit message body; [skip ci] is added automatically' },
+                                parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path' },
+                            },
+                            required: ['path', 'content', 'commit_message', 'parent_sha'],
+                        },
+                    },
+                    {
+                        name: 'get_archive_url',
+                        description: 'Mint a time-limited HMAC-signed URL to download the jubilant-bassoon tarball via the relay (/repo/archive). The PAT never leaves the relay; the URL expires after ttl_seconds (default 300, max 900). Use this when a session needs to ingest the whole repo at once.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                ttl_seconds: { type: 'number', description: 'URL lifetime in seconds (default 300, max 900)' },
+                            },
+                            required: [],
+                        },
+                    },
                 ]}));
             }
 
@@ -5421,12 +5568,31 @@ export default {
                 // jubilant-bassoon). Tools deliberately hard-code repo + path —
                 // no path/repo input accepted from the caller, so a tool call
                 // cannot target index.html or any other repo/file.
-                const HANDOFF_API_BASE = 'https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon';
+                const HANDOFF_API_BASE = REPO_API;
                 const ghHeaders = (token) => ({
                     'Authorization': `Bearer ${token}`,
                     'User-Agent': 'field-relay-mcp',
                     'Accept': 'application/vnd.github+json',
                 });
+
+                // fetchRepoFile — shared GitHub Contents API GET for L5 read_*
+                // tools. Returns { ok:true, content, sha, size } on success,
+                // { ok:false, status, error } on failure. Caller is responsible
+                // for allowlist gating (isPathAllowed) before invoking.
+                const fetchRepoFile = async (token, path) => {
+                    const r = await fetch(`${REPO_API}/contents/${path}?ref=main`, { headers: ghHeaders(token) });
+                    if (!r.ok) {
+                        const txt = await r.text();
+                        return { ok: false, status: r.status, error: txt };
+                    }
+                    const data = await r.json();
+                    if (Array.isArray(data) || data.type !== 'file') {
+                        return { ok: false, status: 415, error: 'Path is a directory or non-file' };
+                    }
+                    const bytes = atob((data.content || '').replace(/\n/g, ''));
+                    const content = decodeURIComponent(escape(bytes));
+                    return { ok: true, content, sha: data.sha, size: data.size };
+                };
 
                 if (toolName === 'read_handoff') {
                     const ghToken = env.GITHUB_PAT;
@@ -5731,6 +5897,138 @@ export default {
                         bodyBytes: bodyText.length,
                         body: truncated,
                     }, null, 2)}]}));
+                }
+
+                // ── L5: read_file ──
+                if (toolName === 'read_file') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { path } = toolArgs;
+                    if (typeof path !== 'string') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path (string)'}], isError:true}));
+                    }
+                    if (!isPathAllowed(path, READ_ALLOWLIST)) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Path not in READ_ALLOWLIST: ${path}`}], isError:true}));
+                    }
+                    const f = await fetchRepoFile(ghToken, path);
+                    if (!f.ok) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub read failed: ${f.status} ${f.error}`}], isError:true}));
+                    }
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, sha:f.sha, size:f.size, content:f.content})}]}));
+                }
+
+                // ── L5: read_source ──
+                // GitHub Code Search API (literal). Filters results to
+                // READ_ALLOWLIST. Returns minimal hit info — sha + size only;
+                // caller follows up with read_file or read_lines.
+                if (toolName === 'read_source') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { query } = toolArgs;
+                    const maxResults = Math.min(toolArgs.max_results || 10, 25);
+                    if (typeof query !== 'string' || query.length === 0) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: query (non-empty string)'}], isError:true}));
+                    }
+                    const q = encodeURIComponent(`"${query}" repo:${REPO_OWNER}/${REPO_NAME}`);
+                    const r = await fetch(`https://api.github.com/search/code?q=${q}&per_page=${maxResults}`, {
+                        headers: { ...ghHeaders(ghToken), 'Accept': 'application/vnd.github.v3.text-match+json' },
+                    });
+                    if (!r.ok) {
+                        const txt = await r.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub search failed: ${r.status} ${txt}`}], isError:true}));
+                    }
+                    const data = await r.json();
+                    const hits = (data.items || [])
+                        .filter(it => isPathAllowed(it.path, READ_ALLOWLIST))
+                        .slice(0, maxResults)
+                        .map(it => ({ path: it.path, sha: it.sha, score: it.score }));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({query, total_count: data.total_count, hits})}]}));
+                }
+
+                // ── L5: read_lines ──
+                if (toolName === 'read_lines') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { path, start, end } = toolArgs;
+                    if (typeof path !== 'string' || typeof start !== 'number' || typeof end !== 'number') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path (string), start (number), end (number)'}], isError:true}));
+                    }
+                    if (!isPathAllowed(path, READ_ALLOWLIST)) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Path not in READ_ALLOWLIST: ${path}`}], isError:true}));
+                    }
+                    if (start < 1 || end < start) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'start must be >= 1 and end must be >= start'}], isError:true}));
+                    }
+                    const f = await fetchRepoFile(ghToken, path);
+                    if (!f.ok) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub read failed: ${f.status} ${f.error}`}], isError:true}));
+                    }
+                    const lines = f.content.split('\n');
+                    const slice = lines.slice(start - 1, end).join('\n');
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, sha:f.sha, start, end, total_lines: lines.length, content: slice})}]}));
+                }
+
+                // ── L5: commit_file ──
+                // Rule 81 (WRITE-GATE-A) + Rule 82 (ARCHIVE-FRESHNESS-A):
+                // parent_sha must match live HEAD for the file. GitHub Contents
+                // PUT enforces this when `sha` is supplied; relay double-checks
+                // explicitly so the error message is actionable.
+                if (toolName === 'commit_file') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { path, content, commit_message, parent_sha } = toolArgs;
+                    if (typeof path !== 'string' || typeof content !== 'string' || typeof commit_message !== 'string' || typeof parent_sha !== 'string') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path, content, commit_message, parent_sha (all strings)'}], isError:true}));
+                    }
+                    if (!isPathAllowed(path, WRITE_ALLOWLIST)) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Path not in WRITE_ALLOWLIST: ${path}`}], isError:true}));
+                    }
+                    const live = await fetchRepoFile(ghToken, path);
+                    if (!live.ok) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Live read failed: ${live.status} ${live.error}`}], isError:true}));
+                    }
+                    if (live.sha !== parent_sha) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Stale parent_sha: caller has ${parent_sha}, live is ${live.sha}. Re-read and retry.`}], isError:true}));
+                    }
+                    const utf8 = unescape(encodeURIComponent(content));
+                    const b64  = btoa(utf8);
+                    const msg  = commit_message.includes('[skip ci]') ? commit_message : `${commit_message} [skip ci]`;
+                    const putR = await fetch(`${REPO_API}/contents/${path}`, {
+                        method: 'PUT',
+                        headers: { ...ghHeaders(ghToken), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg, content: b64, sha: parent_sha, branch: 'main' }),
+                    });
+                    if (!putR.ok) {
+                        const txt = await putR.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub write failed: ${putR.status} ${txt}`}], isError:true}));
+                    }
+                    const putData = await putR.json();
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, commit: putData.commit.sha, message: msg, new_sha: putData.content.sha})}]}));
+                }
+
+                // ── L5: get_archive_url ──
+                // Rule 80 (CREDENTIAL-BOUNDARY-A): PAT never leaves the relay.
+                // We mint an HMAC-signed URL with an expiry; /repo/archive
+                // verifies the signature then proxies the tarball using the
+                // relay-held PAT. The signed URL itself is harmless if leaked
+                // after expiry.
+                if (toolName === 'get_archive_url') {
+                    const secret = env.FIELD_MCP_SECRET;
+                    if (!secret) return respond(jsonrpc2({content:[{type:'text',text:'FIELD_MCP_SECRET not configured on worker'}], isError:true}));
+                    const ttl = Math.min(toolArgs.ttl_seconds || 300, 900);
+                    const exp = Math.floor(Date.now() / 1000) + ttl;
+                    const payload = `repo-archive:${exp}`;
+                    const key = await crypto.subtle.importKey(
+                        'raw',
+                        new TextEncoder().encode(secret),
+                        { name: 'HMAC', hash: 'SHA-256' },
+                        false,
+                        ['sign'],
+                    );
+                    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+                    const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+                    const urlOut = `${url.origin}/repo/archive?exp=${exp}&sig=${sigHex}`;
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({url: urlOut, expires_at: exp, ttl_seconds: ttl})}]}));
                 }
 
                 return respond(jsonrpc2err(-32601, `Unknown tool: ${toolName}`));
