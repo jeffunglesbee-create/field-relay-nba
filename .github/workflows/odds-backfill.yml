@@ -1,0 +1,37 @@
+name: Odds History Backfill
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 6 AM ET daily
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD), default = earliest unbackfilled'
+        required: false
+      dry_run:
+        description: 'Dry run (true = log only, no writes)'
+        required: false
+        default: 'false'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    name: Backfill historical odds to D1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run backfill
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ODDS_API_KEY: de44fdf870b3a4b5ee9d46993b2e1038
+          D1_DATABASE_ID: cc49101c-0569-4d41-8e7a-be139cde4f26
+          RELAY_BASE: https://field-relay-nba.jeffunglesbee.workers.dev
+          DAILY_CREDIT_CAP: '2700'
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          START_DATE: ${{ github.event.inputs.start_date || '' }}
+        run: node .github/scripts/odds-backfill.js

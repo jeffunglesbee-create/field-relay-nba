@@ -6223,6 +6223,27 @@ export default {
                 { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // ── /odds/history — Historical odds from D1 backfill ──────────────────
+        if (pathname.startsWith('/odds/history/') && env.ARCHIVE_DB) {
+            const gameId = decodeURIComponent(pathname.slice('/odds/history/'.length));
+            if (!gameId) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing game_id' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const rows = await env.ARCHIVE_DB.prepare(
+                    `SELECT * FROM odds_history WHERE game_id = ? ORDER BY snapshot_time DESC`
+                ).bind(gameId).all();
+                return new Response(JSON.stringify({ ok: true, game_id: gameId, odds: rows.results || [] }), {
+                    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=3600' },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: true, game_id: gameId, odds: [], _note: 'odds_history table may not exist yet' }), {
+                    headers: { ...CORS, 'Content-Type': 'application/json' },
+                });
+            }
+        }
+
         // ── /archive/* — Game Archive D1 (June 15 2026) ───────────────────────────
         // Read-only endpoints backed by field-archive D1.
         // ADR-002: CLEAN — factual game data, no drama/interest scores.
