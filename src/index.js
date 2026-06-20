@@ -5841,6 +5841,58 @@ export default {
                                'Cache-Control': `public,max-age=${isFinal ? 300 : 60}` },
                 });
             }
+            if (pathname.startsWith('/context/date/')) {
+                const date = pathname.slice('/context/date/'.length);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const settled = await Promise.allSettled([
+                    env.ARCHIVE_DB.prepare(
+                        'SELECT * FROM regular_season_games WHERE date = ?'
+                    ).bind(date).all(),
+                    env.ARCHIVE_DB.prepare(
+                        'SELECT * FROM postseason_games WHERE date = ?'
+                    ).bind(date).all(),
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT * FROM briefs WHERE date = ? OR
+                         (brief_type IN ('narrative_context','standings_snapshot')
+                          AND date <= ?) ORDER BY brief_type, date DESC`
+                    ).bind(date, date).all(),
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT * FROM postseason_series WHERE series_key IN
+                         (SELECT DISTINCT series_key FROM postseason_games WHERE date = ?)`
+                    ).bind(date).all(),
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT brief_text, game_id, date FROM briefs
+                         WHERE brief_type = 'standings_snapshot' AND date <= ?
+                         ORDER BY date DESC LIMIT 12`
+                    ).bind(date).all(),
+                ]);
+                const [reg, ps, br, ser, st] = settled;
+                const _errors = [];
+                if (reg.status === 'rejected') _errors.push({ source: 'regular',    reason: String(reg.reason?.message || reg.reason) });
+                if (ps.status  === 'rejected') _errors.push({ source: 'postseason', reason: String(ps.reason?.message  || ps.reason)  });
+                if (br.status  === 'rejected') _errors.push({ source: 'briefs',     reason: String(br.reason?.message  || br.reason)  });
+                if (ser.status === 'rejected') _errors.push({ source: 'series',     reason: String(ser.reason?.message || ser.reason) });
+                if (st.status  === 'rejected') _errors.push({ source: 'standings',  reason: String(st.reason?.message  || st.reason)  });
+                const payload = {
+                    ok: true,
+                    date,
+                    games: {
+                        regular:    reg.status === 'fulfilled' ? (reg.value.results || []) : [],
+                        postseason: ps.status  === 'fulfilled' ? (ps.value.results  || []) : [],
+                    },
+                    briefs:    br.status  === 'fulfilled' ? (br.value.results  || []) : [],
+                    series:    ser.status === 'fulfilled' ? (ser.value.results || []) : [],
+                    standings: st.status  === 'fulfilled' ? (st.value.results  || []) : [],
+                    _errors:   _errors.length ? _errors : undefined,
+                };
+                return new Response(JSON.stringify(payload), {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': 'public,max-age=300' },
+                });
+            }
             return new Response(JSON.stringify({ ok: false, error: 'Context endpoint not found' }),
                 { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
