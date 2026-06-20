@@ -5490,6 +5490,58 @@ export default {
                             required: [],
                         },
                     },
+                    // ── L4: Codex (persistent operational knowledge) ──
+                    {
+                        name: 'codex_write',
+                        description: 'Upsert one codex entry in D1 (ARCHIVE_DB). Key is required and unique; existing entries are updated and updated_at is bumped. drive_refs is optional comma-separated Drive file IDs for L1.5 cross-reference.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                key: { type: 'string', description: 'Stable unique identifier, e.g. "rule-77-no-rationalize"' },
+                                category: { type: 'string', description: 'Category bucket, e.g. "rule", "endpoint", "decision", "incident"' },
+                                title: { type: 'string', description: 'Short human-readable title' },
+                                content: { type: 'string', description: 'Full body (markdown allowed)' },
+                                drive_refs: { type: 'string', description: 'Optional comma-separated Drive file IDs' },
+                            },
+                            required: ['key', 'category', 'title', 'content'],
+                        },
+                    },
+                    {
+                        name: 'codex_read',
+                        description: 'Read a single codex entry by key. Returns the row as JSON or { error } if not found.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                key: { type: 'string', description: 'Codex key to fetch' },
+                            },
+                            required: ['key'],
+                        },
+                    },
+                    {
+                        name: 'codex_search',
+                        description: 'Search codex entries by literal substring across title + content. Optionally filter by category. Returns up to max_results rows (default 10, max 50), newest first.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                query:       { type: 'string', description: 'Literal substring to match (LIKE %query%)' },
+                                category:    { type: 'string', description: 'Optional category filter' },
+                                max_results: { type: 'number', description: 'Default 10, max 50' },
+                            },
+                            required: ['query'],
+                        },
+                    },
+                    {
+                        name: 'codex_list',
+                        description: 'List codex entries (key, category, title, updated_at) — no full content. Optional category filter. Newest first.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                category:    { type: 'string', description: 'Optional category filter' },
+                                max_results: { type: 'number', description: 'Default 50, max 200' },
+                            },
+                            required: [],
+                        },
+                    },
                 ]}));
             }
 
@@ -6029,6 +6081,99 @@ export default {
                     const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
                     const urlOut = `${url.origin}/repo/archive?exp=${exp}&sig=${sigHex}`;
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({url: urlOut, expires_at: exp, ttl_seconds: ttl})}]}));
+                }
+
+                // ── L4: codex_write ──
+                // Single-row upsert. ON CONFLICT bumps updated_at so callers
+                // can sort by freshness. Binding is ARCHIVE_DB (spec footer
+                // authorizes binding-name substitution from FIELD_DB).
+                if (toolName === 'codex_write') {
+                    if (!env.ARCHIVE_DB) return respond(jsonrpc2({content:[{type:'text',text:'ARCHIVE_DB not bound on worker'}], isError:true}));
+                    const { key, category, title, content, drive_refs } = toolArgs;
+                    if (typeof key !== 'string' || typeof category !== 'string' || typeof title !== 'string' || typeof content !== 'string') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: key, category, title, content (all strings)'}], isError:true}));
+                    }
+                    try {
+                        await env.ARCHIVE_DB.prepare(`
+                            INSERT INTO codex (key, category, title, content, drive_refs, updated_at)
+                            VALUES (?, ?, ?, ?, ?, datetime('now'))
+                            ON CONFLICT(key) DO UPDATE SET
+                                category = excluded.category,
+                                title    = excluded.title,
+                                content  = excluded.content,
+                                drive_refs = excluded.drive_refs,
+                                updated_at = datetime('now')
+                        `).bind(key, category, title, content, drive_refs || null).run();
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:true, key, category, title})}]}));
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`codex_write failed: ${e.message}`}], isError:true}));
+                    }
+                }
+
+                // ── L4: codex_read ──
+                if (toolName === 'codex_read') {
+                    if (!env.ARCHIVE_DB) return respond(jsonrpc2({content:[{type:'text',text:'ARCHIVE_DB not bound on worker'}], isError:true}));
+                    const { key } = toolArgs;
+                    if (typeof key !== 'string') {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: key (string)'}], isError:true}));
+                    }
+                    try {
+                        const row = await env.ARCHIVE_DB.prepare(`SELECT key, category, title, content, drive_refs, created_at, updated_at FROM codex WHERE key = ?`).bind(key).first();
+                        if (!row) return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({error:'not_found', key})}]}));
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify(row)}]}));
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`codex_read failed: ${e.message}`}], isError:true}));
+                    }
+                }
+
+                // ── L4: codex_search ──
+                if (toolName === 'codex_search') {
+                    if (!env.ARCHIVE_DB) return respond(jsonrpc2({content:[{type:'text',text:'ARCHIVE_DB not bound on worker'}], isError:true}));
+                    const { query, category } = toolArgs;
+                    const maxResults = Math.min(toolArgs.max_results || 10, 50);
+                    if (typeof query !== 'string' || query.length === 0) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: query (non-empty string)'}], isError:true}));
+                    }
+                    const like = `%${query}%`;
+                    try {
+                        let stmt;
+                        if (typeof category === 'string' && category.length > 0) {
+                            stmt = env.ARCHIVE_DB.prepare(`
+                                SELECT key, category, title, content, drive_refs, updated_at FROM codex
+                                WHERE category = ? AND (title LIKE ? OR content LIKE ?)
+                                ORDER BY updated_at DESC LIMIT ?
+                            `).bind(category, like, like, maxResults);
+                        } else {
+                            stmt = env.ARCHIVE_DB.prepare(`
+                                SELECT key, category, title, content, drive_refs, updated_at FROM codex
+                                WHERE title LIKE ? OR content LIKE ?
+                                ORDER BY updated_at DESC LIMIT ?
+                            `).bind(like, like, maxResults);
+                        }
+                        const { results } = await stmt.all();
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({query, category: category || null, count: results.length, results})}]}));
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`codex_search failed: ${e.message}`}], isError:true}));
+                    }
+                }
+
+                // ── L4: codex_list ──
+                if (toolName === 'codex_list') {
+                    if (!env.ARCHIVE_DB) return respond(jsonrpc2({content:[{type:'text',text:'ARCHIVE_DB not bound on worker'}], isError:true}));
+                    const { category } = toolArgs;
+                    const maxResults = Math.min(toolArgs.max_results || 50, 200);
+                    try {
+                        let stmt;
+                        if (typeof category === 'string' && category.length > 0) {
+                            stmt = env.ARCHIVE_DB.prepare(`SELECT key, category, title, updated_at FROM codex WHERE category = ? ORDER BY updated_at DESC LIMIT ?`).bind(category, maxResults);
+                        } else {
+                            stmt = env.ARCHIVE_DB.prepare(`SELECT key, category, title, updated_at FROM codex ORDER BY updated_at DESC LIMIT ?`).bind(maxResults);
+                        }
+                        const { results } = await stmt.all();
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({category: category || null, count: results.length, results})}]}));
+                    } catch (e) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`codex_list failed: ${e.message}`}], isError:true}));
+                    }
                 }
 
                 return respond(jsonrpc2err(-32601, `Unknown tool: ${toolName}`));
