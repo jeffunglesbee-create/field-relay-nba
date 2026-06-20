@@ -9,7 +9,7 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
-const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase5', 'phase9', 'phase11'];
+const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase5', 'phase7', 'phase8', 'phase9', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
 
@@ -740,6 +740,281 @@ async function runPhase8QualityFeedback(env, date) {
     return { adjustments };
 }
 
+// ── Phase 6: Weekly Features (Monday gate) ─────────────────────────────────
+// The cron fires Monday 5 AM ET processing yesterday (= Sunday). Sunday
+// closes the FIELD week. All four sub-features run together; weekly AI
+// budget is 2 calls (6B Composite + 6C Contradiction), each elided when
+// data is insufficient.
+
+// 6A — Sport of the Week: per-sport drama totals over the trailing 7 days
+async function runPhase6ASportOfWeek(env, date) {
+    const since = addDays(date, -6); // inclusive 7-day window ending on `date`
+    const sportsRes = await env.ARCHIVE_DB.prepare(`
+        SELECT sport, COUNT(*) AS games,
+               SUM(CASE WHEN quality_score >= 130 THEN 1 ELSE 0 END) AS high_quality
+        FROM briefs
+        WHERE date >= ? AND date <= ? AND sport IS NOT NULL
+        GROUP BY sport
+        ORDER BY high_quality DESC, games DESC
+    `).bind(since, date).all();
+    const rows = sportsRes.results || [];
+
+    if (rows.length === 0) {
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'sport_of_week',
+            sport: null,
+            value: { winner: null, runnerUp: null, dramaTotal: 0, gamesPlayed: 0, degraded: true, summary: 'No brief activity this week.' },
+            briefText: null,
+        });
+        return { skipped: true };
+    }
+    const winner   = rows[0];
+    const runnerUp = rows[1] || null;
+    const summary  = runnerUp
+        ? `${winner.sport} (${winner.high_quality}/${winner.games} high-quality) edged ${runnerUp.sport} (${runnerUp.high_quality}/${runnerUp.games}).`
+        : `${winner.sport} (${winner.high_quality}/${winner.games} high-quality) was the only sport with brief activity this week.`;
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'sport_of_week',
+        sport: winner.sport,
+        value: {
+            winner: winner.sport,
+            dramaTotal: winner.high_quality,
+            gamesPlayed: winner.games,
+            runnerUp: runnerUp?.sport || null,
+            runnerUpDrama: runnerUp?.high_quality || 0,
+            summary,
+            allSports: rows,
+        },
+        briefText: summary,
+    });
+    return {};
+}
+
+// Take the first complete sentence of a brief (stops at the first . ! or ?
+// that's not part of an abbreviation). Used to seed the Composite Brief.
+function firstSentence(text) {
+    if (!text) return '';
+    const m = text.match(/^[\s\S]+?[.!?](?:\s|$)/);
+    return (m ? m[0] : text).trim();
+}
+
+// 6B — Composite Brief: top sentence per sport → AI blend → 60-80 words
+async function runPhase6BCompositeBrief(env, date) {
+    const since = addDays(date, -6);
+    const res = await env.ARCHIVE_DB.prepare(`
+        SELECT sport, brief_text, quality_score
+        FROM briefs
+        WHERE date >= ? AND date <= ? AND brief_text IS NOT NULL
+          AND quality_score IS NOT NULL AND sport IS NOT NULL
+        ORDER BY quality_score DESC
+    `).bind(since, date).all();
+
+    // Per-sport best brief — first occurrence of each sport from the DESC
+    // ordering is the highest-quality entry for that sport.
+    const bestPerSport = new Map();
+    for (const r of (res.results || [])) {
+        if (!bestPerSport.has(r.sport)) bestPerSport.set(r.sport, r);
+    }
+    if (bestPerSport.size < 2) {
+        const fallback = 'Not enough data for a weekly composite yet.';
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'composite_brief',
+            sport: null,
+            value: { sports_used: bestPerSport.size, degraded: true },
+            briefText: fallback,
+        });
+        return { aiCalls: 0, skipped: true };
+    }
+
+    const lines = [...bestPerSport.entries()]
+        .map(([sport, row]) => `${sport}: ${firstSentence(row.brief_text)}`)
+        .join('\n');
+    const prompt =
+        `Blend these sentences into one literary paragraph. V4 voice: warm, ` +
+        `wise, uplifting. 60-80 words. The week in sports, compressed.\n\n` +
+        `BEST LINES:\n${lines}`;
+    const prose = await callProxy(prompt, { maxTokens: 150 });
+    const briefText = prose || `Across ${bestPerSport.size} sports this week, the slate kept giving.`;
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'composite_brief',
+        sport: null,
+        value: {
+            sports_used: bestPerSport.size,
+            word_count: briefText.split(/\s+/).filter(Boolean).length,
+            sources: [...bestPerSport.keys()],
+        },
+        briefText,
+    });
+    return { aiCalls: prose ? 1 : 0 };
+}
+
+// 6C — Contradiction Finder: same team, opposite framings within 7 days
+// Team identity comes from briefs.game_id JOIN — far more reliable than
+// regex over prose. Positive/negative signal lists are conservative.
+const CONTRADICTION_POSITIVE = ['dominant','clicking','rolling','impressive','commanding','convincing','locked in','peaking'];
+const CONTRADICTION_NEGATIVE = ['struggling','fading','shaky','sloppy','flat','lifeless','overwhelmed','outclassed'];
+function classifyFraming(text) {
+    if (!text) return { pos: false, neg: false };
+    const lower = text.toLowerCase();
+    return {
+        pos: CONTRADICTION_POSITIVE.some(w => lower.includes(w)),
+        neg: CONTRADICTION_NEGATIVE.some(w => lower.includes(w)),
+    };
+}
+
+async function runPhase6CContradiction(env, date) {
+    const since = addDays(date, -6);
+    const [regRes, psRes] = await Promise.allSettled([
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.brief_text, g.home, g.away
+            FROM briefs b JOIN regular_season_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
+            ORDER BY b.date ASC
+        `).bind(since, date).all(),
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.brief_text, g.home, g.away
+            FROM briefs b JOIN postseason_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
+            ORDER BY b.date ASC
+        `).bind(since, date).all(),
+    ]);
+    const rows = []
+        .concat(regRes.status === 'fulfilled' ? (regRes.value.results || []) : [])
+        .concat(psRes.status  === 'fulfilled' ? (psRes.value.results  || []) : []);
+
+    const perTeam = new Map(); // team -> [{date, text, pos, neg}]
+    for (const r of rows) {
+        const framing = classifyFraming(r.brief_text);
+        if (!framing.pos && !framing.neg) continue;
+        for (const team of [r.home, r.away]) {
+            if (!team) continue;
+            if (!perTeam.has(team)) perTeam.set(team, []);
+            perTeam.get(team).push({ date: r.date, text: r.brief_text, ...framing });
+        }
+    }
+
+    const contradictions = [];
+    for (const [team, items] of perTeam) {
+        const posItems = items.filter(i => i.pos);
+        const negItems = items.filter(i => i.neg);
+        if (!posItems.length || !negItems.length) continue;
+        // Pick the most recent pair.
+        posItems.sort((a, b) => b.date.localeCompare(a.date));
+        negItems.sort((a, b) => b.date.localeCompare(a.date));
+        contradictions.push({
+            team,
+            positive_date: posItems[0].date,
+            negative_date: negItems[0].date,
+            positive_quote: firstSentence(posItems[0].text),
+            negative_quote: firstSentence(negItems[0].text),
+        });
+    }
+
+    if (contradictions.length === 0) {
+        console.log('[ANALYTICS] Phase 6C: no contradictions detected');
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'contradiction',
+            sport: null,
+            value: { contradictions: [], degraded: false },
+            briefText: null,
+        });
+        return { aiCalls: 0, skipped: true };
+    }
+
+    // Single AI call for the top contradiction (most recent by negative_date).
+    contradictions.sort((a, b) => b.negative_date.localeCompare(a.negative_date));
+    const top = contradictions[0];
+    const prompt =
+        `FIELD said "${top.positive_quote}" on ${top.positive_date} and ` +
+        `"${top.negative_quote}" on ${top.negative_date} about ${top.team}. ` +
+        `Write one sentence acknowledging this with warm self-awareness. V4 voice.`;
+    const line = await callProxy(prompt, { maxTokens: 80 });
+    const briefText = line || `About ${top.team}: we said opposite things this week. Both were true at the time.`;
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'contradiction',
+        sport: null,
+        value: { contradictions, top },
+        briefText,
+    });
+    return { aiCalls: line ? 1 : 0 };
+}
+
+// 6D — Broken Record: detect 4-grams repeated 3+ times for the same team
+function fourGrams(text) {
+    const tokens = text.toLowerCase().replace(/[^a-z0-9\s]+/g, ' ').split(/\s+/).filter(Boolean);
+    const grams = [];
+    for (let i = 0; i + 4 <= tokens.length; i++) {
+        grams.push(tokens.slice(i, i + 4).join(' '));
+    }
+    return grams;
+}
+
+async function runPhase6DBrokenRecord(env, date) {
+    const since = addDays(date, -13); // 14-day window per spec
+    const [regRes, psRes] = await Promise.allSettled([
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.brief_text, g.home, g.away
+            FROM briefs b JOIN regular_season_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
+        `).bind(since, date).all(),
+        env.ARCHIVE_DB.prepare(`
+            SELECT b.date, b.brief_text, g.home, g.away
+            FROM briefs b JOIN postseason_games g ON b.game_id = g.id
+            WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
+        `).bind(since, date).all(),
+    ]);
+    const rows = []
+        .concat(regRes.status === 'fulfilled' ? (regRes.value.results || []) : [])
+        .concat(psRes.status  === 'fulfilled' ? (psRes.value.results  || []) : []);
+
+    // teamGrams: team -> Map<gram, [dates]>
+    const teamGrams = new Map();
+    for (const r of rows) {
+        const grams = fourGrams(r.brief_text);
+        for (const team of [r.home, r.away]) {
+            if (!team) continue;
+            if (!teamGrams.has(team)) teamGrams.set(team, new Map());
+            const m = teamGrams.get(team);
+            // Dedup grams per brief — a gram repeating within one brief
+            // doesn't count toward the cross-brief 3+ threshold.
+            for (const g of new Set(grams)) {
+                if (!m.has(g)) m.set(g, []);
+                m.get(g).push(r.date);
+            }
+        }
+    }
+
+    const records = [];
+    for (const [team, gramMap] of teamGrams) {
+        for (const [gram, dates] of gramMap) {
+            // Filter out common sport-domain stop-grams to keep signal high.
+            if (/^(the|in the|on the|at the|to the)\b/.test(gram)) continue;
+            if (dates.length >= 3) {
+                records.push({ team, phrase: gram, occurrences: dates.length, dates });
+            }
+        }
+    }
+    records.sort((a, b) => b.occurrences - a.occurrences);
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'broken_record',
+        sport: null,
+        value: { records, lookback_days: 14 },
+        briefText: null,
+    });
+    return {};
+}
+
 // Process one date end-to-end. Returns the status record for this date.
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
@@ -857,6 +1132,37 @@ async function processDate(env, date, { selfHealed }) {
         } catch (e) {
             phasesFailed.push('phase8');
             errors.push(`phase8: ${e.message}`);
+        }
+
+        // Phase 6: Weekly features — only when processing Sunday's date
+        // (i.e. the Monday-morning cron tick). UTCDay 0 = Sunday. Each of
+        // 6A-D is independently try/catch wrapped.
+        const processingDay = new Date(date + 'T00:00:00Z').getUTCDay();
+        if (processingDay === 0) {
+            try {
+                const r = await runPhase6ASportOfWeek(env, date);
+                if (!r.skipped) featuresComputed++;
+                phasesCompleted.push('phase6a');
+            } catch (e) { phasesFailed.push('phase6a'); errors.push(`phase6a: ${e.message}`); }
+            try {
+                const r = await runPhase6BCompositeBrief(env, date);
+                aiCallsMade += r.aiCalls;
+                if (!r.skipped) featuresComputed++;
+                phasesCompleted.push('phase6b');
+            } catch (e) { phasesFailed.push('phase6b'); errors.push(`phase6b: ${e.message}`); }
+            try {
+                const r = await runPhase6CContradiction(env, date);
+                aiCallsMade += r.aiCalls;
+                if (!r.skipped) featuresComputed++;
+                phasesCompleted.push('phase6c');
+            } catch (e) { phasesFailed.push('phase6c'); errors.push(`phase6c: ${e.message}`); }
+            try {
+                await runPhase6DBrokenRecord(env, date);
+                featuresComputed++;
+                phasesCompleted.push('phase6d');
+            } catch (e) { phasesFailed.push('phase6d'); errors.push(`phase6d: ${e.message}`); }
+        } else {
+            console.log(`[ANALYTICS] Phase 6 skipped: ${date} is not Sunday (UTCDay=${processingDay})`);
         }
 
         // Touch unused locals — they exist for downstream prompts.
