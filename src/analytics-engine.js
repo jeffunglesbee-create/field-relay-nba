@@ -9,7 +9,7 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
-const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
+const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
 
@@ -1118,6 +1118,140 @@ async function runPhase4Jinx(env, date, ctx) {
     return {};
 }
 
+// ── Phase 10: Circadian Pre-computation ────────────────────────────────────
+// 10A: PREVIEW (today's slate, AI call) + 10B: LATE (reuses Morning Report
+// prose, no AI call). Both stored in KV (24h TTL) and analytics_output.
+//
+// Budget note (per spec): on Mondays the engine could fire 6 AI calls
+// (4 nightly + Phase 6B + Phase 6C) which exceeds the 5-call ceiling.
+// Phase 10A gates itself on `aiCallsMade` already-spent; when the budget
+// is exhausted it writes the fallback line.
+const CIRCADIAN_KV_TTL_SECS = 60 * 60 * 24;
+const AI_BUDGET_CEILING = 5;
+
+async function runPhase10APreview(env, today, { aiCallsSoFar = 0 } = {}) {
+    const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    const settled = await Promise.allSettled(PHASE9_SPORTS.map(s =>
+        fetch(`${relayBase}/v2/games?sport=${s}&date=${today}`, { cf: { cacheTtl: 60, cacheEverything: true } })
+            .then(r => r.ok ? r.json() : null)
+            .then(j => (j && Array.isArray(j.games)) ? j.games : [])));
+    const candidates = [];
+    for (const s of settled) {
+        if (s.status === 'fulfilled' && Array.isArray(s.value)) candidates.push(...s.value);
+    }
+    const games = candidates;
+
+    // Today's pick (Phase 9 wrote analytics_output(feature='field_pick',date=today))
+    let pickRow = null;
+    try {
+        pickRow = await env.ARCHIVE_DB.prepare(`
+            SELECT value, brief_text FROM analytics_output
+            WHERE feature = 'field_pick' AND date = ? LIMIT 1
+        `).bind(today).first();
+    } catch (_) { /* analytics_output may be empty on first run */ }
+    let pickSummary = 'no pick tonight';
+    if (pickRow) {
+        try {
+            const v = JSON.parse(pickRow.value);
+            if (v.type === 'pass') pickSummary = 'FIELD passed tonight';
+            else pickSummary = `${v.home} vs ${v.away} (${v.sport || '?'}) — ${(v.reasons || []).join(', ') || 'top score'}`;
+        } catch (_) { /* leave default */ }
+    }
+
+    if (games.length === 0) {
+        const fallback = `Off night. Rest up — tomorrow's slate has more.`;
+        try {
+            if (env.FIELD_JOURNALISM) {
+                await env.FIELD_JOURNALISM.put(`field:circadian:preview:${today}`, fallback, { expirationTtl: CIRCADIAN_KV_TTL_SECS });
+            }
+        } catch (e) { console.error('[ANALYTICS] circadian_preview KV put failed:', e.message); }
+        await writeAnalyticsOutput(env, {
+            date: today,
+            feature: 'circadian_preview',
+            sport: null,
+            value: { games_today: 0, degraded: true },
+            briefText: fallback,
+        });
+        return { aiCalls: 0 };
+    }
+
+    if (aiCallsSoFar >= AI_BUDGET_CEILING) {
+        const fallback = `${games.length} games tonight. ${pickSummary}.`;
+        try {
+            if (env.FIELD_JOURNALISM) {
+                await env.FIELD_JOURNALISM.put(`field:circadian:preview:${today}`, fallback, { expirationTtl: CIRCADIAN_KV_TTL_SECS });
+            }
+        } catch (e) { console.error('[ANALYTICS] circadian_preview KV put failed:', e.message); }
+        await writeAnalyticsOutput(env, {
+            date: today,
+            feature: 'circadian_preview',
+            sport: null,
+            value: { games_today: games.length, budget_capped: true },
+            briefText: fallback,
+        });
+        return { aiCalls: 0 };
+    }
+
+    const schedule = games
+        .slice(0, 16)
+        .map(g => {
+            const start = g.commence || g.start || g.kickoff || g.startTime || '';
+            const t = start ? new Date(start).toISOString().slice(11, 16) + ' UTC' : '';
+            return `- ${g.sport || '?'}: ${g.home?.name || g.home} vs ${g.away?.name || g.away}${t ? ' @ ' + t : ''}`;
+        })
+        .join('\n');
+
+    const prompt =
+        `Write a 2-sentence preview of tonight's slate. V4 voice, WISE register ` +
+        `leads. What should the viewer know before first pitch?\n\n` +
+        `TONIGHT'S SCHEDULE:\n${schedule}\n\n` +
+        `FIELD'S PICK: ${pickSummary}\n\n` +
+        `Do NOT list all games. Highlight the 1-2 most interesting. ` +
+        `The truth is the fun part. Let it be fun.`;
+    const prose = await callProxy(prompt, { maxTokens: 120 });
+    const briefText = prose || `${games.length} games on the slate. ${pickSummary}.`;
+
+    try {
+        if (env.FIELD_JOURNALISM) {
+            await env.FIELD_JOURNALISM.put(`field:circadian:preview:${today}`, briefText, { expirationTtl: CIRCADIAN_KV_TTL_SECS });
+        }
+    } catch (e) { console.error('[ANALYTICS] circadian_preview KV put failed:', e.message); }
+
+    await writeAnalyticsOutput(env, {
+        date: today,
+        feature: 'circadian_preview',
+        sport: null,
+        value: { games_today: games.length, word_count: briefText.split(/\s+/).filter(Boolean).length },
+        briefText,
+    });
+    return { aiCalls: prose ? 1 : 0 };
+}
+
+// 10B: reuse Morning Report prose; no additional AI call.
+async function runPhase10BLate(env, date) {
+    const mr = await env.ARCHIVE_DB.prepare(`
+        SELECT brief_text FROM analytics_output
+        WHERE feature = 'morning_report' AND date = ? LIMIT 1
+    `).bind(date).first();
+    if (!mr || !mr.brief_text) {
+        console.log(`[ANALYTICS] Phase 10B skipped: no morning_report for ${date}`);
+        return { skipped: true };
+    }
+    try {
+        if (env.FIELD_JOURNALISM) {
+            await env.FIELD_JOURNALISM.put(`field:circadian:late:${date}`, mr.brief_text, { expirationTtl: CIRCADIAN_KV_TTL_SECS });
+        }
+    } catch (e) { console.error('[ANALYTICS] circadian_late KV put failed:', e.message); }
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'circadian_late',
+        sport: null,
+        value: { sourced_from: 'morning_report', word_count: mr.brief_text.split(/\s+/).filter(Boolean).length },
+        briefText: mr.brief_text,
+    });
+    return {};
+}
+
 // Process one date end-to-end. Returns the status record for this date.
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
@@ -1216,8 +1350,8 @@ async function processDate(env, date, { selfHealed }) {
         // Phase 9: FIELD's Pick — TODAY's recommended game
         // Uses today's schedule (not the `date` we're processing — which is
         // yesterday by default). Independent from Phases 1-5.
+        const today = isoDate(new Date());
         try {
-            const today = isoDate(new Date());
             const r = await runPhase9FieldPick(env, today);
             aiCallsMade += r.aiCalls;
             if (!r.skipped) featuresComputed++;
@@ -1225,6 +1359,25 @@ async function processDate(env, date, { selfHealed }) {
         } catch (e) {
             phasesFailed.push('phase9');
             errors.push(`phase9: ${e.message}`);
+        }
+
+        // Phase 10: Circadian Pre-computation (today's preview + late-mode)
+        try {
+            const r = await runPhase10APreview(env, today, { aiCallsSoFar: aiCallsMade });
+            aiCallsMade += r.aiCalls;
+            featuresComputed++;
+            phasesCompleted.push('phase10a');
+        } catch (e) {
+            phasesFailed.push('phase10a');
+            errors.push(`phase10a: ${e.message}`);
+        }
+        try {
+            const r = await runPhase10BLate(env, date);
+            if (!r.skipped) featuresComputed++;
+            phasesCompleted.push('phase10b');
+        } catch (e) {
+            phasesFailed.push('phase10b');
+            errors.push(`phase10b: ${e.message}`);
         }
 
         // Phase 7: Streak Board — hot/cold runs over last 14 days of briefs
