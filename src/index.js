@@ -6083,6 +6083,123 @@ export default {
                 }
             }
 
+            // POST /archive/backfill-enrich — fills in skeleton rows (home IS NULL)
+            // created by older GameDO archives that didn't forward team names.
+            // For each null-home row: groups by (sport, date), self-fetches
+            // /v2/games for that group, matches V2 ids against the row's id
+            // (V2 ids are prefixed like 'football:123'; the row id either IS that
+            // V2 id or carries it as the {source_id} segment in the synthesized
+            // archive id `{sport}_{date}_src{shortify(source_id)}`).
+            //
+            // Hard limit: 50 rows per call to stay inside the 30ms CPU budget.
+            // Failure modes degrade gracefully — bad V2 response, no match,
+            // UPDATE error — each row reports via _errors and counts toward
+            // `skipped`, never aborts the batch (spec).
+            if (pathname === '/archive/backfill-enrich' && request.method === 'POST') {
+                const _errors = [];
+                let regResult, psResult;
+                try {
+                    regResult = await env.ARCHIVE_DB.prepare(
+                        `SELECT id, sport, date FROM regular_season_games
+                          WHERE home IS NULL LIMIT 50`
+                    ).all();
+                } catch (e) { _errors.push({ source: 'regular_query', error: e.message }); }
+                try {
+                    psResult = await env.ARCHIVE_DB.prepare(
+                        `SELECT id, sport, date FROM postseason_games
+                          WHERE home IS NULL LIMIT 50`
+                    ).all();
+                } catch (e) { _errors.push({ source: 'postseason_query', error: e.message }); }
+
+                const rowsAll = [
+                    ...((regResult?.results || []).map(r => ({ ...r, _table: 'regular_season_games' }))),
+                    ...((psResult?.results  || []).map(r => ({ ...r, _table: 'postseason_games'    }))),
+                ];
+                const rows = rowsAll.slice(0, 50);
+
+                // Group by (sport, date) to minimize V2 round-trips.
+                const groups = new Map();
+                for (const r of rows) {
+                    const key = `${r.sport}|${r.date}`;
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key).push(r);
+                }
+
+                const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+                const _stripPrefix = s => String(s || '').toLowerCase().replace(/^[a-z]+:/, '');
+                const _shortify    = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                let enriched = 0, skipped = 0;
+
+                for (const [groupKey, groupRows] of groups) {
+                    const [sport, date] = groupKey.split('|');
+                    let games = [];
+                    try {
+                        const v2Url = `${relayBase}/v2/games?sport=${encodeURIComponent(String(sport).toLowerCase())}&date=${encodeURIComponent(date)}`;
+                        const resp = await fetch(v2Url, { cf: { cacheTtl: 60 } });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            games = Array.isArray(data?.games) ? data.games : [];
+                        }
+                    } catch (_) { /* V2 unreachable for this group — skip silently */ }
+
+                    if (!games.length) { skipped += groupRows.length; continue; }
+
+                    for (const row of groupRows) {
+                        const rowIdLow = String(row.id).toLowerCase();
+                        // Extract source_id from the synthesized id pattern, if present.
+                        const srcMatch = rowIdLow.match(/_src([a-z0-9]+)$/);
+                        const srcId    = srcMatch ? srcMatch[1] : null;
+                        const match = games.find(g => {
+                            const gidShort = _shortify(_stripPrefix(g.id));
+                            // Three match strategies:
+                            //   1. row id directly contains the V2 id
+                            //   2. extracted srcId matches the V2 id
+                            //   3. row id IS the V2 id (some archives pre-date the prefix scheme)
+                            if (srcId && gidShort === srcId) return true;
+                            if (rowIdLow.includes(_stripPrefix(g.id))) return true;
+                            if (rowIdLow === _stripPrefix(g.id)) return true;
+                            return false;
+                        });
+                        if (!match) { skipped++; continue; }
+
+                        const home   = match?.home?.name || null;
+                        const away   = match?.away?.name || null;
+                        const venue  = match?.venue       || null;
+                        const league = match?.league      || null;
+                        if (!home && !away) { skipped++; continue; }
+
+                        // Gate the table name to the two known values (the variable
+                        // is set by this handler, but the SQL interpolation requires
+                        // a static allowlist to be unambiguously safe).
+                        const tbl = row._table === 'postseason_games' ? 'postseason_games'
+                                  : row._table === 'regular_season_games' ? 'regular_season_games'
+                                  : null;
+                        if (!tbl) { skipped++; continue; }
+                        try {
+                            await env.ARCHIVE_DB.prepare(
+                                `UPDATE ${tbl} SET
+                                   home   = COALESCE(home,   ?),
+                                   away   = COALESCE(away,   ?),
+                                   venue  = COALESCE(venue,  ?),
+                                   league = COALESCE(league, ?)
+                                 WHERE id = ?`
+                            ).bind(home, away, venue, league, row.id).run();
+                            enriched++;
+                        } catch (e) {
+                            _errors.push({ id: row.id, error: e.message });
+                            skipped++;
+                        }
+                    }
+                }
+                return new Response(JSON.stringify({
+                    ok: true,
+                    processed: rows.length,
+                    enriched,
+                    skipped,
+                    _errors: _errors.length ? _errors : undefined,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             // POST /archive/game — receives game data (typically from GameDO
             // on final-state transition) and writes to the appropriate archive
             // table. Classification rule: series_key present → postseason_games,
