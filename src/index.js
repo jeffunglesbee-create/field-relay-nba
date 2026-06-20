@@ -6939,6 +6939,40 @@ export default {
             return relayFetch(targetUrl, { 'x-apisports-key': apiKey, 'Accept': 'application/json' }, apiSportsTtl(cleanPath), 'apisports', ctx);
         }
 
+        // /odds/history/:game_id — D1-backed historical odds query (June 20 2026).
+        // Reads from the odds_history table populated by the daily
+        // .github/workflows/odds-backfill.yml job. Returns all snapshots for
+        // a game (typically one 'close' row per bookmaker) ordered by capture
+        // time. Match MUST come before the /odds/* passthrough below.
+        if (pathname.startsWith('/odds/history/')) {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const gameId = decodeURIComponent(pathname.slice('/odds/history/'.length));
+            if (!gameId) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing game_id' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const r = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, game_id, sport, date, home_team, away_team, commence_time,
+                            home_ml, away_ml, draw_ml, over_under, over_price, under_price,
+                            bookmaker, snapshot_time, snapshot_type, created_at
+                     FROM odds_history
+                     WHERE game_id = ?
+                     ORDER BY snapshot_time ASC, created_at ASC`
+                ).bind(gameId).all();
+                return new Response(JSON.stringify({
+                    ok: true, game_id: gameId, odds: r.results || [],
+                }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                                 'Cache-Control': 'public, max-age=3600' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /odds/* → api.the-odds-api.com (apiKey injected server-side)
         if (pathname.startsWith('/odds')) {
             const cleanPath = pathname.replace(/^\/odds/, '') || '/';

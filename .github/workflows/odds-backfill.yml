@@ -1,37 +1,32 @@
-name: Odds History Backfill
+name: Odds Historical Backfill
 on:
   schedule:
-    - cron: '0 10 * * *'   # 6 AM ET daily
+    # 10:00 UTC daily (6 AM ET). Picks the oldest unprocessed date and walks
+    # forward until the shared 2,700 credit/day ceiling is hit.
+    - cron: '0 10 * * *'
+  # Kept input-less so manual triggers stay one-click. The script is
+  # fully self-managing — it reads progress from D1 and discovers what
+  # to do without any external arg.
   workflow_dispatch:
-    inputs:
-      start_date:
-        description: 'Start date (YYYY-MM-DD), default = earliest unbackfilled'
-        required: false
-      dry_run:
-        description: 'Dry run (true = log only, no writes)'
-        required: false
-        default: 'false'
+
+permissions:
+  contents: read
 
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    name: Backfill historical odds to D1
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Run backfill
+      - name: Run odds backfill
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          ODDS_API_KEY: de44fdf870b3a4b5ee9d46993b2e1038
-          D1_DATABASE_ID: cc49101c-0569-4d41-8e7a-be139cde4f26
-          RELAY_BASE: https://field-relay-nba.jeffunglesbee.workers.dev
-          DAILY_CREDIT_CAP: '2700'
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-          START_DATE: ${{ github.event.inputs.start_date || '' }}
+          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ODDS_API_KEY:          ${{ secrets.ODDS_API_KEY || 'de44fdf870b3a4b5ee9d46993b2e1038' }}
+          D1_DATABASE_ID:        ${{ secrets.D1_DATABASE_ID || 'cc49101c-0569-4d41-8e7a-be139cde4f26' }}
+          RELAY_BASE:            ${{ secrets.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev' }}
         run: node .github/scripts/odds-backfill.js
