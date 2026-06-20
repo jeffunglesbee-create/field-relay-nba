@@ -7238,8 +7238,17 @@ export default {
             return new Response(JSON.stringify({ ok: true, status }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
-        if (pathname === '/analytics/run' && request.method === 'POST') {
-            const body = await request.json().catch(() => ({}));
+        if (pathname === '/analytics/run' && (request.method === 'POST' || request.method === 'GET')) {
+            // GET form supports ?date=YYYY-MM-DD; POST accepts a JSON body
+            // with {date}. GET also lets probe_relay_route hit it for in-
+            // sandbox verification (sandbox cannot POST to *.workers.dev).
+            let body = {};
+            if (request.method === 'POST') {
+                body = await request.json().catch(() => ({}));
+            } else {
+                const qDate = url.searchParams.get('date');
+                if (qDate) body = { date: qDate };
+            }
             const result = await analyticsEngine(env, body || {});
             return new Response(JSON.stringify({ triggered: 'analytics-engine', result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
