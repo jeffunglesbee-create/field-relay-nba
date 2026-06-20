@@ -5038,8 +5038,92 @@ async function handleJournalismCycle(env) {
     // the slate prompt. Uses handleESPNGolfScoreboard (same as /v2/golf/enriched).
     // Enhancement — wrapped per Rule 5.
     let golfContext = '';
-    try { golfContext = await buildGolfCronContext(espnDate, env); }
+    let golfData = null;
+    try {
+      golfData = await handleESPNGolfScoreboard(espnDate, env, {});
+      if (golfData && golfData.active !== false) {
+        const evName = golfData.eventName || golfData.name || 'PGA Tour event';
+        const round = golfData.round ? `Round ${golfData.round}` : '';
+        const players = (golfData.leaderboard || []).slice(0, 10);
+        if (players.length) {
+          const lbLines = players.map(p => {
+            const pos = p.pos || p.position || '';
+            const tp = p.toPar != null ? String(p.toPar) : 'E';
+            const today = p.today != null ? ` (today ${p.today})` : '';
+            const thru = p.thru ? ` thru ${p.thru}` : '';
+            return `  ${pos} ${p.name} ${tp}${today}${thru}`.trim();
+          });
+          golfContext = ['', `PGA TOUR — ${evName}${round ? ' · ' + round : ''}:`,
+            ...lbLines, 'Use leaderboard positions and scores only — never reference strokes gained.'
+          ].join('\n');
+        }
+      }
+    }
     catch (_) { /* golf context failure cannot break journalism cron */ }
+
+    // ── Golf per-round brief (when round completes) ─────────────────────────
+    // Golf doesn't have home/away games — a "game" is a tournament round.
+    // When a round completes, generate a recap brief with leaderboard context.
+    // Dedup: KV key brief:golf:round:{eventId}:R{round} prevents re-generation.
+    try {
+      if (golfData && golfData.active && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+        const golfStatus = String(golfData.status || '').toLowerCase();
+        const roundComplete = /(complete|official|final)/.test(golfStatus);
+        const eventId = golfData.eventId || '';
+        const roundNum = golfData.round || '';
+        if (roundComplete && eventId && roundNum) {
+          const dedupKey = `brief:golf:round:${eventId}:R${roundNum}`;
+          const existing = await env.FIELD_JOURNALISM.get(dedupKey).catch(() => null);
+          if (!existing) {
+            const evName = golfData.eventName || golfData.name || 'PGA Tour event';
+            const venue = golfData.venue || '';
+            const venueLocation = golfData.venueLocation || '';
+            const cutLine = golfData.cutLine != null ? `Cut line: ${golfData.cutLine}` : '';
+            const top15 = (golfData.leaderboard || []).slice(0, 15);
+            const lbBlock = top15.map(p => {
+              const pos = p.pos || p.position || '';
+              const tp = p.toPar != null ? String(p.toPar) : 'E';
+              const today = p.today != null ? ` (today: ${p.today})` : '';
+              return `${pos} ${p.name} ${tp}${today}`;
+            }).join('\n');
+
+            const prompt = [
+              `Write a 2-3 sentence recap of Round ${roundNum} at the ${evName}.`,
+              `Factual, no hype. FIELD voice: viewer fiduciary, editorial independence.`,
+              `Include: leader and their margin, any notable moves up/down the leaderboard, and the cut line if it's Round 2.`,
+              `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+              ``,
+              `EVENT: ${evName}`,
+              venue ? `VENUE: ${venue}${venueLocation ? ', ' + venueLocation : ''}` : '',
+              `ROUND: ${roundNum} (${golfStatus})`,
+              cutLine,
+              ``,
+              `LEADERBOARD (top 15):`,
+              lbBlock,
+              ``,
+              `Write the brief as a single paragraph. No headers, no bullet points.`,
+            ].filter(Boolean).join('\n');
+
+            await env.JOURNALISM_QUEUE.send({
+              type: 'game-brief',
+              prompt,
+              eventId: `golf_${eventId}_R${roundNum}`,
+              max_tokens: 300,
+              sport: 'PGA TOUR',
+              home: evName,
+              away: `Round ${roundNum}`,
+              homeScore: null,
+              awayScore: null,
+              enqueuedAt: Date.now(),
+            });
+
+            // Write dedup key so we don't re-enqueue next cron tick
+            await env.FIELD_JOURNALISM.put(dedupKey, 'enqueued', { expirationTtl: 86400 });
+            console.log(`[GOLF-BRIEF] Enqueued Round ${roundNum} recap for ${evName}`);
+          }
+        }
+      }
+    } catch (_) { /* golf brief failure cannot break journalism cron */ }
 
     // ── Odds snapshot (opening_odds) ────────────────────────────────────────
     // Captures pre-game odds onto archive game rows for tonight's slate. Only
