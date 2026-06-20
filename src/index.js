@@ -4451,7 +4451,52 @@ async function findSeries(env, id) {
             .map(g => g.home_score - g.away_score),
     };
 }
-async function findEnrichment(env, id) { return null; }
+// findEnrichment — narrative + standings + WC matchup + recent-game history.
+// Brief types ('narrative_context', 'standings_snapshot', 'wc_matchup') may
+// be sparse today (writers land in future sessions) — the queries still
+// run and return empty arrays so the response shape stays stable.
+//
+// Odds live on the game row itself (parsed in findGame) — there is NO
+// game_odds table. recentGames pulls postseason rows with date < this game,
+// useful as priors for series-aware journalism.
+async function findEnrichment(env, id) {
+    const dateMatch = id.match(/\d{4}-\d{2}-\d{2}/);
+    const date = dateMatch ? dateMatch[0] : null;
+    if (!date) return null;
+
+    const narratives = await env.ARCHIVE_DB.prepare(
+        `SELECT brief_text, game_id, date FROM briefs
+         WHERE brief_type = 'narrative_context' AND date <= ?
+         ORDER BY date DESC LIMIT 10`
+    ).bind(date).all();
+
+    const standings = await env.ARCHIVE_DB.prepare(
+        `SELECT brief_text, game_id, date FROM briefs
+         WHERE brief_type = 'standings_snapshot' AND date <= ?
+         ORDER BY date DESC LIMIT 12`
+    ).bind(date).all();
+
+    const wcMatchup = await env.ARCHIVE_DB.prepare(
+        `SELECT brief_text FROM briefs
+         WHERE brief_type = 'wc_matchup' AND game_id = ?
+         ORDER BY created_at DESC LIMIT 1`
+    ).bind(id).first();
+
+    const history = await env.ARCHIVE_DB.prepare(
+        `SELECT id, date, home, away, home_score, away_score, note
+         FROM postseason_games WHERE id != ? AND date < ?
+         ORDER BY date DESC LIMIT 5`
+    ).bind(id, date).all();
+
+    return {
+        narratives: (narratives.results || []).map(r => r.brief_text),
+        standings:  (standings.results || []).map(r => ({
+            group: r.game_id, text: r.brief_text,
+        })),
+        wcMatchup:   wcMatchup?.brief_text || null,
+        recentGames: history.results || [],
+    };
+}
 
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
