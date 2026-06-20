@@ -9,7 +9,7 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
-const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase5', 'phase7', 'phase8', 'phase9', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
+const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
 
@@ -1015,6 +1015,109 @@ async function runPhase6DBrokenRecord(env, date) {
     return {};
 }
 
+// ── Phase 4: Jinx Counter ──────────────────────────────────────────────────
+// Looks up yesterday's FIELD's Pick (Phase 9 row for the processing date),
+// matches it against the game's actual outcome in Phase 1 context, and
+// tallies a running accuracy. No AI call. Skips gracefully when no pick
+// exists or when the game wasn't found in the night's slate.
+async function runPhase4Jinx(env, date, ctx) {
+    const pickRow = await env.ARCHIVE_DB.prepare(`
+        SELECT value FROM analytics_output
+        WHERE feature = 'field_pick' AND date = ? LIMIT 1
+    `).bind(date).first();
+    if (!pickRow) {
+        console.log(`[ANALYTICS] Phase 4 skipped: no pick for ${date}`);
+        return { skipped: true };
+    }
+    let pick;
+    try { pick = JSON.parse(pickRow.value); } catch (_) { pick = null; }
+    if (!pick || pick.type === 'pass' || !pick.game_id) {
+        // Pass-through pick or unparseable — nothing to grade.
+        console.log(`[ANALYTICS] Phase 4 skipped: pass-through pick for ${date}`);
+        return { skipped: true };
+    }
+
+    // Find the game in Phase 1 context. Search both regular + postseason.
+    const allGames = ctx
+        ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
+        : [];
+    const game = allGames.find(g => g.id === pick.game_id) || null;
+
+    let pickCorrect = null;
+    let finalMargin = null;
+    let drama = null;
+    let hasExtras = false;
+    if (game) {
+        if (typeof game.drama_peak === 'number') drama = game.drama_peak;
+        if (typeof game.home_score === 'number' && typeof game.away_score === 'number') {
+            finalMargin = Math.abs(game.home_score - game.away_score);
+        }
+        const note = (game.note || '') + ' ' + (game.drama_arc || '');
+        hasExtras = /\b(OT|2OT|3OT|F\/OT|extra innings|extras)\b/i.test(note);
+        pickCorrect = (drama != null && drama >= 65)
+                   || (finalMargin != null && finalMargin <= 3)
+                   || hasExtras;
+    } else {
+        console.log(`[ANALYTICS] Phase 4: game ${pick.game_id} not found in ctx for ${date}`);
+    }
+
+    // Market agreement — odds_history is best-effort; the table may not
+    // exist yet (carry-forward from Prompt 1), so wrap in try/catch.
+    let marketAgreed = null;
+    try {
+        const oddsRow = await env.ARCHIVE_DB.prepare(`
+            SELECT * FROM odds_history WHERE game_id = ? ORDER BY snapshot_time DESC LIMIT 1
+        `).bind(pick.game_id).first();
+        if (oddsRow) {
+            const spread = Number(oddsRow.spread ?? oddsRow.line ?? oddsRow.point_spread);
+            if (!Number.isNaN(spread)) marketAgreed = Math.abs(spread) < 3.5;
+        }
+    } catch (_) { /* odds_history may not exist yet */ }
+
+    // Running accuracy over the last 30 jinx rows + this one.
+    let correct = pickCorrect === true ? 1 : 0;
+    let total   = pickCorrect != null ? 1 : 0;
+    try {
+        const histRes = await env.ARCHIVE_DB.prepare(`
+            SELECT value FROM analytics_output
+            WHERE feature = 'jinx' AND date < ?
+            ORDER BY date DESC LIMIT 30
+        `).bind(date).all();
+        for (const r of (histRes.results || [])) {
+            try {
+                const v = JSON.parse(r.value);
+                if (v.pick_correct === true) correct++;
+                if (v.pick_correct != null)  total++;
+            } catch (_) { /* skip malformed history rows */ }
+        }
+    } catch (_) { /* fresh install — no history yet */ }
+
+    const jinx       = pickCorrect === false && marketAgreed === true;
+    const validation = pickCorrect === true  && marketAgreed === true;
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'jinx',
+        sport: pick.sport || null,
+        value: {
+            game_id: pick.game_id,
+            sport: pick.sport || null,
+            pick_correct: pickCorrect,
+            market_agreed: marketAgreed,
+            final_margin: finalMargin,
+            drama_peak: drama,
+            had_extras: hasExtras,
+            jinx,
+            validation,
+            running_accuracy: total > 0
+                ? { correct, total, pct: Number((correct / total).toFixed(3)) }
+                : null,
+        },
+        briefText: null,
+    });
+    return {};
+}
+
 // Process one date end-to-end. Returns the status record for this date.
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
@@ -1087,6 +1190,16 @@ async function processDate(env, date, { selfHealed }) {
         } catch (e) {
             phasesFailed.push('phase3');
             errors.push(`phase3: ${e.message}`);
+        }
+
+        // Phase 4: Jinx Counter — grade yesterday's pick against the slate
+        try {
+            const r = await runPhase4Jinx(env, date, ctx);
+            if (!r.skipped) featuresComputed++;
+            phasesCompleted.push('phase4');
+        } catch (e) {
+            phasesFailed.push('phase4');
+            errors.push(`phase4: ${e.message}`);
         }
 
         // Phase 5: Morning Report — synthesis paragraph
