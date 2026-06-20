@@ -86,6 +86,7 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 
 24. **Rule 66 — Mandatory smoke/syntax check before push.** After every file edit: . Before every push: verify deploy workflow will succeed. Cannot be overridden by time pressure.
 25. **Rule 67 — CC sessions must document to Drive.** Every CC session that produces code changes MUST write a session doc: date, HEAD progression, what was built per commit, what was verified E2E vs STAGED, open carry-forwards. If CC cannot access Drive, write to `outbox/cc-session-{date}-{scope}.md`. HANDOFF.md must reference the session doc. Absence = violation. See jubilant-bassoon STANDARDS.md Rule 67 for full spec.
+26. **Rule 68 — CC prompts include executable verification (PROBE-FIRST-A).** CC prompts must include runnable terminal commands, not prose. **PRE-BUILD:** before writing code that reads from an API or endpoint, include a probe command that extracts actual field names/shapes. CC runs it FIRST and writes code against the REAL shape. **POST-BUILD:** include assertion commands (curl + node -e + console.assert) that verify the output. "Verify the endpoint returns status" is a violation. `curl URL | node -e '...console.assert(d.status)...'` is correct. If sandbox blocks the probe, use CI-as-proxy or STAGED per Rule 61. See jubilant-bassoon STANDARDS.md Rule 68 for full spec and case study.
 
 ### Governance Principle
 
