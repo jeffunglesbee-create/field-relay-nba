@@ -4357,7 +4357,38 @@ async function buildGolfCronContext(espnDate, env) {
 //   findBriefs     — Commit 3
 //   findSeries     — Commit 4
 //   findEnrichment — Commit 5
-async function findGame(env, id)       { return null; }
+// findGame — postseason first (richer rows), then regular season. Both lookups
+// accept exact id OR a fuzzy match against the synthetic "{home}_{away}_{date}"
+// string. Odds columns are JSON TEXT — parsed under try/catch so a malformed
+// blob never breaks the whole response. lineMovement is computed from the
+// home spread when both opening/closing parse cleanly.
+async function findGame(env, id) {
+    const fuzzy = `%${id}%`;
+    let row = await env.ARCHIVE_DB.prepare(
+        `SELECT * FROM postseason_games WHERE id = ? OR
+         (home || '_' || away || '_' || date) LIKE ?`
+    ).bind(id, fuzzy).first();
+    if (!row) {
+        row = await env.ARCHIVE_DB.prepare(
+            `SELECT * FROM regular_season_games WHERE id = ? OR
+             (home || '_' || away || '_' || date) LIKE ?`
+        ).bind(id, fuzzy).first();
+    }
+    if (!row) return null;
+    let openingOdds = null, closingOdds = null;
+    try { if (row.opening_odds) openingOdds = JSON.parse(row.opening_odds); } catch (_) {}
+    try { if (row.closing_odds) closingOdds = JSON.parse(row.closing_odds); } catch (_) {}
+    return {
+        ...row,
+        opening_odds_parsed: openingOdds,
+        closing_odds_parsed: closingOdds,
+        lineMovement: (openingOdds && closingOdds) ? {
+            spreadOpen:  openingOdds.spread?.home ?? null,
+            spreadClose: closingOdds.spread?.home ?? null,
+            moved: (openingOdds.spread?.home ?? null) !== (closingOdds.spread?.home ?? null),
+        } : null,
+    };
+}
 async function findBriefs(env, id)     { return null; }
 async function findSeries(env, id)     { return null; }
 async function findEnrichment(env, id) { return null; }
