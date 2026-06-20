@@ -4915,9 +4915,41 @@ async function handleJournalismCycle(env) {
     // ── Closing-the-loop: temporal continuity + enrichment context ──────────
     // Both queries are ENHANCEMENTS — wrapped in try/catch per CLAUDE.md
     // Rule 5. Failure must NEVER break the live journalism cycle.
+    //
+    // Context Graph integration (June 18 2026): single self-fetch to
+    // /context/date/{dateKey} replaces the 3 direct D1 queries below when
+    // available. Per-block fallback to direct D1 stays in place so an
+    // outage of the Context Graph never breaks the cron — Rule 5.
+    let ctxBriefs = null;
+    try {
+      const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+      const ctxResp = await fetch(`${relayBase}/context/date/${dateKey}`,
+        { cf: { cacheTtl: 60, cacheEverything: true } });
+      if (ctxResp.ok) {
+        const ctxJson = await ctxResp.json();
+        if (ctxJson && Array.isArray(ctxJson.briefs)) ctxBriefs = ctxJson.briefs;
+      }
+    } catch (_) { /* Context Graph optional — direct D1 fallback below */ }
+
     let recentCoverageBlock = '';
     try {
-      if (env.ARCHIVE_DB) {
+      // Path 1: derive from Context Graph response.
+      if (ctxBriefs) {
+        const prev = ctxBriefs
+          .filter(b => b.brief_type === 'slate' && b.date < dateKey
+                       && (b.source === 'cron' || b.source === 'backfill')
+                       && b.brief_text)
+          .sort((a, b) => (b.date < a.date ? -1 : b.date > a.date ? 1 : 0))[0];
+        if (prev) {
+          recentCoverageBlock = [
+            '',
+            "FIELD'S RECENT COVERAGE (for narrative continuity — build on this, don't repeat it):",
+            `[${prev.date}] ${prev.brief_text}`,
+          ].join('\n');
+        }
+      }
+      // Path 2: direct D1 fallback when Graph absent or empty derivation.
+      if (!recentCoverageBlock && env.ARCHIVE_DB) {
         const prev = await env.ARCHIVE_DB.prepare(
           `SELECT brief_text, date, quality_score FROM briefs
             WHERE brief_type = 'slate' AND source IN ('cron','backfill')
@@ -4936,7 +4968,24 @@ async function handleJournalismCycle(env) {
 
     let enrichmentBlock = '';
     try {
-      if (env.ARCHIVE_DB) {
+      // Path 1: derive from Context Graph response.
+      if (ctxBriefs) {
+        const rows = ctxBriefs
+          .filter(b => b.source === 'enrichment'
+                       && (b.brief_type === 'narrative_context' || b.brief_type === 'standings_snapshot')
+                       && b.date <= dateKey
+                       && b.brief_text)
+          .slice(0, 10);
+        if (rows.length) {
+          enrichmentBlock = [
+            '',
+            'EDITORIAL CONTEXT (verified facts for depth — use naturally, don\'t list):',
+            rows.map(r => r.brief_text).join('\n'),
+          ].join('\n');
+        }
+      }
+      // Path 2: direct D1 fallback.
+      if (!enrichmentBlock && env.ARCHIVE_DB) {
         const enrich = await env.ARCHIVE_DB.prepare(
           `SELECT brief_text FROM briefs
             WHERE date <= ? AND source = 'enrichment'
@@ -4959,7 +5008,19 @@ async function handleJournalismCycle(env) {
     // Enhancement — wrapped in try/catch per Rule 5.
     let voiceExemplarBlock = '';
     try {
-      if (env.ARCHIVE_DB) {
+      let rows = [];
+      // Path 1: derive from Context Graph response.
+      if (ctxBriefs) {
+        rows = ctxBriefs
+          .filter(b => b.brief_type === 'slate'
+                       && (b.source === 'cron' || b.source === 'backfill')
+                       && typeof b.quality_score === 'number'
+                       && b.brief_text)
+          .sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
+          .slice(0, 3);
+      }
+      // Path 2: direct D1 fallback.
+      if (!rows.length && env.ARCHIVE_DB) {
         const ex = await env.ARCHIVE_DB.prepare(
           `SELECT brief_text, quality_score FROM briefs
             WHERE brief_type = 'slate' AND source IN ('cron','backfill')
@@ -4967,16 +5028,16 @@ async function handleJournalismCycle(env) {
               AND date >= date(?, '-7 days')
             ORDER BY quality_score DESC LIMIT 3`
         ).bind(dateKey).all();
-        const rows = (ex && ex.results) || [];
-        if (rows.length) {
-          const lines = ['', 'FIELD VOICE EXAMPLES (match this tone and style):'];
-          rows.forEach((r, i) => {
-            lines.push(`Example ${i + 1} (score: ${r.quality_score}):`);
-            lines.push(r.brief_text);
-            lines.push('');
-          });
-          voiceExemplarBlock = lines.join('\n');
-        }
+        rows = (ex && ex.results) || [];
+      }
+      if (rows.length) {
+        const lines = ['', 'FIELD VOICE EXAMPLES (match this tone and style):'];
+        rows.forEach((r, i) => {
+          lines.push(`Example ${i + 1} (score: ${r.quality_score}):`);
+          lines.push(r.brief_text);
+          lines.push('');
+        });
+        voiceExemplarBlock = lines.join('\n');
       }
     } catch (_) { /* voice exemplars are an enhancement */ }
 
