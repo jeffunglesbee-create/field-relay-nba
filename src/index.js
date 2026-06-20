@@ -4347,6 +4347,21 @@ async function buildGolfCronContext(espnDate, env) {
   } catch (_) { return ''; /* golf context is an enhancement — Rule 5 */ }
 }
 
+// ── Context Graph helpers (June 18 2026) ────────────────────────────────────
+// Each helper is independently try/catch-friendly: returns null on missing
+// data so the parent Promise.allSettled call gets a clean fulfilled value
+// for "no rows" and reserves rejection for actual D1 errors.
+//
+// Stubs land in Commit 1. Real implementations:
+//   findGame       — Commit 2
+//   findBriefs     — Commit 3
+//   findSeries     — Commit 4
+//   findEnrichment — Commit 5
+async function findGame(env, id)       { return null; }
+async function findBriefs(env, id)     { return null; }
+async function findSeries(env, id)     { return null; }
+async function findEnrichment(env, id) { return null; }
+
 async function handleJournalismCycle(env) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   // Load per-sport quality calibration once per cron tick. Lightweight D1
@@ -5618,6 +5633,80 @@ export default {
             }
 
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
+        }
+
+        // ── /context/* — Context Graph API (June 18 2026) ─────────────────────────
+        // Single endpoint returning EVERYTHING FIELD knows about a game or date.
+        // Replaces 5-6 scattered queries with one parallel fan-out per request.
+        // RELAY-IS-DUMB: returns facts only. No ranking, no scoring, no recs.
+        // ADR-002 clean: structural aggregation of stored facts.
+        //
+        // /context/game/{id} — per-game context (added Commit 1).
+        // /context/date/{iso} — slate-wide context (added Commit 6).
+        if (pathname.startsWith('/context/')) {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (pathname.startsWith('/context/game/')) {
+                const id = decodeURIComponent(pathname.slice('/context/game/'.length));
+                if (!id) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing game id' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                // KV cache check (60s live / 300s final — assume live by default until
+                // the game row reveals scores; the cache lookup happens before findGame
+                // so we cache by id alone). Cache failures fall through to fresh query.
+                const cacheKey = `ctx:${id}`;
+                if (env.FIELD_JOURNALISM) {
+                    try {
+                        const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+                        if (cached) {
+                            return new Response(cached, {
+                                headers: { ...CORS, 'Content-Type': 'application/json',
+                                           'Cache-Control': 'public,max-age=60', 'X-Cache': 'HIT' },
+                            });
+                        }
+                    } catch (_) { /* fall through to query */ }
+                }
+                const _errors = [];
+                const settled = await Promise.allSettled([
+                    findGame(env, id),
+                    findBriefs(env, id),
+                    findSeries(env, id),
+                    findEnrichment(env, id),
+                ]);
+                const [g, b, s, e] = settled;
+                if (g.status === 'rejected') _errors.push({ source: 'game',       reason: String(g.reason?.message || g.reason) });
+                if (b.status === 'rejected') _errors.push({ source: 'archive',    reason: String(b.reason?.message || b.reason) });
+                if (s.status === 'rejected') _errors.push({ source: 'series',     reason: String(s.reason?.message || s.reason) });
+                if (e.status === 'rejected') _errors.push({ source: 'enrichment', reason: String(e.reason?.message || e.reason) });
+                const game = g.status === 'fulfilled' ? g.value : null;
+                const isFinal = game && game.home_score != null && game.away_score != null;
+                const payload = {
+                    ok: true,
+                    id,
+                    game,
+                    archive:    b.status === 'fulfilled' ? b.value : null,
+                    series:     s.status === 'fulfilled' ? s.value : null,
+                    enrichment: e.status === 'fulfilled' ? e.value : null,
+                    _errors:    _errors.length ? _errors : undefined,
+                };
+                const body = JSON.stringify(payload);
+                if (env.FIELD_JOURNALISM) {
+                    try {
+                        await env.FIELD_JOURNALISM.put(cacheKey, body, {
+                            expirationTtl: isFinal ? 300 : 60,
+                        });
+                    } catch (_) { /* cache write best-effort */ }
+                }
+                return new Response(body, {
+                    headers: { ...CORS, 'Content-Type': 'application/json',
+                               'Cache-Control': `public,max-age=${isFinal ? 300 : 60}` },
+                });
+            }
+            return new Response(JSON.stringify({ ok: false, error: 'Context endpoint not found' }),
+                { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // ── /archive/* — Game Archive D1 (June 15 2026) ───────────────────────────
