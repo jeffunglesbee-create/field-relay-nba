@@ -39,8 +39,9 @@ binding = "MCP_OAUTH"
 id      = "MCP_OAUTH_PLACEHOLDER_REPLACE_WITH_REAL_ID"
 
 # Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
+# + analytics engine daily at 09:00 UTC (5 AM ET) — see src/analytics-engine.js
 [triggers]
-crons = ["*/5 * * * *", "*/15 * * * *"]
+crons = ["*/5 * * * *", "*/15 * * * *", "0 9 * * *"]
 
 # ── Durable Objects (WOW 1 + WOW 2 — May 31 2026, Workers Plus) ─────────────
 # GameDO: one DO per active game. Browsers WebSocket-connect for live score
