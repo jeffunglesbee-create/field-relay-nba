@@ -1958,7 +1958,10 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
     // position is now tied-position string ("T2") derived from c.order/c.score;
     // round is derived from competitor linescores. Old r1 payloads carried
     // position:null and round:null during live play and must not be served.
-    const cacheKey = `v2:golf:scoreboard:r2:${date}`;
+    // Cache key versioned (r3, June 20 2026) — bumped on the roundStatus
+    // addition so cached r2 payloads (which lack roundStatus) don't shadow
+    // the new shape into handleGolfEnriched during the 300s active TTL.
+    const cacheKey = `v2:golf:scoreboard:r3:${date}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -2101,6 +2104,11 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         startDate,
         endDate,
         status,
+        // Round-level status (competition vs event-level `status`). ESPN
+        // populates comp.status.type.description with "Play Complete",
+        // "In Progress", "Round Suspended", etc. — the client uses this
+        // to detect when a round officially finishes.
+        roundStatus: comp?.status?.type?.description || null,
         round: topRound,
         broadcasts: broadcastNames.length ? broadcastNames : null,
         leaderboard,
@@ -2286,10 +2294,11 @@ async function handleGolfEnriched(date, env, ctx) {
     // Accept both YYYY-MM-DD and YYYYMMDD; ESPN expects YYYYMMDD.
     // Both forms collapse to the same cache key.
     const date_clean = String(date || '').replace(/-/g, '');
-    // Cache key versioned (v3) — bumped on the position/round shape fix
-    // (June 18 2026). v2 entries cached position:null and round:null during
-    // active rounds; this key bump invalidates them at deploy time.
-    const cacheKey = `golf:enriched:v3:${date_clean}`;
+    // Cache key versioned (v4) — bumped on the status/venue addition
+    // (June 20 2026). v3 entries lack status/venue/venueLocation; this key
+    // bump invalidates them at deploy time so clients see the new shape
+    // immediately rather than waiting out the 180s active TTL.
+    const cacheKey = `golf:enriched:v4:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
@@ -2310,6 +2319,24 @@ async function handleGolfEnriched(date, env, ctx) {
     const eventId   = scoreboard.eventId;
     const lb        = Array.isArray(scoreboard.leaderboard) ? scoreboard.leaderboard : [];
     const top20     = lb.slice(0, 20);
+
+    // Course / venue details — only the event-details endpoint carries
+    // courses[]. Aggressive 24h cf cache: course never changes mid-event.
+    // Failure must NEVER block the enriched payload (Rule 5).
+    let courseName = null, courseCity = null, courseState = null;
+    try {
+        const evUrl  = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${encodeURIComponent(eventId)}`;
+        const evResp = await fetch(evUrl, { cf: { cacheTtl: 86400, cacheEverything: true } });
+        if (evResp.ok) {
+            const evData = await evResp.json();
+            const c = Array.isArray(evData.courses) ? evData.courses[0] : null;
+            if (c) {
+                courseName  = c.name || null;
+                courseCity  = c.address?.city  || null;
+                courseState = c.address?.state || null;
+            }
+        }
+    } catch (_) { /* course fetch failure never blocks enrichment */ }
 
     const statsByAthlete = {};
     await Promise.all(top20.map(async entry => {
@@ -2347,8 +2374,15 @@ async function handleGolfEnriched(date, env, ctx) {
         active: true,
         eventId,
         name: scoreboard.eventName || scoreboard.name || null,
+        // Surfaces ESPN's competition status.type.description ("Play Complete",
+        // "In Progress", "Round Suspended", …) so the client's
+        // _isGolfRoundComplete /(complete|official|final)/ matcher can fire.
+        // Falls back to the event-level `status` when round-level is absent.
+        status: scoreboard.roundStatus || scoreboard.status || null,
         round: scoreboard.round,
         cutLine: scoreboard.cutLine ?? null,
+        venue:         courseName,
+        venueLocation: (courseCity && courseState) ? `${courseCity}, ${courseState}` : null,
         broadcasts: scoreboard.broadcasts || null,
         leaderboard: enriched,
     };
