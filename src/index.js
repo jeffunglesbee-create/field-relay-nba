@@ -6095,7 +6095,7 @@ export default {
             // Failure modes degrade gracefully — bad V2 response, no match,
             // UPDATE error — each row reports via _errors and counts toward
             // `skipped`, never aborts the batch (spec).
-            if (pathname === '/archive/backfill-enrich' && request.method === 'POST') {
+            if (pathname === '/archive/backfill-enrich' && (request.method === 'POST' || request.method === 'GET')) {
                 const _errors = [];
                 let regResult, psResult;
                 try {
@@ -7931,6 +7931,7 @@ export default {
                         // Historical odds backfill (Odds Layer 2026-06-16) —
                         // GET with ?date=YYYY-MM-DD, quota-aware.
                         '/archive/odds-backfill',
+                        '/archive/backfill-enrich',
                         // ESPN Golf relay (2026-06-17). All four routes are
                         // GET-only; query strings carry through the probe.
                         '/v2/golf/player-stats',
