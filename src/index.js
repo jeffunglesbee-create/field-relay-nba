@@ -87,6 +87,12 @@ import {
   logRequest as oauthLogRequest,
 } from './mcp-oauth.js';
 
+// ── Analytics Cron Engine (June 20 2026) ────────────────────────────────────
+// Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
+// health status snapshot. Separate from handleJournalismCycle; both crons
+// coexist. See src/analytics-engine.js.
+import { analyticsEngine } from './analytics-engine.js';
+
 // ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
 // Single hardcoded repo target for all L5 tools and /repo/archive. The relay
 // is the sole credential holder (Rule 80 / CREDENTIAL-BOUNDARY-A): the PAT
@@ -5561,6 +5567,13 @@ export default {
     //   */5  * * * * → push notification heartbeat (drama threshold)
     //   */15 * * * * → journalism cycle (O(1) Newspaper — Layer 2)
     async scheduled(event, env, ctx) {
+        // Analytics engine fires only on its dedicated daily 0 9 * * * trigger
+        // so the */5 + */15 ticks never invoke it. The other handlers below
+        // continue to run on every tick (existing behavior).
+        if (event.cron === '0 9 * * *') {
+            ctx.waitUntil(analyticsEngine(env).catch(e =>
+                console.error('[ANALYTICS]', e.message)));
+        }
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
         // R2 weekly updates — run alongside journalism cron, non-blocking
@@ -5858,7 +5871,7 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache', {
+            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron', {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
@@ -6996,6 +7009,7 @@ export default {
             && !(pathname === '/journalism/run' && request.method === 'POST')
             && !(pathname === '/journalism/generate' && request.method === 'POST')
             && !(pathname === '/journalism/enqueue' && request.method === 'POST')
+            && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
@@ -7209,6 +7223,61 @@ export default {
           const result = await handleJournalismCycle(env);
           return new Response(JSON.stringify({triggered:'journalism-cycle', result}),
             {headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
+        // ── /analytics/* — Analytics Cron Engine endpoints ────────────────────
+        // /analytics/status        — last run status from KV
+        // /analytics/run           — manual trigger (POST), same logic as the 0 9 * * * cron
+        // /analytics/{feature}/{date?}  — generic read of analytics_output row
+        if (pathname === '/analytics/status') {
+            if (!env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const status = await env.FIELD_JOURNALISM.get('field:analytics:status', 'json');
+            return new Response(JSON.stringify({ ok: true, status }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        if (pathname === '/analytics/run' && request.method === 'POST') {
+            const body = await request.json().catch(() => ({}));
+            const result = await analyticsEngine(env, body || {});
+            return new Response(JSON.stringify({ triggered: 'analytics-engine', result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+        if (pathname.startsWith('/analytics/')) {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            // pathname: /analytics/{feature}/{date?}
+            const parts = pathname.split('/').filter(Boolean); // ['analytics', feature, date?]
+            const feature = parts[1];
+            const date = parts[2] || new Date(Date.now() - 24*3600*1000).toISOString().slice(0,10);
+            if (!feature || !/^[a-z0-9_]+$/i.test(feature)) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing or invalid feature' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const row = await env.ARCHIVE_DB.prepare(
+                    `SELECT * FROM analytics_output WHERE feature = ? AND date = ? LIMIT 1`
+                ).bind(feature, date).first();
+                // value is stored as JSON text; rehydrate so clients don't double-parse.
+                let parsedValue = null;
+                if (row && row.value) {
+                    try { parsedValue = JSON.parse(row.value); } catch (_) { parsedValue = row.value; }
+                }
+                const data = row ? { ...row, value: parsedValue } : null;
+                return new Response(JSON.stringify({ ok: true, feature, date, data }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+            } catch (e) {
+                // analytics_output may not exist yet (created on first cron run).
+                return new Response(JSON.stringify({ ok: true, feature, date, data: null, _note: e.message }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
         }
 
         // ── /journalism/generate — WOW 6 Quality Gate (live-path) ─────────────
