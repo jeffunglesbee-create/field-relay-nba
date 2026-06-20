@@ -666,6 +666,10 @@ async function processDate(env, date, { selfHealed }) {
     } finally {
         // Phase 11 ALWAYS runs — even if an earlier phase throws past its
         // try/catch, the engine still writes an observable health record.
+        // Push phase11 BEFORE serializing so the stored phases_completed
+        // reflects the full intended phase sequence. Phase 11 is the write
+        // itself, so by the time the array is durable the phase is done.
+        phasesCompleted.push('phase11');
         status = {
             last_run: new Date().toISOString(),
             date_processed: date,
@@ -679,7 +683,6 @@ async function processDate(env, date, { selfHealed }) {
         };
         try {
             await writeRunStatus(env, status);
-            phasesCompleted.push('phase11');
         } catch (e) {
             // writeRunStatus already swallows individual KV/D1 failures; this
             // outer catch protects against an unexpected throw so the finally
