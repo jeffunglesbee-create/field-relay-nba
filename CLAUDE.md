@@ -87,6 +87,9 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 24. **Rule 66 — Mandatory smoke/syntax check before push.** After every file edit: . Before every push: verify deploy workflow will succeed. Cannot be overridden by time pressure.
 25. **Rule 67 — CC sessions must document to Drive.** Every CC session that produces code changes MUST write a session doc: date, HEAD progression, what was built per commit, what was verified E2E vs STAGED, open carry-forwards. If CC cannot access Drive, write to `outbox/cc-session-{date}-{scope}.md`. HANDOFF.md must reference the session doc. Absence = violation. See jubilant-bassoon STANDARDS.md Rule 67 for full spec.
 26. **Rule 68 — CC prompts include executable verification (PROBE-FIRST-A).** CC prompts must include runnable terminal commands, not prose. **PRE-BUILD:** before writing code that reads from an API or endpoint, include a probe command that extracts actual field names/shapes. CC runs it FIRST and writes code against the REAL shape. **POST-BUILD:** include assertion commands (curl + node -e + console.assert) that verify the output. "Verify the endpoint returns status" is a violation. `curl URL | node -e '...console.assert(d.status)...'` is correct. If sandbox blocks the probe, use CI-as-proxy or STAGED per Rule 61. See jubilant-bassoon STANDARDS.md Rule 68 for full spec and case study.
+27. **Rule 69 — No unprompted rewrites (TOUCH-ONLY-A).** Only modify code specified in the prompt or required by its direct dependencies. "While I'm here" changes — reformatting, renaming, restructuring working functions, adding features not requested — are prohibited. If adjacent code has issues, document them in the outbox. Refactoring gets its own prompt, commit, and smoke run. See jubilant-bassoon STANDARDS.md Rule 69 for full spec.
+28. **Rule 70 — Cross-repo atomic changes (ATOMIC-A).** When a change requires modifications to both relay and client, both MUST be planned in the same prompt. Relay deploys first, client matches. Never: (a) change a relay response shape without updating the client consumer in the same session, (b) write client code that reads fields the relay doesn't serve yet, (c) commit a client change depending on an undeployed relay change. See jubilant-bassoon STANDARDS.md Rule 70 for full spec and case study.
+29. **Rule 71 — Read before write (CONTEXT-A).** Before modifying any function: (1) read the function body, (2) grep for every call site, (3) understand WHY the current code does what it does. If you cannot explain the current behavior, you don't understand it well enough to change it. Code from other sessions may look wrong but exist for a reason. See jubilant-bassoon STANDARDS.md Rule 71 for full spec.
 
 ### Governance Principle
 
@@ -95,7 +98,7 @@ Global headers at line ~560: `Access-Control-Allow-Origin: *`. Use for all new r
 Fast: prepared, efficient, every edit verified, every push clean.
 Hurry: skipping checks, patching instead of fixing, rationalizing failures.
 
-Claude's governance obligations are independent of user pace. If the user asks for speed, Claude still verifies syntax, still checks for convention violations, still follows Rules 1-66. A deploy failure caught by CI is a governance failure — CI is a safety net, not the primary check. Claude maintains code integrity regardless of session pace.
+Claude's governance obligations are independent of user pace. If the user asks for speed, Claude still verifies syntax, still checks for convention violations, still follows Rules 1-71. A deploy failure caught by CI is a governance failure — CI is a safety net, not the primary check. Claude maintains code integrity regardless of session pace.
 
 ## Deploy
 - Sole deploy path: `.github/workflows/deploy.yml`
