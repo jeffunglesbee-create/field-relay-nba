@@ -4389,7 +4389,39 @@ async function findGame(env, id) {
         } : null,
     };
 }
-async function findBriefs(env, id)     { return null; }
+// findBriefs — game-specific + slate-for-date + prior-day slate. game_id
+// match preferred; LIKE on briefs.id catches sweep/capture IDs that embed
+// the game id but use a different prefix (e.g. game_recap_{sport}_{id}).
+// Returns nulls (not absent keys) so consumers can rely on the shape.
+async function findBriefs(env, id) {
+    const dateMatch = id.match(/\d{4}-\d{2}-\d{2}/);
+    const date = dateMatch ? dateMatch[0] : null;
+    const results = { gameBriefs: [], slateBrief: null, priorBrief: null };
+
+    const gameBriefs = await env.ARCHIVE_DB.prepare(
+        `SELECT id, brief_type, brief_text, quality_score, source, model, word_count, created_at
+         FROM briefs WHERE game_id = ? OR id LIKE ?
+         ORDER BY created_at DESC LIMIT 5`
+    ).bind(id, `%${id}%`).all();
+    results.gameBriefs = gameBriefs.results || [];
+
+    if (date) {
+        const slate = await env.ARCHIVE_DB.prepare(
+            `SELECT brief_text, quality_score, source, model, created_at FROM briefs
+             WHERE brief_type = 'slate' AND date = ?
+             ORDER BY created_at DESC LIMIT 1`
+        ).bind(date).first();
+        results.slateBrief = slate || null;
+
+        const prior = await env.ARCHIVE_DB.prepare(
+            `SELECT brief_text, quality_score, date, created_at FROM briefs
+             WHERE brief_type = 'slate' AND date < ?
+             ORDER BY date DESC, created_at DESC LIMIT 1`
+        ).bind(date).first();
+        results.priorBrief = prior || null;
+    }
+    return results;
+}
 async function findSeries(env, id)     { return null; }
 async function findEnrichment(env, id) { return null; }
 
