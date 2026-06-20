@@ -4376,12 +4376,17 @@ async function findGame(env, id) {
     }
     if (!row) return null;
     let openingOdds = null, closingOdds = null;
+    let dramaArc    = null;
     try { if (row.opening_odds) openingOdds = JSON.parse(row.opening_odds); } catch (_) {}
     try { if (row.closing_odds) closingOdds = JSON.parse(row.closing_odds); } catch (_) {}
+    // drama_arc is the full client-computed drama summary object — JSON TEXT.
+    // ADR-002: relay does not compute drama, only stores and surfaces it.
+    try { if (row.drama_arc)    dramaArc    = JSON.parse(row.drama_arc);    } catch (_) {}
     return {
         ...row,
         opening_odds_parsed: openingOdds,
         closing_odds_parsed: closingOdds,
+        drama_arc_parsed:    dramaArc,
         lineMovement: (openingOdds && closingOdds) ? {
             spreadOpen:  openingOdds.spread?.home ?? null,
             spreadClose: closingOdds.spread?.home ?? null,
@@ -6081,6 +6086,89 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: e.message }),
                         { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+            }
+
+            // POST /archive/drama — persists client-computed drama summary onto
+            // the archived game row (ADR-002: relay stores, never computes).
+            // The client computes drama_peak (0-100) and the full drama_arc
+            // summary object after the game goes final. Both columns are added
+            // via D1 migration alongside this endpoint:
+            //   ALTER TABLE regular_season_games ADD COLUMN drama_peak REAL;
+            //   ALTER TABLE regular_season_games ADD COLUMN drama_arc TEXT;
+            //   ALTER TABLE postseason_games    ADD COLUMN drama_peak REAL;
+            //   ALTER TABLE postseason_games    ADD COLUMN drama_arc TEXT;
+            //
+            // Body: { source_id, drama_peak, drama_arc }.
+            //  drama_arc may arrive as either a JSON string or a JSON object —
+            //  the handler accepts both and stores TEXT.
+            //
+            // Match strategy mirrors /archive/backfill-enrich: shortify
+            // source_id, scan postseason then regular by
+            // `id LIKE '%' || shortified || '%'`. When no row matches (timing
+            // race — drama POST arrives before GameDO's archive write lands),
+            // returns {ok:false, error:'no_row'} so the client can retry.
+            if (pathname === '/archive/drama' && request.method === 'POST') {
+                let body;
+                try { body = await request.json(); }
+                catch (_) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const { source_id, drama_peak } = body || {};
+                let { drama_arc } = body || {};
+                if (!source_id) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing source_id' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (typeof drama_peak !== 'number') {
+                    return new Response(JSON.stringify({ ok: false, error: 'drama_peak must be a number' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                // Accept drama_arc as either a JSON object (most callers) or a
+                // pre-stringified JSON string. Stored as TEXT either way.
+                if (typeof drama_arc !== 'string') {
+                    try { drama_arc = JSON.stringify(drama_arc); }
+                    catch (_) { drama_arc = null; }
+                }
+
+                const shortified = String(source_id).toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!shortified) {
+                    return new Response(JSON.stringify({ ok: false, error: 'source_id has no usable chars' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const fuzzy = `%${shortified}%`;
+
+                // Postseason first (richer rows + matches series_key cases).
+                let row = null, table = null;
+                try {
+                    row = await env.ARCHIVE_DB.prepare(
+                        `SELECT id FROM postseason_games WHERE id LIKE ? LIMIT 1`
+                    ).bind(fuzzy).first();
+                    if (row) table = 'postseason_games';
+                } catch (_) { /* fall through to regular */ }
+                if (!row) {
+                    try {
+                        row = await env.ARCHIVE_DB.prepare(
+                            `SELECT id FROM regular_season_games WHERE id LIKE ? LIMIT 1`
+                        ).bind(fuzzy).first();
+                        if (row) table = 'regular_season_games';
+                    } catch (_) { /* both queries failed — surface no_row */ }
+                }
+                if (!row || !table) {
+                    return new Response(JSON.stringify({ ok: false, error: 'no_row', source_id }),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                try {
+                    await env.ARCHIVE_DB.prepare(
+                        `UPDATE ${table} SET drama_peak = ?, drama_arc = ? WHERE id = ?`
+                    ).bind(drama_peak, drama_arc, row.id).run();
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message, id: row.id }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                return new Response(JSON.stringify({ ok: true, id: row.id, table, drama_peak }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
             // POST /archive/backfill-enrich — fills in skeleton rows (home IS NULL)
@@ -7932,6 +8020,9 @@ export default {
                         // GET with ?date=YYYY-MM-DD, quota-aware.
                         '/archive/odds-backfill',
                         '/archive/backfill-enrich',
+                        // Drama persistence (2026-06-19). POST-only in spec;
+                        // listed for inventory discovery via the MCP probe.
+                        '/archive/drama',
                         // ESPN Golf relay (2026-06-17). All four routes are
                         // GET-only; query strings carry through the probe.
                         '/v2/golf/player-stats',
