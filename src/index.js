@@ -4422,7 +4422,35 @@ async function findBriefs(env, id) {
     }
     return results;
 }
-async function findSeries(env, id)     { return null; }
+// findSeries — only fires when the id matches a postseason_games row that
+// carries a series_key. Returns the postseason_series row + every game in
+// the series + an array of completed-game margins (home_score - away_score)
+// for downstream consumers that want to compute series momentum/leverage.
+async function findSeries(env, id) {
+    const game = await env.ARCHIVE_DB.prepare(
+        `SELECT series_key FROM postseason_games WHERE id = ? LIMIT 1`
+    ).bind(id).first();
+    if (!game?.series_key) return null;
+
+    const series = await env.ARCHIVE_DB.prepare(
+        `SELECT * FROM postseason_series WHERE series_key = ?`
+    ).bind(game.series_key).first();
+
+    const games = await env.ARCHIVE_DB.prepare(
+        `SELECT id, game_number, date, home, away, home_score, away_score, note, importance
+         FROM postseason_games WHERE series_key = ?
+         ORDER BY game_number`
+    ).bind(game.series_key).all();
+
+    const gamesArr = games.results || [];
+    return {
+        series: series || null,
+        games:  gamesArr,
+        margins: gamesArr
+            .filter(g => g.home_score != null && g.away_score != null)
+            .map(g => g.home_score - g.away_score),
+    };
+}
 async function findEnrichment(env, id) { return null; }
 
 async function handleJournalismCycle(env) {
