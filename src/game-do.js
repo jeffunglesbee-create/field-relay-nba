@@ -386,16 +386,21 @@ export class GameDO {
                     await this.ctx.storage.put('archived', Date.now());
                     const relayBase = this.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
                     const date = new Date().toISOString().slice(0, 10);
-                    // Payload uses ONLY fields GameDO actually stores
-                    // (this.sport, this.gameId, facts.homeScore/awayScore).
-                    // Team names, venue, crew, streams, series_key etc. are
-                    // NOT in DO state — enrichment will fill them later.
+                    // Identity fields now flow through from _fetchFacts so the
+                    // archive row lands complete on first write (June 19 2026).
+                    // crew, streams, series_key, importance, game_number remain
+                    // out of scope — manual seed / executeBackfill handle those.
                     const payload = {
                         sport:      this.sport,
                         date,
                         source_id:  this.gameId,
                         home_score: facts.homeScore,
                         away_score: facts.awayScore,
+                        home:       facts.homeName,
+                        away:       facts.awayName,
+                        venue:      facts.venue,
+                        league:     facts.league,
+                        round:      facts.round,
                     };
                     fetch(relayBase + '/archive/game', {
                         method: 'POST',
@@ -435,6 +440,16 @@ export class GameDO {
                             period:     match.periodNum ?? null,
                             periodLabel: match.periodLabel || '',
                             clock:      match.clock || '',
+                            // Identity fields for the final-state archive hook —
+                            // V2 adapter shape: match.home.name, match.away.name,
+                            // match.venue, match.league, match.round (string).
+                            // Football carries round (e.g. "Group Stage - Group A");
+                            // NBA/NHL/MLB don't, which resolves to null.
+                            homeName:   match?.home?.name || null,
+                            awayName:   match?.away?.name || null,
+                            venue:      match?.venue || null,
+                            league:     match?.league || null,
+                            round:      match?.round || null,
                             source:     'apisports',
                             ts:         Date.now(),
                         };
