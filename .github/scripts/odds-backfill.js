@@ -30,7 +30,7 @@ const DAILY_CEILING    = 2700;           // global shared across all FIELD odds 
 const PER_CALL_COST    = 20;             // historical /odds = 10 cr × 2 markets (h2h+totals); regions=us
 const MIN_BUDGET       = 20;             // need at least one sport-date worth
 const ODDS_API_DELAY_MS = 100;           // gentle rate-limit guard
-const BACKFILL_START_DATE = '2026-06-11'; // WC activation
+const BACKFILL_START_DATE = '2026-05-09'; // earliest archived game
 const ODDS_API_BASE = 'https://api.the-odds-api.com';
 
 if (!ODDS_KEY) {
