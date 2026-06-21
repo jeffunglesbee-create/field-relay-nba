@@ -58,6 +58,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
 import { assembleContext } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
+import { checkBriefFreshness } from './brief-freshness.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -7139,6 +7140,66 @@ export default {
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
+
+        // GET /freshness/{date} — staleness annotations for per-game briefs.
+        // Cross-references briefs(date=?) against change_log entries written
+        // after each brief's generated_at. Returns the materiality findings
+        // per game so the client can mark stale brief cards. ADR-002 clean —
+        // each materiality check is a named binary condition, no composite
+        // interest score.
+        if (pathname.startsWith('/freshness/') && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const date = pathname.slice('/freshness/'.length);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            // Slate brief generatedAt is the baseline for per-game briefs
+            // written in the same cron tick. KV miss → fall back to midnight
+            // UTC so the freshness window is broad rather than zero.
+            let slateGeneratedAt = null;
+            try {
+                if (env.FIELD_JOURNALISM) {
+                    const raw = await env.FIELD_JOURNALISM.get(`journalism:${date}`);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (typeof parsed.generatedAt === 'number') {
+                            slateGeneratedAt = new Date(parsed.generatedAt).toISOString();
+                        }
+                    }
+                }
+            } catch (_) { /* fall through to midnight default */ }
+            const fallbackGen = `${date}T00:00:00Z`;
+            try {
+                // Per-game briefs only — slate briefs have no per-game id, so
+                // they're excluded from the cross-reference today (carry-
+                // forward documented in the outbox manifest).
+                const briefsRes = await env.ARCHIVE_DB.prepare(
+                    `SELECT game_id, brief_text FROM briefs
+                     WHERE date = ? AND game_id IS NOT NULL AND game_id != ''`
+                ).bind(date).all();
+                const briefs = (briefsRes.results || []).map(r => ({
+                    game_id: r.game_id,
+                    text:    r.brief_text || '',
+                    generated_at: slateGeneratedAt || fallbackGen,
+                }));
+                const results = await checkBriefFreshness(env, briefs);
+                return new Response(JSON.stringify({
+                    ok: true,
+                    date,
+                    slate_generated_at: slateGeneratedAt,
+                    count: results.length,
+                    results,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                                 'Cache-Control': 'public, max-age=60' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: true, date, count: 0, results: [], _note: e.message }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
 
         // GET /changelog/{date} — recent change_log entries since midnight UTC
         // of the requested date. Read-only diagnostic for the newspaper
