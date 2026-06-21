@@ -9,7 +9,7 @@
 import { getRecentChanges } from './sync-reconciler.js';
 
 // Sources whose changes might invalidate odds claims in a brief.
-const _ODDS_SOURCES   = new Set(['odds_api', 'odds', 'odds_backfill']);
+const _ODDS_SOURCES   = new Set(['odds_api', 'odds', 'odds_backfill', 'closing_odds_capture']);
 const _LINEUP_SOURCES = new Set(['lineup']);
 const _SAVANT_SOURCES = new Set(['savant']);
 const _WEATHER_SOURCES = new Set(['weather']);
