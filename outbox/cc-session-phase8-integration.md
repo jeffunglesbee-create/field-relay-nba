@@ -16,9 +16,19 @@ prompt that depends on this shipping first.
 | 2fd28c4 | feat(analytics): stamp Phase 8 KV calibration with _last_updated |
 | 8a01e5a | feat(journalism): loadQualityCalibration reads Phase 8 KV first |
 | ff33d2e | chore(journalism): surface quality-source on /health |
+| cd870ee | fix(health): peek KV directly so quality-source is isolate-independent |
 
-3 single-concern commits, fast-forwarded to main. CI deploy
-`27888595317` completed success at 00:36:41 UTC.
+4 commits, fast-forwarded to main. CI deploys:
+- `27888595317` (ff33d2e) — success at 00:36:41 UTC
+- `27888680999` (cd870ee) — success at 00:40:46 UTC
+
+The cd870ee fix landed mid-session: the initial /health probe returned
+`quality-source=unloaded` because the module global is per-isolate and
+cron lives in a different isolate from a request. Per Rule 77 I
+investigated rather than rationalised, and shipped a KV-peek fix —
+/health now derives source on-demand by checking the KV value's
+`_last_updated` freshness. Post-fix probe confirmed
+`quality-source=analytics-cron`.
 
 Smoke delta: `src/analytics-engine.js` +4 lines (timestamp on write).
 `src/index.js` +42 lines (KV-first load, source tracker, /health
@@ -112,11 +122,24 @@ GET /health
 `handleJournalismCycle`, which fires on `*/5` and `*/15` cron ticks.
 A fresh isolate will report `unloaded` until the first tick warms it.
 
-### Post-cron-tick verification (deferred, in-session)
-The session waited for the `00:40 UTC */5` cron tick; the first probe
-after a tick is expected to flip to `quality-source=analytics-cron`
-because the KV value is <36h old. (Result captured below — see
-"Post-session probe" if extended.)
+### Post-fix verification — `/health` flips to analytics-cron
+After deploying cd870ee:
+```
+GET /health
+→ RELAY OK — ... + analytics-cron, quality-source=analytics-cron
+```
+The `/health` peek correctly reads Phase 8's KV value, validates
+`_last_updated` is fresh (<36h), and reports `analytics-cron`.
+
+If KV is deleted/expired, the same endpoint would report `d1-live`
+(or `unloaded` if FIELD_JOURNALISM is unbound) — the fallback chain
+is observable end-to-end.
+
+### Regression — `/journalism/generate` still produces briefs
+Deploy `27888680999` ran `STRUCTURAL 6 — WOW 6 /journalism/generate
+e2e` as part of CI and passed. The journalism quality chain still
+generates prose end-to-end; no regression from the
+loadQualityCalibration restructure.
 
 ### Phase 8 KV value confirmed via /analytics/quality_feedback
 ```
