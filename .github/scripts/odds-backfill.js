@@ -420,23 +420,34 @@ async function syncOddsToGameTables() {
     const json = JSON.stringify(odds);
 
     // Try BOTH tables — UPDATE is idempotent (WHERE opening_odds IS NULL)
+    // Write to BOTH opening_odds and closing_odds for historical games.
+    // The Odds API historical endpoint returns odds near game time,
+    // which is closer to closing than opening. For completed games with
+    // one data point, it serves as both.
     for (const table of ['regular_season_games', 'postseason_games']) {
       try {
         await d1Query(
           `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`,
           [json, row.game_id]
         );
-      } catch (_) { /* table may not have this game — fine */ }
+      } catch (_) { /* table may not have this game */ }
+      try {
+        await d1Query(
+          `UPDATE ${table} SET closing_odds = ? WHERE id = ? AND closing_odds IS NULL`,
+          [json, row.game_id]
+        );
+      } catch (_) { /* table may not have this game */ }
     }
     attempted++;
   }
 
   // Count actual results
-  const afterReg = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE opening_odds IS NOT NULL`);
-  const afterPost = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE opening_odds IS NOT NULL`);
-  const totalAfter = (afterReg[0]?.c || 0) + (afterPost[0]?.c || 0);
+  const afterRegOpen = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE opening_odds IS NOT NULL`);
+  const afterPostOpen = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE opening_odds IS NOT NULL`);
+  const afterRegClose = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE closing_odds IS NOT NULL`);
+  const afterPostClose = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE closing_odds IS NOT NULL`);
 
-  console.log(`[odds-backfill] sync: attempted=${attempted}, total_with_odds=${totalAfter} (reg=${afterReg[0]?.c || 0}, post=${afterPost[0]?.c || 0})`);
+  console.log(`[odds-backfill] sync: attempted=${attempted}, opening_odds=${(afterRegOpen[0]?.c||0)+(afterPostOpen[0]?.c||0)} (reg=${afterRegOpen[0]?.c||0}, post=${afterPostOpen[0]?.c||0}), closing_odds=${(afterRegClose[0]?.c||0)+(afterPostClose[0]?.c||0)} (reg=${afterRegClose[0]?.c||0}, post=${afterPostClose[0]?.c||0})`);
 }
 
 main().catch(err => {
