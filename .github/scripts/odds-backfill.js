@@ -326,9 +326,12 @@ async function main() {
   await ensureTables();
 
   // 2. Read global quota — this is the budget guard (Rule 78).
+  //    x-requests-used is MONTHLY cumulative, NOT daily. Comparing it
+  //    against DAILY_CEILING is wrong. Instead: cap daily spend at
+  //    DAILY_CEILING, check against actual remaining monthly quota.
   const { remaining, used } = await checkQuota();
-  const backfillBudget = Math.max(0, DAILY_CEILING - used);
-  console.log(`[odds-backfill] quota: remaining=${remaining}, used_today=${used}, daily_ceiling=${DAILY_CEILING}, backfill_budget=${backfillBudget}`);
+  const backfillBudget = Math.min(DAILY_CEILING, remaining);
+  console.log(`[odds-backfill] quota: remaining=${remaining}, monthly_used=${used}, daily_budget=${backfillBudget}`);
   if (backfillBudget < MIN_BUDGET) {
     console.log(`[odds-backfill] insufficient budget (${backfillBudget} < ${MIN_BUDGET}); exiting clean`);
     return;
