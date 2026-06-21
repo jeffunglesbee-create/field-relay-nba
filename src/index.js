@@ -3427,13 +3427,44 @@ const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.worker
 const JOURNALISM_TTL_SECS = 900; // 15 min — matches cron frequency
 
 // ── Per-sport quality calibration (data-driven scoreThreshold) ───────────────
-// Loaded once per cron tick from ARCHIVE_DB. p25 per sport becomes the retry
-// threshold: prose below the 25th percentile for that sport gets a quality-
-// chain rewrite. Falls back to hardcoded values when < 5 samples exist.
+// Loaded once per cron tick. Primary source: Phase 8 KV snapshot at
+// field:quality_calibration (refreshed by the daily 09:00 UTC analytics
+// cron). Fallback: D1 percentile computation, preserved unchanged so a
+// stale/missing/malformed KV value silently degrades to live percentiles.
 // Calibration failure is silent and never blocks journalism delivery (Rule 5).
 let _qualityCalibration = null;
+let _qualityCalibrationSource = null; // 'analytics-cron' | 'd1-live' | null
+
+const QUALITY_CALIBRATION_KV_KEY = 'field:quality_calibration';
+const QUALITY_CALIBRATION_MAX_AGE_MS = 36 * 60 * 60 * 1000; // 36 hours
+
+function isCalibrationFresh(calibration) {
+  if (!calibration || typeof calibration !== 'object') return false;
+  const ts = calibration._last_updated || calibration.last_updated;
+  if (!ts) return false;
+  const age = Date.now() - new Date(ts).getTime();
+  return Number.isFinite(age) && age >= 0 && age < QUALITY_CALIBRATION_MAX_AGE_MS;
+}
 
 async function loadQualityCalibration(env) {
+  // Primary: Phase 8 KV recommendation
+  if (env.FIELD_JOURNALISM) {
+    try {
+      const kv = await env.FIELD_JOURNALISM.get(QUALITY_CALIBRATION_KV_KEY, 'json');
+      if (isCalibrationFresh(kv)) {
+        // Strip the meta field so getQualityTarget() sees only sport keys.
+        const { _last_updated, last_updated, ...sports } = kv;
+        _qualityCalibration = sports;
+        _qualityCalibrationSource = 'analytics-cron';
+        console.log(`[QUALITY] calibration source=analytics-cron sports=${Object.keys(sports).length} updated=${_last_updated || last_updated}`);
+        return;
+      }
+    } catch (e) {
+      console.log(`[QUALITY] KV read failed, falling back to D1: ${e.message}`);
+    }
+  }
+
+  // Fallback: existing D1 live percentile computation — preserved unchanged.
   try {
     if (!env.ARCHIVE_DB) return;
     const rows = await env.ARCHIVE_DB.prepare(
@@ -3458,6 +3489,8 @@ async function loadQualityCalibration(env) {
         count: scores.length,
       };
     }
+    _qualityCalibrationSource = 'd1-live';
+    console.log(`[QUALITY] calibration source=d1-live sports=${Object.keys(_qualityCalibration).length}`);
   } catch(e) { /* calibration failure never breaks journalism */ }
 }
 
