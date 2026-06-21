@@ -347,6 +347,7 @@ async function main() {
   }
   if (todo.length === 0) {
     console.log(`[odds-backfill] all dates complete (${BACKFILL_START_DATE} → ${endIso})`);
+    await syncOddsToGameTables();
     return;
   }
   console.log(`[odds-backfill] ${todo.length} unprocessed date(s); oldest: ${todo[0]}, newest: ${todo[todo.length - 1]}`);
