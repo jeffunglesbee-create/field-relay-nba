@@ -5904,7 +5904,12 @@ export default {
         }
 
         if (pathname === '/health') {
-            return new Response('RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron', {
+            // Surface the active quality calibration source for in-prod
+            // verification of the Phase 8 → journalism cron integration.
+            // Null until handleJournalismCycle (or a probe) calls
+            // loadQualityCalibration; "unloaded" in that case.
+            const qSource = _qualityCalibrationSource || 'unloaded';
+            return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron, quality-source=${qSource}`, {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
