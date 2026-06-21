@@ -5904,11 +5904,17 @@ export default {
         }
 
         if (pathname === '/health') {
-            // Surface the active quality calibration source for in-prod
-            // verification of the Phase 8 → journalism cron integration.
-            // Null until handleJournalismCycle (or a probe) calls
-            // loadQualityCalibration; "unloaded" in that case.
-            const qSource = _qualityCalibrationSource || 'unloaded';
+            // Surface the active quality calibration source. _qualityCalibrationSource
+            // is module-scoped (per-isolate); a /health request usually hits a
+            // different isolate than the cron, so peek KV directly here so the
+            // observable answer is consistent regardless of routing.
+            let qSource = 'unloaded';
+            if (env.FIELD_JOURNALISM) {
+                try {
+                    const kv = await env.FIELD_JOURNALISM.get(QUALITY_CALIBRATION_KV_KEY, 'json');
+                    qSource = isCalibrationFresh(kv) ? 'analytics-cron' : 'd1-live';
+                } catch (_) { /* leave 'unloaded' */ }
+            }
             return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron, quality-source=${qSource}`, {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
