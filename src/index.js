@@ -6862,48 +6862,6 @@ export default {
             }
 
             // GET /archive/query — parameterized read of the briefs table.
-            // POST /d1/execute — authenticated D1 query endpoint for CI scripts.
-            // Routes D1 writes through the Worker's native binding instead of
-            // requiring the CF REST API (which needs D1:Edit token scope).
-            // Table allowlist prevents writes to non-odds tables.
-            if (pathname === '/d1/execute' && request.method === 'POST') {
-                const authHeader = request.headers.get('X-FIELD-Relay');
-                if (authHeader !== 'field-relay-cron-2026') {
-                    return new Response('unauthorized', { status: 401, headers: CORS });
-                }
-                let body;
-                try { body = await request.json(); }
-                catch (_) {
-                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
-                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
-                const { sql, params } = body;
-                if (!sql) {
-                    return new Response(JSON.stringify({ ok: false, error: 'missing sql' }),
-                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
-                const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress'];
-                const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
-                if (tableName && !ALLOWED_TABLES.includes(tableName)) {
-                    return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),
-                        { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
-                try {
-                    const stmt = env.ARCHIVE_DB.prepare(sql);
-                    const result = params && params.length > 0
-                        ? await stmt.bind(...params).run()
-                        : await stmt.run();
-                    return new Response(JSON.stringify({
-                        success: true,
-                        results: result.results || [],
-                        meta: result.meta,
-                    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-                } catch (e) {
-                    return new Response(JSON.stringify({ ok: false, error: e.message }),
-                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
-            }
-
             // All filter params optional. Builds the WHERE clause dynamically —
             // only emits a clause + binding when the param is present. Column
             // names are hardcoded (no interpolation of user input). Bind values
@@ -7096,8 +7054,51 @@ export default {
             && !(pathname === '/journalism/generate' && request.method === 'POST')
             && !(pathname === '/journalism/enqueue' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
+            && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
+
+        // POST /d1/execute — authenticated D1 query endpoint for CI scripts.
+        // Routes D1 writes through the Worker's native binding instead of
+        // requiring the CF REST API (which needs D1:Edit token scope).
+        // Table allowlist prevents writes to non-odds tables.
+        if (pathname === '/d1/execute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            let body;
+            try { body = await request.json(); }
+            catch (_) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const { sql, params } = body;
+            if (!sql) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing sql' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress'];
+            const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
+            if (tableName && !ALLOWED_TABLES.includes(tableName)) {
+                return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),
+                    { status: 403, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const stmt = env.ARCHIVE_DB.prepare(sql);
+                const result = params && params.length > 0
+                    ? await stmt.bind(...params).run()
+                    : await stmt.run();
+                return new Response(JSON.stringify({
+                    success: true,
+                    results: result.results || [],
+                    meta: result.meta,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
 
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
