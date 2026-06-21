@@ -869,37 +869,34 @@ export function computeTournamentProjections({
     modalTables[g] = rows;
   }
 
-  // Step 2: Pick best 8 third-place teams.
-  // When currentThirdPlace is provided (D1 standings), use CURRENT reality
-  // to determine which 8 groups contribute qualifiers. The bracket should
-  // show "if the tournament ended now" for 3rd-place slots.
-  // Fallback: Monte Carlo qualification frequency (original behavior).
+  // Step 2: Pick best 8 third-place teams from CURRENT STANDINGS.
+  // currentStandings already has live scores layered in (BracketDO does this
+  // before calling us). Deriving the ranking HERE means the bracket tree
+  // reacts to every live goal — no D1 round-trip, no stale snapshot.
+  // FIFA cross-group criteria: Pts → GD → GF.
   let modalBest8;
-  if (currentThirdPlace && currentThirdPlace.length >= 8) {
-    // Current standings determine which 8 groups qualify.
-    // Take the top 8 groups from D1 standings, then use modal tables'
-    // 3rd-place team for each qualifying group.
-    const qualifyingGroups = new Set(
-      currentThirdPlace.slice(0, 8).map(t => t.group_id)
-    );
-    modalBest8 = groups
-      .filter(g => qualifyingGroups.has(g))
-      .map(g => {
-        const thirdTeam = modalTables[g]?.[2]?.name;
-        if (!thirdTeam) return null;
-        return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0 };
-      })
-      .filter(Boolean);
-  } else {
-    // Fallback: Monte Carlo qualification frequency
-    const modalThirds = groups.map(g => {
-      const thirdTeam = modalTables[g]?.[2]?.name;
-      if (!thirdTeam) return null;
-      const r32AsThird = countsByPos[thirdTeam]?.[3]?.R32 || 0;
-      return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0, qualRate: r32AsThird / N };
-    }).filter(Boolean).sort((a, b) => b.qualRate - a.qualRate);
-    modalBest8 = modalThirds.slice(0, 8);
-  }
+  const liveThirds = groups.map(g => {
+    const groupRows = currentStandings[g];
+    if (!Array.isArray(groupRows) || groupRows.length < 3) return null;
+    // Group rows are pre-sorted by position; index 2 = 3rd place
+    const third = groupRows[2];
+    const name = third.name || third.team || '';
+    const pts = third.points || third.pts || 0;
+    const gfVal = third.gf || 0;
+    const gaVal = third.ga || 0;
+    const gd = gfVal - gaVal;
+    // Use the modal table's 3rd-place team name for the bracket slot
+    // (modal = most frequent 3rd across simulations), but the QUALIFYING
+    // decision uses current standings ranking.
+    const modalThirdName = modalTables[g]?.[2]?.name || name;
+    return { name: modalThirdName, group: g, pts, gd, gf: gfVal, realName: name };
+  }).filter(Boolean);
+
+  // Sort by FIFA cross-group criteria (same as wc_third_place_standings view)
+  liveThirds.sort((a, b) =>
+    (b.pts - a.pts) || (b.gd - a.gd) || (b.gf - a.gf)
+  );
+  modalBest8 = liveThirds.slice(0, 8);
 
   // Step 3: Build R32 matchups via FIFA Annex C
   const modalR32 = resolveR32Teams(modalTables, modalBest8);
@@ -977,7 +974,18 @@ export function computeTournamentProjections({
     bracketSlots['Champion'] = _slot(champion, 'Champion');
   }
 
-  return { teams: filteredTeams, bracketTraps, bracketSlots, generatedAt: new Date().toISOString(), N };
+  // Build third-place ranking output for the client table
+  const thirdPlaceRanking = liveThirds.map((t, i) => ({
+    team: t.realName || t.name,
+    group_id: t.group,
+    points: t.pts,
+    gd: t.gd,
+    gf: t.gf,
+    cross_group_rank: i + 1,
+    qualifying: i < 8,
+  }));
+
+  return { teams: filteredTeams, bracketTraps, bracketSlots, thirdPlaceRanking, generatedAt: new Date().toISOString(), N };
 }
 
 // ── detectBracketTraps ────────────────────────────────────────────────────────

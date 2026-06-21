@@ -303,25 +303,16 @@ export class BracketDO {
                 lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
             }));
 
-        // 3. Query current third-place standings from D1 for bracket reality
-        let currentThirdPlace = null;
-        if (this.env.ARCHIVE_DB) {
-            try {
-                const tpRes = await this.env.ARCHIVE_DB.prepare(
-                    'SELECT * FROM wc_third_place_standings ORDER BY cross_group_rank ASC'
-                ).all();
-                if (tpRes.results?.length >= 8) currentThirdPlace = tpRes.results;
-            } catch (_) { /* D1 miss is non-fatal — falls back to Monte Carlo */ }
-        }
-
-        // 4. Compute new projections (N=2000 — same as cron)
+        // 3. Compute new projections (N=2000 — same as cron)
+        // Third-place ranking is derived from currentStandings inside
+        // computeTournamentProjections — no D1 query needed. Live scores
+        // are already layered into standings before this call.
         let newSnapshot = null;
         try {
             newSnapshot = computeTournamentProjections({
                 currentStandings: standings,
                 remainingFixtures,
                 oddsProbs,
-                currentThirdPlace,
                 N: 2000,
             });
             // Attach trigger context
@@ -465,25 +456,14 @@ export class BracketDO {
                 lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
             }));
 
-        // 4. Query current third-place standings for live bracket reality
-        let liveThirdPlace = null;
-        if (this.env.ARCHIVE_DB) {
-            try {
-                const tpRes = await this.env.ARCHIVE_DB.prepare(
-                    'SELECT * FROM wc_third_place_standings ORDER BY cross_group_rank ASC'
-                ).all();
-                if (tpRes.results?.length >= 8) liveThirdPlace = tpRes.results;
-            } catch (_) { /* non-fatal */ }
-        }
-
-        // 5. Compute the live-adjusted projection
+        // 4. Compute the live-adjusted projection
+        // Third-place ranking derived from live standings (with score layered in)
         let liveSnapshot = null;
         try {
             liveSnapshot = computeTournamentProjections({
                 currentStandings: standings,
                 remainingFixtures,
                 oddsProbs,
-                currentThirdPlace: liveThirdPlace,
                 N: 2000,
             });
             liveSnapshot._trigger     = `${liveResult.home} ${liveResult.hs}-${liveResult.as} ${liveResult.away} (${liveResult.minute || 'live'})`;
