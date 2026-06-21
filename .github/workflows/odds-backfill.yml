@@ -24,9 +24,6 @@ jobs:
 
       - name: Run odds backfill
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN:  ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ODDS_API_KEY:          ${{ secrets.ODDS_API_KEY || 'de44fdf870b3a4b5ee9d46993b2e1038' }}
-          D1_DATABASE_ID:        ${{ secrets.D1_DATABASE_ID || 'cc49101c-0569-4d41-8e7a-be139cde4f26' }}
           RELAY_BASE:            ${{ secrets.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev' }}
         run: node .github/scripts/odds-backfill.js
