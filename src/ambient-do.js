@@ -284,6 +284,10 @@ export class AmbientDO {
 
         let totalLive = 0;
         const pendingFinals = new Set();
+        // Games that just transitioned pre→live this poll cycle. Closing-
+        // odds capture runs once per game after the per-game loop (so we
+        // don't block scoring fan-out on an Odds-API round-trip).
+        const pendingStarts = [];
 
         for (const res of results) {
             if (res.status !== 'fulfilled') continue;
@@ -298,6 +302,22 @@ export class AmbientDO {
                 const prev = this._scores[gameId];
                 const hS = homeScore ?? 0;
                 const aS = awayScore ?? 0;
+
+                // Detect pre→live transition (kickoff / first pitch). Fires
+                // exactly once per game per DO instance lifetime — `_gameStarts`
+                // dedups across consecutive poll cycles where the game stays
+                // live. Capture runs after the loop so scoring fan-out isn't
+                // blocked on an Odds-API round-trip.
+                const prevState = prev?.state || 'pre';
+                const isNewLive = (state === 'live' || state === 'in')
+                    && prevState !== 'live' && prevState !== 'in';
+                if (isNewLive) {
+                    if (!this._gameStarts) this._gameStarts = new Set();
+                    if (!this._gameStarts.has(gameId)) {
+                        this._gameStarts.add(gameId);
+                        pendingStarts.push({ gameId, sport, home, away });
+                    }
+                }
 
                 // Detect score change
                 const scoreChanged = !prev
@@ -386,6 +406,18 @@ export class AmbientDO {
                 this._broadcast('all_final', {
                     date: today, count: this._finals.size, ts: Date.now(),
                 });
+            }
+        }
+
+        // ── Closing-odds capture on pre→live transitions ────────────────
+        // Each game gets its closing odds snapshotted at the moment it
+        // goes live (closing odds disappear from The Odds API within
+        // minutes of kickoff/first-pitch). Fire-and-forget per game so
+        // a single Odds-API failure doesn't cascade across the slate.
+        if (pendingStarts.length > 0 && this.env.ODDS_API_KEY) {
+            for (const start of pendingStarts) {
+                try { await this._captureClosingOdds(start); }
+                catch (e) { console.warn('[AmbientDO] closing odds capture failed:', e.message); }
             }
         }
 
@@ -589,6 +621,141 @@ export class AmbientDO {
                 console.warn(`[AmbientDO] odds fetch ${sport}:`, e.message);
             }
         }));
+    }
+
+    // ── Closing-odds capture on pre→live transition ──────────────────────
+    // Fetches current-market odds at the moment a game goes live, then
+    // UPDATEs both archive tables WHERE closing_odds IS NULL. Writes one
+    // change_log row per UPDATE so the Brief Freshness Guard (commit
+    // e24dde9) can detect closing-line shifts after publication.
+    //
+    // Daily budget cap: 30 captures/day (~1% of the 2700 Odds-API daily
+    // ceiling). Counter resets at UTC midnight via `_closingOddsDate`.
+    //
+    // ARCHIVE_DB binding is inherited from the parent Worker — Cloudflare
+    // DOs share env, no per-DO wrangler declaration needed.
+    async _captureClosingOdds({ gameId, sport, home, away }) {
+        const oddsKey = ODDS_SPORT_KEYS[sport];
+        if (!oddsKey) return; // sport not covered by Odds API
+        const apiKey = this.env.ODDS_API_KEY;
+        if (!apiKey) return;
+
+        // Daily cap (Rule 78 / API-COST-A).
+        const today = new Date().toISOString().slice(0, 10);
+        if (this._closingOddsDate !== today) {
+            this._closingOddsDate = today;
+            this._closingOddsToday = 0;
+        }
+        if ((this._closingOddsToday || 0) >= 30) {
+            console.warn('[closing-odds] daily cap reached (30)');
+            return;
+        }
+        this._closingOddsToday = (this._closingOddsToday || 0) + 1;
+
+        const url = `https://api.the-odds-api.com/v4/sports/${oddsKey}/odds`
+            + `?apiKey=${apiKey}&regions=us&markets=h2h,spreads,totals`
+            + `&oddsFormat=american`;
+        let events;
+        try {
+            const r = await fetch(url, {
+                headers: { 'User-Agent': 'FIELD-relay/2026' },
+                cf: { cacheTtl: 0 },
+            });
+            if (!r.ok) {
+                console.warn(`[closing-odds] fetch ${r.status} for ${sport}`);
+                return;
+            }
+            events = await r.json();
+        } catch (e) {
+            console.warn(`[closing-odds] fetch error for ${sport}: ${e.message}`);
+            return;
+        }
+        if (!Array.isArray(events)) return;
+
+        // Bidirectional substring match on NFD-normalised alphanumerics —
+        // tolerant of "Türkiye" vs "Turkey", "DR Congo" vs "Congo DR",
+        // "Czech Republic" vs "Czechia". Same pattern as the client's
+        // _wcMatchTeamName helper.
+        const norm = s => (s || '').toLowerCase().normalize('NFD')
+            .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+        const nH = norm(home), nA = norm(away);
+        const event = events.find(e => {
+            const eh = norm(e.home_team), ea = norm(e.away_team);
+            return (eh.includes(nH) || nH.includes(eh))
+                && (ea.includes(nA) || nA.includes(ea));
+        });
+        if (!event?.bookmakers?.length) return;
+
+        const bk = event.bookmakers[0];
+        const ml = bk.markets?.find(m => m.key === 'h2h');
+        const sp = bk.markets?.find(m => m.key === 'spreads');
+        const to = bk.markets?.find(m => m.key === 'totals');
+        const odds = {
+            source: bk.key,
+            captured_at: new Date().toISOString(),
+            moneyline: {
+                home: ml?.outcomes?.find(o => o.name === event.home_team)?.price ?? null,
+                away: ml?.outcomes?.find(o => o.name === event.away_team)?.price ?? null,
+                draw: ml?.outcomes?.find(o => o.name === 'Draw')?.price ?? null,
+            },
+            spread: {
+                home: sp?.outcomes?.find(o => o.name === event.home_team)?.point ?? null,
+                away: sp?.outcomes?.find(o => o.name === event.away_team)?.point ?? null,
+            },
+            total: {
+                over:  to?.outcomes?.find(o => o.name === 'Over')?.point ?? null,
+                under: to?.outcomes?.find(o => o.name === 'Under')?.point ?? null,
+            },
+        };
+        const oddsJson = JSON.stringify(odds);
+
+        // Find the matching archive row (id contains normalised team names
+        // for most relay-cron writers) and UPDATE. Both tables checked.
+        for (const table of ['regular_season_games', 'postseason_games']) {
+            try {
+                const candidates = await this._d1Query(
+                    `SELECT id FROM ${table}
+                     WHERE date = ? AND closing_odds IS NULL LIMIT 50`,
+                    [today]
+                );
+                const match = candidates.find(r =>
+                    r.id && (r.id.includes(nH) || r.id.includes(nA))
+                );
+                if (!match) continue;
+                await this._d1Query(
+                    `UPDATE ${table} SET closing_odds = ?
+                     WHERE id = ? AND closing_odds IS NULL`,
+                    [oddsJson, match.id]
+                );
+                // change_log entry — Brief Freshness Guard reads this to
+                // flag stale briefs when closing odds shift after pub.
+                await this._d1Query(
+                    `INSERT INTO change_log
+                       (game_id, source, field, old_value, new_value, ts)
+                     VALUES (?, 'closing_odds_capture', 'closing_odds', NULL, ?, datetime('now'))`,
+                    [match.id, oddsJson]
+                ).catch(() => { /* change_log may be absent on cold deploy */ });
+                console.log(`[closing-odds] captured ${home} vs ${away} → ${table}/${match.id}`);
+            } catch (e) {
+                console.warn(`[closing-odds] ${table} update failed: ${e.message}`);
+            }
+        }
+    }
+
+    // Thin D1 wrapper. DOs share the parent Worker's env, so ARCHIVE_DB is
+    // directly accessible. Returns [] when the binding is missing so the
+    // capture path can degrade silently.
+    async _d1Query(sql, params = []) {
+        if (!this.env || !this.env.ARCHIVE_DB) return [];
+        const stmt = this.env.ARCHIVE_DB.prepare(sql);
+        const bound = params.length ? stmt.bind(...params) : stmt;
+        const isSelect = sql.trim().toUpperCase().startsWith('SELECT');
+        if (isSelect) {
+            const r = await bound.all();
+            return r.results || [];
+        }
+        await bound.run();
+        return [];
     }
 
     // ── Fetch one sport via relay self-call ───────────────────────────────
