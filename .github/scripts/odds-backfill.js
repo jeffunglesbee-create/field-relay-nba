@@ -390,9 +390,9 @@ async function syncOddsToGameTables() {
             oh.over_under, oh.bookmaker, oh.snapshot_time
      FROM odds_history oh
      WHERE oh.game_id IN (
-       SELECT id FROM regular_season_games WHERE opening_odds IS NULL
+       SELECT id FROM regular_season_games WHERE opening_odds IS NULL OR closing_odds IS NULL
        UNION ALL
-       SELECT id FROM postseason_games WHERE opening_odds IS NULL
+       SELECT id FROM postseason_games WHERE opening_odds IS NULL OR closing_odds IS NULL
      )
      GROUP BY oh.game_id`
   );
