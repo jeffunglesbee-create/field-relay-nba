@@ -4297,6 +4297,16 @@ async function executeGameBriefBackfill(env, date) {
     const away  = game.away || 'Away';
     const isPostseason = !!game.series_key;
 
+    // R2 sport context for backfill path — resolves abbreviations from
+    // display names since D1 archive tables don't store team abbreviations.
+    let sportContext = '';
+    try {
+      sportContext = await assembleContext(env, {
+        sport, home, away,
+        homeAbbr: '', awayAbbr: '',  // resolveAbbr inside builders handles name→abbr
+      }, 600);
+    } catch (_) { /* non-fatal */ }
+
     let seriesContext = '';
     if (isPostseason && game.series_key) {
       const series = await env.ARCHIVE_DB.prepare(
@@ -4321,6 +4331,7 @@ async function executeGameBriefBackfill(env, date) {
       `${away} ${game.away_score} at ${home} ${game.home_score}`,
       `Date: ${date}`,
       isPostseason ? `Round: ${game.round || 'postseason'}${seriesContext}` : '',
+      sportContext || '',
       `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
     ].filter(Boolean).join('\n');
 
