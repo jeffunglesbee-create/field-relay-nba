@@ -678,6 +678,7 @@ export function computeTournamentProjections({
   remainingFixtures = [],
   oddsProbs         = [],
   d1Results         = [],
+  currentThirdPlace = null,
   N                 = 2000,
 } = {}) {
   const rng = Math.random;
@@ -868,14 +869,37 @@ export function computeTournamentProjections({
     modalTables[g] = rows;
   }
 
-  // Step 2: Pick best 8 third-place teams (by R32 qualification frequency)
-  const modalThirds = groups.map(g => {
-    const thirdTeam = modalTables[g]?.[2]?.name;
-    if (!thirdTeam) return null;
-    const r32AsThird = countsByPos[thirdTeam]?.[3]?.R32 || 0;
-    return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0, qualRate: r32AsThird / N };
-  }).filter(Boolean).sort((a, b) => b.qualRate - a.qualRate);
-  const modalBest8 = modalThirds.slice(0, 8);
+  // Step 2: Pick best 8 third-place teams.
+  // When currentThirdPlace is provided (D1 standings), use CURRENT reality
+  // to determine which 8 groups contribute qualifiers. The bracket should
+  // show "if the tournament ended now" for 3rd-place slots.
+  // Fallback: Monte Carlo qualification frequency (original behavior).
+  let modalBest8;
+  if (currentThirdPlace && currentThirdPlace.length >= 8) {
+    // Current standings determine which 8 groups qualify.
+    // Take the top 8 groups from D1 standings, then use modal tables'
+    // 3rd-place team for each qualifying group.
+    const qualifyingGroups = new Set(
+      currentThirdPlace.slice(0, 8).map(t => t.group_id)
+    );
+    modalBest8 = groups
+      .filter(g => qualifyingGroups.has(g))
+      .map(g => {
+        const thirdTeam = modalTables[g]?.[2]?.name;
+        if (!thirdTeam) return null;
+        return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0 };
+      })
+      .filter(Boolean);
+  } else {
+    // Fallback: Monte Carlo qualification frequency
+    const modalThirds = groups.map(g => {
+      const thirdTeam = modalTables[g]?.[2]?.name;
+      if (!thirdTeam) return null;
+      const r32AsThird = countsByPos[thirdTeam]?.[3]?.R32 || 0;
+      return { name: thirdTeam, group: g, pts: 0, gd: 0, gf: 0, qualRate: r32AsThird / N };
+    }).filter(Boolean).sort((a, b) => b.qualRate - a.qualRate);
+    modalBest8 = modalThirds.slice(0, 8);
+  }
 
   // Step 3: Build R32 matchups via FIFA Annex C
   const modalR32 = resolveR32Teams(modalTables, modalBest8);
