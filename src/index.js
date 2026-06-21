@@ -57,6 +57,7 @@ import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
 import { assembleContext } from './context-assembler.js';
+import { ensureChangeLogTable, reconcile, getRecentChanges } from './sync-reconciler.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -3939,13 +3940,24 @@ async function snapshotCronOdds(env, dateKey) {
         `SELECT id, home, away FROM ${table}
           WHERE date = ? AND sport = ? AND opening_odds IS NULL`
       ).bind(dateKey, sport).all();
+      // Build the per-row update list, then hand off to reconcile()
+      // so the UPDATE + change_log INSERTs go out in batched form
+      // (one round-trip per chunk instead of one per row) and every
+      // applied change is observable via /changelog/{date}.
+      const updates = [];
       for (const row of (rows.results || [])) {
         const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
         if (!og) continue;
         const odds = extractOddsForGame(og);
         if (!odds) continue;
-        const sql = `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`;
-        await env.ARCHIVE_DB.prepare(sql).bind(JSON.stringify(odds), row.id).run();
+        updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
+      }
+      if (updates.length) {
+        await reconcile(env, {
+          target: table,
+          updates,
+          changelog: { source: 'odds_api', label: 'opening_odds' },
+        });
       }
     }
   }
@@ -4042,18 +4054,30 @@ async function runOddsBackfillForDate(env, isoDate) {
     for (const g of games) {
       byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
     }
+    // Build per-row updates for both tables, then dispatch via
+    // reconcile() so the UPDATE + change_log INSERTs are batched and
+    // a 100-row backfill makes one DB round-trip per table per chunk
+    // (chunk size = 40) instead of one per row.
     const apply = async (rows, table) => {
+      const updates = [];
       for (const row of rows) {
         const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
         if (!og) { oddsSkipped++; continue; }
         const odds = extractOddsForGame(og);
         if (!odds) { oddsSkipped++; continue; }
-        try {
-          const sql = `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`;
-          const upd = await env.ARCHIVE_DB.prepare(sql).bind(JSON.stringify(odds), row.id).run();
-          if (upd.meta && upd.meta.changes > 0) oddsPopulated++;
-          else oddsSkipped++;
-        } catch (_) { oddsSkipped++; }
+        updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
+      }
+      if (!updates.length) return;
+      try {
+        const r = await reconcile(env, {
+          target: table,
+          updates,
+          changelog: { source: 'odds_api', label: 'opening_odds' },
+        });
+        oddsPopulated += r.synced || 0;
+        oddsSkipped   += updates.length - (r.synced || 0);
+      } catch (_) {
+        oddsSkipped += updates.length;
       }
     };
     await apply(group.rs, 'regular_season_games');
@@ -5542,6 +5566,10 @@ async function handleJournalismCycle(env) {
     // so a slow D1 write doesn't delay queue dispatch.
     try {
       await ensureBriefsTable(env);
+      // change_log sits alongside briefs in ARCHIVE_DB. Bootstrap on the
+      // same path so reconcile() always has its target table available
+      // — odds sync, etc. may run inside this same cron tick.
+      await ensureChangeLogTable(env).catch(() => {});
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
            (id, date, brief_type, sport, brief_text, model, quality_score, context_hash, word_count, source)
@@ -7109,6 +7137,37 @@ export default {
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
+        // GET /changelog/{date} — recent change_log entries since midnight UTC
+        // of the requested date. Read-only diagnostic for the newspaper
+        // assembler + brief freshness guard. Date is YYYY-MM-DD.
+        if (pathname.startsWith('/changelog/') && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const date = pathname.slice('/changelog/'.length);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const since = `${date}T00:00:00Z`;
+            const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 200);
+            const sources = url.searchParams.get('source')
+                ? [url.searchParams.get('source')]
+                : null;
+            try {
+                const changes = await getRecentChanges(env, {
+                    since, limit, sources, includeConsumed: true,
+                });
+                return new Response(JSON.stringify({ ok: true, date, count: changes.length, changes }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } });
+            } catch (e) {
+                // change_log may not exist yet on a fresh deploy.
+                return new Response(JSON.stringify({ ok: true, date, count: 0, changes: [], _note: e.message }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // POST /d1/execute — authenticated D1 query endpoint for CI scripts.
         // Routes D1 writes through the Worker's native binding instead of
         // requiring the CF REST API (which needs D1:Edit token scope).
@@ -7129,7 +7188,7 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'missing sql' }),
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
-            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games'];
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),
