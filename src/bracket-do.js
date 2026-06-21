@@ -54,6 +54,63 @@ import { computeTournamentProjections, computeMovers } from './wc-tournament-pro
 const NARRATIVE_THRESHOLD_PP = 5.0;   // min pp shift to queue journalism brief
 const SNAPSHOT_MAX_STORED    = 50;    // max snapshots in audit trail
 const RELAY_BASE = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+// Per-game cooldown for /bracket/live-score recomputes. Soccer score events
+// can fire several times in a minute around a goal celebration / VAR review;
+// 30s lets us catch the next genuine state change without burning sims.
+const LIVE_RECOMPUTE_COOLDOWN_MS = 30 * 1000;
+
+// Case-insensitive team name match. Standings + oddsProbs may carry slightly
+// different casings or accents (Türkiye vs Turkiye); a coarse match keeps
+// the live recompute usable until full name normalisation lands.
+function _teamsMatch(a, b) {
+    if (!a || !b) return false;
+    return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
+// Is this odds-probs fixture the same match as the live event? Tolerates
+// home/away order flip — the oddsProbs feed sometimes orders by api-sports'
+// raw fixture, not by the relay's normalisation.
+function _isSameMatch(fixture, liveResult) {
+    const fh = fixture.home_team, fa = fixture.away_team;
+    const lh = liveResult.home,    la = liveResult.away;
+    return (_teamsMatch(fh, lh) && _teamsMatch(fa, la))
+        || (_teamsMatch(fh, la) && _teamsMatch(fa, lh));
+}
+
+// Layer a live result into the in-memory standings object the canonical
+// recompute would otherwise see. Bumps played, won/drawn/lost, gf/ga/gd,
+// points for both teams in the affected group, then re-sorts the group.
+// Returns false when the team names can't be found in any group — caller
+// uses that to broadcast a no-op acknowledgement instead of running sims.
+function _applyLiveToStandings(standings, liveResult) {
+    if (!standings || typeof standings !== 'object') return false;
+    let h, a, group;
+    for (const [gid, teams] of Object.entries(standings)) {
+        if (!Array.isArray(teams)) continue;
+        const hi = teams.find(t => _teamsMatch(t.team, liveResult.home));
+        const ai = teams.find(t => _teamsMatch(t.team, liveResult.away));
+        if (hi && ai) { h = hi; a = ai; group = gid; break; }
+    }
+    if (!h || !a) return false;
+    const hs = Number(liveResult.hs) || 0;
+    const as = Number(liveResult.as) || 0;
+    for (const t of [h, a]) t.played = (t.played || 0) + 1;
+    h.gf = (h.gf || 0) + hs; h.ga = (h.ga || 0) + as; h.gd = h.gf - h.ga;
+    a.gf = (a.gf || 0) + as; a.ga = (a.ga || 0) + hs; a.gd = a.gf - a.ga;
+    if (hs > as) {
+        h.won  = (h.won  || 0) + 1; h.points = (h.points || 0) + 3;
+        a.lost = (a.lost || 0) + 1;
+    } else if (hs < as) {
+        a.won  = (a.won  || 0) + 1; a.points = (a.points || 0) + 3;
+        h.lost = (h.lost || 0) + 1;
+    } else {
+        h.drawn = (h.drawn || 0) + 1; h.points = (h.points || 0) + 1;
+        a.drawn = (a.drawn || 0) + 1; a.points = (a.points || 0) + 1;
+    }
+    standings[group].sort((x, y) =>
+        (y.points - x.points) || (y.gd - x.gd) || (y.gf - x.gf));
+    return true;
+}
 
 export class BracketDO {
     constructor(ctx, env) {
@@ -102,6 +159,45 @@ export class BracketDO {
             server.send(JSON.stringify(greeting));
 
             return new Response(null, { status: 101, webSocket: client });
+        }
+
+        // ── POST /bracket/live-score — called by AmbientDO on WC score change ──
+        // Payload: { gameId, home, away, homeScore, awayScore, group, minute, isLive }
+        // Recomputes projections provisionally with the live score layered into
+        // standings. Transient: not persisted as the canonical snapshot, not
+        // written to KV. The next writeWCResult call (game final) overwrites
+        // the transient state via the normal /bracket/result path.
+        if (url.pathname.endsWith('/bracket/live-score') && request.method === 'POST') {
+            let body;
+            try { body = await request.json(); }
+            catch (_) { return new Response('Bad JSON', { status: 400 }); }
+            const { gameId, home, away, homeScore, awayScore, minute } = body;
+            if (!gameId || !home || !away) {
+                return new Response('Missing fields', { status: 400 });
+            }
+            // Per-game cooldown — avoid recomputing Monte Carlo (~2k sims) on
+            // every rapid-fire score event. 30s is a comfortable buffer for
+            // typical soccer scoring cadence.
+            if (!this._liveLast) this._liveLast = new Map();
+            const lastTs = this._liveLast.get(gameId) || 0;
+            if (Date.now() - lastTs < LIVE_RECOMPUTE_COOLDOWN_MS) {
+                return new Response(JSON.stringify({ ok: true, throttled: true }),
+                    { headers: { 'Content-Type': 'application/json' } });
+            }
+            this._liveLast.set(gameId, Date.now());
+
+            const liveResult = {
+                gameId,
+                home, away,
+                hs: Number(homeScore) || 0,
+                as: Number(awayScore) || 0,
+                minute: minute || '',
+                isLive: true,
+                ts: Date.now(),
+            };
+            const broadcast = await this._recomputeLiveAndBroadcast(liveResult);
+            return new Response(JSON.stringify({ ok: true, broadcast }),
+                { headers: { 'Content-Type': 'application/json' } });
         }
 
         // ── POST /bracket/result — called by relay when a WC game goes final ──
@@ -298,6 +394,120 @@ export class BracketDO {
         }
 
         console.log(`[BracketDO] recomputed: ${newSnapshot.teams?.length} teams · delta significant: ${delta?.significant} · ws clients: ${fanOutCount}`);
+        return true;
+    }
+
+    // ── Provisional live-score recompute ─────────────────────────────────
+    // Same Monte Carlo engine as _recomputeAndBroadcast, but the live game's
+    // hypothetical-final is layered into standings + removed from remaining
+    // fixtures BEFORE simulation. Transient: this.currentSnapshot, KV, and
+    // the audit trail are NOT touched. The next /bracket/result POST (game
+    // final) overwrites the transient view via the normal recompute path.
+    async _recomputeLiveAndBroadcast(liveResult) {
+        // 1. Fetch the same inputs the canonical recompute uses
+        let standings = {};
+        let oddsProbs = [];
+        try {
+            const [sRes, oRes] = await Promise.allSettled([
+                fetch(`${RELAY_BASE}/wc/standings`, { cache: 'no-store' }),
+                fetch(`${RELAY_BASE}/wc/odds-probs`, { cache: 'no-store' }),
+            ]);
+            if (sRes.status === 'fulfilled' && sRes.value.ok)
+                standings = (await sRes.value.json()).groups ?? {};
+            if (oRes.status === 'fulfilled' && oRes.value.ok)
+                oddsProbs = (await oRes.value.json()).probs ?? [];
+        } catch (_) { /* will produce no-op below */ }
+
+        // 2. Layer the live result into the team's group standings
+        const layered = _applyLiveToStandings(standings, liveResult);
+        if (!layered) {
+            // Team names didn't match — broadcast a lightweight acknowledgement
+            // so the client knows the goal was received but the bracket
+            // couldn't be recomputed. No projection update.
+            const ackMsg = JSON.stringify({
+                type:    'bracket:live-score-noop',
+                isLive:  true,
+                gameId:  liveResult.gameId,
+                reason:  'name_mismatch',
+                trigger: `${liveResult.home} ${liveResult.hs}-${liveResult.as} ${liveResult.away}`,
+                ts:      Date.now(),
+            });
+            for (const ws of this.ctx.getWebSockets()) {
+                try { ws.send(ackMsg); } catch (_) {}
+            }
+            console.warn(`[BracketDO] live-score name mismatch: ${liveResult.home} / ${liveResult.away}`);
+            return false;
+        }
+
+        // 3. Remove the live game from remaining fixtures so Monte Carlo
+        //    doesn't simulate it twice (once via layered standings, again
+        //    via odds-derived fixtures).
+        const nowMs = Date.now();
+        const remainingFixtures = oddsProbs
+            .filter(g => new Date(g.commence).getTime() > nowMs)
+            .filter(g => !_isSameMatch(g, liveResult))
+            .map(g => ({
+                home: g.home_team, away: g.away_team,
+                pHome: g.pHome, pDraw: g.pDraw || (1 - g.pHome - g.pAway) / 2,
+                pAway: g.pAway,
+                lambdaHome: g.lambdaHome, lambdaAway: g.lambdaAway,
+            }));
+
+        // 4. Compute the live-adjusted projection
+        let liveSnapshot = null;
+        try {
+            liveSnapshot = computeTournamentProjections({
+                currentStandings: standings,
+                remainingFixtures,
+                oddsProbs,
+                N: 2000,
+            });
+            liveSnapshot._trigger     = `${liveResult.home} ${liveResult.hs}-${liveResult.as} ${liveResult.away} (${liveResult.minute || 'live'})`;
+            liveSnapshot._triggeredAt = new Date().toISOString();
+            liveSnapshot._isLive      = true;
+        } catch (e) {
+            console.error('[BracketDO] live projection error:', e.message);
+            return false;
+        }
+
+        // 5. Delta against the canonical current snapshot (NOT the previous
+        //    live one — we want the client to see "how much did this goal
+        //    move us from the official picture").
+        const delta = this._computeDelta(this.currentSnapshot, liveSnapshot, {
+            gameId: liveResult.gameId,
+            home: liveResult.home, away: liveResult.away,
+            hs: liveResult.hs, as: liveResult.as,
+        });
+
+        // 6. Fan out — flag the broadcast as live so consumers can render
+        //    differently (e.g. dashed border, "live" badge).
+        const message = JSON.stringify({
+            type:      'bracket:updated',
+            isLive:    true,
+            delta,
+            trigger:   liveSnapshot._trigger,
+            ts:        Date.now(),
+            teamCount: liveSnapshot.teams?.length ?? 0,
+        });
+        let fanOutCount = 0;
+        for (const ws of this.ctx.getWebSockets()) {
+            try { ws.send(message); fanOutCount++; } catch (_) {}
+        }
+
+        // 7. Transient persistence — keep the live snapshot in DO storage
+        //    (separate key from the canonical snapshot) so /bracket/state
+        //    can optionally expose it. NO KV write. NO mutation of
+        //    this.currentSnapshot / this.prevSnapshot / this.lastDelta.
+        try {
+            await this.ctx.storage.put('snapshot:live', {
+                snapshot: liveSnapshot,
+                delta,
+                trigger: liveSnapshot._trigger,
+                ts: Date.now(),
+            });
+        } catch (_) { /* transient anyway */ }
+
+        console.log(`[BracketDO] live recompute: ${liveSnapshot.teams?.length} teams · ws clients: ${fanOutCount}`);
         return true;
     }
 
