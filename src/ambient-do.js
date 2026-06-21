@@ -321,6 +321,29 @@ export class AmbientDO {
                             state, ts: Date.now(),
                         });
 
+                        // Forward WC live scores to BracketDO so it can
+                        // recompute projections provisionally before the
+                        // game goes final. Fire-and-forget so a slow or
+                        // failed BracketDO never blocks the SSE poll loop.
+                        if (sport === 'wc26' && this.env?.BRACKET_DO) {
+                            try {
+                                const bracketStub = this.env.BRACKET_DO.get(
+                                    this.env.BRACKET_DO.idFromName('wc2026')
+                                );
+                                this.ctx.waitUntil(bracketStub.fetch('https://bracket-do/bracket/live-score', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        gameId, home, away,
+                                        homeScore: hS, awayScore: aS,
+                                        group: game.round || '',
+                                        minute: clock || '',
+                                        isLive: true,
+                                    }),
+                                }).catch(e => console.warn('[AmbientDO] bracket bridge:', e.message)));
+                            } catch (_) { /* BRACKET_DO unbound — silent */ }
+                        }
+
                         // Detect lead change
                         if (hS !== aS) {
                             const newLeader  = hS > aS ? 'home' : 'away';
