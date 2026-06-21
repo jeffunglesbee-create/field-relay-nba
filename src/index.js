@@ -56,6 +56,7 @@ import {
 import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
+import { assembleContext } from './context-assembler.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -5037,6 +5038,10 @@ async function handleJournalismCycle(env) {
               sport,
               home: home?.team?.shortDisplayName || home?.team?.displayName || '',
               away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+              // Captured for context-assembler R2 key lookups (NBA clutch +
+              // NHL series + MLB ABS all key by 3-letter team abbreviation).
+              homeAbbr: home?.team?.abbreviation || '',
+              awayAbbr: away?.team?.abbreviation || '',
               homeScore: home?.score ?? null,
               awayScore: away?.score ?? null,
               isFinal: comp?.status?.type?.completed === true,
@@ -5383,6 +5388,31 @@ async function handleJournalismCycle(env) {
       }
     } catch (_) { /* voice exemplars are an enhancement */ }
 
+    // Per-game sport context from R2 (MLB ABS, NHL series PP/PK, NBA clutch,
+    // soccer FBref). Iterates gameMeta in parallel, falls back to '' on any
+    // builder failure. Cap each game at ~600 tokens, total at ~1500 across
+    // the slate so the existing prose budget isn't squeezed.
+    const _CONTEXT_LEAGUE_TO_SPORT = {
+        nba: 'nba', nhl: 'nhl', mlb: 'mlb', wnba: 'wnba',
+        epl: 'epl', 'fifa world cup': 'wc26',
+    };
+    let sportContextBlock = '';
+    try {
+        const perGame = await Promise.all(gameMeta.map(async (m) => {
+            const labelLc = String(m.league || '').toLowerCase();
+            const sportKey = _CONTEXT_LEAGUE_TO_SPORT[labelLc] || labelLc;
+            return assembleContext(env, {
+                sport: sportKey,
+                league: m.league,
+                home: m.home, away: m.away,
+                homeAbbr: m.homeAbbr, awayAbbr: m.awayAbbr,
+            }, 600);
+        }));
+        sportContextBlock = perGame.filter(b => b && b.length).join('\n');
+    } catch (e) {
+        console.warn('[journalism] sportContextBlock build failed:', e.message);
+    }
+
     const buildPrompt = () => [
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
@@ -5393,6 +5423,7 @@ async function handleJournalismCycle(env) {
       golfContext,    // PGA Tour leaderboard (active tournaments only)
       recentCoverageBlock,  // yesterday's slate brief (temporal continuity)
       enrichmentBlock,      // narrative_context + standings_snapshot rows
+      sportContextBlock,    // per-game R2 sport stats (Savant, NHL series, NBA clutch, FBref)
       voiceExemplarBlock,   // top-3 quality_score briefs from last 7 days
       '',
       'RULES:',
