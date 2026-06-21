@@ -56,6 +56,9 @@ Do not make legal assessments about data sourcing, API terms, or patent complian
 ### Claude Code trusted-but-unverified (STANDARDS Rule 59)
 CC commits pass CI but lack session context. Chat sessions verify: smoke delta, feature wiring, no invented patterns, no unauthorized structural changes.
 
+### Cross-system contracts (CONTRACTS.md)
+Read CONTRACTS.md before writing code that crosses a system boundary — any code where this relay produces data that jubilant-bassoon consumes (SSE events, WebSocket messages, D1 schemas, KV shapes, endpoint responses). Field name mismatches cause silent failures. If you add or change a field in a producer, update CONTRACTS.md and note that jubilant-bassoon's copy must be synced.
+
 ## Bindings Reference (wrangler.toml)
 | Binding | Type | Purpose |
 |---------|------|---------|
