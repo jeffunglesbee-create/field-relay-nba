@@ -402,7 +402,7 @@ async function syncOddsToGameTables() {
     return;
   }
 
-  let synced = 0;
+  let attempted = 0;
   for (const row of candidates) {
     const odds = {
       source: row.bookmaker || 'odds-api-historical',
@@ -419,24 +419,24 @@ async function syncOddsToGameTables() {
 
     const json = JSON.stringify(odds);
 
-    // Try regular_season_games first, then postseason_games
+    // Try BOTH tables — UPDATE is idempotent (WHERE opening_odds IS NULL)
     for (const table of ['regular_season_games', 'postseason_games']) {
       try {
-        const result = await d1Query(
+        await d1Query(
           `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`,
           [json, row.game_id]
         );
-        // d1Query returns results array; check if the update touched a row
-        // by trying the next table if this one didn't match
-        synced++;
-        break;
-      } catch (_) {
-        // table mismatch — try next
-      }
+      } catch (_) { /* table may not have this game — fine */ }
     }
+    attempted++;
   }
 
-  console.log(`[odds-backfill] sync: ${synced}/${candidates.length} games updated with opening_odds`);
+  // Count actual results
+  const afterReg = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE opening_odds IS NOT NULL`);
+  const afterPost = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE opening_odds IS NOT NULL`);
+  const totalAfter = (afterReg[0]?.c || 0) + (afterPost[0]?.c || 0);
+
+  console.log(`[odds-backfill] sync: attempted=${attempted}, total_with_odds=${totalAfter} (reg=${afterReg[0]?.c || 0}, post=${afterPost[0]?.c || 0})`);
 }
 
 main().catch(err => {
