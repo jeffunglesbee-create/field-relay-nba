@@ -724,6 +724,10 @@ async function runPhase8QualityFeedback(env, date) {
 
     try {
         if (env.FIELD_JOURNALISM) {
+            // _last_updated lets the journalism cron's loadQualityCalibration
+            // detect a stale calibration (>36h old) and fall back to a fresh
+            // D1 percentile computation.
+            calibration._last_updated = new Date().toISOString();
             await env.FIELD_JOURNALISM.put(QUALITY_CALIBRATION_KV_KEY, JSON.stringify(calibration));
         }
     } catch (e) {
