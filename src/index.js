@@ -57,7 +57,7 @@ import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
 import { assembleContext } from './context-assembler.js';
-import { ensureChangeLogTable, reconcile, getRecentChanges } from './sync-reconciler.js';
+import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -5570,6 +5570,9 @@ async function handleJournalismCycle(env) {
       // same path so reconcile() always has its target table available
       // — odds sync, etc. may run inside this same cron tick.
       await ensureChangeLogTable(env).catch(() => {});
+      // 30-day retention cleanup — delete consumed changelog entries older
+      // than 30 days. Cheap (one DELETE), safe to run every tick.
+      await cleanupChangelog(env).catch(() => {});
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
            (id, date, brief_type, sport, brief_text, model, quality_score, context_hash, word_count, source)
