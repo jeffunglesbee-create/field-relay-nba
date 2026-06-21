@@ -37,32 +37,131 @@ function _abbr(s) {
     return String(s || '').trim().toUpperCase();
 }
 
+// ── Team name → abbreviation resolver ────────────────────────────────────
+// The backfill path stores full display names in D1 (e.g. "New York Yankees").
+// R2 data keys by 3-letter abbreviation. This resolver maps common display
+// names to abbreviations for MLB, NHL, and NBA.
+const _NAME_TO_ABBR = {
+    // MLB
+    'yankees': 'NYY', 'new york yankees': 'NYY', 'mets': 'NYM', 'new york mets': 'NYM',
+    'dodgers': 'LAD', 'los angeles dodgers': 'LAD', 'angels': 'LAA', 'los angeles angels': 'LAA',
+    'red sox': 'BOS', 'boston red sox': 'BOS', 'astros': 'HOU', 'houston astros': 'HOU',
+    'phillies': 'PHI', 'philadelphia phillies': 'PHI', 'braves': 'ATL', 'atlanta braves': 'ATL',
+    'padres': 'SD', 'san diego padres': 'SD', 'giants': 'SF', 'san francisco giants': 'SF',
+    'cubs': 'CHC', 'chicago cubs': 'CHC', 'white sox': 'CWS', 'chicago white sox': 'CWS',
+    'cardinals': 'STL', 'st. louis cardinals': 'STL', 'brewers': 'MIL', 'milwaukee brewers': 'MIL',
+    'reds': 'CIN', 'cincinnati reds': 'CIN', 'pirates': 'PIT', 'pittsburgh pirates': 'PIT',
+    'guardians': 'CLE', 'cleveland guardians': 'CLE', 'tigers': 'DET', 'detroit tigers': 'DET',
+    'twins': 'MIN', 'minnesota twins': 'MIN', 'royals': 'KC', 'kansas city royals': 'KC',
+    'rangers': 'TEX', 'texas rangers': 'TEX', 'mariners': 'SEA', 'seattle mariners': 'SEA',
+    'athletics': 'OAK', 'oakland athletics': 'OAK', 'rays': 'TB', 'tampa bay rays': 'TB',
+    'blue jays': 'TOR', 'toronto blue jays': 'TOR', 'orioles': 'BAL', 'baltimore orioles': 'BAL',
+    'nationals': 'WSH', 'washington nationals': 'WSH', 'marlins': 'MIA', 'miami marlins': 'MIA',
+    'rockies': 'COL', 'colorado rockies': 'COL', 'diamondbacks': 'ARI', 'arizona diamondbacks': 'ARI',
+    'd-backs': 'ARI',
+    // NHL
+    'hurricanes': 'CAR', 'carolina hurricanes': 'CAR', 'golden knights': 'VGK', 'vegas golden knights': 'VGK',
+    'bruins': 'BOS', 'boston bruins': 'BOS', 'penguins': 'PIT', 'pittsburgh penguins': 'PIT',
+    'oilers': 'EDM', 'edmonton oilers': 'EDM', 'panthers': 'FLA', 'florida panthers': 'FLA',
+    'lightning': 'TBL', 'tampa bay lightning': 'TBL', 'capitals': 'WSH', 'washington capitals': 'WSH',
+    'maple leafs': 'TOR', 'toronto maple leafs': 'TOR', 'canadiens': 'MTL', 'montreal canadiens': 'MTL',
+    'senators': 'OTT', 'ottawa senators': 'OTT', 'sabres': 'BUF', 'buffalo sabres': 'BUF',
+    'islanders': 'NYI', 'new york islanders': 'NYI', 'devils': 'NJD', 'new jersey devils': 'NJD',
+    'flyers': 'PHI', 'philadelphia flyers': 'PHI', 'blue jackets': 'CBJ', 'columbus blue jackets': 'CBJ',
+    'red wings': 'DET', 'detroit red wings': 'DET', 'blackhawks': 'CHI', 'chicago blackhawks': 'CHI',
+    'predators': 'NSH', 'nashville predators': 'NSH', 'blues': 'STL', 'st. louis blues': 'STL',
+    'jets': 'WPG', 'winnipeg jets': 'WPG', 'wild': 'MIN', 'minnesota wild': 'MIN',
+    'avalanche': 'COL', 'colorado avalanche': 'COL', 'stars': 'DAL', 'dallas stars': 'DAL',
+    'kraken': 'SEA', 'seattle kraken': 'SEA', 'sharks': 'SJS', 'san jose sharks': 'SJS',
+    'flames': 'CGY', 'calgary flames': 'CGY', 'canucks': 'VAN', 'vancouver canucks': 'VAN',
+    'ducks': 'ANA', 'anaheim ducks': 'ANA', 'kings': 'LAK', 'los angeles kings': 'LAK',
+    // NBA
+    'celtics': 'BOS', 'boston celtics': 'BOS', 'lakers': 'LAL', 'los angeles lakers': 'LAL',
+    'knicks': 'NYK', 'new york knicks': 'NYK', 'nets': 'BKN', 'brooklyn nets': 'BKN',
+    'warriors': 'GSW', 'golden state warriors': 'GSW', 'clippers': 'LAC', 'la clippers': 'LAC',
+    'nuggets': 'DEN', 'denver nuggets': 'DEN', 'heat': 'MIA', 'miami heat': 'MIA',
+    'bucks': 'MIL', 'milwaukee bucks': 'MIL', 'thunder': 'OKC', 'oklahoma city thunder': 'OKC',
+    'sixers': 'PHI', 'philadelphia 76ers': 'PHI', '76ers': 'PHI',
+    'suns': 'PHX', 'phoenix suns': 'PHX', 'spurs': 'SAS', 'san antonio spurs': 'SAS',
+    'raptors': 'TOR', 'toronto raptors': 'TOR', 'bulls': 'CHI', 'chicago bulls': 'CHI',
+    'cavaliers': 'CLE', 'cleveland cavaliers': 'CLE', 'cavs': 'CLE',
+    'mavericks': 'DAL', 'dallas mavericks': 'DAL', 'mavs': 'DAL',
+    'rockets': 'HOU', 'houston rockets': 'HOU', 'pacers': 'IND', 'indiana pacers': 'IND',
+    'grizzlies': 'MEM', 'memphis grizzlies': 'MEM', 'timberwolves': 'MIN', 'minnesota timberwolves': 'MIN',
+    'pelicans': 'NOP', 'new orleans pelicans': 'NOP', 'magic': 'ORL', 'orlando magic': 'ORL',
+    'trail blazers': 'POR', 'portland trail blazers': 'POR', 'blazers': 'POR',
+    'kings': 'SAC', 'sacramento kings': 'SAC', 'jazz': 'UTA', 'utah jazz': 'UTA',
+    'hawks': 'ATL', 'atlanta hawks': 'ATL', 'hornets': 'CHA', 'charlotte hornets': 'CHA',
+    'pistons': 'DET', 'detroit pistons': 'DET', 'wizards': 'WAS', 'washington wizards': 'WAS',
+};
+
+function resolveAbbr(teamName) {
+    if (!teamName) return '';
+    const t = String(teamName).trim();
+    // Already an abbreviation (2-3 uppercase letters)?
+    if (/^[A-Z]{2,4}$/.test(t)) return t;
+    const lower = t.toLowerCase();
+    if (_NAME_TO_ABBR[lower]) return _NAME_TO_ABBR[lower];
+    // Try last word (e.g. "New York Yankees" → "yankees")
+    const lastWord = lower.split(/\s+/).pop();
+    if (lastWord && _NAME_TO_ABBR[lastWord]) return _NAME_TO_ABBR[lastWord];
+    return '';
+}
+
 // ── MLB: Savant context ─────────────────────────────────────────────────
-// Pulls team-level ABS challenge grades for both teams. Player-level
-// lookups (xBA/xSLG, pitch arsenal) are deferred until a roster join
-// surface exists — without that, mapping homeAbbr→starting pitcher is
-// brittle. Today's builder surfaces what's reliably keyable.
+// Team ABS grades + top pitchers from pitch_arsenals (filtered by team).
+// pitch_arsenals entries have { team: "NYY", pitches: [...] } — we filter
+// by team abbreviation to surface the top 2 pitchers per team without
+// needing a separate roster join.
 async function buildSavantContext(env, game) {
-    const ha = _abbr(game.homeAbbr);
-    const aa = _abbr(game.awayAbbr);
+    const ha = _abbr(game.homeAbbr) || resolveAbbr(game.home);
+    const aa = _abbr(game.awayAbbr) || resolveAbbr(game.away);
     if (!ha && !aa) return '';
-    const teamAbs = await r2Json(env, 'mlb/2026/team_abs.json');
-    if (!teamAbs?.data) return '';
-    const h = teamAbs.data[ha];
-    const a = teamAbs.data[aa];
-    if (!h && !a) return '';
+
+    const [teamAbs, arsenals] = await Promise.all([
+        r2Json(env, 'mlb/2026/team_abs.json'),
+        r2Json(env, 'mlb/2026/pitch_arsenals.json'),
+    ]);
+
     const lines = ['', '[SAVANT CONTEXT]'];
-    if (h) {
-        lines.push(`${ha} ABS challenge: grade ${h.grade} ` +
-            `(${h.battingWon}/${h.battingAttempted} overturned, ` +
-            `${(h.battingRate * 100).toFixed(1)}% success).`);
+    let hasContent = false;
+
+    // Team ABS grades
+    if (teamAbs?.data) {
+        for (const abbr of [ha, aa].filter(Boolean)) {
+            const t = teamAbs.data[abbr];
+            if (t) {
+                lines.push(`${abbr} ABS challenge: grade ${t.grade} ` +
+                    `(${t.battingWon}/${t.battingAttempted} overturned, ` +
+                    `${(t.battingRate * 100).toFixed(1)}% success).`);
+                hasContent = true;
+            }
+        }
     }
-    if (a) {
-        lines.push(`${aa} ABS challenge: grade ${a.grade} ` +
-            `(${a.battingWon}/${a.battingAttempted} overturned, ` +
-            `${(a.battingRate * 100).toFixed(1)}% success).`);
+
+    // Pitcher arsenals — top 2 pitchers per team by primary pitch whiff rate
+    if (arsenals?.data) {
+        for (const abbr of [ha, aa].filter(Boolean)) {
+            const teamPitchers = Object.entries(arsenals.data)
+                .filter(([_, v]) => _abbr(v.team) === abbr && v.pitches?.length)
+                .map(([name, v]) => {
+                    const best = v.pitches.reduce((a, b) => (b.whiffRate || 0) > (a.whiffRate || 0) ? b : a);
+                    return { name, best, pitchCount: v.pitches.length };
+                })
+                .sort((a, b) => (b.best.whiffRate || 0) - (a.best.whiffRate || 0))
+                .slice(0, 2);
+
+            for (const p of teamPitchers) {
+                const w = p.best.whiffRate ? `${(p.best.whiffRate * 100).toFixed(1)}% whiff` : '';
+                const v = p.best.vel ? `${p.best.vel} mph` : '';
+                const desc = [p.best.type, v, w].filter(Boolean).join(', ');
+                lines.push(`${abbr} pitcher ${p.name}: best pitch ${desc}.`);
+                hasContent = true;
+            }
+        }
     }
-    return lines.join('\n');
+
+    return hasContent ? lines.join('\n') : '';
 }
 
 // ── NHL: Series special teams ────────────────────────────────────────────
@@ -70,8 +169,8 @@ async function buildSavantContext(env, game) {
 // uses pre-formatted ppLabel / pkLabel strings; we surface those
 // verbatim so the LLM gets the same phrasing the cron pipeline uses.
 async function buildNHLSeriesContext(env, game) {
-    const ha = _abbr(game.homeAbbr);
-    const aa = _abbr(game.awayAbbr);
+    const ha = _abbr(game.homeAbbr) || resolveAbbr(game.home);
+    const aa = _abbr(game.awayAbbr) || resolveAbbr(game.away);
     if (!ha && !aa) return '';
     // The relay only ships SCF-series stats today; widen if more series
     // land in R2. Try the most-likely active series first.
@@ -106,8 +205,8 @@ async function buildNHLSeriesContext(env, game) {
 // Flags a >5 DRTG gap as "clutch mismatch" — factual observation, not
 // an interest verdict.
 async function buildNBAClutchContext(env, game) {
-    const ha = _abbr(game.homeAbbr);
-    const aa = _abbr(game.awayAbbr);
+    const ha = _abbr(game.homeAbbr) || resolveAbbr(game.home);
+    const aa = _abbr(game.awayAbbr) || resolveAbbr(game.away);
     if (!ha && !aa) return '';
     let blob = await r2Json(env, 'nba/2026/clutch_playoffs.json');
     if (!blob?.teams || (!blob.teams[ha] && !blob.teams[aa])) {
@@ -177,10 +276,18 @@ async function buildSoccerFBrefContext(env, game) {
     const lines = ['', '[SOCCER STATS CONTEXT]'];
     const summarize = (label, t) => {
         const parts = [];
-        if (Number.isFinite(t.xg) || Number.isFinite(t.xG)) parts.push(`xG ${t.xg ?? t.xG}`);
-        if (Number.isFinite(t.xga) || Number.isFinite(t.xGA)) parts.push(`xGA ${t.xga ?? t.xGA}`);
+        if (Number.isFinite(t.xGFor)) parts.push(`xG ${t.xGFor}`);
+        else if (Number.isFinite(t.xg) || Number.isFinite(t.xG)) parts.push(`xG ${t.xg ?? t.xG}`);
+        if (Number.isFinite(t.xGAgainst)) parts.push(`xGA ${t.xGAgainst}`);
+        else if (Number.isFinite(t.xga) || Number.isFinite(t.xGA)) parts.push(`xGA ${t.xga ?? t.xGA}`);
+        if (Number.isFinite(t.xGDivergence)) {
+            const dir = t.xGDivergence > 0 ? 'over' : 'under';
+            parts.push(`${dir}-performing xG by ${Math.abs(t.xGDivergence).toFixed(1)}`);
+        }
         if (Number.isFinite(t.poss) || Number.isFinite(t.possession)) parts.push(`Poss ${t.poss ?? t.possession}%`);
-        if (Number.isFinite(t.progPasses) || Number.isFinite(t.progressivePasses)) parts.push(`PrgP ${t.progPasses ?? t.progressivePasses}`);
+        if (Number.isFinite(t.progressivePasses)) parts.push(`PrgP ${t.progressivePasses}`);
+        else if (Number.isFinite(t.progPasses)) parts.push(`PrgP ${t.progPasses}`);
+        if (Number.isFinite(t.pressures)) parts.push(`Pressures ${t.pressures}`);
         if (parts.length) lines.push(`${label}: ${parts.join(' / ')}.`);
     };
     if (h) summarize(home || 'home', h);
@@ -233,6 +340,7 @@ async function assembleContext(env, game, totalBudget = 1500) {
 export {
     assembleContext,
     r2Json,
+    resolveAbbr,
     // Builders + helpers exported so the test surface can exercise them
     // independently without a full assembler run.
     buildSavantContext,
