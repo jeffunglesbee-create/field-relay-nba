@@ -5020,6 +5020,12 @@ async function handleJournalismCycle(env) {
       {sport:'baseball',  league:'mlb',        label:'MLB'},
       {sport:'basketball',league:'wnba',       label:'WNBA'},
       {sport:'soccer',    league:'eng.1',      label:'EPL'},
+      {sport:'soccer',    league:'usa.1',      label:'MLS'},
+      {sport:'soccer',    league:'esp.1',      label:'La Liga'},
+      {sport:'soccer',    league:'ita.1',      label:'Serie A'},
+      {sport:'soccer',    league:'ger.1',      label:'Bundesliga'},
+      {sport:'soccer',    league:'fra.1',      label:'Ligue 1'},
+      {sport:'football',  league:'nfl',        label:'NFL'},
       // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
       // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
       // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
@@ -5404,8 +5410,11 @@ async function handleJournalismCycle(env) {
     // builder failure. Cap each game at ~600 tokens, total at ~1500 across
     // the slate so the existing prose budget isn't squeezed.
     const _CONTEXT_LEAGUE_TO_SPORT = {
-        nba: 'nba', nhl: 'nhl', mlb: 'mlb', wnba: 'wnba',
-        epl: 'epl', 'fifa world cup': 'wc26',
+        nba: 'nba', nhl: 'nhl', mlb: 'mlb', wnba: 'wnba', nfl: 'nfl',
+        epl: 'epl', mls: 'mls',
+        'la liga': 'laliga', 'serie a': 'seriea',
+        'bundesliga': 'bundesliga', 'ligue 1': 'ligue1',
+        'fifa world cup': 'wc26',
     };
     let sportContextBlock = '';
     try {
@@ -7882,7 +7891,7 @@ export default {
         // Cron: soccer-fbref-wc.yml every 3 days during WC group stage.
         if (pathname.startsWith('/soccer-fbref/')) {
             const sfFile = pathname.replace(/^\/soccer-fbref\//, '');
-            const SF_ALLOWED = ['wc2026.json','epl.json','laliga.json','bundesliga.json','seriea.json','ligue1.json'];
+            const SF_ALLOWED = ['wc2026.json','epl.json','laliga.json','bundesliga.json','seriea.json','ligue1.json','mls.json'];
             if (!SF_ALLOWED.includes(sfFile))
                 return new Response('soccer-fbref file not allowed', { status: 403, headers: { ...CORS } });
             // R2-first

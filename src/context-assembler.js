@@ -93,6 +93,24 @@ const _NAME_TO_ABBR = {
     'kings': 'SAC', 'sacramento kings': 'SAC', 'jazz': 'UTA', 'utah jazz': 'UTA',
     'hawks': 'ATL', 'atlanta hawks': 'ATL', 'hornets': 'CHA', 'charlotte hornets': 'CHA',
     'pistons': 'DET', 'detroit pistons': 'DET', 'wizards': 'WAS', 'washington wizards': 'WAS',
+    // NFL
+    'chiefs': 'KC', 'kansas city chiefs': 'KC', 'eagles': 'PHI', 'philadelphia eagles': 'PHI',
+    'bills': 'BUF', 'buffalo bills': 'BUF', 'dolphins': 'MIA', 'miami dolphins': 'MIA',
+    'patriots': 'NE', 'new england patriots': 'NE', 'jets': 'NYJ', 'new york jets': 'NYJ',
+    'ravens': 'BAL', 'baltimore ravens': 'BAL', 'bengals': 'CIN', 'cincinnati bengals': 'CIN',
+    'browns': 'CLE', 'cleveland browns': 'CLE', 'steelers': 'PIT', 'pittsburgh steelers': 'PIT',
+    'texans': 'HOU', 'houston texans': 'HOU', 'colts': 'IND', 'indianapolis colts': 'IND',
+    'jaguars': 'JAX', 'jacksonville jaguars': 'JAX', 'titans': 'TEN', 'tennessee titans': 'TEN',
+    'broncos': 'DEN', 'denver broncos': 'DEN', 'chargers': 'LAC', 'los angeles chargers': 'LAC',
+    'raiders': 'LV', 'las vegas raiders': 'LV', 'cowboys': 'DAL', 'dallas cowboys': 'DAL',
+    'commanders': 'WAS', 'washington commanders': 'WAS', 'giants': 'NYG', 'new york giants': 'NYG',
+    '49ers': 'SF', 'san francisco 49ers': 'SF', 'niners': 'SF',
+    'seahawks': 'SEA', 'seattle seahawks': 'SEA', 'cardinals': 'ARI', 'arizona cardinals': 'ARI',
+    'rams': 'LAR', 'los angeles rams': 'LAR', 'bears': 'CHI', 'chicago bears': 'CHI',
+    'lions': 'DET', 'detroit lions': 'DET', 'packers': 'GB', 'green bay packers': 'GB',
+    'vikings': 'MIN', 'minnesota vikings': 'MIN', 'falcons': 'ATL', 'atlanta falcons': 'ATL',
+    'panthers': 'CAR', 'carolina panthers': 'CAR', 'saints': 'NO', 'new orleans saints': 'NO',
+    'buccaneers': 'TB', 'tampa bay buccaneers': 'TB', 'bucs': 'TB',
 };
 
 function resolveAbbr(teamName) {
@@ -241,6 +259,8 @@ async function buildNBAClutchContext(env, game) {
 const _SOCCER_LEAGUE_TO_FILE = {
     'epl': 'epl.json',
     'eng.1': 'epl.json',
+    'mls': 'mls.json',
+    'usa.1': 'mls.json',
     'la liga': 'laliga.json',
     'laliga': 'laliga.json',
     'esp.1': 'laliga.json',
