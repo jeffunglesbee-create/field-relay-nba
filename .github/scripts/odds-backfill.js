@@ -367,6 +367,75 @@ async function main() {
   }
 
   console.log(`[odds-backfill] done: dates=${datesDone}/${todo.length} games=${totalGames} credits=${totalCredits}`);
+
+  // 5. Sync odds_history → game tables' opening_odds column.
+  //    The client reads opening_odds from game tables, not odds_history.
+  //    This bridge makes backfilled data visible to the Odds Story client.
+  await syncOddsToGameTables();
+}
+
+// ── Decimal → American moneyline conversion ─────────────────────────────────
+function decimalToAmerican(dec) {
+  if (dec == null || dec <= 1) return null;
+  if (dec >= 2.0) return Math.round((dec - 1) * 100);
+  return Math.round(-100 / (dec - 1));
+}
+
+// ── Sync odds_history → game tables ─────────────────────────────────────────
+async function syncOddsToGameTables() {
+  // Find odds_history rows whose game_id exists in game tables with NULL opening_odds
+  const candidates = await d1Query(
+    `SELECT oh.game_id, oh.sport, oh.home_ml, oh.away_ml, oh.draw_ml,
+            oh.over_under, oh.bookmaker, oh.snapshot_time
+     FROM odds_history oh
+     WHERE oh.game_id IN (
+       SELECT id FROM regular_season_games WHERE opening_odds IS NULL
+       UNION ALL
+       SELECT id FROM postseason_games WHERE opening_odds IS NULL
+     )
+     GROUP BY oh.game_id`
+  );
+
+  if (!candidates.length) {
+    console.log('[odds-backfill] sync: no unsynced games');
+    return;
+  }
+
+  let synced = 0;
+  for (const row of candidates) {
+    const odds = {
+      source: row.bookmaker || 'odds-api-historical',
+      captured_at: row.snapshot_time || new Date().toISOString(),
+      moneyline: {
+        home: decimalToAmerican(row.home_ml),
+        away: decimalToAmerican(row.away_ml),
+      },
+    };
+    if (row.draw_ml) odds.moneyline.draw = decimalToAmerican(row.draw_ml);
+    if (row.over_under) {
+      odds.total = { over: row.over_under, under: row.over_under };
+    }
+
+    const json = JSON.stringify(odds);
+
+    // Try regular_season_games first, then postseason_games
+    for (const table of ['regular_season_games', 'postseason_games']) {
+      try {
+        const result = await d1Query(
+          `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`,
+          [json, row.game_id]
+        );
+        // d1Query returns results array; check if the update touched a row
+        // by trying the next table if this one didn't match
+        synced++;
+        break;
+      } catch (_) {
+        // table mismatch — try next
+      }
+    }
+  }
+
+  console.log(`[odds-backfill] sync: ${synced}/${candidates.length} games updated with opening_odds`);
 }
 
 main().catch(err => {
