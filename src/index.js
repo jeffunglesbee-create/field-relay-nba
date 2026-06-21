@@ -7086,9 +7086,9 @@ export default {
             }
             try {
                 const stmt = env.ARCHIVE_DB.prepare(sql);
-                const result = params && params.length > 0
-                    ? await stmt.bind(...params).run()
-                    : await stmt.run();
+                const bound = params && params.length > 0 ? stmt.bind(...params) : stmt;
+                const isSelect = sql.trim().toUpperCase().startsWith('SELECT');
+                const result = isSelect ? await bound.all() : await bound.run();
                 return new Response(JSON.stringify({
                     success: true,
                     results: result.results || [],
