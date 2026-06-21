@@ -425,18 +425,21 @@ async function syncOddsToGameTables() {
     // which is closer to closing than opening. For completed games with
     // one data point, it serves as both.
     for (const table of ['regular_season_games', 'postseason_games']) {
-      try {
-        await d1Query(
-          `UPDATE ${table} SET opening_odds = ? WHERE id = ? AND opening_odds IS NULL`,
-          [json, row.game_id]
-        );
-      } catch (_) { /* table may not have this game */ }
-      try {
-        await d1Query(
-          `UPDATE ${table} SET closing_odds = ? WHERE id = ? AND closing_odds IS NULL`,
-          [json, row.game_id]
-        );
-      } catch (_) { /* table may not have this game */ }
+      for (const field of ['opening_odds', 'closing_odds']) {
+        try {
+          await d1Query(
+            `UPDATE ${table} SET ${field} = ? WHERE id = ? AND ${field} IS NULL`,
+            [json, row.game_id]
+          );
+          // Log to change_log for O(1) Newspaper "What's Moving" + Brief Freshness Guard.
+          // Candidates are pre-filtered (field IS NULL), so the UPDATE above matched.
+          await d1Query(
+            `INSERT INTO change_log (game_id, source, field, old_value, new_value, ts)
+             VALUES (?, 'odds_backfill', ?, NULL, ?, datetime('now'))`,
+            [row.game_id, field, json]
+          ).catch(() => {}); // change_log table may not exist yet
+        } catch (_) { /* table may not have this game */ }
+      }
     }
     attempted++;
   }
