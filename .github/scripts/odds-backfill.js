@@ -23,10 +23,7 @@
 'use strict';
 
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
-const CF_ACCOUNT  = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CF_TOKEN    = process.env.CLOUDFLARE_API_TOKEN;
 const ODDS_KEY    = process.env.ODDS_API_KEY;
-const D1_DB_ID    = process.env.D1_DATABASE_ID    || 'cc49101c-0569-4d41-8e7a-be139cde4f26';
 const RELAY_BASE  = process.env.RELAY_BASE        || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
 const DAILY_CEILING    = 2700;           // global shared across all FIELD odds usage
@@ -36,8 +33,8 @@ const ODDS_API_DELAY_MS = 100;           // gentle rate-limit guard
 const BACKFILL_START_DATE = '2026-06-11'; // WC activation
 const ODDS_API_BASE = 'https://api.the-odds-api.com';
 
-if (!CF_ACCOUNT || !CF_TOKEN || !ODDS_KEY) {
-  console.error('[odds-backfill] missing one of CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, ODDS_API_KEY');
+if (!ODDS_KEY) {
+  console.error('[odds-backfill] missing ODDS_API_KEY');
   process.exit(1);
 }
 
@@ -82,14 +79,13 @@ function normTeam(s) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-// ── Cloudflare D1 REST helpers ──────────────────────────────────────────────
+// ── D1 via relay Worker binding (no CF REST API token scope needed) ──────────
 async function d1Query(sql, params = []) {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/d1/database/${D1_DB_ID}/query`;
-  const resp = await fetch(url, {
+  const resp = await fetch(`${RELAY_BASE}/d1/execute`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${CF_TOKEN}`,
       'Content-Type':  'application/json',
+      'X-FIELD-Relay': 'field-relay-cron-2026',
     },
     body: JSON.stringify({ sql, params }),
   });
@@ -99,10 +95,9 @@ async function d1Query(sql, params = []) {
   }
   const data = await resp.json();
   if (!data.success) {
-    throw new Error(`D1 query failed: ${JSON.stringify(data.errors).slice(0, 200)}`);
+    throw new Error(`D1 query failed: ${JSON.stringify(data).slice(0, 200)}`);
   }
-  // D1 REST returns result: [{ results: [...], success, meta }]
-  return data.result?.[0]?.results || [];
+  return data.results || [];
 }
 
 async function ensureTables() {
