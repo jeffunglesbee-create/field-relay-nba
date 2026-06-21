@@ -528,11 +528,13 @@ export class BracketDO {
             if (Math.abs(champDelta) >= 0.5 || Math.abs(advDelta) >= 1.0) {
                 shifts.push({
                     name:       t.name,
+                    team:       t.name,     // client alias (CASCADE reads s.team)
                     fifaCode:   t.fifaCode,
                     group:      t.group,
                     champBefore: Math.round((p.pChampion ?? 0) * 1000) / 10,
                     champAfter:  Math.round((t.pChampion ?? 0) * 1000) / 10,
                     champDelta:  Math.round(champDelta * 10) / 10,
+                    pChampDelta: Math.round(champDelta * 10) / 1000, // client alias (0-1 scale)
                     advBefore:   Math.round((p.pAdvance  ?? 0) * 1000) / 10,
                     advAfter:    Math.round((t.pAdvance  ?? 0) * 1000) / 10,
                     advDelta:    Math.round(advDelta * 10) / 10,
