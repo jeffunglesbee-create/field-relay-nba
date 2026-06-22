@@ -136,9 +136,20 @@ async function buildSavantContext(env, game) {
     const aa = _abbr(game.awayAbbr) || resolveAbbr(game.away);
     if (!ha && !aa) return '';
 
+    // Savant data lives in the GitHub outbox (written by mlb-weekly-update.py),
+    // NOT in R2. Fetch from raw.githubusercontent.com with a short cache.
+    const ghBase = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/mlb';
+    const fetchGh = async (file) => {
+        try {
+            const r = await fetch(`${ghBase}/${file}`, { cf: { cacheTtl: 900 } });
+            if (!r.ok) return null;
+            return await r.json();
+        } catch (_) { return null; }
+    };
+
     const [teamAbs, arsenals] = await Promise.all([
-        r2Json(env, 'mlb/2026/team_abs.json'),
-        r2Json(env, 'mlb/2026/pitch_arsenals.json'),
+        fetchGh('team_abs.json'),
+        fetchGh('pitch_arsenals.json'),
     ]);
 
     const lines = ['', '[SAVANT CONTEXT]'];
