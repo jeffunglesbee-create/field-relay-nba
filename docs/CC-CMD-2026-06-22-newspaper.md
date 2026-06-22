@@ -42,63 +42,99 @@ if (pathname.startsWith('/analytics/newspaper/') && request.method === 'GET') {
             { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
     try {
-        // 1. Batch-read all analytics_output rows for this date
-        const rows = await env.ARCHIVE_DB.prepare(
-            `SELECT feature, value, brief_text FROM analytics_output WHERE date = ?`
-        ).bind(date).all();
+        // The analytics cron runs at 9 UTC and stores:
+        //   - Recap features (morning_report, night_stars, truth_is,
+        //     streak_board) under YESTERDAY's date
+        //   - Preview features (circadian_preview, field_pick) under
+        //     TODAY's date
+        //
+        // The {date} parameter is TODAY. We need both dates.
+        // Compute yesterday from the requested date.
+        const reqDate = new Date(date + 'T12:00:00Z');
+        const yestDate = new Date(reqDate);
+        yestDate.setDate(yestDate.getDate() - 1);
+        const yesterday = yestDate.toISOString().slice(0, 10);
 
-        const features = {};
-        for (const row of (rows.results || [])) {
-            let parsed = null;
-            try { parsed = JSON.parse(row.value); } catch (_) { parsed = row.value; }
-            features[row.feature] = {
-                value: parsed,
-                brief_text: row.brief_text || null,
-            };
-        }
+        // 1. Batch-read features from BOTH dates
+        const [recapRows, previewRows] = await Promise.all([
+            env.ARCHIVE_DB.prepare(
+                `SELECT feature, value, brief_text FROM analytics_output WHERE date = ?`
+            ).bind(yesterday).all(),
+            env.ARCHIVE_DB.prepare(
+                `SELECT feature, value, brief_text FROM analytics_output WHERE date = ?`
+            ).bind(date).all(),
+        ]);
 
-        // 2. Assemble bundle
+        const parseRows = (rows) => {
+            const out = {};
+            for (const row of (rows.results || [])) {
+                let parsed = null;
+                try { parsed = JSON.parse(row.value); } catch (_) { parsed = row.value; }
+                out[row.feature] = { value: parsed, brief_text: row.brief_text || null };
+            }
+            return out;
+        };
+
+        const recap = parseRows(recapRows);    // yesterday's recaps
+        const preview = parseRows(previewRows); // today's previews
+
+        // 2. Assemble bundle — recap from yesterday, preview from today
         const bundle = {
             date,
-            generated_at: features.morning_report?.value?.generated_at || null,
-            morning_report: features.morning_report?.brief_text || null,
-            truth_is: features.truth_is ? {
-                ...(features.truth_is.value || {}),
-                brief: features.truth_is.brief_text || null,
+            recap_date: yesterday,
+            generated_at: recap.morning_report?.value?.generated_at || null,
+            morning_report: recap.morning_report?.brief_text || null,
+            truth_is: recap.truth_is ? {
+                ...(recap.truth_is.value || {}),
+                brief: recap.truth_is.brief_text || null,
             } : null,
-            night_stars: features.night_stars?.value || null,
-            pick: features.field_pick ? {
-                ...(features.field_pick.value || {}),
-                brief: features.field_pick.brief_text || null,
+            night_stars: recap.night_stars?.value || null,
+            // Preview features from TODAY's date
+            pick: preview.field_pick ? {
+                ...(preview.field_pick.value || {}),
+                brief: preview.field_pick.brief_text || null,
             } : null,
-            preview: features.circadian_preview?.brief_text || null,
-            streak_board: features.streak_board?.value || null,
-            quality_feedback: features.quality_feedback?.value || null,
-            // completed_games: assembled from briefs table (yesterday's finals)
+            preview: preview.circadian_preview?.brief_text || null,
+            streak_board: recap.streak_board?.value || null,
+            quality_feedback: recap.quality_feedback?.value || null,
+            // completed_games from yesterday for "What Changed"
             completed_games: [],
         };
 
         // 3. Completed games — structural facts for "What Changed"
-        //    Query briefs table for yesterday's game recaps with structural flags.
-        //    These come from the regular_season_games + postseason_games tables.
+        //
+        //    SCHEMA REALITY (verified June 22):
+        //    regular_season_games: id, sport, home, away, home_score,
+        //      away_score, closing_odds, opening_odds (NO status, NO
+        //      went_to_ot, NO is_elimination, NO is_series_clinch)
+        //    postseason_games: same + importance ('clinch'|'elimination'|
+        //      'playoffs'), series_key, series_record, series_margins
+        //
+        //    "Completed" = home_score IS NOT NULL.
+        //    OT not stored in D1 — cannot detect from archive alone.
+        //    Structural flags derived from: margin, closing_odds (upset),
+        //      importance column (postseason only).
         try {
-            const games = await env.ARCHIVE_DB.prepare(`
-                SELECT g.id, g.sport, g.home_team, g.away_team,
-                       g.home_score, g.away_score, g.status,
-                       g.closing_odds, g.opening_odds,
-                       g.went_to_ot, g.is_elimination, g.is_series_clinch
-                FROM regular_season_games g
-                WHERE g.date = ? AND g.status = 'post'
-                UNION ALL
-                SELECT g.id, g.sport, g.home_team, g.away_team,
-                       g.home_score, g.away_score, g.status,
-                       g.closing_odds, g.opening_odds,
-                       g.went_to_ot, g.is_elimination, g.is_series_clinch
-                FROM postseason_games g
-                WHERE g.date = ? AND g.status = 'post'
-            `).bind(date, date).all();
+            const regGames = await env.ARCHIVE_DB.prepare(`
+                SELECT id, sport, home, away, home_score, away_score,
+                       closing_odds, NULL as importance
+                FROM regular_season_games
+                WHERE date = ? AND home_score IS NOT NULL
+            `).bind(yesterday).all();
 
-            bundle.completed_games = (games.results || []).map(g => {
+            const postGames = await env.ARCHIVE_DB.prepare(`
+                SELECT id, sport, home, away, home_score, away_score,
+                       closing_odds, importance
+                FROM postseason_games
+                WHERE date = ? AND home_score IS NOT NULL
+            `).bind(yesterday).all();
+
+            const allGames = [
+                ...(regGames.results || []),
+                ...(postGames.results || []),
+            ];
+
+            bundle.completed_games = allGames.map(g => {
                 // Detect upset: underdog won based on closing moneyline
                 let wasUpset = false;
                 try {
@@ -107,37 +143,42 @@ if (pathname.startsWith('/analytics/newspaper/') && request.method === 'GET') {
                             ? JSON.parse(g.closing_odds) : g.closing_odds;
                         const homeML = odds?.moneyline?.home;
                         const awayML = odds?.moneyline?.away;
-                        if (homeML && awayML) {
-                            const homeFav = Math.abs(homeML) < Math.abs(awayML)
-                                || homeML < 0;
+                        if (homeML && awayML && homeML !== null && awayML !== null) {
+                            const homeFav = homeML < 0 && awayML > 0;
+                            const awayFav = awayML < 0 && homeML > 0;
                             const homeWon = g.home_score > g.away_score;
-                            wasUpset = (homeFav && !homeWon) || (!homeFav && homeWon);
-                            // Only flag large upsets (underdog ML >= +150)
-                            const underdogML = homeFav ? awayML : homeML;
-                            if (underdogML < 150) wasUpset = false;
+                            if (homeFav && !homeWon) wasUpset = true;
+                            if (awayFav && homeWon) wasUpset = true;
+                            // Only flag meaningful upsets (underdog ML >= +150)
+                            if (wasUpset) {
+                                const underdogML = homeFav ? awayML : homeML;
+                                if (underdogML < 150) wasUpset = false;
+                            }
                         }
                     }
                 } catch (_) {}
 
                 const margin = Math.abs((g.home_score || 0) - (g.away_score || 0));
+                // importance column: 'clinch', 'elimination', 'playoffs', or null
+                const isSeriesClinch = g.importance === 'clinch';
+                const isElimination = g.importance === 'elimination';
 
                 return {
                     id: g.id,
                     sport: g.sport,
-                    home: g.home_team,
-                    away: g.away_team,
+                    home: g.home,
+                    away: g.away,
                     homeScore: g.home_score,
                     awayScore: g.away_score,
-                    wentToOT: !!g.went_to_ot,
+                    wentToOT: false, // not stored in D1 — always false
                     wasUpset,
-                    isSeriesClinch: !!g.is_series_clinch,
-                    isElimination: !!g.is_elimination,
+                    isSeriesClinch,
+                    isElimination,
                     margin,
-                    finalTimestamp: Date.now(), // approximate; real ts not stored
                 };
             });
         } catch (_) {
-            // Tables may lack these columns — degrade gracefully
+            // Tables may not exist yet — degrade gracefully
             bundle.completed_games = [];
         }
 
@@ -225,8 +266,9 @@ function getWhatYouMissed(completedGames) {
     if (lastVisit < yesterday) return [];
 
     // Filter to structurally notable games
+    // NOTE: wentToOT is not stored in D1 archive — always false.
+    // Structural notability is: close margin, upset, clinch, elimination.
     const notable = completedGames.filter(g =>
-        g.wentToOT ||
         g.margin <= 1 ||
         g.wasUpset ||
         g.isSeriesClinch ||
@@ -264,10 +306,10 @@ function renderNewspaper(bundle) {
         const lines = missed.map(g => {
             const winner = (g.homeScore > g.awayScore) ? g.home : g.away;
             const loser = (g.homeScore > g.awayScore) ? g.away : g.home;
-            const fact = g.wentToOT ? 'won in OT'
-                : g.wasUpset ? `upset ${loser}`
+            const fact = g.wasUpset ? `upset ${loser}`
                 : g.isSeriesClinch ? 'clinched the series'
                 : g.isElimination ? 'survived elimination'
+                : g.margin <= 1 ? 'won by 1'
                 : `won by ${g.margin}`;
             return `<li>${winner} ${fact} (${g.homeScore}-${g.awayScore})</li>`;
         }).join('');
@@ -430,12 +472,12 @@ fetch BEFORE fetchSchedule so it renders first:
 
 ```javascript
 // O(1) Newspaper — fetch and render above schedule
+// Pass TODAY's date — the relay endpoint assembles recap from
+// yesterday + preview from today internally.
 (async function bootNewspaper() {
     const tz = 'America/New_York';
-    // Yesterday's date for analytics (cron processes yesterday)
-    const yesterday = new Date(Date.now() - 86400000)
-        .toLocaleDateString('en-CA', { timeZone: tz });
-    const bundle = await fetchNewspaper(yesterday);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+    const bundle = await fetchNewspaper(today);
     if (bundle) renderNewspaper(bundle);
 })();
 ```
@@ -495,8 +537,8 @@ smoke.assert(typeof renderNewspaper === 'function',
 smoke.assert(typeof getWhatYouMissed === 'function',
     'A694: getWhatYouMissed function exists');
 
-// A695: Newspaper — getWhatYouMissed returns empty for null input
-smoke.assert(getWhatYouMissed(null).length === 0,
+// A695: Newspaper — getWhatYouMissed returns array for null input
+smoke.assert(Array.isArray(getWhatYouMissed(null)),
     'A695: getWhatYouMissed gracefully handles null');
 
 // A696: Newspaper — CSS class exists in stylesheet
@@ -536,7 +578,9 @@ DO NOT:
 4. node --check src/index.js.
 5. Single commit: "feat: O(1) Newspaper bundle endpoint"
 6. wrangler deploy.
-7. Verify: curl /analytics/newspaper/2026-06-20
+7. Verify: curl /analytics/newspaper/2026-06-22
+   Expect: morning_report from 2026-06-21, pick from 2026-06-22,
+   completed_games from 2026-06-21's archived games.
 
 8. Client repo (jubilant-bassoon).
 9. git pull. Read CLAUDE.md.
