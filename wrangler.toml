@@ -1,6 +1,6 @@
 name               = "field-relay-nba"
 main               = "src/index.js"
-compatibility_date = "2026-05-16"
+compatibility_date = "2026-06-22"
 # global_fetch_strictly_public: allows this Worker to fetch the field-claude-proxy
 # Worker via its public workers.dev URL. Without it, Worker→Worker fetch on the
 # same account is blocked with error 1042 — which silently broke the journalism
@@ -146,6 +146,14 @@ bucket_name = "field-relay-data"
 binding       = "WC2026_DB"
 database_name = "wc2026"
 database_id   = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"
+
+# ── Browser Rendering (Browser MCP — June 22 2026) ───────────────────────────
+# Headless Chromium for MCP-driven browser automation from Claude chat.
+# Phase 0: env.BROWSER.quickAction() — stateless screenshot/json/markdown/links.
+# Phase 1 (next commit): BrowserDO holds Puppeteer session across MCP calls.
+# Workers Plus required.
+[browser]
+binding = "BROWSER"
 
 # ── Worker environment variables ─────────────────────────────────────────────
 # RELAY_BASE: self-referencing URL for internal calls (AmbientDO self-call).

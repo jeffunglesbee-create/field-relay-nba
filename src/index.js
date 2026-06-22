@@ -98,6 +98,7 @@ import {
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
 import { analyticsEngine } from './analytics-engine.js';
+import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 
 // ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
 // Single hardcoded repo target for all L5 tools and /repo/archive. The relay
@@ -9231,6 +9232,18 @@ export default {
                         },
                     },
                     {
+                        name: 'browser_quick',
+                        description: 'Open a URL in a headless browser and return a screenshot, structured JSON, markdown text, or all links. Stateless — no session is maintained between calls. Use browser_navigate for multi-step interactive sessions (Phase 1).',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                url: { type: 'string', description: 'Full URL to open (allowlisted domains only: ATS sites, cloudflare.com, espn.com, FIELD app)' },
+                                action: { type: 'string', enum: ['screenshot', 'json', 'markdown', 'links'], description: 'screenshot=PNG | json=structured data | markdown=page content | links=all links' },
+                            },
+                            required: ['url', 'action'],
+                        },
+                    },
+                    {
                         name: 'stat_status',
                         description: 'Get live STAT job intelligence system status without CI overhead. Returns DO health, watchedCompanies, seenJobIds, SelectMinds cursor position, and platform-specific status for a given ATS. Bypasses *.workers.dev sandbox block via CF Worker IP relay. ~2s round-trip vs ~80s CI probe.',
                         inputSchema: {
@@ -9692,6 +9705,18 @@ export default {
                     } catch (e) {
                         return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:false,url:targetUrl,error:e.message})}], isError:true}));
                     }
+                }
+
+                // ── browser_quick ────────────────────────────────────────────────
+                // Phase 0 Browser MCP — stateless one-shot via env.BROWSER.quickAction.
+                // Allowlist enforced inside browserQuick(). Phase 1 adds session DO.
+                if (toolName === 'browser_quick') {
+                    const { url, action } = toolArgs;
+                    if (!url || !action) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: url (string), action (screenshot|json|markdown|links)'}], isError:true}));
+                    }
+                    const result = await browserQuick(env, url, action);
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify(result, null, 2)}], isError: !!result.error}));
                 }
 
                 // ── stat_status ──────────────────────────────────────────────────
