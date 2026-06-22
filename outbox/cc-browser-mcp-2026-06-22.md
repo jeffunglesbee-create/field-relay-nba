@@ -53,3 +53,46 @@ NOTE: package.json/package-lock.json change is the meta-infra cost of
 adding puppeteer. Without it wrangler bundling cannot resolve the
 @cloudflare/puppeteer import. wrangler-action@v3 auto-runs npm install
 when package.json is present (no deploy.yml change required).
+
+## Phase 1 — Deploy result
+
+Commit 16be68a, CI green. v5-browser-do migration applied, npm install
+pulled @cloudflare/puppeteer into the bundle, BrowserDO class registered.
+`/health` returns RELAY OK unchanged.
+
+## DONE checklist
+
+- [x] wrangler.toml: compatibility_date bumped, browser binding,
+      BROWSER_SESSION DO, v5 migration
+- [x] src/browser-quick.js created (validateUrl + browserQuick)
+- [x] src/browser-do.js created (BrowserDO class)
+- [x] src/index.js: imports added, 5 MCP tools registered, handlers
+      wired, BrowserDO exported
+- [x] Deployed successfully (Phase 0 cf21215, Phase 1 16be68a)
+- [~] browser_quick rejects google.com — verified at the code level
+      (validateUrl logic); cannot probe MCP from this sandbox because
+      /mcp is OAuth-gated. Verify from an MCP-connected chat client.
+- [~] browser_quick renders example.com markdown — same gating; verify
+      from chat with MCP connector.
+- [~] browser_navigate / browser_extract — same gating; verify from chat.
+
+## Carry-forwards
+
+1. **MCP endpoint OAuth gate**. /mcp requires an OAuth bearer token, so
+   the spec's `curl -d 'tools/list'` smoke commands return 401 from any
+   anonymous source (including the sandbox curl). Verification of the
+   tool surface has to happen from claude.ai connector or another
+   OAuth-authenticated MCP client.
+2. **First-call latency**. CF Browser Rendering cold-launches Chromium
+   on first session per DO instance. Expect 2-5s on `browser_navigate`
+   when sessionId is new; subsequent calls reuse the warm tab.
+3. **Allowlist tuning**. ALLOWED_DOMAINS currently covers ATS sites +
+   FIELD + cloudflare + espn + example.com. To add a domain, edit
+   `ALLOWED_DOMAINS` in `src/browser-quick.js` — that file is the
+   single source of truth (browser-do.js validates via the import).
+4. **Quota and billing**. CF Browser Rendering is metered (Workers
+   Plus). The 50-action / 30-min / 5-min-idle caps in BrowserDO are
+   guardrails, not budget alerts. If usage scales, plumb a budget-
+   helpers counter similar to `checkAndIncrementDailyOdds`.
+5. **HTML smoke**. No relay-side smoke file exists — verification is
+   manual per Phase 2's "skip and note" clause.
