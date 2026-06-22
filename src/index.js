@@ -59,6 +59,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
+import { resolveTeamKey } from './identity-resolver.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -962,48 +963,17 @@ async function getWCPregameLambdas(env) {
 // Used by: WC lambda cache, live in-play odds → WP matching in AmbientDO.
 function teamNameMatch(oddsName, fieldName) {
     if (!oddsName || !fieldName) return false;
-    // Normalize: lowercase, NFD decompose (removes diacritics), alphanum+space only
-    const norm = s => s.toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-    const a = norm(oddsName), b = norm(fieldName);
+    // Centralised identity resolution — see src/identity-resolver.js
+    // for the full alias map (EPL/MLS/WNBA/MLB/WC/NBA/Ligue 1).
+    // Same canonical strip-form from either side when the names refer
+    // to the same team.
+    const a = resolveTeamKey(oddsName);
+    const b = resolveTeamKey(fieldName);
+    if (!a || !b) return false;
     if (a === b) return true;
-    // Bidirectional alias table — Odds API ↔ api-sports/FIELD names
-    // WC (verified June 4 2026 live probe)
-    // NBA/NHL/MLB: common Odds API ↔ api-sports divergences
-    const ALIASES = {
-        // WC / International
-        'usa':                  'united states',
-        'united states':        'usa',
-        'turkey':               'turkiye',
-        'turkiye':              'turkey',
-        'czech republic':       'czechia',
-        'czechia':              'czech republic',
-        'dr congo':             'congo dr',
-        'congo dr':             'dr congo',
-        'ivory coast':          'cote d ivoire',
-        'cote d ivoire':        'ivory coast',
-        'south korea':          'korea republic',
-        'korea republic':       'south korea',
-        'curacao':              'curacao',
-        // NBA
-        'la clippers':          'los angeles clippers',
-        'los angeles clippers': 'la clippers',
-        'la lakers':            'los angeles lakers',
-        'los angeles lakers':   'la lakers',
-        // NHL
-        'montreal canadiens':   'montreal canadiens',
-        // MLS
-        'inter miami':          'inter miami cf',
-        'inter miami cf':       'inter miami',
-        'la galaxy':            'los angeles galaxy',
-        'los angeles galaxy':   'la galaxy',
-        'lafc':                 'los angeles fc',
-        'los angeles fc':       'lafc',
-    };
-    const aa = ALIASES[a] || a, bb = ALIASES[b] || b;
-    if (aa === bb || aa === b || a === bb) return true;
-    // 5-char prefix overlap (catches remaining edge cases like short names)
+    // 5-char prefix overlap as a safety net for names not yet in the
+    // canonical map. resolveTeamKey strips to alphanum lowercase, so
+    // these are directly comparable.
     const pfx = 5;
     if (a.length >= pfx && b.length >= pfx) {
         if (b.includes(a.slice(0, pfx)) || a.includes(b.slice(0, pfx))) return true;
@@ -3934,7 +3904,10 @@ async function snapshotCronOdds(env, dateKey) {
 
     const byPair = new Map();
     for (const g of games) {
-      byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
+      // Centralised identity resolution: same canonical key from
+      // either side (Odds-API name OR D1 name) — handles aliases
+      // (Brighton & Hove Albion, Aces, Athletics, Türkiye, …).
+      byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
     }
     for (const table of ['regular_season_games', 'postseason_games']) {
       const rows = await env.ARCHIVE_DB.prepare(
@@ -3947,7 +3920,7 @@ async function snapshotCronOdds(env, dateKey) {
       // applied change is observable via /changelog/{date}.
       const updates = [];
       for (const row of (rows.results || [])) {
-        const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
+        const og = byPair.get(`${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`);
         if (!og) continue;
         const odds = extractOddsForGame(og);
         if (!odds) continue;
@@ -4053,7 +4026,10 @@ async function runOddsBackfillForDate(env, isoDate) {
 
     const byPair = new Map();
     for (const g of games) {
-      byPair.set(`${_normTeam(g.home_team)}|${_normTeam(g.away_team)}`, g);
+      // Same centralised identity resolution as snapshotCronOdds —
+      // historical backfill needs the same alias coverage so a
+      // single deploy fixes both the live snapshot and the catch-up.
+      byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
     }
     // Build per-row updates for both tables, then dispatch via
     // reconcile() so the UPDATE + change_log INSERTs are batched and
@@ -4062,7 +4038,7 @@ async function runOddsBackfillForDate(env, isoDate) {
     const apply = async (rows, table) => {
       const updates = [];
       for (const row of rows) {
-        const og = byPair.get(`${_normTeam(row.home)}|${_normTeam(row.away)}`);
+        const og = byPair.get(`${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`);
         if (!og) { oddsSkipped++; continue; }
         const odds = extractOddsForGame(og);
         if (!odds) { oddsSkipped++; continue; }
@@ -7141,6 +7117,71 @@ export default {
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
+        // GET /identity/mismatches — diagnostic. For each requested sport,
+        // fetch current Odds-API events, query today's NULL-opening_odds
+        // games from D1, attempt resolveTeamKey matching, and return any
+        // unmatched pairs alongside what we *did* find on the Odds-API
+        // side so the alias map can be expanded. Costs 1 Odds-API credit
+        // per sport probed; hard-capped at 5 sports per call.
+        if (pathname === '/identity/mismatches' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ODDS_API_KEY) {
+                return new Response(JSON.stringify({ ok: false, error: 'ODDS_API_KEY not configured' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+            const sportParam = (url.searchParams.get('sports') || 'EPL,MLS,WNBA,MLB,La Liga').trim();
+            const sports = sportParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
+
+            const report = { date, probed: 0, matched: 0, unmatched: 0, sports: {} };
+            for (const sport of sports) {
+                const sportKey = archiveSportToOddsKey(sport);
+                if (!sportKey) {
+                    report.sports[sport] = { error: 'no Odds-API sport key for this sport' };
+                    continue;
+                }
+                const { games: oddsGames, ok } = await fetchSportOddsLive(env, sportKey);
+                report.probed++;
+                if (!ok) {
+                    report.sports[sport] = { error: 'Odds-API fetch failed', sport_key: sportKey };
+                    continue;
+                }
+                const oddsByKey = new Map();
+                for (const g of oddsGames) {
+                    oddsByKey.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`,
+                                  { odds_home: g.home_team, odds_away: g.away_team });
+                }
+                const d1Res = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, home, away FROM regular_season_games
+                     WHERE date = ? AND sport = ? AND opening_odds IS NULL`
+                ).bind(date, sport).all();
+                const matched = [], unmatched = [];
+                for (const row of (d1Res.results || [])) {
+                    const k = `${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`;
+                    if (oddsByKey.has(k)) matched.push({ d1: `${row.home} vs ${row.away}`, key: k });
+                    else unmatched.push({
+                        d1_home: row.home, d1_away: row.away, d1_key: k,
+                    });
+                }
+                report.matched   += matched.length;
+                report.unmatched += unmatched.length;
+                report.sports[sport] = {
+                    sport_key: sportKey,
+                    odds_events: oddsGames.length,
+                    d1_missing: (d1Res.results || []).length,
+                    matched: matched.length,
+                    unmatched,
+                    odds_sample: [...oddsByKey.entries()].slice(0, 6).map(([k, v]) =>
+                        ({ odds_home: v.odds_home, odds_away: v.odds_away, key: k })),
+                };
+            }
+            return new Response(JSON.stringify(report),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /freshness/{date} — staleness annotations for per-game briefs.
         // Cross-references briefs(date=?) against change_log entries written
         // after each brief's generated_at. Returns the materiality findings
@@ -8957,7 +8998,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
