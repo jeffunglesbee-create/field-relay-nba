@@ -52,7 +52,7 @@ In `src/index.js`, add a helper function:
 // Consumers call incrementDailyOdds(env, credits) AFTER a
 // successful fetch. checkDailyOdds(env, credits) returns true
 // if the spend is within the daily ceiling.
-const ODDS_DAILY_CEILING = 900;  // 20K/month ÷ 22 active days ≈ 900/day
+const ODDS_DAILY_CEILING = 3800;  // 85K/month ÷ 22 active days ≈ 3864/day
 
 async function checkDailyOdds(env, credits = 1) {
     if (!env?.FIELD_JOURNALISM) return true; // no KV → permissive

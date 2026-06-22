@@ -3792,14 +3792,14 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
 // ── Odds API credit guard ───────────────────────────────────────────────────
 // Cross-cutting circuit breaker that wraps every odds-API fetch site. KV-
 // backed monthly counter (FIELD_JOURNALISM key `odds:credits:YYYY-MM`) tracks
-// cumulative cost; hard stops above ODDS_HARD_LIMIT (18 K — leaves 2 K
-// buffer below the 20 K paid-tier cap). Logs once per (50/75/90 %) threshold
-// per month so a runaway path surfaces in the logs without spam.
+// cumulative cost; hard stops above ODDS_HARD_LIMIT (85 K — leaves 15 K
+// for special projects out of the 100 K / month plan). Logs once per
+// (50/75/90 %) threshold per month so a runaway path surfaces without spam.
 //
 // This is intentionally NOT exact accounting — KV writes are eventually
 // consistent and we don't lock. It is an emergency floor to prevent another
 // quota wipeout, not an audit ledger.
-const ODDS_HARD_LIMIT = 18000;
+const ODDS_HARD_LIMIT = 85000;
 const ODDS_THRESHOLDS = [
   { pct: 50, label: '50%' },
   { pct: 75, label: '75%' },
