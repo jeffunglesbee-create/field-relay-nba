@@ -5,7 +5,7 @@ compatibility_date = "2026-06-22"
 # Worker via its public workers.dev URL. Without it, Worker→Worker fetch on the
 # same account is blocked with error 1042 — which silently broke the journalism
 # cron (it could never reach the proxy → KV never populated). May 29 2026.
-compatibility_flags = ["global_fetch_strictly_public"]
+compatibility_flags = ["global_fetch_strictly_public", "nodejs_compat_v2"]
 
 # Bootstrap trigger 2026-05-18T18:39:02Z
 
