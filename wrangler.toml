@@ -72,6 +72,13 @@ class_name = "BracketDO"
 name       = "AMBIENT_DO"
 class_name = "AmbientDO"
 
+# BrowserDO — holds Puppeteer browser session across MCP calls (June 22 2026)
+# Session ID (UUID) maps to one DO instance per active browser tab.
+# Auto-closes after 5 min idle via alarm. Hard cap: 50 actions, 30 min lifetime.
+[[durable_objects.bindings]]
+name       = "BROWSER_SESSION"
+class_name = "BrowserDO"
+
 # Migration: introduce the GameDO class. Required when first deploying a DO.
 [[migrations]]
 tag         = "v1-game-do"
@@ -91,6 +98,11 @@ new_classes = ["BracketDO"]
 [[migrations]]
 tag         = "v4-ambient-do"
 new_classes = ["AmbientDO"]
+
+# Migration: introduce BrowserDO (June 22 2026).
+[[migrations]]
+tag         = "v5-browser-do"
+new_classes = ["BrowserDO"]
 
 # ── Analytics Engine (WOW 7 — Journalism Quality observability, May 31 2026) ─
 # Append-only time-series sink for JQ Gate metrics. Bound as JQ_ANALYTICS in

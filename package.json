@@ -1,0 +1,9 @@
+{
+  "name": "field-relay-nba",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cloudflare/puppeteer": "^0.0.14"
+  }
+}
