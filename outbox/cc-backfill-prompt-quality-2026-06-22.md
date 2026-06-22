@@ -35,22 +35,51 @@
   game (idempotent via `.catch(() => {})`)
 - Response includes `force: true|false` for transparency
 
-## Verify after deploy
+## Post-deploy verification
 
-```
-# Dry-run force pass — should list every previously-backfilled game
-GET /backfill/game-briefs?dry=true&force=true&limit=50
+Deploy 931fd05 completed at 13:08:40 UTC. Force-run 3-game probe at
+13:14:11 UTC — all spec items green, but spot-check reveals a deeper
+quality issue rooted OUTSIDE this spec's scope.
 
-# Live force pass — re-generates with quality chain
-GET /backfill/game-briefs?force=true&limit=10
-# Expect: response.results[].score populated (was missing previously)
+### Spec items (all green)
+- `?force=true` echoes `force:true` in response and finds the 5 stale
+  backfill rows that the no-force path skipped.
+- 3/3 succeeded on `?force=true&limit=3`.
+- `quality_score` populated: 151, 188, 159 (all above threshold 90).
+- `word_count`: 70, 66, 69 — inside 50-70 target band.
+- DELETE-before-INSERT under force=true overwrote prior rows
+  (created_at timestamps now 13:14:11-13:14:21).
 
-# Spot check D1 — confirm quality_score now non-null
-SELECT id, sport, quality_score, word_count, source, brief_text
-  FROM briefs
-  WHERE source = 'backfill' AND brief_type = 'game_brief'
-  ORDER BY date DESC LIMIT 5;
-```
+### Spot-check FAILURE — assembleContext data dominates the prose
+Per spec step 10 ("verify no ABS fixation, no nameless recaps"):
+
+- **MLB Dodgers-Orioles (12-1)**: "Baltimore's 12-run offensive
+  outburst… The Orioles successfully challenged 39 of 75 calls this
+  season, while the Dodgers overturned 35 of 67 ABS challenges this
+  season… Both clubs maintained a B+ grade for their ABS challenge
+  accuracy through 142 total combined challenges this season." Two
+  full sentences on ABS challenges in a four-sentence brief.
+- **MLB Athletics-Angels (9-7)**: "Angels hitters powered a 9-7
+  win… overcoming a C-grade ABS challenge performance where the
+  team holds a 33/77 overturned rate this season." Score is the
+  lead, but ABS is still the dominant statistical thread.
+- **Golf US Open R4 (-4)**: "Finishing at -4 through the final round…
+  Comparisons to Brunson's 29.0 PPG this series, Wembanyama's 28.2
+  PPG this postseason, and a 26.0 PPG average this season highlight
+  the competitive intensity." Cross-sport hallucination: NBA player
+  PPG stats injected into a golf recap. The leader is unnamed.
+
+### Why JQ_STYLE didn't fix it
+JQ_STYLE rules are appended to the prompt, but `assembleContext`'s
+output dominates because it's the only specific data in the prompt
+besides the score. The LLM grabs the densest signal. For MLB,
+`buildSavantContext` (or whatever NBA clutch context is being mis-
+routed for golf) returns ABS challenge metrics + cross-sport leaders;
+that becomes the brief's spine.
+
+This is a `context-assembler.js` data-routing bug, not a backfill
+prompt bug. The spec explicitly forbids modifying assembleContext,
+so the fix lands here as a carry-forward.
 
 ## Failure modes (silent per Rule 5)
 
@@ -70,12 +99,24 @@ SELECT id, sport, quality_score, word_count, source, brief_text
 
 ## Carry-forwards
 
-1. JQ_STYLE is large (~2 KB). Backfill prompt now hits ~3 KB total
+1. **context-assembler.js mis-routes data across sports.** The golf
+   recap pulled NBA clutch stats (Brunson, Wembanyama PPG). MLB recaps
+   are dominated by ABS-challenge metrics rather than game-relevant
+   stats. Needs investigation in a separate prompt — likely the sport-
+   key router in `assembleContext` falls through to a default builder
+   when the sport label doesn't match its known set. Out of THIS
+   spec's scope (DO NOT touch assembleContext).
+2. **Quality threshold may be too low** — score 188 with two ABS
+   sentences passes scoreThreshold:90. runQualityChain doesn't
+   penalize "cling to context block stats" because that's a context
+   problem, not a prose problem. Raising the threshold won't help
+   without smarter prompt-level guidance about WHICH context lines
+   to prioritize. Out of scope per "DO NOT change journalism-quality.js."
+3. JQ_STYLE is large (~2 KB). Backfill prompt now hits ~3 KB total
    before context. Proxy currently routes Haiku 4.5 with 400 max_tokens
    on the initial call; runQualityChain's retries may bump tokens.
    If budget pressure surfaces, lower `maxRetries` from 2 → 1.
-2. Golf (`golf_2026-06-22_usopen_r4`) and FIFA WC games still go
-   through the same prompt. assembleContext returns empty for golf, so
-   the recap leans on JQ_STYLE rules + score-only facts. A dedicated
-   golf builder in context-assembler.js would tighten those briefs but
-   is out of this spec's scope.
+4. Golf assembleContext routing produces cross-sport hallucinations
+   (NBA stats in golf prose). A `buildGolfContext` builder + an early
+   return on unsupported sport labels in context-assembler.js would
+   prevent this. Tracked alongside item 1.
