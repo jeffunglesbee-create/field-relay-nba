@@ -7333,6 +7333,159 @@ export default {
                              'Cache-Control': 'public, max-age=60' } });
         }
 
+        // GET /backfill/game-briefs — on-demand per-game brief backfill.
+        // Finds completed games (home_score IS NOT NULL) with no existing
+        // game_brief row, generates 2-3 sentence recaps via the journalism
+        // proxy, and INSERTs with source='backfill'. On-demand only — never
+        // called from cron. ?dry=true returns the missing-game list without
+        // writing. ?date=YYYY-MM-DD filters to one date. ?limit=N caps work
+        // per call (max 50).
+        if (pathname === '/backfill/game-briefs' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const dateFilter = url.searchParams.get('date') || null;
+            const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 50);
+            const dryRun = url.searchParams.get('dry') === 'true';
+
+            try {
+                await ensureBriefsTable(env);
+
+                const dateClause = dateFilter ? 'AND g.date = ?' : '';
+                const regParams = dateFilter ? [dateFilter] : [];
+
+                const regMissing = await env.ARCHIVE_DB.prepare(`
+                    SELECT g.id, g.date, g.sport, g.home, g.away,
+                           g.home_score, g.away_score, g.closing_odds,
+                           NULL as series_key, NULL as importance
+                    FROM regular_season_games g
+                    WHERE g.home_score IS NOT NULL ${dateClause}
+                      AND NOT EXISTS (
+                          SELECT 1 FROM briefs b
+                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief'
+                      )
+                    ORDER BY g.date DESC
+                    LIMIT ?
+                `).bind(...regParams, limit).all();
+
+                const postMissing = await env.ARCHIVE_DB.prepare(`
+                    SELECT g.id, g.date, g.sport, g.home, g.away,
+                           g.home_score, g.away_score, g.closing_odds,
+                           g.series_key, g.importance
+                    FROM postseason_games g
+                    WHERE g.home_score IS NOT NULL ${dateClause}
+                      AND NOT EXISTS (
+                          SELECT 1 FROM briefs b
+                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief'
+                      )
+                    ORDER BY g.date DESC
+                    LIMIT ?
+                `).bind(...regParams, limit).all();
+
+                const allMissing = [
+                    ...(regMissing.results || []),
+                    ...(postMissing.results || []),
+                ].slice(0, limit);
+
+                if (dryRun) {
+                    return new Response(JSON.stringify({
+                        ok: true, dry_run: true,
+                        missing: allMissing.length,
+                        games: allMissing.map(g => ({
+                            id: g.id, date: g.date, sport: g.sport,
+                            matchup: `${g.away} @ ${g.home}`,
+                            score: `${g.away_score}-${g.home_score}`,
+                        })),
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                const callProxy = async (promptText) => {
+                    const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400,
+                            messages: [{ role: 'user', content: promptText }] }),
+                    });
+                    if (!resp.ok) return null;
+                    const data = await resp.json().catch(() => null);
+                    return data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
+                };
+
+                const results = [];
+                for (const game of allMissing) {
+                    try {
+                        let sportContext = '';
+                        try {
+                            sportContext = await assembleContext(env, {
+                                sport: game.sport, home: game.home, away: game.away,
+                                homeAbbr: '', awayAbbr: '',
+                            }, 600);
+                        } catch (_) {}
+
+                        let seriesContext = '';
+                        if (game.series_key) {
+                            try {
+                                const series = await env.ARCHIVE_DB.prepare(
+                                    `SELECT * FROM postseason_series WHERE series_key = ? LIMIT 1`
+                                ).bind(game.series_key).first();
+                                if (series) {
+                                    seriesContext = `\nSeries: ${series.series_key}`;
+                                    if (series.narrative) seriesContext += ` — ${series.narrative}`;
+                                }
+                            } catch (_) {}
+                        }
+
+                        const prompt = `Write a 2-3 sentence recap of this completed game.
+${game.away} ${game.away_score}, ${game.home} ${game.home_score} (${game.sport}, ${game.date})
+${game.importance ? `Game importance: ${game.importance}` : ''}
+${sportContext ? `\n[SPORT CONTEXT]\n${sportContext}` : ''}
+${seriesContext}
+Write factually. No cliches. Lead with the decisive moment or standout performance.`;
+
+                        const prose = await callProxy(prompt);
+                        if (!prose || prose.length < 30) {
+                            results.push({ id: game.id, ok: false, reason: 'empty response' });
+                            continue;
+                        }
+
+                        const finalText = stripMarkdown(prose);
+                        await env.ARCHIVE_DB.prepare(
+                            `INSERT INTO briefs
+                               (id, date, brief_type, sport, game_id, brief_text, model, quality_score, word_count, source)
+                             VALUES (?, ?, 'game_brief', ?, ?, ?, 'gemini-3.1-flash-lite', NULL, ?, 'backfill')
+                             ON CONFLICT(id) DO NOTHING`
+                        ).bind(
+                            `game_brief_${game.sport}_${game.id}_${game.date}`,
+                            game.date,
+                            game.sport || null,
+                            String(game.id),
+                            finalText,
+                            finalText.split(/\s+/).length
+                        ).run();
+
+                        results.push({ id: game.id, ok: true, words: finalText.split(/\s+/).length });
+                        await new Promise(r => setTimeout(r, 2000));
+
+                    } catch (e) {
+                        results.push({ id: game.id, ok: false, reason: e.message });
+                    }
+                }
+
+                return new Response(JSON.stringify({
+                    ok: true,
+                    processed: results.length,
+                    succeeded: results.filter(r => r.ok).length,
+                    failed: results.filter(r => !r.ok).length,
+                    results,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // GET /budget/odds — shared Odds-API budget snapshot. Returns the
         // current daily counter (src/budget-helpers.js) + the monthly hard-
         // limit counter (consumeOddsCredit / _consumeAmbientOddsCredit
@@ -9377,7 +9530,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
