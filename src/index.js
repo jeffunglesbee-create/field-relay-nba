@@ -10195,16 +10195,14 @@ export default {
             };
             const initial = await callProxy(job.prompt);
             if (!initial) throw new Error('proxy returned no prose');
-            // Light quality chain for game briefs: cliché + lead sentence only (no score gate)
-            let finalText = initial;
-            const cliches = jqHasCliche(initial);
-            if (cliches.length) {
-              const retried = await callProxy(job.prompt + `
-
-REWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact instead.`);
-              if (retried && retried.length > 30) finalText = retried;
-            }
-            finalText = stripMarkdown(finalText);
+            // Full quality chain — matches backfill + cron slate pipeline
+            const qResult = await runQualityChain(job.prompt, initial, callProxy, {
+              sport: job.sport || null,
+              scoreThreshold: 90,
+              maxRetries: 2,
+            });
+            const finalText = stripMarkdown(qResult.text);
+            const qualityScore = qResult.score ?? null;
             await env.FIELD_JOURNALISM.put(
               `brief:game:${job.eventId}`,
               JSON.stringify({
@@ -10225,7 +10223,7 @@ REWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact inste
                 await env.ARCHIVE_DB.prepare(
                   `INSERT INTO briefs
                      (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
-                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, NULL, ?, ?, 'cron')
+                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, ?, 'cron')
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
@@ -10237,6 +10235,7 @@ REWRITE: Remove banned phrases: ${cliches.join(', ')}. Use a specific fact inste
                   String(job.eventId),
                   finalText,
                   'claude-haiku-4-5-20251001',
+                  qualityScore,
                   job.gameHash || null,
                   finalText.split(/\s+/).length
                 ).run();
