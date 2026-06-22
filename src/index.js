@@ -7171,7 +7171,8 @@ export default {
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
-            && !(pathname === '/mcp' && request.method === 'POST'))
+            && !(pathname === '/mcp' && request.method === 'POST')
+            && !(pathname === '/fixtures/fetch' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
@@ -7678,6 +7679,80 @@ export default {
                 checked: results.length, passed, failed, results,
             }), { headers: { ...CORS, 'Content-Type': 'application/json',
                              'Cache-Control': 'no-store' } });
+        }
+
+        // POST /fixtures/fetch — fetch fixtures from api-sports and insert into D1.
+        // Runs server-side so CI never needs APISPORTS_KEY or CF bot-bypass tricks.
+        // Auth: X-FIELD-Relay: field-relay-cron-2026 (same as /d1/execute).
+        // Body: { league, season, from, to, sport? }  (sport defaults to "MLS")
+        if (pathname === '/fixtures/fetch' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026')
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            if (!env.ARCHIVE_DB)
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            if (!env.APISPORTS_KEY)
+                return new Response(JSON.stringify({ ok: false, error: 'APISPORTS_KEY not configured' }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            const body = await request.json().catch(() => null);
+            if (!body) return new Response(JSON.stringify({ ok: false, error: 'invalid json' }),
+                { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            const { league, season, from: dateFrom, to: dateTo, sport = 'MLS' } = body;
+            if (!league || !season || !dateFrom || !dateTo)
+                return new Response(JSON.stringify({ ok: false, error: 'league, season, from, to required' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            try {
+                // Fetch fixtures from api-sports server-side (relay holds the key)
+                const apiUrl = `https://v3.football.api-sports.io/fixtures?league=${league}&season=${season}&from=${dateFrom}&to=${dateTo}`;
+                const apiResp = await fetch(apiUrl, {
+                    headers: { 'x-apisports-key': env.APISPORTS_KEY, 'Accept': 'application/json' },
+                });
+                if (!apiResp.ok)
+                    return new Response(JSON.stringify({ ok: false, error: `api-sports ${apiResp.status}` }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const apiData = await apiResp.json();
+                const fixtures = apiData?.response || [];
+                if (!fixtures.length)
+                    return new Response(JSON.stringify({ ok: true, fetched: 0, inserted: 0,
+                        note: 'No fixtures returned', errors: apiData?.errors }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+                // Build rows
+                const rows = fixtures.map(fx => {
+                    const date = (fx?.fixture?.date || '').slice(0, 10);
+                    const home = fx?.teams?.home?.name || '';
+                    const away = fx?.teams?.away?.name || '';
+                    if (!date || !home || !away) return null;
+                    const ha = home.slice(0, 5).toLowerCase().replace(/\s+/g, '');
+                    const aa = away.slice(0, 5).toLowerCase().replace(/\s+/g, '');
+                    return { id: `${date}-mls-${ha}-${aa}`, date, sport, home, away };
+                }).filter(Boolean);
+
+                // Batch INSERT OR IGNORE (20 rows/batch)
+                let inserted = 0;
+                const errors = [];
+                for (let i = 0; i < rows.length; i += 20) {
+                    const chunk = rows.slice(i, i + 20);
+                    const vals = chunk.map(r =>
+                        `('${r.id.replace(/'/g,"''")}','${r.date}','${r.sport}','${r.home.replace(/'/g,"''")}','${r.away.replace(/'/g,"''")}',NULL,NULL)`
+                    ).join(',');
+                    const sql = `INSERT OR IGNORE INTO regular_season_games (id,date,sport,home,away,home_score,away_score) VALUES ${vals}`;
+                    try {
+                        await env.ARCHIVE_DB.prepare(sql).run();
+                        inserted += chunk.length;
+                    } catch (e) {
+                        errors.push(e.message);
+                    }
+                }
+                return new Response(JSON.stringify({
+                    ok: true, fetched: fixtures.length, rows: rows.length,
+                    inserted, errors: errors.length ? errors : undefined,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
         }
 
         // POST /session/record — record a session close into the codex table
