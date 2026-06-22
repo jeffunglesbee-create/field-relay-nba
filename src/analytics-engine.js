@@ -1404,6 +1404,46 @@ async function processDate(env, date, { selfHealed }) {
             errors.push(`phase8: ${e.message}`);
         }
 
+        // Phase 8b: quality_alert — surfaces degradation in the O(1) Newspaper
+        // by writing an analytics_output row when avg<170 or high unscored
+        // counts are present. Silent on no-alert days. Never blocks cron.
+        try {
+            const alertRows = await env.ARCHIVE_DB.prepare(`
+                SELECT brief_type,
+                       COUNT(*) as total,
+                       COUNT(quality_score) as scored,
+                       ROUND(AVG(quality_score), 1) as avg_score
+                FROM briefs
+                WHERE date >= ? AND quality_score IS NOT NULL
+                GROUP BY brief_type
+                HAVING COUNT(quality_score) >= 3
+                  AND AVG(quality_score) < 170
+            `).bind(date).all();
+            const unscoredRows = await env.ARCHIVE_DB.prepare(`
+                SELECT brief_type, COUNT(*) as total
+                FROM briefs WHERE date >= ? AND quality_score IS NULL
+                GROUP BY brief_type HAVING COUNT(*) > 5
+            `).bind(date).all();
+            const alerts = alertRows.results || [];
+            const unscored = unscoredRows.results || [];
+            if (alerts.length > 0 || unscored.length > 0) {
+                await writeAnalyticsOutput(env, {
+                    date,
+                    feature: 'quality_alert',
+                    sport: null,
+                    value: { alerts, unscored, checked_at: new Date().toISOString() },
+                    briefText: alerts.length > 0
+                        ? `Quality degraded on ${alerts.length} brief type(s).`
+                        : `${unscored.length} brief type(s) not being scored.`,
+                });
+                featuresComputed++;
+            }
+            phasesCompleted.push('phase8b_quality_alert');
+        } catch (e) {
+            phasesFailed.push('phase8b_quality_alert');
+            errors.push(`phase8b_quality_alert: ${e.message}`);
+        }
+
         // Phase 6: Weekly features — only when processing Sunday's date
         // (i.e. the Monday-morning cron tick). UTCDay 0 = Sunday. Each of
         // 6A-D is independently try/catch wrapped.

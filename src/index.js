@@ -7551,6 +7551,174 @@ export default {
                              'Cache-Control': 'public, max-age=30' } });
         }
 
+        // GET /quality/report — quality-score rollup over N days for the
+        // O(1) Newspaper alert chip + supervisor-side degradation watch.
+        // Groups briefs by (brief_type, sport), surfaces avg/min/max +
+        // failure-rate alerts (avg<170 or >30% below 150) and
+        // unscored-types (>5 briefs with no quality_score). Read-only.
+        if (pathname === '/quality/report' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) return new Response(
+                JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const days = Math.min(parseInt(url.searchParams.get('days') || '7', 10) || 7, 30);
+            const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+            const rows = await env.ARCHIVE_DB.prepare(`
+                SELECT brief_type, sport,
+                       COUNT(*) as total,
+                       COUNT(quality_score) as scored,
+                       ROUND(AVG(quality_score), 1) as avg_score,
+                       MIN(quality_score) as min_score,
+                       MAX(quality_score) as max_score,
+                       SUM(CASE WHEN quality_score < 150 THEN 1 ELSE 0 END) as below_150,
+                       SUM(CASE WHEN quality_score >= 200 THEN 1 ELSE 0 END) as above_200
+                FROM briefs WHERE date >= ?
+                GROUP BY brief_type, sport
+                ORDER BY avg_score ASC NULLS LAST
+            `).bind(since).all();
+            const summary = rows.results || [];
+            const alerts = summary
+                .filter(r => r.scored >= 3)
+                .filter(r => r.avg_score < 170 || (r.below_150 / r.scored) > 0.3)
+                .map(r => ({
+                    brief_type: r.brief_type, sport: r.sport || 'all',
+                    alert: r.avg_score < 170 ? 'avg_below_170' : 'high_failure_rate',
+                    avg_score: r.avg_score,
+                    failure_pct: Math.round((r.below_150 / r.scored) * 100),
+                }));
+            const unscored = summary
+                .filter(r => r.total > 5 && r.scored === 0)
+                .map(r => ({ brief_type: r.brief_type, sport: r.sport, total: r.total }));
+            return new Response(JSON.stringify({
+                ok: true, days, since, summary, alerts,
+                alert_count: alerts.length,
+                unscored_types: unscored,
+                unscored_count: unscored.length,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                             'Cache-Control': 'public, max-age=300' } });
+        }
+
+        // GET /briefs/spot-check — sampled prose verification. Pulls N most
+        // recent briefs, scans for banned phrases + cross-sport leaks +
+        // out-of-range word count, returns PASS/FAIL verdict. Used by
+        // SESSION-END template to gate session_record's success status.
+        if (pathname === '/briefs/spot-check' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) return new Response(
+                JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const n = Math.min(parseInt(url.searchParams.get('n') || '5', 10) || 5, 20);
+            const source = url.searchParams.get('source') || null;
+            const briefType = url.searchParams.get('type') || null;
+            let query = `SELECT id, brief_type, sport, brief_text, quality_score, source, date
+                         FROM briefs WHERE brief_text IS NOT NULL`;
+            const params = [];
+            if (source) { query += ' AND source = ?'; params.push(source); }
+            if (briefType) { query += ' AND brief_type = ?'; params.push(briefType); }
+            query += ' ORDER BY date DESC, rowid DESC LIMIT ?';
+            params.push(n);
+            const rows = await env.ARCHIVE_DB.prepare(query).bind(...params).all();
+            const briefs = rows.results || [];
+            if (!briefs.length) return new Response(
+                JSON.stringify({ ok: true, verdict: 'no_briefs', checked: 0 }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const BANNED = [
+                'automated ball-strike', 'abs challenge', 'challenge system',
+                'stunned', 'shocked', 'thriller', 'instant classic', 'for the ages',
+                "didn't disappoint", 'lived up to the hype', 'gave fans',
+                'left fans', 'in a statement', 'marquee matchup',
+            ];
+            const CROSS_SPORT = {
+                'golf': ['ppg','rebounds','assists','points per game','three-pointer','hat trick','puck'],
+                'wnba': ['pitcher','home run','strikeout','hat trick','puck'],
+                'FIFA World Cup 2026': ['ppg','rebounds','home run','strikeout'],
+                'MLB': ['ppg','hat trick','puck','xG','golden goal'],
+            };
+            const results = briefs.map(b => {
+                const text = (b.brief_text || '').toLowerCase();
+                const flagged = BANNED.filter(p => text.includes(p));
+                const crossSport = (CROSS_SPORT[b.sport] || []).filter(t => text.includes(t));
+                const words = (b.brief_text || '').split(/\s+/).length;
+                const pass = flagged.length === 0 && crossSport.length === 0
+                             && words >= 30 && words <= 120;
+                return {
+                    id: b.id, brief_type: b.brief_type, sport: b.sport,
+                    date: b.date, source: b.source, quality_score: b.quality_score,
+                    word_count: words, pass,
+                    flagged_phrases: flagged, cross_sport: crossSport,
+                    preview: (b.brief_text || '').slice(0, 150),
+                };
+            });
+            const passed = results.filter(r => r.pass).length;
+            const failed = results.filter(r => !r.pass).length;
+            return new Response(JSON.stringify({
+                ok: true,
+                verdict: failed === 0 ? 'PASS' : 'FAIL',
+                checked: results.length, passed, failed, results,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                             'Cache-Control': 'no-store' } });
+        }
+
+        // POST /session/record — record a session close into the codex table
+        // (reuses the existing table; no schema change). Body requires
+        // client_head, relay_head, summary; carry_forwards become individual
+        // 'incident' codex entries for future session_health pulls.
+        if (pathname === '/session/record' && request.method === 'POST') {
+            if (!env.ARCHIVE_DB) return new Response(
+                JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const body = await request.json().catch(() => null);
+            if (!body) return new Response(
+                JSON.stringify({ ok: false, error: 'invalid json' }),
+                { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const {
+                client_head, relay_head, smoke, sw_version,
+                session_type = 'relay', summary,
+                carry_forwards = [], drive_docs = [],
+            } = body;
+            if (!client_head || !relay_head || !summary) return new Response(
+                JSON.stringify({ ok: false, error: 'client_head, relay_head, summary required' }),
+                { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+            const date = new Date().toISOString().slice(0, 10);
+            const id = `session_${date}_${relay_head}`;
+            await env.ARCHIVE_DB.prepare(`
+                INSERT INTO codex (key, category, title, content, drive_refs, updated_at)
+                VALUES (?, 'session', ?, ?, ?, datetime('now'))
+                ON CONFLICT(key) DO UPDATE SET
+                    content = excluded.content, drive_refs = excluded.drive_refs,
+                    updated_at = datetime('now')
+            `).bind(
+                id,
+                `Session ${date} — ${summary.slice(0, 80)}`,
+                JSON.stringify({
+                    client_head, relay_head, smoke, sw_version,
+                    session_type, summary, carry_forwards,
+                    recorded_at: new Date().toISOString(),
+                }),
+                drive_docs.length ? JSON.stringify(drive_docs) : null
+            ).run();
+            const channel = session_type === 'docs' ? 'chat' : 'CC';
+            const anchor = `CLIENT HEAD ${client_head} · ${date} · via ${channel}. ` +
+                           `RELAY HEAD ${relay_head} · ${date} · via ${channel}.`;
+            for (const cf of carry_forwards.slice(0, 10)) {
+                const slug = cf.slice(0, 40).replace(/\s+/g, '-').toLowerCase()
+                              .replace(/[^a-z0-9-]/g, '');
+                await env.ARCHIVE_DB.prepare(`
+                    INSERT INTO codex (key, category, title, content, updated_at)
+                    VALUES (?, 'incident', ?, ?, datetime('now'))
+                    ON CONFLICT(key) DO NOTHING
+                `).bind(`cf/${date}/${slug}`, cf.slice(0, 120), cf).run().catch(() => {});
+            }
+            return new Response(JSON.stringify({
+                ok: true, session_id: id, anchor,
+                carry_forwards_written: Math.min(carry_forwards.length, 10),
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /identity/mismatches — diagnostic. For each requested sport,
         // fetch current Odds-API events, query today's NULL-opening_odds
         // games from D1, attempt resolveTeamKey matching, and return any
@@ -8103,6 +8271,10 @@ export default {
                     preview: preview.circadian_preview?.brief_text || null,
                     streak_board: recap.streak_board?.value || null,
                     quality_feedback: recap.quality_feedback?.value || null,
+                    quality_alert: recap.quality_alert ? {
+                        ...(recap.quality_alert.value || {}),
+                        brief: recap.quality_alert.brief_text || null,
+                    } : null,
                     completed_games: [],
                 };
 
@@ -9013,6 +9185,11 @@ export default {
                         inputSchema: { type: 'object', properties: {}, required: [] },
                     },
                     {
+                        name: 'session_health',
+                        description: 'Machine-generated session health: live HEADs, deploy match, smoke count, quality degradation, degraded analytics phases, open Codex incidents. Call at session start instead of read_handoff.',
+                        inputSchema: { type: 'object', properties: {}, required: [] },
+                    },
+                    {
                         name: 'write_handoff',
                         description: 'Replace HANDOFF.md in jubilant-bassoon with new content and commit on main. Commit message is prefixed with [skip ci] automatically (HANDOFF.md is paths-ignored anyway; this is belt-and-suspenders).',
                         inputSchema: {
@@ -9280,6 +9457,83 @@ export default {
                     const content = decodeURIComponent(escape(bytes));
                     return { ok: true, content, sha: data.sha, size: data.size };
                 };
+
+                if (toolName === 'session_health') {
+                    const ghToken = env.GITHUB_PAT;
+                    const gh = (path) => fetch(
+                        `https://api.github.com/repos/${path}`,
+                        { headers: ghHeaders(ghToken), cf: { cacheTtl: 60 } }
+                    );
+                    const out = {};
+
+                    try {
+                        const r = await gh('jeffunglesbee-create/jubilant-bassoon/git/refs/heads/main');
+                        if (r.ok) out.client_head = ((await r.json()).object?.sha || '').slice(0, 7);
+                    } catch(_) { out.client_head = 'unavailable'; }
+                    try {
+                        const r = await gh('jeffunglesbee-create/field-relay-nba/git/refs/heads/main');
+                        if (r.ok) out.relay_head = ((await r.json()).object?.sha || '').slice(0, 7);
+                    } catch(_) { out.relay_head = 'unavailable'; }
+
+                    try {
+                        const r = await gh('jeffunglesbee-create/field-relay-nba' +
+                            '/actions/workflows/deploy.yml/runs?status=success&per_page=1');
+                        if (r.ok) {
+                            const run = (await r.json()).workflow_runs?.[0];
+                            if (run) {
+                                out.relay_deployed = run.head_sha.slice(0, 7);
+                                out.deploy_match = out.relay_deployed === out.relay_head;
+                                out.deployed_at = run.updated_at;
+                            }
+                        }
+                    } catch(_) { out.deploy_match = 'unavailable'; }
+
+                    if (env.ARCHIVE_DB) {
+                        try {
+                            const since = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+                            const q = await env.ARCHIVE_DB.prepare(`
+                                SELECT brief_type, COUNT(*) as total, COUNT(quality_score) as scored,
+                                       ROUND(AVG(quality_score), 1) as avg_score
+                                FROM briefs WHERE date >= ? GROUP BY brief_type
+                            `).bind(since).all();
+                            const types = q.results || [];
+                            out.quality = {
+                                degraded: types.filter(r => r.scored >= 3 && r.avg_score < 170)
+                                               .map(r => r.brief_type),
+                                unscored: types.filter(r => r.total > 5 && r.scored === 0)
+                                               .map(r => r.brief_type),
+                            };
+                        } catch(_) { out.quality = 'unavailable'; }
+
+                        try {
+                            const today = new Date().toISOString().slice(0, 10);
+                            const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+                            const p = await env.ARCHIVE_DB.prepare(`
+                                SELECT feature, date, JSON_EXTRACT(value, '$.degraded') as degraded
+                                FROM analytics_output WHERE date IN (?, ?)
+                                ORDER BY date DESC
+                            `).bind(today, yest).all();
+                            const phases = {};
+                            for (const r of (p.results || []))
+                                if (!phases[r.feature])
+                                    phases[r.feature] = { date: r.date, degraded: !!r.degraded };
+                            out.analytics_phases = phases;
+                        } catch(_) { out.analytics_phases = 'unavailable'; }
+
+                        try {
+                            const cf = await env.ARCHIVE_DB.prepare(`
+                                SELECT key, title FROM codex
+                                WHERE category = 'incident'
+                                ORDER BY updated_at DESC LIMIT 15
+                            `).all();
+                            out.open_incidents = (cf.results || []).map(r => r.title);
+                        } catch(_) { out.open_incidents = 'unavailable'; }
+                    }
+
+                    out.checked_at = new Date().toISOString();
+                    return respond(jsonrpc2({ content: [{ type: 'text',
+                        text: JSON.stringify(out, null, 2) }] }));
+                }
 
                 if (toolName === 'read_handoff') {
                     const ghToken = env.GITHUB_PAT;
@@ -9580,7 +9834,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
