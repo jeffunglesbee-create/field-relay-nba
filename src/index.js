@@ -26,6 +26,13 @@ export { BracketDO };
 import { AmbientDO } from './ambient-do.js';
 export { AmbientDO };
 
+// ── Durable Object: BrowserDO (Puppeteer session persistence, June 22 2026) ──
+// One DO per browser session (UUID-keyed). Holds Chromium connection across
+// MCP calls so navigate → click → extract chains share state. Alarm-driven
+// idle close (5 min), hard cap 50 actions / 30 min lifetime.
+import { BrowserDO } from './browser-do.js';
+export { BrowserDO };
+
 // ── WC Tournament Projections (June 11 2026) ─────────────────────────────────
 import {
   computeTournamentProjections,
@@ -9244,6 +9251,58 @@ export default {
                         },
                     },
                     {
+                        name: 'browser_navigate',
+                        description: 'Open a URL in a headless browser with session persistence. Returns screenshot, page title, visible text, and a sessionId to reuse in browser_interact and browser_extract calls. Sessions auto-close after 5 min idle or 50 actions.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                url: { type: 'string', description: 'Full URL to navigate to (allowlisted domains only)' },
+                                sessionId: { type: 'string', description: 'Reuse an existing session. Omit to start a new session (a new sessionId is returned).' },
+                                waitUntil: { type: 'string', enum: ['load', 'domcontentloaded', 'networkidle0'], description: 'When to consider navigation complete. Default: networkidle0' },
+                            },
+                            required: ['url'],
+                        },
+                    },
+                    {
+                        name: 'browser_interact',
+                        description: 'Perform an action on the current page in an active browser session: click, type, select, scroll, wait, back, or forward. Returns updated screenshot and page text.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                sessionId: { type: 'string', description: 'Session ID from browser_navigate' },
+                                action: { type: 'string', enum: ['click', 'type', 'select', 'scroll', 'wait', 'back', 'forward'] },
+                                selector: { type: 'string', description: 'CSS selector or :text("Button Label") for click/type/select/wait. Omit for back/forward.' },
+                                value: { type: 'string', description: 'Text to type, option value to select, or scroll direction (up/down)' },
+                                pressEnter: { type: 'boolean', description: 'Press Enter after typing. Default: false' },
+                            },
+                            required: ['sessionId', 'action'],
+                        },
+                    },
+                    {
+                        name: 'browser_extract',
+                        description: 'Extract structured data from the current page: cookies, form fields, JSON-LD, all links, raw JS evaluation, or full page text. Does not change page state.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                sessionId: { type: 'string', description: 'Session ID from browser_navigate' },
+                                mode: { type: 'string', enum: ['cookies', 'forms', 'json-ld', 'links', 'evaluate', 'full-text'] },
+                                expression: { type: 'string', description: 'JS expression for evaluate mode only (e.g. "document.title")' },
+                            },
+                            required: ['sessionId', 'mode'],
+                        },
+                    },
+                    {
+                        name: 'browser_close',
+                        description: 'Explicitly close a browser session and free its resources. Sessions also auto-close after 5 min idle.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                sessionId: { type: 'string', description: 'Session ID from browser_navigate' },
+                            },
+                            required: ['sessionId'],
+                        },
+                    },
+                    {
                         name: 'stat_status',
                         description: 'Get live STAT job intelligence system status without CI overhead. Returns DO health, watchedCompanies, seenJobIds, SelectMinds cursor position, and platform-specific status for a given ATS. Bypasses *.workers.dev sandbox block via CF Worker IP relay. ~2s round-trip vs ~80s CI probe.',
                         inputSchema: {
@@ -9717,6 +9776,39 @@ export default {
                     }
                     const result = await browserQuick(env, url, action);
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify(result, null, 2)}], isError: !!result.error}));
+                }
+
+                // ── browser_navigate / interact / extract / close ────────────────
+                // Phase 1 Browser MCP — BrowserDO session persistence. Each tool
+                // call routes through the DO instance keyed by sessionId (UUID).
+                // browser_navigate validates URL against the same allowlist as
+                // browser_quick; interact/extract/close trust the active session.
+                if (toolName === 'browser_navigate' ||
+                    toolName === 'browser_interact' ||
+                    toolName === 'browser_extract'  ||
+                    toolName === 'browser_close') {
+                    if (toolName === 'browser_navigate') {
+                        const { url } = toolArgs;
+                        if (!url) return respond(jsonrpc2({content:[{type:'text',text:'browser_navigate requires url'}], isError:true}));
+                        const check = validateBrowserUrl(url);
+                        if (!check.ok) {
+                            return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ error: check.reason, allowed: false }, null, 2)}], isError:true}));
+                        }
+                    } else if (!toolArgs.sessionId) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`${toolName} requires sessionId`}], isError:true}));
+                    }
+                    const sessionId = toolArgs.sessionId || crypto.randomUUID();
+                    const doId  = env.BROWSER_SESSION.idFromName(sessionId);
+                    const stub  = env.BROWSER_SESSION.get(doId);
+                    const doRes = await stub.fetch(new Request('https://do/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tool: toolName, args: { ...toolArgs, sessionId } }),
+                    }));
+                    const doJson = await doRes.json();
+                    // Always echo sessionId back so the chat can chain follow-up calls.
+                    if (!doJson.sessionId) doJson.sessionId = sessionId;
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify(doJson, null, 2)}], isError: !!doJson.error}));
                 }
 
                 // ── stat_status ──────────────────────────────────────────────────
