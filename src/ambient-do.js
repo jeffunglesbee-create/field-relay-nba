@@ -54,6 +54,7 @@
 // Result: AmbientDO detects score changes within 15s of api-sports updating,
 // while api-sports quota is capped at 2/min × sports (not O(poll frequency)).
 import { resolveTeamKey } from './identity-resolver.js';
+import { checkAndIncrementDailyOdds } from './budget-helpers.js';
 
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
@@ -642,17 +643,14 @@ export class AmbientDO {
         const apiKey = this.env.ODDS_API_KEY;
         if (!apiKey) return;
 
-        // Daily cap (Rule 78 / API-COST-A).
-        const today = new Date().toISOString().slice(0, 10);
-        if (this._closingOddsDate !== today) {
-            this._closingOddsDate = today;
-            this._closingOddsToday = 0;
-        }
-        if ((this._closingOddsToday || 0) >= 30) {
-            console.warn('[closing-odds] daily cap reached (30)');
+        // Shared daily ceiling — replaces the old in-memory _closingOddsToday
+        // cap. Coordinates with snapshotCronOdds + _fetchLiveOdds via
+        // FIELD_JOURNALISM KV key `odds:daily:YYYY-MM-DD`. checkAndIncrement
+        // also increments on pass, so don't double-bump below.
+        if (!(await checkAndIncrementDailyOdds(this.env, 1))) {
+            console.warn('[closing-odds] daily ceiling reached — skipping capture');
             return;
         }
-        this._closingOddsToday = (this._closingOddsToday || 0) + 1;
 
         const url = `https://api.the-odds-api.com/v4/sports/${oddsKey}/odds`
             + `?apiKey=${apiKey}&regions=us&markets=h2h,spreads,totals`
@@ -816,6 +814,10 @@ function _ambientOddsCreditMonthKey() {
 }
 async function _consumeAmbientOddsCredit(env, units) {
     if (!env || !env.FIELD_JOURNALISM) return true;
+    // Shared daily ceiling first — coordinates with snapshotCronOdds +
+    // _captureClosingOdds via the same KV key. Either guard can veto;
+    // monthly hard limit below stays unchanged.
+    if (!(await checkAndIncrementDailyOdds(env, units))) return false;
     try {
         const key = _ambientOddsCreditMonthKey();
         const raw = await env.FIELD_JOURNALISM.get(key);

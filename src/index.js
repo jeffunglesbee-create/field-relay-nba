@@ -60,6 +60,7 @@ import { assembleContext } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey } from './identity-resolver.js';
+import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -3814,8 +3815,16 @@ function _oddsCreditMonthKey() {
 // Returns true if the call is allowed to proceed; false to abort.
 // `units` is the credit cost of the planned fetch (1 for live odds with one
 // market; up to 30 for historical calls). Increments AFTER returning true.
+//
+// Two-layer guard: shared daily ceiling first (src/budget-helpers.js),
+// then the monthly hard limit. Either layer can veto. The daily layer
+// is shared with AmbientDO's _consumeAmbientOddsCredit + _captureClosingOdds
+// so a runaway in any one consumer can't burn the monthly quota in a day.
 async function consumeOddsCredit(env, units) {
   if (!env.FIELD_JOURNALISM) return true; // KV unavailable: degrade-open
+  // Daily layer first — cheaper failure path. checkAndIncrementDailyOdds
+  // also increments on pass, so don't double-count below.
+  if (!(await checkAndIncrementDailyOdds(env, units))) return false;
   try {
     const key = _oddsCreditMonthKey();
     const raw = await env.FIELD_JOURNALISM.get(key);
@@ -7117,6 +7126,24 @@ export default {
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
+        // GET /budget/odds — shared Odds-API budget snapshot. Returns the
+        // current daily counter (src/budget-helpers.js) + the monthly hard-
+        // limit counter (consumeOddsCredit / _consumeAmbientOddsCredit
+        // share the same KV key). Read-only, no Odds-API calls.
+        if (pathname === '/budget/odds' && request.method === 'GET') {
+            if (!env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const [daily, monthly] = await Promise.all([
+                peekDailyOdds(env),
+                peekMonthlyOdds(env),
+            ]);
+            return new Response(JSON.stringify({ ok: true, daily, monthly }),
+                { headers: { ...CORS, 'Content-Type': 'application/json',
+                             'Cache-Control': 'public, max-age=30' } });
+        }
+
         // GET /identity/mismatches — diagnostic. For each requested sport,
         // fetch current Odds-API events, query today's NULL-opening_odds
         // games from D1, attempt resolveTeamKey matching, and return any
@@ -8998,7 +9025,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
