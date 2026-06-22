@@ -7818,6 +7818,151 @@ export default {
             return new Response(JSON.stringify({ triggered: 'analytics-engine', result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
+
+        // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
+        // Assembles all analytics_output features + KV editorial into one
+        // atomic response. {date} = TODAY's date. Endpoint fetches recap
+        // from yesterday (morning_report / truth_is / night_stars /
+        // streak_board / quality_feedback) and preview from today
+        // (circadian_preview / field_pick) internally.
+        //
+        // MUST sit before the generic `/analytics/{feature}/{date}` handler
+        // below — otherwise the generic catch-all matches "newspaper" as
+        // a feature name and returns a single-row null lookup.
+        if (pathname.startsWith('/analytics/newspaper/') && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const date = pathname.slice('/analytics/newspaper/'.length);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                // Yesterday in UTC. The cron writes recap features under
+                // yesterday's date and preview features under today's.
+                const reqDate  = new Date(date + 'T12:00:00Z');
+                const yestDate = new Date(reqDate);
+                yestDate.setUTCDate(yestDate.getUTCDate() - 1);
+                const yesterday = yestDate.toISOString().slice(0, 10);
+
+                const [recapRows, previewRows] = await Promise.all([
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT feature, value, brief_text FROM analytics_output WHERE date = ?`
+                    ).bind(yesterday).all(),
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT feature, value, brief_text FROM analytics_output WHERE date = ?`
+                    ).bind(date).all(),
+                ]);
+
+                const parseRows = (rows) => {
+                    const out = {};
+                    for (const r of (rows.results || [])) {
+                        let parsed = null;
+                        try { parsed = JSON.parse(r.value); } catch (_) { parsed = r.value; }
+                        out[r.feature] = { value: parsed, brief_text: r.brief_text || null };
+                    }
+                    return out;
+                };
+                const recap   = parseRows(recapRows);
+                const preview = parseRows(previewRows);
+
+                const bundle = {
+                    date,
+                    recap_date: yesterday,
+                    generated_at: recap.morning_report?.value?.generated_at || null,
+                    morning_report: recap.morning_report?.brief_text || null,
+                    truth_is: recap.truth_is ? {
+                        ...(recap.truth_is.value || {}),
+                        brief: recap.truth_is.brief_text || null,
+                    } : null,
+                    night_stars: recap.night_stars?.value || null,
+                    pick: preview.field_pick ? {
+                        ...(preview.field_pick.value || {}),
+                        brief: preview.field_pick.brief_text || null,
+                    } : null,
+                    preview: preview.circadian_preview?.brief_text || null,
+                    streak_board: recap.streak_board?.value || null,
+                    quality_feedback: recap.quality_feedback?.value || null,
+                    completed_games: [],
+                };
+
+                // Completed games for "What Changed" — structural facts only.
+                // Schema reality (verified): regular_season_games has no
+                // status/OT columns; postseason_games carries `importance`
+                // ('clinch' | 'elimination' | 'playoffs' | null). Upset
+                // detection runs off closing_odds (favorite lost AND
+                // underdog ML >= +150).
+                try {
+                    const [regGames, postGames] = await Promise.all([
+                        env.ARCHIVE_DB.prepare(`
+                            SELECT id, sport, home, away, home_score, away_score,
+                                   closing_odds, NULL AS importance
+                            FROM regular_season_games
+                            WHERE date = ? AND home_score IS NOT NULL
+                        `).bind(yesterday).all(),
+                        env.ARCHIVE_DB.prepare(`
+                            SELECT id, sport, home, away, home_score, away_score,
+                                   closing_odds, importance
+                            FROM postseason_games
+                            WHERE date = ? AND home_score IS NOT NULL
+                        `).bind(yesterday).all(),
+                    ]);
+                    const allGames = [
+                        ...(regGames.results || []),
+                        ...(postGames.results || []),
+                    ];
+                    bundle.completed_games = allGames.map(g => {
+                        let wasUpset = false;
+                        try {
+                            if (g.closing_odds) {
+                                const odds = typeof g.closing_odds === 'string'
+                                    ? JSON.parse(g.closing_odds) : g.closing_odds;
+                                const homeML = odds?.moneyline?.home;
+                                const awayML = odds?.moneyline?.away;
+                                if (typeof homeML === 'number' && typeof awayML === 'number') {
+                                    const homeFav = homeML < 0 && awayML > 0;
+                                    const awayFav = awayML < 0 && homeML > 0;
+                                    const homeWon = g.home_score > g.away_score;
+                                    if (homeFav && !homeWon) wasUpset = true;
+                                    if (awayFav &&  homeWon) wasUpset = true;
+                                    if (wasUpset) {
+                                        const underdogML = homeFav ? awayML : homeML;
+                                        // Threshold: underdog priced >= +150 only.
+                                        if (underdogML < 150) wasUpset = false;
+                                    }
+                                }
+                            }
+                        } catch (_) { /* odds malformed — leave wasUpset false */ }
+                        const margin = Math.abs((g.home_score || 0) - (g.away_score || 0));
+                        const isSeriesClinch = g.importance === 'clinch';
+                        const isElimination  = g.importance === 'elimination';
+                        return {
+                            id: g.id,
+                            sport: g.sport,
+                            home: g.home, away: g.away,
+                            homeScore: g.home_score, awayScore: g.away_score,
+                            wentToOT: false, // not stored in D1
+                            wasUpset, isSeriesClinch, isElimination, margin,
+                        };
+                    });
+                } catch (_) { /* game tables may be empty/missing — keep [] */ }
+
+                return new Response(JSON.stringify({ ok: true, ...bundle }), {
+                    headers: {
+                        ...CORS,
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'public, max-age=300',
+                    },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({
+                    ok: false, error: e.message,
+                    _note: 'analytics_output table may not exist yet',
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
         if (pathname.startsWith('/analytics/')) {
             if (!env.ARCHIVE_DB) {
                 return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
