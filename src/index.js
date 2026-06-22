@@ -41,6 +41,7 @@ import {
 // See src/journalism-quality.js for full documentation.
 import {
   FIELD_PROSE_STYLE as JQ_STYLE,
+  FIELD_VOICE_REGISTER,
   runQualityChain,
   scoreProse as jqScoreProse,
   hasCliche as jqHasCliche,
@@ -1561,6 +1562,7 @@ async function writeWCResult(db, game, env) {
         } catch (_) {}
 
         const prompt = [
+            FIELD_VOICE_REGISTER,
             `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
             `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
             `Include: key goalscorers with minutes, standout performances, what this means for the group.`,
@@ -1571,6 +1573,7 @@ async function writeWCResult(db, game, env) {
             `Date: ${matchDate}`,
             eventsContext,
             ``,
+            `SPORT BOUNDARY: This is a World Cup 2026 (soccer) match. Write ONLY soccer content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
             `Write the brief as a single paragraph. No headers, no bullet points.`,
         ].join('\n');
         try {
@@ -2763,6 +2766,7 @@ async function handleV2Games(url, env, ctx) {
                         } catch (_) {}
 
                         const prompt = [
+                            FIELD_VOICE_REGISTER,
                             `Write a 2-3 sentence post-game brief for this NBA result.`,
                             `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
                             `Include: key performers with stats, decisive run or moment, what this means for the standings or series.`,
@@ -2772,6 +2776,7 @@ async function handleV2Games(url, env, ctx) {
                             g.venue ? `Venue: ${g.venue}` : '',
                             statsContext,
                             ``,
+                            `SPORT BOUNDARY: This is an NBA basketball game. Write ONLY NBA basketball content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
                             `Write the brief as a single paragraph. No headers, no bullet points.`,
                         ].filter(Boolean).join('\n');
 
@@ -2852,6 +2857,7 @@ async function handleV2Games(url, env, ctx) {
                         } catch (_) {}
 
                         const prompt = [
+                            FIELD_VOICE_REGISTER,
                             `Write a 2-3 sentence post-game brief for this NHL result.`,
                             `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
                             `Include: key goal scorers, goaltender performance, what this means for the series or standings.`,
@@ -2861,6 +2867,7 @@ async function handleV2Games(url, env, ctx) {
                             g.venue ? `Venue: ${g.venue}` : '',
                             statsContext,
                             ``,
+                            `SPORT BOUNDARY: This is an NHL hockey game. Write ONLY NHL hockey content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
                             `Write the brief as a single paragraph. No headers, no bullet points.`,
                         ].filter(Boolean).join('\n');
 
@@ -4391,11 +4398,13 @@ async function executeGameBriefBackfill(env, date) {
     }
 
     const gamePrompt = [
+      FIELD_VOICE_REGISTER,
       `Write a 50-70 word game brief for this ${sport}${isPostseason ? ' playoff' : ''} game.`,
       `${away} ${game.away_score} at ${home} ${game.home_score}`,
       `Date: ${date}`,
       isPostseason ? `Round: ${game.round || 'postseason'}${seriesContext}` : '',
       sportContext || '',
+      `SPORT BOUNDARY: This is a ${sport} game. Write ONLY ${sport} content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
       `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
     ].filter(Boolean).join('\n');
 
@@ -5456,6 +5465,7 @@ async function handleJournalismCycle(env, opts = {}) {
     }
 
     const buildPrompt = () => [
+      FIELD_VOICE_REGISTER,
       'Write a FIELD Brief for tonight\'s sports slate.',
       '',
       'TONIGHT\'S GAMES:',
@@ -7457,11 +7467,13 @@ export default {
                         } catch (_) {}
 
                         const gamePrompt = [
+                            FIELD_VOICE_REGISTER,
                             `Write a 50-70 word game brief for this ${sportLabel}${isPostseason ? ' playoff' : ''} game.`,
                             `${game.away} ${game.away_score} at ${game.home} ${game.home_score}`,
                             `Date: ${game.date}`,
                             isPostseason ? `Round: ${game.importance || 'postseason'}${seriesContext}` : '',
                             sportContext || '',
+                            `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
                             `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
                             JQ_STYLE,
                         ].filter(Boolean).join('\n');
@@ -8234,6 +8246,9 @@ export default {
             const briefType   = body.briefType || 'generic';
             const max_tokens  = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
             const scoreFloor  = body.scoreThreshold || 130;
+            // Prepend v4 voice register so /journalism/generate consumers
+            // inherit the same framing as cron + backfill paths.
+            const promptWithVoice = FIELD_VOICE_REGISTER + '\n' + body.prompt;
 
             // callProxy closure: same shape used by handleJournalismCycle cron
             // DIAGNOSTIC: capture real failure mode (vs silent try/catch swallow)
@@ -8273,7 +8288,7 @@ export default {
             };
 
             // First call: generate the initial prose
-            const initial = await callProxy(body.prompt);
+            const initial = await callProxy(promptWithVoice);
             if (!initial || initial.length < 30) {
               return new Response(JSON.stringify({
                 error: 'proxy returned no prose',
@@ -8283,7 +8298,7 @@ export default {
             }
 
             // Run full quality chain
-            const result = await runQualityChain(body.prompt, initial, callProxy, {
+            const result = await runQualityChain(promptWithVoice, initial, callProxy, {
               sport,
               scoreThreshold: scoreFloor,
               maxRetries: 6,

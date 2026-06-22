@@ -340,9 +340,15 @@ const CONTEXT_SOURCES = [
 // Per-source token budget allowance — the spec sets soft per-source caps,
 // but the assembler is a simple sum against totalBudget. We honour the
 // per-source cap by skipping a block if it alone exceeds source.budget.
+const _SPORT_NORMALIZE = {
+    'fifa world cup 2026': 'wc26',
+    'fifa world cup': 'wc26',
+    'world cup': 'wc26',
+};
 async function assembleContext(env, game, totalBudget = 1500) {
     if (!env || !game) return '';
-    const sport = String(game.sport || '').toLowerCase();
+    const _raw = String(game.sport || '').toLowerCase();
+    const sport = _SPORT_NORMALIZE[_raw] || _raw;
     const applicable = CONTEXT_SOURCES.filter(s =>
         !s.sports || s.sports.includes(sport));
     applicable.sort((a, b) => a.priority - b.priority);
