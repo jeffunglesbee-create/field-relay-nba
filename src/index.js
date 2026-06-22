@@ -7348,6 +7348,7 @@ export default {
             const dateFilter = url.searchParams.get('date') || null;
             const limit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 50);
             const dryRun = url.searchParams.get('dry') === 'true';
+            const force = url.searchParams.get('force') === 'true';
 
             try {
                 await ensureBriefsTable(env);
@@ -7355,16 +7356,27 @@ export default {
                 const dateClause = dateFilter ? 'AND g.date = ?' : '';
                 const regParams = dateFilter ? [dateFilter] : [];
 
+                // When force=true, also match games whose only game_brief is
+                // source='backfill' (so we can re-generate stale low-quality
+                // backfill prose). When force=false (default), skip any game
+                // that already has a game_brief regardless of source.
+                const existsClause = force
+                    ? `AND NOT EXISTS (
+                          SELECT 1 FROM briefs b
+                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief' AND b.source != 'backfill'
+                      )`
+                    : `AND NOT EXISTS (
+                          SELECT 1 FROM briefs b
+                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief'
+                      )`;
+
                 const regMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
                            NULL as series_key, NULL as importance
                     FROM regular_season_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
-                      AND NOT EXISTS (
-                          SELECT 1 FROM briefs b
-                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief'
-                      )
+                      ${existsClause}
                     ORDER BY g.date DESC
                     LIMIT ?
                 `).bind(...regParams, limit).all();
@@ -7375,10 +7387,7 @@ export default {
                            g.series_key, g.importance
                     FROM postseason_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
-                      AND NOT EXISTS (
-                          SELECT 1 FROM briefs b
-                          WHERE b.game_id = g.id AND b.brief_type = 'game_brief'
-                      )
+                      ${existsClause}
                     ORDER BY g.date DESC
                     LIMIT ?
                 `).bind(...regParams, limit).all();
@@ -7390,7 +7399,7 @@ export default {
 
                 if (dryRun) {
                     return new Response(JSON.stringify({
-                        ok: true, dry_run: true,
+                        ok: true, dry_run: true, force,
                         missing: allMissing.length,
                         games: allMissing.map(g => ({
                             id: g.id, date: g.date, sport: g.sport,
@@ -7415,13 +7424,8 @@ export default {
                 const results = [];
                 for (const game of allMissing) {
                     try {
-                        let sportContext = '';
-                        try {
-                            sportContext = await assembleContext(env, {
-                                sport: game.sport, home: game.home, away: game.away,
-                                homeAbbr: '', awayAbbr: '',
-                            }, 600);
-                        } catch (_) {}
+                        const sportLabel = game.sport || 'unknown';
+                        const isPostseason = !!(game.series_key || game.importance);
 
                         let seriesContext = '';
                         if (game.series_key) {
@@ -7430,30 +7434,59 @@ export default {
                                     `SELECT * FROM postseason_series WHERE series_key = ? LIMIT 1`
                                 ).bind(game.series_key).first();
                                 if (series) {
-                                    seriesContext = `\nSeries: ${series.series_key}`;
-                                    if (series.narrative) seriesContext += ` — ${series.narrative}`;
+                                    const hW = (await env.ARCHIVE_DB.prepare(
+                                        `SELECT COUNT(*) AS n FROM postseason_games
+                                         WHERE series_key = ? AND home_score > away_score AND home_score IS NOT NULL`
+                                    ).bind(game.series_key).first().catch(() => null))?.n || 0;
+                                    const aW = (await env.ARCHIVE_DB.prepare(
+                                        `SELECT COUNT(*) AS n FROM postseason_games
+                                         WHERE series_key = ? AND away_score > home_score AND away_score IS NOT NULL`
+                                    ).bind(game.series_key).first().catch(() => null))?.n || 0;
+                                    seriesContext = `\nSeries record: ${hW}-${aW}`;
+                                    if (series.narrative) seriesContext += `\nContext: ${series.narrative}`;
                                 }
                             } catch (_) {}
                         }
 
-                        const prompt = `Write a 2-3 sentence recap of this completed game.
-${game.away} ${game.away_score}, ${game.home} ${game.home_score} (${game.sport}, ${game.date})
-${game.importance ? `Game importance: ${game.importance}` : ''}
-${sportContext ? `\n[SPORT CONTEXT]\n${sportContext}` : ''}
-${seriesContext}
-Write factually. No cliches. Lead with the decisive moment or standout performance.`;
+                        let sportContext = '';
+                        try {
+                            sportContext = await assembleContext(env, {
+                                sport: sportLabel, home: game.home, away: game.away,
+                                homeAbbr: '', awayAbbr: '',
+                            }, 600);
+                        } catch (_) {}
 
-                        const prose = await callProxy(prompt);
-                        if (!prose || prose.length < 30) {
+                        const gamePrompt = [
+                            `Write a 50-70 word game brief for this ${sportLabel}${isPostseason ? ' playoff' : ''} game.`,
+                            `${game.away} ${game.away_score} at ${game.home} ${game.home_score}`,
+                            `Date: ${game.date}`,
+                            isPostseason ? `Round: ${game.importance || 'postseason'}${seriesContext}` : '',
+                            sportContext || '',
+                            `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
+                            JQ_STYLE,
+                        ].filter(Boolean).join('\n');
+
+                        const initial = await callProxy(gamePrompt);
+                        if (!initial || initial.length < 30) {
                             results.push({ id: game.id, ok: false, reason: 'empty response' });
                             continue;
                         }
 
-                        const finalText = stripMarkdown(prose);
+                        const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
+                            sport: sportLabel, scoreThreshold: 90, maxRetries: 2,
+                        });
+                        const finalText = stripMarkdown(qResult.text);
+
+                        if (force) {
+                            await env.ARCHIVE_DB.prepare(
+                                `DELETE FROM briefs WHERE game_id = ? AND brief_type = 'game_brief' AND source = 'backfill'`
+                            ).bind(String(game.id)).run().catch(() => {});
+                        }
+
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO briefs
                                (id, date, brief_type, sport, game_id, brief_text, model, quality_score, word_count, source)
-                             VALUES (?, ?, 'game_brief', ?, ?, ?, 'gemini-3.1-flash-lite', NULL, ?, 'backfill')
+                             VALUES (?, ?, 'game_brief', ?, ?, ?, 'gemini-3.1-flash-lite', ?, ?, 'backfill')
                              ON CONFLICT(id) DO NOTHING`
                         ).bind(
                             `game_brief_${game.sport}_${game.id}_${game.date}`,
@@ -7461,10 +7494,11 @@ Write factually. No cliches. Lead with the decisive moment or standout performan
                             game.sport || null,
                             String(game.id),
                             finalText,
+                            qResult.score,
                             finalText.split(/\s+/).length
                         ).run();
 
-                        results.push({ id: game.id, ok: true, words: finalText.split(/\s+/).length });
+                        results.push({ id: game.id, ok: true, words: finalText.split(/\s+/).length, score: qResult.score });
                         await new Promise(r => setTimeout(r, 2000));
 
                     } catch (e) {
@@ -7474,6 +7508,7 @@ Write factually. No cliches. Lead with the decisive moment or standout performan
 
                 return new Response(JSON.stringify({
                     ok: true,
+                    force,
                     processed: results.length,
                     succeeded: results.filter(r => r.ok).length,
                     failed: results.filter(r => !r.ok).length,
