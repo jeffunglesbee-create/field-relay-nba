@@ -6025,6 +6025,17 @@ export default {
             });
         }
 
+        // /health/sources — Stale Data Sentinel. Reports freshness of every
+        // data source feeding the journalism pipeline. Probe-only; no alerts.
+        if (pathname === '/health/sources') {
+            const { checkAllSources } = await import('./stale-data-sentinel.js');
+            const result = await checkAllSources(env);
+            return new Response(JSON.stringify(result, null, 2), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...CORS },
+            });
+        }
+
         // /whoop/callback — OAuth callback, exchanges code for tokens instantly
         if (pathname === '/whoop/callback') {
             const code = url.searchParams.get('code');
