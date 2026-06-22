@@ -61,7 +61,7 @@ export class BrowserDO {
 
   async _ensureBrowser() {
     if (!this.browser || !this.browser.isConnected()) {
-      this.browser = await puppeteer.launch(this.env.BROWSER);
+      this.browser = await puppeteer.launch(this.env.BROWSER, { protocolTimeout: 60000 });
       this.page    = await this.browser.newPage();
       await this.page.setViewport({ width: 1280, height: 800 });
       this.createdAt   = Date.now();
@@ -74,7 +74,7 @@ export class BrowserDO {
 
   async _navigate(args) {
     await this._ensureBrowser();
-    const { url, waitUntil = 'networkidle0', viewport } = args;
+    const { url, waitUntil = 'load', viewport } = args;
 
     if (viewport) {
       await this.page.setViewport(viewport);
