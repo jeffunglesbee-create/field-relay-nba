@@ -13,6 +13,9 @@
 // makes editorial decisions. No drama scores, no interest verdicts.
 // Same pattern as the existing buildFinalsContextBlock + buildWCTeamContextBlock.
 
+import { computeOddsStory } from './odds-story.js';
+import { resolveTeamKey }   from './identity-resolver.js';
+
 // ── R2 helpers ───────────────────────────────────────────────────────────
 // Reads a JSON file from the FIELD_DATA R2 bucket. Returns null on any
 // failure (missing file, parse failure, binding absent) — callers should
@@ -326,10 +329,42 @@ async function buildSoccerFBrefContext(env, game) {
     return lines.length > 2 ? lines.join('\n') : '';
 }
 
+// ── Odds story builder ──────────────────────────────────────────────────
+// Looks up today's archive row for THIS game (matched by resolved team
+// keys, same pattern as snapshotCronOdds at index.js:4001) and returns a
+// pre-computed line-movement narrative. Returns '' when either opening or
+// closing odds are missing, or when movement is below significance.
+async function buildOddsStoryContext(env, game) {
+    if (!env?.ARCHIVE_DB || !game?.home || !game?.away) return '';
+    const today = new Date().toISOString().slice(0, 10);
+    const homeKey = resolveTeamKey(game.home);
+    const awayKey = resolveTeamKey(game.away);
+    if (!homeKey || !awayKey) return '';
+
+    for (const table of ['regular_season_games', 'postseason_games']) {
+        try {
+            const rows = await env.ARCHIVE_DB.prepare(
+                `SELECT home, away, opening_odds, closing_odds FROM ${table}
+                 WHERE date = ? AND opening_odds IS NOT NULL AND closing_odds IS NOT NULL`
+            ).bind(today).all();
+            for (const row of (rows.results || [])) {
+                if (resolveTeamKey(row.home) !== homeKey) continue;
+                if (resolveTeamKey(row.away) !== awayKey) continue;
+                const story = computeOddsStory(row.opening_odds, row.closing_odds);
+                if (story) return story;
+            }
+        } catch (_) { /* table absent or query fail — silent per Rule 5 */ }
+    }
+    return '';
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
 const CONTEXT_SOURCES = [
+    { id: 'odds_story',   priority: 5, budget: 100, builder: buildOddsStoryContext,
+      sports: ['mlb', 'nba', 'nhl', 'nfl', 'wnba', 'epl', 'mls',
+               'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1'] },
     { id: 'savant',       priority: 7, budget: 400, builder: buildSavantContext,        sports: ['mlb'] },
     { id: 'nhl_series',   priority: 7, budget: 150, builder: buildNHLSeriesContext,     sports: ['nhl'] },
     { id: 'nba_clutch',   priority: 7, budget: 120, builder: buildNBAClutchContext,     sports: ['nba'] },

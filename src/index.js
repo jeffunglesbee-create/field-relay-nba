@@ -6036,6 +6036,50 @@ export default {
             });
         }
 
+        // /odds-story/preview?date=YYYY-MM-DD — preview the materialized
+        // line-movement narrative the Context Assembler would inject. Does
+        // not write anything. Pure read of opening_odds vs closing_odds
+        // in regular_season_games + postseason_games.
+        if (pathname === '/odds-story/preview') {
+            const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+            const { computeOddsStory } = await import('./odds-story.js');
+            const games = [];
+            let withStory = 0, withoutStory = 0, missingClosing = 0, missingOpening = 0;
+            for (const table of ['regular_season_games', 'postseason_games']) {
+                try {
+                    const rows = await env.ARCHIVE_DB.prepare(
+                        `SELECT id, home, away, opening_odds, closing_odds FROM ${table}
+                         WHERE date = ?`
+                    ).bind(date).all();
+                    for (const row of (rows.results || [])) {
+                        const hasOpening = !!row.opening_odds;
+                        const hasClosing = !!row.closing_odds;
+                        if (!hasOpening) missingOpening++;
+                        else if (!hasClosing) missingClosing++;
+                        const story = (hasOpening && hasClosing)
+                            ? computeOddsStory(row.opening_odds, row.closing_odds) : '';
+                        if (story) withStory++; else if (hasOpening && hasClosing) withoutStory++;
+                        games.push({
+                            id: row.id, home: row.home, away: row.away,
+                            hasOpening, hasClosing, story,
+                        });
+                    }
+                } catch (_) { /* table absent or query fail — silent per Rule 5 */ }
+            }
+            return new Response(JSON.stringify({
+                date, total: games.length,
+                withStory, withoutStory, missingClosing, missingOpening,
+                games,
+            }, null, 2), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...CORS },
+            });
+        }
+
         // /whoop/callback — OAuth callback, exchanges code for tokens instantly
         if (pathname === '/whoop/callback') {
             const code = url.searchParams.get('code');
@@ -10038,7 +10082,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
