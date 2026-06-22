@@ -1,126 +1,123 @@
 # Claude Code Command — v4 Voice + Quality Chain + Context Fix
 
-git pull. Read CLAUDE.md.
+git pull. Read CLAUDE.md. Run `git log --oneline -5` first.
 
 Write all findings to outbox/cc-v4-complete-2026-06-22.md.
 
 ## WHAT
 
-Three changes, one commit:
-1. Export v4 voice register from journalism-quality.js, prepend to all prose prompts
-2. Wire runQualityChain into prose paths that skip it
-3. Fix assembleContext sport-label matching so non-MLB sports don't get empty context
+Three changes, one commit. Verify current state before writing any code:
 
-## TASK 1: Voice register export
+```bash
+grep -n 'FIELD_VOICE_REGISTER' src/journalism-quality.js src/index.js
+grep -n 'runQualityChain' src/index.js | grep -v '//'
+grep -n '_SPORT_NORMALIZE' src/context-assembler.js
+```
+
+If FIELD_VOICE_REGISTER already exists, skip Task 1. If runQualityChain
+is already in a path, skip that path in Task 3. Verify before writing.
+
+## TASK 1: Export v4 voice register
 
 File: src/journalism-quality.js
 
-After the FIELD_PROSE_STYLE export, add:
+Verify not already present, then add after FIELD_PROSE_STYLE (~line 475):
 
 ```javascript
 export const FIELD_VOICE_REGISTER = <CONTENT>;
 ```
 
-Get the content by reading jubilant-bassoon:
+Get content:
 ```bash
 git clone --depth 1 https://github.com/jeffunglesbee-create/jubilant-bassoon.git /tmp/jb
 sed -n '23607,23709p' /tmp/jb/index.html
 ```
 
-Copy the ENTIRE array. Do not edit. Join with '\n'.
+Copy the ENTIRE .join('\n') array verbatim. Do not edit.
 
-## TASK 2: Wire voice register into all prose prompts
+## TASK 2: Prepend voice register to prose prompts
 
 File: src/index.js
 
-Import: `import { FIELD_VOICE_REGISTER, ... } from './journalism-quality.js';`
+Import: add FIELD_VOICE_REGISTER to the import from journalism-quality.js (~line 43).
 
-Prepend FIELD_VOICE_REGISTER to these prompt paths:
-1. Cron slate brief (~line 5460, buildPrompt)
-2. Per-game backfill (executeGameBriefBackfill, ~line 4394)
-3. /backfill/game-briefs handler (~line 7439)
-4. /journalism/generate live endpoint (~line 8260)
-5. Night Owl NBA recap (~line 2766)
-6. Night Owl NHL recap (~line 2855)
-7. WC post-match recap (~line 1564)
+Prepend to (verify each path, skip if already present):
 
-## TASK 3: Wire runQualityChain into paths that skip it
+Path 1: Cron slate brief buildPrompt array (~line 5460)
+Path 2: executeGameBriefBackfill gamePrompt array (~line 4394)
+Path 3: /journalism/generate live endpoint prompt (~line 8260)
+Path 4: WC game-brief enqueue prompt (~line 1564)
+Path 5: NBA game-brief enqueue prompt (~line 2779)
+Path 6: NHL game-brief enqueue prompt (~line 2868)
 
-Paths 5-7 and path 3 currently go straight from callProxy to INSERT.
-Add runQualityChain between them:
+NOTE: The queue consumer at ~line 9904 processes job.prompt which
+is built at enqueue time (paths 4-6). Prepend at the enqueue sites,
+not inside the consumer.
 
+## TASK 3: Wire runQualityChain into queue consumer
+
+File: src/index.js, ~line 9904 (async queue handler)
+
+Currently:
 ```javascript
-const initial = await callProxy(prompt);
-if (!initial || initial.length < 30) { continue; }
-const qResult = await runQualityChain(prompt, initial, callProxy, {
-    sport: sportLabel, scoreThreshold: 90, maxRetries: 2,
-});
-const prose = stripMarkdown(qResult.text);
-const qualityScore = qResult.score;
-// INSERT with qualityScore
+const initial = await callProxy(job.prompt);
+const cliches = jqHasCliche(initial);
+if (cliches.length) { ... single retry ... }
+let finalText = initial; // or retried
 ```
 
-## TASK 4: Fix assembleContext sport-label matching
+Replace with:
+```javascript
+const initial = await callProxy(job.prompt);
+if (!initial) throw new Error('proxy returned no prose');
+const qResult = await runQualityChain(job.prompt, initial, callProxy, {
+    sport: job.sport || null, scoreThreshold: 90, maxRetries: 2,
+});
+const finalText = stripMarkdown(qResult.text);
+```
+
+Update the ARCHIVE_DB INSERT to record qResult.score in quality_score
+(currently NULL at this path).
+
+NOTE: /backfill/game-briefs already has runQualityChain from commit
+931fd05. Do NOT modify that path.
+
+## TASK 4: Fix context-assembler.js sport normalization
 
 File: src/context-assembler.js
 
-The sports filter does case-insensitive matching, but D1 stores:
-- `MLB` (matches `mlb` ✓)
-- `golf` (matches nothing — no builder exists)
-- `WNBA` (matches nothing — no builder exists)
-- `FIFA World Cup 2026` (matches nothing — registry has `wc26` not this string)
+D1 labels vs registry: 'FIFA World Cup 2026' → needs 'wc26'.
+Golf and WNBA have no builders (correct — no R2 data).
 
-Two fixes:
-
-### 4a: Normalize the sport label in assembleContext
-
-At the top of assembleContext, add normalization:
+Inside assembleContext, after computing sport string, add:
 
 ```javascript
 const _SPORT_NORMALIZE = {
     'fifa world cup 2026': 'wc26',
     'fifa world cup': 'wc26',
     'world cup': 'wc26',
-    'wnba': 'wnba',
-    'golf': 'golf',
-    'pga': 'golf',
 };
-// Inside assembleContext:
-let sport = String(game.sport || '').toLowerCase();
-sport = _SPORT_NORMALIZE[sport] || sport;
+const sport = (_SPORT_NORMALIZE[String(game.sport || '').toLowerCase()])
+    || String(game.sport || '').toLowerCase();
 ```
 
-### 4b: Add WNBA and WC to soccer_fbref sports list
+Also add to /backfill/game-briefs prompt and enqueue prompts
+(paths 4-6 above), after sport context:
 
-The soccer_fbref builder already handles WC via the league-to-file
-mapping (`'fifa world cup': 'wc2026.json'`). Just add `'wc26'` to
-the soccer_fbref sports array and add the normalized alias:
-
-```javascript
-// In CONTEXT_SOURCES:
-{ id: 'soccer_fbref', ...,
-  sports: ['epl','mls','ucl','wc26','laliga','seriea','bundesliga','ligue1','soccer','fifa world cup 2026'] },
 ```
-
-Actually simpler: the normalization in 4a handles this — `FIFA World Cup 2026` → `wc26` → matches existing `wc26` in sports list.
-
-### 4c: Golf and WNBA get no context (no builder yet)
-
-This is correct. There's no R2 data for golf or WNBA. Don't add
-empty builders — they'd return '' anyway. The prompt should handle
-missing context gracefully (which it will with the voice register).
-
-BUT: add a sport-boundary instruction to the backfill prompt so
-the LLM doesn't hallucinate cross-sport stats when context is empty:
-
-In the backfill handler, after the sport context line, add:
-```javascript
-`CRITICAL: This is a ${sportLabel} game. Write ONLY about ${sportLabel}. Do not reference players, stats, or terminology from any other sport.`,
+SPORT BOUNDARY: This is a {sportLabel} game. Write ONLY {sportLabel}
+content. Do not reference players, stats, or terminology from any
+other sport. If context is empty, write from the score and date only.
 ```
 
 ## SCOPE
 
-One commit: "feat: v4 voice register + quality chain + context sport normalization"
+DO: verify first, export register, prepend to prompts, replace light cliché
+check in queue consumer with runQualityChain, normalize sport labels,
+add sport boundary guard
 
-DO: export, import, prepend, wire quality chain, normalize sport labels, add cross-sport guard
-DO NOT: add new R2 builders, modify existing builder logic, touch client repo
+DO NOT: touch /backfill/game-briefs quality chain (done at 931fd05),
+add R2 builders for golf/WNBA, modify runQualityChain internals, touch client
+
+One commit: "feat: v4 voice register + queue consumer quality chain +
+context sport normalization"
