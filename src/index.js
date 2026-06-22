@@ -3708,6 +3708,60 @@ async function ensureBriefsTable(env) {
   _briefsReady = true;
 }
 
+// KV → D1 sweep for per-game briefs. Lists `brief:game:*` keys in
+// FIELD_JOURNALISM, parses the JSON payload (or treats the value as raw
+// prose), and INSERTs into the briefs table with source='kv_sweep'.
+// ON CONFLICT DO NOTHING keeps the existing row untouched. Called from
+// the live-hour cron path (every */15 tick) AND the dead-hour
+// runDeadHourBackfill flow so a 1 h KV TTL can't outpace D1 capture.
+async function sweepKVBriefs(env) {
+  if (!env.FIELD_JOURNALISM || !env.ARCHIVE_DB) return null;
+  await ensureBriefsTable(env);
+  let swept = 0;
+  try {
+    const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 50 });
+    for (const key of (listed.keys || [])) {
+      const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(() => null);
+      if (!kvVal) continue;
+      let briefText = kvVal;
+      let qualityScore = null;
+      if (kvVal[0] === '{') {
+        try {
+          const p = JSON.parse(kvVal);
+          briefText = p.brief || p.brief_text || p.text || kvVal;
+          qualityScore = p.quality_score || p.score || null;
+        } catch (_) { /* fall back to raw value */ }
+      }
+      if (!briefText || briefText.length < 50) continue;
+      // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
+      const parts = key.name.replace('brief:game:', '').split(':');
+      const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
+      const sport  = parts.length >= 2 ? parts[0] : null;
+      // Rule 73 (CLAIM-CONTEXT-A): null-sport keys skip when a sport-tagged
+      // sibling already exists — the cron-tagged brief is authoritative.
+      if (!sport) {
+        const existing = await env.ARCHIVE_DB.prepare(
+          `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
+        ).bind(gameId).first().catch(() => null);
+        if (existing) continue;
+      }
+      const sweepDate = new Date().toISOString().slice(0, 10);
+      await env.ARCHIVE_DB.prepare(
+        `INSERT INTO briefs
+           (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
+         VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, 'kv_sweep')
+         ON CONFLICT(id) DO NOTHING`
+      ).bind(
+        `game_recap_${gameId}_${sweepDate}`,
+        sweepDate, sport, gameId, briefText, qualityScore,
+        briefText.split(/\s+/).length
+      ).run();
+      swept++;
+    }
+  } catch (_) { /* sweep failure never breaks cron */ }
+  return swept > 0 ? { swept } : null;
+}
+
 // ── Odds layer (api.the-odds-api.com) ───────────────────────────────────────
 // Captures opening_odds (and later closing_odds) into the archive game tables
 // so the journalism prompt can include factual odds context. Every fetch
@@ -4794,58 +4848,13 @@ async function handleJournalismCycle(env, opts = {}) {
           }
         } catch (_) { /* odds backfill failure cannot break journalism cron */ }
 
-        // KV sweep — captures recent brief:game:* keys from FIELD_JOURNALISM into
-        // ARCHIVE_DB before the 1 h TTL expires. Complementary to /archive/game
-        // KV capture (~L5020). ON CONFLICT DO NOTHING — never overwrites existing
-        // rows. List limit=50 caps KV reads per tick.
+        // KV → D1 sweep — extracted into sweepKVBriefs() (module scope).
+        // The live-hour cron path calls it too via ctx.waitUntil in
+        // scheduled(), so per-game briefs land in D1 before their 1 h KV
+        // TTL expires even on busy nights.
         let sweepResult = null;
-        try {
-          if (env.FIELD_JOURNALISM && env.ARCHIVE_DB) {
-            await ensureBriefsTable(env);
-            const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 50 });
-            let swept = 0;
-            for (const key of (listed.keys || [])) {
-              const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(() => null);
-              if (!kvVal) continue;
-              let briefText = kvVal;
-              let qualityScore = null;
-              if (kvVal[0] === '{') {
-                try {
-                  const p = JSON.parse(kvVal);
-                  briefText = p.brief || p.brief_text || p.text || kvVal;
-                  qualityScore = p.quality_score || p.score || null;
-                } catch(_) {}
-              }
-              if (!briefText || briefText.length < 50) continue;
-              // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
-              const parts = key.name.replace('brief:game:', '').split(':');
-              const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
-              const sport  = parts.length >= 2 ? parts[0] : null;
-              // Rule 73 (CLAIM-CONTEXT-A): if sport is null (KV key has no sport prefix),
-              // check if a sport-tagged brief already exists for this game_id from the
-              // cron path. Skip if so — the cron brief is authoritative.
-              if (!sport) {
-                const existing = await env.ARCHIVE_DB.prepare(
-                  `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
-                ).bind(gameId).first().catch(() => null);
-                if (existing) continue;
-              }
-              const sweepDate = new Date().toISOString().slice(0, 10);
-              await env.ARCHIVE_DB.prepare(
-                `INSERT INTO briefs
-                   (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
-                 VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, 'kv_sweep')
-                 ON CONFLICT(id) DO NOTHING`
-              ).bind(
-                `game_recap_${gameId}_${sweepDate}`,
-                sweepDate, sport, gameId, briefText, qualityScore,
-                briefText.split(/\s+/).length
-              ).run();
-              swept++;
-            }
-            if (swept > 0) sweepResult = { swept };
-          }
-        } catch(_) { /* sweep failure never breaks cron */ }
+        try { sweepResult = await sweepKVBriefs(env); }
+        catch (_) { /* sweep failure never breaks cron */ }
 
         // One-time cleanup: delete null-sport briefs where a sport-tagged sibling exists.
         // Root cause: KV keys were brief:game:{id} without sport prefix. The sweep
@@ -4861,12 +4870,15 @@ async function handleJournalismCycle(env, opts = {}) {
           }
         } catch(_) { /* cleanup failure never breaks cron */ }
 
-        // Game brief backfill — per-game briefs for dates where slate brief already
-        // exists. Fires when executeBackfill returned skipped on nextDate, meaning
-        // the slate brief was pre-existing — use the same date for per-game briefs.
+        // Game brief backfill — per-game briefs for dates where a slate
+        // brief exists (whether pre-existing OR just written this tick).
+        // executeGameBriefBackfill dedups internally so re-firing on
+        // briefResult.ok is idempotent. Without the .ok branch, recent
+        // dates whose slate brief landed live never get game briefs.
         let gameBriefResult = null;
         try {
-          if (env.ARCHIVE_DB && nextDate && briefResult && briefResult.skipped) {
+          if (env.ARCHIVE_DB && nextDate && briefResult
+              && (briefResult.skipped || briefResult.ok)) {
             gameBriefResult = await executeGameBriefBackfill(env, nextDate);
           }
         } catch(_) { /* game brief backfill failure never breaks cron */ }
@@ -5677,6 +5689,12 @@ export default {
         }
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
+        // Per-tick KV → D1 brief sweep. Runs in parallel with the
+        // journalism cycle so briefs the cycle just wrote to KV land in
+        // D1 before their 1 h TTL expires. Dead-hour path also calls
+        // sweepKVBriefs from inside runDeadHourBackfill — same function.
+        ctx.waitUntil(sweepKVBriefs(env).catch(e =>
+            console.error('[KV-SWEEP]', e.message)));
         // R2 weekly updates — run alongside journalism cron, non-blocking
         const _now = new Date();
         const _utcDay  = _now.getUTCDay();
