@@ -1,44 +1,121 @@
-# Claude Code Command — Historical Brief Backfill
+# Claude Code Command — Brief Archive: Fix + Historical Backfill
 
 git pull. Read CLAUDE.md.
 
-Write all findings to outbox/cc-brief-backfill-historical-2026-06-22.md.
+Write all findings to outbox/cc-brief-archive-complete-2026-06-22.md.
 
 ## CONTEXT
 
-Zero game_brief rows exist in D1 for any date. The game_brief
-backfill gate was broken (fixed in a separate prompt). This prompt
-adds a one-time on-demand endpoint to backfill ALL completed games
-that lack a game_brief row.
+Two pipeline gaps + one data gap in the brief archive:
 
-Current gap (verified June 22):
-  regular_season_games: 34 completed (Jun 19-21), 0 game_briefs
-  postseason_games: 22 completed (May 20 – Jun 15), 0 game_briefs
-  Total: ~56 games needing briefs
+1. KV sweep (brief:game:* → D1) only runs dead hours. Per-game
+   briefs written to KV during live hours with 1h TTL can expire
+   before capture. Fix: sweep every cron tick.
 
-The existing executeGameBriefBackfill processes max 3 per tick.
-At dead-hour cadence that's ~5 hours. This endpoint processes
-all gaps in one call with rate-limiting pauses between AI calls.
+2. game_brief backfill only fires when briefResult.skipped (slate
+   already existed). For recent dates where the slate was just
+   generated live, skipped is never true. Fix: widen the gate.
 
-## TASK 1: GET /backfill/game-briefs endpoint
+3. Zero game_brief rows exist in D1 for any date. ~56 completed
+   games (34 regular season Jun 19-21, 22 postseason May 20 –
+   Jun 15) have no per-game brief. Fix: on-demand backfill endpoint.
+
+## TASK 1: Extract sweepKVBriefs function
 
 File: src/index.js
 
-Add a new endpoint that:
-1. Queries both game tables for completed games (home_score IS NOT NULL)
-2. Cross-references against briefs table for existing game_brief rows
-3. Generates briefs for missing games via the existing proxy + quality chain
-4. Rate-limits to 1 game per 2 seconds (Gemini quota safe)
-5. Returns progress as it works (or a summary after completion)
-
-Place near other /backfill or /archive endpoints.
+Extract the inline KV sweep (~lines 4797-4847, inside the
+dead-hours block) into a standalone async function. Place it
+near the other brief utility functions.
 
 ```javascript
-// GET /backfill/game-briefs?limit=10&date=2026-06-21
-// One-time historical backfill for per-game briefs.
-// Processes completed games that lack a game_brief row in D1.
-// Optional ?date= filters to a single date. Default: all dates.
-// Optional ?limit= caps games per call (default 10, max 50).
+async function sweepKVBriefs(env) {
+    if (!env.FIELD_JOURNALISM || !env.ARCHIVE_DB) return null;
+    await ensureBriefsTable(env);
+    const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 50 });
+    let swept = 0;
+    for (const key of (listed.keys || [])) {
+        const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(() => null);
+        if (!kvVal) continue;
+        let briefText = kvVal;
+        let qualityScore = null;
+        if (kvVal[0] === '{') {
+            try {
+                const p = JSON.parse(kvVal);
+                briefText = p.brief || p.brief_text || p.text || kvVal;
+                qualityScore = p.quality_score || p.score || null;
+            } catch(_) {}
+        }
+        if (!briefText || briefText.length < 50) continue;
+        const parts = key.name.replace('brief:game:', '').split(':');
+        const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
+        const sport  = parts.length >= 2 ? parts[0] : null;
+        if (!sport) {
+            const existing = await env.ARCHIVE_DB.prepare(
+                `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
+            ).bind(gameId).first().catch(() => null);
+            if (existing) continue;
+        }
+        const sweepDate = new Date().toISOString().slice(0, 10);
+        await env.ARCHIVE_DB.prepare(
+            `INSERT INTO briefs
+               (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
+             VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, 'kv_sweep')
+             ON CONFLICT(id) DO NOTHING`
+        ).bind(
+            `game_recap_${gameId}_${sweepDate}`,
+            sweepDate, sport, gameId, briefText, qualityScore,
+            briefText.split(/\s+/).length
+        ).run();
+        swept++;
+    }
+    return swept > 0 ? { swept } : null;
+}
+```
+
+## TASK 2: Wire sweep into BOTH live and dead hour paths
+
+1. After the live-hour journalism cycle (~line 5679,
+   `ctx.waitUntil(handleJournalismCycle(env))`), add:
+
+```javascript
+ctx.waitUntil(sweepKVBriefs(env).catch(e =>
+    console.error('[KV-SWEEP]', e.message)));
+```
+
+2. Replace the inline sweep in the dead-hours block (~lines 4797-4847)
+   with:
+
+```javascript
+try {
+    sweepResult = await sweepKVBriefs(env);
+} catch(_) { /* sweep failure never breaks cron */ }
+```
+
+Keep the null-sport cleanup block that follows (~lines 4851-4860)
+in place — it stays dead-hours-only.
+
+## TASK 3: Fix game_brief backfill gate
+
+File: src/index.js, ~line 4868
+
+Change:
+```javascript
+if (env.ARCHIVE_DB && nextDate && briefResult && briefResult.skipped) {
+```
+To:
+```javascript
+if (env.ARCHIVE_DB && nextDate && briefResult && (briefResult.skipped || briefResult.ok)) {
+```
+
+executeGameBriefBackfill already deduplicates internally.
+
+## TASK 4: On-demand historical backfill endpoint
+
+Add GET /backfill/game-briefs endpoint. Place near other /archive
+or /integrity endpoints.
+
+```javascript
 if (pathname === '/backfill/game-briefs' && request.method === 'GET') {
     if (!env.ARCHIVE_DB) {
         return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
@@ -51,9 +128,9 @@ if (pathname === '/backfill/game-briefs' && request.method === 'GET') {
     try {
         await ensureBriefsTable(env);
 
-        // 1. Find completed games missing game_brief
         const dateClause = dateFilter ? 'AND g.date = ?' : '';
         const regParams = dateFilter ? [dateFilter] : [];
+
         const regMissing = await env.ARCHIVE_DB.prepare(`
             SELECT g.id, g.date, g.sport, g.home, g.away,
                    g.home_score, g.away_score, g.closing_odds,
@@ -99,11 +176,9 @@ if (pathname === '/backfill/game-briefs' && request.method === 'GET') {
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
-        // 2. Generate briefs
         const results = [];
         for (const game of allMissing) {
             try {
-                // Build context
                 let sportContext = '';
                 try {
                     sportContext = await assembleContext(env, {
@@ -154,8 +229,6 @@ Write factually. No cliches. Lead with the decisive moment or standout performan
                 ).run();
 
                 results.push({ id: game.id, ok: true, words: finalText.split(/\s+/).length });
-
-                // Rate limit — 2s between AI calls
                 await new Promise(r => setTimeout(r, 2000));
 
             } catch (e) {
@@ -163,13 +236,11 @@ Write factually. No cliches. Lead with the decisive moment or standout performan
             }
         }
 
-        const succeeded = results.filter(r => r.ok).length;
-        const failed = results.filter(r => !r.ok).length;
-
         return new Response(JSON.stringify({
             ok: true,
             processed: results.length,
-            succeeded, failed,
+            succeeded: results.filter(r => r.ok).length,
+            failed: results.filter(r => !r.ok).length,
             results,
         }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
 
@@ -180,11 +251,10 @@ Write factually. No cliches. Lead with the decisive moment or standout performan
 }
 ```
 
-IMPORTANT: The `callProxy` and `stripMarkdown` and `assembleContext`
-functions already exist in the relay codebase. Do NOT redefine them.
-Use the existing implementations.
+IMPORTANT: callProxy, stripMarkdown, assembleContext already exist.
+Do NOT redefine them.
 
-## TASK 2: Add to probe allow-list
+## TASK 5: Add /backfill to probe allow-list
 
 Find the ALLOWED_PREFIX array (~line 9217) and add '/backfill'
 if not already present.
@@ -192,38 +262,36 @@ if not already present.
 ## SCOPE BOUNDARY
 
 DO:
+- Extract sweepKVBriefs into standalone function
+- Wire sweep into both live and dead hour cron paths
+- Fix game_brief backfill gate condition
 - Create GET /backfill/game-briefs endpoint
-- Support ?date=, ?limit=, ?dry=true query params
-- Use existing callProxy, stripMarkdown, assembleContext
 - Add /backfill to allow-list
-- ON CONFLICT DO NOTHING (never overwrite existing briefs)
 
 DO NOT:
-- Modify existing backfill functions
-- Change the dead-hour backfill logic
+- Change the sweep logic itself (list, parse, insert pattern)
+- Change executeGameBriefBackfill internals
 - Touch the client repo
-- Auto-trigger the backfill from cron (it's on-demand only)
+- Auto-trigger /backfill/game-briefs from cron
+- Modify KV TTLs or write paths
 
 ## INSTRUCTIONS
 
 1. Relay repo only (field-relay-nba).
 2. git pull. Read CLAUDE.md.
-3. Add /backfill/game-briefs endpoint.
-4. Add /backfill to ALLOWED_PREFIX if needed.
-5. node --check src/index.js.
-6. Single commit: "feat: on-demand game brief backfill endpoint —
-   /backfill/game-briefs generates briefs for archive gaps"
-7. Deploy via wrangler deploy.
-8. After deploy, dry-run first:
-   curl /backfill/game-briefs?dry=true
-   Verify it lists the ~56 missing games.
-9. Then run a small batch:
-   curl /backfill/game-briefs?limit=5
-   Verify 5 game_brief rows appear in D1.
-10. Write manifest to outbox.
-
-POST-DEPLOY (for Jeff, not CC):
-  Run in batches to backfill all gaps:
-    curl /backfill/game-briefs?limit=20
-    (repeat until dry-run returns 0 missing)
-  Budget: ~56 games × 1 Gemini call each ≈ $0.05 total.
+3. Extract sweepKVBriefs function (Task 1).
+4. Wire into live-hour path via ctx.waitUntil (Task 2).
+5. Replace inline dead-hour sweep with function call (Task 2).
+6. Fix backfill gate condition (Task 3).
+7. Add /backfill/game-briefs endpoint (Task 4).
+8. Add /backfill to ALLOWED_PREFIX (Task 5).
+9. node --check src/index.js.
+10. Single commit: "fix: brief archive pipeline — KV sweep every
+    tick + backfill gate + on-demand /backfill/game-briefs"
+11. Deploy via wrangler deploy.
+12. After deploy, verify:
+    curl /backfill/game-briefs?dry=true
+    Expect ~56 missing games listed.
+    curl /backfill/game-briefs?limit=5
+    Expect 5 game_brief rows written.
+13. Write manifest to outbox.
