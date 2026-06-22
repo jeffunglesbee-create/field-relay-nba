@@ -64,7 +64,7 @@ export async function browserQuick(env, url, action) {
     return { error: 'BROWSER binding not available on this worker' };
   }
   try {
-    const result = await env.BROWSER.quickAction({ action, url });
+    const result = await env.BROWSER.quickAction(action, { url });
 
     if (action === 'screenshot') {
       const bytes = new Uint8Array(result);
