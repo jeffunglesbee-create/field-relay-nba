@@ -806,7 +806,9 @@ function _todayUTC() {
 // KV key (`odds:credits:YYYY-MM`). Cross-process circuit breaker — when the
 // monthly cumulative cost hits ODDS_HARD_LIMIT we abort outgoing fetches.
 // Degrade-open on KV failure to avoid blocking live coverage on a KV blip.
-const _AMBIENT_ODDS_HARD_LIMIT = 18000;
+// Kept in sync with src/index.js ODDS_HARD_LIMIT (85 K — 100 K paid plan
+// minus 15 K reserved for special projects, per commit 0f39fdf).
+const _AMBIENT_ODDS_HARD_LIMIT = 85000;
 function _ambientOddsCreditMonthKey() {
     const d = new Date();
     const m = String(d.getUTCMonth() + 1).padStart(2, '0');

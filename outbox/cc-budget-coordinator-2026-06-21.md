@@ -44,9 +44,14 @@ isolates run concurrently.
 
 ## Daily ceiling
 
-`ODDS_DAILY_CEILING = 900` per the spec (20k/month ÷ 22 active days
-≈ 900/day). Realistic spend today is ~200-400/day, so the ceiling
-acts as a runaway-prevention safety net rather than a binding limit.
+`ODDS_DAILY_CEILING = 3800` (85K/month ÷ ~22 active days ≈ 3864/day).
+Original ship used 900 (sized against the prior 20K-soft-budget); a
+post-deploy fix (commit 0f39fdf) clarified the actual plan is 100K/month
+with 15K reserved for special projects, lifting ODDS_HARD_LIMIT to 85K.
+This re-execution syncs the daily ceiling and the monthly-limit
+constants in `budget-helpers.js` + `ambient-do.js` to that value.
+Realistic spend today is ~200-400/day, so the ceiling still acts as a
+runaway-prevention safety net rather than a binding limit.
 
 ## Concurrency note
 
