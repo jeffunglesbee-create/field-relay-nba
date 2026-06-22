@@ -7480,6 +7480,52 @@ export default {
         // Manual journalism cycle trigger — runs the same logic as the */15 cron.
         // Lets us populate KV on demand (e.g. after KV creation) without waiting
         // for the next cron tick. Idempotent: skips if context hash unchanged.
+        // ── /journalism/context-probe — verify Context Assembler output (zero LLM cost) ──
+        // Returns the raw sport context blocks that would be injected into the
+        // journalism prompt, without calling the LLM. Use for adapter verification.
+        if (pathname === '/journalism/context-probe' && request.method === 'GET') {
+          const { assembleContext } = await import('./context-assembler.js');
+          const espnDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+          const LEAGUES = [
+            {sport:'baseball', league:'mlb', label:'MLB'},
+            {sport:'basketball', league:'nba', label:'NBA'},
+            {sport:'hockey',    league:'nhl', label:'NHL'},
+            {sport:'soccer',    league:'usa.1', label:'MLS'},
+            {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
+          ];
+          const _MAP = {'mlb':'mlb','nba':'nba','nhl':'nhl','mls':'mls','fifa world cup':'wc26'};
+          const results = [];
+          for (const {sport,league,label} of LEAGUES) {
+            try {
+              const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+              if (!r.ok) continue;
+              const d = await r.json();
+              for (const ev of (d.events||[]).slice(0, 3)) { // cap at 3 per league for speed
+                const comp = ev.competitions?.[0];
+                const teams = comp?.competitors || [];
+                const home = teams.find(t => t.homeAway === 'home') || teams[0];
+                const away = teams.find(t => t.homeAway === 'away') || teams[1];
+                const sportKey = _MAP[label.toLowerCase()] || label.toLowerCase();
+                const ctx = await assembleContext(env, {
+                  sport: sportKey, league: label,
+                  home: home?.team?.shortDisplayName || '',
+                  away: away?.team?.shortDisplayName || '',
+                  homeAbbr: home?.team?.abbreviation || '',
+                  awayAbbr: away?.team?.abbreviation || '',
+                }, 600);
+                results.push({
+                  game: `${away?.team?.abbreviation || '?'} @ ${home?.team?.abbreviation || '?'}`,
+                  league: label, sportKey,
+                  contextLength: ctx.length,
+                  context: ctx || '(empty)',
+                });
+              }
+            } catch(e) { results.push({ league: label, error: e.message }); }
+          }
+          return new Response(JSON.stringify({ ok: true, date: espnDate, results }, null, 2),
+            {headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
         if (pathname === '/journalism/run' && request.method === 'POST') {
           const force = url.searchParams.get('force') === 'true';
           const result = await handleJournalismCycle(env, { force });
