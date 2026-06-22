@@ -7126,6 +7126,195 @@ export default {
             && !(pathname === '/mcp' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
+        // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
+        // Compares KV slate brief vs D1 briefs-table counts for the date.
+        // The cron writes KV as the primary store and archives to D1 as
+        // a fire-and-forget secondary; this surfaces divergence (KV present,
+        // D1 missing) so the Brief Freshness Guard isn't blind to slate
+        // briefs that never reached D1. Optional ?repair=true re-inserts
+        // the KV brief into D1 with source='kv_repair'.
+        if (pathname === '/integrity/briefs' && request.method === 'GET') {
+            const date = url.searchParams.get('date');
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ARCHIVE_DB || !env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB or FIELD_JOURNALISM not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const kvRaw = await env.FIELD_JOURNALISM.get(`journalism:${date}`);
+            let kvBrief = null;
+            try { kvBrief = kvRaw ? JSON.parse(kvRaw) : null; } catch (_) { kvBrief = null; }
+
+            const d1Res = await env.ARCHIVE_DB.prepare(
+                `SELECT brief_type, COUNT(*) AS n, SUM(length(brief_text)) AS chars
+                 FROM briefs WHERE date = ? GROUP BY brief_type`
+            ).bind(date).all().catch(() => ({ results: [] }));
+            const byType = {};
+            for (const r of (d1Res.results || [])) byType[r.brief_type] = { count: r.n, chars: r.chars };
+            const slateCount    = byType.slate?.count       || 0;
+            const gameCount     = byType.game_brief?.count  || 0;
+            const total         = (d1Res.results || []).reduce((s, r) => s + (r.n || 0), 0);
+            const divergence    = !!kvBrief && slateCount === 0;
+
+            let repaired = null;
+            if (divergence && url.searchParams.get('repair') === 'true' && kvBrief?.brief) {
+                try {
+                    const text = String(kvBrief.brief);
+                    const wordCount = text.split(/\s+/).filter(Boolean).length;
+                    await env.ARCHIVE_DB.prepare(
+                        `INSERT OR REPLACE INTO briefs
+                           (id, date, brief_type, sport, brief_text, model,
+                            quality_score, word_count, source)
+                         VALUES (?, ?, 'slate', NULL, ?, NULL, NULL, ?, 'kv_repair')`
+                    ).bind(`slate_${date}`, date, text, wordCount).run();
+                    repaired = { id: `slate_${date}`, word_count: wordCount };
+                } catch (e) { repaired = { error: e.message }; }
+            }
+
+            return new Response(JSON.stringify({
+                ok: true,
+                date,
+                kv: kvBrief ? {
+                    exists: true,
+                    briefLen: (kvBrief.brief || '').length,
+                    contextHash: kvBrief.contextHash || null,
+                    generatedAt: kvBrief.generatedAt
+                        ? new Date(kvBrief.generatedAt).toISOString() : null,
+                    gameCount: kvBrief.gameCount ?? null,
+                } : { exists: false },
+                d1: { slate_count: slateCount, game_brief_count: gameCount, total, by_type: byType },
+                divergence,
+                repaired,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // GET /integrity/games?date=YYYY-MM-DD — Compares completed-game
+        // counts per sport between ESPN scoreboard (authoritative) and D1
+        // game tables. Gaps surface AmbientDO finals that didn't reach D1
+        // (poll miss, restart, network blip). Read-only — does not write.
+        if (pathname === '/integrity/games' && request.method === 'GET') {
+            const date = url.searchParams.get('date');
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            // Mirror handleJournalismCycle's LEAGUES list (kept inline so a
+            // future LEAGUES extraction in the cron doesn't ripple here).
+            const LEAGUES_LOCAL = [
+                { sport: 'basketball', league: 'nba',        label: 'NBA' },
+                { sport: 'hockey',     league: 'nhl',        label: 'NHL' },
+                { sport: 'baseball',   league: 'mlb',        label: 'MLB' },
+                { sport: 'basketball', league: 'wnba',       label: 'WNBA' },
+                { sport: 'soccer',     league: 'eng.1',      label: 'EPL' },
+                { sport: 'soccer',     league: 'usa.1',      label: 'MLS' },
+                { sport: 'soccer',     league: 'fifa.world', label: 'FIFA World Cup' },
+            ];
+            const espnDate = date.replace(/-/g, '');
+            const espn = {};
+            await Promise.all(LEAGUES_LOCAL.map(async ({ sport, league, label }) => {
+                try {
+                    const r = await fetch(
+                        `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`,
+                        { cf: { cacheTtl: 60, cacheEverything: true } }
+                    );
+                    if (!r.ok) { espn[label] = { error: `HTTP ${r.status}` }; return; }
+                    const j = await r.json();
+                    const events = j.events || [];
+                    const completed = events.filter(e =>
+                        e.competitions?.[0]?.status?.type?.completed === true).length;
+                    espn[label] = { total: events.length, completed };
+                } catch (e) { espn[label] = { error: e.message }; }
+            }));
+
+            // D1 counts per sport label. Both game tables share `sport` +
+            // `date` columns; sport vocabulary is the label.
+            const d1Res = await env.ARCHIVE_DB.prepare(
+                `SELECT sport, COUNT(*) AS n FROM regular_season_games
+                  WHERE date = ? GROUP BY sport
+                 UNION ALL
+                 SELECT sport, COUNT(*) AS n FROM postseason_games
+                  WHERE date = ? GROUP BY sport`
+            ).bind(date, date).all().catch(() => ({ results: [] }));
+            const d1 = {};
+            for (const r of (d1Res.results || [])) {
+                d1[r.sport] = (d1[r.sport] || 0) + (r.n || 0);
+            }
+            const gaps = {};
+            for (const { label } of LEAGUES_LOCAL) {
+                const completedHere = espn[label]?.completed || 0;
+                const d1Here = d1[label] || 0;
+                if (completedHere > d1Here) gaps[label] = completedHere - d1Here;
+            }
+            return new Response(JSON.stringify({ ok: true, date, espn, d1, gaps }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // GET /deploy/verify — Confirms the deployed Worker matches GitHub
+        // HEAD. Fetches the current main-branch SHA + the latest successful
+        // Deploy RELAY Worker run's head_sha. A drift means deploy CI
+        // succeeded but CF propagation lagged, or the bundle exceeded
+        // a silent limit. Uses env.GITHUB_PAT when available to avoid
+        // anonymous rate-limiting.
+        if (pathname === '/deploy/verify' && request.method === 'GET') {
+            const repo = 'jeffunglesbee-create/field-relay-nba';
+            const ghHeaders = {
+                'User-Agent': 'FIELD-relay',
+                'Accept': 'application/vnd.github+json',
+            };
+            if (env.GITHUB_PAT) ghHeaders['Authorization'] = `Bearer ${env.GITHUB_PAT}`;
+            let expected = null, deployed = null, deployedAt = null, runId = null, errors = [];
+            try {
+                const headRes = await fetch(
+                    `https://api.github.com/repos/${repo}/commits/main`,
+                    { headers: ghHeaders, cf: { cacheTtl: 60, cacheEverything: true } }
+                );
+                if (headRes.ok) {
+                    const j = await headRes.json();
+                    expected = (j.sha || '').slice(0, 7);
+                } else if (headRes.status === 403) {
+                    errors.push('GitHub HEAD: rate-limited');
+                } else {
+                    errors.push(`GitHub HEAD: HTTP ${headRes.status}`);
+                }
+            } catch (e) { errors.push(`GitHub HEAD: ${e.message}`); }
+            try {
+                const runRes = await fetch(
+                    `https://api.github.com/repos/${repo}/actions/workflows/deploy.yml/runs?status=success&per_page=1&branch=main`,
+                    { headers: ghHeaders, cf: { cacheTtl: 60, cacheEverything: true } }
+                );
+                if (runRes.ok) {
+                    const j = await runRes.json();
+                    const run = (j.workflow_runs || [])[0];
+                    if (run) {
+                        deployed   = (run.head_sha || '').slice(0, 7);
+                        deployedAt = run.updated_at || run.run_started_at || null;
+                        runId      = run.id;
+                    }
+                } else if (runRes.status === 403) {
+                    errors.push('GitHub runs: rate-limited');
+                } else {
+                    errors.push(`GitHub runs: HTTP ${runRes.status}`);
+                }
+            } catch (e) { errors.push(`GitHub runs: ${e.message}`); }
+
+            return new Response(JSON.stringify({
+                ok: errors.length === 0,
+                expected, deployed,
+                match: expected && deployed && expected === deployed,
+                deployedAt,
+                runId,
+                checkedAt: new Date().toISOString(),
+                errors: errors.length ? errors : undefined,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                             'Cache-Control': 'public, max-age=60' } });
+        }
+
         // GET /budget/odds — shared Odds-API budget snapshot. Returns the
         // current daily counter (src/budget-helpers.js) + the monthly hard-
         // limit counter (consumeOddsCredit / _consumeAmbientOddsCredit
@@ -9025,7 +9214,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
