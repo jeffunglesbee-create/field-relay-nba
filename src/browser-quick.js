@@ -23,6 +23,7 @@ const ALLOWED_DOMAINS = [
   /^https?:\/\/[^/]*\.espn\.com/,
   /^https?:\/\/field-relay-nba\.jeffunglesbee\.workers\.dev/,
   /^https?:\/\/jubilant-bassoon\.pages\.dev/,
+  /^https?:\/\/jubilant-bassoon\.jeffunglesbee\.workers\.dev/,
   /^https?:\/\/example\.com/,
 ];
 
