@@ -437,6 +437,7 @@ function renderNewspaper(bundle) {
 Add in the `<style>` block (near other section styles, ~line 440):
 
 ```css
+/* ── O(1) NEWSPAPER ─────────────────────────────────────────── */
 .field-newspaper{margin-bottom:1.2rem}
 .np-inner{background:var(--c-card,#1a1a2e);border-radius:12px;padding:1.2rem 1rem;border:1px solid rgba(255,255,255,.06)}
 .np-section{margin-bottom:.8rem}
@@ -458,10 +459,67 @@ Add in the `<style>` block (near other section styles, ~line 440):
 .np-divider::before{left:0}
 .np-divider::after{right:0}
 .np-pick .np-prose{font-style:italic}
+
+/* ── VIEWPORT: mobile-portrait (≤600px) ────────────────────── */
 @media(max-width:600px){
   .np-inner{padding:.9rem .75rem}
-  .np-prose{font-size:.78rem}
+  .np-prose{font-size:.78rem;line-height:1.55}
+  .np-label{font-size:.6rem}
+  .np-stars-glyphs{font-size:1rem}
+  .np-stars-label{font-size:.72rem}
+  .np-missed-list li{font-size:.74rem}
+  .np-streak-chip{font-size:.65rem;padding:.15rem .4rem}
 }
+/* ── VIEWPORT: mobile-portrait small (≤375px, e.g. iPhone SE) ── */
+@media(max-width:375px){
+  .np-inner{padding:.75rem .6rem;border-radius:8px}
+  .np-prose{font-size:.74rem}
+  .np-section{margin-bottom:.6rem}
+}
+/* ── VIEWPORT: mobile-landscape (601-819px) ────────────────── */
+@media(min-width:601px) and (max-width:819px){
+  .np-inner{padding:1rem;max-width:680px;margin:0 auto}
+  .np-prose{font-size:.8rem}
+}
+/* ── VIEWPORT: mobile-landscape orientation:landscape ───────── */
+@media(orientation:landscape) and (max-width:819px){
+  .field-newspaper{margin-bottom:.8rem}
+  .np-inner{padding:.7rem .9rem}
+  .np-section{margin-bottom:.5rem}
+  .np-prose{font-size:.76rem;line-height:1.45}
+}
+/* ── VIEWPORT: tablet-ambient (820-1199px) ─────────────────── */
+@media(min-width:820px) and (max-width:1199px){
+  .np-inner{max-width:760px;margin:0 auto;padding:1.2rem 1.2rem}
+  .np-prose{font-size:.84rem}
+}
+/* ── VIEWPORT: tablet portrait (820-1199 portrait) ──────────── */
+@media(min-width:820px) and (max-width:1199px) and (orientation:portrait){
+  .np-inner{max-width:640px}
+}
+/* ── VIEWPORT: laptop (1200-1439px) ────────────────────────── */
+@media(min-width:1200px) and (max-width:1439px){
+  .np-inner{max-width:800px;padding:1.4rem 1.5rem}
+  .np-prose{font-size:.85rem;line-height:1.7}
+  .np-stars-glyphs{font-size:1.2rem}
+}
+/* ── VIEWPORT: desktop (1440-1799px) ───────────────────────── */
+@media(min-width:1440px) and (max-width:1799px){
+  .np-inner{max-width:860px;padding:1.5rem 1.8rem}
+}
+/* ── VIEWPORT: ultrawide (1800px+) ─────────────────────────── */
+@media(min-width:1800px){
+  .np-inner{max-width:900px;padding:1.6rem 2rem}
+}
+/* ── WHOLE FIELD mode — newspaper stays in LEFT column ──────── */
+/* Newspaper is inside <main> which already gets margin-right:390px
+   in wf-mode. No additional rules needed — it inherits the
+   constrained width. But ensure it doesn't overflow. */
+body.wf-mode .np-inner{max-width:100%}
+/* ── journalism-mode / wc-mode — hide newspaper ────────────── */
+/* When the user switches to Journal or WC tab, the schedule
+   (and newspaper above it) are replaced by those views. The
+   newspaper lives inside <main>, which is hidden by those modes. */
 ```
 
 ### 3e. Wire into boot sequence
