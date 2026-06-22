@@ -1,0 +1,37 @@
+name: MLS Schedule Seed (one-time, post-WC)
+
+on:
+  workflow_dispatch:   # Manual trigger only — one-time seed
+
+permissions:
+  contents: write
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Seed MLS fixtures Jul 19–Oct 31 via relay /fixtures/fetch
+        # Runs from relay repo CI — relay repo workflows can reach workers.dev
+        # (same pattern as odds-backfill.yml and scoreboard-probe.yml)
+        run: |
+          RESULT=$(curl -s -X POST \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "Content-Type: application/json" \
+            -d '{"league":253,"season":2026,"from":"2026-07-19","to":"2026-10-31","sport":"MLS"}' \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/fixtures/fetch")
+          echo "Result: $RESULT"
+          OK=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('ok',False))" 2>/dev/null)
+          FETCHED=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('fetched',0))" 2>/dev/null)
+          INSERTED=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('inserted',0))" 2>/dev/null)
+          echo "ok=$OK fetched=$FETCHED inserted=$INSERTED"
+          if [ "$OK" != "True" ]; then
+            echo "❌ Seed failed"
+            exit 1
+          fi
+          if [ "$FETCHED" = "0" ]; then
+            echo "⚠️  No fixtures returned"
+            exit 1
+          fi
+          echo "✅ MLS seed complete: fetched=$FETCHED inserted=$INSERTED"
