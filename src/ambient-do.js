@@ -53,6 +53,8 @@
 // More frequent DO polls hit the CF cache — zero extra api-sports quota cost.
 // Result: AmbientDO detects score changes within 15s of api-sports updating,
 // while api-sports quota is capped at 2/min × sports (not O(poll frequency)).
+import { resolveTeamKey } from './identity-resolver.js';
+
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
 const PING_MS       = 20_000;
@@ -672,18 +674,15 @@ export class AmbientDO {
         }
         if (!Array.isArray(events)) return;
 
-        // Bidirectional substring match on NFD-normalised alphanumerics —
-        // tolerant of "Türkiye" vs "Turkey", "DR Congo" vs "Congo DR",
-        // "Czech Republic" vs "Czechia". Same pattern as the client's
-        // _wcMatchTeamName helper.
-        const norm = s => (s || '').toLowerCase().normalize('NFD')
-            .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
-        const nH = norm(home), nA = norm(away);
-        const event = events.find(e => {
-            const eh = norm(e.home_team), ea = norm(e.away_team);
-            return (eh.includes(nH) || nH.includes(eh))
-                && (ea.includes(nA) || nA.includes(ea));
-        });
+        // Centralised identity resolution via the relay's resolveTeamKey —
+        // imported below since AmbientDO lives in its own file. Same
+        // canonical key from either side, so the event match is an
+        // equality check instead of bidirectional substring containment.
+        const ha = resolveTeamKey(home), aa = resolveTeamKey(away);
+        const event = events.find(e =>
+            resolveTeamKey(e.home_team) === ha &&
+            resolveTeamKey(e.away_team) === aa
+        );
         if (!event?.bookmakers?.length) return;
 
         const bk = event.bookmakers[0];
