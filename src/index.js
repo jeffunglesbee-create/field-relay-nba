@@ -4723,7 +4723,7 @@ async function findEnrichment(env, id) {
     };
 }
 
-async function handleJournalismCycle(env) {
+async function handleJournalismCycle(env, opts = {}) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   // Load per-sport quality calibration once per cron tick. Lightweight D1
   // read; failure is silent (Rule 5 — never blocks journalism delivery).
@@ -5142,7 +5142,7 @@ async function handleJournalismCycle(env) {
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
     const existingRaw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
-    if (existingRaw) {
+    if (existingRaw && !opts.force) {
       try {
         const existing = JSON.parse(existingRaw);
         if (existing.contextHash === contextHash) return {ok:false, reason:'context unchanged (already cached)'};
@@ -7481,7 +7481,8 @@ export default {
         // Lets us populate KV on demand (e.g. after KV creation) without waiting
         // for the next cron tick. Idempotent: skips if context hash unchanged.
         if (pathname === '/journalism/run' && request.method === 'POST') {
-          const result = await handleJournalismCycle(env);
+          const force = url.searchParams.get('force') === 'true';
+          const result = await handleJournalismCycle(env, { force });
           return new Response(JSON.stringify({triggered:'journalism-cycle', result}),
             {headers:{...CORS,'Content-Type':'application/json'}});
         }
