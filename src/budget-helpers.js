@@ -15,7 +15,7 @@
 // ~200-400 daily spend the race is benign — same trade-off
 // consumeOddsCredit / _consumeAmbientOddsCredit already make.
 
-const ODDS_DAILY_CEILING = 900; // 20K/month ÷ ~22 active days
+const ODDS_DAILY_CEILING = 3800; // 85K/month ÷ ~22 active days ≈ 3864/day
 
 function _dailyKey() {
     return `odds:daily:${new Date().toISOString().slice(0, 10)}`;
@@ -82,8 +82,9 @@ async function peekDailyOdds(env) {
 /**
  * Read-only snapshot of this month's monthly counter. Mirrors the key
  * format consumeOddsCredit and _consumeAmbientOddsCredit write to.
- * Limit is hard-coded (matches src/index.js ODDS_HARD_LIMIT) so the
- * peek doesn't have to import from there.
+ * Limit kept in sync with src/index.js ODDS_HARD_LIMIT (85 000 — the
+ * 100 K paid plan minus 15 K reserved for special projects, per
+ * commit 0f39fdf).
  */
 async function peekMonthlyOdds(env) {
     if (!env || !env.FIELD_JOURNALISM) return null;
@@ -92,7 +93,7 @@ async function peekMonthlyOdds(env) {
         const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
         const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${month}`);
         const used = raw ? parseInt(raw, 10) || 0 : 0;
-        const limit = 18000;
+        const limit = 85000;
         return { month, used, limit, remaining: Math.max(0, limit - used) };
     } catch (_) {
         return null;
