@@ -60,6 +60,16 @@ Commit 16be68a, CI green. v5-browser-do migration applied, npm install
 pulled @cloudflare/puppeteer into the bundle, BrowserDO class registered.
 `/health` returns RELAY OK unchanged.
 
+## Phase 2 — Bug fix (commit pending)
+
+Root cause of "Invalid quick action: [object Object]":
+`env.BROWSER.quickAction({ action, url })` passed the whole options object
+as the action parameter. CF Runtime stringified it → "[object Object]".
+Fix: `env.BROWSER.quickAction(action, { url })` — action as positional string,
+url in options object. Verified: Phase 1 tools (browser_navigate et al.) were
+already correctly wired in index.js with BROWSER_SESSION binding — no wiring
+change needed. Only browser-quick.js line 67 required patching.
+
 ## DONE checklist
 
 - [x] wrangler.toml: compatibility_date bumped, browser binding,
@@ -69,6 +79,7 @@ pulled @cloudflare/puppeteer into the bundle, BrowserDO class registered.
 - [x] src/index.js: imports added, 5 MCP tools registered, handlers
       wired, BrowserDO exported
 - [x] Deployed successfully (Phase 0 cf21215, Phase 1 16be68a)
+- [x] browser_quick call signature fixed (09bbea8) — quickAction(action, {url})
 - [~] browser_quick rejects google.com — verified at the code level
       (validateUrl logic); cannot probe MCP from this sandbox because
       /mcp is OAuth-gated. Verify from an MCP-connected chat client.
