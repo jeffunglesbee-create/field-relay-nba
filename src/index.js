@@ -7638,6 +7638,94 @@ export default {
             }
         }
 
+        // ── GET /backfill/brief-scores ─────────────────────────────────────────
+        // Retroactively scores briefs where quality_score IS NULL. Targets the
+        // client-archived types that arrived before /archive/brief gained
+        // server-side scoring (commit 5c0b63e). Score-only — never regenerates
+        // prose. Per-row failure is swallowed (Rule 5).
+        // Params: limit (default 20, max 50), dry=true, type=<brief_type>
+        if (pathname === '/backfill/brief-scores' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const limit  = Math.min(parseInt(url.searchParams.get('limit') || '20', 10) || 20, 50);
+            const dryRun = url.searchParams.get('dry') === 'true';
+            const typeFilter = url.searchParams.get('type') || null;
+
+            const typeClause = typeFilter ? `AND brief_type = ?` : '';
+            const binds = typeFilter ? [typeFilter, limit] : [limit];
+
+            const nullRows = await env.ARCHIVE_DB.prepare(`
+                SELECT id, brief_type, sport, brief_text
+                FROM briefs
+                WHERE quality_score IS NULL
+                  AND brief_text IS NOT NULL
+                  AND LENGTH(brief_text) > 50
+                  ${typeClause}
+                ORDER BY created_at DESC
+                LIMIT ?
+            `).bind(...binds).all().catch(() => ({ results: [] }));
+
+            const rows = nullRows.results || [];
+
+            if (dryRun) {
+                return new Response(JSON.stringify({
+                    ok: true, dry_run: true, found: rows.length,
+                    by_type: rows.reduce((acc, r) => {
+                        acc[r.brief_type] = (acc[r.brief_type] || 0) + 1; return acc;
+                    }, {}),
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            const callProxy = async (promptText) => {
+                const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    body: JSON.stringify({
+                        model: 'claude-haiku-4-5-20251001',
+                        max_tokens: 1000,
+                        messages: [{ role: 'user', content: promptText }],
+                    }),
+                });
+                if (!resp.ok) return null;
+                const data = await resp.json().catch(() => null);
+                return data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
+            };
+
+            const scored = [], failed = [];
+            for (const row of rows) {
+                try {
+                    const scoringPrompt = `Score this sports brief for journalism quality:\n\n${row.brief_text}`;
+                    const qResult = await runQualityChain(scoringPrompt, row.brief_text, callProxy, {
+                        sport: row.sport || null,
+                        scoreThreshold: 90,
+                        maxRetries: 1,
+                    });
+                    const score = qResult?.score ?? null;
+                    if (score !== null) {
+                        await env.ARCHIVE_DB.prepare(
+                            `UPDATE briefs SET quality_score = ? WHERE id = ? AND quality_score IS NULL`
+                        ).bind(score, row.id).run();
+                        scored.push({ id: row.id, brief_type: row.brief_type, score });
+                    } else {
+                        failed.push({ id: row.id, reason: 'null score' });
+                    }
+                } catch (e) {
+                    failed.push({ id: row.id, reason: e.message?.slice(0, 80) || 'error' });
+                }
+            }
+
+            return new Response(JSON.stringify({
+                ok: true,
+                processed: rows.length,
+                scored: scored.length,
+                failed: failed.length,
+                results: scored,
+                errors: failed,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /budget/odds — shared Odds-API budget snapshot. Returns the
         // current daily counter (src/budget-helpers.js) + the monthly hard-
         // limit counter (consumeOddsCredit / _consumeAmbientOddsCredit
