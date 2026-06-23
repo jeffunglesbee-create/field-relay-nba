@@ -4322,7 +4322,7 @@ async function executeSeriesPreviewBackfill(env) {
     if (!initial || initial.length < 30) { series_skipped++; continue; }
 
     const qResult = await runQualityChain(seriesPrompt, initial, callProxy, {
-      sport, scoreThreshold: 90, maxRetries: 3,
+      sport, scoreThreshold: 240, maxRetries: 3,
     });
     const prose = stripMarkdown(qResult.text);
     const briefDate = new Date().toISOString().slice(0, 10);
@@ -4434,7 +4434,11 @@ async function executeGameBriefBackfill(env, date) {
     if (!initial || initial.length < 30) { games_skipped++; continue; }
 
     const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
-      sport, scoreThreshold: 90, maxRetries: 3,
+      sport,
+      scoreThreshold: 240,
+      maxRetries: 3,
+      game: { home, away, homeScore: game.home_score, awayScore: game.away_score },
+      matchupNote: game.note || null,
     });
     const prose = stripMarkdown(qResult.text);
 
@@ -4525,7 +4529,7 @@ async function executeBackfill(env, date) {
 
   const qResult = await runQualityChain(prompt, initial, callProxy, {
     sport: null,
-    scoreThreshold: 130,
+    scoreThreshold: 240,
     maxRetries: 6,
   });
   const prose = qResult.text;
@@ -5535,7 +5539,7 @@ async function handleJournalismCycle(env, opts = {}) {
     // identical quality enforcement.
     const qualityResult = await runQualityChain(buildPrompt(), prose, callProxy, {
       sport: null, // slate brief covers multiple sports
-      scoreThreshold: 130,
+      scoreThreshold: 240,
       maxRetries: 6,
     });
     prose = qualityResult.text;
@@ -7118,11 +7122,41 @@ export default {
                             const d = await r.json().catch(() => null);
                             return d ? (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
                         };
+                        // Dim 7+10 context: look up game row from D1 by game_id.
+                        // night_owl / mlb_game / wnba_game brief_types submit a
+                        // game_id matching regular_season_games.id or postseason_games.id.
+                        // Fail gracefully — never block archival (Rule 5).
+                        let _archiveGameCtx = null;
+                        let _archiveMatchupNote = null;
+                        if (game_id) {
+                            try {
+                                const _gRow = await (async () => {
+                                    const r = await env.ARCHIVE_DB.prepare(
+                                        `SELECT home, away, home_score, away_score, note
+                                         FROM regular_season_games WHERE id = ? LIMIT 1`
+                                    ).bind(game_id).first().catch(() => null);
+                                    if (r) return r;
+                                    return await env.ARCHIVE_DB.prepare(
+                                        `SELECT home, away, home_score, away_score, NULL as note
+                                         FROM postseason_games WHERE id = ? LIMIT 1`
+                                    ).bind(game_id).first().catch(() => null);
+                                })();
+                                if (_gRow && _gRow.home && _gRow.away) {
+                                    _archiveGameCtx = {
+                                        home: _gRow.home, away: _gRow.away,
+                                        homeScore: _gRow.home_score, awayScore: _gRow.away_score,
+                                    };
+                                    _archiveMatchupNote = _gRow.note || null;
+                                }
+                            } catch (_) { /* non-fatal — Dims 7+10 unavailable for this brief */ }
+                        }
                         const scoringPrompt = `Score this sports brief for journalism quality:\n\n${brief_text}`;
                         const qResult = await runQualityChain(scoringPrompt, brief_text, callProxy, {
                             sport: sport || null,
-                            scoreThreshold: 90,
+                            scoreThreshold: 240,
                             maxRetries: 1,
+                            game: _archiveGameCtx,
+                            matchupNote: _archiveMatchupNote,
                         });
                         finalScore = qResult?.score ?? null;
                     } catch (_) { /* scoring failure must not break archival */ }
@@ -7601,7 +7635,11 @@ export default {
                         }
 
                         const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
-                            sport: sportLabel, scoreThreshold: 90, maxRetries: 2,
+                            sport: sportLabel,
+                            scoreThreshold: 240,
+                            maxRetries: 2,
+                            game: { home: game.home, away: game.away, homeScore: game.home_score, awayScore: game.away_score },
+                            matchupNote: game.note || null,
                         });
                         const finalText = stripMarkdown(qResult.text);
 
@@ -7663,6 +7701,7 @@ export default {
             const limit  = Math.min(parseInt(url.searchParams.get('limit') || '20', 10) || 20, 50);
             const dryRun = url.searchParams.get('dry') === 'true';
             const typeFilter = url.searchParams.get('type') || null;
+            const rescore   = url.searchParams.get('rescore') === 'true';
 
             const typeClause = typeFilter ? `AND brief_type = ?` : '';
             const binds = typeFilter ? [typeFilter, limit] : [limit];
@@ -7670,7 +7709,9 @@ export default {
             const nullRows = await env.ARCHIVE_DB.prepare(`
                 SELECT id, brief_type, sport, brief_text
                 FROM briefs
-                WHERE quality_score IS NULL
+                WHERE ${rescore
+                    ? 'quality_score IS NOT NULL AND quality_score <= 245'
+                    : 'quality_score IS NULL'}
                   AND brief_text IS NOT NULL
                   AND LENGTH(brief_text) > 50
                   ${typeClause}
@@ -7716,7 +7757,7 @@ export default {
                     const score = qResult?.score ?? null;
                     if (score !== null) {
                         await env.ARCHIVE_DB.prepare(
-                            `UPDATE briefs SET quality_score = ? WHERE id = ? AND quality_score IS NULL`
+                            `UPDATE briefs SET quality_score = ? WHERE id = ?`
                         ).bind(score, row.id).run();
                         scored.push({ id: row.id, brief_type: row.brief_type, score });
                     } else {
@@ -7774,8 +7815,8 @@ export default {
                        ROUND(AVG(quality_score), 1) as avg_score,
                        MIN(quality_score) as min_score,
                        MAX(quality_score) as max_score,
-                       SUM(CASE WHEN quality_score < 150 THEN 1 ELSE 0 END) as below_150,
-                       SUM(CASE WHEN quality_score >= 200 THEN 1 ELSE 0 END) as above_200
+                       SUM(CASE WHEN quality_score < 240 THEN 1 ELSE 0 END) as below_240,
+                       SUM(CASE WHEN quality_score >= 240 THEN 1 ELSE 0 END) as above_240
                 FROM briefs WHERE date >= ?
                 GROUP BY brief_type, sport
                 ORDER BY avg_score ASC NULLS LAST
@@ -7788,34 +7829,23 @@ export default {
                 'wc_matchup', 'standings_snapshot', 'narrative_context',
                 'enrichment', 'kv_harvest', 'wc_tab',
             ]);
-            // Per-type alert thresholds (245-point relay ceiling). Preview /
-            // pre-game types structurally score lower than post-game recaps.
-            // Golf excluded: no context builder exists, low score is structural
-            // not tunable.
-            const _alertThreshold = (brief_type, sport) => {
-                if (ENRICHMENT_TYPES.has(brief_type)) return null;
-                if (sport && sport.toLowerCase().includes('golf')) return null;
-                if (brief_type === 'game_brief') return 130;
-                if (brief_type === 'night_owl')  return 140;
-                return 170;
-            };
+            // Excellence threshold: 80% of 300 = 240. Failure = below 240.
+            // Enrichment types and golf (no context builder) stay excluded —
+            // structural floor, not a tuning problem.
             const alerts = summary
                 .filter(r => r.scored >= 3)
                 .filter(r => {
-                    const t = _alertThreshold(r.brief_type, r.sport);
-                    if (t === null) return false;
-                    return r.avg_score < t || (r.below_150 / r.scored) > 0.4;
+                    if (ENRICHMENT_TYPES.has(r.brief_type)) return false;
+                    if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
+                    return r.avg_score < 240 || (r.below_240 / r.scored) > 0.2;
                 })
-                .map(r => {
-                    const threshold = _alertThreshold(r.brief_type, r.sport);
-                    return {
-                        brief_type: r.brief_type, sport: r.sport || 'all',
-                        alert: r.avg_score < threshold ? `avg_below_${threshold}` : 'high_failure_rate',
-                        threshold,
-                        avg_score: r.avg_score,
-                        failure_pct: Math.round((r.below_150 / r.scored) * 100),
-                    };
-                });
+                .map(r => ({
+                    brief_type: r.brief_type, sport: r.sport || 'all',
+                    alert: r.avg_score < 240 ? 'avg_below_240' : 'high_failure_rate',
+                    threshold: 240,
+                    avg_score: r.avg_score,
+                    failure_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
+                }));
             const unscored = summary
                 .filter(r => r.total > 5 && r.scored === 0)
                 .map(r => ({ brief_type: r.brief_type, sport: r.sport, total: r.total }));
@@ -10936,8 +10966,12 @@ export default {
             // Full quality chain — matches backfill + cron slate pipeline
             const qResult = await runQualityChain(job.prompt, initial, callProxy, {
               sport: job.sport || null,
-              scoreThreshold: 90,
+              scoreThreshold: 240,
               maxRetries: 2,
+              game: (job.home && job.away)
+                ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
+                : null,
+              matchupNote: job.matchupNote || null,
             });
             const finalText = stripMarkdown(qResult.text);
             const qualityScore = qResult.score ?? null;
@@ -11024,8 +11058,12 @@ export default {
           if (!initial) throw new Error('proxy returned no prose');
           const result = await runQualityChain(job.prompt, initial, callProxy, {
             sport: job.sport,
-            scoreThreshold: job.scoreThreshold || undefined,
+            scoreThreshold: job.scoreThreshold || 240,
             maxRetries: 6,
+            game: (job.home && job.away)
+              ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
+              : null,
+            matchupNote: job.matchupNote || null,
           });
           // PF-1 parity: strip markdown headers/bold before persisting, so the
           // queue consumer's KV output matches the sync /journalism/generate path.

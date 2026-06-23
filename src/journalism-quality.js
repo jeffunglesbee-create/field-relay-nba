@@ -411,17 +411,49 @@ export async function scoreProse(text, opts = {}) {
   const bonus = stakes && tension && resolution;
   const arcScore = (stakes?10:0) + (tension?10:0) + (resolution?10:0) + (bonus?15:0);
 
-  // Dim 7: Context Anchoring — N/A at relay (no game object). Ceiling reduces by 25.
+  // Dim 7: Context Anchoring (0→25) — brief anchors to the actual matchup.
+  // Awards points when team names and final score appear in prose.
+  // Data source: opts.game = { home, away, homeScore, awayScore }
+  let dim7 = 0;
+  if (opts.game) {
+    const { home, away, homeScore, awayScore } = opts.game;
+    const tl = text.toLowerCase();
+    const homeTerm = (home || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
+    const awayTerm = (away || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
+    if (homeTerm.length > 2 && tl.includes(homeTerm)) dim7 += 8;
+    if (awayTerm.length > 2 && tl.includes(awayTerm)) dim7 += 8;
+    const hs = homeScore != null ? String(homeScore) : '';
+    const as_ = awayScore != null ? String(awayScore) : '';
+    if ((hs && text.includes(hs)) || (as_ && text.includes(as_))) dim7 += 9;
+  }
+
   // Dim 8: Temporal Precision (0-20)
   const temporalScore = _temporalPrecision(text);
   // Dim 9: Voice Consistency (0-30)
   const voiceScore = _voiceConsistency(text, opts.sport || '');
-  // Dim 10: Matchup Depth — N/A at relay (no game.matchupNote). Ceiling reduces by 30.
 
-  // Relay ceiling: 300 - 25(ctx N/A) - 30(matchup N/A) = 245
-  const RELAY_CEILING = 245;
-  const total = Math.min(RELAY_CEILING, Math.max(0,
-    base + arcScore + temporalScore + voiceScore
+  // Dim 10: Matchup Depth (0→30) — brief demonstrates editorial knowledge
+  // beyond the final score. Key terms from matchupNote appear in prose.
+  // Data source: opts.matchupNote = string from game.note or topGame.matchupNote
+  let dim10 = 0;
+  if (opts.matchupNote && opts.matchupNote.length > 10) {
+    const stopWords = new Set(['the','and','for','with','that','this','from',
+      'they','have','been','will','their','into','which','when','also','more',
+      'than','some','over','each','only','most','made','like','what','were','then',
+      'but','not','are','was','had','his','her','its','our','has','him']);
+    const noteTerms = opts.matchupNote.toLowerCase()
+      .split(/\W+/)
+      .filter(w => w.length > 4 && !stopWords.has(w));
+    if (noteTerms.length > 0) {
+      const tl = text.toLowerCase();
+      const hits = noteTerms.filter(w => tl.includes(w)).length;
+      dim10 = Math.min(30, hits * 10);
+    }
+  }
+
+  // Full 300-point ceiling — all 10 dimensions active.
+  const total = Math.min(300, Math.max(0,
+    base + arcScore + temporalScore + voiceScore + dim7 + dim10
   ));
   return total;
 }
@@ -566,6 +598,8 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
   let text = initialText;
   let retries = 0;
   const sport = opts.sport || null;
+  const game        = opts.game        || null; // { home, away, homeScore, awayScore }
+  const matchupNote = opts.matchupNote || null; // editorial context from game.note
   const maxRetries = opts.maxRetries || 6;
 
   // 2: cliché
@@ -629,21 +663,31 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2e'); }
   }
 
-  // 3b: score-triggered rewrite if total below threshold
-  const score = await scoreProse(text, { sport });
-  const THRESHOLD = opts.scoreThreshold || 175; // 245-scale relay ceiling — ~72% (JQ v3 Jun 8 2026)
+  // 3b: score-triggered rewrite if below excellence threshold (240/300 = 80%)
+  const score = await scoreProse(text, { sport, game, matchupNote });
+  const THRESHOLD = opts.scoreThreshold || 240; // 300-point full scale — excellence bar
   if (score < THRESHOLD && retries < maxRetries) {
+    const _gameCtx = game
+      ? `REQUIRED — USE THE GAME DATA: name "${game.away}" and "${game.home}" explicitly. Include the exact final score (${game.awayScore}–${game.homeScore}). `
+      : '';
+    const _matchupCtx = matchupNote
+      ? `REQUIRED — USE MATCHUP CONTEXT: "${matchupNote.slice(0, 200)}" — reference at least one fact from this narrative in plain prose. `
+      : '';
     const retryPrompt = prompt +
-      `\n\nQUALITY SCORE LOW (${score}/245): the previous draft scored below our quality threshold. Add more specific facts: proper names, exact numbers, stats with units, and concrete details. Every sentence should contain at least one specific fact. Anchor every stat to a time period (this series, this postseason, tonight). Name at least one non-star player with a specific role stat (assists, +/-, 3P%, PP%, DRTG).`;
+      `\n\nQUALITY SCORE LOW (${score}/300): this draft scored below the excellence threshold ` +
+      `(240/300 = 80%). ${_gameCtx}${_matchupCtx}` +
+      `Add specific player names, exact statistics with units, and concrete tactical detail. ` +
+      `Every sentence must contain at least one proper noun or number. ` +
+      `Anchor all stats to a time period (this series, this postseason, tonight). ` +
+      `Name at least one non-star contributor with a specific stat.`;
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) {
-      const newScore = await scoreProse(retried);
+      const newScore = await scoreProse(retried, { sport, game, matchupNote });
       if (newScore >= score) { text = retried.trim(); retries++; layers_fired.push('3b'); }
-      // If new score is worse, keep the original
     }
   }
 
-  const finalScore = await scoreProse(text, { sport });
+  const finalScore = await scoreProse(text, { sport, game, matchupNote });
   return {
     text,
     score: finalScore,
