@@ -5103,6 +5103,7 @@ async function handleJournalismCycle(env, opts = {}) {
               isFinal: comp?.status?.type?.completed === true,
               venue: comp?.venue?.fullName || '',
               eventId: String(ev.id || ''),
+              espnLeague: league,  // slug e.g. "fifa.world" — used by soccer_xg builder
               league: label,
             });
           }
@@ -5465,6 +5466,8 @@ async function handleJournalismCycle(env, opts = {}) {
                 league: m.league,
                 home: m.home, away: m.away,
                 homeAbbr: m.homeAbbr, awayAbbr: m.awayAbbr,
+                espnLeague: m.espnLeague,  // slug for /soccer/xg lookup
+                eventId:    m.eventId,
             }, 600);
         }));
         sportContextBlock = perGame.filter(b => b && b.length).join('\n');
@@ -8519,6 +8522,8 @@ export default {
                   away: away?.team?.shortDisplayName || '',
                   homeAbbr: home?.team?.abbreviation || '',
                   awayAbbr: away?.team?.abbreviation || '',
+                  espnLeague: league,         // slug e.g. "fifa.world"
+                  eventId:    String(ev.id || ''),
                 }, 600);
                 results.push({
                   game: `${away?.team?.abbreviation || '?'} @ ${home?.team?.abbreviation || '?'}`,
@@ -9211,6 +9216,97 @@ export default {
             }
             const nbaCDN = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nba';
             return relayFetch(`${nbaCDN}/${nbaFile}`, { 'Accept': 'application/json' }, 86400, 'nba-clutch', ctx);
+        }
+
+        // ── /soccer/xg → ESPN Core API per-game xG (WC2026 + premium leagues) ────
+        // Replaces the FBref pipeline (Opta licence lost Jan 2026; GH-Actions
+        // IP-blocked anyway). Verified xG present on fifa.world events 760456
+        // and 760457; absent for ger.1 (structural — ESPN serves a richer feed
+        // for WC/premium). Returns _hasXG:false when feed lacks xG so the
+        // Context Assembler degrades to '' gracefully.
+        if (pathname === '/soccer/xg') {
+            const league  = url.searchParams.get('league');
+            const eventId = url.searchParams.get('event');
+            if (!league || !eventId) {
+                return new Response(JSON.stringify({ error: 'league and event required' }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+            const CORE = 'https://sports.core.api.espn.com/v2/sports/soccer';
+            const compBase = `${CORE}/leagues/${league}/events/${eventId}/competitions/${eventId}`;
+
+            let homeId, awayId, homeName, awayName;
+            try {
+                const compRes = await fetch(`${compBase}/competitors`,
+                    { headers: { 'User-Agent': 'FIELD/1.0' } });
+                if (!compRes.ok) throw new Error(`competitors ${compRes.status}`);
+                const compData = await compRes.json();
+                for (const item of compData.items || []) {
+                    if (item.homeAway === 'home') {
+                        homeId = item.id;
+                        homeName = item.team?.displayName || item.id;
+                    } else {
+                        awayId = item.id;
+                        awayName = item.team?.displayName || item.id;
+                    }
+                }
+                if (!homeId || !awayId) throw new Error('could not resolve competitors');
+            } catch (e) {
+                return new Response(
+                    JSON.stringify({ event: eventId, league, _hasXG: false, _error: e.message }),
+                    { headers: { 'Content-Type': 'application/json', 'X-Source': 'espn-core', ...CORS } }
+                );
+            }
+
+            const [homeStats, awayStats] = await Promise.all([
+                fetch(`${compBase}/competitors/${homeId}/statistics`,
+                    { headers: { 'User-Agent': 'FIELD/1.0' } })
+                    .then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(`${compBase}/competitors/${awayId}/statistics`,
+                    { headers: { 'User-Agent': 'FIELD/1.0' } })
+                    .then(r => r.ok ? r.json() : null).catch(() => null),
+            ]);
+
+            const XG_FIELDS = new Set([
+                'expectedGoals', 'expectedGoalsNonPenalty', 'expectedGoalsOpenPlay',
+                'expectedAssists', 'bigChanceCreated', 'bigChanceMissed',
+                'ppda', 'expectedGoalsConceded',
+            ]);
+            function extractXG(statsObj) {
+                if (!statsObj) return {};
+                const out = {};
+                for (const cat of statsObj.splits?.categories || []) {
+                    for (const stat of cat.stats || []) {
+                        if (XG_FIELDS.has(stat.name)) {
+                            const v = parseFloat(stat.displayValue);
+                            if (!isNaN(v)) out[stat.name] = v;
+                        }
+                    }
+                }
+                return out;
+            }
+
+            const homeXG = extractXG(homeStats);
+            const awayXG = extractXG(awayStats);
+            const hasXG  = 'expectedGoals' in homeXG;
+
+            const payload = {
+                event: eventId,
+                league,
+                _hasXG: hasXG,
+                _source: 'espn-core',
+                home: { id: homeId, name: homeName, ...homeXG },
+                away: { id: awayId, name: awayName, ...awayXG },
+            };
+            // Pre-game 5min; live 60s; post-game 24h. xG > 0 ⇒ play has started.
+            const ttl = !hasXG ? 300 : ((homeXG.expectedGoals > 0 || awayXG.expectedGoals > 0) ? 86400 : 60);
+            return new Response(JSON.stringify(payload), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': `public, max-age=${ttl}`,
+                    'X-Source': 'espn-core',
+                    ...CORS,
+                },
+            });
         }
 
         // ── /soccer-fbref/{file} → FBref WC squad stats (SOCCER-A hybrid) ──────────

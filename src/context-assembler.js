@@ -266,67 +266,51 @@ async function buildNBAClutchContext(env, game) {
     return lines.join('\n');
 }
 
-// ── Soccer: FBref stats ──────────────────────────────────────────────────
-// FBref data may not be in R2 yet — the GH Actions cron only writes for
-// active windows. Returns '' on missing file; we don't fail the assembler.
-// League is mapped from game.league or game.sport in the caller.
-const _SOCCER_LEAGUE_TO_FILE = {
-    'epl': 'epl.json',
-    'eng.1': 'epl.json',
-    'mls': 'mls.json',
-    'usa.1': 'mls.json',
-    'la liga': 'laliga.json',
-    'laliga': 'laliga.json',
-    'esp.1': 'laliga.json',
-    'serie a': 'seriea.json',
-    'seriea': 'seriea.json',
-    'ita.1': 'seriea.json',
-    'bundesliga': 'bundesliga.json',
-    'ger.1': 'bundesliga.json',
-    'ligue 1': 'ligue1.json',
-    'ligue1': 'ligue1.json',
-    'fra.1': 'ligue1.json',
-    'fifa world cup': 'wc2026.json',
-    'fifa.world': 'wc2026.json',
-    'wc26': 'wc2026.json',
-};
+// ── Soccer xG via ESPN Core API (replaces FBref pipeline) ────────────────
+// Requires game.espnLeague (slug like "fifa.world") + game.eventId. Calls
+// the relay's /soccer/xg route which proxies sports.core.api.espn.com.
+// Returns '' when the feed lacks xG (e.g. Bundesliga ger.1 — structural
+// absence per CC-CMD 2026-06-23) or when the game object doesn't carry
+// the ESPN identifiers (backfill / per-game-route paths). Never throws.
+async function buildSoccerXGContext(env, game) {
+    const league  = game.espnLeague;
+    const eventId = game.eventId;
+    if (!league || !eventId) return '';
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    try {
+        const resp = await fetch(`${base}/soccer/xg?league=${encodeURIComponent(league)}&event=${encodeURIComponent(eventId)}`);
+        if (!resp.ok) return '';
+        const d = await resp.json();
+        if (!d?._hasXG) return '';
+        const h = d.home, a = d.away;
+        const lines = ['', '[SOCCER XG CONTEXT]'];
+        const f2 = (v) => (v != null && Number.isFinite(v)) ? v.toFixed(2) : null;
+        const f1 = (v) => (v != null && Number.isFinite(v)) ? v.toFixed(1) : null;
 
-async function buildSoccerFBrefContext(env, game) {
-    const leagueKey = String(game.league || game.sport || '').toLowerCase();
-    const file = _SOCCER_LEAGUE_TO_FILE[leagueKey];
-    if (!file) return '';
-    const blob = await r2Json(env, `soccer/fbref/${file}`);
-    if (!blob) return '';
-    // FBref shape isn't pinned by code in this repo (written by a GH Actions
-    // job). Be lenient: look for common keying patterns.
-    const teams = blob.teams || blob.data || blob;
-    if (typeof teams !== 'object') return '';
-    const home = game.home || '';
-    const away = game.away || '';
-    // Try common keys: by team display name, then abbr
-    const h = teams[home] || teams[_abbr(game.homeAbbr)] || null;
-    const a = teams[away] || teams[_abbr(game.awayAbbr)] || null;
-    if (!h && !a) return '';
-    const lines = ['', '[SOCCER STATS CONTEXT]'];
-    const summarize = (label, t) => {
-        const parts = [];
-        if (Number.isFinite(t.xGFor)) parts.push(`xG ${t.xGFor}`);
-        else if (Number.isFinite(t.xg) || Number.isFinite(t.xG)) parts.push(`xG ${t.xg ?? t.xG}`);
-        if (Number.isFinite(t.xGAgainst)) parts.push(`xGA ${t.xGAgainst}`);
-        else if (Number.isFinite(t.xga) || Number.isFinite(t.xGA)) parts.push(`xGA ${t.xga ?? t.xGA}`);
-        if (Number.isFinite(t.xGDivergence)) {
-            const dir = t.xGDivergence > 0 ? 'over' : 'under';
-            parts.push(`${dir}-performing xG by ${Math.abs(t.xGDivergence).toFixed(1)}`);
+        const hxg  = f2(h.expectedGoals);
+        const axg  = f2(a.expectedGoals);
+        const hnp  = f2(h.expectedGoalsNonPenalty);
+        const anp  = f2(a.expectedGoalsNonPenalty);
+        if (hxg && axg) {
+            lines.push(
+                `xG: ${h.name} ${hxg}${hnp ? ` (${hnp} npxG)` : ''} ` +
+                `vs ${a.name} ${axg}${anp ? ` (${anp} npxG)` : ''}`
+            );
         }
-        if (Number.isFinite(t.poss) || Number.isFinite(t.possession)) parts.push(`Poss ${t.poss ?? t.possession}%`);
-        if (Number.isFinite(t.progressivePasses)) parts.push(`PrgP ${t.progressivePasses}`);
-        else if (Number.isFinite(t.progPasses)) parts.push(`PrgP ${t.progPasses}`);
-        if (Number.isFinite(t.pressures)) parts.push(`Pressures ${t.pressures}`);
-        if (parts.length) lines.push(`${label}: ${parts.join(' / ')}.`);
-    };
-    if (h) summarize(home || 'home', h);
-    if (a) summarize(away || 'away', a);
-    return lines.length > 2 ? lines.join('\n') : '';
+        const hxa = f2(h.expectedAssists), axa = f2(a.expectedAssists);
+        if (hxa && axa) lines.push(`xA: ${h.name} ${hxa} — ${a.name} ${axa}`);
+        const hpp = f1(h.ppda), app = f1(a.ppda);
+        if (hpp && app) lines.push(`PPDA: ${h.name} ${hpp} — ${a.name} ${app}`);
+        if (h.bigChanceCreated != null && a.bigChanceCreated != null) {
+            lines.push(
+                `Big chances: ${h.name} created ${h.bigChanceCreated} missed ${h.bigChanceMissed ?? '-'} ` +
+                `— ${a.name} created ${a.bigChanceCreated} missed ${a.bigChanceMissed ?? '-'}`
+            );
+        }
+        return lines.length > 2 ? lines.join('\n') : '';
+    } catch (_) {
+        return '';
+    }
 }
 
 // ── Odds story builder ──────────────────────────────────────────────────
@@ -368,7 +352,7 @@ const CONTEXT_SOURCES = [
     { id: 'savant',       priority: 7, budget: 400, builder: buildSavantContext,        sports: ['mlb'] },
     { id: 'nhl_series',   priority: 7, budget: 150, builder: buildNHLSeriesContext,     sports: ['nhl'] },
     { id: 'nba_clutch',   priority: 7, budget: 120, builder: buildNBAClutchContext,     sports: ['nba'] },
-    { id: 'soccer_fbref', priority: 7, budget: 180, builder: buildSoccerFBrefContext,
+    { id: 'soccer_xg',    priority: 7, budget: 150, builder: buildSoccerXGContext,
       sports: ['epl', 'mls', 'ucl', 'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'soccer'] },
 ];
 
@@ -418,5 +402,5 @@ export {
     buildSavantContext,
     buildNHLSeriesContext,
     buildNBAClutchContext,
-    buildSoccerFBrefContext,
+    buildSoccerXGContext,
 };
