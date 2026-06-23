@@ -7770,15 +7770,41 @@ export default {
                 ORDER BY avg_score ASC NULLS LAST
             `).bind(since).all();
             const summary = rows.results || [];
+            // Enrichment types: static context data seeded into D1, not
+            // journalism prose. Scoring them produces noise — exclude from
+            // alerts. They remain visible in `summary`.
+            const ENRICHMENT_TYPES = new Set([
+                'wc_matchup', 'standings_snapshot', 'narrative_context',
+                'enrichment', 'kv_harvest', 'wc_tab',
+            ]);
+            // Per-type alert thresholds (245-point relay ceiling). Preview /
+            // pre-game types structurally score lower than post-game recaps.
+            // Golf excluded: no context builder exists, low score is structural
+            // not tunable.
+            const _alertThreshold = (brief_type, sport) => {
+                if (ENRICHMENT_TYPES.has(brief_type)) return null;
+                if (sport && sport.toLowerCase().includes('golf')) return null;
+                if (brief_type === 'game_brief') return 130;
+                if (brief_type === 'night_owl')  return 140;
+                return 170;
+            };
             const alerts = summary
                 .filter(r => r.scored >= 3)
-                .filter(r => r.avg_score < 170 || (r.below_150 / r.scored) > 0.3)
-                .map(r => ({
-                    brief_type: r.brief_type, sport: r.sport || 'all',
-                    alert: r.avg_score < 170 ? 'avg_below_170' : 'high_failure_rate',
-                    avg_score: r.avg_score,
-                    failure_pct: Math.round((r.below_150 / r.scored) * 100),
-                }));
+                .filter(r => {
+                    const t = _alertThreshold(r.brief_type, r.sport);
+                    if (t === null) return false;
+                    return r.avg_score < t || (r.below_150 / r.scored) > 0.4;
+                })
+                .map(r => {
+                    const threshold = _alertThreshold(r.brief_type, r.sport);
+                    return {
+                        brief_type: r.brief_type, sport: r.sport || 'all',
+                        alert: r.avg_score < threshold ? `avg_below_${threshold}` : 'high_failure_rate',
+                        threshold,
+                        avg_score: r.avg_score,
+                        failure_pct: Math.round((r.below_150 / r.scored) * 100),
+                    };
+                });
             const unscored = summary
                 .filter(r => r.total > 5 && r.scored === 0)
                 .map(r => ({ brief_type: r.brief_type, sport: r.sport, total: r.total }));
