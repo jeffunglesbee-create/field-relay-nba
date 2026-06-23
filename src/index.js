@@ -4383,6 +4383,7 @@ async function executeGameBriefBackfill(env, date) {
       sportContext = await assembleContext(env, {
         sport, home, away,
         homeAbbr: '', awayAbbr: '',  // resolveAbbr inside builders handles name→abbr
+        sourceId: game.source_id || null,  // feeds buildESPNSummaryContext
       }, 600);
     } catch (_) { /* non-fatal */ }
 
@@ -5468,6 +5469,7 @@ async function handleJournalismCycle(env, opts = {}) {
                 homeAbbr: m.homeAbbr, awayAbbr: m.awayAbbr,
                 espnLeague: m.espnLeague,  // slug for /soccer/xg lookup
                 eventId:    m.eventId,
+                sourceId:   m.eventId,     // feeds buildESPNSummaryContext
             }, 600);
         }));
         sportContextBlock = perGame.filter(b => b && b.length).join('\n');
@@ -7488,6 +7490,7 @@ export default {
                 const regMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
+                           g.source_id,
                            NULL as series_key, NULL as importance
                     FROM regular_season_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -7499,6 +7502,7 @@ export default {
                 const postMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
+                           g.source_id,
                            g.series_key, g.importance
                     FROM postseason_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -7568,6 +7572,7 @@ export default {
                             sportContext = await assembleContext(env, {
                                 sport: sportLabel, home: game.home, away: game.away,
                                 homeAbbr: '', awayAbbr: '',
+                                sourceId: game.source_id || null,  // feeds buildESPNSummaryContext
                             }, 600);
                         } catch (_) {}
 
@@ -8674,6 +8679,7 @@ export default {
                   awayAbbr: away?.team?.abbreviation || '',
                   espnLeague: league,         // slug e.g. "fifa.world"
                   eventId:    String(ev.id || ''),
+                  sourceId:   String(ev.id || ''),  // feeds buildESPNSummaryContext
                 }, 600);
                 results.push({
                   game: `${away?.team?.abbreviation || '?'} @ ${home?.team?.abbreviation || '?'}`,

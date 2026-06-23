@@ -342,10 +342,66 @@ async function buildOddsStoryContext(env, game) {
     return '';
 }
 
+// ── buildESPNSummaryContext — per-game leaders from ESPN Summary API ─────
+// Fetches /espn-summary/sports/{sport}/{league}/summary?event={sourceId} via
+// the relay's existing ESPN Summary proxy route (index.js:8432). Extracts
+// the top performer per leader category and emits an [ESPN GAME LEADERS]
+// block so the LLM has named anchors for Dims 1/4/6.
+// Returns '' on any failure (Rule 5) — missing source_id, ESPN 404, no
+// leaders array yet (live games before stats populate).
+const _ESPN_SPORT_SLUG = {
+    mlb:  'sports/baseball/mlb',
+    nba:  'sports/basketball/nba',
+    wnba: 'sports/basketball/wnba',
+    nhl:  'sports/hockey/nhl',
+    wc26: 'sports/soccer/fifa.world',
+    soccer: 'sports/soccer/fifa.world',
+};
+
+async function buildESPNSummaryContext(env, game) {
+    const sourceId = game.sourceId || game.source_id || game.espnEventId || game.eventId;
+    if (!sourceId) return '';
+
+    const sportKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
+    const slug = _ESPN_SPORT_SLUG[sportKey]
+        || (game.espnLeague ? _ESPN_SPORT_SLUG[String(game.espnLeague).toLowerCase()] : null)
+        || null;
+    if (!slug) return '';
+
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    try {
+        const resp = await fetch(
+            `${base}/espn-summary/${slug}/summary?event=${encodeURIComponent(String(sourceId))}`,
+            { signal: AbortSignal.timeout(3000) }
+        );
+        if (!resp.ok) return '';
+        const d = await resp.json().catch(() => null);
+        if (!d) return '';
+
+        const leaders = d.leaders || [];
+        if (!leaders.length) return '';
+
+        const lines = ['', '[ESPN GAME LEADERS]'];
+        for (const cat of leaders.slice(0, 5)) {
+            const ls = Array.isArray(cat.leaders)
+                ? cat.leaders
+                : (Array.isArray(cat.leaders?.leaders) ? cat.leaders.leaders : []);
+            const top = ls[0];
+            if (!top) continue;
+            const name = top.athlete?.displayName || top.athlete?.shortName;
+            const val  = top.displayValue;
+            if (name && val) lines.push(`${cat.displayName}: ${name} ${val}`);
+        }
+        return lines.length > 2 ? lines.join('\n') + '\n' : '';
+    } catch (_) { return ''; }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
 const CONTEXT_SOURCES = [
+    { id: 'espn_summary', priority: 3, budget: 200, builder: buildESPNSummaryContext,
+      sports: ['mlb', 'nba', 'wnba', 'nhl', 'wc26', 'soccer'] },
     { id: 'odds_story',   priority: 5, budget: 100, builder: buildOddsStoryContext,
       sports: ['mlb', 'nba', 'nhl', 'nfl', 'wnba', 'epl', 'mls',
                'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1'] },
@@ -403,4 +459,5 @@ export {
     buildNHLSeriesContext,
     buildNBAClutchContext,
     buildSoccerXGContext,
+    buildESPNSummaryContext,
 };
