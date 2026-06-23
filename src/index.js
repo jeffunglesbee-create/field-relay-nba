@@ -4383,7 +4383,7 @@ async function executeGameBriefBackfill(env, date) {
       sportContext = await assembleContext(env, {
         sport, home, away,
         homeAbbr: '', awayAbbr: '',  // resolveAbbr inside builders handles name→abbr
-        sourceId: game.source_id || null,  // feeds buildESPNSummaryContext
+        sourceId: game.espn_event_id || null,  // feeds buildESPNSummaryContext
       }, 600);
     } catch (_) { /* non-fatal */ }
 
@@ -4410,6 +4410,7 @@ async function executeGameBriefBackfill(env, date) {
       FIELD_VOICE_REGISTER,
       `Write a 50-70 word game brief for this ${sport}${isPostseason ? ' playoff' : ''} game.`,
       `${away} ${game.away_score} at ${home} ${game.home_score}`,
+      game.venue ? `Venue: ${game.venue}` : '',
       `Date: ${date}`,
       isPostseason ? `Round: ${game.round || 'postseason'}${seriesContext}` : '',
       sportContext || '',
@@ -6919,8 +6920,8 @@ export default {
                             `INSERT INTO postseason_games
                                (id, sport, series_key, round, game_number, date, home, away,
                                 home_score, away_score, venue, streams, note, series_record,
-                                importance, league, crew)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                importance, league, crew, espn_event_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON CONFLICT(id) DO UPDATE SET
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
@@ -6929,7 +6930,8 @@ export default {
                                venue         = COALESCE(excluded.venue, venue),
                                streams       = COALESCE(excluded.streams, streams),
                                crew          = COALESCE(excluded.crew, crew),
-                               importance    = COALESCE(excluded.importance, importance)`
+                               importance    = COALESCE(excluded.importance, importance),
+                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id)`
                         ).bind(
                             id, sport, series_key,
                             round || null, game_number ?? null, date,
@@ -6937,27 +6939,30 @@ export default {
                             home_score ?? null, away_score ?? null,
                             venue || null, streams || null,
                             note || null, series_record || null,
-                            importance || null, league || null, crew || null
+                            importance || null, league || null, crew || null,
+                            source_id ? String(source_id) : null
                         ).run();
                     } else {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO regular_season_games
                                (id, sport, league, date, home, away,
-                                home_score, away_score, venue, streams, note, crew)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                home_score, away_score, venue, streams, note, crew, espn_event_id)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON CONFLICT(id) DO UPDATE SET
-                               home_score = COALESCE(excluded.home_score, home_score),
-                               away_score = COALESCE(excluded.away_score, away_score),
-                               note       = COALESCE(excluded.note, note),
-                               venue      = COALESCE(excluded.venue, venue),
-                               streams    = COALESCE(excluded.streams, streams),
-                               crew       = COALESCE(excluded.crew, crew)`
+                               home_score    = COALESCE(excluded.home_score, home_score),
+                               away_score    = COALESCE(excluded.away_score, away_score),
+                               note          = COALESCE(excluded.note, note),
+                               venue         = COALESCE(excluded.venue, venue),
+                               streams       = COALESCE(excluded.streams, streams),
+                               crew          = COALESCE(excluded.crew, crew),
+                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id)`
                         ).bind(
                             id, sport, league || null, date,
                             home || null, away || null,
                             home_score ?? null, away_score ?? null,
                             venue || null, streams || null,
-                            note || null, crew || null
+                            note || null, crew || null,
+                            source_id ? String(source_id) : null
                         ).run();
                     }
                 } catch (e) {
@@ -7490,6 +7495,7 @@ export default {
                 const regMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
+                           g.venue, g.espn_event_id,
                            NULL as series_key, NULL as importance
                     FROM regular_season_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -7501,6 +7507,7 @@ export default {
                 const postMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
+                           g.venue, g.espn_event_id,
                            g.series_key, g.importance
                     FROM postseason_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -7570,7 +7577,7 @@ export default {
                             sportContext = await assembleContext(env, {
                                 sport: sportLabel, home: game.home, away: game.away,
                                 homeAbbr: '', awayAbbr: '',
-                                sourceId: game.source_id || null,  // feeds buildESPNSummaryContext
+                                sourceId: game.espn_event_id || null,  // feeds buildESPNSummaryContext
                             }, 600);
                         } catch (_) {}
 
@@ -7578,6 +7585,7 @@ export default {
                             FIELD_VOICE_REGISTER,
                             `Write a 50-70 word game brief for this ${sportLabel}${isPostseason ? ' playoff' : ''} game.`,
                             `${game.away} ${game.away_score} at ${game.home} ${game.home_score}`,
+                            game.venue ? `Venue: ${game.venue}` : '',
                             `Date: ${game.date}`,
                             isPostseason ? `Round: ${game.importance || 'postseason'}${seriesContext}` : '',
                             sportContext || '',
