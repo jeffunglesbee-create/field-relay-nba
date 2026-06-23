@@ -388,3 +388,19 @@ defined upfront or tasks were intentionally deferred.
 **Violation signals:** carry-forwards without a second CC-CMD written;
 verification steps blocked by sandbox egress (use relay self-probe endpoints
 instead); URLs or function names written from memory rather than probed.
+
+---
+
+## Rule 88 — Correct route, fast execution (CORRECT-FAST-A)
+
+Don't take the fast route. Take the correct route and do it fast.
+
+"Fast" means minimize time to correct completion — not time to first attempt.
+A correct approach executed in 5 minutes is faster than a shortcut that
+requires 3 iterations. If the correct approach isn't obvious, probe more —
+not guess faster. Uncertainty is not permission to shortcut.
+
+**The test before executing:** "Is this the right way, or the quick way?"
+If quick way — stop, find the right way, then move at pace.
+
+See STANDARDS.md Rule 88 for full rationale and case study.
