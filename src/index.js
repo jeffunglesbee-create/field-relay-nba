@@ -7216,7 +7216,8 @@ export default {
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
-            && !(pathname === '/fixtures/fetch' && request.method === 'POST'))
+            && !(pathname === '/fixtures/fetch' && request.method === 'POST')
+            && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
@@ -7797,6 +7798,230 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),
                     { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
+        }
+
+        // POST /soccer/fbref/fetch — fetch FBref squad stats server-side and
+        // upload to R2. FBref blocks GitHub Actions IPs with HTTP 403; CF
+        // edge IPs are not blocked. Replaces the per-league GH Actions
+        // workflows in jubilant-bassoon that were silently writing empty
+        // teams:{} blobs since June 10 2026.
+        // Auth: X-FIELD-Relay: field-relay-cron-2026 (same as /fixtures/fetch).
+        // Body: { leagues?: string[] }  defaults to all FBREF_LEAGUES.
+        if (pathname === '/soccer/fbref/fetch' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026')
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ ok: false, error: 'FIELD_DATA R2 not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+            const FBREF_LEAGUES = {
+                wc2026:     { compId: '1',  season: '2026',      slug: 'World-Cup',           r2Key: 'soccer/fbref/wc2026.json',     competition: 'FIFA World Cup 2026' },
+                epl:        { compId: '9',  season: '2025-2026', slug: 'Premier-League',      r2Key: 'soccer/fbref/epl.json',        competition: 'Premier League 2025-26' },
+                mls:        { compId: '22', season: '2025',      slug: 'Major-League-Soccer', r2Key: 'soccer/fbref/mls.json',        competition: 'MLS 2025' },
+                laliga:     { compId: '12', season: '2025-2026', slug: 'La-Liga',             r2Key: 'soccer/fbref/laliga.json',     competition: 'La Liga 2025-26' },
+                seriea:     { compId: '11', season: '2025-2026', slug: 'Serie-A',             r2Key: 'soccer/fbref/seriea.json',     competition: 'Serie A 2025-26' },
+                bundesliga: { compId: '20', season: '2025-2026', slug: 'Fussball-Bundesliga', r2Key: 'soccer/fbref/bundesliga.json', competition: 'Bundesliga 2025-26' },
+                ligue1:     { compId: '13', season: '2025-2026', slug: 'Ligue-1',             r2Key: 'soccer/fbref/ligue1.json',     competition: 'Ligue 1 2025-26' },
+            };
+            const FBREF_HEADERS = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://fbref.com/',
+            };
+            const TABLE_TYPES = ['shooting', 'misc', 'passing', 'keepers'];
+            const stripTags = (s) => (s || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
+            const round3 = (n) => Math.round(n * 1000) / 1000;
+
+            // FBref hides many tables inside HTML comments to defeat scrapers.
+            // Unwrap them before regex extraction.
+            function unwrapComments(html) {
+                return html.replace(/<!--\s*/g, '').replace(/\s*-->/g, '');
+            }
+            function extractTable(html, tableId) {
+                const re = new RegExp(`<table[^>]+id="${tableId}"[^>]*>([\\s\\S]*?)</table>`, 'i');
+                const m = html.match(re);
+                return m ? m[1] : null;
+            }
+            function extractColumns(tableHtml) {
+                const theadMatch = tableHtml.match(/<thead[\s\S]*?<\/thead>/i);
+                if (!theadMatch) return [];
+                const trs = [...theadMatch[0].matchAll(/<tr[\s\S]*?<\/tr>/gi)].map(m => m[0]);
+                const headerRow = [...trs].reverse().find(tr => !/over_header/i.test(tr));
+                if (!headerRow) return [];
+                return [...headerRow.matchAll(/data-stat="([^"]+)"/gi)].map(m => m[1]);
+            }
+            function extractRows(tableHtml, columns) {
+                const tbodyMatch = tableHtml.match(/<tbody>([\s\S]*?)<\/tbody>/i);
+                if (!tbodyMatch) return [];
+                const out = [];
+                const trRe = /<tr([^>]*)>([\s\S]*?)<\/tr>/gi;
+                let m;
+                while ((m = trRe.exec(tbodyMatch[1])) !== null) {
+                    const attrs = m[1] || '';
+                    if (/class="[^"]*\b(spacer|thead)\b/i.test(attrs)) continue;
+                    const cells = [...m[2].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map(c => stripTags(c[1]));
+                    if (!cells.length) continue;
+                    const row = {};
+                    for (let i = 0; i < cells.length && i < columns.length; i++) row[columns[i]] = cells[i];
+                    out.push(row);
+                }
+                return out;
+            }
+            function pickInt(row, ...keys) {
+                for (const k of keys) {
+                    const v = row[k];
+                    if (v != null && v !== '') {
+                        const n = parseInt(String(v).replace(/,/g, ''), 10);
+                        if (Number.isFinite(n)) return n;
+                    }
+                }
+                return null;
+            }
+            function pickFloat(row, ...keys) {
+                for (const k of keys) {
+                    const v = row[k];
+                    if (v != null && v !== '') {
+                        const n = parseFloat(String(v).replace(/,/g, ''));
+                        if (Number.isFinite(n)) return round3(n);
+                    }
+                }
+                return null;
+            }
+
+            async function fetchAndParse(league, cfg) {
+                const teams = {};
+                let firstHtmlSample = null;
+                let tablesParsed = 0;
+                const errors = [];
+
+                for (const tableType of TABLE_TYPES) {
+                    const url = `https://fbref.com/en/comps/${cfg.compId}/${cfg.season}/${tableType}/${cfg.season}-${cfg.slug}-Stats`;
+                    let html;
+                    try {
+                        const r = await fetch(url, { headers: FBREF_HEADERS });
+                        if (!r.ok) { errors.push(`${tableType} HTTP ${r.status}`); continue; }
+                        html = await r.text();
+                    } catch (e) { errors.push(`${tableType}: ${e.message}`); continue; }
+                    if (!firstHtmlSample) firstHtmlSample = html.slice(0, 2000);
+                    const unwrapped = unwrapComments(html);
+
+                    const forId = tableType === 'keepers'
+                        ? 'stats_squads_keeper_for'
+                        : `stats_squads_${tableType}_for`;
+                    const againstId = tableType === 'shooting'
+                        ? 'stats_squads_shooting_against'
+                        : null;
+
+                    const forTable = extractTable(unwrapped, forId);
+                    if (forTable) {
+                        tablesParsed++;
+                        const cols = extractColumns(forTable);
+                        for (const row of extractRows(forTable, cols)) {
+                            const squad = stripTags(row.squad || row.team || '');
+                            if (!squad || squad === 'Squad') continue;
+                            if (!teams[squad]) teams[squad] = {};
+                            const t = teams[squad];
+                            if (tableType === 'shooting') {
+                                t.xGFor = pickFloat(row, 'xg');
+                                t.goalsFor = pickInt(row, 'goals_gk', 'gf');
+                                t.shots = pickInt(row, 'shots');
+                                t.shotsOnTarget = pickInt(row, 'shots_on_target');
+                            } else if (tableType === 'misc') {
+                                t.pressures = pickInt(row, 'pressures');
+                                t.pressureSuccess = pickFloat(row, 'pressure_regains', 'pressures_succ');
+                                t.setpieceGoals = pickInt(row, 'corner_kick_goals', 'goal_kick_goals');
+                            } else if (tableType === 'passing') {
+                                t.progressivePasses = pickInt(row, 'progressive_passes', 'prog');
+                                t.passCompletion = pickFloat(row, 'passes_pct', 'cmp_pct');
+                                t.keyPasses = pickInt(row, 'assisted_shots', 'kp');
+                            } else if (tableType === 'keepers') {
+                                t.psxgDiff = pickFloat(row, 'psxg_net', 'psxg_plus_minus');
+                                t.svPct = pickFloat(row, 'save_pct', 'sv_pct');
+                                t.cleanSheets = pickInt(row, 'clean_sheets', 'cs');
+                            }
+                        }
+                    } else {
+                        errors.push(`${tableType}: table ${forId} not found`);
+                    }
+                    if (againstId) {
+                        const againstTable = extractTable(unwrapped, againstId);
+                        if (againstTable) {
+                            tablesParsed++;
+                            const cols = extractColumns(againstTable);
+                            for (const row of extractRows(againstTable, cols)) {
+                                const squad = stripTags(row.squad || row.team || '').replace(/^vs\s+/i, '');
+                                if (!squad || squad === 'Squad') continue;
+                                if (!teams[squad]) teams[squad] = {};
+                                const t = teams[squad];
+                                t.xGAgainst = pickFloat(row, 'xg');
+                                t.goalsAgainst = pickInt(row, 'goals_gk', 'ga');
+                            }
+                        } else {
+                            errors.push(`shooting_against: table ${againstId} not found`);
+                        }
+                    }
+                }
+
+                for (const name of Object.keys(teams)) {
+                    const t = teams[name];
+                    if (t.xGFor != null && t.goalsFor != null) {
+                        t.xGDivergence = round3(t.goalsFor - t.xGFor);
+                    }
+                }
+                return { teams, tablesParsed, errors, firstHtmlSample };
+            }
+
+            const body = await request.json().catch(() => ({}));
+            const requested = Array.isArray(body?.leagues) && body.leagues.length
+                ? body.leagues : Object.keys(FBREF_LEAGUES);
+            const results = [];
+
+            for (const league of requested) {
+                const cfg = FBREF_LEAGUES[league];
+                if (!cfg) { results.push({ league, ok: false, error: 'unknown league' }); continue; }
+                try {
+                    const parsed = await fetchAndParse(league, cfg);
+                    const squads = Object.keys(parsed.teams).length;
+                    if (squads === 0) {
+                        // Rule 77: do not write empty data. Surface raw HTML
+                        // sample so a table-ID change can be diagnosed.
+                        results.push({
+                            league, squads: 0, ok: false,
+                            error: parsed.errors.join('; ') || 'no squads parsed',
+                            tablesParsed: parsed.tablesParsed,
+                            htmlSample: parsed.firstHtmlSample?.slice(0, 2000),
+                        });
+                        continue;
+                    }
+                    const output = {
+                        updated: new Date().toISOString(),
+                        competition: cfg.competition,
+                        season: cfg.season,
+                        source: 'FBref squad stats via CF Worker relay',
+                        teams: parsed.teams,
+                    };
+                    await env.FIELD_DATA.put(
+                        cfg.r2Key,
+                        JSON.stringify(output),
+                        { httpMetadata: { contentType: 'application/json' } }
+                    );
+                    results.push({
+                        league, squads, ok: true,
+                        tablesParsed: parsed.tablesParsed,
+                        errors: parsed.errors.length ? parsed.errors : undefined,
+                    });
+                } catch (e) {
+                    results.push({ league, ok: false, error: e.message });
+                }
+            }
+
+            const allOk = results.every(r => r.ok);
+            return new Response(JSON.stringify({ ok: allOk, results }, null, 2), {
+                status: 200,
+                headers: { ...CORS, 'Content-Type': 'application/json' },
+            });
         }
 
         // POST /session/record — record a session close into the codex table
@@ -10082,7 +10307,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
