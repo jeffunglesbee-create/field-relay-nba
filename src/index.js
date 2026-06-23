@@ -7087,6 +7087,40 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'missing required fields (id, brief_type, date, brief_text)' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+
+                // ── Quality scoring for client-archived briefs ───────────────
+                // mlb_game / night_owl / wc_matchup arrive with quality_score=null
+                // because the client has no quality chain. Score them here when
+                // absent; never regenerate (maxRetries:1, store-only). Scoring
+                // failure must never block archival (Rule 5).
+                let finalScore = typeof quality_score === 'number' ? quality_score : null;
+                if (finalScore === null && brief_text && brief_text.length > 50) {
+                    try {
+                        const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
+                        const callProxy = async (promptText) => {
+                            const r = await fetch(PROXY_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                                body: JSON.stringify({
+                                    model: 'claude-haiku-4-5-20251001',
+                                    max_tokens: 1000,
+                                    messages: [{ role: 'user', content: promptText }],
+                                }),
+                            });
+                            if (!r.ok) return null;
+                            const d = await r.json().catch(() => null);
+                            return d ? (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
+                        };
+                        const scoringPrompt = `Score this sports brief for journalism quality:\n\n${brief_text}`;
+                        const qResult = await runQualityChain(scoringPrompt, brief_text, callProxy, {
+                            sport: sport || null,
+                            scoreThreshold: 90,
+                            maxRetries: 1,
+                        });
+                        finalScore = qResult?.score ?? null;
+                    } catch (_) { /* scoring failure must not break archival */ }
+                }
+
                 await env.ARCHIVE_DB.prepare(
                     `INSERT INTO briefs
                        (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
@@ -7094,6 +7128,7 @@ export default {
                      ON CONFLICT(id) DO UPDATE SET
                        brief_text = excluded.brief_text,
                        word_count = excluded.word_count,
+                       quality_score = COALESCE(excluded.quality_score, briefs.quality_score),
                        source = excluded.source`
                 ).bind(
                     id, date, brief_type,
@@ -7101,12 +7136,13 @@ export default {
                     game_id || null,
                     brief_text,
                     model || null,
-                    typeof quality_score === 'number' ? quality_score : null,
+                    finalScore,
                     context_hash || null,
-                    typeof word_count === 'number' ? word_count : null,
+                    typeof word_count === 'number' ? word_count : brief_text.split(/\s+/).length,
                     source || 'client'
                 ).run();
-                return new Response('ok', { status: 200, headers: CORS });
+                return new Response(JSON.stringify({ ok: true, scored: finalScore !== null }),
+                    { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
             return new Response('Archive endpoint not found', { status: 404, headers: CORS });
