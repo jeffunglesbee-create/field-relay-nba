@@ -9234,19 +9234,27 @@ export default {
             const CORE = 'https://sports.core.api.espn.com/v2/sports/soccer';
             const compBase = `${CORE}/leagues/${league}/events/${eventId}/competitions/${eventId}`;
 
-            let homeId, awayId, homeName, awayName;
+            let homeId, awayId, homeName, awayName, homeAbbr, awayAbbr;
             try {
-                const compRes = await fetch(`${compBase}/competitors`,
-                    { headers: { 'User-Agent': 'FIELD/1.0' } });
-                if (!compRes.ok) throw new Error(`competitors ${compRes.status}`);
-                const compData = await compRes.json();
-                for (const item of compData.items || []) {
-                    if (item.homeAway === 'home') {
-                        homeId = item.id;
-                        homeName = item.team?.displayName || item.id;
+                // site.api.espn.com/summary returns inline displayName + abbreviation
+                // alongside competitor IDs. The core API /competitors endpoint returns
+                // team as {$ref} only — no inline name — so we use summary for step 1.
+                const summaryRes = await fetch(
+                    `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/summary?event=${eventId}`,
+                    { headers: { 'User-Agent': 'FIELD/1.0' } }
+                );
+                if (!summaryRes.ok) throw new Error(`summary ${summaryRes.status}`);
+                const summaryData = await summaryRes.json();
+                const competitors = summaryData?.header?.competitions?.[0]?.competitors || [];
+                for (const comp of competitors) {
+                    if (comp.homeAway === 'home') {
+                        homeId   = comp.id;
+                        homeName = comp.team?.displayName || comp.id;
+                        homeAbbr = comp.team?.abbreviation;
                     } else {
-                        awayId = item.id;
-                        awayName = item.team?.displayName || item.id;
+                        awayId   = comp.id;
+                        awayName = comp.team?.displayName || comp.id;
+                        awayAbbr = comp.team?.abbreviation;
                     }
                 }
                 if (!homeId || !awayId) throw new Error('could not resolve competitors');
@@ -9294,8 +9302,8 @@ export default {
                 league,
                 _hasXG: hasXG,
                 _source: 'espn-core',
-                home: { id: homeId, name: homeName, ...homeXG },
-                away: { id: awayId, name: awayName, ...awayXG },
+                home: { id: homeId, name: homeName, abbr: homeAbbr, ...homeXG },
+                away: { id: awayId, name: awayName, abbr: awayAbbr, ...awayXG },
             };
             // Pre-game 5min; live 60s; post-game 24h. xG > 0 ⇒ play has started.
             const ttl = !hasXG ? 300 : ((homeXG.expectedGoals > 0 || awayXG.expectedGoals > 0) ? 86400 : 60);
