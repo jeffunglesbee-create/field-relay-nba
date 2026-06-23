@@ -7490,7 +7490,6 @@ export default {
                 const regMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
-                           g.source_id,
                            NULL as series_key, NULL as importance
                     FROM regular_season_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -7502,7 +7501,6 @@ export default {
                 const postMissing = await env.ARCHIVE_DB.prepare(`
                     SELECT g.id, g.date, g.sport, g.home, g.away,
                            g.home_score, g.away_score, g.closing_odds,
-                           g.source_id,
                            g.series_key, g.importance
                     FROM postseason_games g
                     WHERE g.home_score IS NOT NULL ${dateClause}
@@ -10567,7 +10565,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/apisports', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
