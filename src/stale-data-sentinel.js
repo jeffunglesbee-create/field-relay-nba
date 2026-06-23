@@ -107,21 +107,9 @@ const SOURCES = [
         maxAgeHours: 4, season: [10, 6],
         check: (env) => checkR2(env, 'nhl/scf-2026/series-stats.json'),
     },
-    {
-        key: 'soccer_fbref_epl', label: 'Soccer FBref EPL',
-        maxAgeHours: 72, season: [8, 5],
-        check: (env) => checkR2(env, 'soccer/fbref/epl.json'),
-    },
-    {
-        key: 'soccer_fbref_wc', label: 'Soccer FBref WC 2026',
-        maxAgeHours: 72, season: [6, 7],
-        check: (env) => checkR2(env, 'soccer/fbref/wc2026.json'),
-    },
-    {
-        key: 'soccer_fbref_mls', label: 'Soccer FBref MLS',
-        maxAgeHours: 72, season: [2, 11],
-        check: (env) => checkR2(env, 'soccer/fbref/mls.json'),
-    },
+    // soccer_fbref_epl / _wc / _mls removed 2026-06-23:
+    // FBref lost Opta licence Jan 2026; pipeline retired. ESPN Core API
+    // xG now served live via /soccer/xg — no R2 artifact to check.
     {
         // wc_third_place_standings view does not exist; wc_group is the
         // source of truth and has no updated_at — freshness collapses to
