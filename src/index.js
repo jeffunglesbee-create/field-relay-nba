@@ -7131,11 +7131,20 @@ export default {
                         if (game_id) {
                             try {
                                 const _gRow = await (async () => {
+                                    // Try 1: primary key match (relay-generated briefs)
                                     const r = await env.ARCHIVE_DB.prepare(
                                         `SELECT home, away, home_score, away_score, note
                                          FROM regular_season_games WHERE id = ? LIMIT 1`
                                     ).bind(game_id).first().catch(() => null);
                                     if (r) return r;
+                                    // Try 2: espn_event_id match (client night_owl/mlb_game briefs
+                                    // pass topGame.sourceId = ESPN numeric event ID as game_id)
+                                    const r2 = await env.ARCHIVE_DB.prepare(
+                                        `SELECT home, away, home_score, away_score, note
+                                         FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+                                    ).bind(game_id).first().catch(() => null);
+                                    if (r2) return r2;
+                                    // Try 3: postseason primary key
                                     return await env.ARCHIVE_DB.prepare(
                                         `SELECT home, away, home_score, away_score, NULL as note
                                          FROM postseason_games WHERE id = ? LIMIT 1`
