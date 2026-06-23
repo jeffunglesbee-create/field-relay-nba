@@ -273,8 +273,31 @@ async function buildNBAClutchContext(env, game) {
 // absence per CC-CMD 2026-06-23) or when the game object doesn't carry
 // the ESPN identifiers (backfill / per-game-route paths). Never throws.
 async function buildSoccerXGContext(env, game) {
-    const league  = game.espnLeague;
-    const eventId = game.eventId;
+    // Derive league slug when game.espnLeague is absent (backfill path).
+    // Maps unnormalized D1 sport strings → ESPN API league slugs.
+    // Live cron path always passes game.espnLeague explicitly — unchanged.
+    const _SOCCER_SPORT_TO_LEAGUE = {
+        'wc26': 'fifa.world', 'soccer': 'fifa.world',
+        'fifa world cup 2026': 'fifa.world',
+        'fifa world cup': 'fifa.world',
+        'world cup': 'fifa.world',
+        'epl': 'eng.1',   'english premier league': 'eng.1',
+        'mls': 'usa.1',   'major league soccer': 'usa.1',
+        'ucl': 'uefa.champions',
+        'laliga': 'esp.1', 'la liga': 'esp.1',
+        'seriea': 'ita.1', 'serie a': 'ita.1',
+        'bundesliga': 'ger.1',
+        'ligue1': 'fra.1', 'ligue 1': 'fra.1',
+    };
+    const _sportRaw = (game.sport || '').toLowerCase();
+    const league  = game.espnLeague
+        || _SOCCER_SPORT_TO_LEAGUE[_sportRaw]
+        || null;
+    const eventId = game.eventId
+        || game.sourceId
+        || game.source_id
+        || game.espnEventId
+        || null;
     if (!league || !eventId) return '';
     const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
     try {
@@ -362,7 +385,16 @@ async function buildESPNSummaryContext(env, game) {
     const sourceId = game.sourceId || game.source_id || game.espnEventId || game.eventId;
     if (!sourceId) return '';
 
-    const sportKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
+    // Normalize unnormalized D1 sport strings (e.g. "FIFA World Cup 2026")
+    // to the keys used in _ESPN_SPORT_SLUG (e.g. "wc26"). assembleContext
+    // normalizes for registry filtering but passes the original game object
+    // to builders — builders must normalize themselves.
+    const _SUMMARY_SPORT_NORMALIZE = {
+        'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26', 'worldcup': 'wc26',
+        'worldcup2026': 'wc26',
+    };
+    const _sportRawKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
+    const sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
     const slug = _ESPN_SPORT_SLUG[sportKey]
         || (game.espnLeague ? _ESPN_SPORT_SLUG[String(game.espnLeague).toLowerCase()] : null)
         || null;
