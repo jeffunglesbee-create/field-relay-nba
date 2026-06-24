@@ -445,18 +445,25 @@ function advancementState(prob) {
 async function findBracketImpact(env, triggeredBy) {
     if (!env?.ARCHIVE_DB || !triggeredBy) return {};
     try {
-        const rows = await env.ARCHIVE_DB.prepare(
-            `SELECT team, champion_prob, r32_prob, created_at
-             FROM bracket_snapshots
-             WHERE triggered_by = ?
-             ORDER BY team, created_at`
-        ).bind(triggeredBy).all();
+        // Dual-key pattern: 'pre:{key}' = before-result snapshot,
+        // '{key}' = after-result snapshot. Written by BracketDO Step 10.
+        const [preRows, postRows] = await Promise.all([
+            env.ARCHIVE_DB.prepare(
+                `SELECT team, champion_prob, r32_prob FROM bracket_snapshots
+                 WHERE triggered_by = ? ORDER BY team`
+            ).bind(`pre:${triggeredBy}`).all(),
+            env.ARCHIVE_DB.prepare(
+                `SELECT team, champion_prob, r32_prob FROM bracket_snapshots
+                 WHERE triggered_by = ? ORDER BY team`
+            ).bind(triggeredBy).all(),
+        ]);
 
         const impact = {};
-        for (const row of (rows.results || [])) {
-            if (!impact[row.team]) {
-                impact[row.team] = { before: row.champion_prob, r32Before: row.r32_prob };
-            } else {
+        for (const row of (preRows.results || [])) {
+            impact[row.team] = { before: row.champion_prob, r32Before: row.r32_prob };
+        }
+        for (const row of (postRows.results || [])) {
+            if (impact[row.team]) {
                 impact[row.team].after    = row.champion_prob;
                 impact[row.team].r32After = row.r32_prob;
             }

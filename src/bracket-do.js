@@ -398,13 +398,39 @@ export class BracketDO {
 
         console.log(`[BracketDO] recomputed: ${newSnapshot.teams?.length} teams · delta significant: ${delta?.significant} · ws clients: ${fanOutCount}`);
 
-        // 10. Write projection snapshot to D1 for calibration/replay.
-        // Fire-and-forget — never blocks or throws into the recompute path.
+        // 10. Write projection snapshots to D1 for calibration/replay.
+        // Two writes per result: 'pre:{key}' = projections BEFORE this result
+        // (this.prevSnapshot, already rotated at Step 5); '{key}' = projections
+        // AFTER. findBracketImpact diffs the two to compute pChamp deltas.
         if (newSnapshot.teams?.length > 0) {
             const today = new Date().toISOString().slice(0, 10);
             const triggeredBy = triggerResult
                 ? `${triggerResult.home}_${triggerResult.away}_${today}`.replace(/\s+/g, '_').slice(0, 120)
                 : 'scheduled';
+            const _mapTeams = snap => (snap.teams || []).map(t => ({
+                name:   t.name,
+                pR32:   t.pR32   ?? null,
+                pR16:   t.pR16   ?? null,
+                pQF:    t.pQF    ?? null,
+                pSF:    t.pSF    ?? null,
+                pFinal: t.pFinal ?? null,
+                pChamp: t.pChamp ?? null,
+            }));
+            // Pre: projections BEFORE this result (this.prevSnapshot set at Step 5)
+            if (this.prevSnapshot?.teams?.length > 0) {
+                this.ctx.waitUntil(
+                    fetch(`${RELAY_BASE}/archive/bracket-snapshot`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({
+                            triggered_by: `pre:${triggeredBy}`,
+                            date:         today,
+                            teams:        _mapTeams(this.prevSnapshot),
+                        }),
+                    }).catch(e => console.warn('[BracketDO] pre-snapshot write failed:', e.message))
+                );
+            }
+            // Post: projections AFTER this result
             this.ctx.waitUntil(
                 fetch(`${RELAY_BASE}/archive/bracket-snapshot`, {
                     method:  'POST',
@@ -412,17 +438,9 @@ export class BracketDO {
                     body:    JSON.stringify({
                         triggered_by: triggeredBy,
                         date:         today,
-                        teams:        newSnapshot.teams.map(t => ({
-                            name:   t.name,
-                            pR32:   t.pR32   ?? null,
-                            pR16:   t.pR16   ?? null,
-                            pQF:    t.pQF    ?? null,
-                            pSF:    t.pSF    ?? null,
-                            pFinal: t.pFinal ?? null,
-                            pChamp: t.pChamp ?? null,
-                        })),
+                        teams:        _mapTeams(newSnapshot),
                     }),
-                }).catch(e => console.warn('[BracketDO] snapshot write failed:', e.message))
+                }).catch(e => console.warn('[BracketDO] post-snapshot write failed:', e.message))
             );
         }
 
