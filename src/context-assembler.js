@@ -548,7 +548,15 @@ const _SPORT_NORMALIZE = {
 async function assembleContext(env, game, totalBudget = 1500) {
     if (!env || !game) return '';
     const _raw = String(game.sport || '').toLowerCase();
-    const sport = _SPORT_NORMALIZE[_raw] || _raw;
+    let sport = _SPORT_NORMALIZE[_raw] || _raw;
+    // Secondary: promote 'soccer' → 'wc26' when league signals WC.
+    // ESPN API returns game.sport='soccer' for all soccer including WC;
+    // _SPORT_NORMALIZE only matches full 'fifa world cup' strings.
+    // Without this, path_traps + bracket_impact (sports:['wc26']) drop silently.
+    if (sport === 'soccer') {
+        const _league = String(game.league || game.espnLeague || '').toLowerCase();
+        if (/world.cup|fifa|wc26/i.test(_league)) sport = 'wc26';
+    }
     const applicable = CONTEXT_SOURCES.filter(s =>
         !s.sports || s.sports.includes(sport));
     applicable.sort((a, b) => a.priority - b.priority);
