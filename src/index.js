@@ -4323,7 +4323,11 @@ async function executeSeriesPreviewBackfill(env) {
     if (!initial || initial.length < 30) { series_skipped++; continue; }
 
     const qResult = await runQualityChain(seriesPrompt, initial, callProxy, {
-      sport, scoreThreshold: 240, maxRetries: 3,
+      sport,
+      scoreThreshold: 240,
+      maxRetries: 3,
+      game:        { home: higherSeed, away: lowerSeed },
+      matchupNote: series.narrative || null,
     });
     const prose = stripMarkdown(qResult.text);
     const briefDate = new Date().toISOString().slice(0, 10);
@@ -9114,6 +9118,8 @@ export default {
             const briefType   = body.briefType || 'generic';
             const max_tokens  = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
             const scoreFloor  = body.scoreThreshold || 130;
+            const game        = body.game        || null;
+            const matchupNote = body.matchupNote || null;
             // Prepend v4 voice register so /journalism/generate consumers
             // inherit the same framing as cron + backfill paths.
             const promptWithVoice = FIELD_VOICE_REGISTER + '\n' + body.prompt;
@@ -9170,6 +9176,8 @@ export default {
               sport,
               scoreThreshold: scoreFloor,
               maxRetries: 6,
+              game,
+              matchupNote,
             });
 
             // ── PF-1: Strip markdown bleed (May 31 2026) ──────────────────
