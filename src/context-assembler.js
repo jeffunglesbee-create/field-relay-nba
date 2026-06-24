@@ -481,15 +481,19 @@ const CONTEXT_SOURCES = [
     { id: 'path_traps', priority: 4, budget: 120, sports: ['wc26'],
       builder: async (env, game) => {
           if (!env?.FIELD_JOURNALISM) return '';
-          const home = (game.home || '').trim();
-          const away = (game.away || '').trim();
-          if (!home && !away) return '';
+          // Match across display name, ESPN shortDisplayName, FIFA code —
+          // ESPN scoreboard yields short codes ("BIH"); bracketTraps carry
+          // full names ("Bosnia and Herzegovina") + fifaCode. Match either.
+          const hForms = new Set([game.home, game.homeAbbr].filter(Boolean));
+          const aForms = new Set([game.away, game.awayAbbr].filter(Boolean));
+          if (!hForms.size && !aForms.size) return '';
           try {
               const raw = await env.FIELD_JOURNALISM.get('wc:projections:current');
               if (!raw) return '';
               const proj = JSON.parse(raw);
               const traps = (proj.bracketTraps || []).filter(t =>
-                  t.team === home || t.team === away
+                  hForms.has(t.team) || aForms.has(t.team) ||
+                  hForms.has(t.fifaCode) || aForms.has(t.fifaCode)
               );
               if (!traps.length) return '';
               const lines = traps.map(t => {
