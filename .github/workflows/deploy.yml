@@ -2,6 +2,10 @@ name: Deploy RELAY Worker
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'wrangler.toml'
+      - 'workers/**'
   workflow_dispatch:
 
 permissions:
