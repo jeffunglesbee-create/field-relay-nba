@@ -1051,6 +1051,90 @@ export function detectBracketTraps(countsByPos, N, nameToCtx) {
 // Returns:
 //   { gainers: [...], losers: [...], secondaryBeneficiaries: [...],
 //     secondaryLosers: [...], topMover: {...} }
+// ── detectEliminationTraps ───────────────────────────────────────────────────
+// Finds IDLE teams (not playing today) whose pR32 could fall below a DANGER
+// threshold if rival results go badly. Conceptually distinct from
+// detectBracketTraps (path-position trap for the team's own group finish).
+//
+// Method: proxy approximation, not full Monte Carlo. For each game involving
+// a same-group rival, multiply the idle team's pR32 by 0.70 as a credible
+// adversarial-result penalty. Surfaces traps where current >= DANGER but the
+// worst-case sweep drops it below — meaningful risks without O(N^3) cost.
+//
+// RUWT compliance: named binary conditions only ('ELIMINATION_TRAP' /
+// 'DANGER_TRAP'). No drama scoring, no composite interest level (ADR-002).
+export function detectEliminationTraps(todayGames, projections, standings) {
+    if (!todayGames?.length || !projections?.teams?.length) return [];
+
+    const playingTeams = new Set(
+        todayGames.flatMap(g => [g.home, g.away])
+            .map(n => (n || '').toLowerCase().trim())
+    );
+
+    const DANGER_THRESHOLD = 0.15;
+    const ELIM_THRESHOLD   = 0.02;
+
+    const teamMap = {};
+    for (const t of projections.teams) {
+        teamMap[(t.name || '').toLowerCase().trim()] = t;
+    }
+
+    const traps = [];
+
+    for (const t of projections.teams) {
+        const key = (t.name || '').toLowerCase().trim();
+        if (playingTeams.has(key)) continue;
+        const currentProb = t.pR32 ?? 0;
+        if (currentProb >= 0.98) continue;
+        if (currentProb <= 0.02) continue;
+
+        const group = t.group;
+        if (!group) continue;
+
+        const groupGames = todayGames.filter(g => {
+            const hKey = (g.home || '').toLowerCase().trim();
+            const aKey = (g.away || '').toLowerCase().trim();
+            const hTeam = teamMap[hKey];
+            const aTeam = teamMap[aKey];
+            return (hTeam?.group === group) || (aTeam?.group === group);
+        });
+
+        if (!groupGames.length) continue;
+
+        let worstCaseProb = currentProb;
+        const dependsOn = [];
+
+        for (const g of groupGames) {
+            const hKey = (g.home || '').toLowerCase().trim();
+            const aKey = (g.away || '').toLowerCase().trim();
+            const hTeam = teamMap[hKey];
+            const aTeam = teamMap[aKey];
+            if (hTeam?.group === group || aTeam?.group === group) {
+                worstCaseProb *= 0.70;
+                const needed = hTeam?.group === group
+                    ? `${g.away} must not lose`
+                    : `${g.home} must not lose`;
+                dependsOn.push({ game: `${g.home} vs ${g.away}`, needed });
+            }
+        }
+
+        if (worstCaseProb < DANGER_THRESHOLD && currentProb >= DANGER_THRESHOLD) {
+            traps.push({
+                team:           t.name,
+                group:          t.group,
+                fifaCode:       t.fifaCode,
+                currentProb:    Math.round(currentProb * 1000) / 1000,
+                worstCaseProb:  Math.round(worstCaseProb * 1000) / 1000,
+                type:           worstCaseProb < ELIM_THRESHOLD
+                                    ? 'ELIMINATION_TRAP' : 'DANGER_TRAP',
+                dependsOn,
+            });
+        }
+    }
+
+    return traps.sort((a, b) => a.worstCaseProb - b.worstCaseProb);
+}
+
 export function computeMovers(prev, curr, teamsPlayedToday = new Set()) {
   if (!prev?.teams || !curr?.teams) return null;
 

@@ -6289,6 +6289,49 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // GET /wc/elimination-traps — idle-team vulnerability scan.
+            // Distinct from /wc/traps (path traps on team's own group finish).
+            // Reads today's WC fixtures from /wc/odds-probs and current
+            // projections from KV; flags teams whose pR32 could fall below
+            // DANGER threshold via adversarial-result proxy sweep.
+            if (pathname === '/wc/elimination-traps') {
+                try {
+                    const kvProj = env.FIELD_JOURNALISM
+                        ? await env.FIELD_JOURNALISM.get('wc:projections:current') : null;
+                    if (!kvProj) return new Response(
+                        JSON.stringify({ ok: true, traps: [], pending: true }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                    const projections = JSON.parse(kvProj);
+
+                    const today = url.searchParams.get('date')
+                        || new Date().toISOString().slice(0, 10);
+                    const oddsRes = await fetch(`${env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev'}/wc/odds-probs`, { cache: 'no-store' });
+                    const oddsData = oddsRes.ok ? await oddsRes.json() : { probs: [] };
+                    const todayGames = (oddsData.probs || [])
+                        .filter(g => (g.commence || '').startsWith(today))
+                        .map(g => ({ home: g.home_team, away: g.away_team }));
+
+                    const standRes = await fetch(`${env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev'}/wc/standings`, { cache: 'no-store' });
+                    const standings = standRes.ok ? ((await standRes.json()).groups ?? {}) : {};
+
+                    const { detectEliminationTraps } = await import('./wc-tournament-projections.js');
+                    const traps = detectEliminationTraps(todayGames, projections, standings);
+
+                    return new Response(JSON.stringify({
+                        ok: true,
+                        date: today,
+                        todayGameCount: todayGames.length,
+                        traps,
+                        generatedAt: new Date().toISOString(),
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json',
+                                     'Cache-Control': 'public, max-age=300' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             // GET /wc/traps — bracket trap detection slice from latest projections
             if (pathname === '/wc/traps') {
                 const raw = env.FIELD_JOURNALISM
@@ -10633,6 +10676,7 @@ export default {
                         '/wc/third-place',
                         '/wc/projections',
                         '/wc/traps',
+                        '/wc/elimination-traps',
                         '/wc/bracket',
                         '/wc/bracket/state',
                         '/wc/bracket/refresh',

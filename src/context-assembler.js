@@ -428,12 +428,101 @@ async function buildESPNSummaryContext(env, game) {
     } catch (_) { return ''; }
 }
 
+// ── findBracketImpact ────────────────────────────────────────────────────
+// Reads bracket_snapshots (Phase 1) to find pre/post championship-prob delta
+// per team for a specific game (keyed by triggered_by). Returns {} when no
+// snapshots match. State labels (THROUGH / STRONG / ALIVE / DANGER /
+// LIFE SUPPORT / ELIMINATED) bucket pR32 for human-readable transitions.
+function advancementState(prob) {
+    if (prob <= 0)    return 'ELIMINATED';
+    if (prob < 0.15)  return 'LIFE SUPPORT';
+    if (prob < 0.40)  return 'DANGER';
+    if (prob < 0.70)  return 'ALIVE';
+    if (prob < 0.90)  return 'STRONG';
+    return                   'THROUGH';
+}
+
+async function findBracketImpact(env, triggeredBy) {
+    if (!env?.ARCHIVE_DB || !triggeredBy) return {};
+    try {
+        const rows = await env.ARCHIVE_DB.prepare(
+            `SELECT team, champion_prob, r32_prob, created_at
+             FROM bracket_snapshots
+             WHERE triggered_by = ?
+             ORDER BY team, created_at`
+        ).bind(triggeredBy).all();
+
+        const impact = {};
+        for (const row of (rows.results || [])) {
+            if (!impact[row.team]) {
+                impact[row.team] = { before: row.champion_prob, r32Before: row.r32_prob };
+            } else {
+                impact[row.team].after    = row.champion_prob;
+                impact[row.team].r32After = row.r32_prob;
+            }
+        }
+        for (const [, d] of Object.entries(impact)) {
+            if (d.before != null && d.after != null) {
+                d.change      = Math.round((d.after - d.before) * 1000) / 1000;
+                d.stateBefore = advancementState(d.r32Before ?? 0);
+                d.stateAfter  = advancementState(d.r32After  ?? 0);
+            }
+        }
+        return impact;
+    } catch (_) { return {}; }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
 const CONTEXT_SOURCES = [
     { id: 'espn_summary', priority: 3, budget: 200, builder: buildESPNSummaryContext,
       sports: ['mlb', 'nba', 'wnba', 'nhl', 'wc26', 'soccer'] },
+    { id: 'path_traps', priority: 4, budget: 120, sports: ['wc26'],
+      builder: async (env, game) => {
+          if (!env?.FIELD_JOURNALISM) return '';
+          const home = (game.home || '').trim();
+          const away = (game.away || '').trim();
+          if (!home && !away) return '';
+          try {
+              const raw = await env.FIELD_JOURNALISM.get('wc:projections:current');
+              if (!raw) return '';
+              const proj = JSON.parse(raw);
+              const traps = (proj.bracketTraps || []).filter(t =>
+                  t.team === home || t.team === away
+              );
+              if (!traps.length) return '';
+              const lines = traps.map(t => {
+                  const delta1 = Math.round((t.pChampIf1st ?? 0) * 100);
+                  const delta2 = Math.round((t.pChampIf2nd ?? 0) * 100);
+                  const swing  = Math.round((t.delta ?? 0) * 100);
+                  return `PATH TRAP — ${t.team}: finishing 2nd yields +${swing}% pChamp (as 1st: ${delta1}%, as 2nd: ${delta2}%)`;
+              });
+              return `[TRAP CONTEXT]\n${lines.join('\n')}`;
+          } catch (_) { return ''; }
+      },
+    },
+    { id: 'bracket_impact', priority: 4, budget: 150, sports: ['wc26'],
+      builder: async (env, game) => {
+          const triggeredBy = game.triggeredBy || game.gameId || game.id;
+          if (!triggeredBy) return '';
+          const impact = await findBracketImpact(env, triggeredBy);
+          const entries = Object.entries(impact)
+              .filter(([, d]) => d.change != null && Math.abs(d.change) >= 0.002)
+              .sort(([, a], [, b]) => Math.abs(b.change) - Math.abs(a.change))
+              .slice(0, 6);
+          if (!entries.length) return '';
+          const lines = entries.map(([team, d]) => {
+              const arrow = d.change > 0 ? '↑' : '↓';
+              const pct   = Math.round(Math.abs(d.change) * 100);
+              const state = d.stateBefore !== d.stateAfter
+                  ? `${d.stateBefore} → ${d.stateAfter}`
+                  : d.stateAfter;
+              return `${team}: ${state} ${arrow}${pct}%`;
+          });
+          return `[BRACKET IMPACT]\n${lines.join('\n')}`;
+      },
+    },
     { id: 'odds_story',   priority: 5, budget: 100, builder: buildOddsStoryContext,
       sports: ['mlb', 'nba', 'nhl', 'nfl', 'wnba', 'epl', 'mls',
                'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1'] },
