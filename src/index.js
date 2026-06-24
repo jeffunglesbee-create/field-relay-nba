@@ -7195,6 +7195,88 @@ export default {
                     { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // POST /archive/bracket-snapshot — batch-write projection snapshot for
+            // calibration. Called by BracketDO after every _recomputeAndBroadcast
+            // as fire-and-forget. Body: { triggered_by, date, teams: [{name,
+            // pR32, pR16, pQF, pSF, pFinal, pChamp}] }. INSERT OR REPLACE keyed
+            // on (team, date, triggered_by) so repeated recomputes within the
+            // same trigger window collapse to one row per team.
+            if (pathname === '/archive/bracket-snapshot' && request.method === 'POST') {
+                try {
+                    const body = await request.json();
+                    const { triggered_by = 'unknown', date, teams = [] } = body || {};
+                    if (!teams.length) return new Response(
+                        JSON.stringify({ ok: true, inserted: 0 }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                    const snapshotDate = date || new Date().toISOString().slice(0, 10);
+                    const safeTriggeredBy = String(triggered_by || 'unknown').slice(0, 120);
+
+                    const stmts = teams.map(t => {
+                        const id = `snap_${String(t.name || '').replace(/\s+/g, '_')}_${snapshotDate}_${safeTriggeredBy}`.slice(0, 180);
+                        return env.ARCHIVE_DB.prepare(
+                            `INSERT OR REPLACE INTO bracket_snapshots
+                             (id, date, match_id, team, r32_prob, r16_prob, qf_prob, sf_prob, final_prob, champion_prob, triggered_by)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                        ).bind(
+                            id, snapshotDate, safeTriggeredBy,
+                            t.name || '', t.pR32 ?? null, t.pR16 ?? null,
+                            t.pQF ?? null, t.pSF ?? null, t.pFinal ?? null,
+                            t.pChamp ?? null, safeTriggeredBy
+                        );
+                    });
+                    await env.ARCHIVE_DB.batch(stmts);
+                    return new Response(
+                        JSON.stringify({ ok: true, inserted: stmts.length, date: snapshotDate, triggered_by: safeTriggeredBy }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
+            // GET /archive/bracket-replay — query historical bracket snapshots.
+            //   ?team=Germany           → full arc for one team
+            //   ?date=2026-06-20        → full snapshot at a date
+            //   ?triggered_by=wc26_...  → pre/post snapshot for a specific match
+            //   ?since=2026-06-20       → all snapshots from date forward
+            //   no params               → index page (distinct dates + counts)
+            if (pathname === '/archive/bracket-replay' && request.method === 'GET') {
+                try {
+                    const team        = url.searchParams.get('team');
+                    const date        = url.searchParams.get('date');
+                    const triggeredBy = url.searchParams.get('triggered_by');
+                    const since       = url.searchParams.get('since');
+
+                    let query, params;
+                    if (team) {
+                        query  = `SELECT * FROM bracket_snapshots WHERE team = ? ORDER BY date, created_at`;
+                        params = [team];
+                    } else if (triggeredBy) {
+                        query  = `SELECT * FROM bracket_snapshots WHERE triggered_by = ? ORDER BY team, created_at`;
+                        params = [triggeredBy];
+                    } else if (since) {
+                        query  = `SELECT * FROM bracket_snapshots WHERE date >= ? ORDER BY date, created_at`;
+                        params = [since];
+                    } else if (date) {
+                        query  = `SELECT * FROM bracket_snapshots WHERE date = ? ORDER BY champion_prob DESC`;
+                        params = [date];
+                    } else {
+                        query  = `SELECT date, triggered_by, COUNT(*) as team_count FROM bracket_snapshots GROUP BY date, triggered_by ORDER BY date DESC LIMIT 50`;
+                        params = [];
+                    }
+                    const rows = await env.ARCHIVE_DB.prepare(query).bind(...params).all();
+                    return new Response(
+                        JSON.stringify({ ok: true, count: rows.results?.length ?? 0, rows: rows.results }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } }
+                    );
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             return new Response('Archive endpoint not found', { status: 404, headers: CORS });
         }
 
@@ -10607,6 +10689,11 @@ export default {
                         // Drama persistence (2026-06-19). POST-only in spec;
                         // listed for inventory discovery via the MCP probe.
                         '/archive/drama',
+                        // Bracket snapshots (Bracket Compound 2026-06-24).
+                        // POST writes per-recompute snapshots from BracketDO;
+                        // GET serves historical replay + per-team arcs.
+                        '/archive/bracket-snapshot',
+                        '/archive/bracket-replay',
                         // ESPN Golf relay (2026-06-17). All four routes are
                         // GET-only; query strings carry through the probe.
                         '/v2/golf/player-stats',

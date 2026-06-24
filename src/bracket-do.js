@@ -397,6 +397,35 @@ export class BracketDO {
         }
 
         console.log(`[BracketDO] recomputed: ${newSnapshot.teams?.length} teams · delta significant: ${delta?.significant} · ws clients: ${fanOutCount}`);
+
+        // 10. Write projection snapshot to D1 for calibration/replay.
+        // Fire-and-forget — never blocks or throws into the recompute path.
+        if (newSnapshot.teams?.length > 0) {
+            const today = new Date().toISOString().slice(0, 10);
+            const triggeredBy = triggerResult
+                ? `${triggerResult.home}_${triggerResult.away}_${today}`.replace(/\s+/g, '_').slice(0, 120)
+                : 'scheduled';
+            this.ctx.waitUntil(
+                fetch(`${RELAY_BASE}/archive/bracket-snapshot`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({
+                        triggered_by: triggeredBy,
+                        date:         today,
+                        teams:        newSnapshot.teams.map(t => ({
+                            name:   t.name,
+                            pR32:   t.pR32   ?? null,
+                            pR16:   t.pR16   ?? null,
+                            pQF:    t.pQF    ?? null,
+                            pSF:    t.pSF    ?? null,
+                            pFinal: t.pFinal ?? null,
+                            pChamp: t.pChamp ?? null,
+                        })),
+                    }),
+                }).catch(e => console.warn('[BracketDO] snapshot write failed:', e.message))
+            );
+        }
+
         return true;
     }
 
