@@ -64,7 +64,7 @@ import {
 import { buildFinalsContextBlock } from './finals-context.js';
 import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
-import { assembleContext } from './context-assembler.js';
+import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey } from './identity-resolver.js';
@@ -1576,7 +1576,7 @@ async function writeWCResult(db, game, env) {
             `Include: key goalscorers with minutes, standout performances, what this means for the group.`,
             `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
             ``,
-            `RESULT: ${home} ${homeScore} - ${awayScore} ${away}`,
+            `RESULT: ${homeName} ${homeScore} - ${awayScore} ${awayName}`,
             `Group: ${groupId}`,
             `Date: ${matchDate}`,
             eventsContext,
@@ -1588,13 +1588,14 @@ async function writeWCResult(db, game, env) {
             await env.JOURNALISM_QUEUE.send({
                 type: 'game-brief',
                 prompt,
-                eventId: gameId,
+                eventId: game.id,
                 max_tokens: 300,
                 sport: 'wc26',
-                home: home,
-                away: away,
+                home: homeName,
+                away: awayName,
                 homeScore,
                 awayScore,
+                bracketTriggeredBy: `${homeName}_${awayName}_${matchDate}`.replace(/\s+/g, '_').slice(0, 120),
                 enqueuedAt: Date.now(),
             });
         } catch (e) {
@@ -11106,10 +11107,35 @@ export default {
               const d = await r.json().catch(()=>null);
               return d ? (d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
             };
-            const initial = await callProxy(job.prompt);
+            // Append [BRACKET IMPACT] for WC game-briefs when pre/post snapshots
+            // exist in bracket_snapshots for this game. Snapshot is written async
+            // by BracketDO after writeWCResult fires; first attempt may miss, the
+            // .catch path returns {} silently — never blocks brief generation.
+            let jobPrompt = job.prompt;
+            if (job.sport === 'wc26' && job.bracketTriggeredBy && env.ARCHIVE_DB) {
+                try {
+                    const impact = await findBracketImpact(env, job.bracketTriggeredBy);
+                    const entries = Object.entries(impact)
+                        .filter(([, d]) => d.change != null && Math.abs(d.change) >= 0.002)
+                        .sort(([, a], [, b]) => Math.abs(b.change) - Math.abs(a.change))
+                        .slice(0, 6);
+                    if (entries.length) {
+                        const lines = entries.map(([team, d]) => {
+                            const arrow = d.change > 0 ? '↑' : '↓';
+                            const pct   = Math.round(Math.abs(d.change) * 100);
+                            const state = d.stateBefore !== d.stateAfter
+                                ? `${d.stateBefore} → ${d.stateAfter}`
+                                : d.stateAfter;
+                            return `${team}: ${state} ${arrow}${pct}%`;
+                        });
+                        jobPrompt = jobPrompt + `\n\n[BRACKET IMPACT]\n${lines.join('\n')}`;
+                    }
+                } catch (_) { /* bracket impact is additive — never block brief generation */ }
+            }
+            const initial = await callProxy(jobPrompt);
             if (!initial) throw new Error('proxy returned no prose');
             // Full quality chain — matches backfill + cron slate pipeline
-            const qResult = await runQualityChain(job.prompt, initial, callProxy, {
+            const qResult = await runQualityChain(jobPrompt, initial, callProxy, {
               sport: job.sport || null,
               scoreThreshold: 240,
               maxRetries: 2,

@@ -578,6 +578,8 @@ export {
     assembleContext,
     r2Json,
     resolveAbbr,
+    findBracketImpact,
+    advancementState,
     // Builders + helpers exported so the test surface can exercise them
     // independently without a full assembler run.
     buildSavantContext,
