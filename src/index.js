@@ -1540,6 +1540,19 @@ async function writeWCResult(db, game, env) {
 
     // Enqueue per-game brief (Night Owl style) for WC games
     if (env?.JOURNALISM_QUEUE) {
+        // Fetch pre-game matchup context cached by client via
+        // POST /wc/matchup/cache. Keys: wc:matchup:{home}_{away} and reverse.
+        // Non-blocking — empty string on miss or FIELD_JOURNALISM unavailable.
+        let matchupContext = '';
+        try {
+            if (env.FIELD_JOURNALISM) {
+                const _norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, '_');
+                const mcKey = `wc:matchup:${_norm(homeName)}_${_norm(awayName)}`;
+                const mc = await env.FIELD_JOURNALISM.get(mcKey);
+                if (mc) matchupContext = `\n\nPRE-GAME CONTEXT:\n${mc}`;
+            }
+        } catch (_) { /* non-blocking */ }
+
         // Fetch group standings for journalism context (post-result table —
         // recomputeGroupStandings has already run above). Non-blocking: empty
         // string on failure so the prompt degrades gracefully.
@@ -1597,6 +1610,7 @@ async function writeWCResult(db, game, env) {
             `RESULT: ${homeName} ${homeScore} - ${awayScore} ${awayName}`,
             `Group: ${groupId}`,
             `Date: ${matchDate}`,
+            matchupContext,
             standingsContext,
             eventsContext,
             ``,
@@ -6472,6 +6486,43 @@ export default {
                 }
             }
 
+            // POST /wc/matchup/cache — client writes pre-game matchupNote to KV
+            // so writeWCResult can inject it into the journalism prompt as a
+            // PRE-GAME CONTEXT block. Body: { home, away, note }. Stores both
+            // {home}_{away} and {away}_{home} keys with 24h TTL so the lookup
+            // works regardless of which side the relay treats as home.
+            if (pathname === '/wc/matchup/cache' && request.method === 'POST') {
+                if (!env.FIELD_JOURNALISM) return new Response(
+                    JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                );
+                try {
+                    const body = await request.json();
+                    const { home, away, note } = body || {};
+                    if (!home || !away || !note) return new Response(
+                        JSON.stringify({ ok: false, error: 'missing home/away/note' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                    const norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, '_');
+                    const key  = `wc:matchup:${norm(home)}_${norm(away)}`;
+                    const keyR = `wc:matchup:${norm(away)}_${norm(home)}`;
+                    const val  = String(note).slice(0, 400);
+                    await Promise.all([
+                        env.FIELD_JOURNALISM.put(key,  val, { expirationTtl: 86400 }),
+                        env.FIELD_JOURNALISM.put(keyR, val, { expirationTtl: 86400 }),
+                    ]);
+                    return new Response(
+                        JSON.stringify({ ok: true, key, keyR }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                } catch (e) {
+                    return new Response(
+                        JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                }
+            }
+
             return new Response('WC endpoint not found', { status: 404, headers: CORS });
         }
 
@@ -7455,7 +7506,8 @@ export default {
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
             && !(pathname === '/fixtures/fetch' && request.method === 'POST')
-            && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST'))
+            && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST')
+            && !(pathname === '/wc/matchup/cache' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
@@ -10708,6 +10760,7 @@ export default {
                         '/wc/bracket',
                         '/wc/bracket/state',
                         '/wc/bracket/refresh',
+                        '/wc/matchup/cache',
                         '/wc/movers',
                         '/wc/brief/tournament',
                         '/wc/injuries',
