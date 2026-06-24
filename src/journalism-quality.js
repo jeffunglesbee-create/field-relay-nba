@@ -665,6 +665,9 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     const scoreMatches = [...text.matchAll(/\b(\d{1,2})[–-](\d{1,2})\b/g)];
     const contradictions = scoreMatches
       .map(m => `${m[1]}-${m[2]}`)
+      // Exclude date-like patterns: real scores never have leading zeros (06-24
+      // is a date; 1-0 is a score). Filter before checking valid set.
+      .filter(s => !s.split('-')[0].startsWith('0') && !s.split('-')[1].startsWith('0'))
       .filter(s => !valid.has(s) && !valid.has(s.split('-').reverse().join('-')));
     if (contradictions.length) {
       const correct = `${hs}-${as_}`;
