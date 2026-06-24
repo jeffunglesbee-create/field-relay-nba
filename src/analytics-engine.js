@@ -9,7 +9,7 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
-const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11'];
+const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
 
@@ -1257,6 +1257,91 @@ async function runPhase10BLate(env, date) {
 }
 
 // Process one date end-to-end. Returns the status record for this date.
+// ── Phase 12: Quality Alert ───────────────────────────────────────────────
+// Daily quality snapshot: scans the 7-day briefs window, finds any types
+// with avg_score < 240 (excellence threshold) or failure_pct > 20%, writes
+// to analytics_output as feature='quality_alert'. The newspaper endpoint
+// reads this row automatically — bundle.quality_alert is populated without
+// manual intervention.
+//
+// Enrichment types excluded (wc_matchup, standings_snapshot, etc.) — they
+// are reference data, not journalism prose. Golf excluded — structural
+// ceiling, no context builder exists.
+//
+// Supersedes the inline Phase 8b alert (still present above; this writes
+// the same analytics_output row later, so Phase 12 wins via INSERT OR
+// REPLACE). Phase 8b cleanup is tracked as a separate carry-forward.
+async function runPhase12QualityAlert(env, date) {
+    if (!env.ARCHIVE_DB) return { skipped: true, reason: 'ARCHIVE_DB not bound' };
+    const since = addDays(date, -6); // 7-day window ending at date
+
+    const rows = await env.ARCHIVE_DB.prepare(`
+        SELECT brief_type, sport,
+               COUNT(*) as total,
+               COUNT(quality_score) as scored,
+               ROUND(AVG(quality_score), 1) as avg_score,
+               MAX(quality_score) as max_score,
+               SUM(CASE WHEN quality_score < 240 THEN 1 ELSE 0 END) as below_240,
+               SUM(CASE WHEN quality_score >= 240 THEN 1 ELSE 0 END) as above_240
+        FROM briefs WHERE date >= ? AND date <= ?
+        GROUP BY brief_type, sport
+        ORDER BY avg_score ASC NULLS LAST
+    `).bind(since, date).all();
+
+    const summary = rows.results || [];
+
+    const ENRICHMENT = new Set([
+        'wc_matchup', 'standings_snapshot', 'narrative_context',
+        'enrichment', 'kv_harvest', 'wc_tab',
+    ]);
+
+    const alerts = summary
+        .filter(r => r.scored >= 3)
+        .filter(r => {
+            if (ENRICHMENT.has(r.brief_type)) return false;
+            if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
+            const failRate = r.below_240 / r.scored;
+            return r.avg_score < 240 || failRate > 0.2;
+        })
+        .map(r => ({
+            brief_type: r.brief_type,
+            sport: r.sport || 'all',
+            avg_score: r.avg_score,
+            failure_pct: Math.round((r.below_240 / r.scored) * 100),
+            above_240: r.above_240 || 0,
+        }));
+
+    const typesAbove240 = summary.filter(r => (r.above_240 || 0) > 0).length;
+    const totalScored   = summary.reduce((n, r) => n + (r.scored || 0), 0);
+
+    const value = {
+        alert_count: alerts.length,
+        alerts,
+        since,
+        through: date,
+        types_above_240: typesAbove240,
+        total_types: summary.filter(r => r.scored >= 3 && !ENRICHMENT.has(r.brief_type)).length,
+        total_scored: totalScored,
+        generated_at: new Date().toISOString(),
+    };
+
+    const briefText = alerts.length === 0
+        ? `Quality OK — ${typesAbove240} type${typesAbove240 !== 1 ? 's' : ''} above 240/300 threshold`
+        : `${alerts.length} quality alert${alerts.length !== 1 ? 's' : ''}: `
+          + alerts.slice(0, 2).map(a => `${a.brief_type}/${a.sport} avg ${a.avg_score}`).join(', ')
+          + (alerts.length > 2 ? ` +${alerts.length - 2} more` : '');
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'quality_alert',
+        sport: null,
+        value,
+        briefText,
+    });
+
+    return { alerts: alerts.length, typesAbove240, totalScored, skipped: false };
+}
+
 // Phase 11 (writeRunStatus) runs in a finally so an unexpected throw in any
 // other phase still surfaces an observable health record — fix for the
 // Prompt 1 carry-forward bug where /analytics/status returned null even
@@ -1474,6 +1559,15 @@ async function processDate(env, date, { selfHealed }) {
         } else {
             console.log(`[ANALYTICS] Phase 6 skipped: ${date} is not Sunday (UTCDay=${processingDay})`);
         }
+
+        // Phase 12: Quality Alert — daily quality snapshot to analytics_output.
+        // Runs every day (outside the Sunday-only Phase 6 block) so the
+        // newspaper's bundle.quality_alert is fresh on every cron tick.
+        try {
+            await runPhase12QualityAlert(env, date);
+            featuresComputed++;
+            phasesCompleted.push('phase12');
+        } catch (e) { phasesFailed.push('phase12'); errors.push(`phase12: ${e.message}`); }
 
         // Touch unused locals — they exist for downstream prompts.
         void odds; void prevStars; void prevBriefs; void qualityScores;
