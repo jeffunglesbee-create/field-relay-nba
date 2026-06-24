@@ -1540,6 +1540,24 @@ async function writeWCResult(db, game, env) {
 
     // Enqueue per-game brief (Night Owl style) for WC games
     if (env?.JOURNALISM_QUEUE) {
+        // Fetch group standings for journalism context (post-result table —
+        // recomputeGroupStandings has already run above). Non-blocking: empty
+        // string on failure so the prompt degrades gracefully.
+        let standingsContext = '';
+        try {
+            const { results: gRows } = await env.WC2026_DB.prepare(
+                `SELECT team, won, drawn, lost, gd, points
+                 FROM wc_group WHERE group_id = ?
+                 ORDER BY points DESC, gd DESC, gf DESC`
+            ).bind(groupId).all();
+            if (gRows && gRows.length) {
+                const standingsLines = gRows.map((r, i) =>
+                    `  ${i + 1}. ${r.team}: ${r.points}pts (${r.won}W ${r.drawn}D ${r.lost}L, GD${r.gd >= 0 ? '+' : ''}${r.gd})`
+                ).join('\n');
+                standingsContext = `\n\nGROUP ${groupId} STANDINGS (after this result):\n${standingsLines}`;
+            }
+        } catch (_) { /* non-blocking — standings context is additive */ }
+
         // Fetch match events (goals, cards, subs) from api-sports for richer brief
         let eventsContext = '';
         try {
@@ -1579,6 +1597,7 @@ async function writeWCResult(db, game, env) {
             `RESULT: ${homeName} ${homeScore} - ${awayScore} ${awayName}`,
             `Group: ${groupId}`,
             `Date: ${matchDate}`,
+            standingsContext,
             eventsContext,
             ``,
             `SPORT BOUNDARY: This is a World Cup 2026 (soccer) match. Write ONLY soccer content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
