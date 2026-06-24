@@ -648,6 +648,43 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2d'); }
   }
 
+  // 2d-score: score contradiction — verifies no score in the text contradicts
+  // opts.game's known result. Distinct from 2d (which catches omissions):
+  // 2d fires when a stat from the prompt is absent; 2d-score fires when a
+  // DIFFERENT score appears in the text. Both orientations (home-away and
+  // away-home) are valid. Requires opts.game with homeScore + awayScore.
+  // Active for any relay-scored brief where the game object is known
+  // (WC queue consumer, MLB brief, Night Owl, Stakes Brief, J2 Series).
+  if (game?.homeScore !== undefined && game?.awayScore !== undefined
+      && retries < maxRetries) {
+    const hs = game.homeScore, as_ = game.awayScore;
+    const valid = new Set([
+      `${hs}-${as_}`, `${as_}-${hs}`,             // hyphen
+      `${hs}–${as_}`, `${as_}–${hs}`,   // en-dash
+    ]);
+    const scoreMatches = [...text.matchAll(/\b(\d{1,2})[–-](\d{1,2})\b/g)];
+    const contradictions = scoreMatches
+      .map(m => `${m[1]}-${m[2]}`)
+      .filter(s => !valid.has(s) && !valid.has(s.split('-').reverse().join('-')));
+    if (contradictions.length) {
+      const correct = `${hs}-${as_}`;
+      const retryPrompt = prompt +
+        `\n\nSCORE CONTRADICTION: Your draft contains "${contradictions[0]}" but ` +
+        `the actual result is ${game.home ?? 'home team'} ${correct} ` +
+        `${game.away ?? 'away team'}. Remove all incorrect scores. Use only ` +
+        `the real result in your rewrite.`;
+      const retried = await callProxy(retryPrompt);
+      if (retried && retried.length > 30) {
+        text = retried.trim(); retries++; layers_fired.push('2d-score');
+      }
+    }
+  }
+  // PROOF (Colombia 1-0 Congo DR brief, Jun 24 2026):
+  // Text contained "2-3 result". valid = {"1-0","0-1","1–0","0–1"}.
+  // "2-3" ∉ valid → contradiction fired → retry with SCORE CONTRADICTION.
+  // Without this layer: 2d passed (text had "1-0" in opening line),
+  // 258/300 score shipped with fabricated score mid-brief.
+
   // 2e: cross-sport hallucination
   const cross = hasCrossSportHallucination(text);
   if (cross.length && retries < maxRetries) {
