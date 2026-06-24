@@ -10223,16 +10223,21 @@ export default {
 
                     if (env.ARCHIVE_DB) {
                         try {
-                            const since = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+                            const since = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+                            const ENRICHMENT_SH = new Set(['wc_matchup','standings_snapshot','narrative_context','enrichment','kv_harvest','wc_tab']);
                             const q = await env.ARCHIVE_DB.prepare(`
-                                SELECT brief_type, COUNT(*) as total, COUNT(quality_score) as scored,
+                                SELECT brief_type, sport, COUNT(*) as total, COUNT(quality_score) as scored,
                                        ROUND(AVG(quality_score), 1) as avg_score
-                                FROM briefs WHERE date >= ? GROUP BY brief_type
+                                FROM briefs WHERE date >= ? GROUP BY brief_type, sport
                             `).bind(since).all();
                             const types = q.results || [];
                             out.quality = {
-                                degraded: types.filter(r => r.scored >= 3 && r.avg_score < 170)
-                                               .map(r => r.brief_type),
+                                degraded: types
+                                    .filter(r => r.scored >= 3)
+                                    .filter(r => !ENRICHMENT_SH.has(r.brief_type))
+                                    .filter(r => !(r.sport && r.sport.toLowerCase().includes('golf')))
+                                    .filter(r => r.avg_score < 240)
+                                    .map(r => r.brief_type),
                                 unscored: types.filter(r => r.total > 5 && r.scored === 0)
                                                .map(r => r.brief_type),
                             };
