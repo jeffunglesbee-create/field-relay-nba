@@ -2335,6 +2335,83 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
                        ?? null,
         };
     });
+    // ── FIELD Analytics Engine: field-relative SG proxies ────────────────────
+    // Attaches stats._derived to each leaderboard player using Broadie
+    // methodology applied to the leaderboard field as baseline.
+    // Consumed by buildGolfPromptContext at L15566–15580 (jubilant-bassoon).
+    // Field averages update dynamically — partial-field R1 averages are still
+    // meaningful as long as ≥5 players have complete stat data.
+    (function _attachDerived() {
+        const withStats = leaderboard.filter(p =>
+            p.stats?.gir > 0 &&
+            p.stats?.puttsPerGir > 0 &&
+            p.stats?.drivingDistance > 0 &&
+            p.stats?.drivingAccuracy > 0
+        );
+        if (withStats.length < 5) return; // insufficient baseline
+
+        const mean = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0) / arr.length;
+        const fieldGir   = mean(withStats, p => p.stats.gir);
+        const fieldPutts = mean(withStats, p => p.stats.puttsPerGir);
+        const fieldDist  = mean(withStats, p => p.stats.drivingDistance);
+        const fieldAcc   = mean(withStats, p => p.stats.drivingAccuracy);
+
+        for (const p of leaderboard) {
+            const s = p.stats;
+            if (!s?.gir || !s?.puttsPerGir || !s?.drivingDistance) continue;
+
+            const holes   = (typeof p.thru === 'number' && p.thru > 0) ? p.thru : 18;
+            const girsHit = Math.round(s.gir / 100 * holes);
+            if (girsHit < 1) continue;
+
+            // SG:Putting proxy — lower putts/GIR than field = strokes gained
+            const sgPuttingEst = +( -(s.puttsPerGir - fieldPutts) * girsHit ).toFixed(2);
+
+            // SG:Approach proxy — GIR% delta × holes played
+            const sgApproachEst = +( (s.gir - fieldGir) / 100 * holes ).toFixed(2);
+
+            // SG:OTT proxy — distance + accuracy delta vs field
+            const sgOttEst = +(
+                (s.drivingDistance - fieldDist) * 0.008 +
+                (s.drivingAccuracy - fieldAcc)  * 0.025
+            ).toFixed(2);
+
+            // ballStriking: 0–100 composite. 50=field avg, 75=elite, <40=struggling.
+            const ballStriking = Math.max(20, Math.min(100, Math.round(
+                50 + (s.gir - fieldGir) * 1.5 + (s.drivingAccuracy - fieldAcc) * 0.5
+            )));
+
+            // Narrative: strongest detectable signal only. null = no notable pattern.
+            const name = p.name || '';
+            let narrative = null;
+            if      (sgApproachEst >= 1.5 && sgPuttingEst >=  0.8)
+                narrative = `${name} is earning every stroke — elite approach game and putting`;
+            else if (sgApproachEst >= 1.0 && sgPuttingEst <= -0.5)
+                narrative = `${name} is striping it but leaving shots on the greens`;
+            else if (sgApproachEst <= -0.8 && sgPuttingEst >= 1.2)
+                narrative = `${name}'s putter is carrying them — approach game below field average`;
+            else if (sgApproachEst <= -1.0 && sgPuttingEst <= -0.5)
+                narrative = `${name} is grinding — both approach and putting below the field today`;
+            else if (sgOttEst >= 0.8 && sgApproachEst >= 0.5)
+                narrative = `${name} is hitting it long and accurate, creating easy scoring positions`;
+
+            s._derived = {
+                sgPuttingEst,
+                sgApproachEst,
+                sgOttEst,
+                ballStriking,
+                narrative,
+                fieldAvg: {
+                    gir:             +fieldGir.toFixed(1),
+                    puttsPerGir:     +fieldPutts.toFixed(3),
+                    drivingDistance: +fieldDist.toFixed(1),
+                    drivingAccuracy: +fieldAcc.toFixed(1),
+                    n:               withStats.length,
+                },
+            };
+        }
+    })();
+
     // Top-level round: prefer current-round derived from the first competitor's
     // linescores during live play. Falls back to ev.status.period (set during
     // off-play windows when ESPN populates it) then the short detail string.
