@@ -553,9 +553,12 @@ const ESPN_SUMMARY_HEADERS = {
     'Accept':  'application/json',
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
 };
-// Allow only the summary endpoint — no other site.api paths
+// Allow only the summary endpoint — no other site.api paths.
+// League segment accepts letters + digits + dots so soccer slugs work
+// (fifa.world, usa.1, eng.1, esp.1, etc.). MLB/NBA/NHL slugs are single
+// letters and still match.
 function espnSummaryAllowed(path) {
-    return /^\/sports\/[a-z]+\/[a-z]+\/summary$/.test(path.split('?')[0]);
+    return /^\/sports\/[a-z]+\/[a-z0-9.]+\/summary$/.test(path.split('?')[0]);
 }
 
 // ── BallDontLie (BDL) — NBA/WNBA/NFL player stats, standings, season averages ──
