@@ -1504,7 +1504,108 @@ const WC_NAME_FIX = {
 function wcFixName(n) { return WC_NAME_FIX[n] || n; }
 
 // Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
-async function writeWCResult(db, game, env) {
+// ── Auto-backfill: discover BSD league_id + UPDATE wc_results rows ─────
+// Called by /admin/wc/bsd-backfill (manual trigger) and by writeWCResult
+// once per day after the first WC final with a bsd_event_id. No external
+// credentials — uses the relay's BSD upstream + WC2026_DB binding.
+async function backfillWCBsdEventIds(env, { leagueId, since } = {}) {
+    if (!env?.WC2026_DB || !env?.BSD_API_TOKEN) {
+        return { ok: false, error: 'WC2026_DB or BSD_API_TOKEN unbound' };
+    }
+    const bsdBase = 'https://sports.bzzoiro.com';
+    const bsdHdrs = {
+        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+        'User-Agent': 'FIELD/1.0',
+        'Accept': 'application/json',
+    };
+
+    // 1. Discover league_id if not provided — probe live, take any WC league_id
+    let league = leagueId ? String(leagueId) : null;
+    if (!league) {
+        try {
+            const r = await fetch(`${bsdBase}/api/v2/events/live/`,
+                { headers: bsdHdrs, signal: AbortSignal.timeout(5000) });
+            if (r.ok) {
+                const d = await r.json();
+                const events = Array.isArray(d.events) ? d.events : [];
+                const { results: knownTeams } = await env.WC2026_DB.prepare(
+                    'SELECT DISTINCT home AS t FROM wc_results UNION SELECT DISTINCT away FROM wc_results'
+                ).all();
+                const known = new Set((knownTeams || []).map(r =>
+                    String(r.t || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
+                for (const ev of events) {
+                    const bh = String(ev.home_team?.name ?? ev.home_team ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const ba = String(ev.away_team?.name ?? ev.away_team ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (known.has(bh) || known.has(ba)) {
+                        league = String(ev.league_id || ev.league?.id || '');
+                        if (league) break;
+                    }
+                }
+            }
+        } catch (_) {}
+    }
+    if (!league) return { ok: false, error: 'league_id not discoverable from live events' };
+
+    // 2. Fetch BSD season events for that league_id
+    let seasonEvents = [];
+    try {
+        const r = await fetch(`${bsdBase}/api/v2/events/season/?league_id=${league}`,
+            { headers: bsdHdrs, signal: AbortSignal.timeout(10_000) });
+        if (r.ok) {
+            const d = await r.json();
+            seasonEvents = d.results || d.events || [];
+        }
+    } catch (_) {}
+    if (!seasonEvents.length) return { ok: false, error: 'BSD season returned no events', league_id: league };
+
+    // 3. Load wc_results rows lacking bsd_event_id (optionally filtered by since)
+    const sinceClause = since ? 'AND match_date >= ?' : '';
+    const stmt = env.WC2026_DB.prepare(
+        `SELECT game_id, home, away, match_date FROM wc_results
+         WHERE bsd_event_id IS NULL ${sinceClause}`);
+    const { results: pending } = await (since ? stmt.bind(since) : stmt).all();
+    if (!pending?.length) return { ok: true, league_id: league, season_events: seasonEvents.length,
+                                    matched: 0, updated: 0, remaining_null: 0 };
+
+    // 4. Match by normalized name (both orientations)
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const matches = [];
+    for (const wr of pending) {
+        const wh = norm(wr.home), wa = norm(wr.away);
+        const hit = seasonEvents.find(be => {
+            const bh = norm(be.home_team?.name ?? be.home_team);
+            const ba = norm(be.away_team?.name ?? be.away_team);
+            return (bh === wh && ba === wa) || (bh === wa && ba === wh);
+        });
+        if (hit) matches.push({ game_id: wr.game_id, bsd_event_id: String(hit.id) });
+    }
+
+    // 5. UPDATE matched rows
+    let updated = 0;
+    for (const m of matches) {
+        const r = await env.WC2026_DB.prepare(
+            'UPDATE wc_results SET bsd_event_id = ? WHERE game_id = ? AND bsd_event_id IS NULL'
+        ).bind(m.bsd_event_id, m.game_id).run();
+        if (r?.meta?.changes) updated += r.meta.changes;
+    }
+
+    // 6. Re-count remaining nulls
+    const { results: stillNull } = await env.WC2026_DB.prepare(
+        'SELECT COUNT(*) AS n FROM wc_results WHERE bsd_event_id IS NULL'
+    ).all();
+
+    return {
+        ok: true,
+        league_id: league,
+        season_events: seasonEvents.length,
+        pending_rows: pending.length,
+        matched: matches.length,
+        updated,
+        remaining_null: stillNull?.[0]?.n ?? null,
+    };
+}
+
+async function writeWCResult(db, game, env, ctx) {
     const homeName  = wcFixName(game.home?.name || '');
     const awayName  = wcFixName(game.away?.name || '');
     const groupId   = extractWCGroup(game.round, homeName, awayName);
@@ -1575,6 +1676,26 @@ async function writeWCResult(db, game, env) {
             } else {
                 await Promise.allSettled(captures);
             }
+        }
+
+        // Auto-trigger once-per-day backfill of remaining NULL bsd_event_id rows.
+        // Gated by KV key bsd:backfill:done:{YYYY-MM-DD} (24h TTL) so this fires
+        // on the FIRST WC final of each day only. Fire-and-forget via ctx.waitUntil
+        // passed from the calling handler. Defensive: no ctx → skip (admin endpoint
+        // is always available as manual fallback).
+        if (env?.FIELD_JOURNALISM && ctx?.waitUntil) {
+            const gateKey = `bsd:backfill:done:${matchDate}`;
+            ctx.waitUntil((async () => {
+                try {
+                    const already = await env.FIELD_JOURNALISM.get(gateKey);
+                    if (already) return;
+                    await env.FIELD_JOURNALISM.put(gateKey, '1', { expirationTtl: 86400 });
+                    const r = await backfillWCBsdEventIds(env, { since: matchDate });
+                    console.log('[writeWCResult] auto-backfill result:', JSON.stringify(r));
+                } catch (e) {
+                    console.warn('[writeWCResult] auto-backfill failed:', e.message);
+                }
+            })());
         }
     }
 
@@ -2900,9 +3021,9 @@ async function handleV2Games(url, env, ctx) {
                 // On MD3 (up to 6 simultaneous finals) this unblocks ~200ms
                 // of D1 latency from the hot /v2/games response path.
                 if (ctx?.waitUntil) {
-                    ctx.waitUntil(Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env))));
+                    ctx.waitUntil(Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env, ctx))));
                 } else {
-                    await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env)));
+                    await Promise.allSettled(finals.map(g => writeWCResult(env.WC2026_DB, g, env, ctx)));
                 }
             }
         }
@@ -6655,6 +6776,24 @@ export default {
             if (pathname === '/wc/wp/verify')   return handleWCWPVerify(env);
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
+
+            // Manual trigger for BSD event-ID backfill. Also auto-fires inside
+            // writeWCResult once per day (gated by FIELD_JOURNALISM KV) — this
+            // endpoint exists for diagnostics, dry-runs, and forced re-runs.
+            if (pathname === '/admin/wc/bsd-backfill' && request.method === 'POST') {
+                const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
+                if (auth !== env.FIELD_MCP_SECRET)
+                    return new Response('Unauthorized', { status: 401, headers: CORS });
+                const body = await request.json().catch(() => ({}));
+                const result = await backfillWCBsdEventIds(env, {
+                    leagueId: body.leagueId ? String(body.leagueId) : undefined,
+                    since:    body.since ? String(body.since) : undefined,
+                });
+                return new Response(JSON.stringify(result), {
+                    status: result.ok ? 200 : 400,
+                    headers: { 'Content-Type': 'application/json', ...CORS },
+                });
+            }
 
             // ── WC Tournament Projections (June 11 2026) ───────────────────────
             // GET  /wc/projections          — current per-team path probabilities
