@@ -20,6 +20,7 @@ jobs:
 
       # ── KV Bootstrap: create field-push-subs if missing, patch wrangler.toml ──
       - name: Bootstrap KV namespace (field-push-subs)
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -38,6 +39,7 @@ jobs:
 
       # ── KV Bootstrap: create field-journalism if missing (O(1) Newspaper L2) ──
       - name: Bootstrap KV namespace (field-journalism)
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -56,6 +58,7 @@ jobs:
 
       # ── KV Bootstrap: create field-mcp-oauth if missing (Tier 1 Phase 2) ───
       - name: Bootstrap KV namespace (field-mcp-oauth)
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
