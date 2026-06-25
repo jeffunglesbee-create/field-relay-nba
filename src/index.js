@@ -6174,6 +6174,57 @@ export default {
         // Auth: Authorization: Token ${env.BSD_API_TOKEN}
         // Docs: https://sports.bzzoiro.com/docs/football/
         if (pathname.startsWith('/bsd/')) {
+            // /bsd/contract — single source of truth for the BSD coordinate
+            // system. Public, no token required, no upstream fetch. Both relay
+            // and client read this to keep coord transforms in sync. Update
+            // here whenever BSD changes their spec; everything else follows.
+            if (pathname === '/bsd/contract') {
+                return new Response(JSON.stringify({
+                    ok: true,
+                    coordinateSystem: {
+                        space:   'normalized-pitch',
+                        xRange:  [0, 100],
+                        yRange:  [0, 100],
+                        origin:  'home-team-defending-goal-line, bottom-left corner',
+                        axes: {
+                            x: 'horizontal, 0 = home goal-line, 100 = away goal-line',
+                            y: 'vertical, 0 = bottom touchline, 100 = top touchline',
+                        },
+                        sampleRate: { ball: '~5s', stats: '~30s' },
+                    },
+                    frameShapes: {
+                        livedata: {
+                            example: { type: 'bsd:ball', id: '12345', uts: 1735000000,
+                                       coords: { x: 73.2, y: 42.1 }, situation: 'open_play' },
+                            note: 'coords is the LAST coordinate in BSD frame.coordinates[]; AmbientDO distills.',
+                        },
+                        stats: {
+                            example: { type: 'bsd:stats', id: '12345', minute: 67, period: 2,
+                                       score: { home: 1, away: 1 },
+                                       stats: { home_xg: 1.2, away_xg: 0.9, possession_home: 0.58 } },
+                        },
+                        shot: {
+                            example: { x: 88.3, y: 51.5, xg: 0.34, result: 'goal',
+                                       minute: 71, player: 'M. Salah', body_part: 'foot_right' },
+                            source: '/bsd/events/{id}/shotmap',
+                        },
+                        avgPosition: {
+                            example: { player: 'N. Kanté', x: 38.5, y: 52.0, touches: 71 },
+                            source: '/bsd/events/{id}/average-positions',
+                        },
+                    },
+                    transformReference: {
+                        toScreenSVG: 'cx = x * width / 100; cy = (100 - y) * height / 100  (invert y for screen coords)',
+                        mirrorForAwayPerspective: 'x = 100 - x; y = 100 - y',
+                    },
+                    revision: '2026-06-25-1',
+                    status:   'provisional — pending live BSD verification of axis convention',
+                }, null, 2), {
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300', ...CORS },
+                });
+            }
+
             const bsdToken = env.BSD_API_TOKEN;
             if (!bsdToken) {
                 return new Response(JSON.stringify({ error: 'BSD_API_TOKEN not configured' }),
