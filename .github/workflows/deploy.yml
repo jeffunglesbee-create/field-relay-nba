@@ -85,6 +85,7 @@ jobs:
             VAPID_PRIVATE_KEY
             FIELD_MCP_SECRET
             GITHUB_PAT
+            BSD_API_TOKEN
         env:
           SPORTRADAR_UFL_KEY: ${{ secrets.SPORTRADAR_UFL_KEY }}
           REALTIMESPORTS_KEY: ${{ secrets.REALTIMESPORTS_KEY }}
@@ -92,6 +93,7 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
           GITHUB_PAT: ${{ secrets.RELAY_GH_PAT }}
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
 
       # Hard gate: even with continue-on-error above, the code MUST be live.
       # This catches genuine deploy failures (bad bundle, auth revoked) vs
