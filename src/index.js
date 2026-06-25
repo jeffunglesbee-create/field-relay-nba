@@ -6328,6 +6328,34 @@ export default {
                                'Cache-Control': 'public, max-age=30', ...CORS } });
             }
 
+            // /bsd/events/by-date?date=YYYY-MM-DD → BSD /api/v2/events/?date=...
+            // Used for: backfilling wc_results.bsd_event_id, historical shotmap lookup
+            if (pathname === '/bsd/events/by-date') {
+                const dateParam = url.searchParams.get('date') || new Date().toISOString().slice(0,10);
+                const leagueId  = url.searchParams.get('league_id') || '';
+                const season    = url.searchParams.get('season') || '';
+                let bsdQs = `?date=${dateParam}`;
+                if (leagueId)  bsdQs += `&league_id=${leagueId}`;
+                if (season)    bsdQs += `&season=${season}`;
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${bsdQs}`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300', ...CORS } });
+            }
+
+            // /bsd/events/season?league_id=X&season=Y → BSD all events for a competition
+            if (pathname === '/bsd/events/season') {
+                const leagueId = url.searchParams.get('league_id') || '1';
+                const season   = url.searchParams.get('season') || '2026';
+                const r = await fetch(
+                    `${BSD_BASE}/api/v2/events/?league_id=${leagueId}&season=${season}`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300', ...CORS } });
+            }
+
             // Unknown /bsd/* path
             return new Response(JSON.stringify({ error: 'Unknown BSD route', path: pathname }),
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
