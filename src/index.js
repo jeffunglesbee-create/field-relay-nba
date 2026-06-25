@@ -2556,7 +2556,7 @@ async function handleGolfEnriched(date, env, ctx) {
     // (June 20 2026). v3 entries lack status/venue/venueLocation; this key
     // bump invalidates them at deploy time so clients see the new shape
     // immediately rather than waiting out the 180s active TTL.
-    const cacheKey = `golf:enriched:v4:${date_clean}`;
+    const cacheKey = `golf:enriched:v5:${date_clean}`;
     if (env.FIELD_JOURNALISM) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
