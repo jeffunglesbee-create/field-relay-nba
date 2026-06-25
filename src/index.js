@@ -1518,6 +1518,16 @@ async function writeWCResult(db, game, env) {
       VALUES (?, ?, ?, ?, ?, ?, 'group', ?)
     `).bind(game.id, groupId, homeName, awayName,
             homeScore, awayScore, matchDate).run();
+
+    // Write bsdEventId when present — captures BSD event ID at game-final for
+    // post-game shotmap/momentum/incidents lookup. Only writes when NULL to avoid
+    // overwriting a known-good ID with a later null (game may have lost live status).
+    if (game.bsdEventId) {
+        await db.prepare(
+            'UPDATE wc_results SET bsd_event_id = ? WHERE game_id = ? AND bsd_event_id IS NULL'
+        ).bind(String(game.bsdEventId), game.id).run();
+    }
+
     await recomputeGroupStandings(db, groupId);
 
     // Notify BracketDO — triggers projection recompute + WS fan-out
@@ -2006,6 +2016,13 @@ async function handleWCAdminSeed(request, env) {
     `).bind(game_id, group_id.toUpperCase(), homeFixed, awayFixed,
             parseInt(home_score)||0, parseInt(away_score)||0,
             match_date || new Date().toISOString().slice(0,10)).run();
+
+    // Backfill bsd_event_id when provided in POST body
+    if (bsd_event_id) {
+        await env.WC2026_DB.prepare(
+            'UPDATE wc_results SET bsd_event_id = ? WHERE game_id = ?'
+        ).bind(String(bsd_event_id), game_id).run();
+    }
     await recomputeGroupStandings(env.WC2026_DB, group_id.toUpperCase());
     const { results } = await env.WC2026_DB.prepare(
         'SELECT * FROM wc_group WHERE group_id = ? ORDER BY points DESC, gd DESC, gf DESC'
