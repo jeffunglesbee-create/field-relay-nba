@@ -668,6 +668,36 @@ const CONTEXT_SOURCES = [
     // Activates when wc_results rows have bsd_event_id (backfill via CC-CMD-H Task 1).
     { id: 'bsd_history', priority: 7, budget: 200, builder: buildBSDHistoryContext,
       sports: ['wc26'] },
+    // Golf leaderboard: tournament header + top-5 from /v2/golf/enriched.
+    { id: 'golf_leaderboard', priority: 3, budget: 150, sports: ['golf'],
+      builder: async (env, game) => {
+          try {
+              const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+              const r = await fetch(`${base}/v2/golf/enriched`,
+                  { signal: AbortSignal.timeout(3000) });
+              if (!r.ok) return '';
+              const d = await r.json().catch(() => null);
+              if (!d?.active || !d?.leaderboard?.length) return '';
+              const header = [
+                  d.name || 'PGA Tour',
+                  d.round ? `Round ${d.round}` : '',
+                  d.roundStatus || d.status || '',
+                  d.venue || '',
+              ].filter(Boolean).join(' · ');
+              const rows = d.leaderboard.slice(0, 5).map((p, idx) => {
+                  const pos   = p.position || String(idx + 1);
+                  const name  = p.name || ((p.firstName || '') + ' ' + (p.lastName || '')).trim();
+                  const score = p.toPar != null ? p.toPar : (p.score || 'E');
+                  const thru  = p.thru  != null ? ' (thru ' + p.thru + ')' : '';
+                  return '  ' + pos + '. ' + name + ' ' + score + thru;
+              }).join('
+');
+              return '[GOLF CONTEXT]
+' + header + '
+' + rows;
+          } catch (_) { return ''; }
+      },
+    },
 ];
 
 // Per-source token budget allowance — the spec sets soft per-source caps,
@@ -677,6 +707,8 @@ const _SPORT_NORMALIZE = {
     'fifa world cup 2026': 'wc26',
     'fifa world cup': 'wc26',
     'world cup': 'wc26',
+    'pga tour': 'golf',
+    'pga':       'golf',
 };
 async function assembleContext(env, game, totalBudget = 1500) {
     if (!env || !game) return '';
