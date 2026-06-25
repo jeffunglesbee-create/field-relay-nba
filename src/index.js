@@ -1015,6 +1015,10 @@ const V2_LEAGUES = {
     // (no league/season filter) on a ±1 day rolling window; the dispatch in
     // handleV2Games branches AFL to use ?date= only.
     'afl':          { sport: 'afl',        leagueId: 1,   season: 2026        },
+    'atp':          { sport: 'tennis',     espnSource: true, espnLeague: 'atp',
+                      description: 'ATP Tour — BSD Sports Pack active' },
+    'wta':          { sport: 'tennis',     espnSource: true, espnLeague: 'wta',
+                      description: 'WTA Tour — BSD Sports Pack active' },
 };
 
 // Map api-sports.io status.short → FieldGame state ('pre'|'live'|'final')
@@ -2471,6 +2475,57 @@ async function handleV2Games(url, env, ctx) {
             headers: { ...CORS, 'Content-Type': 'application/json',
                        'Cache-Control': `public,max-age=${payload.active ? 300 : 3600}` },
         });
+    }
+    // Tennis: ESPN returns tournament-level events with nested competitions (matches).
+    // Shape: event.id = tournament slug, event.name = tournament name,
+    // event.competitions[] = individual matches. Flatten to FIELD game objects.
+    if (cfg.espnSource && cfg.sport === 'tennis') {
+        const espnLeague = cfg.espnLeague;
+        const espnUrl = `https://site.api.espn.com/apis/site/v2/sports/tennis/${espnLeague}/scoreboard`;
+        const r = await fetch(espnUrl, { headers: { 'User-Agent': 'FIELD/1.0' } });
+        if (!r.ok) return new Response(JSON.stringify({ sport, date, games: [], error: `ESPN tennis ${r.status}` }),
+            { headers: { 'Content-Type': 'application/json', ...CORS } });
+        const d = await r.json();
+        const games = [];
+        for (const tournament of (d.events || [])) {
+            const tournamentName = tournament.name || 'Tennis';
+            for (const match of (tournament.competitions || [])) {
+                const competitors = match.competitors || [];
+                const home = competitors.find(c => c.homeAway === 'home') || competitors[0] || {};
+                const away = competitors.find(c => c.homeAway === 'away') || competitors[1] || {};
+                const status = match.status?.type?.description || 'scheduled';
+                const score = `${home.score ?? '-'} - ${away.score ?? '-'}`;
+                games.push({
+                    id: `tennis:${match.id}`,
+                    sport,
+                    home: home.team?.displayName || home.team?.name || 'TBD',
+                    away: away.team?.displayName || away.team?.name || 'TBD',
+                    homeAbbr: home.team?.abbreviation,
+                    awayAbbr: away.team?.abbreviation,
+                    score,
+                    homeScore: home.score,
+                    awayScore: away.score,
+                    status,
+                    isFinal: match.status?.type?.completed === true,
+                    isLive: match.status?.type?.state === 'in',
+                    date,
+                    tournament: tournamentName,
+                    tournamentId: tournament.id,
+                    round: match.notes?.[0]?.headline || match.round?.displayName,
+                    broadcasts: (match.broadcasts || []).map(b => b.names || []).flat(),
+                    bsdMatchId: match.id || null,
+                    espnEventId: match.id,
+                    sets: (home.linescores || []).map((s, i) => ({
+                        home: s.value,
+                        away: (away.linescores || [])[i]?.value,
+                    })),
+                });
+            }
+        }
+        const payload = JSON.stringify({ sport, date, games, source: 'espn-tennis',
+            tournament: d.events?.[0]?.name });
+        return new Response(payload, { headers: { 'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=25', ...CORS } });
     }
     const key = env.APISPORTS_KEY;
     if (!key)

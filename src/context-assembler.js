@@ -484,7 +484,7 @@ async function findBracketImpact(env, triggeredBy) {
 // assembler sums against the overall totalBudget and stops when exhausted.
 const CONTEXT_SOURCES = [
     { id: 'espn_summary', priority: 3, budget: 200, builder: buildESPNSummaryContext,
-      sports: ['mlb', 'nba', 'wnba', 'nhl', 'wc26', 'soccer'] },
+      sports: ['mlb', 'nba', 'wnba', 'nhl', 'wc26', 'soccer', 'atp', 'wta'] },
     { id: 'path_traps', priority: 4, budget: 120, sports: ['wc26'],
       builder: async (env, game) => {
           if (!env?.FIELD_JOURNALISM) return '';
