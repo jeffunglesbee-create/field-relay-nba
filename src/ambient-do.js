@@ -134,6 +134,14 @@ export class AmbientDO {
         this._wpState  = {};   // gameId → {homeWP,awayWP,drawWP,prevHomeWP,source,confidence,bookmakerCount,ts}
         this._wpPeaks  = {};   // gameId → peakWP (highest favored-team WP seen)
         this._oddsLastFetch = {};  // sport → timestamp of last Odds API call (cooldown enforcement)
+        // ── BSD WebSocket state (CC-CMD-D) ────────────────────────────────
+        // Outbound persistent WS to BSD for live soccer tracking. Fan-out is
+        // via existing _broadcast — clients filter frames by event_id locally
+        // (Rule 47: relay is dumb).
+        this._bsdSocket       = null;
+        this._bsdSubscribed   = new Set();
+        this._bsdReconnectTimer = null;
+        this._bsdToken        = null;
     }
 
     // ── Main fetch handler ────────────────────────────────────────────────
@@ -143,6 +151,29 @@ export class AmbientDO {
         // ── GET /live/ambient — SSE upgrade ──────────────────────────────
         if (url.pathname.endsWith('/live/ambient') && request.method === 'GET') {
             return this._handleSSE(request);
+        }
+
+        // ── POST /ambient/bsd/subscribe { event_id } ──────────────────────
+        // Client requests live BSD tracking for a soccer event. Opens the
+        // outbound BSD WS on first subscription, then sends a subscribe
+        // command for the given event_id. Idempotent — re-subscribing is OK.
+        if (url.pathname.endsWith('/ambient/bsd/subscribe') && request.method === 'POST') {
+            const { event_id } = await request.json().catch(() => ({}));
+            if (!event_id) return new Response('event_id required', { status: 400 });
+            const token = this.env.BSD_API_TOKEN;
+            if (!token) return new Response('BSD not configured', { status: 503 });
+            await this._bsdConnect(token);
+            await this._bsdSubscribe(event_id);
+            return new Response(JSON.stringify({ ok: true, subscribed: String(event_id) }),
+                { headers: { 'Content-Type': 'application/json' } });
+        }
+
+        // ── POST /ambient/bsd/unsubscribe { event_id } ────────────────────
+        if (url.pathname.endsWith('/ambient/bsd/unsubscribe') && request.method === 'POST') {
+            const { event_id } = await request.json().catch(() => ({}));
+            if (event_id) await this._bsdUnsubscribe(event_id);
+            return new Response(JSON.stringify({ ok: true }),
+                { headers: { 'Content-Type': 'application/json' } });
         }
 
         // ── GET /ambient/state — REST poll fallback ───────────────────────
@@ -793,6 +824,81 @@ export class AmbientDO {
     // ── Schedule next alarm (idempotent — resets if already set) ─────────
     _scheduleAlarm(delayMs) {
         this.ctx.storage.setAlarm(Date.now() + delayMs).catch(() => {});
+    }
+
+    // ── BSD WebSocket integration (CC-CMD-D) ──────────────────────────────
+    // Opens a persistent outbound WS to BSD for live soccer tracking.
+    // Subscription model: one socket, subscribe/unsubscribe per event_id.
+    // BSD sends: livedata (ball x/y ~5s), event (stats ~30s), odds (on change).
+    // We fan out livedata + event frames — odds are handled by /bsd/events/:id/odds REST.
+    async _bsdConnect(token) {
+        if (this._bsdSocket?.readyState === 1) return; // already OPEN
+        this._bsdToken = token;
+        try {
+            const wsUrl = `wss://sports.bzzoiro.com/ws/live/?token=${token}`;
+            this._bsdSocket = new WebSocket(wsUrl);
+            this._bsdSocket.addEventListener('open', () => {
+                console.log('[AmbientDO] BSD WS connected');
+                for (const id of this._bsdSubscribed) {
+                    try {
+                        this._bsdSocket.send(JSON.stringify({ action: 'subscribe', event_id: Number(id) }));
+                    } catch (_) {}
+                }
+            });
+            this._bsdSocket.addEventListener('message', (evt) => {
+                this._bsdOnFrame(evt.data);
+            });
+            this._bsdSocket.addEventListener('close', () => {
+                console.log('[AmbientDO] BSD WS closed — reconnecting in 15s');
+                this._bsdSocket = null;
+                this._bsdReconnectTimer = setTimeout(() => this._bsdConnect(this._bsdToken), 15_000);
+            });
+            this._bsdSocket.addEventListener('error', (e) => {
+                console.error('[AmbientDO] BSD WS error', e?.message || e);
+            });
+        } catch (e) {
+            console.error('[AmbientDO] BSD WS connect failed:', e.message);
+        }
+    }
+
+    _bsdOnFrame(rawData) {
+        try {
+            const frame = JSON.parse(rawData);
+            if (!frame?.type) return;
+            if (frame.type !== 'livedata' && frame.type !== 'event') return;
+            const eventId = String(frame.event_id || '');
+            if (!eventId) return;
+            const payload = frame.type === 'livedata'
+                ? { type: 'bsd:ball', id: eventId, uts: frame.uts,
+                    coords: frame.coordinates?.slice(-1)[0] || null,
+                    situation: frame.situation }
+                : { type: 'bsd:stats', id: eventId, minute: frame.minute,
+                    period: frame.period, score: frame.score, stats: frame.stats };
+            // Fan out via existing _broadcast — clients filter frames locally by id
+            this._broadcast(payload.type, payload);
+        } catch (_) {}
+    }
+
+    async _bsdSubscribe(eventId) {
+        this._bsdSubscribed.add(String(eventId));
+        if (this._bsdSocket?.readyState === 1) {
+            try {
+                this._bsdSocket.send(JSON.stringify({ action: 'subscribe', event_id: Number(eventId) }));
+            } catch (_) {}
+        }
+    }
+
+    async _bsdUnsubscribe(eventId) {
+        this._bsdSubscribed.delete(String(eventId));
+        if (this._bsdSocket?.readyState === 1) {
+            try {
+                this._bsdSocket.send(JSON.stringify({ action: 'unsubscribe', event_id: Number(eventId) }));
+            } catch (_) {}
+        }
+        if (this._bsdSubscribed.size === 0 && this._bsdSocket) {
+            try { this._bsdSocket.close(); } catch (_) {}
+            this._bsdSocket = null;
+        }
     }
 }
 
