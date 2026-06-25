@@ -6073,6 +6073,122 @@ export default {
             });
         }
 
+
+        // ── BSD Bzzoiro Sports Data routes ───────────────────────────────────────
+        // Pure proxy — Rule 47 (relay-is-dumb). No editorial processing at relay.
+        // Football REST free forever. Sports Pack (tennis/hockey) $5/mo.
+        // WebSocket (ball tracking) $3/mo. All active as of 2026-06-25.
+        // Auth: Authorization: Token ${env.BSD_API_TOKEN}
+        // Docs: https://sports.bzzoiro.com/docs/football/
+        if (pathname.startsWith('/bsd/')) {
+            const bsdToken = env.BSD_API_TOKEN;
+            if (!bsdToken) {
+                return new Response(JSON.stringify({ error: 'BSD_API_TOKEN not configured' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+            const BSD_BASE = 'https://sports.bzzoiro.com';
+            const bsdHeaders = {
+                'Authorization': `Token ${bsdToken}`,
+                'User-Agent': 'FIELD/1.0',
+                'Accept': 'application/json',
+            };
+
+            // /bsd/events/live → BSD /api/v2/events/live/
+            if (pathname === '/bsd/events/live') {
+                const cacheKey = new Request(`${BSD_BASE}/api/v2/events/live/`);
+                const hit = await caches.default.match(cacheKey);
+                if (hit) return new Response(hit.body, { status: 200,
+                    headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT', ...CORS } });
+                const r = await fetch(`${BSD_BASE}/api/v2/events/live/`, { headers: bsdHeaders });
+                const body = await r.text();
+                const resp = new Response(body, { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=25', ...CORS } });
+                if (r.ok) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+                return resp;
+            }
+
+            // /bsd/events/:id/shotmap → BSD /api/v2/events/:id/stats/
+            const shotmapM = pathname.match(/^\/bsd\/events\/(\d+)\/shotmap$/);
+            if (shotmapM) {
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${shotmapM[1]}/stats/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=60', ...CORS } });
+            }
+
+            // /bsd/events/:id/momentum → BSD /api/v2/events/:id/momentum/
+            const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
+            if (momentumM) {
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/momentum/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=30', ...CORS } });
+            }
+
+            // /bsd/events/:id/incidents → BSD /api/v2/events/:id/incidents/
+            const incidentsM = pathname.match(/^\/bsd\/events\/(\d+)\/incidents$/);
+            if (incidentsM) {
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${incidentsM[1]}/incidents/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=60', ...CORS } });
+            }
+
+            // /bsd/events/:id/odds → BSD /api/v2/events/:id/odds/comparison/
+            const oddsM = pathname.match(/^\/bsd\/events\/(\d+)\/odds$/);
+            if (oddsM) {
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${oddsM[1]}/odds/comparison/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=30', ...CORS } });
+            }
+
+            // /bsd/events/:id/average-positions → BSD /api/v2/events/:id/average-positions/
+            const avgPosM = pathname.match(/^\/bsd\/events\/(\d+)\/average-positions$/);
+            if (avgPosM) {
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${avgPosM[1]}/average-positions/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=120', ...CORS } });
+            }
+
+            // /bsd/tennis/matches/live → BSD tennis /api/v2/matches/live/ (Sports Pack)
+            if (pathname === '/bsd/tennis/matches/live') {
+                const cacheKey = new Request(`${BSD_BASE}/tennis/api/v2/matches/live/`);
+                const hit = await caches.default.match(cacheKey);
+                if (hit) return new Response(hit.body, { status: 200,
+                    headers: { 'Content-Type': 'application/json', 'X-Cache': 'HIT', ...CORS } });
+                const r = await fetch(`${BSD_BASE}/tennis/api/v2/matches/live/`,
+                    { headers: bsdHeaders });
+                const body = await r.text();
+                const resp = new Response(body, { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=25', ...CORS } });
+                if (r.ok) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+                return resp;
+            }
+
+            // /bsd/tennis/matches/:id → BSD tennis match detail
+            const tennisM = pathname.match(/^\/bsd\/tennis\/matches\/(\d+)$/);
+            if (tennisM) {
+                const r = await fetch(`${BSD_BASE}/tennis/api/v2/matches/${tennisM[1]}/`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=30', ...CORS } });
+            }
+
+            // Unknown /bsd/* path
+            return new Response(JSON.stringify({ error: 'Unknown BSD route', path: pathname }),
+                { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+        }
+
         // /health/sources — Stale Data Sentinel. Reports freshness of every
         // data source feeding the journalism pipeline. Probe-only; no alerts.
         if (pathname === '/health/sources') {
