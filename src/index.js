@@ -6428,6 +6428,22 @@ export default {
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
         }
 
+        // /bsd/r2/list?prefix=bsd/wc26/ — list R2 keys for BSD captures.
+        // Diagnostic for buildBSDHistoryContext — verify R2 has captured
+        // game-final BSD data (shipped in a55ebd3). Read-only, no token.
+        if (pathname === '/bsd/r2/list') {
+            if (!env.FIELD_DATA)
+                return new Response(JSON.stringify({ error: 'FIELD_DATA not bound' }),
+                    { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            const prefix = url.searchParams.get('prefix') || 'bsd/wc26/';
+            const list = await env.FIELD_DATA.list({ prefix, limit: 100 });
+            return new Response(JSON.stringify({
+                keys: list.objects.map(o => ({ key: o.key, size: o.size, uploaded: o.uploaded })),
+                truncated: list.truncated,
+            }), { status: 200, headers: { 'Content-Type': 'application/json',
+                  'Cache-Control': 'no-store', ...CORS } });
+        }
+
         // /health/sources — Stale Data Sentinel. Reports freshness of every
         // data source feeding the journalism pipeline. Probe-only; no alerts.
         if (pathname === '/health/sources') {

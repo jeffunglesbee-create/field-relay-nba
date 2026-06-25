@@ -522,6 +522,81 @@ async function buildBSDMomentumContext(env, game) {
     } catch (_) { return ''; }
 }
 
+// ── buildBSDHistoryContext ────────────────────────────────────────────────
+// Reads R2 BSD captures for prior WC matches involving either team and
+// injects historical shot quality + momentum into the journalism prompt.
+// R2 keys: bsd/wc26/{bsd_event_id}/{shotmap|momentum|incidents|average-positions}.json
+// (written by writeWCResult at game-final, commit a55ebd3).
+// Source: wc_results.bsd_event_id for each team's prior games (commit 0af35ca).
+async function buildBSDHistoryContext(env, game) {
+    if (!env?.FIELD_DATA || !env?.WC2026_DB) return '';
+    if (game.sport !== 'wc26' && game.sport !== 'soccer') return '';
+
+    const homeName = game.home?.name || game.home || '';
+    const awayName = game.away?.name || game.away || '';
+    if (!homeName || !awayName) return '';
+
+    try {
+        const { results: prior } = await env.WC2026_DB.prepare(`
+            SELECT home, away, home_score, away_score, match_date, bsd_event_id
+            FROM wc_results
+            WHERE bsd_event_id IS NOT NULL
+              AND (home = ? OR away = ? OR home = ? OR away = ?)
+            ORDER BY match_date DESC
+            LIMIT 4
+        `).bind(homeName, homeName, awayName, awayName).all();
+
+        if (!prior || !prior.length) return '';
+
+        const sections = [];
+        for (const match of prior) {
+            const teamLabel = (match.home === homeName || match.home === awayName)
+                ? match.home : match.away;
+            const opponent = match.home === teamLabel ? match.away : match.home;
+
+            let shotSummary = '';
+            try {
+                const statsObj = await env.FIELD_DATA.get(
+                    `bsd/wc26/${match.bsd_event_id}/shotmap.json`);
+                if (statsObj) {
+                    const stats = await statsObj.json();
+                    const shots = stats?.shots || stats?.results || stats?.statistics || [];
+                    if (shots.length) {
+                        const xgTotal = shots.reduce((s, sh) => s + (sh.xg || 0), 0);
+                        const onTarget = shots.filter(s => s.on_target).length;
+                        shotSummary = `${shots.length} shots, ${onTarget} OT, xG ${xgTotal.toFixed(2)}`;
+                    }
+                }
+            } catch (_) {}
+
+            let momentumSummary = '';
+            try {
+                const momObj = await env.FIELD_DATA.get(
+                    `bsd/wc26/${match.bsd_event_id}/momentum.json`);
+                if (momObj) {
+                    const mom = await momObj.json();
+                    const entries = mom?.momentum || mom?.results || mom?.data || [];
+                    if (entries.length) {
+                        const peak = entries.reduce(
+                            (b, e) => Math.abs(e.value || 0) > Math.abs(b.value || 0) ? e : b,
+                            entries[0]);
+                        momentumSummary = `peak ${peak.value > 0 ? '+' : ''}${Math.round(peak.value)} at ${peak.minute || '?'}'`;
+                    }
+                }
+            } catch (_) {}
+
+            const scoreline = `${match.home_score}-${match.away_score}`;
+            const parts = [`vs ${opponent} (${scoreline})`];
+            if (shotSummary) parts.push(shotSummary);
+            if (momentumSummary) parts.push(momentumSummary);
+            sections.push(`  ${match.match_date}: ${teamLabel} ${parts.join(' | ')}`);
+        }
+
+        if (!sections.length) return '';
+        return '\n\n[BSD HISTORY]\nPrior WC match data:\n' + sections.join('\n');
+    } catch (_) { return ''; }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
@@ -589,6 +664,10 @@ const CONTEXT_SOURCES = [
     // Provides the "when the game shifted" signal ESPN lacks.
     { id: 'bsd_momentum', priority: 8, budget: 120, builder: buildBSDMomentumContext,
       sports: ['epl', 'mls', 'ucl', 'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'soccer', 'atp', 'wta'] },
+    // BSD history: prior WC match shot quality + momentum from R2 captures.
+    // Activates when wc_results rows have bsd_event_id (backfill via CC-CMD-H Task 1).
+    { id: 'bsd_history', priority: 7, budget: 200, builder: buildBSDHistoryContext,
+      sports: ['wc26'] },
 ];
 
 // Per-source token budget allowance — the spec sets soft per-source caps,
@@ -650,4 +729,5 @@ export {
     buildSoccerXGContext,
     buildESPNSummaryContext,
     buildBSDMomentumContext,
+    buildBSDHistoryContext,
 };
