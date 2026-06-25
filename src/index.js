@@ -2642,6 +2642,41 @@ async function handleV2Games(url, env, ctx) {
             // Adapt all fixtures — live ones with stats attached (Gap 1+2)
             games = raw.map(f => adaptFootball(f, sport, statsMap[f?.fixture?.id] || null));
 
+            // ── BSD event ID enrichment ───────────────────────────────────────────
+            // Fetches BSD live events and matches to game objects by team name via
+            // teamNameMatch/resolveTeamKey (same normalization as odds matching).
+            // Injects bsdEventId which activates all dormant BSD features:
+            //   • buildBSDMomentumContext (CONTEXT_SOURCES priority 8)
+            //   • AmbientDO._bsdSubscribe (live ball tracking WebSocket)
+            //   • /bsd/events/:id/shotmap, /momentum, /incidents relay routes
+            // 3s timeout — never blocks the V2 game response.
+            // Non-blocking — failure leaves bsdEventId undefined; features degrade silently.
+            if (env.BSD_API_TOKEN) {
+                try {
+                    const _bsdR = await fetch('https://sports.bzzoiro.com/api/v2/events/live/', {
+                        headers: {
+                            'Authorization': `Token ${env.BSD_API_TOKEN}`,
+                            'User-Agent': 'FIELD/1.0',
+                            'Accept': 'application/json',
+                        },
+                        signal: AbortSignal.timeout(3000),
+                    });
+                    if (_bsdR.ok) {
+                        const _bsdLive = await _bsdR.json();
+                        const _bsdEvents = Array.isArray(_bsdLive.events) ? _bsdLive.events : [];
+                        for (const _g of games) {
+                            const _bsdMatch = _bsdEvents.find(_e => {
+                                const _bh = String(_e.home_team?.name ?? _e.home_team ?? '');
+                                const _ba = String(_e.away_team?.name ?? _e.away_team ?? '');
+                                return (teamNameMatch(_bh, _g.home.name) && teamNameMatch(_ba, _g.away.name))
+                                    || (teamNameMatch(_bh, _g.away.name) && teamNameMatch(_ba, _g.home.name));
+                            });
+                            if (_bsdMatch) _g.bsdEventId = String(_bsdMatch.id);
+                        }
+                    }
+                } catch (_) {} // Non-blocking — BSD outage never breaks V2 games
+            }
+
             // Pre-fetch WC pre-game lambdas once (non-blocking; degrades gracefully if unavailable)
             const wcLambdas = sport === 'wc26' ? await getWCPregameLambdas(env) : null;
 
