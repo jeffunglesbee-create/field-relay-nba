@@ -1605,6 +1605,91 @@ async function backfillWCBsdEventIds(env, { leagueId, since } = {}) {
     };
 }
 
+// BSD R2 capture with retry. Attempts up to maxAttempts times with
+// intervalMs delay. Returns true on first success, false if all fail.
+// Used by writeWCResult (post-final) and runBSDEndgameCapture (pre-final).
+async function captureWithRetry(url, r2Key, env, meta,
+                                maxAttempts = 7, intervalMs = 15000) {
+    const bsdHdrs = {
+        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+        'User-Agent': 'FIELD/1.0',
+        'Accept': 'application/json',
+    };
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const r = await fetch(url, {
+                headers: bsdHdrs,
+                signal: AbortSignal.timeout(6000),
+            });
+            if (r.ok) {
+                await env.FIELD_DATA.put(r2Key, await r.arrayBuffer(), {
+                    httpMetadata: { contentType: 'application/json' },
+                    customMetadata: { ...meta, attempt: String(attempt + 1) },
+                });
+                return true;
+            }
+        } catch (_) {}
+        if (attempt < maxAttempts - 1)
+            await new Promise(res => setTimeout(res, intervalMs));
+    }
+    return false;
+}
+
+// BSD WC endgame capture — called from scheduled() every 5 min during WC window.
+// Polls BSD live events for WC games (league_id 27) at current_minute >= 83.
+// Captures all 4 endpoints to R2, overwriting on each tick.
+// Primary mechanism for preserving momentum + average-positions before game-final.
+// WC league_id = 27 confirmed 2026-06-25 (Ecuador vs Germany + Curaçao group).
+async function runBSDEndgameCapture(env) {
+    if (!env?.FIELD_DATA || !env?.BSD_API_TOKEN) return;
+    const BSD_WC_LEAGUE_ID = 27;
+
+    const liveResp = await fetch('https://sports.bzzoiro.com/api/v2/events/live/', {
+        headers: {
+            'Authorization': `Token ${env.BSD_API_TOKEN}`,
+            'User-Agent': 'FIELD/1.0',
+            'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(6000),
+    });
+    if (!liveResp.ok) return;
+
+    const liveData = await liveResp.json();
+    const targets  = (liveData.results || liveData.events || []).filter(e =>
+        e.league_id === BSD_WC_LEAGUE_ID &&
+        e.status    !== 'finished'        &&
+        (e.current_minute || 0) >= 83
+    );
+    if (!targets.length) return;
+
+    await Promise.allSettled(targets.map(async game => {
+        const bsdId  = String(game.id);
+        const prefix = `bsd/wc26/${bsdId}`;
+        const meta   = {
+            bsd_event_id: bsdId,
+            minute:       String(game.current_minute),
+            home:         game.home_team,
+            away:         game.away_team,
+            source:       'endgame-cron',
+            captured:     new Date().toISOString(),
+        };
+        const bsdBase = 'https://sports.bzzoiro.com';
+        await Promise.allSettled(
+            ['momentum', 'stats', 'incidents', 'average-positions'].map(
+                async type => captureWithRetry(
+                    `${bsdBase}/api/v2/events/${bsdId}/${type}/`,
+                    `${prefix}/${type}.json`,
+                    env,
+                    { ...meta, type },
+                    1,   // single attempt — data is live, no retry needed
+                    0
+                )
+            )
+        );
+        console.log(`[BSD-ENDGAME] captured bsdId=${bsdId} at ${game.current_minute}'`);
+    }));
+}
+
 async function writeWCResult(db, game, env, ctx) {
     const homeName  = wcFixName(game.home?.name || '');
     const awayName  = wcFixName(game.away?.name || '');
@@ -1620,6 +1705,13 @@ async function writeWCResult(db, game, env, ctx) {
     `).bind(game.id, groupId, homeName, awayName,
             homeScore, awayScore, matchDate).run();
 
+    // Correct score at game-final. INSERT OR IGNORE preserves the original
+    // row unchanged if it was pre-inserted at kickoff with 0-0. This UPDATE
+    // always runs at game-final to write the authoritative final score.
+    await db.prepare(
+        'UPDATE wc_results SET home_score = ?, away_score = ? WHERE game_id = ?'
+    ).bind(homeScore, awayScore, game.id).run();
+
     // Write bsdEventId when present — captures BSD event ID at game-final for
     // post-game shotmap/momentum/incidents lookup. Only writes when NULL to avoid
     // overwriting a known-good ID with a later null (game may have lost live status).
@@ -1633,46 +1725,34 @@ async function writeWCResult(db, game, env, ctx) {
         // R2 keys: bsd/wc26/{bsd_event_id}/{type}.json
         // Used by: buildBSDHistoryContext for subsequent match journalism briefs.
         if (env?.FIELD_DATA && env?.BSD_API_TOKEN) {
-            const bsdId   = game.bsdEventId;
-            const bsdBase = 'https://sports.bzzoiro.com';
-            const bsdHdrs = {
-                'Authorization': `Token ${env.BSD_API_TOKEN}`,
-                'User-Agent': 'FIELD/1.0',
-                'Accept': 'application/json',
-            };
+            const bsdId    = game.bsdEventId;
             const r2Prefix = `bsd/wc26/${bsdId}`;
 
-            // Capture all four endpoints in parallel — fire-and-forget via waitUntil
-            const captures = ['momentum', 'stats', 'incidents', 'average-positions'].map(async type => {
-                try {
-                    const bsdPath = type === 'stats'
-                        ? `/api/v2/events/${bsdId}/stats/`
-                        : type === 'average-positions'
-                            ? `/api/v2/events/${bsdId}/average-positions/`
-                            : `/api/v2/events/${bsdId}/${type}/`;
-                    const r = await fetch(`${bsdBase}${bsdPath}`, {
-                        headers: bsdHdrs,
-                        signal: AbortSignal.timeout(8000),
-                    });
-                    if (r.ok) {
-                        const body = await r.arrayBuffer();
-                        const key  = `${r2Prefix}/${type}.json`;
-                        await env.FIELD_DATA.put(key, body, {
-                            httpMetadata: { contentType: 'application/json' },
-                            customMetadata: {
-                                game_id:   game.id,
-                                home:      homeName,
-                                away:      awayName,
-                                captured:  new Date().toISOString(),
-                            },
-                        });
-                    }
-                } catch (_) {} // Non-blocking — R2 capture never breaks D1 write
-            });
+            // Post-final capture with retry. Momentum + average-positions typically
+            // 404 immediately at game-final; captureWithRetry handles that gracefully.
+            // Primary coverage is via runBSDEndgameCapture (cron at 83'+88').
+            // This is the defensive backstop for incidents + stats post-final window.
+            const meta = {
+                game_id: game.id,
+                home:    homeName,
+                away:    awayName,
+                source:  'write-wc-result',
+            };
+            const bsdBase = 'https://sports.bzzoiro.com';
+            const captures = ['momentum', 'stats', 'incidents', 'average-positions'].map(
+                async type => captureWithRetry(
+                    `${bsdBase}/api/v2/events/${bsdId}/${type}/`,
+                    `${r2Prefix}/${type}.json`,
+                    env,
+                    { ...meta, type },
+                    7,    // 7 attempts
+                    15000 // 15s apart = 105s total window
+                )
+            );
 
-            // Use waitUntil if available (non-blocking on response); else await
-            if (env?._ctx?.waitUntil) {
-                env._ctx.waitUntil(Promise.allSettled(captures));
+            // Use ctx.waitUntil if available (non-blocking on response); else await
+            if (ctx?.waitUntil) {
+                ctx.waitUntil(Promise.allSettled(captures));
             } else {
                 await Promise.allSettled(captures);
             }
@@ -6154,6 +6234,12 @@ export default {
         if (_isWCWindow && env.FIELD_JOURNALISM) {
             ctx.waitUntil(runWCTournamentProjections(env).catch(e =>
                 console.error('[WC-PROJ]', e.message)));
+        }
+        // BSD WC endgame capture — every 5-min tick when WC window is open.
+        // Captures momentum + average-positions at 83'+ while endpoints are live.
+        if (_isWCWindow && env.FIELD_DATA && env.BSD_API_TOKEN) {
+            ctx.waitUntil(runBSDEndgameCapture(env).catch(e =>
+                console.error('[BSD-ENDGAME]', e.message)));
         }
     },
 
