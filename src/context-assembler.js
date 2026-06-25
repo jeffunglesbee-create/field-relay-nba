@@ -479,6 +479,49 @@ async function findBracketImpact(env, triggeredBy) {
     } catch (_) { return {}; }
 }
 
+// ── BSD Momentum Context ──────────────────────────────────────────────────────
+// Requires game.bsdEventId (BSD internal match ID from /bsd/events/live).
+// Returns '' when: no bsdEventId, API unavailable, or match not in BSD database.
+// Momentum index: −100 (away dominance) → +100 (home dominance), per minute.
+async function buildBSDMomentumContext(env, game) {
+    const bsdId = game.bsdEventId || game.bsdId;
+    if (!bsdId) return '';
+    try {
+        const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+        const resp = await fetch(`${base}/bsd/events/${bsdId}/momentum`,
+            { headers: { 'User-Agent': 'FIELD/1.0' } });
+        if (!resp.ok) return '';
+        const d = await resp.json();
+        const vals = (d.momentum || d.results || d.data || [])
+            .filter(m => m.value != null);
+        if (!vals.length) return '';
+
+        let maxSwing = 0, shiftMinute = null;
+        for (let i = 1; i < vals.length; i++) {
+            const swing = Math.abs(vals[i].value - vals[i-1].value);
+            if (swing > maxSwing) { maxSwing = swing; shiftMinute = vals[i].minute ?? i; }
+        }
+
+        const peakHome = Math.max(...vals.map(v => v.value));
+        const peakAway = Math.min(...vals.map(v => v.value));
+        const current = vals[vals.length - 1];
+
+        const lines = ['', '[BSD MOMENTUM]'];
+        if (shiftMinute && maxSwing >= 15) {
+            const shiftIdx = vals.findIndex(v => (v.minute ?? 0) >= shiftMinute);
+            const before = shiftIdx > 0 ? vals[shiftIdx - 1]?.value ?? 0 : 0;
+            const after  = vals[shiftIdx]?.value ?? 0;
+            const dir = after > 0 ? 'home dominance' : 'away dominance';
+            lines.push(`Game shifted at ${shiftMinute}': pressure index ${before > 0 ? '+' : ''}${Math.round(before)} → ${after > 0 ? '+' : ''}${Math.round(after)} (${dir})`);
+        }
+        if (peakHome >= 30) lines.push(`Peak home pressure: +${Math.round(peakHome)}`);
+        if (peakAway <= -30) lines.push(`Peak away pressure: ${Math.round(peakAway)}`);
+        if (current) lines.push(`Current: ${current.value > 0 ? '+' : ''}${Math.round(current.value)} (${current.value > 15 ? 'home' : current.value < -15 ? 'away' : 'balanced'})`);
+
+        return lines.length > 2 ? lines.join('\n') : '';
+    } catch (_) { return ''; }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
@@ -542,6 +585,10 @@ const CONTEXT_SOURCES = [
     { id: 'nba_clutch',   priority: 7, budget: 120, builder: buildNBAClutchContext,     sports: ['nba'] },
     { id: 'soccer_xg',    priority: 7, budget: 150, builder: buildSoccerXGContext,
       sports: ['epl', 'mls', 'ucl', 'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'soccer'] },
+    // BSD momentum: minute-by-minute pressure index. Requires game.bsdEventId.
+    // Provides the "when the game shifted" signal ESPN lacks.
+    { id: 'bsd_momentum', priority: 8, budget: 120, builder: buildBSDMomentumContext,
+      sports: ['epl', 'mls', 'ucl', 'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'soccer', 'atp', 'wta'] },
 ];
 
 // Per-source token budget allowance — the spec sets soft per-source caps,
@@ -602,4 +649,5 @@ export {
     buildNBAClutchContext,
     buildSoccerXGContext,
     buildESPNSummaryContext,
+    buildBSDMomentumContext,
 };
