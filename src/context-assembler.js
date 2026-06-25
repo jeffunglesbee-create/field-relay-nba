@@ -690,11 +690,8 @@ const CONTEXT_SOURCES = [
                   const score = p.toPar != null ? p.toPar : (p.score || 'E');
                   const thru  = p.thru  != null ? ' (thru ' + p.thru + ')' : '';
                   return '  ' + pos + '. ' + name + ' ' + score + thru;
-              }).join('
-');
-              return '[GOLF CONTEXT]
-' + header + '
-' + rows;
+              }).join('\n');
+              return '[GOLF CONTEXT]\n' + header + '\n' + rows;
           } catch (_) { return ''; }
       },
     },
