@@ -358,7 +358,14 @@ async function buildOddsStoryContext(env, game) {
                 if (resolveTeamKey(row.home) !== homeKey) continue;
                 if (resolveTeamKey(row.away) !== awayKey) continue;
                 const story = computeOddsStory(row.opening_odds, row.closing_odds);
-                if (story) return story;
+                if (story) {
+                    // Directive travels with the data — every prompt template gets it
+                    // without per-template rule additions. Absent odds story → no instruction.
+                    // Exemplar target: "The line opened X and drifted to Y, which tells you
+                    // something about where the money was moving." (FIELD_VOICE_REGISTER Exemplar A)
+                    const data = story.replace('[ODDS STORY] ', '');
+                    return `[ODDS STORY — use as a supporting beat: prose this movement naturally ("the line drifted X pts toward Y, which tells you something about where the money moved"), don't lead with it, don't quote this block directly]\n${data}`;
+                }
             }
         } catch (_) { /* table absent or query fail — silent per Rule 5 */ }
     }
