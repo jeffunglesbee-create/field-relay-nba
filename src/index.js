@@ -1526,6 +1526,56 @@ async function writeWCResult(db, game, env) {
         await db.prepare(
             'UPDATE wc_results SET bsd_event_id = ? WHERE game_id = ? AND bsd_event_id IS NULL'
         ).bind(String(game.bsdEventId), game.id).run();
+
+        // Capture BSD match data to R2 immediately at game-final.
+        // BSD event endpoints may not remain accessible after live status clears.
+        // R2 keys: bsd/wc26/{bsd_event_id}/{type}.json
+        // Used by: buildBSDHistoryContext for subsequent match journalism briefs.
+        if (env?.FIELD_DATA && env?.BSD_API_TOKEN) {
+            const bsdId   = game.bsdEventId;
+            const bsdBase = 'https://sports.bzzoiro.com';
+            const bsdHdrs = {
+                'Authorization': `Token ${env.BSD_API_TOKEN}`,
+                'User-Agent': 'FIELD/1.0',
+                'Accept': 'application/json',
+            };
+            const r2Prefix = `bsd/wc26/${bsdId}`;
+
+            // Capture all four endpoints in parallel — fire-and-forget via waitUntil
+            const captures = ['momentum', 'stats', 'incidents', 'average-positions'].map(async type => {
+                try {
+                    const bsdPath = type === 'stats'
+                        ? `/api/v2/events/${bsdId}/stats/`
+                        : type === 'average-positions'
+                            ? `/api/v2/events/${bsdId}/average-positions/`
+                            : `/api/v2/events/${bsdId}/${type}/`;
+                    const r = await fetch(`${bsdBase}${bsdPath}`, {
+                        headers: bsdHdrs,
+                        signal: AbortSignal.timeout(8000),
+                    });
+                    if (r.ok) {
+                        const body = await r.arrayBuffer();
+                        const key  = `${r2Prefix}/${type}.json`;
+                        await env.FIELD_DATA.put(key, body, {
+                            httpMetadata: { contentType: 'application/json' },
+                            customMetadata: {
+                                game_id:   game.id,
+                                home:      homeName,
+                                away:      awayName,
+                                captured:  new Date().toISOString(),
+                            },
+                        });
+                    }
+                } catch (_) {} // Non-blocking — R2 capture never breaks D1 write
+            });
+
+            // Use waitUntil if available (non-blocking on response); else await
+            if (env?._ctx?.waitUntil) {
+                env._ctx.waitUntil(Promise.allSettled(captures));
+            } else {
+                await Promise.allSettled(captures);
+            }
+        }
     }
 
     await recomputeGroupStandings(db, groupId);
