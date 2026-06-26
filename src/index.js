@@ -8433,7 +8433,7 @@ export default {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
             };
             let cflPath = '';
-            const seasonId = url.searchParams.get('season_id') || '35'; // 35 = 2026
+            const seasonId = url.searchParams.get('season_id') || '75'; // 75 = 2026 (internal). External ID=35 does NOT work for /seasons/{id}/fixtures
 
             if (pathname === '/cfl/fixtures') {
                 // Fixtures use /seasons/{id}/fixtures path (not /fixtures?season_id=)
