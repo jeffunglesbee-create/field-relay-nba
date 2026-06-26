@@ -1,176 +1,98 @@
-# CC-CMD: AFL Migration — API-Sports → Squiggle
-# Date: 2026-06-26
+# CC-CMD: AFL Migration — API-Sports → ESPN australian-football/afl
+# Date: 2026-06-26 (rewrites stale Squiggle version)
 # Repo: field-relay-nba
 # Scope: src/index.js only
 # Rule 87: self-completing
 
 ## CONTEXT
 
-V2_LEAGUES['afl'] currently routes to v1.afl.api-sports.io via handleV2Games.
-Known API-Sports AFL issues: rejects league/season filters, date-only queries only,
-unreliable primary source (documented June 26 2026 Drive spec).
+Previous CC-CMD targeted Squiggle. ESPN confirmed better:
+  - 7 AFL Round 16 events tonight ✅
+  - Team abbreviations (HAW, CARL, COLL, BL) — Squiggle has none
+  - espnEventId present — enables ESPN summary context builder
+  - Per-quarter linescores confirmed: [23.0, 37.0, 27.0, 9.0]
+  - Venues: MCG, Gabba, Marvel Stadium, Adelaide Oval, Optus Stadium
+  - Shape identical to basketball — adaptESPNBasketball(ev, 'afl') works as-is
 
-Squiggle (api.squiggle.com.au) is already in the relay as /squiggle relay route.
-Squiggle confirmed live: 86 upcoming games, Round 16 tonight (Carlton vs West Coast).
-This migration switches the V2_LEAGUES pipeline to call Squiggle directly server-side.
+ESPN AFL shape confirmed 2026-06-26:
+  status.type.name: STATUS_SCHEDULED | STATUS_IN_PROGRESS | STATUS_FINAL
+  status.period: quarter (1-4, 5=OT)
+  status.displayClock: '30:26' (AFL clock counts UP from 0:00)
+  status.type.shortDetail: 'Q3 30:26' | 'Final' | '6/27 - 2:35 AM EDT'
+  competitors[i].linescores: [{value: N}] per quarter
+  competitors[i].team.abbreviation: 'HAW', 'CARL', 'GWS', etc.
+  venue.fullName: 'MCG', 'Gabba', 'Marvel Stadium', etc.
 
-Different from all previous migrations — NOT espnLeague/espnSport pattern.
-Squiggle has its own URL structure (?q= params), its own game shape, its own
-date format (AEST local time, not UTC).
+TWO CHANGES ONLY — no new adapter, no new branch:
+  1. V2_LEAGUES 'afl': add espnLeague + espnSport, remove leagueId
+  2. Adapter dispatch: add 'australian-football' to basketball branch
 
-Squiggle shape confirmed 2026-06-26:
-  Fields: hteam, ateam, hscore, ascore, hgoals, hbehinds, agoals, abehinds
-          round, roundname, date (AEST), localtime, complete, timestr, venue, id
-          is_final, is_grand_final, winner, winnerteamid, unixtime
-  complete: 0=upcoming or live, 100=finished
-  timestr: '' (pre) | 'Q3 12:45' (live) | 'Full Time' (post)
-  date format: 'YYYY-MM-DD HH:MM:SS' in AEST (NOT UTC)
+_espnSportPath fix (MLB migration) already handles espnSport='australian-football'
+→ URL: sports/australian-football/afl/scoreboard ✅ no change needed there.
+
+Squiggle relay (/squiggle route) stays active for tips/power rankings —
+these remain the unique analytics value Squiggle provides vs ESPN.
 
 ## PRE-BUILD PROBE
 
 ```bash
-# 1. Confirm Squiggle returns AFL games today
-TODAY=$(date -u +%Y-%m-%d)
-curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/squiggle?q=games;year=2026" \
+# Confirm ESPN AFL returns games
+curl -s "https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard" \
   | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
-games=d.get('games',[])
-print(f'{len(games)} total games')
-today=[g for g in games if (g.get(\"date\",\"\") or \"\").startswith(\"${TODAY}\")]
-print(f'{len(today)} games today ({\"${TODAY}\"})')
-if today: print(f'  sample: {today[0][\"hteam\"]} vs {today[0][\"ateam\"]} | {today[0][\"date\"]}')
+events=d.get('events',[])
+print(len(events),'events')
+if events:
+    comp=events[0]['competitions'][0]
+    teams=comp['competitors']
+    h=next(t for t in teams if t['homeAway']=='home')
+    a=next(t for t in teams if t['homeAway']=='away')
+    print(a['team']['abbreviation'],'@',h['team']['abbreviation'])
+    print('venue:',comp.get('venue',{}).get('fullName'))
 "
+# Expected: 7 events, team abbreviations, venue names
 
-# 2. Confirm current source is api-sports
+# Confirm current source is api-sports
 curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=afl" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('current source:', d.get('source'))"
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('source:', d.get('source'))"
+# Expected: apisports
 ```
 
-## CHANGE 1 — V2_LEAGUES: add squiggleSource flag
+## CHANGE 1 — V2_LEAGUES: update afl entry
 
 Find:
 ```
+    // AFL Premiership (verified June 20 2026 via /apisports/afl/leagues — id:1,
+    // season:2026 current:true). The api-sports AFL plan accepts only ?date=
+    // (no league/season filter) on a ±1 day rolling window; the dispatch in
+    // handleV2Games branches AFL to use ?date= only.
     'afl':          { sport: 'afl',        leagueId: 1,   season: 2026        },
 ```
 
 Replace with:
 ```
-    // AFL — migrated June 26 2026: API-Sports → Squiggle (api.squiggle.com.au)
-    // API-Sports AFL had known issues (rejected league/season filters, date-only).
-    // squiggleSource: true triggers the Squiggle branch in handleV2Games.
-    // date field in Squiggle is AEST local time — filter matches Australian calendar day.
-    'afl':          { sport: 'afl', squiggleSource: true, season: 2026 },
+    // AFL — migrated June 26 2026: API-Sports → ESPN australian-football/afl
+    // ESPN confirmed: 7 events, team abbreviations, per-quarter linescores, venues.
+    // adaptESPNBasketball(ev, 'afl') reused — same quarter-based shape as WNBA.
+    // Squiggle relay (/squiggle route) stays active for tips + power rankings.
+    'afl':          { sport: 'afl', espnLeague: 'afl', espnSport: 'australian-football', season: 2026 },
 ```
 
-## CHANGE 2 — add adaptSquiggleAFL() function
+## CHANGE 2 — Adapter dispatch: add australian-football to basketball branch
 
-Insert immediately BEFORE function adaptAFL() (the old API-Sports AFL adapter, keep it):
-
-```js
-// Adapts Squiggle API game object → standard V2 FieldGame shape.
-// Squiggle shape confirmed 2026-06-26 (api.squiggle.com.au).
-// complete: 0=not started or live, 100=finished.
-// timestr: '' pre-game | 'Q3 12:45' live | 'Full Time' post-game.
-// date field is AEST local time (not UTC) — Australian calendar day.
-// No abbreviation field in Squiggle — abbr left as '' (same as old adaptAFL).
-function adaptSquiggleAFL(g) {
-    // State detection: timestr with quarter/halftime signals live
-    const ts       = String(g.timestr || '').trim();
-    const isLive   = g.complete < 100 && /^(Q[1-4]|HT|OT|ET)/i.test(ts);
-    const state    = g.complete >= 100 ? 'post'
-                   : isLive            ? 'live'
-                   : 'pre';
-
-    // Period from timestr: 'Q3 12:45' → periodNum=3, periodLabel='Q3'
-    const qMatch  = ts.match(/^(Q([1-4])|HT|OT)/i);
-    const periodNum   = qMatch?.[2] ? parseInt(qMatch[2]) : (state === 'post' ? 4 : 0);
-    const periodLabel = state === 'post' ? 'F'
-                      : qMatch ? qMatch[1].toUpperCase()
-                      : 'NS';
-
-    return {
-        id:          `squiggle:${g.id}`,
-        sport:       'afl',
-        league:      g.roundname || `Round ${g.round}`,
-        state,
-        start:       g.date || '',
-        home: {
-            name:  g.hteam || '',
-            abbr:  '',           // Squiggle has no abbr field
-            score: g.hscore ?? null,
-        },
-        away: {
-            name:  g.ateam || '',
-            abbr:  '',
-            score: g.ascore ?? null,
-        },
-        periodNum,
-        periodLabel,
-        clock:  ts,
-        venue:  g.venue  || '',
-        situation: isLive ? {
-            quarter:  periodNum,
-            timestr:  ts,
-            complete: g.complete || 0,
-        } : null,
-        // Australian rules scoring (goals.behinds)
-        homeGoals:   g.hgoals   ?? null,
-        homeBehinds: g.hbehinds ?? null,
-        awayGoals:   g.agoals   ?? null,
-        awayBehinds: g.abehinds ?? null,
-        squiggleId:  g.id,
-        round:       g.round    || null,
-        isFinal:     !!g.is_final,
-        isGrandFinal:!!g.is_grand_final,
-    };
-}
+Find:
+```
+                cfg.espnSport === 'baseball'    ? adaptESPNMLB(ev)
+                : cfg.espnSport === 'basketball' ? adaptESPNBasketball(ev, sport)
+                : adaptESPNWCSoccer(ev, sport)
 ```
 
-## CHANGE 3 — handleV2Games: add Squiggle branch
-
-Find the cfg.espnLeague branch opening:
+Replace with:
 ```
-    // For sports with espnLeague configured, bypass API-Sports entirely.
-```
-
-Insert the Squiggle branch BEFORE the espnLeague block (so it fires first for AFL):
-
-```js
-    // ── Squiggle branch (AFL) ─────────────────────────────────────────────
-    // api.squiggle.com.au — free, no key, server-side fetch bypasses CORS.
-    // Replaces v1.afl.api-sports.io which had known league/season filter issues.
-    // date field in Squiggle = AEST local time → filter on Australian calendar day.
-    if (cfg.squiggleSource) {
-        const year = cfg.season || new Date().getUTCFullYear();
-        const squiggleUrl = `https://api.squiggle.com.au/?q=games;year=${year}`;
-        let squiggleGames = [];
-        try {
-            const _sr = await fetch(squiggleUrl, {
-                headers: {
-                    'User-Agent': 'FIELD/1.0 field-relay-nba Cloudflare-Worker',
-                    'Accept': 'application/json',
-                },
-                cf: { cacheTtl: 60, cacheEverything: true, cacheKey: squiggleUrl },
-            });
-            if (!_sr.ok) throw new Error(`Squiggle upstream ${_sr.status}`);
-            const _sd = await _sr.json();
-            // Filter to today's AFL date (AEST) — date format: 'YYYY-MM-DD HH:MM:SS'
-            squiggleGames = (_sd.games || [])
-                .filter(g => (g.date || '').startsWith(date))
-                .map(adaptSquiggleAFL);
-        } catch (_e) {
-            return new Response(
-                JSON.stringify({ error: _e.message, sport, date, source: 'squiggle' }),
-                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
-            );
-        }
-        return new Response(
-            JSON.stringify({ sport, date, games: squiggleGames, source: 'squiggle' }),
-            { headers: { 'Content-Type': 'application/json',
-                         'Cache-Control': 'public, max-age=30', ...CORS } }
-        );
-    }
+                cfg.espnSport === 'baseball'                                      ? adaptESPNMLB(ev)
+                : ['basketball','australian-football'].includes(cfg.espnSport)     ? adaptESPNBasketball(ev, sport)
+                : adaptESPNWCSoccer(ev, sport)
 ```
 
 ## DONE CONDITIONS
@@ -188,19 +110,20 @@ print('source:', d.get('source'))
 print('games:', len(games))
 if games:
     g=games[0]
-    print('sample:', g.get('away',{}).get('name'),'vs',g.get('home',{}).get('name'))
-    print('venue:', g.get('venue'))
-    print('round:', g.get('round'))
-    print('state:', g.get('state'))
-    print('squiggleId:', g.get('squiggleId'))
+    print('sample:', g.get('away',{}).get('abbr','?'),'@',g.get('home',{}).get('abbr','?'))
+    print('venue:', g.get('venue','?'))
+    print('espnEventId:', bool(g.get('espnEventId')))
+    print('sport field:', g.get('sport','?'))
 "
 ```
 Expected:
-- source: 'squiggle' (not 'apisports')
-- games: N (tonight's Round 16 AFL games)
-- venue populated (MCG, GMHBA Stadium, etc)
-- squiggleId present
+- source: 'espn-wc' (not 'apisports')
+- games: 5-7 (tonight's Round 16 slate)
+- home/away abbr populated: HAW, CARL, COLL etc. (was empty with API-Sports)
+- venue populated: MCG, Gabba etc.
+- espnEventId: True
+- sport: 'afl'
 
-3. /v2/games?sport=wnba — source still 'espn-wc' (unchanged)
-4. /v2/games?sport=wc26 — 6 WC games (unchanged)
-5. Commit: "feat(afl): migrate V2_LEAGUES AFL from API-Sports to Squiggle"
+3. /v2/games?sport=wnba still 'espn-wc' (adaptESPNBasketball unchanged)
+4. /v2/games?sport=wc26 still 6 WC games (soccer path unchanged)
+5. Commit: "feat(afl): migrate V2_LEAGUES AFL from API-Sports to ESPN australian-football/afl"
