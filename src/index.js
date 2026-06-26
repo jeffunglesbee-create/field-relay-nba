@@ -8452,6 +8452,29 @@ export default {
                 cflPath = `/teams`;
             } else if (pathname === '/cfl/standings') {
                 cflPath = `/seasons/${seasonId}/standings`; // may not exist — test
+            } else if (pathname === '/cfl/scoreboard/rounds') {
+                // cflscoreboard.cfl.ca — live CFL scoreboard (rounds = schedule + live scores)
+                // Used by ha-teamtracker v0.17.4 (May 2026). Refresh 30s live, 10min pre/post.
+                const sbResp = await fetch('https://cflscoreboard.cfl.ca/json/scoreboard/rounds.json', {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15' },
+                    signal: AbortSignal.timeout(6000),
+                });
+                const sbBody = await sbResp.text();
+                return new Response(sbBody, {
+                    status: sbResp.status,
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS },
+                });
+            } else if (pathname === '/cfl/scoreboard/squads') {
+                // Team/squad data from cflscoreboard.cfl.ca
+                const sqResp = await fetch('https://cflscoreboard.cfl.ca/json/scoreboard/squads.json', {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15' },
+                    signal: AbortSignal.timeout(6000),
+                });
+                const sqBody = await sqResp.text();
+                return new Response(sqBody, {
+                    status: sqResp.status,
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', ...CORS },
+                });
             } else {
                 // Unknown /cfl/* sub-path
                 return new Response(JSON.stringify({ error: 'Unknown CFL route', path: pathname }),
