@@ -380,12 +380,18 @@ async function buildOddsStoryContext(env, game) {
 // Returns '' on any failure (Rule 5) — missing source_id, ESPN 404, no
 // leaders array yet (live games before stats populate).
 const _ESPN_SPORT_SLUG = {
-    mlb:  'sports/baseball/mlb',
-    nba:  'sports/basketball/nba',
-    wnba: 'sports/basketball/wnba',
-    nhl:  'sports/hockey/nhl',
-    wc26: 'sports/soccer/fifa.world',
-    soccer: 'sports/soccer/fifa.world',
+    mlb:        'sports/baseball/mlb',
+    nba:        'sports/basketball/nba',
+    wnba:       'sports/basketball/wnba',
+    nhl:        'sports/hockey/nhl',
+    wc26:       'sports/soccer/fifa.world',
+    soccer:     'sports/soccer/fifa.world',
+    // Generic ESPN sport names sent by GameDO
+    baseball:   'sports/baseball/mlb',
+    basketball: 'sports/basketball/nba',
+    hockey:     'sports/hockey/nhl',
+    golf:       'sports/golf/pga',
+    pga:        'sports/golf/pga',
 };
 
 async function buildESPNSummaryContext(env, game) {
@@ -397,11 +403,30 @@ async function buildESPNSummaryContext(env, game) {
     // normalizes for registry filtering but passes the original game object
     // to builders — builders must normalize themselves.
     const _SUMMARY_SPORT_NORMALIZE = {
+        // World Cup variants
         'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26', 'worldcup': 'wc26',
         'worldcup2026': 'wc26',
+        // ESPN generic sport name → FIELD canonical (GameDO sends these)
+        'baseball': 'mlb',
+        'basketball': 'nba',   // WNBA promoted via league check below
+        'football': 'nfl',
+        // Golf variants
+        'golf': 'golf',
+        'pga': 'golf',
+        'pgatour': 'golf',
+        // Tennis
+        'tennis': 'atp',       // gender resolved via league/espnLeague
+        // WNBA-specific labels from various sources
+        'nba w': 'wnba',
+        'womensnationalbasketballassociation': 'wnba',
     };
     const _sportRawKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
     const sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
+    // If sport resolved to 'nba'/'basketball' but league signals WNBA, use WNBA slug
+    if ((sportKey === 'nba' || sportKey === 'basketball') && game.league) {
+        const _lgCheck = String(game.league || '').toLowerCase();
+        if (/wnba|women|nba\s*w/i.test(_lgCheck)) sportKey = 'wnba';
+    }
     const slug = _ESPN_SPORT_SLUG[sportKey]
         || (game.espnLeague ? _ESPN_SPORT_SLUG[String(game.espnLeague).toLowerCase()] : null)
         || null;
@@ -857,6 +882,16 @@ async function assembleContext(env, game, totalBudget = 1500) {
     if (sport === 'soccer') {
         const _league = String(game.league || game.espnLeague || '').toLowerCase();
         if (/world.cup|fifa|wc26/i.test(_league)) sport = 'wc26';
+    }
+    // Promote 'nba' → 'wnba' when league signals Women's Basketball
+    if (sport === 'nba') {
+        const _lg = String(game.league || game.espnLeague || game.league_name || '').toLowerCase();
+        if (/wnba|women|nba\s*w/i.test(_lg)) sport = 'wnba';
+    }
+    // Promote 'atp' → 'wta' when league signals women's tennis
+    if (sport === 'atp') {
+        const _lg = String(game.league || game.espnLeague || '').toLowerCase();
+        if (/wta|women/i.test(_lg)) sport = 'wta';
     }
     const applicable = CONTEXT_SOURCES.filter(s =>
         !s.sports || s.sports.includes(sport));
