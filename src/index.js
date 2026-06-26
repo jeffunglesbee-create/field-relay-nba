@@ -1044,11 +1044,12 @@ const V2_LEAGUES = {
     'wc26':         { sport: 'football',   leagueId: 1,   season: '2026',
                       espnLeague: 'fifa.world' },
     'pga':          { sport: 'golf',       league: 'pga', espnSource: true, leagueId: '1106' },
-    // AFL Premiership (verified June 20 2026 via /apisports/afl/leagues — id:1,
-    // season:2026 current:true). The api-sports AFL plan accepts only ?date=
-    // (no league/season filter) on a ±1 day rolling window; the dispatch in
-    // handleV2Games branches AFL to use ?date= only.
-    'afl':          { sport: 'afl',        leagueId: 1,   season: 2026        },
+    // AFL — migrated June 26 2026: API-Sports → ESPN australian-football/afl
+    // Three-source architecture: ESPN (scores) + Kali (journalism) + Squiggle (analytics)
+    // ev.week.number from ESPN is the round join key into Kali + Squiggle.
+    // Squiggle /squiggle route stays active for power rankings + projected ladder.
+    // KALI_AFL_TOKEN already deployed. bsdLeagueId: null (AFL not in BSD).
+    'afl':          { sport: 'afl', espnLeague: 'afl', espnSport: 'australian-football', season: 2026 },
     'atp':          { sport: 'tennis',     espnSource: true, espnLeague: 'atp',
                       description: 'ATP Tour — BSD Sports Pack active' },
     'wta':          { sport: 'tennis',     espnSource: true, espnLeague: 'wta',
@@ -1486,7 +1487,7 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
         id:          `espn:${ev.id}`,
         espnEventId: ev.id,
         sport:       sportKey,
-        league:      sportKey === 'nba' ? 'NBA' : 'WNBA',
+        league:      ({ nba: 'NBA', afl: 'AFL', wnba: 'WNBA' })[sportKey] || 'WNBA',
         state,
         start:       ev.date || '',
         home: {
@@ -1508,6 +1509,7 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
             home: ls(home.linescores),
             away: ls(away.linescores),
         },
+        round: ev.week?.number ?? null,
     };
 }
 
@@ -3080,6 +3082,71 @@ async function handleGolfEnriched(date, env, ctx) {
     return result;
 }
 
+async function buildAFLJournalismContext(games, round, year, env) {
+    if (!round || !year || !games.length) return {};
+    const ctx = {};
+    for (const g of games) {
+        if (g.espnEventId) ctx[g.espnEventId] = { kali: null, squiggle: null };
+    }
+    const _norm = s => String(s || '').toLowerCase()
+        .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
+        .replace(/[^a-z]/g, '').slice(0, 6);
+    const findGame = (homeTeam, awayTeam) => games.find(g =>
+        (teamNameMatch(homeTeam, g.home.name) && teamNameMatch(awayTeam, g.away.name)) ||
+        (teamNameMatch(homeTeam, g.away.name) && teamNameMatch(awayTeam, g.home.name)) ||
+        (_norm(homeTeam) && _norm(homeTeam) === _norm(g.home.name)) ||
+        (_norm(homeTeam) && _norm(homeTeam) === _norm(g.away.name))
+    );
+    const kaliKey = env.KALI_AFL_TOKEN;
+    const [kaliResp, squiggleResp] = await Promise.allSettled([
+        kaliKey
+            ? fetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`, {
+                headers: { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
+                cf: { cacheTtl: 3600, cacheEverything: true,
+                      cacheKey: `kali:predictions:${year}:${round}` },
+              })
+            : Promise.reject(new Error('KALI_AFL_TOKEN not set')),
+        fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
+            headers: SQUIGGLE_HEADERS,
+            cf: { cacheTtl: squiggleTtl(`q=tips;year=${year};round=${round}`),
+                  cacheEverything: true,
+                  cacheKey: `squiggle:tips:${year}:${round}` },
+        }),
+    ]);
+    if (kaliResp.status === 'fulfilled' && kaliResp.value.ok) {
+        try {
+            const kd = await kaliResp.value.json();
+            for (const pred of (kd.data || [])) {
+                const g = findGame(pred.homeTeam, pred.awayTeam);
+                if (!g?.espnEventId || !ctx[g.espnEventId]) continue;
+                ctx[g.espnEventId].kali = {
+                    homeWinPct:        pred.homeProbability,
+                    awayWinPct:        pred.awayProbability,
+                    squiggleConsensus: pred.squiggleConsensus,
+                    factors:           pred.factors || [],
+                    homeBreakdown:     pred.homeBreakdown || {},
+                    awayBreakdown:     pred.awayBreakdown || {},
+                };
+            }
+        } catch (_) {}
+    }
+    if (squiggleResp.status === 'fulfilled' && squiggleResp.value.ok) {
+        try {
+            const sd = await squiggleResp.value.json();
+            const aggTips = (sd.tips || []).filter(t => t.source === 'Aggregate');
+            for (const tip of aggTips) {
+                const g = findGame(tip.hteam, tip.ateam);
+                if (!g?.espnEventId || !ctx[g.espnEventId]) continue;
+                ctx[g.espnEventId].squiggle = {
+                    homeConfidence: tip.hconfidence,
+                    awayConfidence: 100 - tip.hconfidence,
+                };
+            }
+        } catch (_) {}
+    }
+    return ctx;
+}
+
 async function handleV2Games(url, env, ctx) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
@@ -3169,8 +3236,8 @@ async function handleV2Games(url, env, ctx) {
             }
             const espnData = await espnResp.json();
             espnGames = (espnData.events || []).map(ev =>
-                cfg.espnSport === 'baseball'    ? adaptESPNMLB(ev)
-                : cfg.espnSport === 'basketball' ? adaptESPNBasketball(ev, sport)
+                cfg.espnSport === 'baseball'                                          ? adaptESPNMLB(ev)
+                : ['basketball', 'australian-football'].includes(cfg.espnSport)       ? adaptESPNBasketball(ev, sport)
                 : adaptESPNWCSoccer(ev, sport)
             );
         } catch (e) {
@@ -3180,6 +3247,20 @@ async function handleV2Games(url, env, ctx) {
             );
         }
         const games = espnGames;
+
+        // ── AFL journalism context (ESPN + Kali + Squiggle) ──────────────────
+        if (sport === 'afl' && env.KALI_AFL_TOKEN) {
+            try {
+                const _aflRound = espnData.week?.number ?? games[0]?.round ?? null;
+                const _aflYear  = cfg.season ?? new Date().getUTCFullYear();
+                const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env);
+                for (const g of games) {
+                    if (g.espnEventId && _aflCtx[g.espnEventId]) {
+                        g.journalism = _aflCtx[g.espnEventId];
+                    }
+                }
+            } catch (_) { /* non-blocking — journalism context optional */ }
+        }
 
         // ── BSD group_name + weather enrichment ──────────────────────────────
         // Fetches today's WC events from BSD by-date (league_id=27) and matches
