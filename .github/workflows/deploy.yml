@@ -101,17 +101,48 @@ jobs:
       # Hard gate: even with continue-on-error above, the code MUST be live.
       # This catches genuine deploy failures (bad bundle, auth revoked) vs
       # wrangler post-deploy secret-PUT errors (code live but wrangler exits 1).
-      - name: Deploy gate — confirm relay is live
+      #
+      # SILENT BUILD FAILURE GUARD (added 2026-06-26):
+      # wrangler exits 1 for BOTH esbuild errors AND secret-PUT failures.
+      # continue-on-error swallows both. Old bundle responds fine → health
+      # check passes → silent failure goes undetected (seen 3× in 2 days).
+      # Fix: if wrangler_deploy failed, fetch deployed bundle from CF API and
+      # grep for a known route. If absent → build failed, not secret-PUT.
+      - name: Deploy gate — confirm relay is live + catch silent build failures
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          ACCOUNT="b57e9af57ab46c52ca9215804e689c29"
+          WRANGLER_OUTCOME="${{ steps.wrangler_deploy.outcome }}"
+
+          # Step 1: health check (existing — catches total outages)
           for attempt in 1 2 3 4 5; do
             BODY=$(curl -s --max-time 10 "$RELAY/health" 2>/dev/null)
             echo "Attempt $attempt — $BODY"
-            echo "$BODY" | grep -q "RELAY OK" && { echo "✅ Relay is live"; exit 0; }
+            echo "$BODY" | grep -q "RELAY OK" && break
             [ $attempt -lt 5 ] && { echo "⏳ Retrying in 8s..."; sleep 8; }
+            [ $attempt -eq 5 ] && { echo "❌ Relay not responding — genuine failure"; exit 1; }
           done
-          echo "❌ Relay not responding after deploy — genuine failure"
-          exit 1
+          echo "✅ Relay is live"
+
+          # Step 2: bundle content check (NEW — only runs when wrangler reported failure)
+          # Distinguishes esbuild errors (old bundle stays) from acceptable secret-PUT
+          # errors (new bundle IS deployed, only secret update failed).
+          if [ "$WRANGLER_OUTCOME" = "failure" ]; then
+            echo "⚠️  wrangler_deploy outcome=failure — verifying bundle content..."
+            BUNDLE=$(curl -sf --max-time 30               -H "Authorization: Bearer $CF_TOKEN"               "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/scripts/field-relay-nba"               2>/dev/null | head -c 3000000 || echo '')
+            # Sentinel: permanent route present in every bundle from 2026-06-26 onward.
+            # If absent, esbuild rejected new code and old bundle is still deployed.
+            if echo "$BUNDLE" | grep -qF '/bsd/r2/read'; then
+              echo "✅ Bundle verified — wrangler failure was secret-PUT only, new code is live"
+            else
+              echo "❌ SILENT BUILD FAILURE: sentinel '/bsd/r2/read' missing from deployed bundle"
+              echo "   esbuild likely rejected new code (const reassignment, syntax error, etc.)"
+              echo "   Old bundle is still active. Fix build error and re-push."
+              exit 1
+            fi
+          fi
 
       - name: Post-deploy — refresh WC bracket projections
         continue-on-error: true
