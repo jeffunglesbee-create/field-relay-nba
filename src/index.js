@@ -8436,7 +8436,9 @@ export default {
             const seasonId = url.searchParams.get('season_id') || '35'; // 35 = 2026
 
             if (pathname === '/cfl/fixtures') {
-                cflPath = `/fixtures?season_id=${seasonId}&limit=100`;
+                // Fixtures use /seasons/{id}/fixtures path (not /fixtures?season_id=)
+                // season_id=35 is the external CFL ID for 2026 (internal=75, API accepts both)
+                cflPath = `/seasons/${seasonId}/fixtures`;
             } else if (pathname.match(/^\/cfl\/fixtures\/\d+$/)) {
                 const fid = pathname.split('/').pop();
                 cflPath = `/fixtures/${fid}`;
