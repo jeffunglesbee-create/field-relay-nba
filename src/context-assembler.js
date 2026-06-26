@@ -561,33 +561,73 @@ async function buildBSDHistoryContext(env, game) {
                 ? match.home : match.away;
             const opponent = match.home === teamLabel ? match.away : match.home;
 
+            // ── BSD data read — dual path ────────────────────────────────────────
+            // WC (league_id=27): BSD exposes no separate /momentum/ or
+            // /average-positions/ endpoints — both are embedded in /stats/.
+            // R2 key: stats.json  Fields: stats.shotmap[], momentum[{m,v}]
+            //
+            // Club (EPL/MLS etc.): BSD exposes separate endpoints.
+            // R2 keys: shotmap.json, momentum.json  Fields: shots[], {value,minute}
+            //
+            // Strategy: read stats.json first (WC primary path). If absent or
+            // its shotmap/momentum are empty, fall back to club-format files.
+            let _bsdStats = null;
+            try {
+                const _so = await env.FIELD_DATA.get(
+                    `bsd/wc26/${match.bsd_event_id}/stats.json`);
+                if (_so) _bsdStats = await _so.json();
+            } catch (_) {}
+
             let shotSummary = '';
             try {
-                const statsObj = await env.FIELD_DATA.get(
-                    `bsd/wc26/${match.bsd_event_id}/shotmap.json`);
-                if (statsObj) {
-                    const stats = await statsObj.json();
-                    const shots = stats?.shots || stats?.results || stats?.statistics || [];
-                    if (shots.length) {
-                        const xgTotal = shots.reduce((s, sh) => s + (sh.xg || 0), 0);
-                        const onTarget = shots.filter(s => s.on_target).length;
-                        shotSummary = `${shots.length} shots, ${onTarget} OT, xG ${xgTotal.toFixed(2)}`;
+                // WC path: stats.json → shotmap[] with {xg, type, xgot} fields
+                const _wcShots = _bsdStats?.shotmap;
+                if (_wcShots?.length) {
+                    const _xgpm  = _bsdStats?.xg_per_minute || [];
+                    const _last  = _xgpm[_xgpm.length - 1];
+                    const _xgH   = _last?.cum_home ?? _wcShots.filter(s => s.home).reduce((a,s)=>a+(s.xg||0),0);
+                    const _xgA   = _last?.cum_away ?? _wcShots.filter(s => !s.home).reduce((a,s)=>a+(s.xg||0),0);
+                    // on-target: goals + shots with xgot recorded (saved attempts)
+                    const _ot    = _wcShots.filter(s => s.type==='goal' || (s.xgot||0)>0).length;
+                    shotSummary  = `${_wcShots.length} shots, ${_ot} OT, xG h${_xgH.toFixed(2)} a${_xgA.toFixed(2)}`;
+                } else {
+                    // Club fallback: separate shotmap.json — {shots[], xg, on_target}
+                    const _smO = await env.FIELD_DATA.get(
+                        `bsd/wc26/${match.bsd_event_id}/shotmap.json`);
+                    if (_smO) {
+                        const _sm    = await _smO.json();
+                        const _shots = _sm?.shots || _sm?.results || _sm?.statistics || [];
+                        if (_shots.length) {
+                            const _xgT  = _shots.reduce((s,sh)=>s+(sh.xg||0),0);
+                            const _ot2  = _shots.filter(s=>s.on_target).length;
+                            shotSummary = `${_shots.length} shots, ${_ot2} OT, xG ${_xgT.toFixed(2)}`;
+                        }
                     }
                 }
             } catch (_) {}
 
             let momentumSummary = '';
             try {
-                const momObj = await env.FIELD_DATA.get(
-                    `bsd/wc26/${match.bsd_event_id}/momentum.json`);
-                if (momObj) {
-                    const mom = await momObj.json();
-                    const entries = mom?.momentum || mom?.results || mom?.data || [];
-                    if (entries.length) {
-                        const peak = entries.reduce(
-                            (b, e) => Math.abs(e.value || 0) > Math.abs(b.value || 0) ? e : b,
-                            entries[0]);
-                        momentumSummary = `peak ${peak.value > 0 ? '+' : ''}${Math.round(peak.value)} at ${peak.minute || '?'}'`;
+                // WC path: stats.json → momentum[{m,v}] — BSD uses 'm' and 'v', not 'minute'/'value'
+                const _wcMom = _bsdStats?.momentum;
+                if (_wcMom?.length) {
+                    const _peak = _wcMom.reduce(
+                        (b,e) => Math.abs(e.v||0) > Math.abs(b.v||0) ? e : b,
+                        _wcMom[0]);
+                    momentumSummary = `peak ${(_peak.v||0)>0?'+':''}${Math.round(_peak.v||0)} at ${_peak.m}'`;
+                } else {
+                    // Club fallback: separate momentum.json — {momentum[{minute,value}]}
+                    const _momO = await env.FIELD_DATA.get(
+                        `bsd/wc26/${match.bsd_event_id}/momentum.json`);
+                    if (_momO) {
+                        const _mom  = await _momO.json();
+                        const _ents = _mom?.momentum || _mom?.results || _mom?.data || [];
+                        if (_ents.length) {
+                            const _peak2 = _ents.reduce(
+                                (b,e) => Math.abs(e.value||0) > Math.abs(b.value||0) ? e : b,
+                                _ents[0]);
+                            momentumSummary = `peak ${(_peak2.value||0)>0?'+':''}${Math.round(_peak2.value||0)} at ${_peak2.minute||'?'}'`;
+                        }
                     }
                 }
             } catch (_) {}
