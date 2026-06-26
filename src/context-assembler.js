@@ -632,10 +632,102 @@ async function buildBSDHistoryContext(env, game) {
                 }
             } catch (_) {}
 
+            // ── Possession ratio (passes proxy) ─────────────────────────────────
+            let possRatio = '';
+            try {
+                const _hPass = _bsdStats?.stats?.home?.passes || 0;
+                const _aPass = _bsdStats?.stats?.away?.passes || 0;
+                if (_hPass + _aPass > 0) {
+                    const _hPct = Math.round(_hPass / (_hPass + _aPass) * 100);
+                    possRatio = `poss ${_hPct}-${100 - _hPct}`;
+                }
+            } catch (_) {}
+
+            // ── Game character: fouls + clearances ───────────────────────────────
+            let gameChar = '';
+            try {
+                const _totFouls = (_bsdStats?.stats?.home?.fouls || 0)
+                                + (_bsdStats?.stats?.away?.fouls || 0);
+                const _totClr   = (_bsdStats?.stats?.home?.clearances || 0)
+                                + (_bsdStats?.stats?.away?.clearances || 0);
+                if (_totFouls > 0)
+                    gameChar = `${_totFouls} fouls${_totClr > 0 ? ', ' + _totClr + ' clears' : ''}`;
+            } catch (_) {}
+
+            // ── xG phase narrative ────────────────────────────────────────────────
+            // Splits incremental xg_per_minute buckets into thirds.
+            // Tells which phase each team dominated, not just the final total.
+            let xgPhase = '';
+            try {
+                const _xgpm = _bsdStats?.xg_per_minute || [];
+                if (_xgpm.length >= 3) {
+                    const _pSum = (from, to) => {
+                        const bs = _xgpm.filter(b => b.m > from && b.m <= to);
+                        return bs.length
+                            ? { h: bs.reduce((s,b) => s + (b.xg_home||0), 0),
+                                a: bs.reduce((s,b) => s + (b.xg_away||0), 0) }
+                            : null;
+                    };
+                    const _phases = [
+                        [_pSum(0,30),  '0-30'],
+                        [_pSum(30,60), '31-60'],
+                        [_pSum(60,90), '61-90'],
+                    ].map(([p,l]) => p ? `${l} h${p.h.toFixed(2)}/a${p.a.toFixed(2)}` : null)
+                     .filter(Boolean);
+                    if (_phases.length) xgPhase = `xG phases: ${_phases.join(', ')}`;
+                }
+            } catch (_) {}
+
+            // ── Substitution Momentum Shift (SMS) ────────────────────────────────
+            // For each sub minute in [15,80]: compare avg momentum 10 min before/after.
+            // BSD momentum {m,v}: positive v = home dominant, negative = away dominant.
+            // Home sub impact: SMS > 12. Away sub impact: SMS < -12.
+            // incidents.json: type='substitution', is_home, player_in, minute.
+            let smsSummary = '';
+            try {
+                const _incR = await env.FIELD_DATA.get(
+                    `bsd/wc26/${match.bsd_event_id}/incidents.json`);
+                if (_incR && (_bsdStats?.momentum?.length || 0) > 10) {
+                    const _incData = await _incR.json();
+                    const _mom     = _bsdStats.momentum;
+                    const _avgMom  = (from, to) => {
+                        const sl = _mom.filter(e => e.m >= from && e.m <= to);
+                        return sl.length
+                            ? sl.reduce((s,e) => s + (e.v||0), 0) / sl.length
+                            : null;
+                    };
+                    const _subMins = [...new Set(
+                        (_incData.incidents || [])
+                            .filter(e => e.type === 'substitution'
+                                      && e.minute >= 15 && e.minute <= 80)
+                            .map(e => e.minute)
+                    )];
+                    const _impacts = [];
+                    for (const _min of _subMins) {
+                        const _before = _avgMom(Math.max(1, _min - 10), _min);
+                        const _after  = _avgMom(_min, Math.min(90, _min + 10));
+                        if (_before == null || _after == null) continue;
+                        const _sms    = _after - _before;
+                        const _minSubs = (_incData.incidents||[]).filter(
+                            e => e.type === 'substitution' && e.minute === _min);
+                        const _isHome  = _minSubs.some(s => s.is_home);
+                        if ((_isHome && _sms > 12) || (!_isHome && _sms < -12)) {
+                            const _pin = _minSubs.find(s => s.is_home === _isHome)?.player_in || '';
+                            _impacts.push(`${_pin} ${_min}' SMS${_sms>0?'+':''}${Math.round(_sms)}`);
+                        }
+                    }
+                    if (_impacts.length) smsSummary = `impact subs: ${_impacts.join(', ')}`;
+                }
+            } catch (_) {}
+
             const scoreline = `${match.home_score}-${match.away_score}`;
             const parts = [`vs ${opponent} (${scoreline})`];
-            if (shotSummary) parts.push(shotSummary);
+            if (shotSummary)     parts.push(shotSummary);
             if (momentumSummary) parts.push(momentumSummary);
+            if (possRatio)       parts.push(possRatio);
+            if (gameChar)        parts.push(gameChar);
+            if (xgPhase)         parts.push(xgPhase);
+            if (smsSummary)      parts.push(smsSummary);
             sections.push(`  ${match.match_date}: ${teamLabel} ${parts.join(' | ')}`);
         }
 
