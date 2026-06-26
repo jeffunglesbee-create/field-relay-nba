@@ -998,7 +998,7 @@ const V2_LEAGUES = {
     'nba':          { sport: 'nba',        leagueId: null, season: '2025-2026' }, // routes to v2.nba.api-sports.io
     'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
     'mlb':        { sport: 'mlb', espnLeague: 'mlb', espnSport: 'baseball', season: '2026' },
-    'wnba':         { sport: 'basketball', leagueId: 13,  season: '2026'      }, // [VERIFY leagueId]
+    'wnba':         { sport: 'wnba', espnLeague: 'wnba', espnSport: 'basketball', season: '2026' },
     // Club soccer — migrated June 26 2026: API-Sports → ESPN + BSD
     // espnLeague: ESPN scoreboard slug. bsdLeagueId: BSD analytics (null = ESPN only).
     // Season: '2026-27' for Aug-start leagues, '2026' for MLS calendar year.
@@ -1413,6 +1413,78 @@ function adaptFootball(item, sportKey, statsData) {
 // Replaces adaptFootball() for the wc26 sport slot. Produces the same game
 // object shape so all downstream consumers (writeWCResult, BSD enrichment,
 // computeLiveWP, GameDO, BracketDO) work without modification.
+// Adapts ESPN basketball/wnba (or /nba) scoreboard event → standard V2 FieldGame shape.
+// Named generically so NBA migration reuses the same function with sportKey='nba'.
+// ESPN shape confirmed 2026-06-26 against WNBA scoreboard:
+//   status.period: 0=pre, 1-4=Q1-Q4, 5+=OT
+//   status.displayClock: '7:24' live | '0.0' pre/final
+//   status.type.shortDetail: 'Q3 7:24' | 'Final' | '6/26 - 7:30 PM EDT'
+//   competitors[i].linescores: [{value: 38.0}, ...] per quarter
+//   venue.fullName: arena name (empty string if unavailable)
+//   situation (live): {possession?} — minimal for WNBA
+function adaptESPNBasketball(ev, sportKey = 'wnba') {
+    const comp  = ev.competitions?.[0] || {};
+    const teams = comp.competitors || [];
+    const home  = teams.find(t => t.homeAway === 'home') || {};
+    const away  = teams.find(t => t.homeAway === 'away') || {};
+    const st    = comp.status || {};
+    const stt   = st.type?.name || '';
+    const sit   = comp.situation || {};
+
+    // State
+    const state = stt === 'STATUS_FINAL'       ? 'post'
+                : stt === 'STATUS_IN_PROGRESS' ? 'live'
+                : 'pre';
+
+    // Quarter/OT tracking
+    const period = st.period || 0;
+    const clock  = st.displayClock || '';
+    const periodLabel = state === 'post' ? 'F'
+                      : state === 'live'
+                            ? (period > 4 ? `OT${period - 4 > 1 ? period - 4 : ''}` : `Q${period}`)
+                      : 'NS';
+
+    // Per-quarter linescores
+    const ls = arr => (arr || []).map(l =>
+        (typeof l === 'object' && l !== null ? l?.value : l) ?? null
+    );
+
+    // Situation (live only)
+    const situation = state === 'live' ? {
+        quarter:    period,
+        clock,
+        possession: sit.possession ?? null,
+    } : null;
+
+    return {
+        id:          `espn:${ev.id}`,
+        espnEventId: ev.id,
+        sport:       sportKey,
+        league:      sportKey === 'nba' ? 'NBA' : 'WNBA',
+        state,
+        start:       ev.date || '',
+        home: {
+            name:  home.team?.displayName  || '',
+            abbr:  home.team?.abbreviation || '',
+            score: parseInt(home.score) || 0,
+        },
+        away: {
+            name:  away.team?.displayName  || '',
+            abbr:  away.team?.abbreviation || '',
+            score: parseInt(away.score) || 0,
+        },
+        periodNum:   period,
+        periodLabel,
+        clock,
+        venue:       comp.venue?.fullName || '',
+        situation,
+        linescores: {
+            home: ls(home.linescores),
+            away: ls(away.linescores),
+        },
+    };
+}
+
 // Adapts ESPN baseball/mlb scoreboard event → standard V2 FieldGame shape.
 // ESPN shape confirmed 2026-06-26:
 //   status.type.name: STATUS_SCHEDULED | STATUS_IN_PROGRESS | STATUS_FINAL
@@ -3071,9 +3143,9 @@ async function handleV2Games(url, env, ctx) {
             }
             const espnData = await espnResp.json();
             espnGames = (espnData.events || []).map(ev =>
-                cfg.espnSport === 'baseball'
-                    ? adaptESPNMLB(ev)
-                    : adaptESPNWCSoccer(ev, sport)
+                cfg.espnSport === 'baseball'    ? adaptESPNMLB(ev)
+                : cfg.espnSport === 'basketball' ? adaptESPNBasketball(ev, sport)
+                : adaptESPNWCSoccer(ev, sport)
             );
         } catch (e) {
             return new Response(
