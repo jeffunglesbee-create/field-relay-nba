@@ -997,7 +997,7 @@ function teamNameMatch(oddsName, fieldName) {
 const V2_LEAGUES = {
     'nba':          { sport: 'nba',        leagueId: null, season: '2025-2026' }, // routes to v2.nba.api-sports.io
     'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
-    'mlb':          { sport: 'baseball',   leagueId: 1,   season: '2026'      },
+    'mlb':        { sport: 'mlb', espnLeague: 'mlb', espnSport: 'baseball', season: '2026' },
     'wnba':         { sport: 'basketball', leagueId: 13,  season: '2026'      }, // [VERIFY leagueId]
     // Club soccer — migrated June 26 2026: API-Sports → ESPN + BSD
     // espnLeague: ESPN scoreboard slug. bsdLeagueId: BSD analytics (null = ESPN only).
@@ -1413,6 +1413,84 @@ function adaptFootball(item, sportKey, statsData) {
 // Replaces adaptFootball() for the wc26 sport slot. Produces the same game
 // object shape so all downstream consumers (writeWCResult, BSD enrichment,
 // computeLiveWP, GameDO, BracketDO) work without modification.
+// Adapts ESPN baseball/mlb scoreboard event → standard V2 FieldGame shape.
+// ESPN shape confirmed 2026-06-26:
+//   status.type.name: STATUS_SCHEDULED | STATUS_IN_PROGRESS | STATUS_FINAL
+//   status.period: inning number (1-9+)
+//   status.type.shortDetail: 'Top 5th - 2 Outs' | 'Final' | '6/26 - 6:40 PM EDT'
+//   competitors[i].linescores: [{value: N}, ...] per-inning runs
+//   competitors[i].team.abbreviation / displayName / score
+//   venue.fullName: stadium name
+//   situation (live): {balls, strikes, outs, onFirst, onSecond, onThird}
+function adaptESPNMLB(ev) {
+    const comp = ev.competitions?.[0] || {};
+    const teams = comp.competitors || [];
+    const home  = teams.find(t => t.homeAway === 'home') || {};
+    const away  = teams.find(t => t.homeAway === 'away') || {};
+    const st    = comp.status || {};
+    const stt   = st.type?.name || '';
+    const sit   = comp.situation || {};
+
+    // State
+    const state = stt === 'STATUS_FINAL'       ? 'post'
+                : stt === 'STATUS_IN_PROGRESS' ? 'live'
+                : 'pre';
+
+    // Inning + half from shortDetail: 'Top 5th - 2 Outs', 'Bot 7th - 1 Out'
+    const inningNum  = st.period || 1;
+    const detail     = st.type?.shortDetail || '';
+    const isTop      = /^top/i.test(detail);
+    const outsMatch  = detail.match(/(\d)\s+out/i);
+    const outs       = outsMatch ? parseInt(outsMatch[1]) : null;
+    const halfLabel  = state === 'live' ? (isTop ? 'T' : 'B') : '';
+    const periodLabel = state === 'post' ? 'F'
+                      : state === 'live' ? `${halfLabel}${inningNum}`
+                      : 'NS';
+
+    // Per-inning linescores
+    const ls = arr => (arr || []).map(l => (typeof l === 'object' ? l?.value : l) ?? null);
+
+    // Situation (live only)
+    const situation = state === 'live' ? {
+        inning:   inningNum,
+        isTop,
+        outs,
+        balls:    sit.balls   ?? null,
+        strikes:  sit.strikes ?? null,
+        onFirst:  sit.onFirst  ?? false,
+        onSecond: sit.onSecond ?? false,
+        onThird:  sit.onThird  ?? false,
+    } : null;
+
+    return {
+        id:          `espn:${ev.id}`,
+        espnEventId: ev.id,
+        sport:       'mlb',
+        league:      'MLB',
+        state,
+        start:       ev.date || '',
+        home: {
+            name:  home.team?.displayName   || '',
+            abbr:  home.team?.abbreviation  || '',
+            score: parseInt(home.score) || 0,
+        },
+        away: {
+            name:  away.team?.displayName   || '',
+            abbr:  away.team?.abbreviation  || '',
+            score: parseInt(away.score) || 0,
+        },
+        periodNum:   inningNum,
+        periodLabel,
+        clock:       st.displayClock || '',
+        venue:       comp.venue?.fullName || '',
+        situation,
+        linescores: {
+            home: ls(home.linescores),
+            away: ls(away.linescores),
+        },
+    };
+}
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -2978,7 +3056,8 @@ async function handleV2Games(url, env, ctx) {
     // WP computation, writeWCResult D1 write, and GameDO crunch signals all run.
     if (cfg.espnLeague) {
         const espnDate = date.replace(/-/g, '');
-        const espnUrl  = `https://site.api.espn.com/apis/site/v2/sports/soccer/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
+        const _espnSportPath = cfg.espnSport || 'soccer';
+        const espnUrl  = `https://site.api.espn.com/apis/site/v2/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
         let espnGames  = [];
         try {
             const espnResp = await fetch(espnUrl, {
@@ -2991,7 +3070,11 @@ async function handleV2Games(url, env, ctx) {
                 );
             }
             const espnData = await espnResp.json();
-            espnGames = (espnData.events || []).map(ev => adaptESPNWCSoccer(ev, sport));
+            espnGames = (espnData.events || []).map(ev =>
+                cfg.espnSport === 'baseball'
+                    ? adaptESPNMLB(ev)
+                    : adaptESPNWCSoccer(ev, sport)
+            );
         } catch (e) {
             return new Response(
                 JSON.stringify({ error: e.message, sport, date }),
