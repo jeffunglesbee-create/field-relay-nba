@@ -1,5 +1,46 @@
 # BSD group_name + Weather Enrichment — 2026-06-26
 
+---
+
+## Gate Fix — 2026-06-26 (CC-CMD cc-bsd-group-weather gate fix)
+
+### Commit
+
+- `d2c1e18` fix(wc26): BSD group_name + weather enrichment — gate was cfg.bsdLeagueId (undefined for wc26), fix to sport === 'wc26'
+- Deploy run: 28271863184 — conclusion: **success** at 23:57:XX Z
+- All 32 steps passed including STRUCTURAL 1 and PROBE F
+
+### Root cause
+
+Enrichment block at L3335 had gate `if (env.BSD_API_TOKEN && cfg.bsdLeagueId)`.
+`V2_LEAGUES['wc26']` has no `bsdLeagueId` field → `undefined` → falsy.
+Block silently skipped for every WC26 request since original commit `2a66e0a`.
+
+### Two-line fix
+
+```js
+// CHANGE 1 — gate (L3335)
+// before: if (env.BSD_API_TOKEN && cfg.bsdLeagueId) {
+// after:  if (env.BSD_API_TOKEN && sport === 'wc26') {
+
+// CHANGE 2 — URL (L3338)
+// before: ...&league_id=${cfg.bsdLeagueId}
+// after:  ...&league_id=27
+```
+
+### Live probe (2026-06-26 ~23:57Z — MD3 final group stage)
+
+```
+NOR @ FRA  | round: "Group I" | weather: {cloudy, 15.1, 19°C}  ✓
+SEN @ IRQ  | round: "Group I" | weather: {cloudy, 5.2, 22°C}   ✓
+URU @ ESP  | round: "Group H" | weather: {rain, 5.6, 22°C}     ✓
+EGY @ IRN  | round: "Group G" | weather: {unknown, 14.5, 18°C} ✓
+NZL @ BEL  | round: "Group G" | weather: {clear, 4.7, 18°C}    ✓
+CPV @ KSA  | round: ""        | (no BSD match — pre-game)
+```
+
+---
+
 ## Commit
 
 - `2a66e0a` feat(wc): BSD group_name + weather enrichment in ESPN WC branch
