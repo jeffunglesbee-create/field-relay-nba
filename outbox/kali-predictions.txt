@@ -1,0 +1,172 @@
+{
+    "data": [
+        {
+            "id": 199,
+            "fixtureId": 38622,
+            "year": 2026,
+            "round": 16,
+            "homeTeamId": "brisbane",
+            "homeTeam": "Brisbane",
+            "homeShortName": "BRI",
+            "awayTeamId": "sydney",
+            "awayTeam": "Sydney",
+            "awayShortName": "SYD",
+            "venue": "Gabba",
+            "date": "2026-06-25 19:30:00",
+            "homeProbability": 34.2,
+            "awayProbability": 65.8,
+            "squiggleConsensus": 51,
+            "homeBreakdown": {
+                "h2h": 66.66666666666666,
+                "form": 40,
+                "stats": 56.862745098039206,
+                "venue": 55.27777777777778,
+                "scoring": 54.3375,
+                "squiggle": 51.464285714285715
+            },
+            "awayBreakdown": {
+                "h2h": 33.33333333333333,
+                "form": 80,
+                "stats": 73.52941176470588,
+                "venue": 39.166666666666664,
+                "scoring": 67.8720934379458,
+                "squiggle": 48.535714285714285
+            },
+            "factors": [
+                {
+                    "team": "away",
+                    "label": "Strong form (4W-1L)",
+                    "impact": 8
+                },
+                {
+                    "team": "away",
+                    "label": "Better team stats",
+                    "impact": 3.3333333333333357
+                },
+                {
+                    "team": "home",
+                    "label": "Dominant H2H record",
+                    "impact": 3.333333333333333
+                }
+            ],
+            "modelVersion": "v1",
+            "actualWinner": "home",
+            "computedAt": "2026-06-24T14:01:05.534Z",
+            "settledAt": "2026-06-25T12:30:07.157Z"
+        },
+        {
+            "id": 201,
+            "fixtureId": 38623,
+            "year": 2026,
+            "round": 16,
+            "homeTeamId": "carlton",
+            "homeTeam": "Carlton",
+            "homeShortName": "CAR",
+            "awayTeamId": "west-coast",
+            "awayTeam": "West Coast",
+            "awayShortName": "WCE",
+            "venue": "Docklands",
+            "date": "2026-06-27 13:15:00",
+            "homeProbability": 95.3,
+            "awayProbability": 4.7,
+            "squiggleConsensus": 84,
+            "homeBreakdown": {
+                "h2h": 100,
+                "form": 100,
+                "stats": 45.09803921568628,
+                "venue": 55,
+                "scoring": 51.39053323029366,
+                "squiggle": 84.32142857142857
+            },
+            "awayBreakdown": {
+                "h2h": 0,
+                "form": 40,
+                "stats": 44.117647058823536,
+                "venue": 45,
+                "scoring": 39.302464788732394,
+                "squiggle": 15.67857142857143
+            },
+            "factors": [
+                {
+                    "team": "home",
+                    "label": "Tipster consensus",
+                    "impact": 13.728571428571428
+                },
+                {
+                    "team": "home",
+                    "label": "Strong form (5W-0L)",
+                    "impact": 12
+                },
+                {
+                    "team": "home",
+                    "label": "Dominant H2H record",
+                    "impact": 10
+                }
+            ],
+            "modelVersion": "v1",
+            "actualWinner": null,
+            "computedAt": "2026-06-24T14:01:05.534Z",
+            "settledAt": null
+        },
+        {
+            "id": 202,
+            "fixtureId": 38624,
+            "year": 2026,
+            "round": 16,
+            "homeTeamId": "collingwood",
+            "homeTeam": "Collingwood",
+            "homeShortName": "COL",
+            "awayTeamId": "richmond",
+            "awayTeam": "Richmond",
+            "awayShortName": "RIC",
+            "venue": "M.C.G.",
+            "date": "2026-06-27 16:15:00",
+            "homeProbability": 96.7,
+            "awayProbability": 3.3,
+            "squiggleConsensus": 87,
+            "homeBreakdown": {
+                "h2h": 100,
+                "form": 40,
+                "stats": 55.882352941176464,
+                "venue": 55,
+                "scoring": 53.985261194029846,
+                "squiggle": 87
+            },
+            "awayBreakdown": {
+                "h2h": 0,
+                "form": 20,
+                "stats": 12.745098039215689,
+                "venue": 45,
+                "scoring": 26.770059880239526,
+                "squiggle": 13
+            },
+            "factors": [
+                {
+                    "team": "home",
+                    "label": "Tipster consensus",
+                    "impact": 14.8
+                },
+                {
+                    "team": "home",
+                    "label": "Dominant H2H record",
+                    "impact": 10
+                },
+                {
+                    "team": "home",
+                    "label": "Better team stats",
+                    "impact": 8.627450980392155
+                }
+            ],
+            "modelVersion": "v1",
+            "actualWinner": null,
+            "computedAt": "2026-06-24T14:01:05.534Z",
+            "settledAt": null
+        }
+    ],
+    "meta": {
+        "limit": 3,
+        "offset": 0,
+        "count": 3,
+        "total": 7
+    }
+}

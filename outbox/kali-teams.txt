@@ -1,0 +1,35 @@
+{
+    "data": [
+        {
+            "id": "adelaide",
+            "name": "Adelaide",
+            "shortName": "ADL"
+        },
+        {
+            "id": "brisbane",
+            "name": "Brisbane",
+            "shortName": "BRI"
+        },
+        {
+            "id": "carlton",
+            "name": "Carlton",
+            "shortName": "CAR"
+        },
+        {
+            "id": "collingwood",
+            "name": "Collingwood",
+            "shortName": "COL"
+        },
+        {
+            "id": "essendon",
+            "name": "Essendon",
+            "shortName": "ESS"
+        }
+    ],
+    "meta": {
+        "limit": 5,
+        "offset": 0,
+        "count": 5,
+        "total": 18
+    }
+}

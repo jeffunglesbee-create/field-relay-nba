@@ -1,0 +1,40 @@
+{
+    "data": [
+        {
+            "playerId": 301,
+            "playerName": "Nasiah Wanganeen-Milera",
+            "teamId": "st-kilda",
+            "value": 44
+        },
+        {
+            "playerId": 346,
+            "playerName": "Noah Anderson",
+            "teamId": "gold-coast",
+            "value": 43
+        },
+        {
+            "playerId": 207,
+            "playerName": "Scott Pendlebury",
+            "teamId": "collingwood",
+            "value": 43
+        },
+        {
+            "playerId": 79,
+            "playerName": "Archie Roberts",
+            "teamId": "essendon",
+            "value": 42
+        },
+        {
+            "playerId": 189,
+            "playerName": "Nick Daicos",
+            "teamId": "collingwood",
+            "value": 42
+        }
+    ],
+    "meta": {
+        "limit": 5,
+        "offset": 0,
+        "count": 5,
+        "total": 5980
+    }
+}
