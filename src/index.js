@@ -5182,6 +5182,8 @@ async function executeGameBriefBackfill(env, date) {
         sport, home, away,
         homeAbbr: '', awayAbbr: '',  // resolveAbbr inside builders handles name→abbr
         sourceId: game.espn_event_id || null,  // feeds buildESPNSummaryContext
+        league: game.league || null,           // enables WNBA/WTA/soccer sport promotion
+        espnLeague: game.espn_league || null,
       }, 600);
     } catch (_) { /* non-fatal */ }
 
@@ -5874,6 +5876,7 @@ async function handleJournalismCycle(env, opts = {}) {
       // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
       // isLiveHours gate (UTC 10-2) covers all WC group-stage kickoffs (UTC 17-01).
       {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
+      {sport:'golf',      league:'pga',        label:'PGA Tour'},
     ];
     const gameLines = [];
     // Parallel to gameLines — captures the sport + ESPN team names for each
@@ -6259,6 +6262,13 @@ async function handleJournalismCycle(env, opts = {}) {
         'la liga': 'laliga', 'serie a': 'seriea',
         'bundesliga': 'bundesliga', 'ligue 1': 'ligue1',
         'fifa world cup': 'wc26',
+        // Golf
+        'pga tour': 'golf', 'pga': 'golf', 'golf': 'golf',
+        // WNBA aliases from D1 / GameDO
+        "women's national basketball association": 'wnba',
+        'nba w': 'wnba', 'nba women': 'wnba',
+        // Generic sport names from ESPN
+        'baseball': 'mlb', 'basketball': 'nba', 'hockey': 'nhl',
     };
     let sportContextBlock = '';
     try {
@@ -8902,6 +8912,8 @@ export default {
                                 sport: sportLabel, home: game.home, away: game.away,
                                 homeAbbr: '', awayAbbr: '',
                                 sourceId: game.espn_event_id || null,  // feeds buildESPNSummaryContext
+                                league: game.league || null,           // enables WNBA/WTA sport promotion
+                                espnLeague: game.espn_league || null,
                             }, 600);
                         } catch (_) {}
 
