@@ -1698,34 +1698,52 @@ async function captureWithRetry(url, r2Key, env, meta,
 // WC league_id = 27 confirmed 2026-06-25 (Ecuador vs Germany + Curaçao group).
 async function runBSDEndgameCapture(env) {
     if (!env?.FIELD_DATA || !env?.BSD_API_TOKEN) return;
-    const BSD_WC_LEAGUE_ID = 27;
+    const bsdHdrs = {
+        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+        'User-Agent': 'FIELD/1.0',
+        'Accept': 'application/json',
+    };
 
-    const liveResp = await fetch('https://sports.bzzoiro.com/api/v2/events/live/', {
-        headers: {
-            'Authorization': `Token ${env.BSD_API_TOKEN}`,
-            'User-Agent': 'FIELD/1.0',
-            'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(6000),
-    });
-    if (!liveResp.ok) return;
-
-    const liveData = await liveResp.json();
-    const targets  = (liveData.results || liveData.events || []).filter(e =>
-        e.league_id === BSD_WC_LEAGUE_ID &&
-        e.status    !== 'finished'        &&
-        (e.current_minute || 0) >= 83
+    // Fix: BSD /api/v2/events/live/ excludes national team competitions (league_id=27).
+    // WC games never appeared in live endpoint — runBSDEndgameCapture never fired.
+    // Use by-date+league_id=27 instead, which returns WC games with real-time status.
+    // Time-window filter (80–120 min after kickoff) handles cases where BSD doesn't
+    // update current_minute for national team competitions in real time.
+    const today = new Date().toISOString().slice(0, 10);
+    const dateResp = await fetch(
+        `https://sports.bzzoiro.com/api/v2/events/?date=${today}&league_id=27`,
+        { headers: bsdHdrs, signal: AbortSignal.timeout(6000) }
     );
-    if (!targets.length) return;
+    if (!dateResp.ok) return;
+
+    const dateData = await dateResp.json();
+    const nowMs    = Date.now();
+    const targets  = (dateData.results || []).filter(e => {
+        if ((e.status || '').toLowerCase() === 'finished') return false;
+        if ((e.status || '').toLowerCase() === 'notstarted') {
+            // Fallback: use kickoff time if BSD hasn't updated status yet
+            const startMs   = new Date(e.event_date).getTime();
+            const elapsedMin = (nowMs - startMs) / 60000;
+            return elapsedMin >= 80 && elapsedMin <= 120;
+        }
+        // BSD is reporting live status — trust current_minute
+        return (e.current_minute || 0) >= 80;
+    });
+
+    if (!targets.length) {
+        console.log('[BSD-ENDGAME] no WC targets in 80-120min window');
+        return;
+    }
 
     await Promise.allSettled(targets.map(async game => {
         const bsdId  = String(game.id);
         const prefix = `bsd/wc26/${bsdId}`;
+        const elapsedMin = Math.round((nowMs - new Date(game.event_date).getTime()) / 60000);
         const meta   = {
             bsd_event_id: bsdId,
-            minute:       String(game.current_minute),
-            home:         game.home_team,
-            away:         game.away_team,
+            minute:       String(game.current_minute || elapsedMin),
+            home:         String(game.home_team || ''),
+            away:         String(game.away_team || ''),
             source:       'endgame-cron',
             captured:     new Date().toISOString(),
         };
@@ -1737,12 +1755,12 @@ async function runBSDEndgameCapture(env) {
                     `${prefix}/${type}.json`,
                     env,
                     { ...meta, type },
-                    1,   // single attempt — data is live, no retry needed
+                    1,   // single attempt per tick — cron fires every 5 min
                     0
                 )
             )
         );
-        console.log(`[BSD-ENDGAME] captured bsdId=${bsdId} at ${game.current_minute}'`);
+        console.log(`[BSD-ENDGAME] attempted bsdId=${bsdId} elapsed=${elapsedMin}' status=${game.status}`);
     }));
 }
 
