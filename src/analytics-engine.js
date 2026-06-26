@@ -1295,11 +1295,24 @@ async function runPhase12QualityAlert(env, date) {
         'enrichment', 'kv_harvest', 'wc_tab',
     ]);
 
+    // Lower-tier English soccer leagues: ESPN-only, no BSD analytics layer.
+    // No xG, shotmap, or momentum context available — structural quality
+    // ceiling below 240. Excluded until FWP or equivalent analytics added.
+    // Covers V2 slug keys, ESPN display names, and ESPN league slugs.
+    const LOWER_SOCCER = new Set([
+        'eflone', 'efltwo', 'natleague',
+        'efl league one', 'efl league two', 'national league',
+        'league one', 'league two',
+        'eng.3', 'eng.4', 'eng.5',
+    ]);
+
     const alerts = summary
         .filter(r => r.scored >= 3)
         .filter(r => {
             if (ENRICHMENT.has(r.brief_type)) return false;
-            if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
+            if (r.sport && LOWER_SOCCER.has(r.sport.toLowerCase())) return false;
+            // Golf exclusion removed June 26 2026 — golf_leaderboard context
+            // builder now exists (CONTEXT_SOURCES priority 3, 150 tokens).
             const failRate = r.below_240 / r.scored;
             return r.avg_score < 240 || failRate > 0.2;
         })
