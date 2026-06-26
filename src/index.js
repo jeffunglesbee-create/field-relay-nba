@@ -3251,7 +3251,7 @@ async function handleV2Games(url, env, ctx) {
         // ── AFL journalism context (ESPN + Kali + Squiggle) ──────────────────
         if (sport === 'afl' && env.KALI_AFL_TOKEN) {
             try {
-                const _aflRound = espnData.week?.number ?? games[0]?.round ?? null;
+                const _aflRound = games[0]?.round ?? null;  // games[0].round set by adaptESPNBasketball (ev.week?.number) — espnData is block-scoped
                 const _aflYear  = cfg.season ?? new Date().getUTCFullYear();
                 const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env);
                 for (const g of games) {
