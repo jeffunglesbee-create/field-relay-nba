@@ -479,6 +479,27 @@ jobs:
             echo "⚠️ FD standings returned $STATUS — informational"
           fi
 
+      - name: PROBE F — BSD R2 pitch map (post-match shotmap pipeline)
+        continue-on-error: false  # STRUCTURAL: R2 binding + /bsd/r2/read route + data integrity
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          # Fixture: 8346 (Türkiye 2-2 USA, June 26 2026) — permanent R2 capture.
+          # Tests: FIELD_DATA R2 binding, /bsd/r2/read route handler, stats.json schema.
+          # This is the only FIELD feature requiring visual DOM verification; this probe
+          # is the automated equivalent (data layer). Client render is manual-only.
+          SHOTS=$(curl -sf --max-time 10 \
+            "$RELAY/bsd/r2/read?key=bsd/wc26/8346/stats.json" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('shotmap',[])))" \
+            2>/dev/null || echo '0')
+          echo "BSD R2 shotmap: $SHOTS shots for fixture 8346"
+          if [ "$SHOTS" -gt 0 ] 2>/dev/null; then
+            echo "✅ BSD R2 pitch map pipeline healthy"
+          else
+            echo "❌ BSD R2 pitch map FAILED: 0 shots returned"
+            echo "   Check: FIELD_DATA binding, /bsd/r2/read route, bsd/wc26/8346/stats.json key"
+            exit 1
+          fi
+
       - name: Summary
         run: |
           echo ""
@@ -486,12 +507,12 @@ jobs:
           echo "  RELAY Deploy Complete"
           echo "  field-relay-nba.jeffunglesbee.workers.dev"
           echo ""
-          echo "  Structural checks (hard): 7"
-          echo "    Health + NBA/NHL/FPL/FD whitelist + CORS + WOW 6 e2e"
+          echo "  Structural checks (hard): 8"
+          echo "    Health + NBA/NHL/FPL/FD whitelist + CORS + WOW 6 e2e + BSD R2 pitch map"
           echo "  Upstream probes (informational): 6"
           echo "    NBA CDN · NHL API · FPL bootstrap/fixtures · FD matches/standings"
           echo ""
-          echo "  Routes: /nba/* /nhl/* /fpl/* /fd/*"
+          echo "  Routes: /nba/* /nhl/* /fpl/* /fd/* /bsd/*"
           echo "══════════════════════════════════════════"
 
       - name: COURIER — Health check
