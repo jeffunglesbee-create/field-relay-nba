@@ -150,7 +150,7 @@ export function detectSportClass(sport) {
   if (s.includes('baseball') || s.includes('mlb')) return 'baseball';
   if (s.includes('hockey') || s.includes('nhl')) return 'hockey';
   if (s.includes('basketball') || s.includes('nba') || s.includes('wnba') || s.includes('ncaa-mb')) return 'basketball';
-  if (s.includes('soccer') || s.includes('epl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue')) return 'soccer';
+  if (s.includes('soccer') || s.includes('epl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
   if (s.includes('nfl') || s.includes('football')) return 'football';
   return null;
 }
