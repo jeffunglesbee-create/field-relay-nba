@@ -443,7 +443,7 @@ async function buildESPNSummaryContext(env, game) {
         'football (soccer)': 'soccer',
     };
     const _sportRawKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
-    const sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
+    let sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
     // If sport resolved to 'nba'/'basketball' but league signals WNBA, use WNBA slug
     if ((sportKey === 'nba' || sportKey === 'basketball') && game.league) {
         const _lgCheck = String(game.league || '').toLowerCase();
