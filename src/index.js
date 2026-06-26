@@ -11524,6 +11524,19 @@ export default {
                         if (r.ok) out.relay_head = ((await r.json()).object?.sha || '').slice(0, 7);
                     } catch(_) { out.relay_head = 'unavailable'; }
 
+                    // relay_head_src = most recent commit that actually changed src/
+                    // (excludes workflow/docs/outbox commits that advance HEAD without
+                    // triggering a deploy → prevents false-alarm deploy_match=false).
+                    try {
+                        const _srcR = await gh(
+                            'jeffunglesbee-create/field-relay-nba/commits?path=src%2F&per_page=1'
+                        );
+                        if (_srcR.ok) {
+                            const _srcCommit = (await _srcR.json())[0];
+                            out.relay_head_src = (_srcCommit?.sha || '').slice(0, 7);
+                        }
+                    } catch(_) { out.relay_head_src = out.relay_head; }
+
                     try {
                         const r = await gh('jeffunglesbee-create/field-relay-nba' +
                             '/actions/workflows/deploy.yml/runs?status=success&per_page=1');
@@ -11531,7 +11544,7 @@ export default {
                             const run = (await r.json()).workflow_runs?.[0];
                             if (run) {
                                 out.relay_deployed = run.head_sha.slice(0, 7);
-                                out.deploy_match = out.relay_deployed === out.relay_head;
+                                out.deploy_match = out.relay_deployed === (out.relay_head_src || out.relay_head);
                                 out.deployed_at = run.updated_at;
                             }
                         }
