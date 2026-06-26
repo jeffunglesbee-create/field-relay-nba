@@ -1945,6 +1945,21 @@ async function writeWCResult(db, game, env, ctx) {
             }
         } catch (_) {}
 
+        // Weather context from BSD event (injected by ESPN WC enrichment).
+        // Only surfaced when meaningful (rain / extreme wind / heat) — clear skies skipped.
+        const weatherContext = (() => {
+            const wx = game.weather;
+            if (!wx) return '';
+            const parts = [];
+            if (wx.description && wx.description !== 'clear' && wx.description !== 'unknown')
+                parts.push(wx.description);
+            if (wx.temperature_c != null && (wx.temperature_c >= 32 || wx.temperature_c <= 5))
+                parts.push(`${Math.round(wx.temperature_c)}°C`);
+            if (wx.wind_speed != null && wx.wind_speed >= 25)
+                parts.push(`${Math.round(wx.wind_speed)} km/h wind`);
+            return parts.length ? `Conditions: ${parts.join(', ')}` : '';
+        })();
+
         const prompt = [
             FIELD_VOICE_REGISTER,
             `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
@@ -1958,6 +1973,7 @@ async function writeWCResult(db, game, env, ctx) {
             matchupContext,
             standingsContext,
             eventsContext,
+            weatherContext,
             ``,
             `SPORT BOUNDARY: This is a World Cup 2026 (soccer) match. Write ONLY soccer content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
             `Write the brief as a single paragraph. No headers, no bullet points.`,
@@ -2979,6 +2995,46 @@ async function handleV2Games(url, env, ctx) {
             );
         }
         const games = espnGames;
+
+        // ── BSD group_name + weather enrichment ──────────────────────────────
+        // Fetches today's WC events from BSD by-date (league_id=27) and matches
+        // to ESPN games by home/away team name. Injects:
+        //   game.round    — "Group I" → extractWCGroup() uses regex path, not fallback
+        //   game.weather  — {description, wind_speed, temperature_c} for journalism context
+        // Non-blocking — failure leaves round='' and weather undefined; both degrade gracefully.
+        if (env.BSD_API_TOKEN) {
+            try {
+                const _bsdByDate = await fetch(
+                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=27`,
+                    {
+                        headers: {
+                            'Authorization': `Token ${env.BSD_API_TOKEN}`,
+                            'User-Agent': 'FIELD/1.0',
+                            'Accept': 'application/json',
+                        },
+                        signal: AbortSignal.timeout(4000),
+                    }
+                );
+                if (_bsdByDate.ok) {
+                    const _bsdData   = await _bsdByDate.json();
+                    const _bsdEvents = _bsdData.results || [];
+                    const _normName  = s => String(s || '').toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                        .replace(/[^a-z0-9]/g, '').slice(0, 8);
+                    for (const _g of games) {
+                        const _hNorm = _normName(_g.home?.name || '');
+                        const _hit   = _bsdEvents.find(be =>
+                            _normName(String(be.home_team || '')) === _hNorm ||
+                            _normName(String(be.away_team || '')) === _hNorm
+                        );
+                        if (_hit) {
+                            if (_hit.group_name) _g.round = _hit.group_name;
+                            if (_hit.weather)    _g.weather = _hit.weather;
+                        }
+                    }
+                }
+            } catch (_) {}
+        }
 
         if (env.BSD_API_TOKEN) {
             try {
