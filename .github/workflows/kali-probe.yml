@@ -6,30 +6,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe Kali AFL Stats
+        with:
+          token: ${{ secrets.RELAY_GH_PAT }}
+      - name: Probe Kali H2H + Teams + Tips
         env:
           KALI_KEY: ${{ secrets.KALI_AFL_TOKEN }}
         run: |
           BASE="https://kaliaflstats.com/api/afl/v1"
-          mkdir -p outbox
+          H="Authorization: Bearer $KALI_KEY"
 
-          echo "--- fixture ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/fixture" | python3 -m json.tool | head -60 | tee outbox/kali-fixture.txt
+          echo "=== teams (first 5) ==="
+          curl -sf -H "$H" "$BASE/teams?limit=5" | python3 -m json.tool | tee outbox/kali-teams.txt
 
-          echo "--- matches r16 ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/matches?year=2026&round=16" | python3 -m json.tool | head -80 | tee outbox/kali-matches.txt
+          echo "=== h2h: carlton vs collingwood (slug form) ==="
+          curl -sv -H "$H" "$BASE/head-to-head?teamA=carlton&teamB=collingwood&limit=5" 2>&1 | tee outbox/kali-h2h-slug.txt
 
-          echo "--- player-stats r15 limit=2 ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/player-stats?year=2026&round=15&limit=2" | python3 -m json.tool | head -80 | tee outbox/kali-player-stats.txt
+          echo "=== h2h: team IDs from /teams ==="
+          CARL_ID=$(curl -sf -H "$H" "$BASE/teams" | python3 -c "import sys,json; teams=json.load(sys.stdin)['data']; carl=[t for t in teams if 'carlton' in t.get('id','').lower()]; print(carl[0]['id'] if carl else 'not-found')")
+          echo "Carlton ID: $CARL_ID"
+          COLL_ID=$(curl -sf -H "$H" "$BASE/teams" | python3 -c "import sys,json; teams=json.load(sys.stdin)['data']; coll=[t for t in teams if 'collingwood' in t.get('id','').lower()]; print(coll[0]['id'] if coll else 'not-found')")
+          echo "Collingwood ID: $COLL_ID"
+          curl -sf -H "$H" "$BASE/head-to-head?teamA=$CARL_ID&teamB=$COLL_ID&limit=5" | python3 -m json.tool | tee outbox/kali-h2h-ids.txt
 
-          echo "--- advanced r15 limit=2 ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/player-stats-advanced?year=2026&round=15&limit=2" | python3 -m json.tool | head -80 | tee outbox/kali-advanced.txt
+          echo "=== tips round 16 ==="
+          curl -sf -H "$H" "$BASE/tips?year=2026&round=16&limit=3" | python3 -m json.tool | tee outbox/kali-tips.txt
 
-          echo "--- standings 2026 ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/standings?year=2026" | python3 -m json.tool | head -60 | tee outbox/kali-standings.txt
+          echo "=== predictions round 16 ==="
+          curl -sf -H "$H" "$BASE/predictions?year=2026&round=16&limit=3" | python3 -m json.tool | tee outbox/kali-predictions.txt
 
-          echo "--- h2h carlton vs collingwood ---"
-          curl -sf -H "Authorization: Bearer $KALI_KEY" "$BASE/head-to-head?teamA=carlton&teamB=collingwood" | python3 -m json.tool | head -40 | tee outbox/kali-h2h.txt
+          echo "=== leaderboards disposals 2026 ==="
+          curl -sf -H "$H" "$BASE/leaderboards?stat=disposals&year=2026&limit=5" | python3 -m json.tool | tee outbox/kali-leaderboards.txt
 
       - name: Commit probe results
         run: |
@@ -37,5 +43,5 @@ jobs:
           git config user.name "FIELD Probe"
           git add outbox/kali-*.txt
           git diff --cached --stat
-          git commit -m "probe: Kali AFL Stats results [skip ci]" || echo "nothing to commit"
+          git commit -m "probe: Kali H2H + tips + leaderboards [skip ci]" || echo "nothing to commit"
           git push
