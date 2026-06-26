@@ -82,6 +82,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           secrets: |
+            KALI_AFL_TOKEN
             SPORTRADAR_UFL_KEY
             REALTIMESPORTS_KEY
             VAPID_PUBLIC_KEY
@@ -90,6 +91,7 @@ jobs:
             GITHUB_PAT
             BSD_API_TOKEN
         env:
+          KALI_AFL_TOKEN: ${{ secrets.KALI_AFL_TOKEN }}
           SPORTRADAR_UFL_KEY: ${{ secrets.SPORTRADAR_UFL_KEY }}
           REALTIMESPORTS_KEY: ${{ secrets.REALTIMESPORTS_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
