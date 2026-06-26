@@ -3332,10 +3332,10 @@ async function handleV2Games(url, env, ctx) {
         //   game.round    — "Group I" → extractWCGroup() uses regex path, not fallback
         //   game.weather  — {description, wind_speed, temperature_c} for journalism context
         // Non-blocking — failure leaves round='' and weather undefined; both degrade gracefully.
-        if (env.BSD_API_TOKEN && cfg.bsdLeagueId) {
+        if (env.BSD_API_TOKEN && sport === 'wc26') {
             try {
                 const _bsdByDate = await fetch(
-                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=${cfg.bsdLeagueId}`,
+                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=27`,
                     {
                         headers: {
                             'Authorization': `Token ${env.BSD_API_TOKEN}`,
