@@ -7058,6 +7058,25 @@ export default {
                       'Cache-Control': 'no-store', ...CORS } });
             }
 
+            // /bsd/r2/read?key=bsd/wc26/8346/stats.json — serve R2 object as JSON.
+            // Used by client for post-game pitch map and shot summary.
+            if (pathname === '/bsd/r2/read') {
+                if (!env.FIELD_DATA)
+                    return new Response(JSON.stringify({ error: 'no binding' }),
+                        { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+                const key = url.searchParams.get('key');
+                if (!key || !key.startsWith('bsd/'))
+                    return new Response(JSON.stringify({ error: 'invalid key' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                const obj = await env.FIELD_DATA.get(key);
+                if (!obj)
+                    return new Response(JSON.stringify({ error: 'not found', key }),
+                        { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+                return new Response(await obj.text(), { status: 200,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=3600', ...CORS } });
+            }
+
             // Unknown /bsd/* path
             return new Response(JSON.stringify({ error: 'Unknown BSD route', path: pathname }),
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
