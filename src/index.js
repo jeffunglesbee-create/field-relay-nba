@@ -7002,6 +7002,47 @@ export default {
                     qSource = isCalibrationFresh(kv) ? 'analytics-cron' : 'd1-live';
                 } catch (_) { /* leave 'unloaded' */ }
             }
+        // Temporary Kali AFL Stats probe — remove after verification
+        if (pathname === '/kali-probe' && request.method === 'GET') {
+            const KALI_BASE = 'https://kaliaflstats.com/api/afl/v1';
+            const KALI_KEY  = env.KALI_AFL_TOKEN;
+            if (!KALI_KEY) return new Response(JSON.stringify({error:'KALI_AFL_TOKEN not set'}),
+                {status:500, headers:{...CORS,'Content-Type':'application/json'}});
+            const results = {};
+            // Probe 1: fixture (public)
+            try {
+                const r1 = await fetch(`${KALI_BASE}/fixture`,
+                    {headers:{'Authorization':`Bearer ${KALI_KEY}`,'Accept':'application/json'},signal:AbortSignal.timeout(5000)});
+                results.fixture = {status: r1.status, data: await r1.json()};
+            } catch(e) { results.fixture = {error: e.message}; }
+            // Probe 2: matches round 16
+            try {
+                const r2 = await fetch(`${KALI_BASE}/matches?year=2026&round=16`,
+                    {headers:{'Authorization':`Bearer ${KALI_KEY}`,'Accept':'application/json'},signal:AbortSignal.timeout(5000)});
+                results.matches = {status: r2.status, data: await r2.json()};
+            } catch(e) { results.matches = {error: e.message}; }
+            // Probe 3: player-stats round 15 (latest completed)
+            try {
+                const r3 = await fetch(`${KALI_BASE}/player-stats?year=2026&round=15&limit=3`,
+                    {headers:{'Authorization':`Bearer ${KALI_KEY}`,'Accept':'application/json'},signal:AbortSignal.timeout(5000)});
+                results.playerStats = {status: r3.status, data: await r3.json()};
+            } catch(e) { results.playerStats = {error: e.message}; }
+            // Probe 4: advanced stats
+            try {
+                const r4 = await fetch(`${KALI_BASE}/player-stats-advanced?year=2026&round=15&limit=2`,
+                    {headers:{'Authorization':`Bearer ${KALI_KEY}`,'Accept':'application/json'},signal:AbortSignal.timeout(5000)});
+                results.advanced = {status: r4.status, data: await r4.json()};
+            } catch(e) { results.advanced = {error: e.message}; }
+            // Probe 5: head-to-head
+            try {
+                const r5 = await fetch(`${KALI_BASE}/head-to-head?teamA=carlton&teamB=collingwood`,
+                    {headers:{'Authorization':`Bearer ${KALI_KEY}`,'Accept':'application/json'},signal:AbortSignal.timeout(5000)});
+                results.h2h = {status: r5.status, data: await r5.json()};
+            } catch(e) { results.h2h = {error: e.message}; }
+            return new Response(JSON.stringify(results, null, 2),
+                {headers:{...CORS,'Content-Type':'application/json'}});
+        }
+
             return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + apisports + squiggle + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron, quality-source=${qSource}`, {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
