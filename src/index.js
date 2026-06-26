@@ -8415,8 +8415,65 @@ export default {
             return stub.fetch(request);
         }
 
-        // /cfl/* — CFL odds from The Odds API
+        // /cfl/* — CFL odds from The Odds API + CFL internal API (echo.pims.cfl.ca)
         if (pathname === '/cfl/odds-probs') return handleCFLOddsProbs(env);
+
+        // /cfl/fixtures[?season_id=35] — schedule + live scores from CFL internal API
+        // /cfl/fixtures/{id}           — single game detail
+        // /cfl/stats/players[?season_id=35] — player stats
+        // /cfl/stats/teams[?season_id=35]   — team stats
+        // /cfl/rosters                      — active rosters summary
+        // Auth: none. Requires Referer + Accept headers mimicking cfl.ca browser.
+        // ADR: api.cfl.ca dead since 2023. echo.pims.cfl.ca is the live internal API.
+        if (pathname.startsWith('/cfl/')) {
+            const CFL_BASE = 'https://echo.pims.cfl.ca/api';
+            const cflHeaders = {
+                'Referer':    'https://www.cfl.ca/',
+                'Accept':     'application/json, text/javascript, */*; q=0.01',
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
+            };
+            let cflPath = '';
+            const seasonId = url.searchParams.get('season_id') || '35'; // 35 = 2026
+
+            if (pathname === '/cfl/fixtures') {
+                cflPath = `/fixtures?season_id=${seasonId}&limit=100`;
+            } else if (pathname.match(/^\/cfl\/fixtures\/\d+$/)) {
+                const fid = pathname.split('/').pop();
+                cflPath = `/fixtures/${fid}`;
+            } else if (pathname === '/cfl/stats/players') {
+                cflPath = `/stats/playerrecords?season_id=${seasonId}&limit=50`;
+            } else if (pathname === '/cfl/stats/teams') {
+                cflPath = `/stats/teamrecords?season_id=${seasonId}`;
+            } else if (pathname === '/cfl/rosters') {
+                cflPath = `/rosters/summary`;
+            } else if (pathname === '/cfl/teams') {
+                cflPath = `/teams`;
+            } else if (pathname === '/cfl/standings') {
+                cflPath = `/seasons/${seasonId}/standings`; // may not exist — test
+            } else {
+                // Unknown /cfl/* sub-path
+                return new Response(JSON.stringify({ error: 'Unknown CFL route', path: pathname }),
+                    { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+
+            try {
+                const cflResp = await fetch(`${CFL_BASE}${cflPath}`, {
+                    headers: cflHeaders,
+                    signal: AbortSignal.timeout(8000),
+                });
+                const body = await cflResp.text();
+                // Cache: 60s for live fixture data, 5min for stats/rosters
+                const ttl = pathname === '/cfl/fixtures' ? 60 : 300;
+                return new Response(body, {
+                    status: cflResp.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': `public, max-age=${ttl}`, ...CORS },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message, path: pathname }),
+                    { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+        }
 
         // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
         if (pathname.startsWith('/v2/')) {
