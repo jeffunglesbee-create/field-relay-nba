@@ -1,0 +1,129 @@
+name: Deploy Health Protocol Worker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout health-protocol
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/health-protocol
+          token: ${{ secrets.RELAY_GH_PAT }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install wrangler
+        run: npm install wrangler --save-dev
+
+      - name: Create KV namespace
+        id: kv
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          KV_RAW=$(npx wrangler kv namespace create hp-kv 2>&1)
+          echo "$KV_RAW"
+          KV_ID=$(echo "$KV_RAW" | grep -Eo '[a-f0-9]{32}' | head -1)
+          if [ -z "$KV_ID" ]; then
+            echo "Namespace exists — fetching ID"
+            KV_ID=$(npx wrangler kv namespace list 2>&1 | grep -Eo '[a-f0-9]{32}' | head -1)
+          fi
+          echo "kv_id=$KV_ID" >> $GITHUB_OUTPUT
+          echo "KV_ID=$KV_ID"
+
+      - name: Write wrangler.toml
+        run: |
+          cat > wrangler.toml << EOF
+          name            = "health-protocol"
+          main            = "src/index.js"
+          compatibility_date = "2026-06-26"
+          account_id      = "b57e9af57ab46c52ca9215804e689c29"
+
+          [[kv_namespaces]]
+          binding = "HP_KV"
+          id      = "${{ steps.kv.outputs.kv_id }}"
+          EOF
+          cat wrangler.toml
+
+      - name: Deploy Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Set Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "${{ secrets.RELAY_GH_PAT }}"          | npx wrangler secret put GITHUB_PAT
+          echo "${{ secrets.HP_STRAVA_CLIENT_ID }}"   | npx wrangler secret put STRAVA_CLIENT_ID
+          echo "${{ secrets.HP_STRAVA_CLIENT_SECRET }}"| npx wrangler secret put STRAVA_CLIENT_SECRET
+          npx wrangler secret list
+
+      - name: Seed Strava tokens in KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler kv key put \
+            --namespace-id="${{ steps.kv.outputs.kv_id }}" \
+            "strava:tokens" \
+            "{"access_token":"1974e6b574eda8fa16af67b1061005d8b067b0d7","refresh_token":"${{ secrets.HP_STRAVA_REFRESH_TOKEN }}","expires_at":0}"
+          echo "KV seeded"
+
+      - name: Set CLOUDFLARE_API_TOKEN in health-protocol GitHub secrets
+        run: |
+          pip install pynacl --quiet
+          python3 << PYEOF
+          import base64, json, urllib.request
+          from nacl.public import SealedBox, PublicKey
+          from nacl.encoding import Base64Encoder
+
+          PAT   = "${{ secrets.RELAY_GH_PAT }}"
+          REPO  = "jeffunglesbee-create/health-protocol"
+          TOKEN = "${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          ACCT  = "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
+          headers = {"Authorization": f"token {PAT}",
+                     "Accept": "application/vnd.github+json",
+                     "Content-Type": "application/json"}
+
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{REPO}/actions/secrets/public-key",
+              headers=headers)
+          with urllib.request.urlopen(req) as r:
+              pk_data = json.loads(r.read())
+
+          def enc(val):
+              pk  = PublicKey(pk_data["key"], encoder=Base64Encoder)
+              return base64.b64encode(SealedBox(pk).encrypt(val.encode())).decode()
+
+          for name, val in [("CLOUDFLARE_API_TOKEN", TOKEN),
+                             ("CLOUDFLARE_ACCOUNT_ID", ACCT)]:
+              payload = json.dumps({"encrypted_value": enc(val),
+                                    "key_id": pk_data["key_id"]}).encode()
+              req = urllib.request.Request(
+                  f"https://api.github.com/repos/{REPO}/actions/secrets/{name}",
+                  data=payload, headers=headers, method="PUT")
+              with urllib.request.urlopen(req) as r:
+                  print(f"{name}: HTTP {r.status}")
+          PYEOF
+
+      - name: Commit wrangler.toml with real KV ID
+        run: |
+          git config user.email "deploy@health-protocol"
+          git config user.name "GitHub Actions"
+          git add wrangler.toml
+          git diff --cached --quiet && echo "no changes" || git commit -m "chore: wrangler.toml with real KV ID [skip ci]"
+          git push https://${{ secrets.RELAY_GH_PAT }}@github.com/jeffunglesbee-create/health-protocol.git main
+
+      - name: Verify
+        run: |
+          sleep 10
+          curl -sf https://health-protocol.jeffunglesbee.workers.dev/ || echo "verify pending"
