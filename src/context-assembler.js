@@ -403,22 +403,44 @@ async function buildESPNSummaryContext(env, game) {
     // normalizes for registry filtering but passes the original game object
     // to builders — builders must normalize themselves.
     const _SUMMARY_SPORT_NORMALIZE = {
-        // World Cup variants
-        'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26', 'worldcup': 'wc26',
-        'worldcup2026': 'wc26',
-        // ESPN generic sport name → FIELD canonical (GameDO sends these)
+        // ── World Cup (slug and display name variants) ──────────────────────
+        'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26',
+        'worldcup': 'wc26',         'worldcup2026': 'wc26',
+        // With spaces (D1 stores display names without stripping)
+        'fifa world cup 2026': 'wc26', 'fifa world cup': 'wc26',
+        'world cup 2026': 'wc26',      'world cup': 'wc26',
+        // ── MLB (slug + D1 display name variants) ───────────────────────────
         'baseball': 'mlb',
-        'basketball': 'nba',   // WNBA promoted via league check below
+        'baseball (mlb)': 'mlb',
+        'major league baseball': 'mlb',
+        // ── NBA / WNBA ───────────────────────────────────────────────────────
+        'basketball': 'nba',          // WNBA promoted via league check below
+        'basketball (nba)': 'nba',
+        'national basketball association': 'nba',
+        'wnba': 'wnba',
+        'nba w': 'wnba',
+        "women's national basketball association": 'wnba',
+        'womensnationalbasketballassociation': 'wnba',
+        // ── NHL ─────────────────────────────────────────────────────────────
+        'hockey': 'nhl',
+        'hockey (nhl)': 'nhl',
+        'national hockey league': 'nhl',
+        // ── NFL ─────────────────────────────────────────────────────────────
         'football': 'nfl',
-        // Golf variants
+        'football (nfl)': 'nfl',
+        'national football league': 'nfl',
+        // ── Golf ────────────────────────────────────────────────────────────
         'golf': 'golf',
         'pga': 'golf',
         'pgatour': 'golf',
-        // Tennis
-        'tennis': 'atp',       // gender resolved via league/espnLeague
-        // WNBA-specific labels from various sources
-        'nba w': 'wnba',
-        'womensnationalbasketballassociation': 'wnba',
+        'pga tour': 'golf',
+        // ── Tennis ──────────────────────────────────────────────────────────
+        'tennis': 'atp',              // gender resolved via league below
+        'atp tour': 'atp',
+        'wta tour': 'wta',
+        // ── Soccer (non-WC handled by league slug in V2_LEAGUES) ────────────
+        'soccer': 'soccer',
+        'football (soccer)': 'soccer',
     };
     const _sportRawKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
     const sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
