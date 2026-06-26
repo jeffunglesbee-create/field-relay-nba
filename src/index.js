@@ -999,18 +999,22 @@ const V2_LEAGUES = {
     'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
     'mlb':          { sport: 'baseball',   leagueId: 1,   season: '2026'      },
     'wnba':         { sport: 'basketball', leagueId: 13,  season: '2026'      }, // [VERIFY leagueId]
-    'epl':          { sport: 'football',   leagueId: 39,  season: '2025'      },
-    'mls':          { sport: 'football',   leagueId: 253, season: '2026'      },
-    'ucl':          { sport: 'football',   leagueId: 2,   season: '2025'      },
-    'europa':       { sport: 'football',   leagueId: 3,   season: '2025'      }, // UEFA Europa League
-    'conference':   { sport: 'football',   leagueId: 848, season: '2025'      }, // UEFA Conference League
-    'eflchamp':     { sport: 'football',   leagueId: 40,  season: '2025'      }, // EFL Championship
-    'eflone':       { sport: 'football',   leagueId: 41,  season: '2025'      }, // EFL League One
-    'efltwo':       { sport: 'football',   leagueId: 42,  season: '2025'      }, // EFL League Two
-    'laliga':       { sport: 'football',   leagueId: 140, season: '2025'      },
-    'seriea':       { sport: 'football',   leagueId: 135, season: '2025'      },
-    'bundesliga':   { sport: 'football',   leagueId: 78,  season: '2025'      },
-    'ligue1':       { sport: 'football',   leagueId: 61,  season: '2025'      },
+    // Club soccer — migrated June 26 2026: API-Sports → ESPN + BSD
+    // espnLeague: ESPN scoreboard slug. bsdLeagueId: BSD analytics (null = ESPN only).
+    // Season: '2026-27' for Aug-start leagues, '2026' for MLS calendar year.
+    // eflone/efltwo have no BSD coverage — Phase 12 alerts excluded by LOWER_SOCCER.
+    'epl':        { sport: 'soccer', espnLeague: 'eng.1',            bsdLeagueId: 1,    season: '2026-27' },
+    'mls':        { sport: 'soccer', espnLeague: 'usa.1',            bsdLeagueId: 18,   season: '2026'    },
+    'ucl':        { sport: 'soccer', espnLeague: 'uefa.champions',   bsdLeagueId: 7,    season: '2026-27' },
+    'europa':     { sport: 'soccer', espnLeague: 'uefa.europa',      bsdLeagueId: 8,    season: '2026-27' },
+    'conference': { sport: 'soccer', espnLeague: 'uefa.europa.conf', bsdLeagueId: 8,    season: '2026-27' }, // same BSD lid=8 as Europa
+    'eflchamp':   { sport: 'soccer', espnLeague: 'eng.2',            bsdLeagueId: 12,   season: '2026-27' },
+    'eflone':     { sport: 'soccer', espnLeague: 'eng.3',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    'efltwo':     { sport: 'soccer', espnLeague: 'eng.4',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    'laliga':     { sport: 'soccer', espnLeague: 'esp.1',            bsdLeagueId: 3,    season: '2026-27' },
+    'seriea':     { sport: 'soccer', espnLeague: 'ita.1',            bsdLeagueId: 4,    season: '2026-27' },
+    'bundesliga': { sport: 'soccer', espnLeague: 'ger.1',            bsdLeagueId: 5,    season: '2026-27' },
+    'ligue1':     { sport: 'soccer', espnLeague: 'fra.1',            bsdLeagueId: 6,    season: '2026-27' },
     'wc26':         { sport: 'football',   leagueId: 1,   season: '2026',
                       espnLeague: 'fifa.world' },
     'pga':          { sport: 'golf',       league: 'pga', espnSource: true, leagueId: '1106' },
@@ -1409,7 +1413,7 @@ function adaptFootball(item, sportKey, statsData) {
 // Replaces adaptFootball() for the wc26 sport slot. Produces the same game
 // object shape so all downstream consumers (writeWCResult, BSD enrichment,
 // computeLiveWP, GameDO, BracketDO) work without modification.
-function adaptESPNWCSoccer(ev) {
+function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
     const home       = teams.find(t => t.homeAway === 'home') || {};
@@ -1447,7 +1451,7 @@ function adaptESPNWCSoccer(ev) {
     return {
         id:          `espn:${ev.id}`,
         espnEventId: String(ev.id),
-        sport:       'wc26',
+        sport:       sportKey,
         league:      'FIFA World Cup',
         state,
         start:       comp.date || '',
@@ -2970,7 +2974,7 @@ async function handleV2Games(url, env, ctx) {
     }
     // ── wc26 ESPN early-return ────────────────────────────────────────────────
     // For sports with espnLeague configured, bypass API-Sports entirely.
-    // Currently: wc26 only. Identical downstream behavior: BSD enrichment,
+    // All soccer leagues (wc26 + 11 club leagues). Identical downstream behavior: BSD enrichment,
     // WP computation, writeWCResult D1 write, and GameDO crunch signals all run.
     if (cfg.espnLeague) {
         const espnDate = date.replace(/-/g, '');
@@ -2987,7 +2991,7 @@ async function handleV2Games(url, env, ctx) {
                 );
             }
             const espnData = await espnResp.json();
-            espnGames = (espnData.events || []).map(ev => adaptESPNWCSoccer(ev));
+            espnGames = (espnData.events || []).map(ev => adaptESPNWCSoccer(ev, sport));
         } catch (e) {
             return new Response(
                 JSON.stringify({ error: e.message, sport, date }),
@@ -3002,10 +3006,10 @@ async function handleV2Games(url, env, ctx) {
         //   game.round    — "Group I" → extractWCGroup() uses regex path, not fallback
         //   game.weather  — {description, wind_speed, temperature_c} for journalism context
         // Non-blocking — failure leaves round='' and weather undefined; both degrade gracefully.
-        if (env.BSD_API_TOKEN) {
+        if (env.BSD_API_TOKEN && cfg.bsdLeagueId) {
             try {
                 const _bsdByDate = await fetch(
-                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=27`,
+                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=${cfg.bsdLeagueId}`,
                     {
                         headers: {
                             'Authorization': `Token ${env.BSD_API_TOKEN}`,
