@@ -283,12 +283,17 @@ const NHL_HEADERS = {
 const NHL_ALLOWED_EXACT = [
     '/v1/scoreboard/now',
     '/v1/standings/now',
+    '/v1/draft/picks/now',           // live draft picks — active during NHL draft
+    '/v1/draft-tracker/picks/now',   // draft tracker — most recent pick
+    '/v1/draft/rankings/now',        // prospect rankings by category
 ];
 const NHL_ALLOWED_PREFIXES = [
     '/v1/schedule/',        // /v1/schedule/2026-05-20
     '/v1/standings/',       // /v1/standings/2026-05-20
     '/v1/gamecenter/',      // /v1/gamecenter/{id}/boxscore|landing|play-by-play|right-rail
     '/v1/score/',           // /v1/score/{date}
+    '/v1/draft/picks/',     // /v1/draft/picks/{year}/{round}
+    '/v1/draft/rankings/',  // /v1/draft/rankings/{year}/{category}
 ];
 function nhlAllowed(path) {
     if (NHL_ALLOWED_EXACT.includes(path)) return true;
@@ -1026,7 +1031,11 @@ const V2_LEAGUES = {
     // Off-season 403 from CDN is expected — scoreboard absent when no games.
     // nbaGameId field on game objects enables boxscore/PBP relay calls.
     'nba':          { sport: 'nba', nbaSource: 'cdn', season: '2025-2026' },
-    'nhl':          { sport: 'hockey',     leagueId: 57,  season: '2025'      }, // VERIFIED: hockey API requires integer season (2025 = 2025-26 season)
+    // NHL — migrated June 26 2026: API-Sports → api-web.nhle.com (NHLE)
+    // /nhl/* relay route live since May 17 2026. No auth key. Same API as nhl.com.
+    // Off-season scoreboard returns historical gamesByDate (no 403).
+    // nhleGameId field on game objects enables gamecenter/boxscore/landing/PBP calls.
+    'nhl':          { sport: 'nhl', nhleSource: true, season: '20252026' },
     'mlb':        { sport: 'mlb', espnLeague: 'mlb', espnSport: 'baseball', season: '2026' },
     'wnba':         { sport: 'wnba', espnLeague: 'wnba', espnSport: 'basketball', season: '2026' },
     // Club soccer — migrated June 26 2026: API-Sports → ESPN + BSD
@@ -1190,6 +1199,51 @@ function adaptBasketball(g) {
 //   - date.start (object) instead of top-level date string
 //   - league is bare string ("standard") not object — hardcode "NBA"
 // State mapping uses status.long primary, with .short fallback.
+
+// ── adaptNhle ─────────────────────────────────────────────────────────────────
+// Maps api-web.nhle.com/v1/scoreboard/now gamesByDate[].games[] entry
+// → standard V2 FieldGame shape.
+// Shape confirmed 2026-06-26 against live NHL scoreboard (COL vs VGK SCF).
+// NOTE: g.clock is null for pre/final games — guard required.
+// NOTE: g.awayTeam.name.default = full name ("Colorado Avalanche")
+//       g.awayTeam.commonName.default = short name ("Avalanche")
+// NOTE: g.id carries the NHLE game ID for gamecenter/boxscore/landing/PBP calls
+function adaptNhle(g) {
+    const gs    = g?.gameState || '';
+    const state = (gs === 'LIVE' || gs === 'CRIT')    ? 'live'  :
+                  (gs === 'FINAL' || gs === 'OFF')     ? 'final' : 'pre';
+
+    const periodNum  = g?.periodDescriptor?.number ?? g?.period ?? 0;
+    const periodType = g?.periodDescriptor?.periodType || 'REG';
+    const periodLabel = state === 'final'
+        ? (periodType === 'OT' ? 'F/OT' : periodType === 'SO' ? 'F/SO' : '')
+        : state === 'live'
+        ? (periodType !== 'REG' ? periodType : `P${periodNum}`)
+        : '';
+
+    return {
+        id:           `nhl:${g.id}`,
+        nhleGameId:   g.id,    // NHLE native game ID — for gamecenter/boxscore/landing/PBP
+        sport:        'nhl',
+        league:       'NHL',
+        state,
+        start:        g?.startTimeUTC || '',
+        home: {
+            name:  g?.homeTeam?.name?.default || g?.homeTeam?.commonName?.default || '',
+            abbr:  g?.homeTeam?.abbrev  || '',
+            score: g?.homeTeam?.score   ?? null,
+        },
+        away: {
+            name:  g?.awayTeam?.name?.default || g?.awayTeam?.commonName?.default || '',
+            abbr:  g?.awayTeam?.abbrev  || '',
+            score: g?.awayTeam?.score   ?? null,
+        },
+        periodNum,
+        periodLabel,
+        clock:  g?.clock?.timeRemaining || '',
+        venue:  g?.venue?.default || '',
+    };
+}
 
 // ── adaptNbaCDN ───────────────────────────────────────────────────────────────
 // Maps cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json
@@ -3527,6 +3581,121 @@ async function handleV2Games(url, env, ctx) {
     }
     // ── end wc26 ESPN early-return ────────────────────────────────────────────
 
+    // ── NHL NHLE early-return (migrated June 26 2026) ─────────────────────────
+    // api-web.nhle.com/v1/scoreboard/now → filter to today's date → adaptNhle.
+    // Off-season: focusedDate lags today → todayEntry is undefined → 0 games, no error.
+    // Brief pipeline: threeStars from /v1/gamecenter/{id}/landing (NHL-curated performers).
+    if (cfg.nhleSource) {
+        try {
+            const nhleResp = await fetch(
+                `${NHL_BASE}/v1/scoreboard/now`,
+                {
+                    headers: NHL_HEADERS,
+                    cf: { cacheTtl: 30, cacheEverything: true,
+                          cacheKey: `${NHL_BASE}/v1/scoreboard/now` },
+                }
+            );
+            if (!nhleResp.ok) {
+                return new Response(
+                    JSON.stringify({ sport, date, games: [], count: 0, source: 'nhle-error', ts: Date.now() }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30' } }
+                );
+            }
+            const nhleData   = await nhleResp.json();
+            const todayEntry = (nhleData.gamesByDate || []).find(e => e.date === date);
+            const games      = (todayEntry?.games || []).map(adaptNhle);
+
+            // ── NHL brief pipeline (NHLE landing/threeStars variant) ───────────
+            // Uses NHL's own three-star selections — curated performers per game.
+            // Fires only for final games. Avoids API-Sports player stats dependency.
+            if (env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+                const nhlFinals = games.filter(g => g.state === 'final');
+                if (nhlFinals.length > 0) {
+                    const enqueueNHLBriefs = async () => {
+                        for (const g of nhlFinals) {
+                            const kvKey = `brief:game:${g.id}`;
+                            const existing = await env.FIELD_JOURNALISM.get(kvKey).catch(() => null);
+                            if (existing) continue;
+
+                            const home      = g.home?.name || '';
+                            const away      = g.away?.name || '';
+                            const homeScore = g.home?.score ?? 0;
+                            const awayScore = g.away?.score ?? 0;
+
+                            // Fetch three stars from NHLE landing endpoint
+                            let starsContext = '';
+                            try {
+                                const landingRes = await fetch(
+                                    `${NHL_BASE}/v1/gamecenter/${g.nhleGameId}/landing`,
+                                    { headers: NHL_HEADERS, cf: { cacheTtl: 300, cacheEverything: true } }
+                                );
+                                if (landingRes.ok) {
+                                    const ld = await landingRes.json();
+                                    const stars = ld.summary?.threeStars || [];
+                                    const lines = stars.map(s => {
+                                        const name = s.name?.default || '?';
+                                        const team = s.teamAbbrev   || '';
+                                        if (s.position === 'G') {
+                                            const sv  = s.saveShotsAgainst || '';
+                                            const pct = s.savePctg != null
+                                                ? `${(s.savePctg * 100).toFixed(1)}%` : '';
+                                            return `${name} (${team}): ${sv} sv ${pct}`.trim();
+                                        }
+                                        return `${name} (${team}): ${s.goals ?? 0}G ${s.assists ?? 0}A`;
+                                    });
+                                    if (lines.length) starsContext = '\n\nTHREE STARS:\n' + lines.join('\n');
+                                }
+                            } catch (_) {}
+
+                            const prompt = [
+                                FIELD_VOICE_REGISTER,
+                                `Write a 2-3 sentence post-game brief for this NHL result.`,
+                                `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through.`,
+                                `Include: three-star performers, key moment or turning point, what this means for the series or standings.`,
+                                `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+                                ``,
+                                `RESULT: ${away} ${awayScore} at ${home} ${homeScore}`,
+                                g.venue ? `Venue: ${g.venue}` : '',
+                                starsContext,
+                                ``,
+                                `SPORT BOUNDARY: This is an NHL hockey game. Write ONLY NHL hockey content.`,
+                                `Write the brief as a single paragraph. No headers, no bullet points.`,
+                            ].filter(Boolean).join('\n');
+
+                            try {
+                                await env.JOURNALISM_QUEUE.send({
+                                    type:        'game-brief',
+                                    prompt,
+                                    eventId:     g.id,
+                                    max_tokens:  300,
+                                    sport:       'nhl',
+                                    home, away, homeScore, awayScore,
+                                    enqueuedAt:  Date.now(),
+                                });
+                            } catch (e) {
+                                console.error('[NHL game-brief enqueue NHLE]', e.message);
+                            }
+                        }
+                    };
+                    if (ctx?.waitUntil) ctx.waitUntil(enqueueNHLBriefs());
+                    else await enqueueNHLBriefs();
+                }
+            }
+            // ── end NHL brief pipeline NHLE ────────────────────────────────────
+
+            return new Response(
+                JSON.stringify({ sport, date, games, count: games.length, source: 'nhle', ts: Date.now() }),
+                { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } }
+            );
+        } catch (e) {
+            return new Response(
+                JSON.stringify({ error: 'NHLE upstream error', sport, date }),
+                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
+            );
+        }
+    }
+    // ── end NHL NHLE early-return ──────────────────────────────────────────────
+
     // ── NBA CDN early-return (migrated June 26 2026) ──────────────────────────
     // CDN returns 403 in off-season (no scoreboard) — treat as 0 games, not error.
     // Brief pipeline runs here (CDN boxscore variant) before response is returned.
@@ -3671,7 +3840,7 @@ async function handleV2Games(url, env, ctx) {
     } else {
         targetUrl = `https://${host}/games?league=${cfg.leagueId}&season=${cfg.season}&date=${date}`;
         if (cfg.sport === 'basketball') adapt = items => items.map(adaptBasketball);
-        else if (cfg.sport === 'hockey')  adapt = items => items.map(adaptHockey);
+        else if (cfg.sport === 'hockey')  adapt = items => items.map(adaptHockey);  // UNREACHABLE after NHLE migration June 26 2026
         else if (cfg.sport === 'baseball') adapt = items => items.map(adaptBaseball);
         else adapt = x => x;
     }
