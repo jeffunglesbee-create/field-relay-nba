@@ -1808,6 +1808,21 @@ function extractWCGroup(round, homeName, awayName) {
     return g || null;
 }
 
+// Maps ESPN/BSD knockout round strings → phase values for D1 wc_results.phase.
+// ESPN sends: "Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"
+// BSD group_name for knockout: format TBD — regex is broad enough to handle variants.
+function extractWCPhase(round) {
+    if (!round) return null;
+    const r = round.toLowerCase();
+    if (/round\s+of\s+32|r32/.test(r))                           return 'r32';
+    if (/round\s+of\s+16|r16/.test(r))                           return 'r16';
+    if (/quarter/.test(r))                                        return 'qf';
+    if (/semi/.test(r))                                           return 'sf';
+    if (/third|3rd\s+place/.test(r))                             return 'third';
+    if (/final/.test(r) && !/semi|quarter|third|3rd/.test(r))   return 'final';
+    return null;
+}
+
 // Recompute wc_group standings for one group from wc_results (idempotent)
 async function recomputeGroupStandings(db, groupId) {
     await db.prepare('DELETE FROM wc_group WHERE group_id = ?').bind(groupId).run();
@@ -2068,10 +2083,27 @@ async function writeWCResult(db, game, env, ctx) {
     const homeName  = wcFixName(game.home?.name || '');
     const awayName  = wcFixName(game.away?.name || '');
     const groupId   = extractWCGroup(game.round, homeName, awayName);
-    if (!groupId) return; // knockout stage or no round info — skip
+    const wcPhase   = extractWCPhase(game.round);
+    if (!groupId && !wcPhase) return; // unrecognized round — skip
     const matchDate = (game.start || '').slice(0, 10);
     const homeScore = game.home?.score ?? 0;
     const awayScore = game.away?.score ?? 0;
+    // Knockout path: write D1 result with phase string as group_id (satisfies NOT NULL),
+    // then return. Standings recompute + journalism queue are group-stage only.
+    // BSD captures handled by runBSDEndgameCapture cron; BracketDO recomputes on /wc/bracket fetch.
+    if (!groupId) {
+        const phaseUpper = wcPhase.toUpperCase();
+        await db.prepare(`
+          INSERT OR IGNORE INTO wc_results
+            (game_id, group_id, home, away, home_score, away_score, phase, match_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(game.id, phaseUpper, homeName, awayName,
+                homeScore, awayScore, wcPhase, matchDate).run();
+        await db.prepare(
+            'UPDATE wc_results SET home_score = ?, away_score = ? WHERE game_id = ?'
+        ).bind(homeScore, awayScore, game.id).run();
+        return;
+    }
     await db.prepare(`
       INSERT OR IGNORE INTO wc_results
         (game_id, group_id, home, away, home_score, away_score, phase, match_date)
