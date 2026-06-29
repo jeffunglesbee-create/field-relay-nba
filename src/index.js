@@ -3473,6 +3473,10 @@ async function handleV2Games(url, env, ctx) {
                                 || (teamNameMatch(_bh, _g.away.name) && teamNameMatch(_ba, _g.home.name));
                         });
                         if (_bsdMatch) _g.bsdEventId = String(_bsdMatch.id);
+                        if (_bsdMatch && _bsdMatch.current_minute != null) {
+                            if (!_g.situation) _g.situation = {};
+                            _g.situation.elapsed = _bsdMatch.current_minute;
+                        }
                     }
                 }
             } catch (_) {}
