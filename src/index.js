@@ -7479,6 +7479,44 @@ export default {
             });
         }
 
+        // TEMPORARY PROBE — remove after source verification (2026-06-29)
+        if (pathname === '/mlb/probe-raw' && request.method === 'GET') {
+          const date = new URL(request.url).searchParams.get('date') ||
+            new Date().toISOString().split('T')[0];
+          try {
+            const url = `https://statsapi.mlb.com/api/v1/schedule` +
+              `?sportId=1&date=${date}` +
+              `&hydrate=broadcasts(all),linescore,venue,teams`;
+            const r = await fetch(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': 'application/json'
+              }
+            });
+            const data = await r.json();
+            const games = data?.dates?.[0]?.games ?? [];
+            return new Response(JSON.stringify({
+              ok: true,
+              date,
+              statusCode: r.status,
+              gameCount: games.length,
+              games: games.slice(0, 2),
+              game0_keys: games[0] ? Object.keys(games[0]) : [],
+              game0_linescore_keys: games[0]?.linescore ? Object.keys(games[0].linescore) : [],
+              game0_broadcasts: games[0]?.broadcasts ?? [],
+              game0_teams_home_keys: games[0]?.teams?.home ? Object.keys(games[0].teams.home) : [],
+            }, null, 2), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            });
+          } catch (e) {
+            return new Response(JSON.stringify({ ok: false, error: e.message }), {
+              status: 500, headers: { 'Content-Type': 'application/json' }
+            });
+          }
+        }
+        // END TEMPORARY PROBE
+
         if (pathname === '/health') {
             // Surface the active quality calibration source. _qualityCalibrationSource
             // is module-scoped (per-isolate); a /health request usually hits a
