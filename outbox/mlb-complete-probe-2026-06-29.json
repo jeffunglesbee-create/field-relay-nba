@@ -1,0 +1,60 @@
+{
+  "probeDate": "2026-06-29T14:38:00Z",
+  "note": "Recreated from CC session screenshots \u2014 original commit 41ebf79/9d1fd5f failed to land due to amended push rejection",
+  "completedGameUsed": {
+    "gamePk": 824821,
+    "date": "2026-06-28",
+    "away": "WSH",
+    "home": "BAL",
+    "awayScore": 6,
+    "homeScore": 4,
+    "status": "Final"
+  },
+  "results": {
+    "game_winProbability": {
+      "status": 200,
+      "ok": true,
+      "count": 73,
+      "fields_per_play": [
+        "homeTeamWinProbability",
+        "awayTeamWinProbability",
+        "homeTeamWinProbabilityAdded",
+        "contextMetrics"
+      ]
+    },
+    "game_decisions": {
+      "status": 404,
+      "ok": false,
+      "error": "HTTP 404 \u2014 even for Final game (gamePk 824821). Endpoint is deprecated or returns 404 when no traditional W/L/Save recorded. Canonical path for pitcher decisions is GUMBO liveData.decisions, not the standalone /game/{gamePk}/decisions endpoint."
+    },
+    "game_contextMetrics": {
+      "status": 200,
+      "ok": true
+    },
+    "game_feed_live_final": {
+      "status": 200,
+      "ok": true,
+      "responseBytes": 786000,
+      "weather": {
+        "condition": "Partly Cloudy",
+        "temp": "76",
+        "wind": ""
+      },
+      "gameDurationMinutes": 175,
+      "attendance": null,
+      "flags": {
+        "noHitter": false,
+        "perfectGame": false
+      },
+      "allPlays_count": 73,
+      "scoringPlays_count": null,
+      "note": "liveData.decisions is a key inside GUMBO \u2014 this is the canonical path for W/L/S pitcher decisions, not the standalone endpoint"
+    }
+  },
+  "summary": {
+    "endpointsProbed": 5,
+    "endpointsOk": 4,
+    "endpointsFailed": 1,
+    "finding": "game_decisions standalone endpoint is deprecated. Returns 404 even for completed Final games. Pitcher decisions are sourced from GUMBO liveData.decisions instead. winProbability and contextMetrics both work for completed games. GUMBO final provides real weather, gameDurationMinutes (175 min), and flags."
+  }
+}
