@@ -5320,7 +5320,11 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
   const totals  = markets.find(m => m.key === 'totals');
   const home    = oddsGame.home_team;
   const away    = oddsGame.away_team;
-  const out = { source: bk.key, captured_at: new Date().toISOString() };
+  const out = {
+    source:      bk.key,
+    captured_at: new Date().toISOString(),
+    _oddsProof:  { adapterId: 'odds-api', sourceId: 'odds-api-the-odds-api' },
+  };
   if (h2h) {
     const h = h2h.outcomes.find(o => o.name === home);
     const a = h2h.outcomes.find(o => o.name === away);
