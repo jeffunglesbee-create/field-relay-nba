@@ -1744,6 +1744,18 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const homeScore = home.score != null ? Number(home.score) : null;
     const awayScore = away.score != null ? Number(away.score) : null;
 
+    const matchEvents = (comp.details || [])
+        .filter(d => d.type?.id)
+        .map(d => ({
+            type:        d.type?.text || d.type?.id,
+            minute:      d.clock?.displayValue || null,
+            team:        d.team?.displayName   || null,
+            players:     (d.athletesInvolved || []).map(a => a.displayName),
+            redCard:     d.redCard      || false,
+            yellowCard:  d.yellowCard   || false,
+            scoringPlay: d.scoringPlay  || false,
+        }));
+
     return {
         id:          `espn:${ev.id}`,
         espnEventId: String(ev.id),
@@ -1757,6 +1769,7 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         venue:       typeof comp.venue === 'object' ? (comp.venue?.fullName || '') : '',
         round:       '',
         situation,
+        matchEvents,
     };
 }
 
@@ -2245,34 +2258,50 @@ async function writeWCResult(db, game, env, ctx) {
             }
         } catch (_) { /* non-blocking — standings context is additive */ }
 
-        // Fetch match events (goals, cards) from ESPN summary keyEvents.
-        // Replaces API-Sports /fixtures/events — richer text, zero extra credentials.
+        // Match events for journalism brief. Prefer comp.details threaded via
+        // game.matchEvents (no extra fetch). Fall back to ESPN summary if absent.
         let eventsContext = '';
         try {
-            const espnId = game.espnEventId || String(game.id).replace(/^(?:football|espn):/, '');
-            if (espnId && !/\D/.test(espnId)) {
-                const summaryResp = await fetch(
-                    `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${espnId}`,
-                    { signal: AbortSignal.timeout(4000) }
-                );
-                if (summaryResp.ok) {
-                    const summaryData  = await summaryResp.json();
-                    const KEY_TYPES    = new Set(['goal', 'yellow-card', 'red-card']);
-                    const eventLines   = (summaryData.keyEvents || [])
-                        .filter(e => KEY_TYPES.has(e.type?.type))
-                        .map(e => {
-                            const clock = (typeof e.clock === 'object' ? e.clock?.displayValue : '') || '';
-                            const text  = e.text || '';
-                            const t     = e.type?.type;
-                            if (t === 'goal') {
-                                const suffix = e.ownGoal ? ' (OG)' : e.penaltyKick ? ' (PEN)' : '';
-                                return `⚽ ${clock} ${text}${suffix}`;
-                            }
-                            if (t === 'yellow-card') return `🟨 ${clock} ${text}`;
-                            if (t === 'red-card')    return `🟥 ${clock} ${text}`;
-                            return null;
-                        }).filter(Boolean);
-                    if (eventLines.length) eventsContext = '\n\nMATCH EVENTS:\n' + eventLines.join('\n');
+            if (Array.isArray(game.matchEvents) && game.matchEvents.length > 0) {
+                const eventLines = game.matchEvents
+                    .filter(e => e.scoringPlay || e.redCard || e.yellowCard)
+                    .map(e => {
+                        const min    = e.minute || '';
+                        const player = e.players?.[0] || '';
+                        const team   = e.team ? ` (${e.team})` : '';
+                        const label  = `${min} ${player}${team}`.trim();
+                        if (e.scoringPlay) return `⚽ ${label}`;
+                        if (e.redCard)     return `🟥 ${label}`;
+                        if (e.yellowCard)  return `🟨 ${label}`;
+                        return null;
+                    }).filter(Boolean);
+                if (eventLines.length) eventsContext = '\n\nMATCH EVENTS:\n' + eventLines.join('\n');
+            } else {
+                const espnId = game.espnEventId || String(game.id).replace(/^(?:football|espn):/, '');
+                if (espnId && !/\D/.test(espnId)) {
+                    const summaryResp = await fetch(
+                        `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${espnId}`,
+                        { signal: AbortSignal.timeout(4000) }
+                    );
+                    if (summaryResp.ok) {
+                        const summaryData = await summaryResp.json();
+                        const KEY_TYPES   = new Set(['goal', 'yellow-card', 'red-card']);
+                        const eventLines  = (summaryData.keyEvents || [])
+                            .filter(e => KEY_TYPES.has(e.type?.type))
+                            .map(e => {
+                                const clock = (typeof e.clock === 'object' ? e.clock?.displayValue : '') || '';
+                                const text  = e.text || '';
+                                const t     = e.type?.type;
+                                if (t === 'goal') {
+                                    const suffix = e.ownGoal ? ' (OG)' : e.penaltyKick ? ' (PEN)' : '';
+                                    return `⚽ ${clock} ${text}${suffix}`;
+                                }
+                                if (t === 'yellow-card') return `🟨 ${clock} ${text}`;
+                                if (t === 'red-card')    return `🟥 ${clock} ${text}`;
+                                return null;
+                            }).filter(Boolean);
+                        if (eventLines.length) eventsContext = '\n\nMATCH EVENTS:\n' + eventLines.join('\n');
+                    }
                 }
             }
         } catch (_) {}
