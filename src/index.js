@@ -7596,14 +7596,23 @@ export default {
                                'Cache-Control': 'public, max-age=60', ...CORS } });
             }
 
-            // /bsd/events/:id/momentum → BSD /api/v2/events/:id/momentum/
+            // /bsd/events/:id/momentum → extract momentum[] from BSD /api/v2/events/:id/stats/
+            // BSD does not have a standalone /momentum/ endpoint — data is in /stats/.
             const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
             if (momentumM) {
-                const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/momentum/`,
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/stats/`,
                     { headers: bsdHeaders });
-                return new Response(await r.text(), { status: r.status,
+                if (!r.ok) {
+                    return new Response(await r.text(), { status: r.status,
+                        headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const statsData = await r.json();
+                const momentum = statsData.momentum ?? [];
+                return new Response(JSON.stringify({ event_id: momentumM[1], momentum }), {
+                    status: 200,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'public, max-age=30', ...CORS } });
+                               'Cache-Control': 'public, max-age=30', ...CORS },
+                });
             }
 
             // /bsd/events/:id/incidents → BSD /api/v2/events/:id/incidents/
