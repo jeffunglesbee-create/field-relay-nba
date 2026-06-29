@@ -7479,6 +7479,196 @@ export default {
             });
         }
 
+        // TEMPORARY PROBE — MLB Stats API full endpoint audit (2026-06-29)
+        // Remove after capture.
+        if (pathname === '/mlb/full-probe' && request.method === 'GET') {
+          const BASE = 'https://statsapi.mlb.com/api/v1';
+          const HEADERS = { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' };
+          const results = {};
+
+          async function probe(label, url, extract) {
+            try {
+              const r = await fetch(url, { headers: HEADERS });
+              const status = r.status;
+              if (status !== 200) {
+                results[label] = { status, ok: false, error: `HTTP ${status}` };
+                return;
+              }
+              const data = await r.json();
+              const extracted = extract ? extract(data) : null;
+              results[label] = {
+                status,
+                ok: true,
+                responseBytes: JSON.stringify(data).length,
+                ...(extracted || {}),
+              };
+            } catch (e) {
+              results[label] = { ok: false, error: e.message };
+            }
+          }
+
+          // Get a real gamePk from today
+          const today = new Date().toISOString().split('T')[0];
+          let gamePk = null;
+          await probe('schedule', `${BASE}/schedule?sportId=1&date=${today}&hydrate=linescore`, d => {
+            const games = d?.dates?.[0]?.games ?? [];
+            gamePk = games[0]?.gamePk || null;
+            return { date: today, gameCount: games.length, gamePk };
+          });
+
+          // If no games today (e.g., All-Star break), use yesterday
+          if (!gamePk) {
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+            await probe('schedule_yesterday', `${BASE}/schedule?sportId=1&date=${yesterday}&hydrate=linescore`, d => {
+              const games = d?.dates?.[0]?.games ?? [];
+              gamePk = games[0]?.gamePk || null;
+              return { date: yesterday, gameCount: games.length, gamePk };
+            });
+          }
+
+          if (gamePk) {
+            // ── GAME ENDPOINTS (per gamePk) ──────────────────────────────
+
+            await probe('game_feed_live', `${BASE.replace('v1','v1.1')}/game/${gamePk}/feed/live`, d => ({
+              topKeys: Object.keys(d || {}),
+              gameData_keys: Object.keys(d?.gameData || {}),
+              liveData_keys: Object.keys(d?.liveData || {}),
+              weather: d?.gameData?.weather || null,
+              venue: d?.gameData?.venue?.name || null,
+              probablePitchers: d?.gameData?.probablePitchers || null,
+              status: d?.gameData?.status?.abstractGameState || null,
+              gameDurationMinutes: d?.gameData?.gameInfo?.gameDurationMinutes || null,
+              flags: d?.gameData?.flags || null,
+              currentPlay_keys: Object.keys(d?.liveData?.plays?.currentPlay || {}),
+              allPlays_count: (d?.liveData?.plays?.allPlays || []).length,
+              scoringPlays_count: (d?.liveData?.plays?.scoringPlays || []).length,
+              boxscore_away_keys: Object.keys(d?.liveData?.boxscore?.teams?.away || {}),
+              decisions: d?.liveData?.decisions || null,
+              leaders: d?.liveData?.leaders ? Object.keys(d.liveData.leaders) : null,
+            }));
+
+            await probe('game_boxscore', `${BASE}/game/${gamePk}/boxscore`, d => ({
+              teams_keys: Object.keys(d?.teams || {}),
+              away_teamStats_keys: Object.keys(d?.teams?.away?.teamStats || {}),
+              away_players_count: Object.keys(d?.teams?.away?.players || {}).length,
+            }));
+
+            await probe('game_linescore', `${BASE}/game/${gamePk}/linescore`, d => ({
+              keys: Object.keys(d || {}),
+              currentInning: d?.currentInning || null,
+              innings_count: (d?.innings || []).length,
+            }));
+
+            await probe('game_winProbability', `${BASE}/game/${gamePk}/winProbability`, d => ({
+              isArray: Array.isArray(d),
+              count: Array.isArray(d) ? d.length : 0,
+              sample: Array.isArray(d) && d.length > 0 ? Object.keys(d[0]) : [],
+            }));
+
+            await probe('game_playByPlay', `${BASE}/game/${gamePk}/playByPlay`, d => ({
+              allPlays_count: (d?.allPlays || []).length,
+              play0_keys: d?.allPlays?.[0] ? Object.keys(d.allPlays[0]) : [],
+            }));
+
+            await probe('game_content', `${BASE}/game/${gamePk}/content`, d => ({
+              keys: Object.keys(d || {}),
+              highlights_count: (d?.highlights?.items || []).length,
+            }));
+
+            await probe('game_decisions', `${BASE}/game/${gamePk}/decisions`, d => ({
+              keys: Object.keys(d || {}),
+            }));
+
+            await probe('game_contextMetrics', `${BASE}/game/${gamePk}/contextMetrics`, d => ({
+              isArray: Array.isArray(d),
+              count: Array.isArray(d) ? d.length : 0,
+            }));
+          }
+
+          // ── STANDINGS ────────────────────────────────────────────────────
+
+          await probe('standings', `${BASE}/standings?leagueId=103,104&season=2026&standingsTypes=regularSeason`, d => {
+            const rec = d?.records?.[0]?.teamRecords?.[0];
+            return {
+              divisions: (d?.records || []).length,
+              team0_keys: rec ? Object.keys(rec) : [],
+              hasMagicNumber: rec ? 'magicNumber' in rec : false,
+              hasClinched: rec ? 'clinched' in rec : false,
+              hasWildCardGamesBack: rec ? 'wildCardGamesBack' in rec : false,
+              hasStreak: rec ? 'streak' in rec : false,
+              sample: rec ? {
+                name: rec?.team?.name,
+                wins: rec?.wins,
+                losses: rec?.losses,
+                pct: rec?.leagueRecord?.pct,
+                divisionRank: rec?.divisionRank,
+              } : null,
+            };
+          });
+
+          // ── TRANSACTIONS ─────────────────────────────────────────────────
+
+          await probe('transactions', `${BASE}/transactions?startDate=${today}&endDate=${today}&sportId=1`, d => ({
+            count: (d?.transactions || []).length,
+            transaction0_keys: d?.transactions?.[0] ? Object.keys(d.transactions[0]) : [],
+            types: [...new Set((d?.transactions || []).map(t => t.typeDesc))].slice(0, 10),
+          }));
+
+          // ── UMPIRES ──────────────────────────────────────────────────────
+
+          await probe('umpires', `${BASE}/jobs?jobType=UMP&date=${today}`, d => ({
+            count: (d?.roster || d?.jobs || []).length,
+            keys: Object.keys(d || {}),
+          }));
+
+          // ── GAME PACE ────────────────────────────────────────────────────
+
+          await probe('gamePace', `${BASE}/gamePace?sportId=1&season=2026`, d => ({
+            keys: Object.keys(d || {}),
+            sports_count: (d?.sports || []).length,
+            sport0_keys: d?.sports?.[0] ? Object.keys(d.sports[0]) : [],
+          }));
+
+          // ── STAT LEADERS ─────────────────────────────────────────────────
+
+          await probe('statLeaders_HR', `${BASE}/stats/leaders?leaderCategories=homeRuns&sportId=1&season=2026&limit=3`, d => {
+            const cat = d?.leagueLeaders?.[0];
+            return {
+              category: cat?.leaderCategory || null,
+              leaders_count: (cat?.leaders || []).length,
+              leader0: cat?.leaders?.[0] ? {
+                name: cat.leaders[0].person?.fullName,
+                value: cat.leaders[0].value,
+                team: cat.leaders[0].team?.name,
+              } : null,
+            };
+          });
+
+          // ── SEASON INFO ──────────────────────────────────────────────────
+
+          await probe('seasons', `${BASE}/seasons/2026?sportId=1`, d => ({
+            keys: Object.keys(d?.seasons?.[0] || d || {}),
+          }));
+
+          // ── SUMMARY ──────────────────────────────────────────────────────
+
+          const summary = {
+            probeDate: today,
+            capturedAt: new Date().toISOString(),
+            gamePkUsed: gamePk,
+            endpointsProbed: Object.keys(results).length,
+            endpointsOk: Object.values(results).filter(r => r.ok).length,
+            endpointsFailed: Object.values(results).filter(r => !r.ok).length,
+            results,
+          };
+
+          return new Response(JSON.stringify(summary, null, 2), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+          });
+        }
+        // END TEMPORARY PROBE — MLB full endpoint audit
+
         if (pathname === '/health') {
             // Surface the active quality calibration source. _qualityCalibrationSource
             // is module-scoped (per-isolate); a /health request usually hits a
