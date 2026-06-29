@@ -10,6 +10,8 @@
 ---
 
 ## DONE CONDITION
+**CONFIDENCE GATE: Do not commit unless score ≥ 95. Report score verbatim if below threshold.**
+
 
 `/v2/games?sport=wc26` for a live game shows:
 ```json
