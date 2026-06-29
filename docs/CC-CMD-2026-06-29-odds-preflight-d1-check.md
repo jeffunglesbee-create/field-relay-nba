@@ -31,7 +31,7 @@ If opening_odds still empty: wait 15 min and retry (max 3 retries).
 ## STEP 1: Probe /odds-story/preview
 
 ```bash
-curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/odds-story/preview?date=2026-06-29" | \
+curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/odds-story/preview?date=2026-06-28" | \
   python3 -c "
 import sys, json
 d = json.load(sys.stdin)
