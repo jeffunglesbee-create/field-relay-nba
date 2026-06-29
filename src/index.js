@@ -3305,6 +3305,12 @@ async function buildAFLJournalismContext(games, round, year, env) {
                     factors:           pred.factors || [],
                     homeBreakdown:     pred.homeBreakdown || {},
                     awayBreakdown:     pred.awayBreakdown || {},
+                    _kaliProof: {
+                        adapterId: 'kali-afl',
+                        sourceId:  'kali-aflstats',
+                        round:     round,
+                        year:      year,
+                    },
                 };
             }
         } catch (_) {}
