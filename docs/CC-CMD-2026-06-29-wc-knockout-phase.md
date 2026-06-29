@@ -12,6 +12,8 @@
 ---
 
 ## DONE CONDITION
+**CONFIDENCE GATE: Do not commit unless score ≥ 95. Report score verbatim if below threshold.**
+
 
 ```sql
 SELECT phase, COUNT(*) FROM wc_results GROUP BY phase
