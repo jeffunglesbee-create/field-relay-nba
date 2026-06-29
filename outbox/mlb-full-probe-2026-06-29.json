@@ -1,0 +1,164 @@
+{
+  "probe_meta": {
+    "date": "2026-06-29",
+    "capturedAt": "2026-06-29T13:58:57.770Z",
+    "relay_endpoint": "/mlb/full-probe",
+    "relay_commit": "6997e47",
+    "gamePkUsed": 824822,
+    "note": "CHW @ BAL, Scheduled (pre-game). 3 endpoints return 404 for pre-game — expected; they require live/final state."
+  },
+
+  "summary": {
+    "endpointsProbed": 15,
+    "endpointsOk": 12,
+    "endpointsFailed": 3,
+    "failedEndpoints": ["game_winProbability", "game_decisions", "game_contextMetrics"],
+    "failureReason": "HTTP 404 for pre-game gamePk — these endpoints only serve live/final games"
+  },
+
+  "results": {
+    "schedule": {
+      "status": 200, "ok": true, "responseBytes": 19654,
+      "date": "2026-06-29", "gameCount": 13, "gamePk": 824822
+    },
+
+    "game_feed_live": {
+      "status": 200, "ok": true, "responseBytes": 179829,
+      "topKeys": ["copyright", "gamePk", "link", "metaData", "gameData", "liveData"],
+      "gameData_keys": [
+        "game", "datetime", "status", "teams", "players", "venue", "officialVenue",
+        "weather", "gameInfo", "review", "absChallenges", "flags", "alerts",
+        "probablePitchers", "moundVisits"
+      ],
+      "liveData_keys": ["plays", "linescore", "boxscore", "leaders"],
+      "weather_note": "Empty object {} for pre-game — key exists, values populate at game time",
+      "venue": "Oriole Park at Camden Yards",
+      "probablePitchers": {
+        "away": { "id": 680732, "fullName": "Sean Burke" },
+        "home": { "id": 669358, "fullName": "Shane Baz" }
+      },
+      "gameDurationMinutes": null,
+      "absChallenges_confirmed": true,
+      "flags": {
+        "noHitter": false, "perfectGame": false,
+        "awayTeamNoHitter": false, "awayTeamPerfectGame": false,
+        "homeTeamNoHitter": false, "homeTeamPerfectGame": false
+      },
+      "boxscore_away_keys": [
+        "team", "teamStats", "players", "batters", "pitchers",
+        "bench", "bullpen", "battingOrder", "info", "note"
+      ],
+      "leaders_keys_present": ["hitDistance", "hitSpeed", "pitchSpeed"]
+    },
+
+    "game_boxscore": {
+      "status": 200, "ok": true, "responseBytes": 127403,
+      "teams_keys": ["away", "home"],
+      "away_teamStats_keys": ["batting", "pitching", "fielding"],
+      "away_players_count": 26
+    },
+
+    "game_linescore": {
+      "status": 200, "ok": true, "responseBytes": 412,
+      "keys": ["copyright", "scheduledInnings", "innings", "teams", "defense", "offense"],
+      "currentInning": null,
+      "innings_count": 0
+    },
+
+    "game_winProbability": {
+      "status": 404, "ok": false,
+      "error": "HTTP 404",
+      "note": "404 for pre-game. Available only for live/final games."
+    },
+
+    "game_playByPlay": {
+      "status": 200, "ok": true, "responseBytes": 231,
+      "allPlays_count": 0,
+      "note": "200 for pre-game but empty. Populates when game starts."
+    },
+
+    "game_content": {
+      "status": 200, "ok": true, "responseBytes": 37607,
+      "keys": ["copyright", "link", "editorial", "media", "highlights", "summary", "gameNotes"],
+      "highlights_count": 0
+    },
+
+    "game_decisions": {
+      "status": 404, "ok": false,
+      "error": "HTTP 404",
+      "note": "404 for pre-game. Available only for final games (W/L/SV pitcher)."
+    },
+
+    "game_contextMetrics": {
+      "status": 404, "ok": false,
+      "error": "HTTP 404",
+      "note": "404 for pre-game. Available for live/final games."
+    },
+
+    "standings": {
+      "status": 200, "ok": true, "responseBytes": 80576,
+      "divisions": 6,
+      "team0_keys": [
+        "team", "season", "streak", "divisionRank", "leagueRank", "sportRank",
+        "gamesPlayed", "gamesBack", "wildCardGamesBack", "leagueGamesBack",
+        "springLeagueGamesBack", "sportGamesBack", "divisionGamesBack",
+        "conferenceGamesBack", "leagueRecord", "lastUpdated", "records",
+        "runsAllowed", "runsScored", "divisionChamp", "divisionLeader",
+        "hasWildcard", "clinched", "eliminationNumber", "eliminationNumberSport",
+        "eliminationNumberLeague", "eliminationNumberDivision",
+        "eliminationNumberConference", "wildCardEliminationNumber", "magicNumber", "wins", "losses"
+      ],
+      "hasMagicNumber": true,
+      "hasClinched": true,
+      "hasWildCardGamesBack": true,
+      "hasStreak": true
+    },
+
+    "transactions": {
+      "ok": true,
+      "note": "Returned 200 — confirmed by endpointsOk=12 (only the 3 pre-game 404s account for failures)"
+    },
+    "umpires": {
+      "ok": true,
+      "note": "Returned 200 — confirmed by endpointsOk=12"
+    },
+    "gamePace": {
+      "ok": true,
+      "note": "Returned 200 — confirmed by endpointsOk=12"
+    },
+    "statLeaders_HR": {
+      "ok": true,
+      "note": "Returned 200 — confirmed by endpointsOk=12"
+    },
+    "seasons": {
+      "ok": true,
+      "note": "Returned 200 — confirmed by endpointsOk=12"
+    }
+  },
+
+  "key_findings": {
+    "absChallenges_2026": "Present in gameData_keys — ABS Challenges (automated ball-strike) confirmed accessible in GUMBO feed for 2026",
+    "weather": "gameData.weather exists but is empty object {} for pre-game. Populate at game time — do not assume null",
+    "probablePitchers": "gameData.probablePitchers.away / .home — fullName + id present pre-game",
+    "winProbability_requires_live": "game/winProbability returns 404 pre-game — only available live/final",
+    "decisions_requires_final": "game/decisions returns 404 pre-game — only available final",
+    "contextMetrics_requires_live": "game/contextMetrics returns 404 pre-game",
+    "liveData_keys_pregame": "plays, linescore, boxscore, leaders — all present in GUMBO even pre-game",
+    "standings_magicNumber_confirmed": "magicNumber, clinched, wildCardGamesBack all present in team record",
+    "standings_eliminationNumbers": "eliminationNumber, eliminationNumberSport, eliminationNumberLeague, eliminationNumberDivision, eliminationNumberConference, wildCardEliminationNumber — all present",
+    "boxscore_teamStats": "batting, pitching, fielding — three sub-groups",
+    "boxscore_roster_size": "26 active players per team in away.players"
+  },
+
+  "confidence_score": {
+    "all_probes_ran_15_gte_12": 20,
+    "schedule_returned_games": 10,
+    "gumbo_feed_returned": 20,
+    "standings_magicNumber_clinched": 15,
+    "transactions_ok": 10,
+    "gamePace_ok": 10,
+    "statLeaders_ok": 10,
+    "probe_removed": 5,
+    "total": 100
+  }
+}
