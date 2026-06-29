@@ -7860,7 +7860,7 @@ export default {
                 const now = new Date().toISOString();
                 
                 // Refresh if expired
-                if (row.expires_at && new Date(row.expires_at + 'Z') < new Date()) {
+                if (row.expires_at && new Date(row.expires_at.replace(/Z$/, '')) < new Date()) {
                     const refreshResp = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -7906,7 +7906,7 @@ export default {
                         token_len: token.length,
                         token_prefix: token.substring(0, 8),
                         was_refreshed: token !== row.access_token,
-                        refresh_attempted: new Date(row.expires_at + 'Z') < new Date(),
+                        refresh_attempted: new Date(row.expires_at.replace(/Z$/, '')) < new Date(),
                         refresh_result: typeof _refreshDebug !== 'undefined' ? _refreshDebug : 'not attempted',
                         expires_at: row.expires_at,
                         now: new Date().toISOString()
