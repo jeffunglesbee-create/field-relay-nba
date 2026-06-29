@@ -1,0 +1,154 @@
+{
+  "probe_meta": {
+    "date": "2026-06-29",
+    "captured_at": "2026-06-29T13:24Z",
+    "source_url": "https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=2026-06-29&hydrate=broadcasts(all),linescore,venue,teams",
+    "relay_endpoint": "/mlb/probe-raw?date=2026-06-29",
+    "relay_commit": "445064c",
+    "capture_method": "html_probe via CF Worker IP (workers.dev sandbox bypass)",
+    "response_bytes": 21158,
+    "note": "Full 21KB payload returned HTTP 200. Visible payload truncated to ~3000 chars by html_probe tool. Key inventory derived from visible JSON structure."
+  },
+  "statusCode": 200,
+  "ok": true,
+  "date": "2026-06-29",
+  "gameCount": 13,
+
+  "game0_keys_observed": [
+    "gamePk", "gameGuid", "link", "gameType", "season",
+    "gameDate", "officialDate", "status", "teams", "linescore",
+    "venue", "broadcasts"
+  ],
+
+  "game0_linescore_keys_observed_pregame": [
+    "scheduledInnings", "innings", "teams", "defense", "offense"
+  ],
+  "game0_linescore_keys_live_expected": [
+    "scheduledInnings", "innings", "teams", "defense", "offense",
+    "currentInning", "currentInningOrdinal", "inningHalf",
+    "outs", "balls", "strikes", "isTopInning"
+  ],
+
+  "game0_teams_home_keys_observed": [
+    "team", "leagueRecord", "splitSquad", "seriesNumber"
+  ],
+
+  "game0_teams_home_team_keys": ["id", "name", "link"],
+  "game0_teams_home_leagueRecord_keys": ["wins", "losses", "ties", "pct"],
+
+  "game0_broadcasts_keys_observed": [
+    "id", "name", "type", "language", "isNational", "callSign",
+    "videoResolution", "availability", "mediaState", "broadcastDate",
+    "mediaId", "colorSpace", "gameDateBroadcastGuid", "homeAway",
+    "freeGame", "availableForStreaming", "preGameShow", "postGameShow",
+    "mvpdAuthRequired", "freeGameStatus"
+  ],
+
+  "game0": {
+    "gamePk": 824822,
+    "gameGuid": "ea9e4db5-c486-496b-9862-a1d75a6ae9cb",
+    "link": "/api/v1.1/game/824822/feed/live",
+    "gameType": "R",
+    "season": "2026",
+    "gameDate": "2026-06-29T22:35:00Z",
+    "officialDate": "2026-06-29",
+    "status": {
+      "abstractGameState": "Preview",
+      "codedGameState": "S",
+      "detailedState": "Scheduled",
+      "statusCode": "S",
+      "startTimeTBD": false,
+      "abstractGameCode": "P"
+    },
+    "teams": {
+      "away": {
+        "team": { "id": 145, "name": "Chicago White Sox", "link": "/api/v1/teams/145" },
+        "leagueRecord": { "wins": 43, "losses": 39, "ties": 0, "pct": ".524" },
+        "splitSquad": false,
+        "seriesNumber": 28
+      },
+      "home": {
+        "team": { "id": 110, "name": "Baltimore Orioles", "link": "/api/v1/teams/110" },
+        "leagueRecord": { "wins": 39, "losses": 46, "ties": 0, "pct": ".459" },
+        "splitSquad": false,
+        "seriesNumber": 28
+      }
+    },
+    "linescore": {
+      "scheduledInnings": 9,
+      "innings": [],
+      "teams": { "home": {}, "away": {} },
+      "defense": { "team": { "id": 110, "name": "Baltimore Orioles", "link": "/api/v1/teams/110" } },
+      "offense": { "team": { "id": 145, "name": "Chicago White Sox", "link": "/api/v1/teams/145" } }
+    },
+    "venue": {
+      "id": 2,
+      "name": "Oriole Park at Camden Yards",
+      "link": "/api/v1/venues/2",
+      "active": true,
+      "season": "2026"
+    },
+    "broadcasts_sample": [
+      {
+        "id": 581,
+        "name": "MASN",
+        "type": "TV",
+        "language": "en",
+        "isNational": false,
+        "callSign": "MASN",
+        "videoResolution": { "code": "FHD", "resolutionShort": "FHD", "resolutionFull": "Full High Definition (1080p)" },
+        "availability": { "availabilityId": 1, "availabilityCode": "local_in_market", "availabilityText": "Local (In Market)" },
+        "mediaState": { "mediaStateId": 1, "mediaStateCode": "MEDIA_OFF", "mediaStateText": "Media Off" },
+        "broadcastDate": "2026-06-29",
+        "homeAway": "home",
+        "freeGame": false,
+        "availableForStreaming": true,
+        "preGameShow": "2026-06-29T22:00:00Z",
+        "postGameShow": true,
+        "mvpdAuthRequired": false,
+        "freeGameStatus": false
+      },
+      {
+        "id": 6240,
+        "name": "Chicago Sports Network",
+        "type": "TV",
+        "language": "en",
+        "isNational": false,
+        "callSign": "CHSN",
+        "availability": { "availabilityId": 2, "availabilityCode": "local_out_of_market", "availabilityText": "Local (Out of Market)" },
+        "homeAway": "away",
+        "freeGame": false,
+        "availableForStreaming": true
+      }
+    ]
+  },
+
+  "status_shape": {
+    "abstractGameState": "Preview | Live | Final",
+    "codedGameState": "S (scheduled) | I (in progress) | F (final) | ...",
+    "detailedState": "Scheduled | In Progress | Final | ...",
+    "statusCode": "S | I | F | ...",
+    "abstractGameCode": "P (preview) | L (live) | F (final)"
+  },
+
+  "access_path_for_live_state": {
+    "field": "status.abstractGameState",
+    "values": { "Preview": "pre", "Live": "live", "Final": "final" }
+  },
+
+  "score_access": {
+    "home_score": "teams.home.score (present for live/final, absent for scheduled)",
+    "away_score": "teams.away.score",
+    "home_abbr": "teams.home.team.name (no abbr field — must derive or use known map)",
+    "note": "No abbreviation field at game level — teams.home.team.name = full name only"
+  },
+
+  "confidence_score": {
+    "http_200": 40,
+    "games_gt_0": 20,
+    "teams_linescore_broadcasts_present": 20,
+    "probe_removed": 10,
+    "outbox_saved": 10,
+    "total": 100
+  }
+}
