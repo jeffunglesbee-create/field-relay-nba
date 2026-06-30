@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-06-30 (round-label shipped)
+Last synced: 2026-06-30 (round-label shipped end to end — relay + client)
 
 ---
 
@@ -482,9 +482,15 @@ round-label CC-CMD, SHIPPED 2026-06-30 — relay commit 5911f0b5), tournament
 multiplexer (stats-api `section_name`/`match_type`, written directly to
 `postseason_games.round`, SHIPPED), pre-existing NBA/NHL/UFL postseason
 data (already populated before this session, format: "East CF" etc.)
-Consumer: jubilant-bassoon round badge (round-label CC-CMD Task 3 —
-CLIENT SIDE, still queued — see docs/CC-CMD-2026-06-30-round-label-client.md
-in jubilant-bassoon)
+Consumer: jubilant-bassoon round badge — `buildRoundBadge(game)`,
+index.html:7716. SHIPPED 2026-06-30, commit 989f098. Renders `.round-badge`
+span for any non-empty `game.round`, plus an "Agg: X-Y" line when
+`game.series.homeAggregate`/`awayAggregate` are present and `series.leg
+!== 1`. Single function, all sports, no branching. Data pipeline:
+`mapV2ToESPN` maps round/series onto game objects; `fetchV2AllScores`
+triggers a re-render only when round data is newly arrived (not on every
+poll). Verified: 809/0 smoke (A-ROUND-1/2), full CI green including
+Playwright browser runtime tests.
 
 Verified live 2026-06-30 against real UCL Round of 16 second legs:
 ```
