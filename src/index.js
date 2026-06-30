@@ -239,6 +239,7 @@ const MLB_STATS_API_TTL = 60; // live game data — 60s cache
 const MLB_STATS_API_HEADERS = { 'User-Agent': 'FIELD-Sports-Intelligence/1.0' };
 
 // ── MLS Stats API ──────────────────────────────────────────────────────────
+const MLS_STATS_BASE = 'https://stats-api.mlssoccer.com';
 const MLS_STATS_HEADERS = {
     'User-Agent': 'FIELD-Sports-Intelligence/1.0',
     'Accept':     'application/json',
@@ -252,13 +253,13 @@ const MLS_STATS_ALLOWED_PREFIXES = [
     '/v1/goals',         // goalscorer events
     '/v1/commentaries',  // full event stream
     '/matches/seasons/', // schedule by season
-    '/competitions/',    // standings + season list
+    '/competitions',     // standings + season list + registry
 ];
 function mlsStatsAllowed(path) {
     return MLS_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
 }
 function mlsStatsTtl(path) {
-    if (path.startsWith('/competitions/')) return MLS_STATS_TTL_STANDINGS;
+    if (path.startsWith('/competitions')) return MLS_STATS_TTL_STANDINGS;
     if (path.startsWith('/matches/seasons/')) return MLS_STATS_TTL_SCHEDULE;
     if (path.startsWith('/v1/goals') || path.startsWith('/v1/commentaries')) return MLS_STATS_TTL_GOALS;
     return MLS_STATS_TTL_LIVE; // /v1/matches
