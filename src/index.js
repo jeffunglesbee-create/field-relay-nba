@@ -9394,6 +9394,40 @@ export default {
             );
         }
 
+        // ── TEMPORARY DIAGNOSTIC PROBE — REMOVE AFTER USE ──────────────────────
+        // GET /probe/dapi-mls?path=/whatever — raw server-side fetch to
+        // dapi.mlssoccer.com, returns status/headers/truncated body so we can
+        // discover the real Distribution API route structure (RUWT — no
+        // adapter code until a live shape is confirmed). Worker egress is
+        // unrestricted by the chat sandbox's domain allowlist, which is why
+        // this lives here instead of being probed directly. GET-only,
+        // single fixed host, no key forwarding, 5s timeout, 2KB body cap.
+        // Added 2026-06-30 — delete this block once the MLS schedule source
+        // decision is made.
+        if (pathname === '/probe/dapi-mls') {
+            const sub = url.searchParams.get('path') || '/';
+            if (!sub.startsWith('/'))
+                return new Response('path must start with /', { status: 400, headers: CORS });
+            const targetUrl = `https://dapi.mlssoccer.com${sub}`;
+            try {
+                const resp = await fetch(targetUrl, {
+                    headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(5000),
+                });
+                const bodyText = await resp.text();
+                return new Response(JSON.stringify({
+                    targetUrl,
+                    status: resp.status,
+                    contentType: resp.headers.get('content-type'),
+                    bodyPreview: bodyText.slice(0, 2000),
+                    bodyLength: bodyText.length,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ targetUrl, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
         if (pathname.startsWith('/squiggle')) {
