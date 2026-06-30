@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-06-30
+Last synced: 2026-06-30 (round-label shipped)
 
 ---
 
@@ -412,7 +412,7 @@ See STANDARDS.md Rule 88 for full rationale and case study.
 Producer: field-relay-nba `/soccer/xg` route (src/index.js)
 Consumer: context-assembler.js `buildSoccerXGContext` (relay-internal);
 relay's own `handleV2Games` second-leg enrichment (round-label CC-CMD,
-queued, not yet shipped)
+SHIPPED 2026-06-30 — relay commit 5911f0b5, verified live)
 
 ```
 GET /soccer/xg?league={espnLeagueSlug}&event={espnEventId}
@@ -423,7 +423,7 @@ GET /soccer/xg?league={espnLeagueSlug}&event={espnEventId}
   _hasXG:          boolean   // true only for leagues ESPN provides xG for (not MLS)
   _hasMatchStats:  boolean   // added 2026-06-30 — possession/shots/passes/cards,
                               // present even when _hasXG is false
-  _series:         {         // added 2026-06-30 (round-label CC-CMD, queued) —
+  _series:         {         // added 2026-06-30 (round-label CC-CMD, SHIPPED) —
                               // null unless ESPN's /summary returns series data
                               // (two-legged ties only)
     title: string|null, leg: number|null, totalLegs: number|null,
@@ -478,12 +478,24 @@ Separate CC-CMD needed, not yet written.
 ## game.round (client-facing, all sports)
 
 Producer: multiple — `adaptESPNWCSoccer` (ESPN `comp.notes[0].headline`,
-round-label CC-CMD, queued not yet shipped), tournament multiplexer
-(stats-api `section_name`/`match_type`, written directly to
+round-label CC-CMD, SHIPPED 2026-06-30 — relay commit 5911f0b5), tournament
+multiplexer (stats-api `section_name`/`match_type`, written directly to
 `postseason_games.round`, SHIPPED), pre-existing NBA/NHL/UFL postseason
 data (already populated before this session, format: "East CF" etc.)
-Consumer: jubilant-bassoon round badge (round-label CC-CMD Task 3, queued
-not yet shipped)
+Consumer: jubilant-bassoon round badge (round-label CC-CMD Task 3 —
+CLIENT SIDE, still queued — see docs/CC-CMD-2026-06-30-round-label-client.md
+in jubilant-bassoon)
+
+Verified live 2026-06-30 against real UCL Round of 16 second legs:
+```
+round:  "2nd Leg - Arsenal advance 3-1 on aggregate"
+series: { title: "Round of 16", leg: 2, totalLegs: 2, completed: true,
+          homeAggregate: 3, awayAggregate: 1, otherLegEventId: "401862578" }
+```
+Confirmed across 7 real ties (Arsenal, Sporting CP, PSG, Real Madrid,
+Barcelona, Bayern Munich, Liverpool, Atlético Madrid). N+1 avoidance
+confirmed empirically: a same-day EPL slate (10 games, no leg notes)
+triggered zero extra `/soccer/xg` fetches.
 
 ```
 game.round: string   // human-readable, vocabulary varies by source:
