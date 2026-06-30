@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-06-21
+Last synced: 2026-06-30
 
 ---
 
@@ -404,3 +404,95 @@ not guess faster. Uncertainty is not permission to shortcut.
 If quick way — stop, find the right way, then move at pace.
 
 See STANDARDS.md Rule 88 for full rationale and case study.
+
+---
+
+## /soccer/xg (relay route)
+
+Producer: field-relay-nba `/soccer/xg` route (src/index.js)
+Consumer: context-assembler.js `buildSoccerXGContext` (relay-internal);
+relay's own `handleV2Games` second-leg enrichment (round-label CC-CMD,
+queued, not yet shipped)
+
+```
+GET /soccer/xg?league={espnLeagueSlug}&event={espnEventId}
+
+{
+  event:           string
+  league:          string
+  _hasXG:          boolean   // true only for leagues ESPN provides xG for (not MLS)
+  _hasMatchStats:  boolean   // added 2026-06-30 — possession/shots/passes/cards,
+                              // present even when _hasXG is false
+  _series:         {         // added 2026-06-30 (round-label CC-CMD, queued) —
+                              // null unless ESPN's /summary returns series data
+                              // (two-legged ties only)
+    title: string|null, leg: number|null, totalLegs: number|null,
+    completed: boolean|null, homeAggregate: number|null,
+    awayAggregate: number|null, otherLegEventId: string|null
+  } | null,
+  _source:         "espn-core"
+  home: { id, name, abbr, expectedGoals?, possessionPct?, totalShots?,
+          shotsOnTarget?, totalPasses?, passPct?, totalTackles?,
+          interceptions?, foulsCommitted?, yellowCards?, redCards?,
+          totalCrosses?, wonCorners? }
+  away: { ...same shape as home }
+}
+```
+
+Note: `_series`/`aggregateScore` is ESPN-native and only covers
+ESPN-sourced soccer. Stats-api-sourced tournaments (e.g. TELUS Canadian
+Championship, via the tournament multiplexer) have NO equivalent field —
+two-legged ties there are two independent `postseason_games` rows with no
+linking aggregate. Do not assume this contract covers that source.
+
+---
+
+## /soccer/season-form (relay route)
+
+Producer: field-relay-nba `/soccer/season-form` route (src/index.js)
+Consumer: context-assembler.js `buildSoccerSeasonFormContext`
+
+```
+GET /soccer/season-form?team_id={MLS-CLU-xxxxxx}&competition_id=&season_id=
+
+{
+  _hasForm: boolean
+  _source:  "mls-stats-api"
+  team_id, team_name, matches_played: number
+  xG: number, xG_efficiency: number, goals: number, clean_sheets: number
+  possession_ratio: number, shots_conversion_rate: number,
+  passes_conversion_rate: number
+}
+```
+
+Season-to-date aggregate, distinct grain from `/soccer/xg` (per-match).
+KNOWN GAP: `buildSoccerSeasonFormContext` needs `game.mlsHomeTeamId`/
+`mlsAwayTeamId` (stats-api `MLS-CLU-xxxxxx` format — NOT the same id space
+as ESPN's numeric competitor ids) on the game object to ever call this.
+Nothing populates those fields yet — context builder returns `''` for
+every game until identity-resolver gains a name→MLS-CLU-xxxxxx mapping.
+Separate CC-CMD needed, not yet written.
+
+---
+
+## game.round (client-facing, all sports)
+
+Producer: multiple — `adaptESPNWCSoccer` (ESPN `comp.notes[0].headline`,
+round-label CC-CMD, queued not yet shipped), tournament multiplexer
+(stats-api `section_name`/`match_type`, written directly to
+`postseason_games.round`, SHIPPED), pre-existing NBA/NHL/UFL postseason
+data (already populated before this session, format: "East CF" etc.)
+Consumer: jubilant-bassoon round badge (round-label CC-CMD Task 3, queued
+not yet shipped)
+
+```
+game.round: string   // human-readable, vocabulary varies by source:
+                      //   NBA/NHL: "East CF", "Stanley Cup Final"
+                      //   UFL: "Playoff Eliminator"
+                      //   MLS tournaments: "Quarterfinal", "Round of 16"
+                      //   ESPN live soccer: "1st Leg", "2nd Leg"
+```
+
+Deliberately not normalized across sources — rendered as-is. A unified
+taxonomy would be a future data-layer decision, not assumed needed.
+
