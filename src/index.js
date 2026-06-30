@@ -10218,6 +10218,62 @@ export default {
             return new Response(raw, {status:200, headers:{...CORS,'Content-Type':'application/json','Cache-Control':`public,max-age=${Math.max(0,3600-age)}`,'X-Journalism-Age':`${age}s`,'X-Journalism-Sport':data.sport||''}});
         }
 
+// GET /journalism/game-lines
+        // Returns first sentences of all per-game briefs in KV for today.
+        // Client uses this to pre-populate _gameBriefCache on page load.
+        // KV key pattern: brief:game:{espnEventId}
+        if (pathname === '/journalism/game-lines') {
+          const cacheKey = new Request(request.url, { method: 'GET' });
+          const cached = await caches.default.match(cacheKey);
+          if (cached) return cached;
+
+          if (!env.FIELD_JOURNALISM) {
+            return new Response(JSON.stringify({ ok: false, error: 'KV unbound' }), {
+              status: 503, headers: { 'Content-Type': 'application/json' }
+            });
+          }
+
+          try {
+            const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 100 });
+            const lines = {};
+
+            await Promise.all((listed.keys || []).map(async ({ name }) => {
+              try {
+                const raw = await env.FIELD_JOURNALISM.get(name);
+                if (!raw) return;
+                let text = raw;
+                try {
+                  const parsed = JSON.parse(raw);
+                  text = parsed.text || parsed.brief || parsed.brief_text || raw;
+                } catch (_) {}
+                const first = String(text).split(/\.\s+/)[0].trim();
+                if (first.length < 20) return;
+                // Key format is brief:game:{sport}:{id} OR brief:game:{id}
+                // Mirror sweepKVBriefs parsing so both consumers agree on the same id
+                const parts = name.replace('brief:game:', '').split(':');
+                const espnId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
+                lines[espnId] = first.endsWith('.') ? first : first + '.';
+              } catch (_) {}
+            }));
+
+            const body = JSON.stringify({ ok: true, lines, count: Object.keys(lines).length });
+            const resp = new Response(body, {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, max-age=60',
+                'Access-Control-Allow-Origin': '*',
+              }
+            });
+            ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+            return resp;
+          } catch (e) {
+            return new Response(JSON.stringify({ ok: false, error: e.message }), {
+              status: 500, headers: { 'Content-Type': 'application/json' }
+            });
+          }
+        }
+
 // ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
         // Serves pre-computed analytics JSON committed by GitHub Action pipelines.
         // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
