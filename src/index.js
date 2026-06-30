@@ -9394,6 +9394,37 @@ export default {
             );
         }
 
+        // ── TEMPORARY DIAGNOSTIC PROBE v6 — REMOVE AFTER USE ───────────────────
+        // GET /probe/mls?host=dapi|stats|sport|www&path=/whatever
+        // Checking full /competitions list (US Open Cup?) and testing the
+        // matches/seasons pattern against Leagues Cup (MLS-COM-000006) to
+        // confirm whether other competitions need separate page ingestion.
+        if (pathname === '/probe/mls') {
+            const hostMap = {
+                dapi:  'https://dapi.mlssoccer.com',
+                stats: 'https://stats-api.mlssoccer.com',
+                sport: 'https://sportapi.mlssoccer.com',
+                www:   'https://www.mlssoccer.com',
+            };
+            const hostKey = url.searchParams.get('host') || 'stats';
+            const base = hostMap[hostKey];
+            const sub  = url.searchParams.get('path') || '/';
+            if (!base) return new Response('host must be dapi|stats|sport|www', { status: 400, headers: CORS });
+            const targetUrl = `${base}${sub}`;
+            try {
+                const resp = await fetch(targetUrl, {
+                    headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(8000),
+                });
+                return new Response(resp.body, {
+                    status: resp.status,
+                    headers: { ...CORS, 'Content-Type': resp.headers.get('content-type') || 'text/plain' },
+                });
+            } catch (e) {
+                return new Response(`probe error: ${e.message}`, { status: 502, headers: CORS });
+            }
+        }
+
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
         if (pathname.startsWith('/squiggle')) {
