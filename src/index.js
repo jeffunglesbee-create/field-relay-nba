@@ -254,12 +254,14 @@ const MLS_STATS_ALLOWED_PREFIXES = [
     '/v1/commentaries',  // full event stream
     '/matches/seasons/', // schedule by season
     '/competitions',     // standings + season list + registry
+    '/statistics/',      // NEW (2026-06-30) — club season-aggregate stats
 ];
 function mlsStatsAllowed(path) {
     return MLS_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
 }
 function mlsStatsTtl(path) {
     if (path.startsWith('/competitions')) return MLS_STATS_TTL_STANDINGS;
+    if (path.startsWith('/statistics/')) return MLS_STATS_TTL_STANDINGS;  // NEW
     if (path.startsWith('/matches/seasons/')) return MLS_STATS_TTL_SCHEDULE;
     if (path.startsWith('/v1/goals') || path.startsWith('/v1/commentaries')) return MLS_STATS_TTL_GOALS;
     return MLS_STATS_TTL_LIVE; // /v1/matches
@@ -9580,6 +9582,58 @@ export default {
             return relayFetch(targetUrl, MLS_STATS_HEADERS, mlsStatsTtl(cleanPath), 'mls-stats', ctx);
         }
 
+        // ── /soccer/season-form → stats-api club season aggregates, trimmed ───────
+        // Added 2026-06-30 (soccer-stats-dual-source CC-CMD). Confirmed live: stats-api
+        // club statistics has real xG fields (xG, xG_efficiency, xg_rankings) at
+        // season-to-date grain — distinct from ESPN's per-match stats (/soccer/xg
+        // above). Currently MLS-only; extend competition_id param to other leagues
+        // only after confirming stats-api covers them.
+        if (pathname === '/soccer/season-form') {
+            const compId   = url.searchParams.get('competition_id') || 'MLS-COM-000001';
+            const seasonId = url.searchParams.get('season_id') || 'MLS-SEA-0001KA';
+            const teamId   = url.searchParams.get('team_id');
+            if (!teamId) {
+                return new Response(JSON.stringify({ error: 'team_id required' }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+            try {
+                const target = `${MLS_STATS_BASE}/statistics/clubs/competitions/${compId}/seasons/${seasonId}?per_page=50`;
+                const resp = await fetch(target, { headers: MLS_STATS_HEADERS });
+                if (!resp.ok) throw new Error(`stats-api ${resp.status}`);
+                const data = await resp.json();
+                const team = (data.team_statistics || []).find(t => t.team_id === teamId);
+                if (!team) {
+                    return new Response(JSON.stringify({ _hasForm: false, team_id: teamId }),
+                        { headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const payload = {
+                    _hasForm: true,
+                    _source: 'mls-stats-api',
+                    team_id: team.team_id,
+                    team_name: team.team_name,
+                    matches_played: team.matches_played,
+                    xG: team.xG,
+                    xG_efficiency: team.xG_efficiency,
+                    goals: team.goals,
+                    clean_sheets: team.clean_sheets,
+                    possession_ratio: team.possession_ratio,
+                    shots_conversion_rate: team.shots_conversion_rate,
+                    passes_conversion_rate: team.passes_conversion_rate,
+                };
+                return new Response(JSON.stringify(payload), {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': `public, max-age=${MLS_STATS_TTL_STANDINGS}`,
+                        'X-Source': 'mls-stats-api',
+                        ...CORS,
+                    },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ _hasForm: false, _error: e.message }),
+                    { headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+        }
+
         // ── /journalism/* — O(1) Newspaper: pre-rendered prose from KV ──────────
         // ADR-002: KV stores PROSE ONLY. No classification. No interest values.
         // Client reads this instead of calling AI. Falls back gracefully if empty.
@@ -10380,12 +10434,22 @@ export default {
                 'expectedAssists', 'bigChanceCreated', 'bigChanceMissed',
                 'ppda', 'expectedGoalsConceded',
             ]);
-            function extractXG(statsObj) {
+            // Widened 2026-06-30 (soccer-stats-dual-source CC-CMD): the route was
+            // already fetching this payload solely to find xG, and discarding 40+
+            // other real per-game stats. MLS confirmed to have zero xG fields
+            // (event 761644 live-checked) but DOES have these — so MLS previously
+            // got NO soccer context at all via buildSoccerXGContext's _hasXG gate.
+            const MATCH_FIELDS = new Set([
+                'possessionPct', 'totalPasses', 'passPct', 'totalShots',
+                'shotsOnTarget', 'totalTackles', 'interceptions', 'foulsCommitted',
+                'yellowCards', 'redCards', 'totalCrosses', 'wonCorners',
+            ]);
+            function extractStats(statsObj) {
                 if (!statsObj) return {};
                 const out = {};
                 for (const cat of statsObj.splits?.categories || []) {
                     for (const stat of cat.stats || []) {
-                        if (XG_FIELDS.has(stat.name)) {
+                        if (XG_FIELDS.has(stat.name) || MATCH_FIELDS.has(stat.name)) {
                             const v = parseFloat(stat.displayValue);
                             if (!isNaN(v)) out[stat.name] = v;
                         }
@@ -10394,14 +10458,16 @@ export default {
                 return out;
             }
 
-            const homeXG = extractXG(homeStats);
-            const awayXG = extractXG(awayStats);
+            const homeXG = extractStats(homeStats);
+            const awayXG = extractStats(awayStats);
             const hasXG  = 'expectedGoals' in homeXG;
+            const hasMatchStats = 'possessionPct' in homeXG && 'possessionPct' in awayXG;
 
             const payload = {
                 event: eventId,
                 league,
                 _hasXG: hasXG,
+                _hasMatchStats: hasMatchStats,
                 _source: 'espn-core',
                 home: { id: homeId, name: homeName, abbr: homeAbbr, ...homeXG },
                 away: { id: awayId, name: awayName, abbr: awayAbbr, ...awayXG },
