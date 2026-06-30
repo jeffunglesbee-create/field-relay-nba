@@ -234,7 +234,7 @@ jobs:
             echo "Attempt $attempt — Health: $BODY"
             echo "$BODY" | grep -q "RELAY OK" && echo "$BODY" | grep -q "nba" && \
               echo "$BODY" | grep -q "nhl" && echo "$BODY" | grep -q "fpl" && \
-              echo "$BODY" | grep -q "fd" && echo "$BODY" | grep -q "apisports" && \
+              echo "$BODY" | grep -q "fd" && echo "$BODY" | grep -q "squiggle" && \
               { echo "✅ Health OK"; exit 0; }
             [ $attempt -lt 3 ] && { echo "⏳ Retrying in 5s..."; sleep 5; }
           done
