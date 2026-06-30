@@ -9394,20 +9394,28 @@ export default {
             );
         }
 
-        // ── TEMPORARY DIAGNOSTIC PROBE v3 — REMOVE AFTER USE ───────────────────
-        // GET /probe/mls-js?path=/assets/js/whatever.js — raw passthrough to
-        // www.mlssoccer.com static assets, full body, no truncation. Reading
-        // the actual client JS bundle for literal endpoint strings rather than
-        // guessing API paths blind. Delete after the MLS schedule source
-        // decision is made.
-        if (pathname === '/probe/mls-js') {
-            const sub = url.searchParams.get('path') || '';
-            if (!sub.startsWith('/assets/'))
-                return new Response('path must start with /assets/', { status: 400, headers: CORS });
-            const targetUrl = `https://www.mlssoccer.com${sub}`;
+        // ── TEMPORARY DIAGNOSTIC PROBE v4 — REMOVE AFTER USE ───────────────────
+        // GET /probe/mls?host=dapi|stats|sport|www&path=/whatever — raw
+        // passthrough, full body, no truncation. Now testing the exact
+        // matches endpoint reverse-engineered from base.js (d3SportsAPI
+        // client source): matches?culture=en-us&dateFrom=&dateTo=&competition=98
+        // against https://sportapi.mlssoccer.com/api. Delete after the MLS
+        // schedule source decision is made.
+        if (pathname === '/probe/mls') {
+            const hostMap = {
+                dapi:  'https://dapi.mlssoccer.com',
+                stats: 'https://stats-api.mlssoccer.com',
+                sport: 'https://sportapi.mlssoccer.com',
+                www:   'https://www.mlssoccer.com',
+            };
+            const hostKey = url.searchParams.get('host') || 'sport';
+            const base = hostMap[hostKey];
+            const sub  = url.searchParams.get('path') || '/';
+            if (!base) return new Response('host must be dapi|stats|sport|www', { status: 400, headers: CORS });
+            const targetUrl = `${base}${sub}`;
             try {
                 const resp = await fetch(targetUrl, {
-                    headers: { 'Accept': '*/*', 'User-Agent': 'Mozilla/5.0' },
+                    headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'Mozilla/5.0' },
                     signal: AbortSignal.timeout(8000),
                 });
                 return new Response(resp.body, {
