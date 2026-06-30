@@ -336,6 +336,46 @@ async function buildSoccerXGContext(env, game) {
     }
 }
 
+// ── Soccer season-form via stats-api club aggregates ──────────────────────
+// Added 2026-06-30 (soccer-stats-dual-source CC-CMD). Distinct from
+// buildSoccerXGContext: that's per-match, this is season-to-date. Needs
+// game.homeTeamId/awayTeamId in stats-api's MLS-CLU-xxxxxx format — NOT the
+// same ID space as ESPN's numeric competitor ids. If the game object doesn't
+// carry stats-api club IDs, this returns '' silently (do not attempt
+// name-matching here — that's a separate identity-resolver concern, see
+// resolveTeamKey). KNOWN GAP: game.mlsHomeTeamId/mlsAwayTeamId almost
+// certainly don't exist anywhere yet — this returns '' for every game until
+// something (likely identity-resolver.js, mapping team name -> MLS-CLU-xxxxxx)
+// populates them onto the game object. Documented, not solved here — needs
+// its own spec.
+async function buildSoccerSeasonFormContext(env, game) {
+    const sportRaw = (game.sport || '').toLowerCase();
+    if (sportRaw !== 'mls' && sportRaw !== 'major league soccer') return '';
+    const homeId = game.mlsHomeTeamId || game.homeStatsApiId;
+    const awayId = game.mlsAwayTeamId || game.awayStatsApiId;
+    if (!homeId || !awayId) return '';
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    try {
+        const [hResp, aResp] = await Promise.all([
+            fetch(`${base}/soccer/season-form?team_id=${encodeURIComponent(homeId)}`),
+            fetch(`${base}/soccer/season-form?team_id=${encodeURIComponent(awayId)}`),
+        ]);
+        if (!hResp.ok || !aResp.ok) return '';
+        const h = await hResp.json(), a = await aResp.json();
+        if (!h._hasForm || !a._hasForm) return '';
+        const lines = ['', '[SOCCER SEASON FORM]'];
+        lines.push(
+            `${h.team_name} season: ${h.matches_played}MP, xG ${h.xG?.toFixed?.(1) ?? h.xG}, ` +
+            `${(h.possession_ratio * 100).toFixed(0)}% poss avg`
+        );
+        lines.push(
+            `${a.team_name} season: ${a.matches_played}MP, xG ${a.xG?.toFixed?.(1) ?? a.xG}, ` +
+            `${(a.possession_ratio * 100).toFixed(0)}% poss avg`
+        );
+        return lines.join('\n');
+    } catch (_) { return ''; }
+}
+
 // ── Odds story builder ──────────────────────────────────────────────────
 // Looks up today's archive row for THIS game (matched by resolved team
 // keys, same pattern as snapshotCronOdds at index.js:4001) and returns a
@@ -847,6 +887,8 @@ const CONTEXT_SOURCES = [
     { id: 'nba_clutch',   priority: 7, budget: 120, builder: buildNBAClutchContext,     sports: ['nba'] },
     { id: 'soccer_xg',    priority: 7, budget: 150, builder: buildSoccerXGContext,
       sports: ['epl', 'mls', 'ucl', 'wc26', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'soccer'] },
+    { id: 'soccer_season_form', priority: 8, budget: 100, builder: buildSoccerSeasonFormContext,
+      sports: ['mls'] },
     // BSD momentum: minute-by-minute pressure index. Requires game.bsdEventId.
     // Provides the "when the game shifted" signal ESPN lacks.
     { id: 'bsd_momentum', priority: 8, budget: 120, builder: buildBSDMomentumContext,
@@ -953,6 +995,7 @@ export {
     buildNHLSeriesContext,
     buildNBAClutchContext,
     buildSoccerXGContext,
+    buildSoccerSeasonFormContext,
     buildESPNSummaryContext,
     buildBSDMomentumContext,
     buildBSDHistoryContext,
