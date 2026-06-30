@@ -413,12 +413,13 @@ export class GameDO {
         }
     }
 
-    // Fetch from API-Sports primary; fallback to ESPN if API-Sports returns nothing.
-    // ADR-002: API-Sports is the GREEN+contract source. ESPN is fallback only
-    //          during the migration window; remove fallback after ESPN cutover.
+    // Self-calls the relay's own /v2/games route (ESPN/NBA-CDN/NHLE-sourced
+    // since the June 26 2026 migration — no longer api-sports.io). If the
+    // game isn't found in that response, the DO skips the cycle silently;
+    // the browser's existing polling fallback path covers the gap.
     async _fetchFacts() {
         const v2Sport = SPORT_TO_V2[this.sport];
-        // ─ Try API-Sports (primary) ─
+        // ─ /v2/games self-call (ESPN/NBA-CDN/NHLE-sourced) ─
         if (v2Sport) {
             try {
                 const today = new Date().toISOString().slice(0, 10);
@@ -451,18 +452,16 @@ export class GameDO {
                             venue:      match?.venue || null,
                             league:     match?.league || null,
                             round:      match?.round || null,
-                            source:     'apisports',
+                            source:     'v2',
                             ts:         Date.now(),
                         };
                     }
                 }
-            } catch(_) { /* fall through to ESPN */ }
+            } catch(_) { /* fall through */ }
         }
-        // ─ ESPN fallback (transitional — ADR-002 deprecation window) ─
-        // Intentionally not implemented as a deep fallback here: the worker has
-        // ESPN scoreboard routes already; if API-Sports misses this game, the
-        // browser's existing polling fallback path handles it (dual-mode design).
-        // Returning null here causes the DO to skip this cycle silently.
+        // No match found in the /v2/games response for this gameId.
+        // Returning null here causes the DO to skip this cycle silently;
+        // the browser's existing polling fallback path covers the gap.
         return null;
     }
 
