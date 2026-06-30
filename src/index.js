@@ -9645,7 +9645,14 @@ export default {
         // journalism prompt, without calling the LLM. Use for adapter verification.
         if (pathname === '/journalism/context-probe' && request.method === 'GET') {
           const { assembleContext } = await import('./context-assembler.js');
-          const espnDate = new Date().toISOString().slice(0,10).replace(/-/g,'');
+          // Optional ?date=YYYY-MM-DD override — added 2026-06-30 so this debug
+          // tool can verify context builders against a known past date when a
+          // sport has no live game today (e.g. MLS during its World Cup pause,
+          // May 24 - Jul 22). Defaults to today, unchanged, when omitted.
+          const _probeDateParam = url.searchParams.get('date');
+          const espnDate = _probeDateParam
+            ? _probeDateParam.replace(/-/g,'')
+            : new Date().toISOString().slice(0,10).replace(/-/g,'');
           const LEAGUES = [
             {sport:'baseball', league:'mlb', label:'MLB'},
             {sport:'basketball', league:'nba', label:'NBA'},
