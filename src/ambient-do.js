@@ -49,10 +49,10 @@
 
 // POLL_LIVE_MS: 15s during live games.
 // With CF edge caching (cacheEverything:true, cacheKey:url) on /v2/games,
-// api-sports is called at most once per 30s per sport (the cache TTL).
-// More frequent DO polls hit the CF cache — zero extra api-sports quota cost.
-// Result: AmbientDO detects score changes within 15s of api-sports updating,
-// while api-sports quota is capped at 2/min × sports (not O(poll frequency)).
+// the upstream source (ESPN/NBA-CDN/NHLE as of the June 26 2026 migration)
+// is hit at most once per 30s per sport (the cache TTL). More frequent DO
+// polls hit the CF cache — zero extra upstream quota cost. Result:
+// AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds } from './budget-helpers.js';
 
@@ -101,7 +101,7 @@ const AMBIENT_SPORTS = [
 ];
 
 // Active sports filter: only poll sports whose season is likely active.
-// Avoids burning api-sports quota on NFL in June, etc.
+// Avoids unnecessary /v2/games calls for off-season sports (e.g. NFL in June).
 // Keyed by sport → [activeMonths] (0=Jan…11=Dec)
 const SPORT_ACTIVE_MONTHS = {
     'nba':        [0,1,2,3,4,5,6],           // Oct–Jun
@@ -292,7 +292,12 @@ export class AmbientDO {
 
     // ── Core poll: fetch all active sports, detect deltas, broadcast ─────
     async _poll() {
-        if (!this.env.APISPORTS_KEY) return;
+        // APISPORTS_KEY guard REMOVED 2026-06-30 — _fetchSport() below calls
+        // the relay's own /v2/games route (self-call, ESPN/CDN/NHLE-sourced
+        // since the June 26 2026 migration), not api-sports.io directly, so
+        // this poll never actually needed the key. Leaving the guard in
+        // place would have silently killed the entire ambient SSE stream
+        // the moment APISPORTS_KEY was deleted from CF secrets.
 
         // Lazy restore from DO storage on first run
         if (!this._restored) {
