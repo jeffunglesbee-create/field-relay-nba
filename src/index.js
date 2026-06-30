@@ -1325,7 +1325,7 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         away:        { name: away.team?.displayName || '', abbr: away.team?.abbreviation || '', score: awayScore },
         clock:       displayClock,
         venue:       typeof comp.venue === 'object' ? (comp.venue?.fullName || '') : '',
-        round:       '',
+        round:       comp.notes?.[0]?.headline || comp.notes?.[0]?.text || '',
         situation,
         matchEvents,
     };
@@ -3073,6 +3073,31 @@ async function handleV2Games(url, env, ctx) {
                     }
                 }
             } catch (_) {}
+        }
+
+        // ── Two-legged aggregate enrichment — only for likely second legs ─────────
+        // Cheap pre-filter on the free `round` string avoids fetching /soccer/xg
+        // (one extra /summary per game) for the ~95% of soccer games that aren't
+        // part of a multi-leg tie. False negatives mean no aggregate badge —
+        // degrades silently, never blocks the card.
+        if (cfg.espnSport !== 'baseball' && !['basketball', 'australian-football'].includes(cfg.espnSport)) {
+            const secondLegGames = games.filter(g =>
+                /2nd leg|second leg/i.test(g.round || '')
+            );
+            if (secondLegGames.length) {
+                const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+                await Promise.all(secondLegGames.map(async g => {
+                    try {
+                        const eid = (g.espnEventId || '').toString();
+                        const resp = await fetch(
+                            `${relayBase}/soccer/xg?league=${encodeURIComponent(cfg.espnLeague)}&event=${encodeURIComponent(eid)}`
+                        );
+                        if (!resp.ok) return;
+                        const d = await resp.json();
+                        if (d?._series) g.series = d._series;
+                    } catch (_) { /* non-blocking */ }
+                }));
+            }
         }
 
         const wcLambdas = await getWCPregameLambdas(env);
@@ -10397,6 +10422,7 @@ export default {
             const compBase = `${CORE}/leagues/${league}/events/${eventId}/competitions/${eventId}`;
 
             let homeId, awayId, homeName, awayName, homeAbbr, awayAbbr;
+            let seriesPayload = null;
             try {
                 // site.api.espn.com/summary returns inline displayName + abbreviation
                 // alongside competitor IDs. The core API /competitors endpoint returns
@@ -10420,6 +10446,20 @@ export default {
                     }
                 }
                 if (!homeId || !awayId) throw new Error('could not resolve competitors');
+                const seriesData = summaryData?.header?.competitions?.[0]?.series?.[0] || null;
+                if (seriesData) {
+                    const homeAgg = seriesData.competitors?.find(c => c.id === homeId)?.aggregateScore;
+                    const awayAgg = seriesData.competitors?.find(c => c.id === awayId)?.aggregateScore;
+                    seriesPayload = {
+                        title:          seriesData.title || null,
+                        leg:            seriesData.leg ?? null,
+                        totalLegs:      seriesData.totalCompetitions ?? null,
+                        completed:      seriesData.completed ?? null,
+                        homeAggregate:  homeAgg ?? null,
+                        awayAggregate:  awayAgg ?? null,
+                        otherLegEventId: (seriesData.events || []).find(e => e.id !== eventId)?.id || null,
+                    };
+                }
             } catch (e) {
                 return new Response(
                     JSON.stringify({ event: eventId, league, _hasXG: false, _error: e.message }),
@@ -10476,6 +10516,7 @@ export default {
                 _hasXG: hasXG,
                 _hasMatchStats: hasMatchStats,
                 _source: 'espn-core',
+                _series: seriesPayload,
                 home: { id: homeId, name: homeName, abbr: homeAbbr, ...homeXG },
                 away: { id: awayId, name: awayName, abbr: awayAbbr, ...awayXG },
             };
