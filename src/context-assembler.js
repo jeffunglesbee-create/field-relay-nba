@@ -304,7 +304,14 @@ async function buildSoccerXGContext(env, game) {
         const resp = await fetch(`${base}/soccer/xg?league=${encodeURIComponent(league)}&event=${encodeURIComponent(eventId)}`);
         if (!resp.ok) return '';
         const d = await resp.json();
-        if (!d?._hasXG) return '';
+        // Gate widened 2026-06-30: dual-source CC-CMD Task 1 widened the RELAY
+        // ROUTE to return _hasMatchStats alongside _hasXG, but this consumer's
+        // gate was never updated to match — MLS (and any league without xG)
+        // still got '' here despite the route having real data. Confirmed via
+        // live check before this fix: _hasXG false, _hasMatchStats true, this
+        // function still returned ''. Closing the gap the dual-source CC-CMD's
+        // own background section described as the goal but didn't finish.
+        if (!d?._hasXG && !d?._hasMatchStats) return '';
         const h = d.home, a = d.away;
         const lines = ['', '[SOCCER XG CONTEXT]'];
         const f2 = (v) => (v != null && Number.isFinite(v)) ? v.toFixed(2) : null;
@@ -329,6 +336,31 @@ async function buildSoccerXGContext(env, game) {
                 `Big chances: ${h.name} created ${h.bigChanceCreated} missed ${h.bigChanceMissed ?? '-'} ` +
                 `— ${a.name} created ${a.bigChanceCreated} missed ${a.bigChanceMissed ?? '-'}`
             );
+        }
+        // Match-stat fallback — fires when xG-specific fields above produced
+        // nothing (MLS and any other league without xG) but the route's
+        // MATCH_FIELDS extraction (dual-source Task 1) has real data.
+        if (lines.length <= 2 && h.possessionPct != null && a.possessionPct != null) {
+            lines.push(
+                `Possession: ${h.name} ${h.possessionPct}% — ${a.name} ${a.possessionPct}%`
+            );
+            if (h.totalShots != null && a.totalShots != null) {
+                lines.push(
+                    `Shots: ${h.name} ${h.totalShots}${h.shotsOnTarget != null ? ` (${h.shotsOnTarget} on target)` : ''} ` +
+                    `— ${a.name} ${a.totalShots}${a.shotsOnTarget != null ? ` (${a.shotsOnTarget} on target)` : ''}`
+                );
+            }
+            if (h.totalPasses != null && a.totalPasses != null) {
+                const hpct = h.passPct != null ? ` (${(h.passPct * 100).toFixed(0)}%)` : '';
+                const apct = a.passPct != null ? ` (${(a.passPct * 100).toFixed(0)}%)` : '';
+                lines.push(`Passes: ${h.name} ${h.totalPasses}${hpct} — ${a.name} ${a.totalPasses}${apct}`);
+            }
+            if ((h.yellowCards || h.redCards || a.yellowCards || a.redCards)) {
+                lines.push(
+                    `Cards: ${h.name} ${h.yellowCards ?? 0}Y${h.redCards ? `/${h.redCards}R` : ''} ` +
+                    `— ${a.name} ${a.yellowCards ?? 0}Y${a.redCards ? `/${a.redCards}R` : ''}`
+                );
+            }
         }
         return lines.length > 2 ? lines.join('\n') : '';
     } catch (_) {
