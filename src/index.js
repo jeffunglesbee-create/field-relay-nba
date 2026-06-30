@@ -9394,6 +9394,31 @@ export default {
             );
         }
 
+        // ── TEMPORARY DIAGNOSTIC PROBE v3 — REMOVE AFTER USE ───────────────────
+        // GET /probe/mls-js?path=/assets/js/whatever.js — raw passthrough to
+        // www.mlssoccer.com static assets, full body, no truncation. Reading
+        // the actual client JS bundle for literal endpoint strings rather than
+        // guessing API paths blind. Delete after the MLS schedule source
+        // decision is made.
+        if (pathname === '/probe/mls-js') {
+            const sub = url.searchParams.get('path') || '';
+            if (!sub.startsWith('/assets/'))
+                return new Response('path must start with /assets/', { status: 400, headers: CORS });
+            const targetUrl = `https://www.mlssoccer.com${sub}`;
+            try {
+                const resp = await fetch(targetUrl, {
+                    headers: { 'Accept': '*/*', 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(8000),
+                });
+                return new Response(resp.body, {
+                    status: resp.status,
+                    headers: { ...CORS, 'Content-Type': resp.headers.get('content-type') || 'text/plain' },
+                });
+            } catch (e) {
+                return new Response(`probe error: ${e.message}`, { status: 502, headers: CORS });
+            }
+        }
+
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
         if (pathname.startsWith('/squiggle')) {
