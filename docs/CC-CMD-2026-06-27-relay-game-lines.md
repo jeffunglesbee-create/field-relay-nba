@@ -97,8 +97,14 @@ if (pathname === '/journalism/game-lines') {
         // Extract first complete sentence
         const first = String(text).split(/\.\s+/)[0].trim();
         if (first.length < 20) return;
-        // Key format: brief:game:{espnEventId} — strip prefix
-        const espnId = name.replace('brief:game:', '');
+        // Key format is brief:game:{sport}:{id} OR brief:game:{id} — confirmed
+        // 2026-06-30 against sweepKVBriefs (~line 4239), which is the only
+        // other consumer of this prefix. A bare .replace() would leave the
+        // sport prefix attached for sport-tagged keys, breaking the client's
+        // lookup (it matches on bare espnEventId). Mirror sweepKVBriefs's
+        // parsing exactly so both consumers agree on the same id.
+        const parts = name.replace('brief:game:', '').split(':');
+        const espnId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
         lines[espnId] = first.endsWith('.') ? first : first + '.';
       } catch (_) {}
     }));
