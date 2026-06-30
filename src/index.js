@@ -9394,6 +9394,46 @@ export default {
             );
         }
 
+        // ── TEMPORARY DIAGNOSTIC PROBE v2 — REMOVE AFTER USE ───────────────────
+        // GET /probe/mls?host=dapi|stats|sport&path=/whatever
+        // Three hosts found embedded in mlssoccer.com's site-config (page
+        // source, captured 2026-06-30): dapi.mlssoccer.com, stats-api.mlssoccer.com,
+        // sportapi.mlssoccer.com. Testing real candidate paths built from the
+        // same config (mlsDefaultCompetitionId: MLS-COM-000001, currentSeasonSportecId:
+        // MLS-SEA-0001KA, matchHubDir: competitions). Delete after the MLS
+        // schedule source decision is made.
+        if (pathname === '/probe/mls') {
+            const hostMap = {
+                dapi:  'https://dapi.mlssoccer.com',
+                stats: 'https://stats-api.mlssoccer.com',
+                sport: 'https://sportapi.mlssoccer.com',
+            };
+            const hostKey = url.searchParams.get('host') || 'dapi';
+            const base = hostMap[hostKey];
+            const sub  = url.searchParams.get('path') || '/';
+            if (!base) return new Response('host must be dapi|stats|sport', { status: 400, headers: CORS });
+            if (!sub.startsWith('/'))
+                return new Response('path must start with /', { status: 400, headers: CORS });
+            const targetUrl = `${base}${sub}`;
+            try {
+                const resp = await fetch(targetUrl, {
+                    headers: { 'Accept': 'application/json, text/plain, */*', 'User-Agent': 'Mozilla/5.0' },
+                    signal: AbortSignal.timeout(6000),
+                });
+                const bodyText = await resp.text();
+                return new Response(JSON.stringify({
+                    targetUrl,
+                    status: resp.status,
+                    contentType: resp.headers.get('content-type'),
+                    bodyPreview: bodyText.slice(0, 1500),
+                    bodyLength: bodyText.length,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ targetUrl, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /squiggle → api.squiggle.com.au (CORS bypass + shared edge cache)
         // Free, no key. All data via ?q= query params. Validate q= present.
         if (pathname.startsWith('/squiggle')) {
