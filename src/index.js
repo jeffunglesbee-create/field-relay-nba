@@ -5606,6 +5606,7 @@ async function handleJournalismCycle(env, opts = {}) {
               homeScore: home?.score ?? null,
               awayScore: away?.score ?? null,
               isFinal: comp?.status?.type?.completed === true,
+              startTime: comp?.date || null,
               venue: comp?.venue?.fullName || '',
               eventId: String(ev.id || ''),
               espnLeague: league,  // slug e.g. "fifa.world" — used by soccer_xg builder
@@ -5649,6 +5650,7 @@ async function handleJournalismCycle(env, opts = {}) {
             home_score: gm.homeScore,
             away_score: gm.awayScore,
             venue: gm.venue,
+            start_time: gm.startTime || null,
             source_id: gm.eventId,
           }),
         }).catch(() => {});
@@ -7719,7 +7721,7 @@ export default {
                 const {
                     sport, league, date, home, away, home_score, away_score,
                     venue, streams, note, crew, series_key, series_record,
-                    game_number, round, importance, source_id,
+                    game_number, round, importance, source_id, start_time,
                 } = body || {};
                 if (!sport || !date) {
                     return new Response(JSON.stringify({ ok: false, error: 'missing required fields (sport, date)' }),
@@ -7841,6 +7843,40 @@ export default {
                         }
                     }
                 } catch (_) { /* brief capture failure never breaks /archive/game */ }
+
+                // ── Closing-odds capture ──────────────────────────────────
+                // Fire-and-forget enrichment; never affects core response.
+                // start_time gate confirms this is a final game with real timing.
+                // Never overwrites an existing closing_odds value.
+                try {
+                    if (start_time && env.ARCHIVE_DB && env.FIELD_JOURNALISM) {
+                        const oddsSportKey = archiveSportToOddsKey(sport);
+                        if (oddsSportKey) {
+                            const oddsTable = series_key ? 'postseason_games' : 'regular_season_games';
+                            const rowCheck = await env.ARCHIVE_DB.prepare(
+                                `SELECT closing_odds FROM ${oddsTable} WHERE id = ?`
+                            ).bind(id).first().catch(() => null);
+                            if (!rowCheck?.closing_odds) {
+                                const { games, ok: oddsOk } = await fetchSportOddsHistorical(env, oddsSportKey, date);
+                                if (oddsOk && games.length) {
+                                    const byPair = new Map();
+                                    for (const g of games) {
+                                        byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
+                                    }
+                                    const matched = byPair.get(`${resolveTeamKey(home)}|${resolveTeamKey(away)}`);
+                                    if (matched) {
+                                        const odds = extractOddsForGame(matched);
+                                        if (odds) {
+                                            await env.ARCHIVE_DB.prepare(
+                                                `UPDATE ${oddsTable} SET closing_odds = ? WHERE id = ?`
+                                            ).bind(JSON.stringify(odds), id).run();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (_) { /* closing-odds capture never breaks core response */ }
 
                 return new Response(JSON.stringify({
                     ok: true,
