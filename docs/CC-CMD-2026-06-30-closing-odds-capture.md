@@ -36,6 +36,35 @@ specific historical ISO timestamp. That is the correct mechanism here: at
 game-final time, fetch historical odds pinned to the game's actual kickoff
 timestamp — not a "live" fetch, which would be post-game and meaningless.
 
+## PRIOR ART — DO NOT TOUCH
+
+The AVV Odds API adapter proof (2026-06-29/30 session) needed real D1 data
+to build a fixture (`docs/adapter-fixtures-odds-story-wnba.json` in
+jubilant-bassoon) and manually backfilled `closing_odds` for exactly one
+game via a direct D1 write:
+
+```
+game_id: wnba_2026-06-28_goldenstat_newyorklib
+change_log source: "odds_backfill"  (ts 2026-06-29 14:12:31)
+```
+
+This label does NOT correspond to any function or route in committed
+source — grepped, confirmed absent. It was a one-off manual UPDATE, not a
+pipeline. The AVV proof itself is legitimate and does not need to be
+touched: it proves `computeOddsStory()` + context-assembler injection
+produce correct output *given* real opening+closing odds. It does not
+prove — and was never meant to prove — that closing odds get captured for
+any other game. Live data confirms this: of 18 other games on 2026-06-28
+with `opening_odds` present, zero have `closing_odds`. Same pattern across
+every other date sampled (6/23, 6/29, 6/30) — this one row is the only
+non-null `closing_odds` in the entire archive.
+
+Task 3's "skip if row already has closing_odds" guard will naturally leave
+this row alone — no special-casing needed, just don't be surprised by it
+during verification (it will already show `hasClosing:true` before this
+CC-CMD's changes are even deployed; that is expected and is not evidence
+the new capture path is working).
+
 ## PRE-BUILD PROBE (read every symbol below from HEAD before writing anything — Rule 87)
 
 ```bash
@@ -107,8 +136,10 @@ INSERT/UPDATE for home_score/away_score/etc succeeds:
 
 ## TASK 4: Verification (explicit, verifiable — not inferred)
 
-Before state (should still show `hasClosing:false` everywhere, matching
-the pre-deploy probe already on record):
+Before state (use a date OTHER than 2026-06-28, which already has one
+pre-seeded row per the Prior Art note above — that row is not a valid
+signal for this test). Should show `hasClosing:false` everywhere, matching
+the pre-deploy probe already on record:
 
 ```bash
 curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/odds-story/preview?date=<today's date>"
