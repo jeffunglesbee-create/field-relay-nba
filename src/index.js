@@ -5661,6 +5661,47 @@ async function handleJournalismCycle(env, opts = {}) {
       console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
     }
 
+    // ── Pre-game slate seed: insert skeleton rows for today's upcoming games ──
+    // Enables opening_odds to attach — snapshotCronOdds only writes to rows
+    // that already exist. Uses already-fetched gameMeta; no additional fetch.
+    // Skips any row that already exists (any state) to avoid per-tick no-ops.
+    // home_score/away_score intentionally omitted so COALESCE in /archive/game
+    // inserts null ("not yet played"), not 0.
+    let _seededCount = 0;
+    try {
+      const seedRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+      for (const gm of gameMeta) {
+        if (!gm.eventId) continue;
+        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
+        if (!shortId) continue;
+        const existing = await env.ARCHIVE_DB.prepare(
+          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+           UNION ALL
+           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           LIMIT 1`
+        ).bind(shortId, shortId).first().catch(() => null);
+        if (existing) continue;
+        await fetch(seedRelayBase + '/archive/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            league: gm.league,
+            date: dateKey,
+            home: gm.home,
+            away: gm.away,
+            venue: gm.venue,
+            start_time: gm.startTime || null,
+            source_id: gm.eventId,
+          }),
+        }).catch(() => {});
+        _seededCount++;
+      }
+    } catch (_) { /* seeding failure never breaks journalism */ }
+    if (_seededCount > 0) {
+      console.log(`[ARCHIVE-SEED] ${_seededCount} pre-game rows seeded`);
+    }
+
     // ── Yesterday catch-up: archive gap-fill for UTC-boundary-crossing games ──
     // Evening US games (MLB, WNBA, etc.) start 22:00–02:00 UTC and finish
     // after UTC midnight — outside the current-date scoreboard window. This
