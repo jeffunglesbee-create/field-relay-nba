@@ -4248,6 +4248,21 @@ async function sweepKVBriefs(env) {
         ).bind(gameId).first().catch(() => null);
         if (existing) continue;
       }
+      if (!qualityScore) {
+        try {
+          let gameCtx = null;
+          if (gameId) {
+            const gameRow = await env.ARCHIVE_DB.prepare(
+              `SELECT home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+            ).bind(gameId).first().catch(() => null) ||
+            await env.ARCHIVE_DB.prepare(
+              `SELECT home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
+            ).bind(gameId).first().catch(() => null);
+            if (gameRow) gameCtx = { home: gameRow.home, away: gameRow.away, homeScore: gameRow.home_score, awayScore: gameRow.away_score };
+          }
+          qualityScore = await jqScoreProse(briefText, { sport, game: gameCtx });
+        } catch (_) {}
+      }
       const sweepDate = new Date().toISOString().slice(0, 10);
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
@@ -7942,14 +7957,21 @@ export default {
                             // brief:game:* KV key shape.
                             const briefType = (home_score !== null && home_score !== undefined) ? 'game_recap' : 'narrative_context';
                             const briefId = `${briefType}_${sportKey}_${sid}`;
+                            let kvCaptureScore = null;
+                            try {
+                                kvCaptureScore = await jqScoreProse(briefText, {
+                                    sport: sportKey,
+                                    game: { home, away, homeScore: home_score, awayScore: away_score },
+                                });
+                            } catch (_) {}
                             await env.ARCHIVE_DB.prepare(
                                 `INSERT INTO briefs
-                                   (id, date, brief_type, sport, game_id, brief_text, source, word_count)
-                                 VALUES (?, ?, ?, ?, ?, ?, 'kv_capture', ?)
+                                   (id, date, brief_type, sport, game_id, brief_text, quality_score, source, word_count)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, 'kv_capture', ?)
                                  ON CONFLICT(id) DO NOTHING`
                             ).bind(
                                 briefId, date, briefType, sportKey, sid, briefText,
-                                briefText.split(/\s+/).length
+                                kvCaptureScore, briefText.split(/\s+/).length
                             ).run();
                             briefCaptured = briefId;
                         }
@@ -8932,6 +8954,67 @@ export default {
             return new Response(JSON.stringify({ ok: true, daily, monthly }),
                 { headers: { ...CORS, 'Content-Type': 'application/json',
                              'Cache-Control': 'public, max-age=30' } });
+        }
+
+        // GET /quality/backfill-scores — score existing NULL-quality kv_sweep/kv_capture briefs.
+        // ?dry=true preview, ?limit=N (default 10, capped at 50), ?date=YYYY-MM-DD
+        if (pathname === '/quality/backfill-scores' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const bfDateFilter = url.searchParams.get('date') || null;
+            const bfLimit = Math.min(parseInt(url.searchParams.get('limit') || '10', 10) || 10, 50);
+            const bfDry = url.searchParams.get('dry') === 'true';
+            try {
+                await ensureBriefsTable(env);
+                const bfDateClause = bfDateFilter ? 'AND date = ?' : '';
+                const bfBinds = bfDateFilter ? [bfDateFilter, bfLimit] : [bfLimit];
+                const bfRows = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, game_id, brief_text FROM briefs
+                     WHERE quality_score IS NULL AND source IN ('kv_sweep','kv_capture')
+                     ${bfDateClause}
+                     ORDER BY created_at DESC LIMIT ?`
+                ).bind(...bfBinds).all();
+                const toScore = bfRows.results || [];
+                if (bfDry) {
+                    return new Response(JSON.stringify({
+                        ok: true, dry_run: true,
+                        unscored: toScore.length,
+                        results: toScore.map(r => ({ id: r.id, sport: r.sport, game_id: r.game_id, old: null, new: null })),
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                let bfScored = 0, bfSkipped = 0;
+                const bfResults = [];
+                for (const row of toScore) {
+                    try {
+                        let gameCtx = null;
+                        if (row.game_id) {
+                            const gameRow = await env.ARCHIVE_DB.prepare(
+                                `SELECT home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+                            ).bind(row.game_id).first().catch(() => null) ||
+                            await env.ARCHIVE_DB.prepare(
+                                `SELECT home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
+                            ).bind(row.game_id).first().catch(() => null);
+                            if (gameRow) gameCtx = { home: gameRow.home, away: gameRow.away, homeScore: gameRow.home_score, awayScore: gameRow.away_score };
+                        }
+                        const score = await jqScoreProse(row.brief_text, { sport: row.sport, game: gameCtx });
+                        await env.ARCHIVE_DB.prepare(
+                            `UPDATE briefs SET quality_score = ? WHERE id = ?`
+                        ).bind(score, row.id).run();
+                        bfResults.push({ id: row.id, old: null, new: score });
+                        bfScored++;
+                    } catch (_) {
+                        bfResults.push({ id: row.id, old: null, new: null, error: 'score_failed' });
+                        bfSkipped++;
+                    }
+                }
+                return new Response(JSON.stringify({ ok: true, scored: bfScored, skipped: bfSkipped, results: bfResults }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
         }
 
         // GET /quality/report — quality-score rollup over N days for the
