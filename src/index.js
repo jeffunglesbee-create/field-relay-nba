@@ -4211,6 +4211,18 @@ async function ensureBriefsTable(env) {
   _briefsReady = true;
 }
 
+let _codexStatusReady = false;
+async function ensureCodexStatusColumn(env) {
+  if (_codexStatusReady) return;
+  if (!env.ARCHIVE_DB) return;
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE codex ADD COLUMN status TEXT DEFAULT 'open'`
+    ).run();
+  } catch (_) { /* column already exists — expected on every run after the first */ }
+  _codexStatusReady = true;
+}
+
 // KV → D1 sweep for per-game briefs. Lists `brief:game:*` keys in
 // FIELD_JOURNALISM, parses the JSON payload (or treats the value as raw
 // prose), and INSERTs into the briefs table with source='kv_sweep'.
@@ -11339,7 +11351,7 @@ export default {
                     // ── L4: Codex (persistent operational knowledge) ──
                     {
                         name: 'codex_write',
-                        description: 'Upsert one codex entry in D1 (ARCHIVE_DB). Key is required and unique; existing entries are updated and updated_at is bumped. drive_refs is optional comma-separated Drive file IDs for L1.5 cross-reference.',
+                        description: 'Upsert one codex entry in D1 (ARCHIVE_DB). Key is required and unique; existing entries are updated and updated_at is bumped. drive_refs is optional comma-separated Drive file IDs for L1.5 cross-reference. status is optional (default "open"); set to "resolved" to remove an incident from session_health open_incidents.',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -11348,6 +11360,7 @@ export default {
                                 title: { type: 'string', description: 'Short human-readable title' },
                                 content: { type: 'string', description: 'Full body (markdown allowed)' },
                                 drive_refs: { type: 'string', description: 'Optional comma-separated Drive file IDs' },
+                                status: { type: 'string', description: 'Optional status flag. "open" (default) or "resolved". Omitting preserves existing status on update.' },
                             },
                             required: ['key', 'category', 'title', 'content'],
                         },
@@ -11573,9 +11586,10 @@ export default {
                         } catch(_) { out.analytics_phases = 'unavailable'; }
 
                         try {
+                            await ensureCodexStatusColumn(env);
                             const cf = await env.ARCHIVE_DB.prepare(`
                                 SELECT key, title FROM codex
-                                WHERE category = 'incident'
+                                WHERE category = 'incident' AND (status IS NULL OR status != 'resolved')
                                 ORDER BY updated_at DESC LIMIT 15
                             `).all();
                             out.open_incidents = (cf.results || []).map(r => r.title);
@@ -12105,22 +12119,24 @@ export default {
                 // authorizes binding-name substitution from FIELD_DB).
                 if (toolName === 'codex_write') {
                     if (!env.ARCHIVE_DB) return respond(jsonrpc2({content:[{type:'text',text:'ARCHIVE_DB not bound on worker'}], isError:true}));
-                    const { key, category, title, content, drive_refs } = toolArgs;
+                    const { key, category, title, content, drive_refs, status } = toolArgs;
                     if (typeof key !== 'string' || typeof category !== 'string' || typeof title !== 'string' || typeof content !== 'string') {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: key, category, title, content (all strings)'}], isError:true}));
                     }
                     try {
+                        await ensureCodexStatusColumn(env);
                         await env.ARCHIVE_DB.prepare(`
-                            INSERT INTO codex (key, category, title, content, drive_refs, updated_at)
-                            VALUES (?, ?, ?, ?, ?, datetime('now'))
+                            INSERT INTO codex (key, category, title, content, drive_refs, status, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                             ON CONFLICT(key) DO UPDATE SET
                                 category = excluded.category,
                                 title    = excluded.title,
                                 content  = excluded.content,
                                 drive_refs = excluded.drive_refs,
+                                status   = COALESCE(?, status),
                                 updated_at = datetime('now')
-                        `).bind(key, category, title, content, drive_refs || null).run();
-                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:true, key, category, title})}]}));
+                        `).bind(key, category, title, content, drive_refs || null, status || 'open', status || null).run();
+                        return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:true, key, category, title, status: status || 'open'})}]}));
                     } catch (e) {
                         return respond(jsonrpc2({content:[{type:'text',text:`codex_write failed: ${e.message}`}], isError:true}));
                     }
