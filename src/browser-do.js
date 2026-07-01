@@ -61,7 +61,15 @@ export class BrowserDO {
 
   async _ensureBrowser() {
     if (!this.browser || !this.browser.isConnected()) {
-      this.browser = await puppeteer.launch(this.env.BROWSER, { protocolTimeout: 60000 });
+      let browser = null;
+      try {
+        const sessions = await puppeteer.sessions(this.env.BROWSER);
+        const idle = sessions.filter(s => !s.connectionId);
+        if (idle.length > 0) {
+          try { browser = await puppeteer.connect(this.env.BROWSER, idle[0].sessionId); } catch {}
+        }
+      } catch {}
+      this.browser = browser || await puppeteer.launch(this.env.BROWSER, { protocolTimeout: 60000 });
       this.page    = await this.browser.newPage();
       await this.page.setViewport({ width: 1280, height: 800 });
       this.createdAt   = Date.now();
@@ -235,7 +243,7 @@ export class BrowserDO {
 
   async _close() {
     try {
-      if (this.browser) await this.browser.close();
+      if (this.browser) await this.browser.disconnect();
     } catch { /* ignore */ }
     this.browser = null;
     this.page    = null;
