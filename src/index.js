@@ -5661,6 +5661,77 @@ async function handleJournalismCycle(env, opts = {}) {
       console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
     }
 
+    // ── Yesterday catch-up: archive gap-fill for UTC-boundary-crossing games ──
+    // Evening US games (MLB, WNBA, etc.) start 22:00–02:00 UTC and finish
+    // after UTC midnight — outside the current-date scoreboard window. This
+    // isolated block fetches yesterday's ESPN scoreboard, finds finals that
+    // weren't archived, and POSTs them to /archive/game.
+    // NEVER feeds gameLines/gameMeta — those stay single-date (EPL-phantom fix).
+    try {
+      const yesterdayKey = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const yesterdayEspnDate = yesterdayKey.replace(/-/g, '');
+      const ydayRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+      const yesterdayFinals = [];
+      for (const {sport, league, label} of LEAGUES) {
+        try {
+          const yr = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${yesterdayEspnDate}`);
+          if (!yr.ok) continue;
+          const yd = await yr.json();
+          for (const ev of (yd?.events || [])) {
+            const comp = ev.competitions?.[0];
+            if (comp?.status?.type?.completed !== true) continue;
+            const teams = comp?.competitors || [];
+            const home = teams.find(t => t.homeAway === 'home') || teams[0];
+            const away = teams.find(t => t.homeAway === 'away') || teams[1];
+            yesterdayFinals.push({
+              sport,
+              league: label,
+              home: home?.team?.shortDisplayName || home?.team?.displayName || '',
+              away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+              homeScore: home?.score ?? null,
+              awayScore: away?.score ?? null,
+              startTime: comp?.date || null,
+              venue: comp?.venue?.fullName || '',
+              eventId: String(ev.id || ''),
+            });
+          }
+        } catch (_) {}
+      }
+      let _ydayFilled = 0;
+      for (const gm of yesterdayFinals) {
+        if (!gm.eventId) continue;
+        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
+        if (!shortId) continue;
+        const existing = await env.ARCHIVE_DB.prepare(
+          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+           UNION ALL
+           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           LIMIT 1`
+        ).bind(shortId, shortId).first().catch(() => null);
+        if (existing && existing.home_score !== null) continue;
+        await fetch(ydayRelayBase + '/archive/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            league: gm.league,
+            date: yesterdayKey,
+            home: gm.home,
+            away: gm.away,
+            home_score: gm.homeScore,
+            away_score: gm.awayScore,
+            venue: gm.venue,
+            start_time: gm.startTime || null,
+            source_id: gm.eventId,
+          }),
+        }).catch(() => {});
+        _ydayFilled++;
+      }
+      if (_ydayFilled > 0) {
+        console.log(`[ARCHIVE-YDAY] ${_ydayFilled} yesterday finals gap-filled`);
+      }
+    } catch (_) { /* yesterday catch-up failure never breaks journalism */ }
+
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
     const existingRaw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
