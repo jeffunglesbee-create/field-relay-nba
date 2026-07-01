@@ -855,6 +855,81 @@ async function buildBSDHistoryContext(env, game) {
     } catch (_) { return ''; }
 }
 
+// ── buildTeamFormContext ───────────────────────────────────────────────────
+// Last N completed regular-season games for each team, factual W/L/score
+// only — no drama computed. Rule 47/ADR-002 compliant.
+const _TEAM_FORM_SPORT_MAP = {
+  mlb:        'MLB',        wnba:       'WNBA',
+  wc26:       'FIFA World Cup 2026',
+  afl:        'AFL',        cfl:        'CFL',
+  epl:        'EPL',        mls:        'MLS',
+  ucl:        'UCL',        laliga:     'La Liga',
+  seriea:     'Serie A',    bundesliga: 'Bundesliga',
+  ligue1:     'Ligue 1',    nhl:        'NHL',
+  nba:        'NBA',
+};
+
+async function buildTeamFormContext(env, game) {
+  if (!env.ARCHIVE_DB) return '';
+
+  const dbSport = _TEAM_FORM_SPORT_MAP[game.sport];
+  if (!dbSport) return '';
+
+  const home = game.home?.name || game.home;
+  const away = game.away?.name || game.away;
+  if (!home || !away) return '';
+
+  const N = 5;
+
+  try {
+    const [hResult, aResult] = await Promise.all([
+      env.ARCHIVE_DB.prepare(
+        `SELECT home, away, home_score, away_score
+         FROM regular_season_games
+         WHERE sport = ? AND (home = ? OR away = ?)
+           AND home_score IS NOT NULL AND away_score IS NOT NULL
+         ORDER BY date DESC LIMIT ?`
+      ).bind(dbSport, home, home, N).all(),
+
+      env.ARCHIVE_DB.prepare(
+        `SELECT home, away, home_score, away_score
+         FROM regular_season_games
+         WHERE sport = ? AND (home = ? OR away = ?)
+           AND home_score IS NOT NULL AND away_score IS NOT NULL
+         ORDER BY date DESC LIMIT ?`
+      ).bind(dbSport, away, away, N).all()
+    ]);
+
+    const fmt = (teamName, rows) => {
+      if (!rows?.length) return null;
+      let gf = 0, ga = 0, w = 0;
+      const segments = rows.map(r => {
+        const isHome   = r.home === teamName;
+        const scored   = isHome ? r.home_score : r.away_score;
+        const conceded = isHome ? r.away_score : r.home_score;
+        const opp      = isHome ? r.away       : r.home;
+        const res      = scored > conceded ? 'W' : scored < conceded ? 'L' : 'D';
+        gf += scored; ga += conceded;
+        if (res === 'W') w++;
+        return `${res} ${scored}-${conceded} vs ${opp}`;
+      });
+      const n = rows.length;
+      return `${teamName} (L${n}): ${segments.join(' · ')} | ` +
+             `${w}W ${(gf / n).toFixed(1)} scored ${(ga / n).toFixed(1)} conceded`;
+    };
+
+    const lines = [
+      fmt(home, hResult.results),
+      fmt(away, aResult.results)
+    ].filter(Boolean);
+
+    return lines.length ? `[TEAM FORM]\n${lines.join('\n')}` : '';
+
+  } catch (_) {
+    return '';
+  }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
@@ -929,6 +1004,11 @@ const CONTEXT_SOURCES = [
     // Activates when wc_results rows have bsd_event_id (backfill via CC-CMD-H Task 1).
     { id: 'bsd_history', priority: 7, budget: 200, builder: buildBSDHistoryContext,
       sports: ['wc26'] },
+    // Team form: last 5 completed games per team from regular_season_games.
+    // Factual W/L/score history only — no drama values (Rule 47/ADR-002).
+    { id: 'team_form', priority: 9, budget: 200, builder: buildTeamFormContext,
+      sports: ['mlb', 'wnba', 'wc26', 'afl', 'cfl',
+               'epl', 'mls', 'ucl', 'laliga', 'seriea', 'bundesliga', 'ligue1'] },
     // Golf leaderboard: tournament header + top-5 from /v2/golf/enriched.
     { id: 'golf_leaderboard', priority: 3, budget: 150, sports: ['golf'],
       builder: async (env, game) => {
@@ -1031,4 +1111,5 @@ export {
     buildESPNSummaryContext,
     buildBSDMomentumContext,
     buildBSDHistoryContext,
+    buildTeamFormContext,
 };

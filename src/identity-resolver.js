@@ -51,6 +51,10 @@ const CANONICAL = (() => {
         ['Republic of Korea',      'South Korea'],
         ['Curaçao',                'Curaçao'],
         ['Curacao',                'Curaçao'],
+        ['Bosnia and Herzegovina', 'Bosnia and Herzegovina'],
+        ['Bosnia-Herzegovina',     'Bosnia and Herzegovina'],
+        ['Bosnia & Herzegovina',   'Bosnia and Herzegovina'],
+        ['Bosnia-Herz',            'Bosnia and Herzegovina'],
 
         // ── EPL ───────────────────────────────────────────────────
         ['Brighton & Hove Albion', 'Brighton & Hove Albion'],
