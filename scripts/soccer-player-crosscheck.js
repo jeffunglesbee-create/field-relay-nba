@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ─── Inline assertions — run before any real data is touched (Task 3) ────────
 //
@@ -70,7 +72,13 @@ const ROSTER_DELAY_MS = 250; // respect ESPN rate limits between roster fetches
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function stripAccents(s) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Turkish dotless-ı (U+0131) is NOT a combining-accent character --
+  // it's a distinct base letter, so NFD leaves it untouched. Confirmed
+  // live 2026-07-02: this alone caused 5+ of 8 initially-unmatched WC26
+  // players (Yılmaz/Yilmaz, Kahveci, etc.) to fail matching even though
+  // every other Turkish letter (İ, ş, ç, ğ, ö, ü) already normalizes
+  // correctly via NFD. Explicit substitution, not covered generically.
+  return s.replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function normalizeForMatch(s) {
@@ -99,11 +107,16 @@ function get(url) {
 // ─── BSD helpers ──────────────────────────────────────────────────────────────
 
 async function fetchAveragePositions(eventId) {
-  const data = await get(`${RELAY}/bsd/events/${eventId}/average-positions`);
-  // BSD response: top-level object with average_positions array.
-  // Each entry: { player_id: number, name: string (abbreviated, e.g. "T. Weah"), ... }
-  const positions = data.average_positions || data.averagePositions || [];
-  if (!Array.isArray(positions) || positions.length === 0) {
+  // NOTE: the standalone /bsd/events/{id}/average-positions route 404s —
+  // confirmed live 2026-07-02 (see CC-CMD context). average_positions is
+  // only available combined within the /shotmap response.
+  const data = await get(`${RELAY}/bsd/events/${eventId}/shotmap`);
+  // Real shape confirmed live 2026-07-02: data.average_positions is an
+  // object { home: [...], away: [...] }, NOT a flat array. Each entry:
+  // { player_id: number, name: string (abbreviated, e.g. "T. Weah"), ... }
+  const ap = data.average_positions || {};
+  const positions = [...(ap.home || []), ...(ap.away || [])];
+  if (positions.length === 0) {
     throw new Error(`Empty average_positions in BSD event ${eventId} response`);
   }
   return positions;
@@ -234,6 +247,37 @@ async function crossCheck(competitionKey, espnLeague, bsdEventId) {
     // Collision: same normalized surname maps to ≥2 distinct BSD players in this dataset
     const collidingBsd   = (bsdCollision[normKey] || []).filter(c => c.player_id !== p.player_id);
     const collisionRisk  = collidingBsd.length > 0;
+
+    // IMPORTANT: espnMatches is drawn from the WHOLE tournament/league
+    // athlete pool, not scoped to the two teams in this specific match
+    // (no BSD route exists to get per-event team names to scope by —
+    // confirmed 2026-07-02, /bsd/events/{id} 404s, by-date listing
+    // doesn't include this event). This means a same/similar surname
+    // from a COMPLETELY DIFFERENT team can appear in espnMatches.
+    // Found live: BSD "Z. Çelik" (Turkey) matched against ESPN's global
+    // pool included both the correct Zeki Çelik (Turkey, exact match)
+    // AND an unrelated "Nidal Celik" from a different squad. Naively
+    // emitting a candidate for every non-exact match would have wrongly
+    // proposed BSD player 1062 -> Nidal Celik as if they were the same
+    // person. Never guess:
+    const exactMatch = espnMatches.find(e => e.lastName === bsdSurname);
+    if (exactMatch) {
+      // Real player already resolves correctly on the real roster --
+      // nothing to fix, not a candidate, regardless of any other
+      // same-surname athletes elsewhere in the tournament pool.
+      continue;
+    }
+    if (espnMatches.length > 1) {
+      // No exact match AND more than one same-surname athlete in the
+      // whole pool -- genuinely ambiguous without team-scoping. Do not
+      // pick one and call it a candidate.
+      result.unmatched.push({
+        bsdName, bsdPlayerId: p.player_id, bsdSurname, competition: competitionKey,
+        reason: `ambiguous: ${espnMatches.length} ESPN athletes share normalized surname "${normKey}" across the full tournament pool, no team-scoping available to disambiguate`,
+        espnCandidates: espnMatches.map(e => ({ id: e.id, fullName: e.fullName, lastName: e.lastName })),
+      });
+      continue;
+    }
 
     for (const espn of espnMatches) {
       // Only log as a candidate if the real strings differ (this is what we're checking for)
