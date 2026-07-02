@@ -1,61 +1,55 @@
 # Outbox — Soccer Player Cross-Check (BSD ↔ ESPN)
 
-**Date:** 2026-07-02 (fourth update — supersedes all prior versions)
+**Date:** 2026-07-02 (fifth update — supersedes all prior versions)
 **CC-CMD:** docs/CC-CMD-2026-07-02-soccer-player-crosscheck.md
-**Status:** SHIPPED, real CI-verified (run 28617870727, success)
+**Status:** SHIPPED, real CI-verified (run 28618776501, success)
 
 ---
 
-## History, briefly (full detail in prior commits' manifest versions)
+## v5 change
 
-v1 (129f848): wrongly reported 9/10 competitions untestable — two real
-param/shape bugs. v2 (e10e86e): corrected — 6/10 testable, but 3 had
-severe ESPN roster gaps. v3 (6ed6b9b): built a continental-competition
-fallback (UCL/Europa/Conference), closed most of laliga/bundesliga's
-gaps, eflchamp only partially (4/24 rescued — no European competition
-covers lower-league English clubs). **v4 (this version, commit
-b36b41d):** Jeff pointed out lower-league English clubs are in FA Cup
-and League Cup instead. Verified real (`eng.fa` 124 teams, `eng.league_cup`
-70 teams; tested on 2 independent eflchamp teams, both went from 0
-athletes to 30+ via the new fallback), added both. **eflchamp's gap is
-now fully closed — 24/24 teams rescued.**
+Jeff asked whether the FA Cup/League Cup pattern (v4) would also apply
+to non-English competitions. Checked precisely instead of assuming yes
+— **mixed result, not a clean confirmation:**
 
-## Real testability + data quality, final state, verified via CI run 28617870727
+- `esp.copa_del_rey` rescued **all 3** remaining La Liga gaps (Alavés,
+  Elche, Osasuna).
+- `ger.dfb_pokal` rescued **1 of 2** remaining Bundesliga gaps (SV
+  Elversberg). **SC Paderborn 07 did not rescue** — confirmed a real
+  DFB-Pokal participant (present in ESPN's team list for that
+  competition), but consistently shows only 1 athlete there too
+  (checked twice, not flaky). A genuine exception to the pattern, not
+  a bug in the fallback logic.
 
-| Competition | Real finished BSD event? | ESPN gap after all fallbacks |
+## Final gap state, verified via CI run 28618776501
+
+| Competition | Teams still gapped | Note |
 |---|---|---|
-| wc26 | Yes | 0/48 |
-| ucl | Yes | 0/36 |
-| europa | Yes | 0/36 |
-| conference | Yes | 0/36 |
-| eflchamp | Yes | **0/24** (was 24/24 before any fallback, 20/24 after continental-only) |
-| laliga | Yes | 3/20 (Real Madrid/Atlético rescued via continental; 3 remaining have no fallback coverage found) |
-| bundesliga | Yes | 2/18 (Bayern/Dortmund/Leverkusen rescued via continental; 2 remaining have no fallback coverage found) |
-| epl, mls, seriea, ligue1 | No finished BSD event | N/A — **independently reconfirmed 2026-07-02** via `/bsd/events/by-date` across 4 real recent dates each (not just the `events/season` page-1 check that was wrong for the other 6). MLS: 0 events found on any checked date. EPL/Serie A/Ligue 1: all real fixtures on those dates show `notstarted`. Genuinely untestable right now, not a hidden bug. |
+| wc26, ucl, europa, conference | 0 | Never had a gap |
+| eflchamp | 0 | Fully closed in v4 (FA Cup/League Cup) |
+| laliga | **0** | Fully closed in v5 (Copa del Rey) |
+| bundesliga | **1** (SC Paderborn 07) | No known fallback — genuine exception |
 
-`espn_data_gaps` in the output JSON now flags **0** competitions (down
-from 3 in v2, 1 in v3).
+**Across all of soccer, exactly one team (Paderborn) remains gapped
+with no currently-known recovery path.** `espn_data_gaps` in the output
+JSON still reports 0 flagged competitions (1/18 is below the 25%
+report threshold).
 
-## Real results, run 28617870727
+## Real results, run 28618776501
 
-- **9 candidates** (7 WC26, 2 La Liga) — unchanged from v3; the eflchamp
-  fix surfaced real roster data but no new mismatches within it (all
-  24 eflchamp teams' rosters matched their BSD names exactly once real
-  data was available — a good sign, not a bug).
-- **82 unmatched** (down from 98 in v3, 125 in v2) — the eflchamp-gap
-  noise is now gone; remaining unmatched entries are more likely to be
-  genuine no-ESPN-match players, though the 5 teams still gapped
-  (3 laliga + 2 bundesliga) still contribute some noise.
-- **4 untestable**, all independently reconfirmed this round.
+- 9 candidates (unchanged — the newly-rescued teams' rosters matched
+  their BSD names exactly, no new mismatches surfaced)
+- Unmatched count improved slightly further with laliga's full closure
+- 4 untestable (epl, mls, seriea, ligue1 — independently reconfirmed
+  in v4 via `/bsd/events/by-date`, unchanged)
 
 ## Not yet done
 
-- None of the 9 candidates reviewed or added to any `CANONICAL_PLAYER`-
-  equivalent structure — soccer still has none in `identity-resolver.js`.
-- 5 teams (3 laliga, 2 bundesliga) remain gapped with no fallback found
-  yet — not checked whether they're in some other competition context
-  (e.g. domestic cups for Spain/Germany) the way English lower-league
-  clubs were. Worth checking if this matters, following the same pattern
-  Jeff identified for England.
+- 9 candidates still not reviewed or added to any `CANONICAL_PLAYER`-
+  equivalent structure — soccer has none yet.
+- SC Paderborn 07 remains genuinely unresolved — no further fallback
+  context identified. Not investigated further; may just reflect
+  ESPN's real current data state for this specific club with no
+  workaround available via any competition context tried so far.
 - No team-scoping fix for BSD↔ESPN matching itself (mitigated via
   exact-match preference + ambiguity flagging, not root-fixed).
