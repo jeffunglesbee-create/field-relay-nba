@@ -176,16 +176,58 @@ async function fetchEspnRoster(espnLeague, teamId) {
 // the same league, not a script bug and not evenly distributed by league).
 const MIN_PLAUSIBLE_ROSTER_SIZE = 15;
 
+// European competitions worth trying as a fallback context for the SAME
+// ESPN team ID. Confirmed live 2026-07-02: ESPN's roster data is
+// genuinely competition-context-dependent even for an identical team ID
+// -- Atletico Madrid (id 1068) returns 1 athlete via esp.1 but 40 via
+// uefa.champions. Also confirmed BSD's player_id is globally stable
+// across competitions for the same person (Lookman id 1306, Hancko id
+// 764 -- identical in both a La Liga event and a UCL event for the same
+// club), so a fallback match found this way is the same real player, not
+// a coincidence. Domestic leagues only fall back to these three; they
+// don't fall back to each other or to domestic leagues (no evidence a
+// team's EPL-context roster would help fill a Bundesliga-context gap
+// for an unrelated club, and most clubs aren't in more than one of
+// these three anyway).
+const EUROPEAN_FALLBACK_CONTEXTS = ['uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
+
+async function fetchEspnRosterWithFallback(espnLeague, teamId) {
+  let roster = await fetchEspnRoster(espnLeague, teamId);
+  if (roster.length >= MIN_PLAUSIBLE_ROSTER_SIZE) {
+    return { roster, sourceContext: espnLeague, usedFallback: false };
+  }
+  for (const fallbackLeague of EUROPEAN_FALLBACK_CONTEXTS) {
+    if (fallbackLeague === espnLeague) continue;
+    await delay(ROSTER_DELAY_MS);
+    try {
+      const fallbackRoster = await fetchEspnRoster(fallbackLeague, teamId);
+      if (fallbackRoster.length >= MIN_PLAUSIBLE_ROSTER_SIZE) {
+        return { roster: fallbackRoster, sourceContext: fallbackLeague, usedFallback: true };
+      }
+      // Track the best of a bad set of options in case nothing clears the bar
+      if (fallbackRoster.length > roster.length) roster = fallbackRoster;
+    } catch (e) {
+      // Fallback context doesn't have this team (not in that competition) -- expected, not an error.
+    }
+  }
+  return { roster, sourceContext: espnLeague, usedFallback: false };
+}
+
 async function fetchAllEspnAthletes(espnLeague) {
   const teamIds = await fetchEspnTeamIds(espnLeague);
   process.stdout.write(`    ${teamIds.length} ESPN teams in ${espnLeague}\n`);
 
   const athletes = [];
   const dataGapTeams = [];
+  let fallbackRescues = 0;
   for (const teamId of teamIds) {
     await delay(ROSTER_DELAY_MS);
     try {
-      const roster = await fetchEspnRoster(espnLeague, teamId);
+      const { roster, sourceContext, usedFallback } = await fetchEspnRosterWithFallback(espnLeague, teamId);
+      if (usedFallback) {
+        fallbackRescues++;
+        process.stdout.write(`    team ${teamId}: rescued via ${sourceContext} fallback (${roster.length} athletes)\n`);
+      }
       if (roster.length < MIN_PLAUSIBLE_ROSTER_SIZE) {
         dataGapTeams.push({ teamId, athleteCount: roster.length });
       }
@@ -194,7 +236,10 @@ async function fetchAllEspnAthletes(espnLeague) {
       dataGapTeams.push({ teamId, athleteCount: 0, error: e.message });
     }
   }
-  return { athletes, dataGapTeams, totalTeams: teamIds.length };
+  if (fallbackRescues > 0) {
+    process.stdout.write(`    ${fallbackRescues}/${teamIds.length} teams rescued via European competition fallback\n`);
+  }
+  return { athletes, dataGapTeams, totalTeams: teamIds.length, fallbackRescues };
 }
 
 // ─── Collision index ──────────────────────────────────────────────────────────
@@ -223,9 +268,9 @@ async function crossCheck(competitionKey, espnLeague, bsdEventId) {
   catch (e) { return { ...result, error: e.message }; }
   process.stdout.write(`    ${positions.length} BSD players in average_positions\n`);
 
-  let espnAthletes, dataGapTeams, totalTeams;
+  let espnAthletes, dataGapTeams, totalTeams, fallbackRescues;
   try {
-    ({ athletes: espnAthletes, dataGapTeams, totalTeams } = await fetchAllEspnAthletes(espnLeague));
+    ({ athletes: espnAthletes, dataGapTeams, totalTeams, fallbackRescues } = await fetchAllEspnAthletes(espnLeague));
   }
   catch (e) { return { ...result, error: e.message }; }
   process.stdout.write(`    ${espnAthletes.length} ESPN athletes fetched\n`);
@@ -235,6 +280,7 @@ async function crossCheck(competitionKey, espnLeague, bsdEventId) {
   result.espn_data_gap = {
     teamsWithGap: dataGapTeams.length,
     totalTeams,
+    fallbackRescues: fallbackRescues || 0,
     detail: dataGapTeams,
   };
 
@@ -341,12 +387,21 @@ async function main() {
         competition: competitionKey,
         teamsWithGap: gap.teamsWithGap,
         totalTeams: gap.totalTeams,
+        fallbackRescues: gap.fallbackRescues,
         note: 'ESPN roster data for these teams has fewer than ' +
           MIN_PLAUSIBLE_ROSTER_SIZE + ' athletes right now -- confirmed real ' +
           '2026-07-02 (Real Madrid, Barcelona, Bayern Munich, Dortmund, ' +
-          'Leverkusen all show 0), not a fetch bug. Candidates/unmatched ' +
-          'from this competition are unreliable for the affected teams -- ' +
-          'do not treat sparse unmatched counts here as genuine mismatches.',
+          'Leverkusen all show 0), not a fetch bug. ' +
+          (gap.fallbackRescues > 0
+            ? `${gap.fallbackRescues} of these were rescued via the UCL/Europa/` +
+              'Conference fallback (same ESPN team ID, different competition ' +
+              'context -- confirmed live that this returns genuinely different, ' +
+              'fuller roster data for the same club). teamsWithGap/detail below ' +
+              'reflect the count still unresolved AFTER the fallback, not before.'
+            : 'No fallback rescues available for this competition (teams not ' +
+              'in UCL/Europa/Conference, or fallback also sparse).') +
+          ' Candidates/unmatched from this competition are unreliable for the ' +
+          'still-affected teams -- do not treat sparse unmatched counts here as genuine mismatches.',
       });
     }
   }
