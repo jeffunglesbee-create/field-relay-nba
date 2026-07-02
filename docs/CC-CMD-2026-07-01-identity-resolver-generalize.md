@@ -1,4 +1,11 @@
-# Claude Code Command — Generalize Identity Resolver (resolveTeamKey → resolveEntity)
+# Claude Code Command — Generalize Identity Resolver (CORRECTED v2)
+
+**SUPERSEDES the original version of this file** (identical filename,
+overwritten in place — the original was never executed, confirmed via
+direct check of `src/identity-resolver.js` and the codex queue status
+before this rewrite). The original design used one shared `_strip()`
+algorithm for all entity types. That was wrong, discovered before
+execution, not after — see CONTEXT.
 
 **Branch:** main — commit directly, do not create a feature branch or PR.
 
@@ -6,31 +13,43 @@ git pull. Read CLAUDE.md.
 
 Write all findings to outbox/cc-identity-resolver-generalize-2026-07-01.md.
 
-## CONTEXT
+## CONTEXT — why this version differs from the original
 
-`identity-resolver.js` currently resolves exactly one entity type (teams):
-298 lines, 2 functions (`_strip`, `resolveTeamKey`), 1 export, 226
-name-pairs in a single `CANONICAL` map. 14 real call sites already
-depend on `resolveTeamKey` (10 in `index.js`, 4 in `context-assembler.js`).
+Investigating how `resolveEntity` would actually connect to real player
+data surfaced a real, evidence-based problem with the original design:
+**four independently-evolved name-normalization schemes already exist**
+in this codebase, and the original spec would have added a fifth,
+incompatible with the three that touch real player data:
 
-Multiple proposed FIELD graphs (Relationship, Narrative player-arc,
-Discovery's "Player Story") all cite player identity as a dependency
-that currently has zero foundation — not partial, zero. This CC-CMD
-generalizes the *proven pattern* (strip diacritics → lowercase → drop
-non-alphanumerics → CANONICAL lookup) from team-only to type-keyed,
-without changing team behavior at all.
+| Scheme | Location | Diacritic handling | Suffix handling |
+|---|---|---|---|
+| `_strip()` | `identity-resolver.js` (this file, teams) | NFD-strips accents | n/a |
+| `lastNameOf()` | `index.html` (client, pitch arsenal/tempo consumer) | Preserves accents | n/a |
+| `name_key()` | `mlb-weekly-update.py` (Python, pitch arsenal/tempo/team_abs producer) | Preserves accents | Strips Jr./Sr./II/III |
+| inline umpire normalizer | `mlb-weekly-update.py` + backfill script | Preserves accents | No suffix handling |
 
-**Explicitly NOT in scope:** populating the Player map with real name
-variants. Checked directly — no existing player-name alias/normalization
-logic exists anywhere in the relay to migrate (grepped `index.js` and
-`context-assembler.js`, zero matches). The team map's own header
-documents it was built from "observed D1 mismatches probed June 21
-2026" — real incidents, not invented pairs. The Player map must start
-empty for the same reason: inventing plausible-sounding player name
-variants without evidence would be fabrication, not migration. It gets
-populated the same way the team map grew — a real mismatch gets found
-(like the Bosnia-Herz bug tonight), gets added as one pair, in a future
-CC-CMD, with the specific evidence documented inline.
+The client and Python schemes agree with each other by coincidence (both
+preserve accents) — that's why `pitch_arsenals.json`/`pitch_tempo.json`
+already work correctly for the Scouting Report and At-Bat Edge features
+shipped tonight. `_strip()`'s NFD diacritic-stripping is correct FOR
+TEAMS (proven: it's what the Bosnia identity fix relied on), but if
+`CANONICAL_PLAYER` reused it, a player like "Ramírez" would resolve to
+`ramirez` while every real Savant-derived key stays `ramírez` — silently
+unresolvable, the exact bug class already found once tonight (Bosnia),
+just not yet triggered because nothing currently bridges relay identity
+resolution to Savant player data.
+
+**Decision: player identity gets its own stripForm, matching the
+convention already live in `name_key()`/`lastNameOf()`** — not the
+team convention. Re-keying the three already-shipped Savant files to
+match `_strip()` instead was considered and rejected: it means touching
+production data that's currently correct for its actual purpose, for no
+benefit, when giving players a second, correct algorithm is cheaper and
+lower-risk.
+
+**Umpire normalization is explicitly OUT OF SCOPE** — deferred, not
+dropped. No current use case needs umpire identity resolved against
+player or team identity. Do not attempt to unify it here.
 
 ## PRE-BUILD PROBE (Rule 87)
 
@@ -39,48 +58,77 @@ cat src/identity-resolver.js
 grep -rn "resolveTeamKey(" src/index.js src/context-assembler.js
 ```
 
-Confirm the exact current 14 call sites and their exact invocation
-pattern (`resolveTeamKey(x)`) before touching anything — the refactor
-must not require changing any of them.
+Confirm the exact current 14 call sites and file shape before touching
+anything — the refactor must not require changing any of them. Also
+re-confirm `name_key()`'s exact current implementation in
+`mlb-weekly-update.py` (jubilant-bassoon repo — this CC-CMD runs against
+field-relay-nba, but the player stripForm here MUST match that function
+exactly; fetch it fresh rather than trusting the table above, which is
+a snapshot from the investigation, not a live read at execution time).
 
 ## TASK 1: Rename CANONICAL → CANONICAL_TEAM (zero behavior change)
 
 Rename the existing `CANONICAL` const to `CANONICAL_TEAM`. No other
-change to its construction, the `pairs` array, or `_strip()`. This is
-pure rename — verify via diff that the only change in this block is the
+change to its construction, the `pairs` array, or `_strip()`. Pure
+rename — verify via diff that the only change in this block is the
 identifier.
 
-## TASK 2: Add empty CANONICAL_PLAYER, built via the same pattern
+## TASK 2: Add a SEPARATE player stripForm, matching the live Python/client convention
 
 ```javascript
-// stripForm → canonical stripForm, for player names. Empty by design —
-// no real observed player-name mismatches exist yet (verified: grepped
-// the whole relay for existing player-alias logic, zero matches, nothing
-// to migrate). Populate this the same way CANONICAL_TEAM grew: a real
-// mismatch surfaces (like the Bosnia-Herz identity bug, 2026-07-01),
-// gets added as one documented pair with the evidence inline — never
-// speculative entries.
+// Player-specific strip form — deliberately DIFFERENT from _strip().
+// _strip() NFD-strips diacritics (correct for teams, proven by the
+// Bosnia identity fix). Players need the OPPOSITE: preserve diacritics,
+// to match name_key() (mlb-weekly-update.py, Python) and lastNameOf()
+// (index.html, client) — the two functions that already generate and
+// consume real Savant-derived player keys (pitch_arsenals.json,
+// pitch_tempo.json). If this stripped diacritics like _strip() does,
+// it would never match real data. Verified via direct code read,
+// 2026-07-01 — do not "fix" this to match _strip() without re-verifying
+// name_key() hasn't changed.
+function _stripPlayer(name) {
+    let s = String(name || '').toLowerCase();
+    s = s.replace(/ jr\.?$/, '').replace(/ sr\.?$/, '')
+         .replace(/ ii$/, '').replace(/ iii$/, '');
+    return s.replace(/[\s-]/g, '_');
+}
+```
+
+Confirm this produces IDENTICAL output to `name_key()` for several real
+sample names pulled fresh from `pitch_arsenals.json` during verification
+— do not assume the pseudocode above is byte-exact without checking.
+
+## TASK 3: Add empty CANONICAL_PLAYER, built via the player stripForm
+
+```javascript
+// Empty by design — no real observed player-name mismatches exist yet
+// (verified: grepped the whole relay for existing player-alias logic
+// prior session, zero matches). Populate this the same way
+// CANONICAL_TEAM grew: a real mismatch surfaces, gets added as one
+// documented pair with evidence inline — never speculative entries.
 const CANONICAL_PLAYER = (() => {
     const pairs = [
         // (intentionally empty — see comment above)
     ];
     const out = {};
     for (const [variant, canonical] of pairs) {
-        out[_strip(variant)] = _strip(canonical);
+        out[_stripPlayer(variant)] = _stripPlayer(canonical);
     }
     return out;
 })();
 ```
 
-## TASK 3: Add resolveEntity(type, name), generic dispatcher
+## TASK 4: Add resolveEntity(type, name) — dispatches to the RIGHT stripForm per type
 
 ```javascript
 const _CANONICAL_BY_TYPE = { team: CANONICAL_TEAM, player: CANONICAL_PLAYER };
+const _STRIP_BY_TYPE = { team: _strip, player: _stripPlayer };
 
 /**
  * Resolve an entity name to a canonical strip-form key, keyed by type.
- * Pass the same input from EITHER side of a comparison and the keys
- * are equal when the names refer to the same entity.
+ * IMPORTANT: team and player use DIFFERENT normalization algorithms —
+ * see _stripPlayer's comment for why. Do not assume one strip function
+ * works for both.
  *
  * @param {string} type - 'team' | 'player'
  * @param {string|null|undefined} name
@@ -88,15 +136,16 @@ const _CANONICAL_BY_TYPE = { team: CANONICAL_TEAM, player: CANONICAL_PLAYER };
  *   or unrecognized type)
  */
 function resolveEntity(type, name) {
-    const k = _strip(name);
+    const stripFn = _STRIP_BY_TYPE[type];
+    if (!stripFn) return '';
+    const k = stripFn(name);
     if (!k) return '';
     const map = _CANONICAL_BY_TYPE[type];
-    if (!map) return k;
     return map[k] || k;
 }
 ```
 
-## TASK 4: Keep resolveTeamKey as a thin, behavior-identical wrapper
+## TASK 5: Keep resolveTeamKey as a thin, behavior-identical wrapper
 
 ```javascript
 function resolveTeamKey(name) {
@@ -104,41 +153,39 @@ function resolveTeamKey(name) {
 }
 ```
 
-This preserves the exact existing signature and behavior for all 14
-current call sites — confirm via the probe's call-site list that none
-of them need to change.
+Confirm this preserves exact existing behavior for all 14 current call
+sites — none of them should need to change.
 
-## TASK 5: Update exports
+## TASK 6: Update exports
 
 ```javascript
 export { resolveTeamKey, resolveEntity };
 ```
 
-`resolveTeamKey` stays exported (backward compat, unchanged behavior).
-`resolveEntity` is newly exported for future callers (player-identity
-features, when they're actually built).
-
-## TASK 6: Verification
+## TASK 7: Verification
 
 ```bash
 node -c src/identity-resolver.js
 grep -c "resolveTeamKey(" src/index.js src/context-assembler.js
 ```
 
-Done condition: syntax valid, call-site counts in `index.js` (10) and
-`context-assembler.js` (4) unchanged from the pre-build probe — confirms
-zero call sites needed modification. If any deployed smoke/CI exists for
-this repo, must stay green.
+**Additionally, and this is the part the original spec didn't require:**
+pull a real sample of 5+ keys from the live `pitch_arsenals.json`
+(jubilant-bassoon repo, `outbox/mlb/pitch_arsenals.json`) and confirm
+`resolveEntity('player', fullNameForm)` for each produces a key that
+EXACTLY matches one of those real JSON keys. This is the test that
+actually validates the corrected design — the original spec had no
+equivalent check and would have shipped a resolver that silently
+couldn't resolve real players.
 
-**Chat-side follow-up (not checkable by CC):** confirm live via a
-`resolveTeamKey()`-dependent code path (e.g. `/odds-story/preview` or the
-BSD/Odds join) still produces identical output post-deploy — same
-verification standard used for every other identity-resolver change
-tonight.
+Done condition: syntax valid, call-site counts unchanged (10 in
+`index.js`, 4 in `context-assembler.js`), AND the cross-repo key-match
+check above passes for real sampled data, not synthetic examples.
 
-## TASK 7: Outbox manifest (last task)
+## TASK 8: Outbox manifest (last task)
 
-Note explicitly: `CANONICAL_PLAYER` ships empty and `resolveEntity` has
-no real callers yet — this CC-CMD builds the foundation only. State
-plainly that "player identity resolution" is not yet a working feature,
-just an available primitive, so this isn't mistaken for more than it is.
+State explicitly: the real sample names checked and their matched keys,
+confirmation that `_stripPlayer` output byte-matches `name_key()` for
+those samples, and that `CANONICAL_PLAYER` ships empty with `resolveEntity`
+having no real callers yet — this CC-CMD builds a correctly-connectable
+foundation, not a working player-identity feature.
