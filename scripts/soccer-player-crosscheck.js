@@ -189,14 +189,28 @@ const MIN_PLAUSIBLE_ROSTER_SIZE = 15;
 // team's EPL-context roster would help fill a Bundesliga-context gap
 // for an unrelated club, and most clubs aren't in more than one of
 // these three anyway).
-const EUROPEAN_FALLBACK_CONTEXTS = ['uefa.champions', 'uefa.europa', 'uefa.europa.conf'];
+// Continental (top-division clubs across multiple countries) + English
+// domestic cups (all 4 English tiers play in these, so this is the real
+// fallback for lower-league clubs like eflchamp that aren't in UCL/
+// Europa/Conference at all). Verified real before adding eng.fa/
+// eng.league_cup: Birmingham City (id 392, eflchamp, 0 athletes via its
+// own eng.2 context) -> 30 via eng.fa, 23 via eng.league_cup. Bristol
+// City (id 333, also 0 via eng.2) -> 31 via eng.fa. Confirmed on two
+// independent teams before shipping, not assumed from one example.
+// Applied uniformly to every competition -- harmless for non-English
+// clubs (the team ID simply won't exist in eng.fa/eng.league_cup's
+// pool, same as trying a European competition a club isn't in).
+const ROSTER_FALLBACK_CONTEXTS = [
+  'uefa.champions', 'uefa.europa', 'uefa.europa.conf',
+  'eng.fa', 'eng.league_cup',
+];
 
 async function fetchEspnRosterWithFallback(espnLeague, teamId) {
   let roster = await fetchEspnRoster(espnLeague, teamId);
   if (roster.length >= MIN_PLAUSIBLE_ROSTER_SIZE) {
     return { roster, sourceContext: espnLeague, usedFallback: false };
   }
-  for (const fallbackLeague of EUROPEAN_FALLBACK_CONTEXTS) {
+  for (const fallbackLeague of ROSTER_FALLBACK_CONTEXTS) {
     if (fallbackLeague === espnLeague) continue;
     await delay(ROSTER_DELAY_MS);
     try {
@@ -393,13 +407,15 @@ async function main() {
           '2026-07-02 (Real Madrid, Barcelona, Bayern Munich, Dortmund, ' +
           'Leverkusen all show 0), not a fetch bug. ' +
           (gap.fallbackRescues > 0
-            ? `${gap.fallbackRescues} of these were rescued via the UCL/Europa/` +
-              'Conference fallback (same ESPN team ID, different competition ' +
-              'context -- confirmed live that this returns genuinely different, ' +
-              'fuller roster data for the same club). teamsWithGap/detail below ' +
-              'reflect the count still unresolved AFTER the fallback, not before.'
+            ? `${gap.fallbackRescues} of these were rescued via a fallback ` +
+              '(UCL/Europa/Conference for continental clubs, FA Cup/League ' +
+              'Cup for English lower-league clubs -- same ESPN team ID, ' +
+              'different competition-context path -- confirmed live this ' +
+              'returns genuinely different, fuller roster data for the same ' +
+              'club). teamsWithGap/detail below reflect the count still ' +
+              'unresolved AFTER the fallback, not before.'
             : 'No fallback rescues available for this competition (teams not ' +
-              'in UCL/Europa/Conference, or fallback also sparse).') +
+              'in any of the fallback contexts, or fallback also sparse).') +
           ' Candidates/unmatched from this competition are unreliable for the ' +
           'still-affected teams -- do not treat sparse unmatched counts here as genuine mismatches.',
       });
