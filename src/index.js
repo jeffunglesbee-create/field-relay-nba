@@ -4223,6 +4223,27 @@ async function ensureCodexStatusColumn(env) {
   _codexStatusReady = true;
 }
 
+// Allowlisted target tables for POST /savant/sync. Add an entry here (schema
+// + name) each time a genuinely new Savant/lineup/weather/injury tracking
+// table is needed — this is the one place that grows, not a new endpoint.
+const _SYNC_TABLE_SCHEMAS = {
+    pitcher_expected_stats: `
+        CREATE TABLE IF NOT EXISTS pitcher_expected_stats (
+            id TEXT PRIMARY KEY,
+            era REAL,
+            xera REAL,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )`,
+    // Future: team_expected_stats, sprint_speed_tracking, etc. — add here,
+    // not as new endpoints.
+};
+
+async function ensureSyncTable(env, table) {
+    const ddl = _SYNC_TABLE_SCHEMAS[table];
+    if (!ddl) throw new Error(`sync target not allowlisted: ${table}`);
+    await env.ARCHIVE_DB.prepare(ddl).run();
+}
+
 // KV → D1 sweep for per-game briefs. Lists `brief:game:*` keys in
 // FIELD_JOURNALISM, parses the JSON payload (or treats the value as raw
 // prose), and INSERTs into the briefs table with source='kv_sweep'.
@@ -8463,6 +8484,7 @@ export default {
             && !(pathname === '/journalism/generate' && request.method === 'POST')
             && !(pathname === '/journalism/enqueue' && request.method === 'POST')
             && !(pathname === '/journalism/game-complete' && request.method === 'POST')
+            && !(pathname === '/savant/sync' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
@@ -10954,6 +10976,56 @@ export default {
             } catch(e) {
                 return new Response(JSON.stringify({ error: e.message }),
                     { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+        }
+
+        // ── /savant/sync — generic reconcile-sync for Savant data ───────────────
+        // Body: { table, rows: [{id, ...fields}], source?, label? }
+        // `table` must be in _SYNC_TABLE_SCHEMAS (scope guard — reconcile()
+        // itself only prevents SQL injection, not target scope).
+        if (pathname === '/savant/sync' && request.method === 'POST') {
+            try {
+                const body = await request.json().catch(() => null);
+                const { table, rows, source, label } = body || {};
+                if (!table || !_SYNC_TABLE_SCHEMAS[table]) {
+                    return new Response(JSON.stringify({ ok: false, error: 'table not allowlisted' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (!Array.isArray(rows) || !rows.length || !env.ARCHIVE_DB) {
+                    return new Response(JSON.stringify({ ok: true, synced: 0 }),
+                        { status: 202, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                await ensureSyncTable(env, table);
+
+                // First-population guard: seed unseen ids without a changelog
+                // write — INSERT OR IGNORE before reconcile()'s diff, matching
+                // the odds branch's "first population is not material" rule.
+                const fieldKeys = Object.keys(rows[0]).filter(k => k !== 'id');
+                for (const r of rows) {
+                    if (!r.id) continue;
+                    const cols = ['id', ...fieldKeys];
+                    const placeholders = cols.map(() => '?').join(',');
+                    const vals = cols.map(c => c === 'id' ? r.id : (r[c] ?? null));
+                    await env.ARCHIVE_DB.prepare(
+                        `INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`
+                    ).bind(...vals).run();
+                }
+
+                const updates = rows.filter(r => r.id).map(r => {
+                    const fields = {};
+                    for (const k of fieldKeys) fields[k] = r[k] ?? null;
+                    return { id: r.id, fields };
+                });
+                const result = await reconcile(env, {
+                    target: table,
+                    updates,
+                    changelog: { source: source || 'savant', label: label || table },
+                });
+                return new Response(JSON.stringify({ ok: true, ...result }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
         }
 
