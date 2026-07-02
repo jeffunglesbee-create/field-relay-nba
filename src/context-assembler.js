@@ -14,7 +14,7 @@
 // Same pattern as the existing buildFinalsContextBlock + buildWCTeamContextBlock.
 
 import { computeOddsStory } from './odds-story.js';
-import { resolveTeamKey }   from './identity-resolver.js';
+import { resolveTeamKey, resolveEntity } from './identity-resolver.js';
 
 // ── R2 helpers ───────────────────────────────────────────────────────────
 // Reads a JSON file from the FIELD_DATA R2 bucket. Returns null on any
@@ -171,24 +171,54 @@ async function buildSavantContext(env, game) {
         }
     }
 
-    // Pitcher arsenals — top 2 pitchers per team by primary pitch whiff rate
+    // Pitcher arsenals — confirmed starter first (game.probableHome/Away from ESPN),
+    // fallback to top 2 by whiff rate if starter unavailable or not in Savant data.
+    // ESPN probable-pitcher feed is inconsistently populated (see existing comment
+    // above) — keep the fallback for every team where the starter path doesn't resolve.
     if (arsenals?.data) {
-        for (const abbr of [ha, aa].filter(Boolean)) {
-            const teamPitchers = Object.entries(arsenals.data)
-                .filter(([_, v]) => _abbr(v.team) === abbr && v.pitches?.length)
-                .map(([name, v]) => {
-                    const best = v.pitches.reduce((a, b) => (b.whiffRate || 0) > (a.whiffRate || 0) ? b : a);
-                    return { name, best, pitchCount: v.pitches.length };
-                })
-                .sort((a, b) => (b.best.whiffRate || 0) - (a.best.whiffRate || 0))
-                .slice(0, 2);
+        for (const [probableName, abbr] of [
+            [game.probableHome, ha],
+            [game.probableAway, aa],
+        ]) {
+            if (!abbr) continue;
 
-            for (const p of teamPitchers) {
-                const w = p.best.whiffRate ? `${(p.best.whiffRate * 100).toFixed(1)}% whiff` : '';
-                const v = p.best.vel ? `${p.best.vel} mph` : '';
-                const desc = [p.best.type, v, w].filter(Boolean).join(', ');
-                lines.push(`${abbr} pitcher ${p.name}: best pitch ${desc}.`);
-                hasContent = true;
+            let usedProbable = false;
+            if (probableName) {
+                const key = resolveEntity('player', probableName);
+                const entry = Object.entries(arsenals.data)
+                    .find(([name, v]) => resolveEntity('player', name) === key && _abbr(v.team) === abbr);
+                if (entry) {
+                    const [name, v] = entry;
+                    if (v.pitches?.length) {
+                        const best = v.pitches.reduce((a, b) => (b.whiffRate || 0) > (a.whiffRate || 0) ? b : a);
+                        const w = best.whiffRate ? `${(best.whiffRate * 100).toFixed(1)}% whiff` : '';
+                        const vel = best.vel ? `${best.vel} mph` : '';
+                        const desc = [best.type, vel, w].filter(Boolean).join(', ');
+                        lines.push(`${abbr} starter ${name}: best pitch ${desc}.`);
+                        hasContent = true;
+                        usedProbable = true;
+                    }
+                }
+            }
+
+            if (!usedProbable) {
+                // Fallback: top 2 pitchers for this team by primary pitch whiff rate
+                const teamPitchers = Object.entries(arsenals.data)
+                    .filter(([_, v]) => _abbr(v.team) === abbr && v.pitches?.length)
+                    .map(([name, v]) => {
+                        const best = v.pitches.reduce((a, b) => (b.whiffRate || 0) > (a.whiffRate || 0) ? b : a);
+                        return { name, best };
+                    })
+                    .sort((a, b) => (b.best.whiffRate || 0) - (a.best.whiffRate || 0))
+                    .slice(0, 2);
+
+                for (const p of teamPitchers) {
+                    const w = p.best.whiffRate ? `${(p.best.whiffRate * 100).toFixed(1)}% whiff` : '';
+                    const v = p.best.vel ? `${p.best.vel} mph` : '';
+                    const desc = [p.best.type, v, w].filter(Boolean).join(', ');
+                    lines.push(`${abbr} pitcher ${p.name}: best pitch ${desc}.`);
+                    hasContent = true;
+                }
             }
         }
     }

@@ -5659,6 +5659,8 @@ async function handleJournalismCycle(env, opts = {}) {
               eventId: String(ev.id || ''),
               espnLeague: league,  // slug e.g. "fifa.world" — used by soccer_xg builder
               league: label,
+              probableHome: home?.probables?.[0]?.athlete?.displayName || null,
+              probableAway: away?.probables?.[0]?.athlete?.displayName || null,
             });
           }
         }
@@ -6143,6 +6145,8 @@ async function handleJournalismCycle(env, opts = {}) {
                 espnLeague: m.espnLeague,  // slug for /soccer/xg lookup
                 eventId:    m.eventId,
                 sourceId:   m.eventId,     // feeds buildESPNSummaryContext
+                probableHome: m.probableHome || null,
+                probableAway: m.probableAway || null,
             }, 600);
         }));
         sportContextBlock = perGame.filter(b => b && b.length).join('\n');
