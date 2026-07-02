@@ -408,6 +408,21 @@ export class GameDO {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     }).catch(() => { /* archive failure cannot affect DO */ });
+                    // Trigger journalism immediately — don't wait for the next cron tick.
+                    // Relay-side handler builds the prompt and enqueues type:game-brief.
+                    fetch(relayBase + '/journalism/game-complete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sport:      this.sport,
+                            gameId:     this.gameId,
+                            home:       facts.homeName,
+                            away:       facts.awayName,
+                            homeScore:  facts.homeScore,
+                            awayScore:  facts.awayScore,
+                            date,
+                        }),
+                    }).catch(() => { /* journalism dispatch failure cannot affect DO */ });
                 }
             } catch (_) { /* archive hook failure cannot affect DO */ }
         }

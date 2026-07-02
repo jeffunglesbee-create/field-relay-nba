@@ -8462,6 +8462,7 @@ export default {
             && !(pathname === '/journalism/run' && request.method === 'POST')
             && !(pathname === '/journalism/generate' && request.method === 'POST')
             && !(pathname === '/journalism/enqueue' && request.method === 'POST')
+            && !(pathname === '/journalism/game-complete' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
@@ -10391,6 +10392,50 @@ export default {
             return new Response(JSON.stringify({error:'enqueue failure', detail:e.message}),
               {status:500, headers:{...CORS,'Content-Type':'application/json'}});
           }
+        }
+
+        // ── /journalism/game-complete — completion-triggered journalism ──────────
+        // Called fire-and-forget by GameDO when a game transitions to state:final.
+        // Receives bare game facts, builds a recap prompt, enqueues type:game-brief.
+        // Dedup: checks brief:game:{gameId} in FIELD_JOURNALISM — skips if already present.
+        // Always returns 202; all errors are swallowed (DO fan-out must not be affected).
+        if (pathname === '/journalism/game-complete' && request.method === 'POST') {
+            try {
+                const body = await request.json().catch(() => null);
+                const { sport, gameId, home, away, homeScore, awayScore } = body || {};
+                if (sport && gameId && home && away && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
+                    const existing = await env.FIELD_JOURNALISM.get(`brief:game:${gameId}`).catch(() => null);
+                    if (!existing) {
+                        const scoreStr = (homeScore != null && awayScore != null)
+                            ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
+                        const sportLabel = sport.toUpperCase();
+                        const prompt = [
+                            FIELD_VOICE_REGISTER,
+                            `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
+                            `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
+                            `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+                            scoreStr,
+                            `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
+                            `Write the brief as a single paragraph. No headers, no bullet points.`,
+                            JQ_STYLE,
+                        ].filter(Boolean).join('\n');
+                        await env.JOURNALISM_QUEUE.send({
+                            type:        'game-brief',
+                            prompt,
+                            eventId:     gameId,
+                            max_tokens:  300,
+                            sport,
+                            home,
+                            away,
+                            homeScore:   homeScore ?? null,
+                            awayScore:   awayScore ?? null,
+                            enqueuedAt:  Date.now(),
+                        });
+                    }
+                }
+            } catch (_) { /* errors must not surface — DO fan-out cannot be affected */ }
+            return new Response(JSON.stringify({ ok: true }),
+                { status: 202, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // ── /journalism/result/:jobId — WOW 8 result polling endpoint ──────────
