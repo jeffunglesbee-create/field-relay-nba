@@ -189,20 +189,22 @@ const MIN_PLAUSIBLE_ROSTER_SIZE = 15;
 // team's EPL-context roster would help fill a Bundesliga-context gap
 // for an unrelated club, and most clubs aren't in more than one of
 // these three anyway).
-// Continental (top-division clubs across multiple countries) + English
-// domestic cups (all 4 English tiers play in these, so this is the real
-// fallback for lower-league clubs like eflchamp that aren't in UCL/
-// Europa/Conference at all). Verified real before adding eng.fa/
-// eng.league_cup: Birmingham City (id 392, eflchamp, 0 athletes via its
-// own eng.2 context) -> 30 via eng.fa, 23 via eng.league_cup. Bristol
-// City (id 333, also 0 via eng.2) -> 31 via eng.fa. Confirmed on two
-// independent teams before shipping, not assumed from one example.
-// Applied uniformly to every competition -- harmless for non-English
-// clubs (the team ID simply won't exist in eng.fa/eng.league_cup's
-// pool, same as trying a European competition a club isn't in).
+// Continental (top-division clubs across multiple countries) + domestic
+// cups (lower/mid-table clubs not in Europe still play these alongside
+// their league's biggest clubs). Verified real before adding each:
+// eng.fa/eng.league_cup rescued Birmingham City and Bristol City
+// (0->30+ athletes each). esp.copa_del_rey rescued all 3 remaining
+// La Liga gaps (Alaves, Elche, Osasuna, all 0-1->32-35 athletes).
+// ger.dfb_pokal rescued 1 of 2 remaining Bundesliga gaps (Elversberg,
+// 0->27) but NOT Paderborn (confirmed real DFB-Pokal participant,
+// consistently 1 athlete there too, checked twice -- a genuine
+// exception, not every team is rescuable by this pattern). Applied
+// uniformly to every competition -- harmless for clubs not in a given
+// cup (team ID simply won't be found there).
 const ROSTER_FALLBACK_CONTEXTS = [
   'uefa.champions', 'uefa.europa', 'uefa.europa.conf',
   'eng.fa', 'eng.league_cup',
+  'esp.copa_del_rey', 'ger.dfb_pokal',
 ];
 
 async function fetchEspnRosterWithFallback(espnLeague, teamId) {
