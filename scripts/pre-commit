@@ -6,7 +6,11 @@
 # impossible instead of asking again.
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [ "$BRANCH" != "main" ]; then
+# Detached HEAD means git rebase/cherry-pick/bisect is in progress — skip
+# branch check so rebase --exec amends (e.g. for signing) aren't blocked.
+if [ "$BRANCH" = "HEAD" ]; then
+  :  # rebase in progress — branch check skipped
+elif [ "$BRANCH" != "main" ]; then
   echo ""
   echo "╔══════════════════════════════════════════════════════════╗"
   echo "║  COMMIT BLOCKED — not on main                            ║"
