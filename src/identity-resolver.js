@@ -339,6 +339,38 @@ const CANONICAL_PLAYER = (() => {
         // Any caller passing an ESPN-sourced fullName for this player
         // would otherwise silently miss the real data row.
         ['Cristopher Sanchez', 'sánchez'],
+
+        // Found 2026-07-02 via scripts/mlb-player-mismatch-detector.js
+        // (jubilant-bassoon, workflow run 28599226655) — 22 real candidates
+        // total from a full 30-team ESPN roster cross-reference. Before
+        // adding any, checked each accent-stripped key against all 3
+        // source files for an INDEPENDENT existing entry under that same
+        // unaccented spelling — a real collision risk this flat map has
+        // no way to disambiguate (no team/context key). 10 of 22 collided
+        // with a genuinely different real player already using that
+        // shorter spelling (e.g. 'lopez', 'diaz', 'rodriguez' — all
+        // common enough to have multiple distinct real MLB players) and
+        // are DELIBERATELY NOT added here — see
+        // outbox/mlb-player-mismatches.json for the full candidate list
+        // and cf/2026-07-02/canonical-player-collision-risk in Codex for
+        // the excluded ones and the design gap this exposes. The 2
+        // multi-word-surname candidates (del_castillo, de_la_cruz) also
+        // collided (castillo/cruz both exist independently) and are
+        // excluded for the same reason. Only the 11 below had zero
+        // independent collision across pitch_arsenals.json,
+        // pitch_tempo.json, and sprint_speed.json — confirmed via direct
+        // key lookup, not assumed safe from the detector's output alone.
+        ['Andres Gimenez', 'giménez'],
+        ['Yohendrick Pinango', 'piñango'],
+        ['Rafael Marchan', 'marchán'],
+        ['Teoscar Hernandez', 'hernández'],
+        ['Walbert Urena', 'ureña'],
+        ['Eury Perez', 'pérez'],
+        ['Jasson Dominguez', 'domínguez'],
+        ['Mauricio Dubon', 'dubón'],
+        ['Randy Vasquez', 'vásquez'],
+        ['Carlos Narvaez', 'narváez'],
+        ['Nelson Velazquez', 'velázquez'],
     ];
     const out = {};
     for (const [variant, canonical] of pairs) {
