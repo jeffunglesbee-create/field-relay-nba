@@ -396,8 +396,23 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         .filter(g => g.note || (typeof g.home_score === 'number' && typeof g.away_score === 'number'))
         .slice(0, 16)
         .map(g => {
+            // Score must be explicitly bound to each team name, not a bare
+            // "X-Y" string relying on positional order matching the team
+            // order. Confirmed real bug 2026-07-02: this line previously
+            // read "${g.away} at ${g.home} ${home_score}-${away_score}" --
+            // team order (away, home) did not match score order (home,
+            // away), so a reader (the LLM, or a human) naturally associates
+            // the FIRST score with the FIRST-listed team, silently swapping
+            // the actual result. Confirmed this produced two real live
+            // errors: "Congo DR at England 2-1" (real: England 2, Congo DR
+            // 1) was read as Congo DR 2-1, and "Bosnia-Herzegovina at
+            // United States 2-0" (real: USA 2, Bosnia 0) was read as
+            // Bosnia 2-0 -- both silently inverting the actual winner.
+            // Fixed using the same explicit-pairing pattern already used
+            // correctly 6 times elsewhere in index.js
+            // (`${away} ${awayScore} at ${home} ${homeScore}`).
             const score = (typeof g.home_score === 'number' && typeof g.away_score === 'number')
-                ? `${g.home_score}-${g.away_score}` : '';
+                ? `${g.away_score}-${g.home_score}` : '';
             return `- ${g.sport || '?'}: ${g.away} at ${g.home} ${score}${g.note ? ' — ' + g.note : ''}`;
         })
         .join('\n');
