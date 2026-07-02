@@ -7784,6 +7784,32 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // GET /archive/drama-missing?limit=N — lists recently-completed games still
+            // missing drama_peak, for client-side retroactive backfill. Read-only, zero
+            // computation — RUWT/ADR-002 compliant (same category as /archive/drama
+            // itself: relay stores/serves facts, client computes).
+            if (pathname === '/archive/drama-missing' && request.method === 'GET') {
+                if (!env.ARCHIVE_DB) {
+                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const limit = Math.min(20, parseInt(url.searchParams.get('limit')) || 5);
+                // Most-recent-first: Night Stars only ever surfaces "yesterday" — old
+                // backlog beyond the active recap window has no real product value to
+                // recover urgently. Recency-first also means the client naturally
+                // clears the freshest gaps first across repeated app opens.
+                const rows = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, date, home, away, home_score, away_score,
+                            espn_event_id
+                     FROM regular_season_games
+                     WHERE drama_peak IS NULL AND home_score IS NOT NULL
+                     ORDER BY date DESC
+                     LIMIT ?`
+                ).bind(limit).all().catch(() => ({ results: [] }));
+                return new Response(JSON.stringify({ ok: true, games: rows.results || [] }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             // POST /archive/backfill-enrich — fills in skeleton rows (home IS NULL)
             // created by older GameDO archives that didn't forward team names.
             // For each null-home row: groups by (sport, date), self-fetches
