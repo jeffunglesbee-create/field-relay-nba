@@ -3,12 +3,16 @@ on:
   push:
     branches:
       - 'claude/**'
+  schedule:
+    - cron: '*/30 * * * *'  # every 30 min — catches anything push missed (e.g. [skip ci])
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 jobs:
-  auto-merge:
+  auto-merge-on-push:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Merge into main
@@ -17,30 +21,57 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF#refs/heads/}"
           echo "Auto-merging stray branch: $BRANCH"
-
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "https://api.github.com/repos/${{ github.repository }}/merges" \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            -d "{\"base\": \"main\", \"head\": \"$BRANCH\", \"commit_message\": \"auto-merge: stray branch $BRANCH (CI safety net — see CLAUDE.md branch policy)\"}")
-
+            -d "{\"base\": \"main\", \"head\": \"$BRANCH\", \"commit_message\": \"auto-merge: stray branch $BRANCH (CI safety net — push trigger)\"}")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
-
           echo "HTTP $HTTP_CODE"
           echo "$BODY"
-
           if [ "$HTTP_CODE" -eq 201 ]; then
-            echo "✅ Merged successfully"
-            # Delete the stray branch now that it's merged
-            curl -s -X DELETE \
-              "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH" \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json"
+            curl -s -X DELETE "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH" \
+              -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json"
             echo "🗑 Deleted $BRANCH"
-          elif [ "$HTTP_CODE" -eq 204 ]; then
-            echo "ℹ️ Already up to date — nothing to merge"
-          else
-            echo "❌ Merge failed (conflict or other issue) — branch left intact for manual review"
+          elif [ "$HTTP_CODE" -ne 204 ]; then
+            echo "❌ Merge failed — branch left intact for manual review"
             exit 1
           fi
+
+  auto-merge-sweep:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep all claude/** branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCHES=$(curl -s "https://api.github.com/repos/${{ github.repository }}/branches?per_page=100" \
+            -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            | python3 -c "import json,sys; [print(b['name']) for b in json.load(sys.stdin) if b['name'].startswith('claude/')]")
+
+          if [ -z "$BRANCHES" ]; then
+            echo "No claude/* branches found — nothing to sweep."
+            exit 0
+          fi
+
+          for BRANCH in $BRANCHES; do
+            echo "Sweeping: $BRANCH"
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+              "https://api.github.com/repos/${{ github.repository }}/merges" \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d "{\"base\": \"main\", \"head\": \"$BRANCH\", \"commit_message\": \"auto-merge: stray branch $BRANCH (CI safety net — scheduled sweep, likely missed by push trigger e.g. via [skip ci])\"}")
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            echo "  HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -eq 201 ]; then
+              curl -s -X DELETE "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH" \
+                -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json"
+              echo "  🗑 Deleted $BRANCH"
+            elif [ "$HTTP_CODE" -eq 204 ]; then
+              echo "  ℹ️ Already up to date"
+            else
+              echo "  ❌ Merge failed for $BRANCH — left intact for manual review"
+            fi
+          done
