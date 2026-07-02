@@ -1,0 +1,22 @@
+name: Soccer Player Crosscheck
+on:
+  workflow_dispatch: {}
+
+jobs:
+  crosscheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run soccer player crosscheck
+        env:
+          RELAY_URL: https://field-relay-nba.jeffunglesbee.workers.dev
+        run: node scripts/soccer-player-crosscheck.js
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soccer-crosscheck-results
+          path: outbox/soccer-player-crosscheck.json
