@@ -1,0 +1,46 @@
+name: Auto-Merge Stray Branches
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+permissions:
+  contents: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge into main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "Auto-merging stray branch: $BRANCH"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.github.com/repos/${{ github.repository }}/merges" \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -d "{\"base\": \"main\", \"head\": \"$BRANCH\", \"commit_message\": \"auto-merge: stray branch $BRANCH (CI safety net — see CLAUDE.md branch policy)\"}")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY"
+
+          if [ "$HTTP_CODE" -eq 201 ]; then
+            echo "✅ Merged successfully"
+            # Delete the stray branch now that it's merged
+            curl -s -X DELETE \
+              "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH" \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json"
+            echo "🗑 Deleted $BRANCH"
+          elif [ "$HTTP_CODE" -eq 204 ]; then
+            echo "ℹ️ Already up to date — nothing to merge"
+          else
+            echo "❌ Merge failed (conflict or other issue) — branch left intact for manual review"
+            exit 1
+          fi

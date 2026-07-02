@@ -1,0 +1,71 @@
+name: Verify Pending Follow-Up Checks
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check savant change_log entry
+        id: savant
+        run: |
+          RESULT=$(curl -s -X POST https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "Content-Type: application/json" \
+            -d '{"sql": "SELECT COUNT(*) as n FROM change_log WHERE source = ?", "params": ["savant"]}')
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "$RESULT"
+
+      - name: Check completion-trigger brief entry
+        id: journalism
+        run: |
+          RESULT=$(curl -s -X POST https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "Content-Type: application/json" \
+            -d '{"sql": "SELECT COUNT(*) as n FROM briefs WHERE source = ?", "params": ["completion-trigger"]}')
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "$RESULT"
+
+      - name: Log results to codex if either newly passed
+        run: |
+          python3 -c "
+          import json, urllib.request
+
+          savant = json.loads('''${{ steps.savant.outputs.result }}''')
+          journalism = json.loads('''${{ steps.journalism.outputs.result }}''')
+
+          savant_n = savant.get('results', [{}])[0].get('n', 0)
+          journalism_n = journalism.get('results', [{}])[0].get('n', 0)
+
+          print(f'savant change_log entries: {savant_n}')
+          print(f'completion-trigger briefs: {journalism_n}')
+
+          if savant_n > 0 or journalism_n > 0:
+              content = json.dumps({
+                  'checked_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)',
+                  'savant_change_log_entries': savant_n,
+                  'completion_trigger_briefs': journalism_n,
+                  'note': 'auto-verified by verify-pending-checks.yml',
+              })
+              sql = '''INSERT INTO codex (key, category, title, content, status)
+                       VALUES (?, ?, ?, ?, 'open')
+                       ON CONFLICT(key) DO UPDATE SET content=excluded.content, updated_at=datetime('now')'''
+              payload = json.dumps({
+                  'sql': sql,
+                  'params': ['auto-verify-$(date -u +%Y%m%d)',
+                             'verification',
+                             'Auto-verified: xERA pipeline and/or completion-triggered journalism confirmed live',
+                             content],
+              }).encode()
+              req = urllib.request.Request(
+                  'https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute',
+                  data=payload, method='POST',
+                  headers={'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026'},
+              )
+              urllib.request.urlopen(req)
+              print('Logged to codex — condition newly confirmed.')
+          else:
+              print('Neither condition met yet — no codex write, avoiding noise.')
+          "
