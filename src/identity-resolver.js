@@ -418,4 +418,76 @@ function resolveTeamKey(name) {
     return resolveEntity('team', name);
 }
 
+// ── Soccer player identity — separate algorithm from both _strip() and
+// _stripPlayer() (MLB) ──────────────────────────────────────────────
+// MLB's _stripPlayer strips Jr/Sr/II/III/IV suffixes and takes only the
+// last name token -- both wrong for soccer: no generational-suffix
+// convention, and real particle surnames exist ("Da Costa", verified
+// live 2026-07-02 via a real WC26 player) that a last-token-only
+// extraction would truncate.
+//
+// Two real input shapes must both be handled, verified against all 9
+// real candidates found this session in BOTH forms before shipping:
+//   1. BSD's abbreviated format: "B. A. Yılmaz" (leading period-
+//      terminated initials, surname is everything after).
+//   2. ESPN's fullName format: "Baris Alper Yilmaz" (no periods,
+//      spelled-out given names) -- falls back to last-token extraction
+//      since no real multi-word-surname case has been observed yet in
+//      this format specifically. If one surfaces (e.g. "N'Golo Da
+//      Costa" as a full name), this needs the same particle-detection
+//      MLB's lastNameOf() uses for suffixes, adapted for soccer
+//      particles (van, de, da, dos, von) -- not built here because no
+//      real case has required it yet.
+//
+// Deliberately does NOT strip diacritics -- preserves whatever the
+// input has, same principle as MLB's _stripPlayer. BSD-sourced strings
+// (canonical side) keep their real accents; ESPN-sourced strings
+// (variant side) naturally produce whatever ESPN's own transliteration
+// gives (verified inconsistent: keeps some accents like Ç, drops
+// Turkish-specific ı).
+function _stripPlayerSoccer(name) {
+    const tokens = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return '';
+    let i = 0;
+    while (i < tokens.length - 1 && /^[A-Za-z]\.$/.test(tokens[i])) i++;
+    if (i > 0) return tokens.slice(i).join(' ').toLowerCase();
+    return tokens[tokens.length - 1].toLowerCase();
+}
+
+// Populated from scripts/soccer-player-crosscheck.js (field-relay-nba),
+// real production runs 2026-07-02 (commits 129f848 through 6e472f78c).
+// Every entry here was verified TWICE before being added:
+//   1. By the detector itself (exact-match-preference + within-match
+//      collision check across the 32 players in one BSD event).
+//   2. By a broader collision check against full competition athlete
+//      pools (1246-3331 real athletes each, multiple competition
+//      contexts) -- confirms each surname maps to exactly one real
+//      distinct person, not just "no collision in one game's sample."
+//      This is the same rigor CANONICAL_PLAYER (MLB) got before its
+//      11 entries were added -- narrower single-match verification
+//      alone was explicitly judged insufficient first.
+// Canonical value is BSD's own extracted surname (source of truth for
+// the live data pipeline, same directionality as CANONICAL_PLAYER).
+const CANONICAL_PLAYER_SOCCER = (() => {
+    const pairs = [
+        ['Baris Alper Yilmaz', 'Yılmaz'],
+        ['Ugurcan Çakir', 'Çakır'],
+        ['Kenan Yildiz', 'Yıldız'],
+        ['Oguz Aydin', 'Aydın'],
+        ['Eren Elmali', 'Elmalı'],
+        ['Abdülkerim Bardakçi', 'Bardakcı'],
+        ['Christian Pulisic', 'Pulišić'],
+        ['Carlos Macià', 'Macia'],
+        ['Aleksa Puric', 'Purić'],
+    ];
+    const out = {};
+    for (const [variant, canonical] of pairs) {
+        out[_stripPlayerSoccer(variant)] = _stripPlayerSoccer(canonical);
+    }
+    return out;
+})();
+
+_STRIP_BY_TYPE.soccer_player = _stripPlayerSoccer;
+_CANONICAL_BY_TYPE.soccer_player = CANONICAL_PLAYER_SOCCER;
+
 export { resolveTeamKey, resolveEntity };
