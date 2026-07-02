@@ -468,26 +468,43 @@ function _stripPlayerSoccer(name) {
 //      alone was explicitly judged insufficient first.
 // Canonical value is BSD's own extracted surname (source of truth for
 // the live data pipeline, same directionality as CANONICAL_PLAYER).
-const CANONICAL_PLAYER_SOCCER = (() => {
+// _SOCCER_BUILD: builds both name→canonical map and canonical-key→bsdPlayerId map
+// in one pass. SOCCER_PLAYER_ID_BY_KEY uses the CANONICAL key (output of
+// _stripPlayerSoccer(canonical)) so that resolveEntity('soccer_player', espnName)
+// → canonical key → ID lookup works without a second strip call at the call site.
+// bsdPlayerId values sourced from scripts/soccer-player-crosscheck.js real output
+// (field-relay-nba, confirmed 2026-07-02). Macià (5143) and Purić (5154) flagged
+// in CC-CMD-2026-07-02-goalscorer-xg as unconfirmed — verify against live
+// crosscheck output before relying on those two IDs in production.
+const _SOCCER_BUILD = (() => {
     const pairs = [
-        ['Baris Alper Yilmaz', 'Yılmaz'],
-        ['Ugurcan Çakir', 'Çakır'],
-        ['Kenan Yildiz', 'Yıldız'],
-        ['Oguz Aydin', 'Aydın'],
-        ['Eren Elmali', 'Elmalı'],
-        ['Abdülkerim Bardakçi', 'Bardakcı'],
-        ['Christian Pulisic', 'Pulišić'],
-        ['Carlos Macià', 'Macia'],
-        ['Aleksa Puric', 'Purić'],
+        ['Baris Alper Yilmaz', 'Yılmaz',    3734],
+        ['Ugurcan Çakir',      'Çakır',      3724],
+        ['Kenan Yildiz',       'Yıldız',     2184],
+        ['Oguz Aydin',         'Aydın',      3412],
+        ['Eren Elmali',        'Elmalı',     4217],
+        ['Abdülkerim Bardakçi','Bardakcı',   3727],
+        ['Christian Pulisic',  'Pulišić',    3820],
+        ['Carlos Macià',       'Macia',      5143],
+        ['Aleksa Puric',       'Purić',      5154],
     ];
-    const out = {};
-    for (const [variant, canonical] of pairs) {
-        out[_stripPlayerSoccer(variant)] = _stripPlayerSoccer(canonical);
+    const canonical = {};
+    const idByKey   = {};
+    for (const [variant, canonicalName, playerId] of pairs) {
+        const variantKey   = _stripPlayerSoccer(variant);
+        const canonicalKey = _stripPlayerSoccer(canonicalName);
+        canonical[variantKey] = canonicalKey;
+        if (playerId != null) idByKey[canonicalKey] = playerId;
     }
-    return out;
+    return { canonical, idByKey };
 })();
 
-_STRIP_BY_TYPE.soccer_player = _stripPlayerSoccer;
+const CANONICAL_PLAYER_SOCCER  = _SOCCER_BUILD.canonical;
+// Maps resolveEntity('soccer_player', espnName) → BSD numeric player_id.
+// Key is the canonical strip form (same string resolveEntity returns).
+const SOCCER_PLAYER_ID_BY_KEY  = _SOCCER_BUILD.idByKey;
+
+_STRIP_BY_TYPE.soccer_player    = _stripPlayerSoccer;
 _CANONICAL_BY_TYPE.soccer_player = CANONICAL_PLAYER_SOCCER;
 
-export { resolveTeamKey, resolveEntity };
+export { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };

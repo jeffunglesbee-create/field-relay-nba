@@ -67,7 +67,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey } from './identity-resolver.js';
+import { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -1816,6 +1816,31 @@ async function writeWCResult(db, game, env, ctx) {
             }
         } catch (_) { /* non-blocking — standings context is additive */ }
 
+        // BSD shotmap: fetch for xG enrichment of goalscorer events. One call per
+        // WC game final. Not reusing R2 cache here — the captureWithRetry write
+        // above is fire-and-forget (ctx.waitUntil) and data isn't in R2 yet.
+        // Calls BSD directly (same credential pattern as captureWithRetry above).
+        // Wrapped in try-catch: Rule 5 — never blocks journalism delivery.
+        const bsdGoalXg = {}; // player_id → xg (first goal entry per player)
+        if (game.bsdEventId && env?.BSD_API_TOKEN) {
+            try {
+                const bsdStatsResp = await fetch(
+                    `https://sports.bzzoiro.com/api/v2/events/${game.bsdEventId}/stats/`,
+                    { headers: { 'X-API-KEY': env.BSD_API_TOKEN },
+                      signal: AbortSignal.timeout(4000) }
+                );
+                if (bsdStatsResp.ok) {
+                    const bsdStats = await bsdStatsResp.json().catch(() => null);
+                    for (const shot of (bsdStats?.shotmap || [])) {
+                        if (shot.type === 'goal' && shot.player_id != null && shot.xg != null
+                                && !(shot.player_id in bsdGoalXg)) {
+                            bsdGoalXg[shot.player_id] = shot.xg;
+                        }
+                    }
+                }
+            } catch (_) { /* xG enrichment is additive — never block journalism */ }
+        }
+
         // Match events for journalism brief. Prefer comp.details threaded via
         // game.matchEvents (no extra fetch). Fall back to ESPN summary if absent.
         let eventsContext = '';
@@ -1828,7 +1853,17 @@ async function writeWCResult(db, game, env, ctx) {
                         const player = e.players?.[0] || '';
                         const team   = e.team ? ` (${e.team})` : '';
                         const label  = `${min} ${player}${team}`.trim();
-                        if (e.scoringPlay) return `⚽ ${label}`;
+                        if (e.scoringPlay) {
+                            let xgSuffix = '';
+                            if (player && Object.keys(bsdGoalXg).length > 0) {
+                                const key      = resolveEntity('soccer_player', player);
+                                const playerId = SOCCER_PLAYER_ID_BY_KEY[key];
+                                if (playerId != null && playerId in bsdGoalXg) {
+                                    xgSuffix = ` xG: ${bsdGoalXg[playerId].toFixed(2)}`;
+                                }
+                            }
+                            return `⚽ ${label}${xgSuffix}`;
+                        }
                         if (e.redCard)     return `🟥 ${label}`;
                         if (e.yellowCard)  return `🟨 ${label}`;
                         return null;
