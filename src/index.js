@@ -1826,7 +1826,11 @@ async function writeWCResult(db, game, env, ctx) {
             try {
                 const bsdStatsResp = await fetch(
                     `https://sports.bzzoiro.com/api/v2/events/${game.bsdEventId}/stats/`,
-                    { headers: { 'X-API-KEY': env.BSD_API_TOKEN },
+                    { headers: {
+                        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+                        'User-Agent': 'FIELD/1.0',
+                        'Accept': 'application/json',
+                      },
                       signal: AbortSignal.timeout(4000) }
                 );
                 if (bsdStatsResp.ok) {
