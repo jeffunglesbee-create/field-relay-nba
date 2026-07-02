@@ -71,10 +71,24 @@ function isMaterialChange(change, brief) {
         return { material: true, reason: 'starter_changed' };
     }
 
-    // Savant — starter swap or xERA delta
-    if (_SAVANT_SOURCES.has(src) &&
-        (field.includes('starter') || field.includes('xera'))) {
+    // Savant — starter swap (unconditional) or xERA shift above materiality threshold.
+    // The 0.25 threshold is derived from weekly-update delta distributions: mid-season
+    // single-start noise lands at 0.05-0.15; genuine narrative shifts (multiple bad starts
+    // or one early-season blowup) reach 0.25+. Requires calibration once xERA entries
+    // accumulate in change_log (no live producer exists yet as of 2026-07-02).
+    if (_SAVANT_SOURCES.has(src) && field.includes('starter')) {
         return { material: true, reason: 'starter_changed' };
+    }
+    if (_SAVANT_SOURCES.has(src) && field.includes('xera')) {
+        const oldV = parseFloat(change.old_value);
+        const newV = parseFloat(change.new_value);
+        if (!Number.isFinite(oldV) || !Number.isFinite(newV)) {
+            return { material: false, reason: '' };
+        }
+        if (Math.abs(newV - oldV) >= 0.25) {
+            return { material: true, reason: 'xera_shift' };
+        }
+        return { material: false, reason: '' };
     }
 
     // Weather — rain risk appearing or dome flag flipping
