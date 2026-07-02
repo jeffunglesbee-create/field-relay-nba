@@ -1,5 +1,17 @@
 # CLAUDE.md — field-relay-nba (FIELD Relay Worker)
 
+## Branch policy (read this first)
+Every commit goes directly to `main`. Never create a feature branch,
+never open a PR, never wait for a separate merge step. If a session
+ends with commits on anything other than `main`, that session failed
+its own task, regardless of whether the code itself is correct. This
+has happened twice in one session (2026-07-01) despite an explicit
+per-CC-CMD instruction saying the same thing — it is now written here
+instead, because the per-task instruction alone was not reliably
+followed. Before reporting a task complete, confirm via
+`git branch --show-current` (or equivalent) that you are on `main`, not
+a `claude/*`-prefixed branch.
+
 ## What is this?
 Cloudflare Workers relay for the FIELD Global Sports Intelligence PWA. Handles data proxying, journalism generation, Durable Objects, MCP server, and archive endpoints. Companion to jubilant-bassoon (the browser client).
 
