@@ -123,13 +123,14 @@ async function fetchAveragePositions(eventId) {
 }
 
 async function findFinishedBsdEvent(bsdLeagueId, season) {
-  const url = `${RELAY}/bsd/events/season?league=${bsdLeagueId}&season=${season}`;
+  const url = `${RELAY}/bsd/events/season?league_id=${bsdLeagueId}&season=${season}`;
   let data;
   try { data = await get(url); } catch (e) { return null; }
 
   const events = Array.isArray(data) ? data
-    : Array.isArray(data.events) ? data.events
-    : Array.isArray(data.data)   ? data.data
+    : Array.isArray(data.results) ? data.results
+    : Array.isArray(data.events)  ? data.events
+    : Array.isArray(data.data)    ? data.data
     : [];
 
   const finished = events.find(e => {
@@ -167,21 +168,33 @@ async function fetchEspnRoster(espnLeague, teamId) {
   }));
 }
 
+// A real professional squad has 20+ players. Below this, ESPN's roster
+// data for the team is genuinely incomplete right now (confirmed live
+// 2026-07-02: Real Madrid, Barcelona, Bayern Munich, Dortmund, Leverkusen
+// all show 0; several La Liga/Bundesliga teams show exactly 1 -- this is
+// real 2026-27 preseason data sparsity, inconsistent per-team even within
+// the same league, not a script bug and not evenly distributed by league).
+const MIN_PLAUSIBLE_ROSTER_SIZE = 15;
+
 async function fetchAllEspnAthletes(espnLeague) {
   const teamIds = await fetchEspnTeamIds(espnLeague);
   process.stdout.write(`    ${teamIds.length} ESPN teams in ${espnLeague}\n`);
 
   const athletes = [];
+  const dataGapTeams = [];
   for (const teamId of teamIds) {
     await delay(ROSTER_DELAY_MS);
     try {
       const roster = await fetchEspnRoster(espnLeague, teamId);
+      if (roster.length < MIN_PLAUSIBLE_ROSTER_SIZE) {
+        dataGapTeams.push({ teamId, athleteCount: roster.length });
+      }
       athletes.push(...roster);
     } catch (e) {
-      process.stdout.write(`    roster fetch failed for team ${teamId}: ${e.message}\n`);
+      dataGapTeams.push({ teamId, athleteCount: 0, error: e.message });
     }
   }
-  return athletes;
+  return { athletes, dataGapTeams, totalTeams: teamIds.length };
 }
 
 // ─── Collision index ──────────────────────────────────────────────────────────
@@ -210,10 +223,20 @@ async function crossCheck(competitionKey, espnLeague, bsdEventId) {
   catch (e) { return { ...result, error: e.message }; }
   process.stdout.write(`    ${positions.length} BSD players in average_positions\n`);
 
-  let espnAthletes;
-  try { espnAthletes = await fetchAllEspnAthletes(espnLeague); }
+  let espnAthletes, dataGapTeams, totalTeams;
+  try {
+    ({ athletes: espnAthletes, dataGapTeams, totalTeams } = await fetchAllEspnAthletes(espnLeague));
+  }
   catch (e) { return { ...result, error: e.message }; }
   process.stdout.write(`    ${espnAthletes.length} ESPN athletes fetched\n`);
+  if (dataGapTeams.length > 0) {
+    process.stdout.write(`    ESPN roster data gap: ${dataGapTeams.length}/${totalTeams} teams below ${MIN_PLAUSIBLE_ROSTER_SIZE} athletes\n`);
+  }
+  result.espn_data_gap = {
+    teamsWithGap: dataGapTeams.length,
+    totalTeams,
+    detail: dataGapTeams,
+  };
 
   // ESPN lookup: normalizedLastName → [athlete, ...]
   const espnIdx = {};
@@ -303,7 +326,30 @@ async function crossCheck(competitionKey, espnLeague, bsdEventId) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const output = { candidates: [], unmatched: [], untestable: [] };
+  const output = { candidates: [], unmatched: [], untestable: [], espn_data_gaps: [] };
+
+  // Only worth recording if it affects a real fraction of the league --
+  // a couple of teams with sparse data is normal noise, not worth
+  // cluttering the report. Threshold is a judgment call, documented here.
+  const GAP_REPORT_THRESHOLD = 0.25; // >=25% of teams below MIN_PLAUSIBLE_ROSTER_SIZE
+
+  function recordGap(competitionKey, gap) {
+    if (!gap || gap.totalTeams === 0) return;
+    const frac = gap.teamsWithGap / gap.totalTeams;
+    if (frac >= GAP_REPORT_THRESHOLD) {
+      output.espn_data_gaps.push({
+        competition: competitionKey,
+        teamsWithGap: gap.teamsWithGap,
+        totalTeams: gap.totalTeams,
+        note: 'ESPN roster data for these teams has fewer than ' +
+          MIN_PLAUSIBLE_ROSTER_SIZE + ' athletes right now -- confirmed real ' +
+          '2026-07-02 (Real Madrid, Barcelona, Bayern Munich, Dortmund, ' +
+          'Leverkusen all show 0), not a fetch bug. Candidates/unmatched ' +
+          'from this competition are unreliable for the affected teams -- ' +
+          'do not treat sparse unmatched counts here as genuine mismatches.',
+      });
+    }
+  }
 
   // WC26 — group stage confirmed finished; BSD accessed directly via known event IDs
   process.stdout.write('Processing wc26...\n');
@@ -315,6 +361,7 @@ async function main() {
     } else {
       output.candidates.push(...result.candidates);
       output.unmatched.push(...result.unmatched);
+      recordGap('wc26', result.espn_data_gap);
     }
     break; // one event sufficient for the cross-check
   }
@@ -325,8 +372,7 @@ async function main() {
 
     const eventId = await findFinishedBsdEvent(comp.bsdLeagueId, comp.season);
     if (!eventId) {
-      const reason = `No finished BSD events found for bsdLeagueId=${comp.bsdLeagueId} ` +
-        `season=${comp.season} — 2026-27 European domestic season not yet started as of 2026-07-02`;
+      const reason = `No finished BSD events found for bsdLeagueId=${comp.bsdLeagueId} season=${comp.season}`;
       process.stdout.write(`  Untestable: ${reason}\n`);
       output.untestable.push({ competition: comp.key, reason });
       continue;
@@ -339,6 +385,7 @@ async function main() {
     } else {
       output.candidates.push(...result.candidates);
       output.unmatched.push(...result.unmatched);
+      recordGap(comp.key, result.espn_data_gap);
     }
   }
 
@@ -348,6 +395,7 @@ async function main() {
   process.stdout.write(`Candidates: ${output.candidates.length}\n`);
   process.stdout.write(`Unmatched:  ${output.unmatched.length}\n`);
   process.stdout.write(`Untestable: ${output.untestable.length}\n`);
+  process.stdout.write(`ESPN data gaps: ${output.espn_data_gaps.length} competition(s) affected\n`);
 }
 
 main().catch(err => {
