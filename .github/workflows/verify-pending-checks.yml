@@ -29,12 +29,16 @@ jobs:
           echo "$RESULT"
 
       - name: Log results to codex if either newly passed
+        env:
+          SAVANT_JSON: ${{ steps.savant.outputs.result }}
+          JOURNALISM_JSON: ${{ steps.journalism.outputs.result }}
         run: |
-          python3 -c "
-          import json, urllib.request
+          python3 << 'PYEOF'
+          import json, os, urllib.request
+          from datetime import datetime, timezone
 
-          savant = json.loads('''${{ steps.savant.outputs.result }}''')
-          journalism = json.loads('''${{ steps.journalism.outputs.result }}''')
+          savant = json.loads(os.environ['SAVANT_JSON'])
+          journalism = json.loads(os.environ['JOURNALISM_JSON'])
 
           savant_n = savant.get('results', [{}])[0].get('n', 0)
           journalism_n = journalism.get('results', [{}])[0].get('n', 0)
@@ -43,8 +47,9 @@ jobs:
           print(f'completion-trigger briefs: {journalism_n}')
 
           if savant_n > 0 or journalism_n > 0:
+              now = datetime.now(timezone.utc)
               content = json.dumps({
-                  'checked_at': '$(date -u +%Y-%m-%dT%H:%M:%SZ)',
+                  'checked_at': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                   'savant_change_log_entries': savant_n,
                   'completion_trigger_briefs': journalism_n,
                   'note': 'auto-verified by verify-pending-checks.yml',
@@ -54,7 +59,7 @@ jobs:
                        ON CONFLICT(key) DO UPDATE SET content=excluded.content, updated_at=datetime('now')'''
               payload = json.dumps({
                   'sql': sql,
-                  'params': ['auto-verify-$(date -u +%Y%m%d)',
+                  'params': [f'auto-verify-{now.strftime("%Y%m%d")}',
                              'verification',
                              'Auto-verified: xERA pipeline and/or completion-triggered journalism confirmed live',
                              content],
@@ -68,4 +73,4 @@ jobs:
               print('Logged to codex — condition newly confirmed.')
           else:
               print('Neither condition met yet — no codex write, avoiding noise.')
-          "
+          PYEOF
