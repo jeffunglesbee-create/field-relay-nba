@@ -99,13 +99,22 @@ async function reconcile(env, spec) {
 
     // 2. Bulk-read current row state. ids may be any string/number; the
     //    bind path handles both.
+    // D1's real bound-parameter limit is 100 per query (not SQLite's
+    // standard 999) — confirmed against Cloudflare docs 2026-07-01 after
+    // a real 633-row batch hit D1_ERROR: too many SQL variables. Chunked
+    // at 90 to leave headroom for future callers that may bind extra params
+    // alongside id in the same statement shape.
     const ids = spec.updates.map(u => u.id);
-    const placeholders = ids.map(() => '?').join(',');
-    const cur = await env.ARCHIVE_DB.prepare(
-        `SELECT id, ${cols.join(', ')} FROM ${target} WHERE id IN (${placeholders})`
-    ).bind(...ids).all();
+    const CHUNK_SIZE = 90;
     const currentById = {};
-    for (const r of (cur.results || [])) currentById[r.id] = r;
+    for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const chunkPlaceholders = chunk.map(() => '?').join(',');
+        const chunkRes = await env.ARCHIVE_DB.prepare(
+            `SELECT id, ${cols.join(', ')} FROM ${target} WHERE id IN (${chunkPlaceholders})`
+        ).bind(...chunk).all();
+        for (const r of (chunkRes.results || [])) currentById[r.id] = r;
+    }
 
     // 3. Build per-row UPDATE + change_log statements. Skip rows where
     //    no field actually changed.
