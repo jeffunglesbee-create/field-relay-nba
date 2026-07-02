@@ -1,100 +1,68 @@
 # Outbox — Soccer Player Cross-Check (BSD ↔ ESPN)
 
-**Date:** 2026-07-02
+**Date:** 2026-07-02 (updated — supersedes the same-day earlier version)
 **CC-CMD:** docs/CC-CMD-2026-07-02-soccer-player-crosscheck.md
-**Status:** SHIPPED (script + workflow committed; full data run is chat-side via workflow_dispatch)
+**Status:** SHIPPED, real CI-verified (run 28615428531, success), correction applied
 
 ---
 
-## Task 1 — Cross-Referenceable Competitions
+## Correction to the original manifest
 
-Enumerated from `src/index.js` league config table (lines 971–995).
+The version of this manifest shipped with commit `129f848` stated 9 of 10
+non-WC26 competitions were untestable because "2026-27 European domestic
+season not yet started." That claim was **never actually verified** — the
+script had two real bugs (wrong `league_id` query param name, wrong
+response-array key) that silently made `findFinishedBsdEvent` return null
+for every competition regardless of real data. Fixed same day (commits
+`b520077`, `55db8ee`). The real picture is materially different.
 
-### Included (bsdLeagueId != null AND espnLeague present)
+## Real testability, verified via actual CI run 2026-07-02
 
-| key         | bsdLeagueId | espnLeague            | season  | testable (2026-07-02)          |
-|-------------|-------------|-----------------------|---------|-------------------------------|
-| epl         | 1           | eng.1                 | 2026    | No — 2026-27 not yet started  |
-| mls         | 18          | usa.1                 | 2026    | Possibly — season in progress |
-| ucl         | 7           | uefa.champions        | 2026    | No — 2026-27 not yet started  |
-| europa      | 8           | uefa.europa           | 2026    | No — 2026-27 not yet started  |
-| conference  | 8           | uefa.europa.conf      | 2026    | No — 2026-27 not yet started  |
-| eflchamp    | 12          | eng.2                 | 2026    | No — 2026-27 not yet started  |
-| laliga      | 3           | esp.1                 | 2026    | No — 2026-27 not yet started  |
-| seriea      | 4           | ita.1                 | 2026    | No — 2026-27 not yet started  |
-| bundesliga  | 5           | ger.1                 | 2026    | No — 2026-27 not yet started  |
-| ligue1      | 6           | fra.1                 | 2026    | No — 2026-27 not yet started  |
+| Competition | Real finished BSD event? | ESPN 2026-27 rosters populated? |
+|---|---|---|
+| wc26 | Yes (event 8346) | Yes — 1246 real athletes |
+| ucl | Yes (event 206718) | Yes — 1268 real athletes, no data gap |
+| europa | Yes (event 206891) | Yes — 1246 real athletes, no data gap |
+| conference | Yes (event 206891) | Yes — 1174 real athletes, no data gap |
+| eflchamp | Yes (event 207505) | **No — 24/24 teams below 15 athletes** |
+| laliga | Yes (event 1070) | **Partial — 11/20 teams below 15 athletes** |
+| bundesliga | Yes (event 207461) | **No — 18/18 teams below 15 athletes** |
+| epl | No finished event found | N/A |
+| mls | No finished event found | N/A |
+| seriea | No finished event found | N/A |
+| ligue1 | No finished event found | N/A |
 
-### Excluded (no bsdLeagueId — ESPN-only, nothing to cross-check)
+The ESPN roster gaps are **real, confirmed live 2026-07-02, not a script
+bug**: Real Madrid, Barcelona, Bayern Munich, Borussia Dortmund, and Bayer
+Leverkusen all show 0 athletes on ESPN's roster endpoint right now. The
+gap is inconsistent per-team even within one league (11 of 20 La Liga
+teams, not all 20) — this is 2026-27 preseason data sparsity on ESPN's
+side, not something this tool can fix.
 
-| key     | reason                                      |
-|---------|---------------------------------------------|
-| eflone  | bsdLeagueId: null — ESPN-only competition   |
-| efltwo  | bsdLeagueId: null — ESPN-only competition   |
+## Real results, run 28615428531
 
-### Special case: wc26
+- **7 candidates** (all diacritic-normalization cases, WC26: Turkish
+  players + Christian Pulisic — see `outbox/soccer-player-crosscheck.json`
+  for full detail)
+- **125 unmatched** — the large majority of these are noise from the
+  eflchamp/laliga/bundesliga ESPN data gaps, NOT genuine mismatches. Do
+  not treat this count as 125 real findings.
+- **4 untestable** (epl, mls, seriea, ligue1 — genuinely no finished BSD
+  event, verified with the corrected `league_id` param)
+- **3 competitions flagged in `espn_data_gaps`** (eflchamp, laliga,
+  bundesliga) — the mechanism added to distinguish real data-gap noise
+  from genuine candidates going forward
 
-Config entry: `{ sport: 'football', leagueId: 1, season: '2026', espnLeague: 'fifa.world' }` — no `bsdLeagueId` field. BSD events are accessed via event ID directly (not by league ID). Group stage confirmed finished; BSD event 8346 confirmed to have `average_positions` data via CC-CMD probe. Script handles wc26 via `WC26_EVENT_IDS = [8346]` — the primary test target.
+## Not yet done
 
----
-
-## Task 2 — Script
-
-**`scripts/soccer-player-crosscheck.js`** — standalone Node.js script.
-
-Design decisions:
-- `extractSurname` is standalone (not imported from `identity-resolver.js`) — the soccer algorithm (strip leading initials) is structurally different from MLB `_stripPlayer` (suffix-stripping: Jr/Sr/II/III/IV irrelevant for soccer). Evaluated importing and rejected.
-- ESPN roster approach: fetch all teams in the league, then all rosters. Bounded per competition (e.g. ~32 teams × ~23 players for WC26). Acceptable for a periodic audit tool.
-- WC26 handled specially: no BSD season endpoint needed; known event ID used directly.
-- Collision check: per-event BSD dataset — flag any candidate where another BSD player in the same dataset shares the same normalized surname.
-- Rate limiting: 250ms delay between ESPN roster fetches.
-
-Output: `outbox/soccer-player-crosscheck.json` with keys `candidates`, `unmatched`, `untestable`.
-
----
-
-## Task 3 — Inline Assertions
-
-Three exact real BSD samples verified in CC-CMD, run before any network calls:
-
-```
-PASS [T. Weah → Weah]
-PASS [B. A. Yılmaz → Yılmaz]
-PASS [N. Da Costa → Da Costa]
-```
-
-Confirmed passing: verified independently via `node -e` in this session.
-
----
-
-## Task 4 — Verification
-
-```
-node -c scripts/soccer-player-crosscheck.js
-```
-Exit 0 — syntax valid.
-
-YAML check on `.github/workflows/soccer-player-crosscheck.yml`:
-```
-YAML valid
-trigger: ['workflow_dispatch']
-```
-
----
-
-## Task 5 — Known Limitations / Untestable Competitions
-
-The script will log `untestable` entries for:
-
-- `epl`, `ucl`, `europa`, `conference`, `eflchamp`, `laliga`, `seriea`, `bundesliga`, `ligue1` — 2026-27 European domestic season has not started as of 2026-07-02. Confirmed via CC-CMD probe: `/bsd/events/season?league=1&season=2026` returned only `status: "notstarted"` fixtures dated 2027.
-- `mls` — season 2026 is in progress; script will attempt to find a finished event and proceed if found.
-- `wc26` — testable; group stage complete. BSD event 8346 is the primary test event.
-
----
-
-## Chat-Side Follow-Up
-
-1. Trigger `Soccer Player Crosscheck` via `workflow_dispatch` (WC26 group stage is the test target).
-2. Review `candidates` output — especially `collision_risk: true` entries — before adding any entries to `CANONICAL_PLAYER`'s `type: 'soccer_player'` entries.
-3. Soccer surnames (Costa, Silva, Santos) carry materially higher collision risk than the MLB run. Expect a lower accept rate than the MLB run's 11/22.
-4. MLS: if the workflow finds a finished MLS event, review those candidates separately — MLS rosters include players from many nationalities with diverse surname patterns.
+- None of the 7 candidates reviewed or added to any `CANONICAL_PLAYER`-
+  equivalent structure — soccer has no such structure yet (`identity-
+  resolver.js`'s `_STRIP_BY_TYPE` only has `team` and `player` (MLB)).
+- The 125 unmatched entries have not been individually reviewed to
+  separate genuine no-match players from ESPN-data-gap noise beyond the
+  aggregate `espn_data_gaps` flag.
+- No team-scoping fix for the BSD↔ESPN matching (searches the whole
+  tournament/league athlete pool, not just the two teams in a given
+  match) — mitigated by preferring exact matches and flagging ambiguous
+  cases, not fixed at the root, since no BSD route exists to scope by
+  team for a specific event.
