@@ -334,8 +334,25 @@ export class AmbientDO {
             if (!games?.length) continue;
 
             for (const game of games) {
-                const { gameId, sport, home, away, homeScore, awayScore,
-                        period, periodLabel, clock, state } = game;
+                // FIXED 2026-07-03: real /v2/games shape confirmed via direct
+                // comparison of wc26 and mlb responses (identical structure,
+                // consistent across every sport) -- this destructuring was
+                // wrong on 3 real fields, silently breaking AmbientDO's live-
+                // tracking for every sport, not just WC26 (confirmed via
+                // /ambient/state showing sportCount:0 despite a real live
+                // WC26 match). Real shape: id (not gameId), home/away are
+                // nested {name, abbr, score} objects (not flat strings with
+                // separate homeScore/awayScore), periodNum (not period).
+                const gameId       = game.id;
+                const sport        = game.sport;
+                const home         = game.home?.name;
+                const away         = game.away?.name;
+                const homeScore    = game.home?.score;
+                const awayScore    = game.away?.score;
+                const period       = game.periodNum;
+                const periodLabel  = game.periodLabel;
+                const clock        = game.clock;
+                const state        = game.state;
                 if (!gameId) continue;
 
                 const prev = this._scores[gameId];
