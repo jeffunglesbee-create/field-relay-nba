@@ -12464,6 +12464,41 @@ export default {
         if (job.type === 'game-brief') {
           if (!env.FIELD_JOURNALISM) { msg.ack(); continue; }
           try {
+            // Cache check, added 2026-07-03 -- real, confirmed gap: this
+            // handler already WRITES to FIELD_JOURNALISM (below) for
+            // downstream readers, but never checked it before generating,
+            // so the same eventId re-enqueued across successive ~15min
+            // cron cycles regenerated from scratch every time even when
+            // nothing about the game had changed.
+            //
+            // Deliberately content-validated (gameHash match), NOT a
+            // blind TTL -- this path serves LIVE, evolving game state
+            // across cron cycles (score changes, goes final), unlike the
+            // mostly-static Stakes/Night Owl briefs cached in
+            // /journalism/generate earlier today. A naive TTL here risks
+            // suppressing a genuinely-needed regeneration when the real
+            // game state changes. Safe across all 6 real enqueue sites
+            // for this message type -- confirmed only 1 of 6 (the
+            // per-game card-brief pre-generation site) reliably sets
+            // job.gameHash today; the other 5 leave it undefined, which
+            // never matches a real stored hash, so this check safely
+            // falls through to normal regeneration there. Real cost
+            // benefit today is limited to that 1 site until the other 5
+            // are updated to compute and pass a real gameHash too --
+            // that's a separate, larger follow-up, not done here.
+            if (job.gameHash) {
+              const existing = await env.FIELD_JOURNALISM.get(`brief:game:${job.eventId}`).catch(() => null);
+              if (existing) {
+                try {
+                  const parsed = JSON.parse(existing);
+                  if (parsed.contextHash && parsed.contextHash === job.gameHash) {
+                    msg.ack();
+                    continue; // real game state unchanged since last generation -- skip
+                  }
+                } catch (e) { /* corrupt cache entry -- fall through to regenerate */ }
+              }
+            }
+
             const callProxy = async (promptText) => {
               const r = await fetch(PROXY_URL, {
                 method: 'POST',
