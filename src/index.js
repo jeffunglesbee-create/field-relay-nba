@@ -1902,6 +1902,7 @@ async function writeWCResult(db, game, env, ctx) {
                 type: 'game-brief',
                 prompt,
                 eventId: game.id,
+                gameHash: computeGameHash(prompt),
                 max_tokens: 300,
                 sport: 'wc26',
                 home: homeName,
@@ -3321,6 +3322,7 @@ async function handleV2Games(url, env, ctx) {
                                     type:        'game-brief',
                                     prompt,
                                     eventId:     g.id,
+                                    gameHash:    computeGameHash(prompt),
                                     max_tokens:  300,
                                     sport:       'nhl',
                                     home, away, homeScore, awayScore,
@@ -3439,6 +3441,7 @@ async function handleV2Games(url, env, ctx) {
                                     type:        'game-brief',
                                     prompt,
                                     eventId:     g.id,
+                                    gameHash:    computeGameHash(prompt),
                                     max_tokens:  300,
                                     sport:       'nba',
                                     home, away, homeScore, awayScore,
@@ -4147,7 +4150,27 @@ function buildGameLine(ev, league) {
   return line;
 }
 
-// ── PF-1: Markdown header/bold stripper (June 1 2026) ───────────────────────
+// ── Content hash for game-brief queue cache validation (2026-07-03) ────────
+// Shared by all 6 real enqueue sites for JOURNALISM_QUEUE type:'game-brief'.
+// Novel design choice, not the obvious one: hashes the already-built PROMPT
+// text, not raw score/status fields. The one site that already had a working
+// gameHash (line ~6313, WOW 7) built it from ESPN-shaped fields
+// (ev.id + status + scores) -- but the other 5 sites don't share that same
+// object shape (WC26/golf/NHL/NBA context all differ), so reconstructing an
+// equivalent per-site would mean re-deriving each site's specific field
+// names correctly, a real risk of getting one wrong. Every site already
+// builds `prompt` right before enqueueing regardless of shape -- hashing
+// that instead sidesteps the shape problem entirely, and is arguably a
+// better cache-validity signal anyway (also captures notes, bracket-impact
+// additions, anything that would make regeneration genuinely necessary, not
+// just a bare score change). Purely synchronous on data already in hand --
+// no new fetches, no new awaits, does not touch or slow the existing live
+// enqueue path itself.
+function computeGameHash(promptText) {
+  return String(promptText || '').split('').reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0).toString(16);
+}
+
+
 // LLMs occasionally wrap output in '#' headers or '**bold**' even when not
 // asked. The bottom sheet renders plain text, so any markdown leaks through
 // as raw characters. Shared by /journalism/generate (sync path) and the
@@ -5916,6 +5939,7 @@ async function handleJournalismCycle(env, opts = {}) {
               type: 'game-brief',
               prompt,
               eventId: `golf_${eventId}_R${roundNum}`,
+              gameHash: computeGameHash(prompt),
               max_tokens: 300,
               sport: 'PGA TOUR',
               home: evName,
@@ -10494,6 +10518,7 @@ export default {
                             type:        'game-brief',
                             prompt,
                             eventId:     gameId,
+                            gameHash:    computeGameHash(prompt),
                             max_tokens:  300,
                             sport,
                             home,
