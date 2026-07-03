@@ -94,10 +94,15 @@ const SOCCER_SPORTS = new Set(['wc26','epl','mls','laliga','seriea','bundesliga'
 const WP_DELTA_THRESHOLD = 0.02;
 
 // Sports to poll — ordered by typical activity windows.
-// WC26 and NBA/NHL active June 2026; MLB always; NFL added for September.
+// WC26 and NBA/NHL active June 2026; MLB always; NFL/CFB added 2026-07-03
+// (same day the /v2/games backend adapter shipped -- this comment
+// previously claimed NFL was already added when it wasn't, a real,
+// small instance of the same "comment claims a behavior that isn't
+// real" pattern found elsewhere today; corrected here, not just noted).
 const AMBIENT_SPORTS = [
     'nba', 'nhl', 'mlb', 'wc26', 'mls',
     'epl', 'laliga', 'seriea', 'bundesliga', 'ligue1', 'wnba',
+    'nfl', 'cfb',
 ];
 
 // Active sports filter: only poll sports whose season is likely active.
@@ -115,6 +120,10 @@ const SPORT_ACTIVE_MONTHS = {
     'bundesliga': [7,8,9,10,11,0,1,2,3,4],
     'ligue1':     [7,8,9,10,11,0,1,2,3,4],
     'mls':        [2,3,4,5,6,7,8,9,10,11],  // Mar–Nov
+    // NFL/CFB real season dates confirmed live via ESPN 2026-07-03
+    // (NFL season opener Sept 10, CFB season opener Aug 29).
+    'nfl':        [8,9,10,11,0],             // Sep–Jan
+    'cfb':        [7,8,9,10,11,0],           // Aug–Jan
 };
 
 export class AmbientDO {
