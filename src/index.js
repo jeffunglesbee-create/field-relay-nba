@@ -67,7 +67,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
+import { resolveTeamKey } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -1816,35 +1816,6 @@ async function writeWCResult(db, game, env, ctx) {
             }
         } catch (_) { /* non-blocking — standings context is additive */ }
 
-        // BSD shotmap: fetch for xG enrichment of goalscorer events. One call per
-        // WC game final. Not reusing R2 cache here — the captureWithRetry write
-        // above is fire-and-forget (ctx.waitUntil) and data isn't in R2 yet.
-        // Calls BSD directly (same credential pattern as captureWithRetry above).
-        // Wrapped in try-catch: Rule 5 — never blocks journalism delivery.
-        const bsdGoalXg = {}; // player_id → xg (first goal entry per player)
-        if (game.bsdEventId && env?.BSD_API_TOKEN) {
-            try {
-                const bsdStatsResp = await fetch(
-                    `https://sports.bzzoiro.com/api/v2/events/${game.bsdEventId}/stats/`,
-                    { headers: {
-                        'Authorization': `Token ${env.BSD_API_TOKEN}`,
-                        'User-Agent': 'FIELD/1.0',
-                        'Accept': 'application/json',
-                      },
-                      signal: AbortSignal.timeout(4000) }
-                );
-                if (bsdStatsResp.ok) {
-                    const bsdStats = await bsdStatsResp.json().catch(() => null);
-                    for (const shot of (bsdStats?.shotmap || [])) {
-                        if (shot.type === 'goal' && shot.player_id != null && shot.xg != null
-                                && !(shot.player_id in bsdGoalXg)) {
-                            bsdGoalXg[shot.player_id] = shot.xg;
-                        }
-                    }
-                }
-            } catch (_) { /* xG enrichment is additive — never block journalism */ }
-        }
-
         // Match events for journalism brief. Prefer comp.details threaded via
         // game.matchEvents (no extra fetch). Fall back to ESPN summary if absent.
         let eventsContext = '';
@@ -1857,17 +1828,7 @@ async function writeWCResult(db, game, env, ctx) {
                         const player = e.players?.[0] || '';
                         const team   = e.team ? ` (${e.team})` : '';
                         const label  = `${min} ${player}${team}`.trim();
-                        if (e.scoringPlay) {
-                            let xgSuffix = '';
-                            if (player && Object.keys(bsdGoalXg).length > 0) {
-                                const key      = resolveEntity('soccer_player', player);
-                                const playerId = SOCCER_PLAYER_ID_BY_KEY[key];
-                                if (playerId != null && playerId in bsdGoalXg) {
-                                    xgSuffix = ` xG: ${bsdGoalXg[playerId].toFixed(2)}`;
-                                }
-                            }
-                            return `⚽ ${label}${xgSuffix}`;
-                        }
+                        if (e.scoringPlay) return `⚽ ${label}`;
                         if (e.redCard)     return `🟥 ${label}`;
                         if (e.yellowCard)  return `🟨 ${label}`;
                         return null;
@@ -7784,32 +7745,6 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
-            // GET /archive/drama-missing?limit=N — lists recently-completed games still
-            // missing drama_peak, for client-side retroactive backfill. Read-only, zero
-            // computation — RUWT/ADR-002 compliant (same category as /archive/drama
-            // itself: relay stores/serves facts, client computes).
-            if (pathname === '/archive/drama-missing' && request.method === 'GET') {
-                if (!env.ARCHIVE_DB) {
-                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
-                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
-                const limit = Math.min(20, parseInt(url.searchParams.get('limit')) || 5);
-                // Most-recent-first: Night Stars only ever surfaces "yesterday" — old
-                // backlog beyond the active recap window has no real product value to
-                // recover urgently. Recency-first also means the client naturally
-                // clears the freshest gaps first across repeated app opens.
-                const rows = await env.ARCHIVE_DB.prepare(
-                    `SELECT id, sport, date, home, away, home_score, away_score,
-                            espn_event_id
-                     FROM regular_season_games
-                     WHERE drama_peak IS NULL AND home_score IS NOT NULL
-                     ORDER BY date DESC
-                     LIMIT ?`
-                ).bind(limit).all().catch(() => ({ results: [] }));
-                return new Response(JSON.stringify({ ok: true, games: rows.results || [] }),
-                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
-            }
-
             // POST /archive/backfill-enrich — fills in skeleton rows (home IS NULL)
             // created by older GameDO archives that didn't forward team names.
             // For each null-home row: groups by (sport, date), self-fetches
@@ -10307,6 +10242,33 @@ export default {
             const scoreFloor  = body.scoreThreshold || 130;
             const game        = body.game        || null;
             const matchupNote = body.matchupNote || null;
+
+            // Cache check, added 2026-07-03 -- real, confirmed problem: this
+            // endpoint is shared by 6 real client call sites (Stakes, Night
+            // Owl, + 4 others, all via generateJournalismViaRelay) and had
+            // ZERO caching -- every single call ran the full quality chain
+            // (up to 6 Gemini retries) fresh, even for the same game+
+            // briefType requested moments apart (e.g. a page reload).
+            // Confirmed real via Gemini's own usage dashboard: TPM at 63%
+            // of its 28-day peak, the tightest-fitting of RPM/TPM/RPD.
+            // Cache key uses game._id (confirmed the stable ID field used
+            // consistently elsewhere in this codebase) + briefType -- a new
+            // game naturally gets a new key, so a long TTL is safe with no
+            // stale-content risk across different games. Only caches a
+            // real, successful, non-refusal result (see below) -- never
+            // caches an error or a suppressed model-refusal response.
+            const cacheKey = game?._id ? `jqcache:${game._id}:${briefType}` : null;
+            if (cacheKey && env.FIELD_JOURNALISM) {
+              const cached = await env.FIELD_JOURNALISM.get(cacheKey).catch(() => null);
+              if (cached) {
+                try {
+                  const parsed = JSON.parse(cached);
+                  return new Response(JSON.stringify({ ...parsed, cached: true }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) { /* corrupt cache entry -- fall through to regenerate */ }
+              }
+            }
+
             // Prepend v4 voice register so /journalism/generate consumers
             // inherit the same framing as cron + backfill paths.
             const promptWithVoice = FIELD_VOICE_REGISTER + '\n' + body.prompt;
@@ -10411,7 +10373,7 @@ export default {
               // Worst case: this row is lost. The brief still ships clean.
             }
 
-            return new Response(JSON.stringify({
+            const _responsePayload = {
               status: 'ok',
               briefType,
               text: result.text,
@@ -10419,13 +10381,23 @@ export default {
               retries: result.retries,
               layers_fired: result.layers_fired,
               ms: result.ms,
-              // Audit fields — written to Analytics Engine above + returned
-              // here for browser-side debug panel display
               initial_cliches: _initialCliches,
               final_cliches:   _finalCliches,
               initial_cross_sport: _initialCrossSport,
               final_cross_sport:   _finalCrossSport,
-            }), {
+            };
+
+            // Cache write, added 2026-07-03 -- only a real, successful,
+            // quality-chain-passed result is cached (never an error
+            // response, never anything that reached here via a path that
+            // didn't complete runQualityChain). 24h TTL, see cache-key
+            // comment above for the full real justification.
+            if (cacheKey && env.FIELD_JOURNALISM) {
+              env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(_responsePayload), { expirationTtl: 86400 })
+                .catch(() => {}); // fire-and-forget -- a cache-write failure must not affect the response
+            }
+
+            return new Response(JSON.stringify(_responsePayload), {
               status: 200,
               headers: {
                 ...CORS,
