@@ -1396,6 +1396,23 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
             scoringPlay: d.scoringPlay  || false,
         }));
 
+    // FIXED 2026-07-03: periodNum/periodLabel were entirely absent from
+    // this adapter's output -- confirmed via the relay gap-sweep CC
+    // session (A1/A2/G2, one shared root cause). AmbientDO's soccer SSE
+    // score events always carried period:undefined; the live-odds
+    // urgency formula's lateness component was always 0 regardless of
+    // real match minute; GameDO's period-only-change broadcast trigger
+    // never fired for soccer. Derived from situation (elapsed/
+    // isHalftime/isShootout), already computed above in this same
+    // function -- real data, not a new guess.
+    const periodNum = !situation ? 0
+        : situation.isShootout ? 5
+        : situation.isHalftime ? 1
+        : situation.elapsed <= 45 ? 1
+        : situation.elapsed <= 90 ? 2
+        : 3; // extra time
+    const periodLabel = state !== 'live' ? '' : `${elapsed}'`;
+
     return {
         id:          `espn:${ev.id}`,
         espnEventId: String(ev.id),
@@ -1406,6 +1423,8 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         home:        { name: home.team?.displayName || '', abbr: home.team?.abbreviation || '', score: homeScore },
         away:        { name: away.team?.displayName || '', abbr: away.team?.abbreviation || '', score: awayScore },
         clock:       displayClock,
+        periodNum,
+        periodLabel,
         venue:       typeof comp.venue === 'object' ? (comp.venue?.fullName || '') : '',
         round:       comp.altGameNote || ev.season?.slug || comp.type?.text || comp.notes?.[0]?.headline || comp.notes?.[0]?.text || '',
         situation,
