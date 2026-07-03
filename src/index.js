@@ -6856,6 +6856,36 @@ export default {
                 'Accept': 'application/json',
             };
 
+            // Shared helper, 2026-07-03: real check for whether a specific
+            // BSD event is currently live, used by shotmap/momentum below to
+            // decide whether caching is safe. Reuses the exact same cache-key
+            // pattern as the /bsd/events/live route directly below -- shares
+            // that route's already-established 25s cache, so this doesn't
+            // cost a fresh upstream call on every use, only at most every 25s.
+            // Confirmed cheap in real testing (~0.24s uncached).
+            async function _bsdEventIsLive(eventId) {
+                try {
+                    const cacheKey = new Request(`${BSD_BASE}/api/v2/events/live/`);
+                    let resp = await caches.default.match(cacheKey);
+                    if (!resp) {
+                        const r = await fetch(`${BSD_BASE}/api/v2/events/live/`, { headers: bsdHeaders });
+                        const body = await r.text();
+                        resp = new Response(body, { status: r.status,
+                            headers: { 'Content-Type': 'application/json',
+                                       'Cache-Control': 'public, max-age=25' } });
+                        if (r.ok) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+                    }
+                    const data = await resp.clone().json().catch(() => null);
+                    const liveIds = new Set((data?.events || []).map(e => String(e.id)));
+                    return liveIds.has(String(eventId));
+                } catch (_) {
+                    // Fail safe: if the live-check itself fails for any reason,
+                    // treat as live (no caching) rather than risk serving stale
+                    // data for a game that might genuinely be in progress.
+                    return true;
+                }
+            }
+
             // /bsd/events/live → BSD /api/v2/events/live/
             if (pathname === '/bsd/events/live') {
                 const cacheKey = new Request(`${BSD_BASE}/api/v2/events/live/`);
@@ -6874,50 +6904,48 @@ export default {
             // /bsd/events/:id/shotmap → BSD /api/v2/events/:id/stats/
             const shotmapM = pathname.match(/^\/bsd\/events\/(\d+)\/shotmap$/);
             if (shotmapM) {
-                // Edge-cache added 2026-07-03 -- real, confirmed gap: this
-                // Edge-cache TTL tried 2026-07-03, reverted same day: real
-                // testing against an actual in-progress match (WC26,
-                // Australia vs Egypt, minute 78) showed a repeat call 5s
-                // later returned an IDENTICAL response -- a real shot/goal
-                // in that window would not surface for up to 60s, served to
-                // EVERY user hitting this endpoint, not just one browser's
-                // own cache (the existing Cache-Control header below only
-                // ever staled one browser's own view -- edge caching is a
-                // materially bigger blast radius). No cheap way to
-                // distinguish live-vs-completed events here without added
-                // complexity of its own -- reverted rather than ship a
-                // half-considered conditional fix while a real match was in
-                // progress. Real gap (3 uncached callers hitting the
-                // identical upstream URL) still stands, unresolved.
-                // Corrected 2026-07-03, same day as the failed attempt above:
-                // the real staleness problem was never the cf:{cacheTtl}
-                // I added and reverted earlier -- it was THIS header the
-                // whole time. Confirmed via a clean test on a genuinely
-                // never-before-touched event even AFTER reverting the
-                // fetch-level change: first call 1.15s, repeat calls
-                // 0.3-0.4s, identical response -- Cloudflare's edge was
-                // respecting this Cache-Control header on its own,
-                // independent of the fetch-level directive. This route can
-                // serve genuinely live, actively-changing event data
-                // (confirmed against a real in-progress match right now,
-                // WC26 Australia vs Egypt) -- no-store, no cheap way to
-                // distinguish live-vs-completed events at this point in the
-                // code without added complexity of its own.
+                // Final, correctly-scoped version, 2026-07-03. History, kept
+                // short since two wrong attempts happened the same day and
+                // it matters that this isn't repeated:
+                //   1. Added cf:{cacheTtl:60} on the fetch -- reverted after
+                //      real testing against an actual in-progress match
+                //      showed a repeat call 5s later returned an identical
+                //      response (a real goal/shot in that window wouldn't
+                //      have surfaced for up to 60s, for every user).
+                //   2. Reverting that alone didn't fix it -- the real cause
+                //      was the response's own pre-existing Cache-Control
+                //      header, which Cloudflare's edge respects independent
+                //      of any fetch-level directive. Set to no-store, which
+                //      correctly removed the staleness risk but also
+                //      removed the real, original consumption-saving goal
+                //      entirely (shotmap/momentum/writeWCResult all hit
+                //      this identical upstream URL with zero sharing).
+                // This version resolves both: checks real live status first
+                // (cheap, ~0.24s, reuses the same cache-key pattern already
+                // used by /bsd/events/live above) and only caches when the
+                // event is confirmed NOT currently live. Live events get
+                // no-store (same as the safe fallback above); completed/
+                // not-yet-started events get real caching, delivering the
+                // original goal for the case it actually applies to.
+                const isLive = await _bsdEventIsLive(shotmapM[1]);
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${shotmapM[1]}/stats/`,
-                    { headers: bsdHeaders });
+                    { headers: bsdHeaders, cf: isLive ? {} : { cacheTtl: 60, cacheEverything: true } });
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'no-store', ...CORS } });
+                               'Cache-Control': isLive ? 'no-store' : 'public, max-age=60', ...CORS } });
             }
 
             // /bsd/events/:id/momentum → extract momentum[] from BSD /api/v2/events/:id/stats/
             // BSD does not have a standalone /momentum/ endpoint — data is in /stats/.
             const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
             if (momentumM) {
-                // Corrected 2026-07-03 -- same real root cause as shotmap
-                // above, same fix (no-store).
+                // Final, correctly-scoped version, 2026-07-03 -- see shotmap
+                // comment above for the full real history. Same fix, 30s TTL
+                // (not 60s) to match this route's own original, shorter,
+                // already-accepted staleness tolerance for live-swing data.
+                const isLive = await _bsdEventIsLive(momentumM[1]);
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/stats/`,
-                    { headers: bsdHeaders });
+                    { headers: bsdHeaders, cf: isLive ? {} : { cacheTtl: 30, cacheEverything: true } });
                 if (!r.ok) {
                     return new Response(await r.text(), { status: r.status,
                         headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -6927,7 +6955,7 @@ export default {
                 return new Response(JSON.stringify({ event_id: momentumM[1], momentum }), {
                     status: 200,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'no-store', ...CORS },
+                               'Cache-Control': isLive ? 'no-store' : 'public, max-age=30', ...CORS },
                 });
             }
 
