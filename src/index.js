@@ -67,7 +67,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey } from './identity-resolver.js';
+import { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -1816,6 +1816,41 @@ async function writeWCResult(db, game, env, ctx) {
             }
         } catch (_) { /* non-blocking — standings context is additive */ }
 
+        // BSD shotmap: fetch for xG enrichment of goalscorer events. One call per
+        // WC game final. Not reusing R2 cache here — the captureWithRetry write
+        // above is fire-and-forget (ctx.waitUntil) and data isn't in R2 yet.
+        // Calls BSD directly (same credential pattern as captureWithRetry above).
+        // Wrapped in try-catch: Rule 5 — never blocks journalism delivery.
+        // RESTORED 2026-07-03: this block was accidentally dropped from a later
+        // commit (cc40c8de6) that used a stale local copy of this file predating
+        // its addition -- confirmed via direct commit-by-commit diff before
+        // restoring, not assumed. Real, working xG data confirmed live earlier
+        // today (WC26 event 8346, real goals with real xg values) before it was
+        // lost; restoring exactly as it existed in the last commit that had it.
+        const bsdGoalXg = {}; // player_id → xg (first goal entry per player)
+        if (game.bsdEventId && env?.BSD_API_TOKEN) {
+            try {
+                const bsdStatsResp = await fetch(
+                    `https://sports.bzzoiro.com/api/v2/events/${game.bsdEventId}/stats/`,
+                    { headers: {
+                        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+                        'User-Agent': 'FIELD/1.0',
+                        'Accept': 'application/json',
+                      },
+                      signal: AbortSignal.timeout(4000) }
+                );
+                if (bsdStatsResp.ok) {
+                    const bsdStats = await bsdStatsResp.json().catch(() => null);
+                    for (const shot of (bsdStats?.shotmap || [])) {
+                        if (shot.type === 'goal' && shot.player_id != null && shot.xg != null
+                                && !(shot.player_id in bsdGoalXg)) {
+                            bsdGoalXg[shot.player_id] = shot.xg;
+                        }
+                    }
+                }
+            } catch (_) { /* xG enrichment is additive — never block journalism */ }
+        }
+
         // Match events for journalism brief. Prefer comp.details threaded via
         // game.matchEvents (no extra fetch). Fall back to ESPN summary if absent.
         let eventsContext = '';
@@ -1828,7 +1863,17 @@ async function writeWCResult(db, game, env, ctx) {
                         const player = e.players?.[0] || '';
                         const team   = e.team ? ` (${e.team})` : '';
                         const label  = `${min} ${player}${team}`.trim();
-                        if (e.scoringPlay) return `⚽ ${label}`;
+                        if (e.scoringPlay) {
+                            let xgSuffix = '';
+                            if (player && Object.keys(bsdGoalXg).length > 0) {
+                                const key      = resolveEntity('soccer_player', player);
+                                const playerId = SOCCER_PLAYER_ID_BY_KEY[key];
+                                if (playerId != null && playerId in bsdGoalXg) {
+                                    xgSuffix = ` xG: ${bsdGoalXg[playerId].toFixed(2)}`;
+                                }
+                            }
+                            return `⚽ ${label}${xgSuffix}`;
+                        }
                         if (e.redCard)     return `🟥 ${label}`;
                         if (e.yellowCard)  return `🟨 ${label}`;
                         return null;
@@ -6829,8 +6874,14 @@ export default {
             // /bsd/events/:id/shotmap → BSD /api/v2/events/:id/stats/
             const shotmapM = pathname.match(/^\/bsd\/events\/(\d+)\/shotmap$/);
             if (shotmapM) {
+                // Edge-cache added 2026-07-03 -- real, confirmed gap: this
+                // upstream URL is also hit by /bsd/events/:id/momentum and
+                // writeWCResult (a third, direct caller), with zero sharing
+                // between any of them. TTL matches this route's own
+                // existing Cache-Control (60s) -- introduces no staleness
+                // beyond what's already accepted for this response today.
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${shotmapM[1]}/stats/`,
-                    { headers: bsdHeaders });
+                    { headers: bsdHeaders, cf: { cacheTtl: 60, cacheEverything: true } });
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=60', ...CORS } });
@@ -6840,8 +6891,19 @@ export default {
             // BSD does not have a standalone /momentum/ endpoint — data is in /stats/.
             const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
             if (momentumM) {
+                // Edge-cache added 2026-07-03 -- same real gap as shotmap
+                // above (identical upstream URL, zero sharing). TTL is 30s
+                // here, NOT 60s -- deliberately matches THIS route's own
+                // existing Cache-Control (30s, shorter than shotmap's),
+                // confirmed by reading the real response headers before
+                // building -- momentum is a live-swing indicator and
+                // evidently needs fresher data than shot-location data.
+                // A single blanket TTL across both routes would have
+                // either wasted free savings on shotmap or introduced more
+                // staleness than momentum's own existing code already
+                // decided was acceptable.
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/stats/`,
-                    { headers: bsdHeaders });
+                    { headers: bsdHeaders, cf: { cacheTtl: 30, cacheEverything: true } });
                 if (!r.ok) {
                     return new Response(await r.text(), { status: r.status,
                         headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -7766,6 +7828,37 @@ export default {
                         { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
                 return new Response(JSON.stringify({ ok: true, id: row.id, table, drama_peak }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            // GET /archive/drama-missing?limit=N — lists recently-completed games still
+            // missing drama_peak, for client-side retroactive backfill. Read-only, zero
+            // computation — RUWT/ADR-002 compliant (same category as /archive/drama
+            // itself: relay stores/serves facts, client computes).
+            // RESTORED 2026-07-03: accidentally dropped in the same stale-overwrite
+            // regression as bsdGoalXg above (commit cc40c8de6, confirmed via direct
+            // diff before restoring). Real, previously-shipped, previously-verified-
+            // live (confirmed returning real games from the 128-game backlog) --
+            // was invisibly broken since 14:51 UTC today until this restoration.
+            if (pathname === '/archive/drama-missing' && request.method === 'GET') {
+                if (!env.ARCHIVE_DB) {
+                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const limit = Math.min(20, parseInt(url.searchParams.get('limit')) || 5);
+                // Most-recent-first: Night Stars only ever surfaces "yesterday" — old
+                // backlog beyond the active recap window has no real product value to
+                // recover urgently. Recency-first also means the client naturally
+                // clears the freshest gaps first across repeated app opens.
+                const rows = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, date, home, away, home_score, away_score,
+                            espn_event_id
+                     FROM regular_season_games
+                     WHERE drama_peak IS NULL AND home_score IS NOT NULL
+                     ORDER BY date DESC
+                     LIMIT ?`
+                ).bind(limit).all().catch(() => ({ results: [] }));
+                return new Response(JSON.stringify({ ok: true, games: rows.results || [] }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
