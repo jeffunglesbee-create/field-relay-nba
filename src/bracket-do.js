@@ -242,8 +242,21 @@ export class BracketDO {
 
         // ── GET /bracket/state — current snapshot (REST poll fallback) ────
         if (url.pathname.endsWith('/bracket/state') && request.method === 'GET') {
+            // FIXED 2026-07-03: real, confirmed gap -- snapshot:live was
+            // written (with an explicit comment saying "so /bracket/state
+            // can optionally expose it") but never read anywhere. REST
+            // pollers (the WebSocket fallback path) never saw live
+            // provisional WC bracket projections, only the canonical
+            // snapshot. Exposed here without mutating this.currentSnapshot,
+            // preserving the deliberate separation already documented at
+            // the write site.
+            let liveSnapshot = null;
+            try {
+                liveSnapshot = await this.ctx.storage.get('snapshot:live') ?? null;
+            } catch (_) { /* transient key, absence is normal */ }
             return new Response(JSON.stringify({
                 snapshot: this.currentSnapshot,
+                live: liveSnapshot,
                 delta: this.lastDelta,
                 resultCount: this.allResults.length,
                 lastResult: this.allResults.at(-1) ?? null,
@@ -372,6 +385,14 @@ export class BracketDO {
         const message = JSON.stringify({
             type:    'bracket:updated',
             delta,
+            // FIXED 2026-07-03: snapshot was omitted despite the header
+            // spec documenting it (confirmed real bug via the relay
+            // gap-sweep CC session, re-verified before fixing). Clients
+            // saw only the top-10-mover delta -- teams outside that
+            // threshold required a follow-up REST poll to see. Confirmed
+            // safe to add: a full snapshot is genuinely small (3.7KB via
+            // the real /wc/bracket endpoint), not a real payload concern.
+            snapshot: newSnapshot,
             trigger: newSnapshot._trigger,
             ts:      Date.now(),
             teamCount: newSnapshot.teams?.length ?? 0,
@@ -536,6 +557,9 @@ export class BracketDO {
             type:      'bracket:updated',
             isLive:    true,
             delta,
+            // FIXED 2026-07-03: same real bug as the other bracket:updated
+            // call site -- see comment there for full context.
+            snapshot:  liveSnapshot,
             trigger:   liveSnapshot._trigger,
             ts:        Date.now(),
             teamCount: liveSnapshot.teams?.length ?? 0,
