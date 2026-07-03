@@ -901,7 +901,21 @@ export class AmbientDO {
                     coords: frame.coordinates?.slice(-1)[0] || null,
                     situation: frame.situation }
                 : { type: 'bsd:stats', id: eventId, minute: frame.minute,
-                    period: frame.period, score: frame.score, stats: frame.stats };
+                    period: frame.period, score: frame.score, stats: frame.stats,
+                    // FIXED 2026-07-03: real, precise bug -- this payload
+                    // never included shotmap/momentum, but the client's
+                    // frame handler explicitly checks `data.shots ||
+                    // data.shotmap`. BSD's REST API (confirmed extensively
+                    // this session, same underlying stats system) returns
+                    // shotmap/momentum as siblings of `stats` at the top
+                    // level -- inferring (not directly observed on a raw
+                    // WS frame, being honest about that) the WebSocket
+                    // "event" frame carries the same real fields, just
+                    // never extracted/forwarded here. Shots/momentum data
+                    // was very likely being silently dropped at this exact
+                    // relay layer for every live game, every frame.
+                    shotmap: frame.shotmap || null,
+                    momentum: frame.momentum || null }
             // Fan out via existing _broadcast — clients filter frames locally by id
             this._broadcast(payload.type, payload);
         } catch (_) {}
