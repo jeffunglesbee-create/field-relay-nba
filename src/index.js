@@ -6875,13 +6875,22 @@ export default {
             const shotmapM = pathname.match(/^\/bsd\/events\/(\d+)\/shotmap$/);
             if (shotmapM) {
                 // Edge-cache added 2026-07-03 -- real, confirmed gap: this
-                // upstream URL is also hit by /bsd/events/:id/momentum and
-                // writeWCResult (a third, direct caller), with zero sharing
-                // between any of them. TTL matches this route's own
-                // existing Cache-Control (60s) -- introduces no staleness
-                // beyond what's already accepted for this response today.
+                // Edge-cache TTL tried 2026-07-03, reverted same day: real
+                // testing against an actual in-progress match (WC26,
+                // Australia vs Egypt, minute 78) showed a repeat call 5s
+                // later returned an IDENTICAL response -- a real shot/goal
+                // in that window would not surface for up to 60s, served to
+                // EVERY user hitting this endpoint, not just one browser's
+                // own cache (the existing Cache-Control header below only
+                // ever staled one browser's own view -- edge caching is a
+                // materially bigger blast radius). No cheap way to
+                // distinguish live-vs-completed events here without added
+                // complexity of its own -- reverted rather than ship a
+                // half-considered conditional fix while a real match was in
+                // progress. Real gap (3 uncached callers hitting the
+                // identical upstream URL) still stands, unresolved.
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${shotmapM[1]}/stats/`,
-                    { headers: bsdHeaders, cf: { cacheTtl: 60, cacheEverything: true } });
+                    { headers: bsdHeaders });
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=60', ...CORS } });
@@ -6891,19 +6900,10 @@ export default {
             // BSD does not have a standalone /momentum/ endpoint — data is in /stats/.
             const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
             if (momentumM) {
-                // Edge-cache added 2026-07-03 -- same real gap as shotmap
-                // above (identical upstream URL, zero sharing). TTL is 30s
-                // here, NOT 60s -- deliberately matches THIS route's own
-                // existing Cache-Control (30s, shorter than shotmap's),
-                // confirmed by reading the real response headers before
-                // building -- momentum is a live-swing indicator and
-                // evidently needs fresher data than shot-location data.
-                // A single blanket TTL across both routes would have
-                // either wasted free savings on shotmap or introduced more
-                // staleness than momentum's own existing code already
-                // decided was acceptable.
+                // Edge-cache TTL tried and reverted 2026-07-03 -- see shotmap
+                // comment above, same real reason.
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/stats/`,
-                    { headers: bsdHeaders, cf: { cacheTtl: 30, cacheEverything: true } });
+                    { headers: bsdHeaders });
                 if (!r.ok) {
                     return new Response(await r.text(), { status: r.status,
                         headers: { 'Content-Type': 'application/json', ...CORS } });
