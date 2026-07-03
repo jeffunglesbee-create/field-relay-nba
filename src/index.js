@@ -1399,7 +1399,7 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         away:        { name: away.team?.displayName || '', abbr: away.team?.abbreviation || '', score: awayScore },
         clock:       displayClock,
         venue:       typeof comp.venue === 'object' ? (comp.venue?.fullName || '') : '',
-        round:       comp.notes?.[0]?.headline || comp.notes?.[0]?.text || '',
+        round:       comp.altGameNote || ev.season?.slug || comp.type?.text || comp.notes?.[0]?.headline || comp.notes?.[0]?.text || '',
         situation,
         matchEvents,
     };
