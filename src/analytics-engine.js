@@ -433,7 +433,20 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         `THE TRUTH IS: ${truthLine}\n\n` +
         `ALL RESULTS:\n${recapLines || '(no completed games)'}\n\n` +
         `Do NOT list all results. Pick the 3-4 that matter most. ` +
-        `The truth is the fun part. Let it be fun.`;
+        `The truth is the fun part. Let it be fun. ` +
+        // Added 2026-07-03 -- real, confirmed fabrication found live: a
+        // Morning Report entry referenced an AFL result (team names +
+        // score) with ZERO real data anywhere in the pipeline for that
+        // date -- confirmed via direct query of both regular_season_games
+        // (empty for AFL, checked back to June 1) and the live
+        // /context/date endpoint (zero AFL games returned). The real
+        // score coincidentally matched a genuinely different real game
+        // from a different matchup that same night. Same proven
+        // instruction pattern already used in Stakes brief prompts
+        // elsewhere in this codebase -- ported here, not invented fresh.
+        `ONLY reference games and scores listed above in ALL RESULTS. ` +
+        `Never invent a team, sport, matchup, or score not present there -- ` +
+        `if a sport has no real completed games above, do not mention it.`;
 
     const prose = await callProxy(prompt, { maxTokens: 250 });
     const briefText = prose || `Quiet night across the slate for ${date}. Tomorrow brings another set.`;
