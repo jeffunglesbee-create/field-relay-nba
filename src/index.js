@@ -996,6 +996,14 @@ const V2_LEAGUES = {
                       description: 'ATP Tour — BSD Sports Pack active' },
     'wta':          { sport: 'tennis',     espnSource: true, espnLeague: 'wta',
                       description: 'WTA Tour — BSD Sports Pack active' },
+    // NFL/CFB — added 2026-07-03. Confirmed real, live ESPN scoreboard shape
+    // before wiring (16 real 2026-season NFL games, 99 real CFB games).
+    // groups=80 on college-football scopes to FBS -- avoids FCS/D2/D3 flooding
+    // results (confirmed the default returns the same count today, but the
+    // explicit param is the correct, robust choice, not relying on undocumented
+    // default behavior that could change).
+    'nfl':          { sport: 'nfl', espnLeague: 'nfl',             espnSport: 'football' },
+    'cfb':          { sport: 'cfb', espnLeague: 'college-football', espnSport: 'football' },
 };
 
 // v2State / v2Period / v2Clock — REMOVED 2026-06-30 (api-sports.io subscription
@@ -1198,6 +1206,72 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
 //   competitors[i].team.abbreviation / displayName / score
 //   venue.fullName: stadium name
 //   situation (live): {balls, strikes, outs, onFirst, onSecond, onThird}
+// ── adaptESPNFootball ────────────────────────────────────────────────────────
+// Maps ESPN American-football (NFL/college-football) scoreboard event
+// → standard V2 FieldGame shape. Added 2026-07-03 to wire NFL/CFB into
+// /v2/games for the first time -- confirmed both were previously entirely
+// absent (Unknown sport error), despite substantial real backend data
+// already flowing separately (outbox/nfl/ EPA + NGS + injuries tables,
+// weekly nfl-ngs-update.yml cron, api-sports credentials).
+// Shape confirmed 2026-07-03 against a real, live ESPN NFL scoreboard
+// fetch (16 real 2026 season games) -- not assumed from other adapters.
+// down/distance/possession (situation.*) pass through defensively since
+// the real game checked was pre-season and situation was null there, as
+// expected for a not-yet-started game -- same defensive-null pattern
+// already used elsewhere in this file for the same real reason.
+function adaptESPNFootball(ev, sport) {
+    const comp  = ev.competitions?.[0] || {};
+    const teams = comp.competitors || [];
+    const home  = teams.find(t => t.homeAway === 'home') || {};
+    const away  = teams.find(t => t.homeAway === 'away') || {};
+    const st    = comp.status || {};
+    const stt   = st.type?.name || '';
+    const sit   = comp.situation || null;
+
+    const state = stt === 'STATUS_FINAL'       ? 'post'
+                : stt === 'STATUS_IN_PROGRESS' ? 'live'
+                : 'pre';
+
+    const periodNum   = st.period || 0;
+    const periodLabel = state === 'post' ? 'F'
+                      : state === 'live' ? `Q${periodNum}`
+                      : '';
+
+    const situation = sit ? {
+        down:        sit.down ?? null,
+        distance:    sit.distance ?? null,
+        yardLine:    sit.yardLine ?? null,
+        possession:  sit.possession ?? null,
+        isRedZone:   sit.isRedZone ?? false,
+    } : null;
+
+    return {
+        id:          `espn:${ev.id}`,
+        espnEventId: ev.id,
+        sport,
+        league:      sport === 'nfl' ? 'NFL' : 'NCAAF',
+        state,
+        start:       ev.date || '',
+        home: {
+            name:  home.team?.displayName  || '',
+            abbr:  home.team?.abbreviation || '',
+            score: home.score != null ? Number(home.score) : null,
+        },
+        away: {
+            name:  away.team?.displayName  || '',
+            abbr:  away.team?.abbreviation || '',
+            score: away.score != null ? Number(away.score) : null,
+        },
+        periodNum,
+        periodLabel,
+        clock:      st.displayClock || '',
+        venue:      comp.venue?.fullName || '',
+        round:      ev.week?.number ?? null,
+        broadcasts: (comp.broadcasts || []).map(b => (b.names || [])).flat(),
+        situation,
+    };
+}
+
 function adaptESPNMLB(ev) {
     const comp = ev.competitions?.[0] || {};
     const teams = comp.competitors || [];
@@ -3026,6 +3100,7 @@ async function handleV2Games(url, env, ctx) {
             const espnData = await espnResp.json();
             espnGames = (espnData.events || []).map(ev =>
                 cfg.espnSport === 'baseball'                                          ? adaptESPNMLB(ev)
+                : cfg.espnSport === 'football'                                        ? adaptESPNFootball(ev, sport)
                 : ['basketball', 'australian-football'].includes(cfg.espnSport)       ? adaptESPNBasketball(ev, sport)
                 : adaptESPNWCSoccer(ev, sport)
             );
