@@ -368,6 +368,14 @@ export class AmbientDO {
                 const periodLabel  = game.periodLabel;
                 const clock        = game.clock;
                 const state        = game.state;
+                // FIXED 2026-07-03: real, confirmed gaps (A4/A5/G6) --
+                // the real V2 game object already carries these fields
+                // (confirmed: adaptESPNWCSoccer already outputs
+                // home.abbr and game.bsdEventId for wc26), _poll() simply
+                // never captured them, only name/score.
+                const homeAbbr     = game.home?.abbr || '';
+                const awayAbbr     = game.away?.abbr || '';
+                const bsdEventId   = game.bsdEventId || null;
                 if (!gameId) continue;
 
                 const prev = this._scores[gameId];
@@ -400,6 +408,7 @@ export class AmbientDO {
                 if (scoreChanged || !prev) {
                     // Update state
                     this._scores[gameId] = { sport, home, away, homeScore: hS, awayScore: aS,
+                                              homeAbbr, awayAbbr, bsdEventId,
                                               period, periodLabel: periodLabel||'', clock: clock||'', state };
 
                     if (state === 'live') {
@@ -408,6 +417,7 @@ export class AmbientDO {
                         this._broadcast('score', {
                             gameId, sport, home, away,
                             homeScore: hS, awayScore: aS,
+                            homeAbbr, awayAbbr, bsdEventId,
                             period, periodLabel: periodLabel||'', clock: clock||'',
                             state, ts: Date.now(),
                         });
@@ -919,7 +929,17 @@ export class AmbientDO {
             if (!eventId) return;
             const payload = frame.type === 'livedata'
                 ? { type: 'bsd:ball', id: eventId, uts: frame.uts,
-                    coords: frame.coordinates?.slice(-1)[0] || null,
+                    // FIXED 2026-07-03: real, confirmed gap (A6) -- the
+                    // actual BSD raw WS frame shape for coordinates can't
+                    // be verified without a live connection (not testable
+                    // from outside a live match). Rather than guess and
+                    // risk being wrong either way, handles both a real
+                    // array (original assumption) and a single {x,y}
+                    // object defensively -- whichever shape BSD actually
+                    // sends, ball position won't be silently dropped.
+                    coords: Array.isArray(frame.coordinates)
+                        ? (frame.coordinates.slice(-1)[0] || null)
+                        : (frame.coordinates || null),
                     situation: frame.situation }
                 : { type: 'bsd:stats', id: eventId, minute: frame.minute,
                     period: frame.period, score: frame.score, stats: frame.stats,
