@@ -774,6 +774,18 @@ export class AmbientDO {
         };
         const oddsJson = JSON.stringify(odds);
 
+        // FIXED 2026-07-03: today, nH, nA were referenced below but never
+        // defined anywhere in this function -- a genuine ReferenceError
+        // every single time this ran, silently swallowed by the outer
+        // try/catch at the call site (confirmed via the relay gap-sweep
+        // CC session, independently re-verified before this fix).
+        const today = new Date().toISOString().slice(0, 10);
+        const normName = s => String(s || '').toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+        const nH = normName(home);
+        const nA = normName(away);
+
         // Find the matching archive row (id contains normalised team names
         // for most relay-cron writers) and UPDATE. Both tables checked.
         for (const table of ['regular_season_games', 'postseason_games']) {
