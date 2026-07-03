@@ -367,11 +367,15 @@ export class GameDO {
         await this.ctx.storage.put({ lastFacts: facts, lastSeen: this.lastSeen });
         this._broadcast({ type: 'facts', ...facts });
 
-        // ── Final-state archive hook ─────────────────────────────────────
-        // When the game transitions into 'final' state (v2/games normalizes
-        // status to 'pre'|'live'|'final' — confirmed src/index.js L942-969),
-        // fire-and-forget POST to the relay's /archive/game endpoint so the
-        // completed game lands in field-archive automatically.
+        // ── Completed-state archive hook ───────────────────────────────────
+        // When the game transitions to completed (v2/games does NOT
+        // normalize consistently -- confirmed via direct inspection: NHL
+        // and WC26 soccer emit 'final', basketball/WNBA/AFL and MLB emit
+        // 'post'. The comment previously here claimed uniform 'final'
+        // normalization -- false, corrected 2026-07-03 alongside the real
+        // bug this caused, see below), fire-and-forget POST to the relay's
+        // /archive/game endpoint so the completed game lands in
+        // field-archive automatically.
         //
         // RELAY-IS-DUMB: DO forwards facts only. Relay-side handler does the
         // table classification + INSERT. Archive failure must NEVER affect
@@ -380,7 +384,15 @@ export class GameDO {
         //
         // Dedup: an 'archived' flag in DO storage prevents re-firing on every
         // subsequent poll once the game is already final.
-        if (facts.state === 'final' && prevState !== 'final') {
+        // FIXED 2026-07-03: real, confirmed bug broader than first
+        // reported -- this single check gates archive/journalism auto-
+        // dispatch for every sport passing through GameDO. Confirmed via
+        // direct inspection of every adapter: 'post' is the actual
+        // majority convention (basketball/WNBA/AFL, MLB), 'final' is
+        // used only by NHL and WC26 soccer. This hook likely never fired
+        // for MLB either, not just WNBA/AFL as originally reported.
+        const isCompleted = s => s === 'final' || s === 'post';
+        if (isCompleted(facts.state) && !isCompleted(prevState)) {
             try {
                 const already = await this.ctx.storage.get('archived');
                 if (!already) {
