@@ -1376,12 +1376,20 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const homeScore = home.score != null ? Number(home.score) : null;
     const awayScore = away.score != null ? Number(away.score) : null;
 
+    // FIXED 2026-07-03: comp.details[i].team is a linked reference
+    // ({id} only, no displayName) confirmed via real live data -- was
+    // always null. Resolved against the already-available home/away
+    // competitor team IDs in this same event instead.
+    const _teamIdToName = {};
+    if (home.team?.id) _teamIdToName[home.team.id] = home.team?.displayName || '';
+    if (away.team?.id) _teamIdToName[away.team.id] = away.team?.displayName || '';
+
     const matchEvents = (comp.details || [])
         .filter(d => d.type?.id)
         .map(d => ({
             type:        d.type?.text || d.type?.id,
             minute:      d.clock?.displayValue || null,
-            team:        d.team?.displayName   || null,
+            team:        d.team?.displayName || _teamIdToName[d.team?.id] || null,
             players:     (d.athletesInvolved || []).map(a => a.displayName),
             redCard:     d.redCard      || false,
             yellowCard:  d.yellowCard   || false,
