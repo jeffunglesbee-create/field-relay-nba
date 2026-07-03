@@ -10393,8 +10393,16 @@ export default {
             // didn't complete runQualityChain). 24h TTL, see cache-key
             // comment above for the full real justification.
             if (cacheKey && env.FIELD_JOURNALISM) {
-              env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(_responsePayload), { expirationTtl: 86400 })
-                .catch(() => {}); // fire-and-forget -- a cache-write failure must not affect the response
+              // Real bug found in testing: a bare fire-and-forget .catch()
+              // without ctx.waitUntil() was silently never completing --
+              // Cloudflare Workers can terminate the execution context
+              // right after the response is sent, cancelling any still-
+              // pending un-awaited promise. Confirmed via repeated live
+              // tests (same cache key, waits up to 65s, never hit).
+              // ctx.waitUntil() is this exact codebase's own established
+              // pattern for this (6+ other real uses in this same file).
+              const _cacheWrite = env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(_responsePayload), { expirationTtl: 86400 }).catch(() => {});
+              if (ctx?.waitUntil) ctx.waitUntil(_cacheWrite);
             }
 
             return new Response(JSON.stringify(_responsePayload), {
