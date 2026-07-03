@@ -479,6 +479,19 @@ export class GameDO {
                             venue:      match?.venue || null,
                             league:     match?.league || null,
                             round:      match?.round || null,
+                            // FIXED 2026-07-03: real, confirmed gaps
+                            // (G3/G4/G5/G6) -- all already present on the
+                            // real match object from the V2 adapters, none
+                            // were ever read/forwarded to WebSocket
+                            // clients. situation is the highest-impact per
+                            // the relay gap-sweep's own assessment (MLB
+                            // at-bat state -- balls/strikes/outs/runners --
+                            // was entirely absent from every facts message).
+                            homeAbbr:   match?.home?.abbr || null,
+                            awayAbbr:   match?.away?.abbr || null,
+                            situation:  match?.situation || null,
+                            linescores: match?.linescores || null,
+                            matchEvents: match?.matchEvents || null,
                             source:     'v2',
                             ts:         Date.now(),
                         };
@@ -498,7 +511,14 @@ export class GameDO {
             && a.awayScore === b.awayScore
             && a.period    === b.period
             && a.clock     === b.clock
-            && a.state     === b.state;
+            && a.state     === b.state
+            // FIXED 2026-07-03: without this, the newly-added situation
+            // field (G3) would be structurally present but practically
+            // stale for sports without a continuously-changing clock --
+            // MLB (the CC-CMD's own highest-impact case: balls/strikes/
+            // outs/runners) doesn't tick a clock, so an at-bat state
+            // change alone would never have triggered a broadcast.
+            && JSON.stringify(a.situation) === JSON.stringify(b.situation);
     }
 
     _broadcast(obj) {
