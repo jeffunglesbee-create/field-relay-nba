@@ -187,6 +187,12 @@ export class AmbientDO {
                         homeScore: v.homeScore, awayScore: v.awayScore, period: v.period,
                         wp: this._wpState[id] || null })),
                 lastPoll:    await this.ctx.storage.get('last_poll') ?? null,
+                // Diagnostic fields added 2026-07-03: the general-scores
+                // _poll() bug fix above does NOT touch this separate BSD
+                // WebSocket relay path -- added real visibility here rather
+                // than assume it's also working.
+                bsdSocketState: this._bsdSocket ? this._bsdSocket.readyState : null,
+                bsdSubscribed:  Array.from(this._bsdSubscribed || []),
                 ts: Date.now(),
             }), { headers: { 'Content-Type': 'application/json' } });
         }
