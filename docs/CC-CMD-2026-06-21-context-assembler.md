@@ -1,6 +1,11 @@
 # Claude Code Command — Context Assembler + Multi-Sport R2 → Journalism
 
-git pull. Read CLAUDE.md. Read docs/ADR-002-CONTEXT.md.
+git pull. Read CLAUDE.md. [CORRECTED 2026-07-03: this line originally said
+"Read docs/ADR-002-CONTEXT.md" -- confirmed that file doesn't exist (404).
+This CC-CMD was already executed historically; corrected so it doesn't
+mislead anyone browsing old CC-CMDs as a reference pattern. See
+STANDARDS.md's RUWT/ADR-002 rule content for the real, current
+equivalent context.]
 
 Write all findings to outbox/cc-context-assembler-2026-06-21.md.
 
