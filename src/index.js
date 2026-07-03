@@ -6889,19 +6889,33 @@ export default {
                 // half-considered conditional fix while a real match was in
                 // progress. Real gap (3 uncached callers hitting the
                 // identical upstream URL) still stands, unresolved.
+                // Corrected 2026-07-03, same day as the failed attempt above:
+                // the real staleness problem was never the cf:{cacheTtl}
+                // I added and reverted earlier -- it was THIS header the
+                // whole time. Confirmed via a clean test on a genuinely
+                // never-before-touched event even AFTER reverting the
+                // fetch-level change: first call 1.15s, repeat calls
+                // 0.3-0.4s, identical response -- Cloudflare's edge was
+                // respecting this Cache-Control header on its own,
+                // independent of the fetch-level directive. This route can
+                // serve genuinely live, actively-changing event data
+                // (confirmed against a real in-progress match right now,
+                // WC26 Australia vs Egypt) -- no-store, no cheap way to
+                // distinguish live-vs-completed events at this point in the
+                // code without added complexity of its own.
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${shotmapM[1]}/stats/`,
                     { headers: bsdHeaders });
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'public, max-age=60', ...CORS } });
+                               'Cache-Control': 'no-store', ...CORS } });
             }
 
             // /bsd/events/:id/momentum → extract momentum[] from BSD /api/v2/events/:id/stats/
             // BSD does not have a standalone /momentum/ endpoint — data is in /stats/.
             const momentumM = pathname.match(/^\/bsd\/events\/(\d+)\/momentum$/);
             if (momentumM) {
-                // Edge-cache TTL tried and reverted 2026-07-03 -- see shotmap
-                // comment above, same real reason.
+                // Corrected 2026-07-03 -- same real root cause as shotmap
+                // above, same fix (no-store).
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${momentumM[1]}/stats/`,
                     { headers: bsdHeaders });
                 if (!r.ok) {
@@ -6913,7 +6927,7 @@ export default {
                 return new Response(JSON.stringify({ event_id: momentumM[1], momentum }), {
                     status: 200,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'public, max-age=30', ...CORS },
+                               'Cache-Control': 'no-store', ...CORS },
                 });
             }
 
