@@ -16,7 +16,7 @@ a `claude/*`-prefixed branch.
 Cloudflare Workers relay for the FIELD Global Sports Intelligence PWA. Handles data proxying, journalism generation, Durable Objects, MCP server, and archive endpoints. Companion to jubilant-bassoon (the browser client).
 
 ## Key Files
-- `src/index.js` — main worker (~5600 lines). All routes, cron handlers, fetch handler.
+- `src/index.js` — main worker (12,938 lines as of 2026-07-03, corrected from a stale ~5600 estimate that was off by more than double). All routes, cron handlers, fetch handler.
 - `src/journalism-quality.js` — 6-layer quality chain (J0-J7)
 - `src/game-do.js` — GameDO Durable Object (live score fan-out via WebSocket)
 - `src/ambient-do.js` — AmbientDO (cross-sport SSE)
@@ -135,9 +135,9 @@ Claude's governance obligations are independent of user pace. If the user asks f
 - Commit prefixes: `feat:`, `fix:`, `ci:`, `docs:`
 
 ## Key Functions
-- `handleJournalismCycle(env)` — line ~2893. Every 15 min. Generates slate brief, stores in FIELD_JOURNALISM KV.
-- Route section starts at line ~3329. Pattern: `pathname === '/...'` or `pathname.startsWith('/...')`.
-- Archive routes at line ~3835 (`/archive/*`) — currently read-only GET endpoints.
+- `handleJournalismCycle(env)` — line 5504 as of 2026-07-03 (corrected from a stale ~2893 estimate). Every 15 min. Generates slate brief, stores in FIELD_JOURNALISM KV.
+- Route section starts at line 6642 as of 2026-07-03 (corrected from a stale ~3329 estimate, which had drifted inside an unrelated NHL fetch helper). Pattern: `pathname === '/...'` or `pathname.startsWith('/...')`.
+- Archive routes at line 8139 as of 2026-07-03 (`/archive/*`, corrected from a stale ~3835 estimate) — currently read-only GET endpoints.
 - MCP probe allow-list — hardcoded array in the `/mcp` route handler. New routes that should be probeable must be added here.
 
 ## Journalism Model
