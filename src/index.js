@@ -7251,30 +7251,9 @@ export default {
         // or via GitHub secret -> CF Worker secret through deploy.yml, mirroring
         // the existing env.SPORTRADAR_UFL_KEY pattern. The raw key value is
         // NEVER written into this file or any committed code -- only the env
-        // var name.
-        // TEMPORARY DIAGNOSTIC — testing FIFA's own first-party site as a
-        // zero-vendor, zero-cost data source. Confirmed via Parse.bot's own
-        // FAQ: "FIFA does not publish a documented public developer API" --
-        // so this tests whether (a) the old undocumented ranking-overview
-        // endpoint still works without a dateId, and (b) whether the real
-        // rankings page embeds the data directly in its HTML (common for
-        // SSR sites), which would need no hidden-API guessing at all.
-        // TEMPORARY DIAGNOSTIC — verify PARSEBOT_FIFA_KEY works against the
-        // real Parse.bot endpoint before building/un-deferring TASK 4 on it.
-        if (pathname === '/parsebot-diag') {
-            const key = env.PARSEBOT_FIFA_KEY;
-            if (!key) return new Response(JSON.stringify({ ok: false, error: 'PARSEBOT_FIFA_KEY not configured' }), { headers: CORS });
-            try {
-                const r = await fetch('https://api.parse.bot/scraper/29ef51e4-86d0-4580-a598-4c86dfa6e5ff/get_mens_world_ranking?limit=10', {
-                    headers: { 'X-API-Key': key },
-                });
-                const body = await r.text();
-                return new Response(JSON.stringify({ status: r.status, body: body.slice(0, 1500) }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-            } catch (e) {
-                return new Response(JSON.stringify({ error: e.message }), { headers: CORS });
-            }
-        }
-
+        // var name. Now sourced from Parse.bot's PARSEBOT_FIFA_KEY (confirmed
+        // working 2026-07-04) after footballdata.io's free tier was confirmed
+        // permanently blocked by a paid-plan requirement.
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
@@ -7285,55 +7264,46 @@ export default {
                 let table = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(FIFA_RANKINGS_KV_KEY, 'json') : null;
                 let source = 'kv';
                 if (!table) {
-                    const key = env.FOOTBALLDATA_FIFA_KEY;
+                    const key = env.PARSEBOT_FIFA_KEY;
                     if (!key) {
-                        return new Response(JSON.stringify({ ok: false, error: 'FOOTBALLDATA_FIFA_KEY not configured' }),
+                        return new Response(JSON.stringify({ ok: false, error: 'PARSEBOT_FIFA_KEY not configured' }),
                             { status: 503, headers: { 'X-RELAY-Error': 'fifa-rankings-no-key', ...CORS } });
                     }
-                    // RE-VERIFIED against footballdata.io/documentation/fifa-rankings/
-                    // 2026-07-04, after the first live attempt 403'd on a wrong guess:
-                    //   - Auth: 'Authorization: Bearer' (NOT X-Auth-Token -- that was an
-                    //     unverified guess that got committed without checking real docs)
-                    //   - Param: 'ranking_type' (NOT 'type')
-                    //   - /fifa-rankings/current is the recommended endpoint for current
-                    //     tables (docs: "Use /fifa-rankings/current for current ranking
-                    //     tables"), not the bare listing endpoint
-                    //   - Response is PAGINATED, max limit=100/page, ~210 total entries
-                    //     confirmed in the docs' own sample meta (total:210) -- must page
-                    //     through to build the whole table, one call does not suffice
-                    //   - Response fields are NESTED, not flat: entry.country.name,
-                    //     entry.ranking.world_rank, entry.points.total -- NOT
-                    //     entry.country_name/entry.rank/entry.points as originally coded
-                    table = [];
-                    let page = 1;
-                    const MAX_PAGES = 5; // 210 entries / 100 per page ≈ 3, cap at 5 defensively
-                    while (page <= MAX_PAGES) {
-                        const r = await fetch(`https://footballdata.io/api/v1/fifa-rankings/current?ranking_type=men&limit=100&page=${page}`, {
-                            headers: { 'Authorization': `Bearer ${key}` },
-                        });
-                        if (!r.ok) {
-                            const errBody = await r.text().catch(() => '');
-                            return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}`, upstreamBody: errBody.slice(0, 500), page }),
-                                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                        }
-                        const data = await r.json();
-                        const rows = data.data || [];
-                        table.push(...rows);
-                        const totalPages = data.meta?.pagination?.total_pages || 1;
-                        if (page >= totalPages || !rows.length) break;
-                        page++;
+                    // VERIFIED LIVE 2026-07-04 against the real Parse.bot endpoint
+                    // with a real key -- confirmed 200, real data (Argentina rank 1,
+                    // 1877.27 pts, PubDate 2026-06-11). Response shape confirmed real,
+                    // not assumed: data.Results[].TeamName[].Description (array of
+                    // locale objects, NOT a flat string), data.Results[].Rank,
+                    // data.Results[].DecimalTotalPoints, data.Results[].IdCountry
+                    // (3-letter code). ContinuationToken/ContinuationHash handle
+                    // pagination if present; auth is X-API-Key (not Bearer).
+                    const r = await fetch('https://api.parse.bot/scraper/29ef51e4-86d0-4580-a598-4c86dfa6e5ff/get_mens_world_ranking?limit=250', {
+                        headers: { 'X-API-Key': key },
+                    });
+                    if (!r.ok) {
+                        const errBody = await r.text().catch(() => '');
+                        return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}`, upstreamBody: errBody.slice(0, 500) }),
+                            { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
                     }
+                    const data = await r.json();
+                    table = data.data?.Results || [];
                     source = 'live';
                     if (env.FIELD_JOURNALISM && table.length) {
                         await env.FIELD_JOURNALISM.put(FIFA_RANKINGS_KV_KEY, JSON.stringify(table), { expirationTtl: FIFA_RANKINGS_KV_TTL_SECS });
                     }
                 }
-                const entry = table.find(t => (t.country?.name || '').toLowerCase() === teamName.toLowerCase());
+                const entry = table.find(t => {
+                    const desc = (t.TeamName || []).find(tn => tn.Locale === 'en-GB')?.Description
+                        || (t.TeamName || [])[0]?.Description || '';
+                    return desc.toLowerCase() === teamName.toLowerCase();
+                });
                 if (!entry) {
                     return new Response(JSON.stringify({ ok: false, error: 'team not found in rankings', source, tableSize: table.length }),
                         { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                return new Response(JSON.stringify({ ok: true, rank: entry.ranking?.world_rank, points: entry.points?.total, team: entry.country?.name, source }),
+                const teamDesc = (entry.TeamName || []).find(tn => tn.Locale === 'en-GB')?.Description
+                    || (entry.TeamName || [])[0]?.Description || teamName;
+                return new Response(JSON.stringify({ ok: true, rank: entry.Rank, points: entry.DecimalTotalPoints, team: teamDesc, source }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             } catch (e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),
