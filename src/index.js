@@ -12474,7 +12474,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
