@@ -7199,6 +7199,41 @@ export default {
             });
         }
 
+        // GET /circadian/:phase/:date — fast KV-first read. Real consumer:
+        // jubilant-bassoon's OG share-meta Worker script (CC-CMD-2026-07-04-
+        // og-share-meta.md), which needs low-latency text for crawler requests
+        // with no session. Falls back to D1 analytics_output if KV TTL expired.
+        if (pathname.startsWith('/circadian/')) {
+            const parts = pathname.split('/').filter(Boolean);
+            const phase = parts[1];
+            const date = parts[2];
+            if (!['preview', 'late'].includes(phase)) {
+                return new Response(JSON.stringify({ ok: false, error: "phase must be 'preview' or 'late'" }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const kvKey = `field:circadian:${phase}:${date}`;
+                let text = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(kvKey) : null;
+                let source = 'kv';
+                if (!text && env.ARCHIVE_DB) {
+                    const row = await env.ARCHIVE_DB.prepare(
+                        `SELECT brief_text FROM analytics_output WHERE feature = ? AND date = ? LIMIT 1`
+                    ).bind(`circadian_${phase}`, date).first();
+                    text = row?.brief_text || null;
+                    source = text ? 'd1-fallback' : null;
+                }
+                return new Response(JSON.stringify({ ok: !!text, text: text || null, source, phase, date }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /odds-story/preview?date=YYYY-MM-DD — preview the materialized
         // line-movement narrative the Context Assembler would inject. Does
         // not write anything. Pure read of opening_odds vs closing_odds
