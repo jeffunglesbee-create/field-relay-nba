@@ -84,3 +84,45 @@ Once the correct format is identified, the fix in `src/index.js` is a one-line c
 
 - `42570c0` — feat: add GET /fifa-rankings/:teamName
 - `2bf1594` — fix: add /fifa-rankings and /circadian to MCP probe_relay_route allow-list
+
+
+---
+
+## ADDENDUM (chat session, later 2026-07-04): three real bugs found and fixed, real root cause identified
+
+The X-Auth-Token fix (commit 90351a7) was an unverified guess and was WRONG.
+Fetched footballdata.io's actual technical documentation
+(footballdata.io/documentation/fifa-rankings/ and /documentation/errors/)
+directly and found:
+
+1. **Auth header was always correct as originally coded**: `Authorization: Bearer`.
+   Reverting the X-Auth-Token change.
+2. **Wrong query param**: code used `type=men`, real API requires `ranking_type=men`.
+3. **Wrong endpoint**: docs explicitly recommend `/fifa-rankings/current` for
+   current tables, not the bare `/fifa-rankings` listing endpoint.
+4. **Wrong response shape assumed**: real response is nested
+   (`entry.country.name`, `entry.ranking.world_rank`, `entry.points.total`),
+   not flat (`entry.country_name`/`entry.rank`/`entry.points`) as originally
+   coded from the marketing page's simplified example.
+5. **Pagination required**: ~210 total ranked teams, max 100/page — one call
+   does not return the whole table, confirmed via the docs' own sample
+   `meta.pagination.total_pages`. Added a paginated fetch loop (capped at 5
+   pages defensively).
+
+All five fixed and deployed (commit dae02a5, deploy_match confirmed true).
+Live-tested again: **still HTTP 403.** Consulted footballdata.io's own
+error documentation, which is unambiguous:
+
+> `403` / `api_key_inactive` — "The API key exists but is not active.
+> Use an active key or contact support."
+
+**Real root cause, confirmed via authoritative source: this is not a code
+bug. The key exists but is not yet active** — almost certainly requires
+email verification or an activation step on the footballdata.io account
+itself, which no amount of further code correction can fix. The relay
+code is now verified correct against the real API spec and ready to work
+the moment the key activates.
+
+**Action needed (Jeff, not CC/chat):** check the footballdata.io account
+email/dashboard for an activation step, or contact their support per the
+error message's own suggestion.
