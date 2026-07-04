@@ -7266,26 +7266,22 @@ export default {
                     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
                 });
                 const pageBody = await pageResp.text();
-                const scriptSrcs = [...pageBody.matchAll(/<script[^>]+src="([^"]+)"/g)]
-                    .map(m => m[1]).filter(s => s.includes('_next/static/chunks/'));
+                const scriptSrcs = [...new Set([...pageBody.matchAll(/<script[^>]+src="([^"]+)"/g)]
+                    .map(m => m[1]).filter(s => s.includes('_next/static/chunks/')))];
                 results.totalChunksFound = scriptSrcs.length;
-                const chunkResults = {};
-                // Check a handful of the larger numbered chunks (route-specific
-                // code is usually here, not in generic framework/polyfill chunks).
-                const candidates = scriptSrcs.filter(s => /\/chunks\/\d/.test(s)).slice(0, 6);
-                for (const src of candidates) {
+                const hits = [];
+                for (const src of scriptSrcs) {
                     const url = src.startsWith('http') ? src : `https://inside.fifa.com${src}`;
                     try {
                         const r = await fetch(url);
                         const js = await r.text();
-                        const rankingRefs = js.match(/https:\/\/api\.fifa\.com\/[^"'`]*ranking[^"'`]*/gi) || [];
-                        const anyApiFifa = (js.match(/api\.fifa\.com/gi) || []).length;
-                        chunkResults[src] = { length: js.length, apiFifaMentions: anyApiFifa, rankingSpecificUrls: [...new Set(rankingRefs)] };
-                    } catch (e) {
-                        chunkResults[src] = { error: e.message };
-                    }
+                        if (/ranking/i.test(js) && /api\.fifa\.com/i.test(js)) {
+                            const rankingUrls = js.match(/https:\/\/api\.fifa\.com\/[^"'`]{0,80}/gi) || [];
+                            hits.push({ src, length: js.length, sampleUrls: [...new Set(rankingUrls)].slice(0, 10) });
+                        }
+                    } catch (e) { /* skip individual chunk failures */ }
                 }
-                results.chunks = chunkResults;
+                results.chunksWithRankingAndApiFifa = hits;
             } catch (e) {
                 results.error = e.message;
             }
