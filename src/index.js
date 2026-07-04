@@ -7267,27 +7267,49 @@ export default {
                         return new Response(JSON.stringify({ ok: false, error: 'FOOTBALLDATA_FIFA_KEY not configured' }),
                             { status: 503, headers: { 'X-RELAY-Error': 'fifa-rankings-no-key', ...CORS } });
                     }
-                    // Verified real endpoint (footballdata.io/documentation/fifa-rankings/, 2026-07-04):
-                    const r = await fetch('https://footballdata.io/api/v1/fifa-rankings?type=men', {
-                        headers: { 'X-Auth-Token': key },
-                    });
-                    if (!r.ok) {
-                        return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}` }),
-                            { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                    // RE-VERIFIED against footballdata.io/documentation/fifa-rankings/
+                    // 2026-07-04, after the first live attempt 403'd on a wrong guess:
+                    //   - Auth: 'Authorization: Bearer' (NOT X-Auth-Token -- that was an
+                    //     unverified guess that got committed without checking real docs)
+                    //   - Param: 'ranking_type' (NOT 'type')
+                    //   - /fifa-rankings/current is the recommended endpoint for current
+                    //     tables (docs: "Use /fifa-rankings/current for current ranking
+                    //     tables"), not the bare listing endpoint
+                    //   - Response is PAGINATED, max limit=100/page, ~210 total entries
+                    //     confirmed in the docs' own sample meta (total:210) -- must page
+                    //     through to build the whole table, one call does not suffice
+                    //   - Response fields are NESTED, not flat: entry.country.name,
+                    //     entry.ranking.world_rank, entry.points.total -- NOT
+                    //     entry.country_name/entry.rank/entry.points as originally coded
+                    table = [];
+                    let page = 1;
+                    const MAX_PAGES = 5; // 210 entries / 100 per page ≈ 3, cap at 5 defensively
+                    while (page <= MAX_PAGES) {
+                        const r = await fetch(`https://footballdata.io/api/v1/fifa-rankings/current?ranking_type=men&limit=100&page=${page}`, {
+                            headers: { 'Authorization': `Bearer ${key}` },
+                        });
+                        if (!r.ok) {
+                            return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}`, page }),
+                                { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                        }
+                        const data = await r.json();
+                        const rows = data.data || [];
+                        table.push(...rows);
+                        const totalPages = data.meta?.pagination?.total_pages || 1;
+                        if (page >= totalPages || !rows.length) break;
+                        page++;
                     }
-                    const data = await r.json();
-                    table = data.data || [];
                     source = 'live';
                     if (env.FIELD_JOURNALISM && table.length) {
                         await env.FIELD_JOURNALISM.put(FIFA_RANKINGS_KV_KEY, JSON.stringify(table), { expirationTtl: FIFA_RANKINGS_KV_TTL_SECS });
                     }
                 }
-                const entry = table.find(t => (t.country_name || '').toLowerCase() === teamName.toLowerCase());
+                const entry = table.find(t => (t.country?.name || '').toLowerCase() === teamName.toLowerCase());
                 if (!entry) {
-                    return new Response(JSON.stringify({ ok: false, error: 'team not found in rankings', source }),
+                    return new Response(JSON.stringify({ ok: false, error: 'team not found in rankings', source, tableSize: table.length }),
                         { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                return new Response(JSON.stringify({ ok: true, rank: entry.rank, points: entry.points, team: entry.country_name, source }),
+                return new Response(JSON.stringify({ ok: true, rank: entry.ranking?.world_rank, points: entry.points?.total, team: entry.country?.name, source }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             } catch (e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),
