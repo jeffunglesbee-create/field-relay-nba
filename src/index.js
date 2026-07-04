@@ -7261,18 +7261,37 @@ export default {
         // SSR sites), which would need no hidden-API guessing at all.
         if (pathname === '/fifa-diag') {
             const results = {};
-            for (const [label, url] of [
-                ['old_hidden_api_no_dateid', 'https://www.fifa.com/api/ranking-overview?locale=en'],
-                ['inside_fifa_page', 'https://inside.fifa.com/fifa-world-ranking/men'],
-            ]) {
-                try {
-                    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' } });
-                    const body = await r.text();
-                    const hasEmbeddedData = body.includes('__NEXT_DATA__') || body.includes('rankingItem') || body.includes('"rankings"');
-                    results[label] = { status: r.status, length: body.length, hasEmbeddedData, sample: body.slice(0, 500) };
-                } catch (e) {
-                    results[label] = { error: e.message };
+            try {
+                const r = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
+                });
+                const body = await r.text();
+                // Find the actual JSON payload -- Next.js SSR sites embed it in
+                // a <script id="__NEXT_DATA__" type="application/json"> tag.
+                const nextDataMatch = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+                let parsedSample = null;
+                let rankingCount = 0;
+                if (nextDataMatch) {
+                    try {
+                        const nextData = JSON.parse(nextDataMatch[1]);
+                        const nextDataStr = JSON.stringify(nextData);
+                        // Search for a plausible rankings array anywhere in the tree
+                        const rankingsIdx = nextDataStr.indexOf('"rankingItem"');
+                        parsedSample = rankingsIdx >= 0 ? nextDataStr.slice(Math.max(0, rankingsIdx - 50), rankingsIdx + 500) : 'no rankingItem key found in __NEXT_DATA__';
+                        rankingCount = (nextDataStr.match(/"rankingItem"/g) || []).length;
+                    } catch (e) {
+                        parsedSample = `JSON.parse failed: ${e.message}`;
+                    }
+                } else {
+                    parsedSample = 'no __NEXT_DATA__ script tag found';
                 }
+                results.status = r.status;
+                results.bodyLength = body.length;
+                results.foundNextData = !!nextDataMatch;
+                results.rankingItemOccurrences = rankingCount;
+                results.sample = parsedSample;
+            } catch (e) {
+                results.error = e.message;
             }
             return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
