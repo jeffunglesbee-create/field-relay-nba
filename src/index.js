@@ -7261,22 +7261,26 @@ export default {
         // SSR sites), which would need no hidden-API guessing at all.
         if (pathname === '/fifa-diag') {
             const results = {};
-            const candidates = [
-                'https://api.fifa.com/api/v3/rankings/men',
-                'https://api.fifa.com/api/v3/ranking/men',
-                'https://api.fifa.com/api/v3/rankings/mens?locale=en',
-                'https://api.fifa.com/api/v3/rankings/associations?locale=en',
-                'https://api.fifa.com/api/v3/ranking-overview/men?locale=en',
-                'https://api.fifa.com/api/v3/calendar/rankings/men',
-            ];
-            for (const url of candidates) {
-                try {
-                    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' } });
-                    const body = await r.text();
-                    results[url] = { status: r.status, length: body.length, sample: body.slice(0, 300) };
-                } catch (e) {
-                    results[url] = { error: e.message };
+            try {
+                const r = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
+                });
+                const body = await r.text();
+                const nextDataMatch = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+                if (nextDataMatch) {
+                    const raw = nextDataMatch[1];
+                    // Exhaustive: every api.fifa.com occurrence, full URL up to the
+                    // next quote, not filtered by a narrow keyword pattern.
+                    const allApiFifa = raw.match(/https:\/\/api\.fifa\.com\/[^"\\]*/g) || [];
+                    results.allApiFifaRefs = [...new Set(allApiFifa)];
+                    // Also check for a GraphQL endpoint (common in modern FIFA-style sites)
+                    results.hasGraphQL = raw.includes('graphql');
+                    // Check for any config object mentioning API base URLs generically
+                    const apiBaseRefs = raw.match(/"[a-zA-Z]*[Aa]pi[a-zA-Z]*(?:Url|Base|Endpoint|Host)"\s*:\s*"[^"]*"/g) || [];
+                    results.apiBaseConfigRefs = [...new Set(apiBaseRefs)];
                 }
+            } catch (e) {
+                results.error = e.message;
             }
             return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
