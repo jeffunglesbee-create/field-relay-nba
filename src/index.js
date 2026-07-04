@@ -7269,7 +7269,7 @@ export default {
                     }
                     // Verified real endpoint (footballdata.io/documentation/fifa-rankings/, 2026-07-04):
                     const r = await fetch('https://footballdata.io/api/v1/fifa-rankings?type=men', {
-                        headers: { 'Authorization': `Bearer ${key}` },
+                        headers: { 'X-Auth-Token': key },
                     });
                     if (!r.ok) {
                         return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}` }),
