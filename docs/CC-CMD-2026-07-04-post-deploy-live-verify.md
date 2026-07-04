@@ -122,8 +122,9 @@ was checked and how, not as a TODO.
 - [ ] Explicit statement that this closes the "chat manually curls after every deploy" gap going forward
 
 ## ONE-LINER
-git pull. Read docs/CC-CMD-2026-07-04-post-deploy-live-verify.md. Confirm
-the real deploy workflow name first (TASK 2) — do not guess. Implement
-exactly as specified. Do not commit unless confidence ≥ 95 on the
-CC-verifiable portion (see CONFIDENCE GATE note — full firing
-confirmation is deferred by design, not blocking).
+git pull. Read docs/CC-CMD-2026-07-04-post-deploy-live-verify.md. The
+deploy workflow name is already confirmed ("Deploy RELAY Worker", see
+TASK 2) — do not re-derive it. Implement exactly as specified. Do not
+commit unless confidence ≥ 95 on the CC-verifiable portion (see
+CONFIDENCE GATE note — full firing confirmation is deferred by design,
+not blocking).
