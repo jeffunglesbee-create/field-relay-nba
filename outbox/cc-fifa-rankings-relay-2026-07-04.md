@@ -126,3 +126,52 @@ the moment the key activates.
 **Action needed (Jeff, not CC/chat):** check the footballdata.io account
 email/dashboard for an activation step, or contact their support per the
 error message's own suggestion.
+
+
+---
+
+## CORRECTION (chat session, later still 2026-07-04): the "api_key_inactive" diagnosis was WRONG
+
+Jeff's own footballdata.io dashboard showed the key as genuinely
+**Active**, with real usage (3/2000, then 6/2000, incrementing) — directly
+contradicting the prior "key is inactive" conclusion. That conclusion was
+reached by matching the generic HTTP 403 against the errors table without
+actually reading the real response body, which the code was discarding
+(`error: \`upstream ${r.status}\`` — status only, no body).
+
+Added a temporary diagnostic endpoint that called `/account/usage`,
+`/fifa-rankings`, `/fifa-rankings/current`, and `/fixtures/today` with the
+same key side by side. Real results:
+
+- `/account/usage` → 200, `{"status":"active","plan":"free",...}` — the
+  key is genuinely active, confirmed directly, not inferred.
+- `/fixtures/today` → 200, real match data — the key works fine for
+  other endpoints.
+- `/fifa-rankings` and `/fifa-rankings/current` → both 403, but the REAL
+  error code is **`paid_plan_required`**, not `api_key_inactive`:
+  `{"code":"paid_plan_required","message":"This endpoint requires a paid
+  plan.","current_plan":"free","allowed_plans":["starter","pro","enterprise"]}`
+
+**Real, verified root cause: FIFA Rankings is not available on
+footballdata.io's free tier at all.** This is a plan restriction, not an
+activation issue, not a code bug — all 5 earlier code corrections
+(auth header, param name, endpoint, pagination, field paths) were
+genuinely necessary and are still correct, but none of them could have
+fixed this, because the endpoint is categorically blocked on the free
+plan regardless of request correctness.
+
+Diagnostic endpoint removed (commit 681cbf9). The real endpoint's error
+handling was improved to surface the actual upstream error body going
+forward (`upstreamBody` field), specifically so this class of
+misdiagnosis — inferring a generic error meaning from a status code
+table instead of reading the real response — can't recur silently.
+
+**Real decision needed (Jeff, not chat/CC):** either (a) upgrade the
+footballdata.io account to Starter/Pro/Enterprise to unlock this
+endpoint, (b) pursue the Sportradar Soccer Extended API path instead
+(confirmed to have real ranking data in earlier research, but not
+verified whether it's covered by the existing UFL-trial relationship or
+needs separate signup), or (c) accept the upset/ranking-factor feature
+doesn't ship and the soccer drama-scoring fixes ship without it (the
+other three real fixes — extra-time bonus, interpolation, backfill —
+are independent and unaffected by this).
