@@ -7254,6 +7254,13 @@ export default {
         // var name. Now sourced from Parse.bot's PARSEBOT_FIFA_KEY (confirmed
         // working 2026-07-04) after footballdata.io's free tier was confirmed
         // permanently blocked by a paid-plan requirement.
+        if (pathname === '/fifa-rankings-names') {
+            const table = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(FIFA_RANKINGS_KV_KEY, 'json') : null;
+            if (!table) return new Response(JSON.stringify({ error: 'no cached table' }), { headers: CORS });
+            const names = table.map(t => (t.TeamName || [])[0]?.Description).filter(n => /verde|cabo|cape/i.test(n || ''));
+            return new Response(JSON.stringify({ matches: names }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
