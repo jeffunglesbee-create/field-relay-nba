@@ -1,5 +1,21 @@
 # CC-CMD: FIFA rankings fetch + cache (relay half of the upset-factor drama bonus)
 
+**STATUS: COMPLETE — executed directly by chat, not CC.** footballdata.io
+was confirmed permanently blocked by a paid-plan requirement (see the
+correction later in this doc). A pre-existing Parse.bot account (key
+created June 28, before this investigation even started) was found and
+a dedicated FIELD key created. Real, live, end-to-end verified 2026-07-04:
+`GET /fifa-rankings/Argentina` → `{"ok":true,"rank":1,"points":1877.27,
+"team":"Argentina"}`; `GET /fifa-rankings/Cape Verde` → `{"ok":true,
+"rank":67,"points":1371.11,"team":"Cabo Verde"}` (FIFA's official name,
+handled via a confirmed-real alias map for 3 known naming mismatches:
+Cape Verde/Cabo Verde, South Korea/Korea Republic, Ivory Coast/Côte
+d'Ivoire — not exhaustively checked against all 48 WC26 teams, so an
+unmapped team returning "not found" is expected and debuggable, not a
+silent bug). This section of the doc is kept for the historical record
+of what was tried and why footballdata.io failed — do not re-attempt
+footballdata.io.
+
 **Date:** 2026-07-04
 **Repo:** jeffunglesbee-create/field-relay-nba (sole)
 **Branch:** main
