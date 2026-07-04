@@ -7259,35 +7259,6 @@ export default {
         // endpoint still works without a dateId, and (b) whether the real
         // rankings page embeds the data directly in its HTML (common for
         // SSR sites), which would need no hidden-API guessing at all.
-        if (pathname === '/fifa-diag') {
-            const results = {};
-            try {
-                const pageResp = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
-                });
-                const pageBody = await pageResp.text();
-                const scriptSrcs = [...new Set([...pageBody.matchAll(/<script[^>]+src="([^"]+)"/g)]
-                    .map(m => m[1]).filter(s => s.includes('_next/static/chunks/')))];
-                results.totalChunksFound = scriptSrcs.length;
-                const hits = [];
-                for (const src of scriptSrcs) {
-                    const url = src.startsWith('http') ? src : `https://inside.fifa.com${src}`;
-                    try {
-                        const r = await fetch(url);
-                        const js = await r.text();
-                        if (/ranking/i.test(js) && /api\.fifa\.com/i.test(js)) {
-                            const rankingUrls = js.match(/https:\/\/api\.fifa\.com\/[^"'`]{0,80}/gi) || [];
-                            hits.push({ src, length: js.length, sampleUrls: [...new Set(rankingUrls)].slice(0, 10) });
-                        }
-                    } catch (e) { /* skip individual chunk failures */ }
-                }
-                results.chunksWithRankingAndApiFifa = hits;
-            } catch (e) {
-                results.error = e.message;
-            }
-            return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
