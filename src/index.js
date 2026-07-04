@@ -7259,6 +7259,22 @@ export default {
         // endpoint still works without a dateId, and (b) whether the real
         // rankings page embeds the data directly in its HTML (common for
         // SSR sites), which would need no hidden-API guessing at all.
+        // TEMPORARY DIAGNOSTIC — verify PARSEBOT_FIFA_KEY works against the
+        // real Parse.bot endpoint before building/un-deferring TASK 4 on it.
+        if (pathname === '/parsebot-diag') {
+            const key = env.PARSEBOT_FIFA_KEY;
+            if (!key) return new Response(JSON.stringify({ ok: false, error: 'PARSEBOT_FIFA_KEY not configured' }), { headers: CORS });
+            try {
+                const r = await fetch('https://api.parse.bot/scraper/29ef51e4-86d0-4580-a598-4c86dfa6e5ff/get_mens_world_ranking?limit=10', {
+                    headers: { 'X-API-Key': key },
+                });
+                const body = await r.text();
+                return new Response(JSON.stringify({ status: r.status, body: body.slice(0, 1500) }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), { headers: CORS });
+            }
+        }
+
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
