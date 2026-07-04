@@ -19,21 +19,18 @@ per-game or per-poll fetch.
 **Target time:** ~45 min (mostly the same pattern as the existing
 Sportradar UFL integration, adapted)
 
-**UPDATE 2026-07-04: a real footballdata.io API key has been generated**
-(confirmed via screenshot of their dashboard — key creation succeeded,
-"0% used, has not been used yet"). What remains true and unverified:
-(a) the key has NOT yet been confirmed set as a Cloudflare Worker secret
-(`FOOTBALLDATA_FIFA_KEY`) — that step still needs to happen, via
-`wrangler secret put FOOTBALLDATA_FIFA_KEY` or the Cloudflare dashboard,
-mirroring exactly how `SPORTRADAR_UFL_KEY` was provisioned; (b) the key
-has NOT been live-tested against the real endpoint from any environment
-that can reach `footballdata.io` — chat's own sandbox has this domain
-blocked from egress (confirmed: "Host not in allowlist: footballdata.io"),
-so this must be verified either from within the deployed Worker itself
-(which CAN reach arbitrary external hosts) or from an environment with
-that domain allowlisted. **The raw key value must never be pasted into
-this file, any commit, or any CC-CMD — only the env var name
-`FOOTBALLDATA_FIFA_KEY` is referenced here.**
+**UPDATE 2026-07-04 (later same day): `FOOTBALLDATA_FIFA_KEY` is
+confirmed LIVE as a Cloudflare Worker secret on field-relay-nba.**
+Fully automated, no manual wrangler/dashboard step: chat installed
+PyNaCl, encrypted the key with this repo's actual public key, set it as
+a GitHub Actions secret, then dispatched a newly-ported
+`sync-secret-to-worker.yml` (proven pattern, reused from stat-job-watcher)
+which PUT it to the Cloudflare API. Verified via the actual job log,
+not just workflow status: `{"result":{"name":"FOOTBALLDATA_FIFA_KEY",
+"type":"secret_text"},"success":true}`. The raw key value never
+touched any file, commit, or CC-CMD doc at any point. **This CC-CMD's
+code can now be fully verified live** — `env.FOOTBALLDATA_FIFA_KEY`
+will resolve to a real value once this endpoint deploys.
 
 ## ENVIRONMENT CONSTRAINTS (copy verbatim)
 - *.workers.dev:443 blocked from CC egress
@@ -151,32 +148,30 @@ DO NOT:
 - [ ] Endpoint added exactly as verified above (whole-table fetch, `type=men`, `footballdata.io` not `api.footballdata.io`), KV-first with 7-day TTL
 - [ ] `node --check src/index.js` clean
 - [ ] Deploy succeeds
-- [ ] Confirm whether `FOOTBALLDATA_FIFA_KEY` has actually been set as a Cloudflare Worker secret yet (`wrangler secret list` or dashboard check) — do not assume it has been just because a key was generated on footballdata.io's side
-- [ ] `GET /fifa-rankings/Argentina` tested against whatever the real current state is: if the secret isn't set yet, confirm the 503 graceful-failure path; if it IS set, confirm a real successful lookup returns `rank`/`points`/`team` for Argentina — report which case was actually true, don't assume either
-- [ ] Outbox manifest written, explicitly stating the real observed state of both the secret provisioning and the live fetch result
+- [x] `FOOTBALLDATA_FIFA_KEY` confirmed live as a Cloudflare Worker secret (2026-07-04, verified via real CF API response in the sync workflow's job log — see UPDATE above)
+- [ ] `GET /fifa-rankings/Argentina` tested against the live deployed endpoint — the key now exists, so this should return a real successful lookup (`rank`/`points`/`team`), not a 503. If it still 503s, something is wrong with how `env.FOOTBALLDATA_FIFA_KEY` is being read in the Worker code — report this discrepancy, don't assume it'll resolve itself
+- [ ] Outbox manifest written, recording the real observed live-fetch result
 
-**Deferred to chat/Jeff — cannot be completed without external action:**
-- [ ] Confirm `FOOTBALLDATA_FIFA_KEY` is set as a Cloudflare Worker secret (a real API key was generated 2026-07-04, but chat could not confirm it's been wired into the Worker's environment — chat's sandbox cannot reach footballdata.io to test independently)
-- [ ] Real successful ranking lookups for Argentina and Cape Verde once both the secret is confirmed set AND a live request succeeds
+**No longer deferred — the key exists and is live:**
+- ~~Confirm FOOTBALLDATA_FIFA_KEY is set as a Cloudflare Worker secret~~ — DONE, verified 2026-07-04
+- [ ] Real successful ranking lookups for Argentina and Cape Verde — now actually testable, do this for real once TASK 1 is deployed
 
 ## COMPLIANCE
 - Rule 47/ADR-002: returns raw rank/points numbers only, no derived "upset probability" or display-facing score — that computation happens client-side in dramaScoreLive as an internal signal, not here
 - Rule 68: probe block first
-- Rule 87: partially self-completing — the code-correctness portion is; live data verification depends on secret provisioning state, which must be checked, not assumed
+- Rule 87: self-completing — the secret-provisioning blocker is resolved, live verification is now genuinely achievable in-session
 
 ## CONFIDENCE SCORING TABLE
-+30  Endpoint added exactly as specified (verified real footballdata.io shape)
-+30  Whole-table caching design confirmed correct — one upstream call serves all teams, not one call per team
-+20  Graceful 503 behavior confirmed if key isn't wired in yet, OR real successful lookup confirmed if it is — whichever is actually true
-+20  Deploy succeeds, `node --check` clean
++25  Endpoint added exactly as specified (verified real footballdata.io shape)
++25  Whole-table caching design confirmed correct — one upstream call serves all teams, not one call per team
++25  Real successful lookup confirmed for at least one team (Argentina or Cape Verde) — the key exists now, this should be achievable, not deferred
++25  Deploy succeeds, `node --check` clean
 
 ## ONE-LINER
 git pull. Read docs/CC-CMD-2026-07-04-fifa-rankings-relay.md. The real
 footballdata.io endpoint shape is already verified in this doc (whole-
-table fetch, `type=men`, base domain `footballdata.io`) — do not
-re-derive it, but do confirm it's still accurate if much time has
-passed. A real API key exists (generated 2026-07-04) but has NOT been
-confirmed wired into this Worker as `FOOTBALLDATA_FIFA_KEY` — check
-this first, don't assume either way. Implement exactly as specified.
-Do not commit unless confidence ≥ 95. If score < 95 report verbatim and
-stop — do not invent results.
+table fetch, `type=men`, base domain `footballdata.io`). The API key
+(`FOOTBALLDATA_FIFA_KEY`) is confirmed LIVE as a Worker secret as of
+2026-07-04 — implement TASK 1 and actually test it live, don't defer
+that check, it should work now. Do not commit unless confidence ≥ 95.
+If score < 95 report verbatim and stop — do not invent results.
