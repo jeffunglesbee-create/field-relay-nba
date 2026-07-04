@@ -621,6 +621,15 @@ function sportradarUflTtl(path) {
 }
 
 // PGA Tour GraphQL relay REMOVED 2026-05-29 (ToS compliance) — pgatour.com ToU bars automated copying/downloading; data is licensed/proprietary. Do not re-add without a licensed feed or counsel sign-off. See jubilant-bassoon docs/data-sourcing-legitimacy-2026-05-29.md
+
+// ── FIFA World Rankings (footballdata.io) ─────────────────────────────────
+// Whole-table fetch cached 7 days (rankings update ~monthly). One upstream
+// call serves every team lookup — filter client-side from the cached array.
+// Key: env.FOOTBALLDATA_FIFA_KEY (GitHub secret → CF Worker secret via
+// sync-secret-to-worker.yml). Confirmed LIVE 2026-07-04.
+const FIFA_RANKINGS_KV_TTL_SECS = 7 * 24 * 60 * 60; // 7 days
+const FIFA_RANKINGS_KV_KEY = 'field:fifa-rankings:men'; // whole-table cache
+
 // ── Shared CORS headers ────────────────────────────────────────────────────
 const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -7227,6 +7236,58 @@ export default {
                     source = text ? 'd1-fallback' : null;
                 }
                 return new Response(JSON.stringify({ ok: !!text, text: text || null, source, phase, date }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
+        // FIFA world rankings, cached aggressively (rankings update ~monthly in
+        // reality). Real consumer: dramaScoreLive's soccer upset-factor bonus
+        // (client-side, CC-CMD-2026-07-04-soccer-drama-scoring-fix.md).
+        // Key provisioning: env.FOOTBALLDATA_FIFA_KEY -- Jeff sets this directly
+        // as a Cloudflare Worker secret (`wrangler secret put FOOTBALLDATA_FIFA_KEY`)
+        // or via GitHub secret -> CF Worker secret through deploy.yml, mirroring
+        // the existing env.SPORTRADAR_UFL_KEY pattern. The raw key value is
+        // NEVER written into this file or any committed code -- only the env
+        // var name.
+        if (pathname.startsWith('/fifa-rankings/')) {
+            const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
+            if (!teamName) {
+                return new Response(JSON.stringify({ ok: false, error: 'team name required' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                let table = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(FIFA_RANKINGS_KV_KEY, 'json') : null;
+                let source = 'kv';
+                if (!table) {
+                    const key = env.FOOTBALLDATA_FIFA_KEY;
+                    if (!key) {
+                        return new Response(JSON.stringify({ ok: false, error: 'FOOTBALLDATA_FIFA_KEY not configured' }),
+                            { status: 503, headers: { 'X-RELAY-Error': 'fifa-rankings-no-key', ...CORS } });
+                    }
+                    // Verified real endpoint (footballdata.io/documentation/fifa-rankings/, 2026-07-04):
+                    const r = await fetch('https://footballdata.io/api/v1/fifa-rankings?type=men', {
+                        headers: { 'Authorization': `Bearer ${key}` },
+                    });
+                    if (!r.ok) {
+                        return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}` }),
+                            { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                    }
+                    const data = await r.json();
+                    table = data.data || [];
+                    source = 'live';
+                    if (env.FIELD_JOURNALISM && table.length) {
+                        await env.FIELD_JOURNALISM.put(FIFA_RANKINGS_KV_KEY, JSON.stringify(table), { expirationTtl: FIFA_RANKINGS_KV_TTL_SECS });
+                    }
+                }
+                const entry = table.find(t => (t.country_name || '').toLowerCase() === teamName.toLowerCase());
+                if (!entry) {
+                    return new Response(JSON.stringify({ ok: false, error: 'team not found in rankings', source }),
+                        { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                return new Response(JSON.stringify({ ok: true, rank: entry.rank, points: entry.points, team: entry.country_name, source }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             } catch (e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),
