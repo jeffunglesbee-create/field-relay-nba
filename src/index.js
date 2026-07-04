@@ -10476,6 +10476,7 @@ export default {
                         brief: preview.field_pick.brief_text || null,
                     } : null,
                     preview: preview.circadian_preview?.brief_text || null,
+                    late: recap.circadian_late?.brief_text || null,
                     streak_board: recap.streak_board?.value || null,
                     quality_feedback: recap.quality_feedback?.value || null,
                     quality_alert: recap.quality_alert ? {
