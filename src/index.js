@@ -7252,31 +7252,6 @@ export default {
         // the existing env.SPORTRADAR_UFL_KEY pattern. The raw key value is
         // NEVER written into this file or any committed code -- only the env
         // var name.
-        // TEMPORARY DIAGNOSTIC — remove once the fifa-rankings 403 is resolved.
-        // Tests /account/usage with the exact same key to isolate whether the
-        // 403 is account-wide (key genuinely inactive server-side despite the
-        // dashboard showing Active) or specific to the fifa-rankings endpoint/plan.
-        if (pathname === '/fifa-rankings-diag') {
-            const key = env.FOOTBALLDATA_FIFA_KEY;
-            if (!key) return new Response(JSON.stringify({ ok: false, error: 'no key' }), { headers: CORS });
-            const results = {};
-            for (const [label, url] of [
-                ['account_usage', 'https://footballdata.io/api/v1/account/usage'],
-                ['fifa_rankings_bare', 'https://footballdata.io/api/v1/fifa-rankings?ranking_type=men'],
-                ['fifa_rankings_current', 'https://footballdata.io/api/v1/fifa-rankings/current?ranking_type=men'],
-                ['fixtures_today', 'https://footballdata.io/api/v1/fixtures/today'],
-            ]) {
-                try {
-                    const r = await fetch(url, { headers: { 'Authorization': `Bearer ${key}` } });
-                    const body = await r.text();
-                    results[label] = { status: r.status, body: body.slice(0, 300) };
-                } catch (e) {
-                    results[label] = { error: e.message };
-                }
-            }
-            return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
@@ -7314,7 +7289,8 @@ export default {
                             headers: { 'Authorization': `Bearer ${key}` },
                         });
                         if (!r.ok) {
-                            return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}`, page }),
+                            const errBody = await r.text().catch(() => '');
+                            return new Response(JSON.stringify({ ok: false, error: `upstream ${r.status}`, upstreamBody: errBody.slice(0, 500), page }),
                                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
                         }
                         const data = await r.json();
