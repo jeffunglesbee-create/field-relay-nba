@@ -7262,23 +7262,30 @@ export default {
         if (pathname === '/fifa-diag') {
             const results = {};
             try {
-                const r = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
+                const pageResp = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
                     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
                 });
-                const body = await r.text();
-                const nextDataMatch = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-                if (nextDataMatch) {
-                    const raw = nextDataMatch[1];
-                    // Exhaustive: every api.fifa.com occurrence, full URL up to the
-                    // next quote, not filtered by a narrow keyword pattern.
-                    const allApiFifa = raw.match(/https:\/\/api\.fifa\.com\/[^"\\]*/g) || [];
-                    results.allApiFifaRefs = [...new Set(allApiFifa)];
-                    // Also check for a GraphQL endpoint (common in modern FIFA-style sites)
-                    results.hasGraphQL = raw.includes('graphql');
-                    // Check for any config object mentioning API base URLs generically
-                    const apiBaseRefs = raw.match(/"[a-zA-Z]*[Aa]pi[a-zA-Z]*(?:Url|Base|Endpoint|Host)"\s*:\s*"[^"]*"/g) || [];
-                    results.apiBaseConfigRefs = [...new Set(apiBaseRefs)];
+                const pageBody = await pageResp.text();
+                const scriptSrcs = [...pageBody.matchAll(/<script[^>]+src="([^"]+)"/g)]
+                    .map(m => m[1]).filter(s => s.includes('_next/static/chunks/'));
+                results.totalChunksFound = scriptSrcs.length;
+                const chunkResults = {};
+                // Check a handful of the larger numbered chunks (route-specific
+                // code is usually here, not in generic framework/polyfill chunks).
+                const candidates = scriptSrcs.filter(s => /\/chunks\/\d/.test(s)).slice(0, 6);
+                for (const src of candidates) {
+                    const url = src.startsWith('http') ? src : `https://inside.fifa.com${src}`;
+                    try {
+                        const r = await fetch(url);
+                        const js = await r.text();
+                        const rankingRefs = js.match(/https:\/\/api\.fifa\.com\/[^"'`]*ranking[^"'`]*/gi) || [];
+                        const anyApiFifa = (js.match(/api\.fifa\.com/gi) || []).length;
+                        chunkResults[src] = { length: js.length, apiFifaMentions: anyApiFifa, rankingSpecificUrls: [...new Set(rankingRefs)] };
+                    } catch (e) {
+                        chunkResults[src] = { error: e.message };
+                    }
                 }
+                results.chunks = chunkResults;
             } catch (e) {
                 results.error = e.message;
             }
