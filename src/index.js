@@ -7261,28 +7261,22 @@ export default {
         // SSR sites), which would need no hidden-API guessing at all.
         if (pathname === '/fifa-diag') {
             const results = {};
-            try {
-                const r = await fetch('https://inside.fifa.com/fifa-world-ranking/men', {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
-                });
-                const body = await r.text();
-                const nextDataMatch = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-                results.foundNextData = !!nextDataMatch;
-                if (nextDataMatch) {
-                    const raw = nextDataMatch[1];
-                    // Look for any embedded API path references the client-side
-                    // code might call to actually populate the table.
-                    const apiRefs = raw.match(/"[^"]*(?:api|ranking|graphql)[^"]*"/gi) || [];
-                    const uniqueRefs = [...new Set(apiRefs)].slice(0, 30);
-                    results.apiPathReferences = uniqueRefs;
-                    results.buildId = (raw.match(/"buildId":"([^"]+)"/) || [])[1] || null;
+            const candidates = [
+                'https://api.fifa.com/api/v3/rankings/men',
+                'https://api.fifa.com/api/v3/ranking/men',
+                'https://api.fifa.com/api/v3/rankings/mens?locale=en',
+                'https://api.fifa.com/api/v3/rankings/associations?locale=en',
+                'https://api.fifa.com/api/v3/ranking-overview/men?locale=en',
+                'https://api.fifa.com/api/v3/calendar/rankings/men',
+            ];
+            for (const url of candidates) {
+                try {
+                    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' } });
+                    const body = await r.text();
+                    results[url] = { status: r.status, length: body.length, sample: body.slice(0, 300) };
+                } catch (e) {
+                    results[url] = { error: e.message };
                 }
-                // Also check for any <script> tags loading separate JS chunks that
-                // might reveal the API base via their filename/content pattern.
-                const scriptSrcs = [...body.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
-                results.scriptSrcSample = scriptSrcs.filter(s => s.includes('_next')).slice(0, 5);
-            } catch (e) {
-                results.error = e.message;
             }
             return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
