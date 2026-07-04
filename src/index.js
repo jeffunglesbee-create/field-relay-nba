@@ -7252,6 +7252,31 @@ export default {
         // the existing env.SPORTRADAR_UFL_KEY pattern. The raw key value is
         // NEVER written into this file or any committed code -- only the env
         // var name.
+        // TEMPORARY DIAGNOSTIC — testing FIFA's own first-party site as a
+        // zero-vendor, zero-cost data source. Confirmed via Parse.bot's own
+        // FAQ: "FIFA does not publish a documented public developer API" --
+        // so this tests whether (a) the old undocumented ranking-overview
+        // endpoint still works without a dateId, and (b) whether the real
+        // rankings page embeds the data directly in its HTML (common for
+        // SSR sites), which would need no hidden-API guessing at all.
+        if (pathname === '/fifa-diag') {
+            const results = {};
+            for (const [label, url] of [
+                ['old_hidden_api_no_dateid', 'https://www.fifa.com/api/ranking-overview?locale=en'],
+                ['inside_fifa_page', 'https://inside.fifa.com/fifa-world-ranking/men'],
+            ]) {
+                try {
+                    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' } });
+                    const body = await r.text();
+                    const hasEmbeddedData = body.includes('__NEXT_DATA__') || body.includes('rankingItem') || body.includes('"rankings"');
+                    results[label] = { status: r.status, length: body.length, hasEmbeddedData, sample: body.slice(0, 500) };
+                } catch (e) {
+                    results[label] = { error: e.message };
+                }
+            }
+            return new Response(JSON.stringify(results, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
