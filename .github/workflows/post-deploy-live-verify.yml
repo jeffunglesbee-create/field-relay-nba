@@ -6,6 +6,9 @@ on:
                                           # 2026-07-04 — do not re-guess this
     types: [completed]
 
+permissions:
+  contents: write
+
 jobs:
   verify:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
