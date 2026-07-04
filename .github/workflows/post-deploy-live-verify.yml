@@ -1,0 +1,48 @@
+name: Post-deploy live verification
+on:
+  workflow_run:
+    workflows: ["Deploy RELAY Worker"]  # confirmed exact name via
+                                          # `grep "^name:" .github/workflows/deploy.yml`
+                                          # 2026-07-04 — do not re-guess this
+    types: [completed]
+
+jobs:
+  verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Live-check endpoints
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          YESTERDAY=$(date -u -d "yesterday" +%Y-%m-%d)
+          OUT="outbox/live-verify-${{ github.event.workflow_run.id }}.md"
+          mkdir -p outbox
+          {
+            echo "# Post-deploy live verification"
+            echo "Run: ${{ github.event.workflow_run.id }} · Commit: ${{ github.event.workflow_run.head_sha }} · $(date -u)"
+            echo
+            echo "## /circadian/preview + /circadian/late (today + yesterday)"
+            for phase in preview late; do
+              for d in "$DATE" "$YESTERDAY"; do
+                echo "### $phase / $d"
+                curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/$phase/$d" || echo "REQUEST FAILED"
+                echo
+              done
+            done
+            echo "## Validation checks"
+            echo "### bogus phase (expect 400)"
+            curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/bogus/$DATE"
+            echo "### bad date (expect 400)"
+            curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/preview/not-a-date"
+          } > "$OUT"
+          cat "$OUT"
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add outbox/live-verify-*.md
+          git commit -m "chore: post-deploy live verification [skip ci]" || echo "nothing to commit"
+          git push
