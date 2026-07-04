@@ -7266,30 +7266,21 @@ export default {
                     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
                 });
                 const body = await r.text();
-                // Find the actual JSON payload -- Next.js SSR sites embed it in
-                // a <script id="__NEXT_DATA__" type="application/json"> tag.
                 const nextDataMatch = body.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-                let parsedSample = null;
-                let rankingCount = 0;
-                if (nextDataMatch) {
-                    try {
-                        const nextData = JSON.parse(nextDataMatch[1]);
-                        const nextDataStr = JSON.stringify(nextData);
-                        // Search for a plausible rankings array anywhere in the tree
-                        const rankingsIdx = nextDataStr.indexOf('"rankingItem"');
-                        parsedSample = rankingsIdx >= 0 ? nextDataStr.slice(Math.max(0, rankingsIdx - 50), rankingsIdx + 500) : 'no rankingItem key found in __NEXT_DATA__';
-                        rankingCount = (nextDataStr.match(/"rankingItem"/g) || []).length;
-                    } catch (e) {
-                        parsedSample = `JSON.parse failed: ${e.message}`;
-                    }
-                } else {
-                    parsedSample = 'no __NEXT_DATA__ script tag found';
-                }
-                results.status = r.status;
-                results.bodyLength = body.length;
                 results.foundNextData = !!nextDataMatch;
-                results.rankingItemOccurrences = rankingCount;
-                results.sample = parsedSample;
+                if (nextDataMatch) {
+                    const raw = nextDataMatch[1];
+                    // Look for any embedded API path references the client-side
+                    // code might call to actually populate the table.
+                    const apiRefs = raw.match(/"[^"]*(?:api|ranking|graphql)[^"]*"/gi) || [];
+                    const uniqueRefs = [...new Set(apiRefs)].slice(0, 30);
+                    results.apiPathReferences = uniqueRefs;
+                    results.buildId = (raw.match(/"buildId":"([^"]+)"/) || [])[1] || null;
+                }
+                // Also check for any <script> tags loading separate JS chunks that
+                // might reveal the API base via their filename/content pattern.
+                const scriptSrcs = [...body.matchAll(/<script[^>]+src="([^"]+)"/g)].map(m => m[1]);
+                results.scriptSrcSample = scriptSrcs.filter(s => s.includes('_next')).slice(0, 5);
             } catch (e) {
                 results.error = e.message;
             }
