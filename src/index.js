@@ -7257,19 +7257,8 @@ export default {
         if (pathname === '/fifa-rankings-names') {
             const table = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(FIFA_RANKINGS_KV_KEY, 'json') : null;
             if (!table) return new Response(JSON.stringify({ error: 'no cached table' }), { headers: CORS });
-            const wc26Teams = ['Argentina','Cape Verde','Colombia','Ghana','Australia','Egypt','Canada','Morocco',
-                'Paraguay','France','Belgium','Australia','South Africa','South Korea','Brazil','Japan',
-                'Norway','Ivory Coast','Portugal','Croatia','Switzerland','Qatar','Ecuador','Germany',
-                'USA','Cameroon'];
-            const rankNames = table.map(t => (t.TeamName || [])[0]?.Description).filter(Boolean);
-            const rankSet = new Set(rankNames.map(n => n.toLowerCase()));
-            const mismatches = wc26Teams.filter(t => !rankSet.has(t.toLowerCase()));
-            const suggestions = {};
-            for (const m of mismatches) {
-                const words = m.toLowerCase().split(/\s+/);
-                suggestions[m] = rankNames.filter(n => words.some(w => w.length > 3 && n.toLowerCase().includes(w)));
-            }
-            return new Response(JSON.stringify({ totalTeamsChecked: wc26Teams.length, mismatches, suggestions }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            const names = table.map(t => (t.TeamName || [])[0]?.Description).filter(n => /ivo|cote|ivoire/i.test(n || ''));
+            return new Response(JSON.stringify({ matches: names }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         if (pathname.startsWith('/fifa-rankings/')) {
