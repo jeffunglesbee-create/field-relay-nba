@@ -111,6 +111,6 @@ Place before any generic catch-all matching `/circadian/*`.
 +20  D1-fallback path verified or reasoned through via TTL value
 
 ## ONE-LINER
-git pull. Read docs/CC-CMD-2026-07-04-circadian-kv-read-endpoint-REVISED.md.
+git pull. Read docs/CC-CMD-2026-07-04-circadian-kv-read-endpoint.md.
 Add the /circadian/:phase/:date route exactly as specified. Do not commit
 unless confidence ≥ 95. If score < 95 report verbatim and stop.
