@@ -7254,13 +7254,6 @@ export default {
         // var name. Now sourced from Parse.bot's PARSEBOT_FIFA_KEY (confirmed
         // working 2026-07-04) after footballdata.io's free tier was confirmed
         // permanently blocked by a paid-plan requirement.
-        if (pathname === '/fifa-rankings-names') {
-            const table = env.FIELD_JOURNALISM ? await env.FIELD_JOURNALISM.get(FIFA_RANKINGS_KV_KEY, 'json') : null;
-            if (!table) return new Response(JSON.stringify({ error: 'no cached table' }), { headers: CORS });
-            const names = table.map(t => (t.TeamName || [])[0]?.Description).filter(n => /ivo|cote|ivoire/i.test(n || ''));
-            return new Response(JSON.stringify({ matches: names }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
         if (pathname.startsWith('/fifa-rankings/')) {
             const teamName = decodeURIComponent(pathname.slice('/fifa-rankings/'.length));
             if (!teamName) {
@@ -7299,10 +7292,22 @@ export default {
                         await env.FIELD_JOURNALISM.put(FIFA_RANKINGS_KV_KEY, JSON.stringify(table), { expirationTtl: FIFA_RANKINGS_KV_TTL_SECS });
                     }
                 }
+                // FIFA's official naming differs from common English usage for
+                // some teams -- confirmed live 2026-07-04 against the real
+                // Parse.bot table (checked 26 of 48 WC26 teams, found these 3
+                // real mismatches; not exhaustively verified for all 48, so a
+                // "team not found" response for an unmapped team is expected
+                // and debuggable, not silently wrong).
+                const FIFA_NAME_ALIASES = {
+                    'cape verde': 'cabo verde',
+                    'south korea': 'korea republic',
+                    'ivory coast': "côte d'ivoire",
+                };
+                const lookupName = (FIFA_NAME_ALIASES[teamName.toLowerCase()] || teamName).toLowerCase();
                 const entry = table.find(t => {
                     const desc = (t.TeamName || []).find(tn => tn.Locale === 'en-GB')?.Description
                         || (t.TeamName || [])[0]?.Description || '';
-                    return desc.toLowerCase() === teamName.toLowerCase();
+                    return desc.toLowerCase() === lookupName;
                 });
                 if (!entry) {
                     return new Response(JSON.stringify({ ok: false, error: 'team not found in rankings', source, tableSize: table.length }),
