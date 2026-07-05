@@ -40,6 +40,20 @@ function dramaScoreLive(st, sport, homeRank, awayRank) {
     else if (risp && outs===2)            sitBonus += isFinalPeriod ? 10 : 6;
     if (balls===3 && strikes===2 && risp) sitBonus += 8;
     if (outs===2 && period>=7)            sitBonus += 5;
+  } else if (sport === 'wnba') {
+    base = diff===0 ? 1.0 : diff<=3 ? 0.82 : diff<=7 ? 0.52 : diff<=14 ? 0.22 : 0.05;
+    const mins = parseInt(clock) || 0;
+    if (period>4) timeBonus=22;
+    else if (period>=3 && mins<2) timeBonus=18;
+    else if (period===4) timeBonus=10;
+    else if (period===3) timeBonus=5;
+  } else if (sport === 'afl') {
+    base = diff===0 ? 1.0 : diff<6 ? 0.82 : diff<=18 ? 0.60 : diff<=36 ? 0.28 : 0.05;
+    const q = period;
+    const mins = parseInt(clock) || 0;
+    if (q>=4 && mins<5) timeBonus=22;
+    else if (q>=4) timeBonus=14;
+    else if (q===3) timeBonus=5;
   } else {
     // soccer
     base = diff===0 ? 1.0 : diff===1 ? 0.72 : diff===2 ? 0.32 : 0.06;
@@ -85,6 +99,21 @@ async function fetchMLBHistoricalStates(espnEventId) {
     outs:      p.situation?.outs    ?? 0,
     balls:     p.situation?.balls   ?? 0,
     strikes:   p.situation?.strikes ?? 0,
+  }));
+}
+
+async function fetchWNBAHistoricalStates(espnEventId) {
+  const url = `${RELAY}/espn-summary/sports/basketball/wnba/summary?event=${espnEventId}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`ESPN WNBA ${res.status} for event ${espnEventId}`);
+  const data = await res.json();
+  const plays = data.plays || [];
+  if (plays.length === 0) return [];
+  return plays.map(p => ({
+    homeScore: p.homeScore ?? 0,
+    awayScore: p.awayScore ?? 0,
+    period:    p.period?.number ?? 1,
+    clock:     p.clock?.displayValue || '',
   }));
 }
 
@@ -141,7 +170,9 @@ function classifySport(sport) {
   if (!sport) return 'other';
   const s = sport.toLowerCase();
   if (s === 'mlb') return 'mlb';
-  if (s.includes('soccer') || s.includes('world cup') || s.includes('wc26') ||
+  if (s === 'wnba') return 'wnba';
+  if (s === 'afl') return 'afl';
+  if (s === 'epl' || s.includes('soccer') || s.includes('world cup') || s.includes('wc26') ||
       s.includes('fifa') || s.includes('mls') || s.includes('liga') ||
       s.includes('ligue') || s.includes('premier') || s.includes('league')) return 'soccer';
   return 'other';
@@ -151,6 +182,7 @@ function soccerLeagueSlug(sport) {
   const s = (sport || '').toLowerCase();
   if (s.includes('world cup') || s.includes('fifa') || s.includes('wc26')) return 'fifa.world';
   if (s.includes('mls')) return 'usa.1';
+  if (s === 'epl') return 'eng.1';
   return 'fifa.world';
 }
 
@@ -222,11 +254,23 @@ async function main() {
         continue;
       }
 
+      // AFL: Squiggle has final scores only (no quarter granularity); ESPN confirmed dead.
+      // Write 0 — separate follow-up required for quarter-level AFL data.
+      if (sport === 'afl') {
+        await writeGameDrama(game.id, 0, null);
+        console.log(`  [no-quarter-data/afl] ${label} → 0`);
+        totalProcessed++;
+        await sleep(DELAY_MS);
+        continue;
+      }
+
       try {
         let states, homeRank = null, awayRank = null;
 
         if (sport === 'mlb') {
           states = await fetchMLBHistoricalStates(game.espn_event_id);
+        } else if (sport === 'wnba') {
+          states = await fetchWNBAHistoricalStates(game.espn_event_id);
         } else {
           const slug = soccerLeagueSlug(game.sport);
           states = await fetchSoccerHistoricalStates(game.espn_event_id, slug);
