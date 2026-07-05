@@ -1,0 +1,16 @@
+name               = "field-hello-container"
+main               = "src/index.js"
+compatibility_date = "2026-07-05"
+
+[[containers]]
+class_name    = "HelloContainer"
+image         = "./Dockerfile"
+max_instances = 2
+
+[[durable_objects.bindings]]
+name       = "HELLO_CONTAINER"
+class_name = "HelloContainer"
+
+[[migrations]]
+tag                = "v1"
+new_sqlite_classes = ["HelloContainer"]

@@ -1,0 +1,7 @@
+{
+  "name": "field-hello-container",
+  "private": true,
+  "dependencies": {
+    "@cloudflare/containers": "*"
+  }
+}

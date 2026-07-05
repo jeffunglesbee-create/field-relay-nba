@@ -1,0 +1,30 @@
+name: Deploy Hello Container (pipeline proof)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install container Worker dependencies
+        working-directory: containers/hello
+        run: npm install
+
+      - name: Deploy to Cloudflare (wrangler deploy)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: containers/hello
+
+      - name: Verify — list deployed containers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        working-directory: containers/hello
+        run: |
+          echo "=== wrangler containers list ==="
+          npx wrangler containers list --json || npx wrangler containers list
