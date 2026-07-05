@@ -28,9 +28,11 @@ function _strip(name) {
 // stripForm → canonical stripForm. Canonical entries map to themselves
 // so the lookup is idempotent. Built from D1 + Odds-API observed names
 // (probe in outbox/cc-identity-resolver-2026-06-21.md).
-const CANONICAL_TEAM = (() => {
+const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
     // Build helper: declare {variant: canonical_human} pairs; encode
     // both sides to strip-form. Canonical also maps to itself.
+    // CANONICAL_TEAM: strip-form → canonical strip-form (for resolveTeamKey matching)
+    // CANONICAL_TEAM_DISPLAY: strip-form → canonical human-readable string (for resolveTeamName)
     const pairs = [
         // ── WC / International ────────────────────────────────────
         ['United States',          'United States'],
@@ -55,6 +57,8 @@ const CANONICAL_TEAM = (() => {
         ['Bosnia-Herzegovina',     'Bosnia and Herzegovina'],
         ['Bosnia & Herzegovina',   'Bosnia and Herzegovina'],
         ['Bosnia-Herz',            'Bosnia and Herzegovina'],
+        ['Cape Verde',             'Cape Verde'],
+        ['Cape Verde Islands',     'Cape Verde'],  // ESPN/BSD variant → FIELD canonical
 
         // ── EPL ───────────────────────────────────────────────────
         ['Brighton & Hove Albion', 'Brighton & Hove Albion'],
@@ -278,12 +282,19 @@ const CANONICAL_TEAM = (() => {
         ['PSG',                    'Paris Saint-Germain'],
         ['Paris SG',               'Paris Saint-Germain'],
     ];
-    const out = {};
+    const strip = {};
+    const display = {};
     for (const [variant, canonical] of pairs) {
-        out[_strip(variant)] = _strip(canonical);
+        const k = _strip(variant);
+        strip[k] = _strip(canonical);
+        display[k] = canonical;
     }
-    return out;
+    return { CANONICAL_TEAM: strip, CANONICAL_TEAM_DISPLAY: display };
 })();
+
+function resolveTeamName(name) {
+    return CANONICAL_TEAM_DISPLAY[_strip(name)] || name;
+}
 
 // ── Player identity — DELIBERATELY DIFFERENT algorithm from _strip() ──
 // _strip() NFD-strips diacritics (correct for teams, proven by the
@@ -536,4 +547,4 @@ function resolveAFLTeamKey(name) {
     return resolveEntity('afl_team', name);
 }
 
-export { resolveTeamKey, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };
+export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };

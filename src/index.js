@@ -67,7 +67,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
@@ -1540,20 +1540,6 @@ async function recomputeGroupStandings(db, groupId) {
 // ── WC team name normalization (June 18 2026) ─────────────────────────────
 // API-Sports sends inconsistent variants across matches ("Czech Republic"
 // vs "Czechia"), producing duplicate wc_results rows and split standings.
-// Mirrors jubilant-bassoon's client-side _WC_NAME_FIX so the relay D1 store
-// holds canonical FIELD names. recomputeGroupStandings then aggregates
-// correctly by team name.
-const WC_NAME_FIX = {
-    'Czech Republic':       'Czechia',
-    'Bosnia & Herzegovina': 'Bosnia and Herzegovina',
-    'USA':                  'United States',
-    'Turkey':               'Türkiye',
-    'Curacao':              'Curaçao',
-    "Cote D'Ivoire":        'Ivory Coast',
-    'Korea Republic':       'South Korea',
-    'Cape Verde Islands':   'Cape Verde',
-};
-function wcFixName(n) { return WC_NAME_FIX[n] || n; }
 
 // Write a final WC group-stage result to D1 (INSERT OR IGNORE = idempotent)
 // ── Auto-backfill: discover BSD league_id + UPDATE wc_results rows ─────
@@ -1761,8 +1747,8 @@ async function runBSDEndgameCapture(env) {
 }
 
 async function writeWCResult(db, game, env, ctx) {
-    const homeName  = wcFixName(game.home?.name || '');
-    const awayName  = wcFixName(game.away?.name || '');
+    const homeName  = resolveTeamName(game.home?.name || '');
+    const awayName  = resolveTeamName(game.away?.name || '');
     const groupId   = extractWCGroup(game.round, homeName, awayName);
     const wcPhase   = extractWCPhase(game.round);
     if (!groupId && !wcPhase) return; // unrecognized round — skip
@@ -2425,9 +2411,9 @@ async function handleWCAdminSeed(request, env) {
     const { game_id, group_id, home, away, home_score, away_score, match_date } = body || {};
     if (!game_id || !group_id || !home || !away)
         return new Response('Missing required fields: game_id, group_id, home, away', { status: 400, headers: CORS });
-    // Apply WC_NAME_FIX so the seed path matches the cron writeWCResult path.
-    const homeFixed = wcFixName(home);
-    const awayFixed = wcFixName(away);
+    // Normalize names so the seed path matches the cron writeWCResult path.
+    const homeFixed = resolveTeamName(home);
+    const awayFixed = resolveTeamName(away);
     await env.WC2026_DB.prepare(`
       INSERT OR REPLACE INTO wc_results
         (game_id, group_id, home, away, home_score, away_score, phase, match_date)
@@ -7303,7 +7289,8 @@ export default {
                     'south korea': 'korea republic',
                     'ivory coast': "côte d'ivoire",
                 };
-                const lookupName = (FIFA_NAME_ALIASES[teamName.toLowerCase()] || teamName).toLowerCase();
+                const canonicalName = resolveTeamName(teamName);
+                const lookupName = (FIFA_NAME_ALIASES[canonicalName.toLowerCase()] || canonicalName).toLowerCase();
                 const entry = table.find(t => {
                     const desc = (t.TeamName || []).find(tn => tn.Locale === 'en-GB')?.Description
                         || (t.TeamName || [])[0]?.Description || '';
