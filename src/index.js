@@ -9015,8 +9015,7 @@ export default {
                 const sbBody = await sbResp.text();
                 return new Response(sbBody, {
                     status: sbResp.status,
-                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS,
-                                'X-CFL-Upstream-Cache': sbResp.headers.get('CF-Cache-Status') || 'none' }, // temp diagnostic — remove after cache verification
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS },
                 });
             } else if (pathname === '/cfl/scoreboard/squads') {
                 // Team/squad data from cflscoreboard.cfl.ca
