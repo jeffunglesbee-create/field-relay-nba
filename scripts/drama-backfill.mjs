@@ -11,7 +11,7 @@ const RELAY      = process.env.RELAY_BASE || 'https://field-relay-nba.jeffungles
 const BATCH_SIZE = 20;
 const MAX_BATCHES = 30;   // safety cap (600 games max)
 const DELAY_MS   = 200;
-const ESPN_AFL_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=2026';
+const ESPN_AFL_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard';
 
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
 function dramaScoreLive(st, sport, homeRank, awayRank) {
@@ -120,8 +120,12 @@ async function fetchWNBAHistoricalStates(espnEventId) {
 
 // === AFL scoreboard — fetched ONCE per run, matched by team+date (not espn_event_id) ===
 // Ported normalization from src/index.js buildAFLJournalismContext (line ~2984).
+// GWS alias: ESPN stores this team as "GWS Giants" (norm="gws"), but D1 uses
+// "Greater Western Sydney" (norm="greate") — pre-normalize to align both sides.
 function normAFL(s) {
-  return String(s || '').toLowerCase()
+  let n = String(s || '').toLowerCase().trim();
+  if (n === 'gws giants' || n === 'greater western sydney giants') n = 'greater western sydney';
+  return n
     .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
     .replace(/[^a-z]/g, '').slice(0, 6);
 }
@@ -140,36 +144,55 @@ function buildAFLStates(homeLS, awayLS) {
 let _aflIndexCache = null;
 async function getAFLScoreboardIndex() {
   if (_aflIndexCache !== null) return _aflIndexCache;
-  console.log('  [afl] Fetching ESPN AFL season scoreboard (once)...');
-  const res = await fetch(ESPN_AFL_SCOREBOARD);
-  if (!res.ok) throw new Error(`ESPN AFL scoreboard ${res.status}`);
-  const data = await res.json();
-  const events = data.events || [];
-  console.log(`  [afl] ${events.length} events returned`);
+  console.log('  [afl] Fetching ESPN AFL season scoreboard...');
+
+  // Primary: ?dates=2026 returns up to 100 events (covers approx rounds 1-10)
+  const r0 = await fetch(`${ESPN_AFL_SCOREBOARD}?dates=2026`);
+  if (!r0.ok) throw new Error(`ESPN AFL scoreboard ${r0.status}`);
+  const primary = (await r0.json()).events || [];
+  console.log(`  [afl] Primary (?dates=2026): ${primary.length} events`);
+
+  // Supplemental: fetch rounds 11-23 individually via ?week=N to cover full season.
+  // Gracefully ignores any week that returns non-200 or empty.
+  const roundFetches = await Promise.all(
+    Array.from({ length: 13 }, (_, i) => i + 11).map(week =>
+      fetch(`${ESPN_AFL_SCOREBOARD}?week=${week}`)
+        .then(r => r.ok ? r.json().then(d => d.events || []) : [])
+        .catch(() => [])
+    )
+  );
+  const supplemental = roundFetches.flat();
+  console.log(`  [afl] Supplemental (?week=11-23): ${supplemental.length} events`);
+
+  // Deduplicate by ESPN event ID, then build index
+  const seen = new Set();
+  const allEvents = [];
+  for (const ev of [...primary, ...supplemental]) {
+    if (ev.id && !seen.has(ev.id)) { seen.add(ev.id); allEvents.push(ev); }
+  }
 
   const index = new Map();
-  for (const ev of events) {
+  const extractLS = arr => (arr || []).map(l =>
+    typeof l === 'object' && l !== null ? (l.value ?? 0) : (l ?? 0));
+
+  for (const ev of allEvents) {
     const comp = ev.competitions?.[0] || {};
-    const statusName = comp.status?.type?.name || '';
-    if (statusName !== 'STATUS_FINAL') continue;
+    if (comp.status?.type?.name !== 'STATUS_FINAL') continue;
 
     const competitors = comp.competitors || [];
     const homeComp = competitors.find(c => c.homeAway === 'home');
     const awayComp = competitors.find(c => c.homeAway === 'away');
     if (!homeComp || !awayComp) continue;
 
-    const homeName = homeComp.team?.displayName || '';
-    const awayName = awayComp.team?.displayName || '';
-    const date = (ev.date || '').slice(0, 10);
-
-    const extractLS = arr => (arr || []).map(l =>
-      typeof l === 'object' && l !== null ? (l.value ?? 0) : (l ?? 0));
     const homeLS = extractLS(homeComp.linescores);
     const awayLS = extractLS(awayComp.linescores);
     if (homeLS.length < 4 || awayLS.length < 4) continue;
 
-    const key = `${normAFL(homeName)}|${normAFL(awayName)}|${date}`;
-    index.set(key, { homeLS, awayLS });
+    const homeName = homeComp.team?.displayName || '';
+    const awayName = awayComp.team?.displayName || '';
+    const date = (ev.date || '').slice(0, 10);
+
+    index.set(`${normAFL(homeName)}|${normAFL(awayName)}|${date}`, { homeLS, awayLS });
   }
 
   _aflIndexCache = index;
