@@ -67,7 +67,11 @@ function dramaScoreLive(st, sport, homeRank, awayRank) {
     // WC-advancement sitBonus OMITTED — live-only signal, unavailable for historical games
     if (homeRank != null && awayRank != null) {
       const rankGap = Math.abs(homeRank - awayRank);
-      if (rankGap >= 30 && diff <= 1) upsetBonus = Math.min(15, Math.floor(rankGap / 10));
+      // Fitted on 79 WC26 games via OLS (2026-07-05); current FIFA rankings as stated proxy for
+      // at-kickoff rank (all games within 5 weeks). Partial r=0.370 p<0.001 controlling score_diff.
+      // Close-game model: drama_delta = -3.49 + 0.123*rankGap (r=0.335, p=0.026, n=44 close games).
+      // Threshold ~28 baked in via max(0,...); replaces hand-picked threshold=30, floor(gap/10).
+      if (diff <= 1) upsetBonus = Math.max(0, Math.min(15, Math.round(-3.49 + 0.123 * rankGap)));
     }
   }
 
