@@ -4684,7 +4684,7 @@ async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
             const homeComp    = competitors.find(c => c.homeAway === 'home');
             const homeName    = homeComp?.team?.displayName || homeComp?.team?.shortDisplayName || '';
             const isHome      = teamNameMatch(predictedWinner, homeName);
-            const prob        = isHome ? pct / 100 : 1 - pct / 100;
+            const prob        = isHome ? pct : 1 - pct;
             return { probability: Math.round(prob * 1000) / 1000, source: 'espn-native', label: 'Statistical probability' };
           }
         }
@@ -4734,7 +4734,7 @@ async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
             const homeComp    = competitors.find(c => c.homeAway === 'home');
             const homeName    = homeComp?.team?.displayName || homeComp?.team?.shortDisplayName || '';
             const isHome      = teamNameMatch(predictedWinner, homeName);
-            const prob        = isHome ? pct / 100 : 1 - pct / 100;
+            const prob        = isHome ? pct : 1 - pct;
             return { probability: Math.round(prob * 1000) / 1000, source: 'espn-soccer', label: 'Statistical probability' };
           }
         }
@@ -10460,7 +10460,7 @@ export default {
 
         // /espn-summary/* → site.api.espn.com/apis/site/v2 (ESPN WP via summary endpoint)
         // Public REST API; no auth. Origin headers injected server-side.
-        // winprobability[].homeWinPercentage — 0-100 scale (e.g. 77.1)
+        // winprobability[].homeWinPercentage — 0-1 decimal scale (e.g. 0.546 = 54.6%)
         if (pathname.startsWith('/espn-summary')) {
             const cleanPath = pathname.replace(/^\/espn-summary/, '') || '/';
             if (!espnSummaryAllowed(cleanPath))
