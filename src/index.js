@@ -6871,6 +6871,7 @@ export default {
             // here, so we always re-serialize it for the DO fetch regardless.
             if (pathname === '/user/event' && request.method === 'POST') {
                 let evtBody = {};
+                let resolvedWP = null;
                 try { evtBody = await request.json(); } catch (_) { /* invalid JSON — DO will reject */ }
                 if (evtBody?.type === 'pick_resolved' &&
                     evtBody.sport && evtBody.predictedWinner &&
@@ -6884,14 +6885,25 @@ export default {
                         if (wp) {
                             evtBody.revealedProbability = wp.probability;
                             evtBody.probabilitySource   = wp.source;
+                            resolvedWP = wp;
                         }
                     } catch (_) { /* non-fatal — DO still receives pick_resolved without WP */ }
                 }
-                return stub.fetch(new Request(doUrl.toString(), {
+                const doResp = await stub.fetch(new Request(doUrl.toString(), {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body:    JSON.stringify(evtBody),
                 }));
+                if (resolvedWP) {
+                    const doJson = await doResp.json().catch(() => ({}));
+                    return new Response(JSON.stringify({
+                        ...doJson,
+                        resolvedProbability: resolvedWP.probability,
+                        probabilitySource:   resolvedWP.source,
+                        probabilityLabel:    resolvedWP.label,
+                    }), { status: doResp.status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                return doResp;
             }
             return stub.fetch(new Request(doUrl.toString(), {
                 method:  request.method,
