@@ -2,6 +2,8 @@ name: Score Fill (one-shot)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 */4 * * *'   # every 4h — runs upstream of drama-backfill (2h cron) so session-less games get scores before drama scoring attempts them
 
 jobs:
   score-fill:
