@@ -9010,17 +9010,20 @@ export default {
                 const sbResp = await fetch('https://cflscoreboard.cfl.ca/json/scoreboard/rounds.json', {
                     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15' },
                     signal: AbortSignal.timeout(6000),
+                    cf: { cacheTtl: 30, cacheEverything: true },
                 });
                 const sbBody = await sbResp.text();
                 return new Response(sbBody, {
                     status: sbResp.status,
-                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS },
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=30', ...CORS,
+                                'X-CFL-Upstream-Cache': sbResp.headers.get('CF-Cache-Status') || 'none' }, // temp diagnostic — remove after cache verification
                 });
             } else if (pathname === '/cfl/scoreboard/squads') {
                 // Team/squad data from cflscoreboard.cfl.ca
                 const sqResp = await fetch('https://cflscoreboard.cfl.ca/json/scoreboard/squads.json', {
                     headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15' },
                     signal: AbortSignal.timeout(6000),
+                    cf: { cacheTtl: 300, cacheEverything: true },
                 });
                 const sqBody = await sqResp.text();
                 return new Response(sqBody, {
