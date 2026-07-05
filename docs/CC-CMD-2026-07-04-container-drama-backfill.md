@@ -42,7 +42,7 @@ acceptable outcome — do not stretch to hit the gate.
 
 ## PROBE BLOCK (run before any design decisions)
 ```bash
-docker --version 2>&1 || echo "NO DOCKER AVAILABLE"
+docker info 2>&1 | head -5 || echo "NO DOCKER DAEMON RUNNING"
 cat wrangler.toml
 grep -n "archive/drama-missing\|_backfillOneDramaGame\|fetchMLBHistoricalStates\|fetchSoccerHistoricalStates" src/*.js
 ```
