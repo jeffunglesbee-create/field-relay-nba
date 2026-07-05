@@ -42,8 +42,13 @@ A single function that, given a sport and game identifiers, returns
 `{ probability, source, label }` by trying the real, confirmed source(s)
 for that sport in the order listed above (e.g., MLB tries ESPN native
 first, falls back to Savant only if that fails). For odds-derived
-sports, call the existing Odds API integration + `noVigProb()` — do not
-duplicate that logic, call what already exists. Return `label` as
+sports, call `fetchSportOddsLive(env, sportKey)` specifically — confirmed
+directly, this function already calls `consumeOddsCredit(env, 3)` internally
+before fetching, so budget tracking is automatic. Do NOT call a lower-level
+odds fetch (e.g. `oddsFetchWithFallback` directly) — that path does not
+track budget on its own, and using it would let real cost accrue outside
+`/budget/odds`'s visibility. Then apply `noVigProb()` to the returned h2h
+odds — do not duplicate either function's logic. Return `label` as
 exactly "Market estimate" or "Statistical probability" per the mapping
 above — no other label strings.
 
