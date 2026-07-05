@@ -1,18 +1,16 @@
 // One-shot drama_peak backfill for field-relay-nba.
-// Fetches game list from relay, computes scores, writes updates.sql for
-// wrangler d1 execute to apply. CLOUDFLARE_API_TOKEN not needed here —
-// it is used only by the subsequent wrangler step in the workflow.
+// Fetches game list from relay, computes scores, writes results via
+// the relay's POST /archive/drama-by-id endpoint (uses relay's own
+// ARCHIVE_DB binding — no CLOUDFLARE_API_TOKEN scope required).
 //
 // Scoring formulas ported verbatim from CC-CMD-2026-07-04-container-drama-backfill-v2.md.
 
 import { setTimeout as sleep } from 'node:timers/promises';
-import { writeFileSync } from 'node:fs';
 
 const RELAY      = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const BATCH_SIZE = 20;
 const MAX_BATCHES = 30;   // safety cap (600 games max)
-const DELAY_MS   = 150;
-const OUT_SQL    = process.env.SQL_OUT || 'updates.sql';
+const DELAY_MS   = 200;
 
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
 function dramaScoreLive(st, sport, homeRank, awayRank) {
@@ -173,26 +171,27 @@ async function getFifaRanking(teamName) {
   }
 }
 
-// === SQL generation ===
-function sqlEscape(s) {
-  return String(s).replace(/'/g, "''");
-}
-
-function buildUpdateSql(gameId, peak, arc) {
-  const id  = sqlEscape(gameId);
-  const arcVal = (arc && arc.length > 0)
-    ? `'${sqlEscape(JSON.stringify(arc))}'`
-    : 'NULL';
-  return `UPDATE regular_season_games SET drama_peak = ${peak}, drama_arc = ${arcVal} WHERE id = '${id}';`;
+// === Relay write — exact ID, no fuzzy match ===
+async function writeGameDrama(gameId, peak, arc) {
+  const res = await fetch(`${RELAY}/archive/drama-by-id`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: gameId, drama_peak: peak, drama_arc: arc }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`drama-by-id ${res.status}: ${txt.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  if (!data.ok) throw new Error(`drama-by-id error: ${data.error} (id=${gameId})`);
+  return data;
 }
 
 // === Main ===
 async function main() {
-  console.log('=== Drama Peak Backfill — score computation ===');
-  console.log(`Relay: ${RELAY}`);
-  console.log(`Output: ${OUT_SQL}\n`);
+  console.log('=== Drama Peak Backfill ===');
+  console.log(`Relay: ${RELAY}\n`);
 
-  const sqlLines = [];
   let totalProcessed = 0, totalErrors = 0, batchNum = 0;
 
   while (batchNum < MAX_BATCHES) {
@@ -206,7 +205,7 @@ async function main() {
     const games   = payload.games || [];
 
     if (games.length === 0) {
-      console.log(`Batch ${batchNum}: 0 games — done fetching`);
+      console.log(`Batch ${batchNum}: 0 games — backfill complete`);
       break;
     }
     console.log(`Batch ${batchNum}: ${games.length} games`);
@@ -216,7 +215,7 @@ async function main() {
       const label = `${game.sport} | ${game.home} vs ${game.away} (${game.date}) [event=${game.espn_event_id}]`;
 
       if (!game.espn_event_id || sport === 'other') {
-        sqlLines.push(buildUpdateSql(game.id, 0, null));
+        await writeGameDrama(game.id, 0, null);
         console.log(`  [skip] ${label} → 0`);
         totalProcessed++;
         await sleep(DELAY_MS);
@@ -238,17 +237,18 @@ async function main() {
         }
 
         if (!states || states.length === 0) {
-          sqlLines.push(buildUpdateSql(game.id, 0, null));
+          await writeGameDrama(game.id, 0, null);
           console.log(`  [no-states] ${label} → 0`);
         } else {
           const { peak, arc } = computeDramaRetroactive(states, sport, homeRank, awayRank);
-          sqlLines.push(buildUpdateSql(game.id, peak, arc));
+          await writeGameDrama(game.id, peak, arc);
           console.log(`  [ok] ${label} → drama_peak=${peak}`);
         }
         totalProcessed++;
       } catch (err) {
         console.error(`  [error] ${label}: ${err.message}`);
-        sqlLines.push(buildUpdateSql(game.id, 0, null));
+        // Write 0 to clear this game from the missing queue so we don't loop forever
+        try { await writeGameDrama(game.id, 0, null); } catch { /* ignore */ }
         totalErrors++;
         totalProcessed++;
       }
@@ -257,13 +257,8 @@ async function main() {
     }
   }
 
-  writeFileSync(OUT_SQL, sqlLines.join('\n') + '\n', 'utf8');
-  console.log(`\nWrote ${sqlLines.length} UPDATE statements to ${OUT_SQL}`);
-  console.log(`Processed: ${totalProcessed}, Errors: ${totalErrors}`);
-
-  if (totalErrors > 0) {
-    console.warn(`${totalErrors} games errored and will have drama_peak=0`);
-  }
+  console.log(`\n=== Done: ${totalProcessed} processed, ${totalErrors} errors ===`);
+  if (totalErrors > 0) process.exit(1);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

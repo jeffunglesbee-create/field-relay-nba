@@ -8099,6 +8099,48 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // POST /archive/drama-by-id — exact-ID variant of /archive/drama.
+            // Accepts { id, drama_peak, drama_arc } and writes directly via WHERE id = ?
+            // with no fuzzy match. Used by the one-shot backfill job (drama-backfill.mjs)
+            // which obtains row IDs from /archive/drama-missing and needs a reliable
+            // write path. Rule 47 compliant — relay stores pre-computed facts only.
+            if (pathname === '/archive/drama-by-id' && request.method === 'POST') {
+                let body;
+                try { body = await request.json(); }
+                catch (_) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const { id, drama_peak } = body || {};
+                let { drama_arc } = body || {};
+                if (!id) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing id' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (typeof drama_peak !== 'number') {
+                    return new Response(JSON.stringify({ ok: false, error: 'drama_peak must be a number' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (typeof drama_arc !== 'string') {
+                    try { drama_arc = JSON.stringify(drama_arc); } catch (_) { drama_arc = null; }
+                }
+                try {
+                    let result = await env.ARCHIVE_DB.prepare(
+                        'UPDATE regular_season_games SET drama_peak = ?, drama_arc = ? WHERE id = ?'
+                    ).bind(drama_peak, drama_arc, id).run();
+                    if (!result.success || result.meta?.changes === 0) {
+                        result = await env.ARCHIVE_DB.prepare(
+                            'UPDATE postseason_games SET drama_peak = ?, drama_arc = ? WHERE id = ?'
+                        ).bind(drama_peak, drama_arc, id).run();
+                    }
+                    return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0 }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message, id }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             // GET /archive/drama-missing?limit=N — lists recently-completed games still
             // missing drama_peak, for client-side retroactive backfill. Read-only, zero
             // computation — RUWT/ADR-002 compliant (same category as /archive/drama
