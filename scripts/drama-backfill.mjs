@@ -11,6 +11,7 @@ const RELAY      = process.env.RELAY_BASE || 'https://field-relay-nba.jeffungles
 const BATCH_SIZE = 20;
 const MAX_BATCHES = 30;   // safety cap (600 games max)
 const DELAY_MS   = 200;
+const ESPN_AFL_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/australian-football/afl/scoreboard?dates=2026';
 
 // === Drama scoring — exact port from CC-CMD v2, verbatim ===
 function dramaScoreLive(st, sport, homeRank, awayRank) {
@@ -115,6 +116,65 @@ async function fetchWNBAHistoricalStates(espnEventId) {
     period:    p.period?.number ?? 1,
     clock:     p.clock?.displayValue || '',
   }));
+}
+
+// === AFL scoreboard — fetched ONCE per run, matched by team+date (not espn_event_id) ===
+// Ported normalization from src/index.js buildAFLJournalismContext (line ~2984).
+function normAFL(s) {
+  return String(s || '').toLowerCase()
+    .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
+    .replace(/[^a-z]/g, '').slice(0, 6);
+}
+
+function buildAFLStates(homeLS, awayLS) {
+  const states = [];
+  let cumH = 0, cumA = 0;
+  for (let i = 0; i < 4; i++) {
+    cumH += homeLS[i] || 0;
+    cumA += awayLS[i] || 0;
+    states.push({ homeScore: cumH, awayScore: cumA, period: i + 1, clock: '0:00' });
+  }
+  return states;
+}
+
+let _aflIndexCache = null;
+async function getAFLScoreboardIndex() {
+  if (_aflIndexCache !== null) return _aflIndexCache;
+  console.log('  [afl] Fetching ESPN AFL season scoreboard (once)...');
+  const res = await fetch(ESPN_AFL_SCOREBOARD);
+  if (!res.ok) throw new Error(`ESPN AFL scoreboard ${res.status}`);
+  const data = await res.json();
+  const events = data.events || [];
+  console.log(`  [afl] ${events.length} events returned`);
+
+  const index = new Map();
+  for (const ev of events) {
+    const comp = ev.competitions?.[0] || {};
+    const statusName = comp.status?.type?.name || '';
+    if (statusName !== 'STATUS_FINAL') continue;
+
+    const competitors = comp.competitors || [];
+    const homeComp = competitors.find(c => c.homeAway === 'home');
+    const awayComp = competitors.find(c => c.homeAway === 'away');
+    if (!homeComp || !awayComp) continue;
+
+    const homeName = homeComp.team?.displayName || '';
+    const awayName = awayComp.team?.displayName || '';
+    const date = (ev.date || '').slice(0, 10);
+
+    const extractLS = arr => (arr || []).map(l =>
+      typeof l === 'object' && l !== null ? (l.value ?? 0) : (l ?? 0));
+    const homeLS = extractLS(homeComp.linescores);
+    const awayLS = extractLS(awayComp.linescores);
+    if (homeLS.length < 4 || awayLS.length < 4) continue;
+
+    const key = `${normAFL(homeName)}|${normAFL(awayName)}|${date}`;
+    index.set(key, { homeLS, awayLS });
+  }
+
+  _aflIndexCache = index;
+  console.log(`  [afl] Index: ${index.size} completed games with full quarter linescores`);
+  return index;
 }
 
 async function fetchSoccerHistoricalStates(espnEventId, leagueSlug) {
@@ -254,16 +314,6 @@ async function main() {
         continue;
       }
 
-      // AFL: Squiggle has final scores only (no quarter granularity); ESPN confirmed dead.
-      // Write 0 — separate follow-up required for quarter-level AFL data.
-      if (sport === 'afl') {
-        await writeGameDrama(game.id, 0, null);
-        console.log(`  [no-quarter-data/afl] ${label} → 0`);
-        totalProcessed++;
-        await sleep(DELAY_MS);
-        continue;
-      }
-
       try {
         let states, homeRank = null, awayRank = null;
 
@@ -271,6 +321,19 @@ async function main() {
           states = await fetchMLBHistoricalStates(game.espn_event_id);
         } else if (sport === 'wnba') {
           states = await fetchWNBAHistoricalStates(game.espn_event_id);
+        } else if (sport === 'afl') {
+          const index = await getAFLScoreboardIndex();
+          const key1 = `${normAFL(game.home)}|${normAFL(game.away)}|${game.date}`;
+          const key2 = `${normAFL(game.away)}|${normAFL(game.home)}|${game.date}`;
+          const entry = index.get(key1) || index.get(key2);
+          if (!entry) {
+            await writeGameDrama(game.id, 0, null);
+            console.log(`  [no-match/afl] ${label} → 0`);
+            totalProcessed++;
+            await sleep(DELAY_MS);
+            continue;
+          }
+          states = buildAFLStates(entry.homeLS, entry.awayLS);
         } else {
           const slug = soccerLeagueSlug(game.sport);
           states = await fetchSoccerHistoricalStates(game.espn_event_id, slug);
