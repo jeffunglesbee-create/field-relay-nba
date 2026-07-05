@@ -24,6 +24,10 @@
 //   dramaticMomentsMissed: [{ gameId, sport, peakDrama, ts }]
 //                        Games that peaked (drama > 75) while user was offline.
 //                        Powers NW-2 Smart Catch-Up Brief.
+//   pickLedger:          { picks: [...], totalMade, totalCorrect }
+//                        Cumulative pick 'em record. PERMANENT — never purged,
+//                        unlike watchHistory. Resolved picks carry
+//                        revealedProbability + probabilitySource for display.
 //   deviceSyncToken:     sha256(userId) — derived, not stored separately.
 //                        Client uses to verify QR sync (PREF-SYNC-QR).
 //
@@ -32,14 +36,17 @@
 //   GET  /user/state   — return full user state
 //   POST /user/event   — append an event { type, payload }
 //     event types:
-//       'watch_open'  — { gameId, sport } — user opened a game brief
-//       'series_game' — { seriesKey, gameId, sport, ts } — game added to ledger
-//       'peak_missed' — { gameId, sport, peakDrama } — high-drama game while offline
+//       'watch_open'    — { gameId, sport } — user opened a game brief
+//       'series_game'   — { seriesKey, gameId, sport, ts } — game added to ledger
+//       'peak_missed'   — { gameId, sport, peakDrama } — high-drama game while offline
+//       'pick_made'     — { gameId, sport, predictedWinner } — user made a pick
+//       'pick_resolved' — { gameId, wasCorrect, revealedProbability, probabilitySource }
 //
 // TTL / RETENTION
 //   watchHistory: purged to rolling 30 days on every write
 //   dramaticMomentsMissed: purged after 7 days (catch-up window)
 //   seriesLedger: kept for active series (sport seasons, ~6 months max)
+//   pickLedger: PERMANENT — append-only, never purged
 // ═══════════════════════════════════════════════════════════════════════════
 
 const WATCH_HISTORY_TTL_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -97,6 +104,7 @@ export class UserDO {
       await this.state.storage.put('watchHistory', []);
       await this.state.storage.put('seriesLedger', {});
       await this.state.storage.put('dramaticMomentsMissed', []);
+      await this.state.storage.put('pickLedger', { picks: [], totalMade: 0, totalCorrect: 0 });
       return new Response(JSON.stringify({ ok: true, created: true, syncToken }),
         { status: 200, headers: _cors() });
     }
@@ -113,22 +121,32 @@ export class UserDO {
   // ── /user/state ──────────────────────────────────────────────────────────
   // Returns full user state. Client uses for catch-up brief construction.
   async _handleState(userId) {
-    const [meta, wh, sl, mm] = await Promise.all([
+    const [meta, wh, sl, mm, pl] = await Promise.all([
       this.state.storage.get('meta'),
       this.state.storage.get('watchHistory'),
       this.state.storage.get('seriesLedger'),
       this.state.storage.get('dramaticMomentsMissed'),
+      this.state.storage.get('pickLedger'),
     ]);
     if (!meta) {
       return new Response(JSON.stringify({ ok: false, error: 'not initialized' }),
         { status: 404, headers: _cors() });
     }
     const syncToken = await _sha256(userId);
+    const ledger = pl || { picks: [], totalMade: 0, totalCorrect: 0 };
+    const accuracyRate = ledger.totalMade > 0
+      ? Math.round((ledger.totalCorrect / ledger.totalMade) * 1000) / 1000
+      : null;
     return new Response(JSON.stringify({
       ok: true, syncToken,
       watchHistory:           (wh  || []).slice(-50),  // last 50 for client
       seriesLedger:           sl  || {},
       dramaticMomentsMissed:  mm  || [],
+      picks: {
+        totalMade:    ledger.totalMade,
+        totalCorrect: ledger.totalCorrect,
+        accuracyRate,
+      },
       updatedAt:              meta.updatedAt,
     }), { status: 200, headers: _cors() });
   }
@@ -179,6 +197,44 @@ export class UserDO {
       await this.state.storage.put('dramaticMomentsMissed', mm);
       await this._touchMeta(now);
       return new Response(JSON.stringify({ ok: true, missedCount: mm.length }),
+        { headers: _cors() });
+    }
+
+    if (type === 'pick_made') {
+      const { gameId, sport, predictedWinner } = body;
+      if (!gameId || !predictedWinner) {
+        return new Response(JSON.stringify({ ok: false, error: 'missing gameId or predictedWinner' }),
+          { status: 400, headers: _cors() });
+      }
+      let pl = (await this.state.storage.get('pickLedger')) || { picks: [], totalMade: 0, totalCorrect: 0 };
+      pl.picks.push({ gameId, sport: sport || '', predictedWinner, ts: now, resolved: false });
+      pl.totalMade++;
+      await this.state.storage.put('pickLedger', pl);
+      await this._touchMeta(now);
+      return new Response(JSON.stringify({ ok: true, totalMade: pl.totalMade }),
+        { headers: _cors() });
+    }
+
+    if (type === 'pick_resolved') {
+      const { gameId, wasCorrect, revealedProbability, probabilitySource } = body;
+      if (!gameId) {
+        return new Response(JSON.stringify({ ok: false, error: 'missing gameId' }),
+          { status: 400, headers: _cors() });
+      }
+      let pl = (await this.state.storage.get('pickLedger')) || { picks: [], totalMade: 0, totalCorrect: 0 };
+      const pick = pl.picks.find(p => p.gameId === gameId && !p.resolved);
+      if (!pick) {
+        return new Response(JSON.stringify({ ok: false, error: 'pick not found or already resolved' }),
+          { status: 404, headers: _cors() });
+      }
+      pick.resolved = true;
+      pick.wasCorrect = !!wasCorrect;
+      pick.revealedProbability = revealedProbability ?? null;
+      pick.probabilitySource = probabilitySource || null;
+      if (wasCorrect) pl.totalCorrect++;
+      await this.state.storage.put('pickLedger', pl);
+      await this._touchMeta(now);
+      return new Response(JSON.stringify({ ok: true, totalCorrect: pl.totalCorrect }),
         { headers: _cors() });
     }
 
