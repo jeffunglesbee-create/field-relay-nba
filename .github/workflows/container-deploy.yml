@@ -19,6 +19,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: containers/hello
+          wranglerVersion: "4"
 
       - name: Verify — list deployed containers
         env:
@@ -27,4 +28,4 @@ jobs:
         working-directory: containers/hello
         run: |
           echo "=== wrangler containers list ==="
-          npx wrangler containers list --json || npx wrangler containers list
+          node_modules/.bin/wrangler containers list

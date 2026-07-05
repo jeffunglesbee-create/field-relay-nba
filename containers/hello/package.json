@@ -3,5 +3,8 @@
   "private": true,
   "dependencies": {
     "@cloudflare/containers": "*"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
   }
 }
