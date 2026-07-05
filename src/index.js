@@ -8172,6 +8172,73 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // GET /archive/score-missing?limit=N — lists past games (date < today) with
+            // null home_score, for score-fill backfill. Excludes today's in-progress games.
+            if (pathname === '/archive/score-missing' && request.method === 'GET') {
+                if (!env.ARCHIVE_DB) {
+                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const today = new Date().toISOString().slice(0, 10);
+                const rows = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, date, home, away, espn_event_id
+                     FROM regular_season_games
+                     WHERE home_score IS NULL AND date < ?
+                     ORDER BY sport, date
+                     LIMIT 500`
+                ).bind(today).all().catch(() => ({ results: [] }));
+                return new Response(JSON.stringify({ ok: true, games: rows.results || [], count: (rows.results || []).length }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            // POST /archive/score-by-id — writes real home_score/away_score (and
+            // optionally espn_event_id) for a row identified by exact id.
+            // Used by score-fill.mjs. Rule 47 compliant — stores real facts only.
+            if (pathname === '/archive/score-by-id' && request.method === 'POST') {
+                let body;
+                try { body = await request.json(); }
+                catch (_) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const { id, home_score, away_score, espn_event_id: newEspnId } = body || {};
+                if (!id) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing id' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (typeof home_score !== 'number' || typeof away_score !== 'number') {
+                    return new Response(JSON.stringify({ ok: false, error: 'home_score and away_score must be numbers' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                try {
+                    let result;
+                    if (newEspnId) {
+                        result = await env.ARCHIVE_DB.prepare(
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?) WHERE id = ?'
+                        ).bind(home_score, away_score, String(newEspnId), id).run();
+                        if (!result.success || result.meta?.changes === 0) {
+                            result = await env.ARCHIVE_DB.prepare(
+                                'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?) WHERE id = ?'
+                            ).bind(home_score, away_score, String(newEspnId), id).run();
+                        }
+                    } else {
+                        result = await env.ARCHIVE_DB.prepare(
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ? WHERE id = ?'
+                        ).bind(home_score, away_score, id).run();
+                        if (!result.success || result.meta?.changes === 0) {
+                            result = await env.ARCHIVE_DB.prepare(
+                                'UPDATE postseason_games SET home_score = ?, away_score = ? WHERE id = ?'
+                            ).bind(home_score, away_score, id).run();
+                        }
+                    }
+                    return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0 }),
+                        { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message, id }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             // POST /archive/backfill-enrich — fills in skeleton rows (home IS NULL)
             // created by older GameDO archives that didn't forward team names.
             // For each null-home row: groups by (sport, date), self-fetches
