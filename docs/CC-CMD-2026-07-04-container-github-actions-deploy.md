@@ -39,22 +39,27 @@ ls .github/workflows/ | grep -i container
 Re-confirm no container config or conflicting workflow exists before
 proceeding — this doc's snapshot (checked 2026-07-04) may have drifted.
 
-## TASK 1 — Minimal Container-enabled Worker config
+## TASK 1 — Scaffold from Cloudflare's own template, isolated from this repo
 
-This is a first real deployment, not a feature — scope it minimally.
-Add to `wrangler.toml`:
-- A `[[containers]]` entry pointing to a minimal Dockerfile (a basic
-  Linux base image running a trivial HTTP server on one port is
-  sufficient for this first deployment — this CC-CMD is proving the
-  deploy pipeline works, not shipping a real workload yet)
-- A matching `[[durable_objects.bindings]]` entry (Containers are backed
-  by a Durable Object — confirmed requirement per Cloudflare's own docs)
-- A `[[migrations]]` entry using `new_sqlite_classes`, not `new_classes`
-  — confirmed exact requirement, not interchangeable
+**Revised approach — do not hand-author Container config in this repo's
+`wrangler.toml`.** Hand-rolling `[[containers]]`/`[[durable_objects.
+bindings]]`/`[[migrations]]` entries directly in the production relay's
+config risks a subtle mistake (the DO/migrations linkage specifically)
+affecting the live relay everything else depends on. Instead:
 
-Create the minimal Dockerfile referenced above in a new directory (e.g.
-`containers/hello/`) — keep it small and simple, this is a pipeline
-proof, not a real feature.
+In the GitHub Actions job, run Cloudflare's own official scaffolding
+command: `npm create cloudflare@latest -- --template=cloudflare/
+templates/containers-template` into a **fresh, separate directory** —
+not inside `field-relay-nba`'s existing structure. This generates a
+complete, known-working Container project from Cloudflare's own
+maintained template, with correct config already in place.
+
+Deploy this as its own **separate, new Worker** (a distinct name, not
+touching `field-relay-nba`'s existing Worker or wrangler.toml at all).
+This is a proof that Containers work on this account at all — isolated,
+zero risk to the production relay, zero hand-authored config to get
+wrong. Once proven, integrating Containers into the relay for a real
+workload is separate, follow-up scope — not part of this CC-CMD.
 
 ## TASK 2 — New GitHub Actions workflow
 
@@ -80,17 +85,21 @@ Report the actual container name/ID, not just "the workflow succeeded."
 ## SCOPE BOUNDARY
 
 DO:
-- Keep the container itself minimal — this proves the pipeline, not a feature
+- Scaffold from Cloudflare's own official template, not hand-authored config
+- Deploy as a separate, isolated Worker — zero changes to field-relay-nba's existing wrangler.toml or Worker
 - Reuse existing secrets exactly as deploy.yml already does
 - Verify real deployment, not just workflow success
 - Report the actual container identifier
 
 DO NOT:
 - Attempt this from your own sandbox — GitHub Actions only
+- Hand-author Container config in field-relay-nba's wrangler.toml — use
+  Cloudflare's own scaffolding template in an isolated location instead
 - Build anything beyond a minimal proof container in this CC-CMD — a
   real workload (e.g., the earlier-discussed backfill-via-Container or
   upset-model-via-Container ideas) is separate, follow-up scope
-- Touch any existing request-serving Worker code
+- Touch any existing request-serving Worker code or field-relay-nba's
+  existing wrangler.toml at all
 
 ## DONE CONDITIONS
 - [ ] Probe block re-run, no drift from this doc's snapshot
@@ -112,11 +121,14 @@ DO NOT:
 
 ## ONE-LINER
 git pull. Read docs/CC-CMD-2026-07-04-container-github-actions-deploy.md.
-Add a minimal Container config (wrangler.toml + a trivial Dockerfile) —
-this proves the pipeline, not a real feature. Write
-container-deploy.yml reusing the existing CLOUDFLARE_API_TOKEN secret
-exactly like deploy.yml. Dispatch it, and verify real deployment via
-wrangler containers list or the dashboard — report the actual container
-identifier, not just workflow success. Do this entirely via GitHub
-Actions, not your own sandbox. Do not commit unless confidence ≥ 95. If
-score < 95 report verbatim and stop.
+In container-deploy.yml (workflow_dispatch, reusing the existing
+CLOUDFLARE_API_TOKEN secret exactly like deploy.yml), scaffold a fresh
+project from Cloudflare's own official template (npm create
+cloudflare@latest -- --template=cloudflare/templates/containers-template)
+in an isolated location — do not hand-author Container config in this
+repo's wrangler.toml, and do not touch field-relay-nba's existing Worker
+at all. Deploy it as a separate Worker, dispatch the workflow, and
+verify real deployment via wrangler containers list or the dashboard —
+report the actual container identifier, not just workflow success. Do
+this entirely via GitHub Actions, not your own sandbox. Do not commit
+unless confidence ≥ 95. If score < 95 report verbatim and stop.
