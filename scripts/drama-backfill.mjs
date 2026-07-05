@@ -120,11 +120,11 @@ async function fetchWNBAHistoricalStates(espnEventId) {
 
 // === AFL scoreboard — fetched ONCE per run, matched by team+date (not espn_event_id) ===
 // Ported normalization from src/index.js buildAFLJournalismContext (line ~2984).
-// GWS alias: ESPN stores this team as "GWS Giants" (norm="gws"), but D1 uses
-// "Greater Western Sydney" (norm="greate") — pre-normalize to align both sides.
+// GWS alias: D1 stores "Greater Western Sydney" (normalizes to "greate"),
+// ESPN stores "GWS Giants" (strips "giants" → "gws"). Alias D1-side to "gws" directly.
 function normAFL(s) {
   let n = String(s || '').toLowerCase().trim();
-  if (n === 'gws giants' || n === 'greater western sydney giants') n = 'greater western sydney';
+  if (n.includes('greater western sydney')) return 'gws';
   return n
     .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
     .replace(/[^a-z]/g, '').slice(0, 6);
@@ -144,32 +144,14 @@ function buildAFLStates(homeLS, awayLS) {
 let _aflIndexCache = null;
 async function getAFLScoreboardIndex() {
   if (_aflIndexCache !== null) return _aflIndexCache;
-  console.log('  [afl] Fetching ESPN AFL season scoreboard...');
+  console.log('  [afl] Fetching ESPN AFL season scoreboard (limit=500)...');
 
-  // Primary: ?dates=2026 returns up to 100 events (covers approx rounds 1-10)
-  const r0 = await fetch(`${ESPN_AFL_SCOREBOARD}?dates=2026`);
+  // ?dates=2026&limit=500 returns the full season (216 events, rounds 1-23 + finals)
+  // vs ?dates=2026 alone which caps at 100 events (only through round 10 / May 21).
+  const r0 = await fetch(`${ESPN_AFL_SCOREBOARD}?dates=2026&limit=500`);
   if (!r0.ok) throw new Error(`ESPN AFL scoreboard ${r0.status}`);
-  const primary = (await r0.json()).events || [];
-  console.log(`  [afl] Primary (?dates=2026): ${primary.length} events`);
-
-  // Supplemental: fetch rounds 11-23 individually via ?week=N to cover full season.
-  // Gracefully ignores any week that returns non-200 or empty.
-  const roundFetches = await Promise.all(
-    Array.from({ length: 13 }, (_, i) => i + 11).map(week =>
-      fetch(`${ESPN_AFL_SCOREBOARD}?week=${week}`)
-        .then(r => r.ok ? r.json().then(d => d.events || []) : [])
-        .catch(() => [])
-    )
-  );
-  const supplemental = roundFetches.flat();
-  console.log(`  [afl] Supplemental (?week=11-23): ${supplemental.length} events`);
-
-  // Deduplicate by ESPN event ID, then build index
-  const seen = new Set();
-  const allEvents = [];
-  for (const ev of [...primary, ...supplemental]) {
-    if (ev.id && !seen.has(ev.id)) { seen.add(ev.id); allEvents.push(ev); }
-  }
+  const allEvents = (await r0.json()).events || [];
+  console.log(`  [afl] Fetched ${allEvents.length} events`);
 
   const index = new Map();
   const extractLS = arr => (arr || []).map(l =>
