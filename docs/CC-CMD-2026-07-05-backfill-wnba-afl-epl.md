@@ -74,6 +74,31 @@ via a live curl against a real, known EPL/WNBA/AFL `espn_event_id`
 already in D1 — the same way `fetchMLBHistoricalStates`'s path was
 originally confirmed, not assumed from a guessed URL pattern.
 
+**UPDATE 2026-07-05 — directly verified live, real event IDs from D1:**
+- **WNBA**: `https://site.api.espn.com/apis/site/v2/sports/basketball/
+  wnba/summary?event={id}` — confirmed `HTTP:200`, 409 real plays,
+  correct shape (`homeScore`/`awayScore`/`period`/`clock` fields present).
+  Verified against event `401856920` (Toronto Tempo vs Phoenix Mercury).
+- **EPL**: league slug is `eng.1`, confirmed `HTTP:200` against event
+  `740950` (Liverpool vs Chelsea), 16 real keyEvents, same shape
+  `fetchSoccerHistoricalStates` already expects. Add `eng.1` as EPL's
+  case in `soccerLeagueSlug()` — do not rely on the `fifa.world` default.
+- **AFL: real correction, not a guessed path.** Every ESPN path tried
+  (`australian-football/afl`, `afl/afl`, `aussie-rules/afl`) returned
+  404/400 against a real, known AFL event ID (`38494`). Checked the
+  client source directly: AFL was never built on ESPN at all — it uses
+  **Squiggle** (`api.squiggle.com.au`), confirmed via `SQUIGGLE_BASE` in
+  `src/index.js`. **Unresolved, must be checked by you, not assumed**:
+  whether Squiggle's API provides quarter-by-quarter granular scores
+  (needed for a real drama_peak) or only final/live scores (which would
+  only support a cruder proxy, not real intra-game reconstruction) —
+  this could not be tested from this environment (`api.squiggle.com.au`
+  is outside this sandbox's allowed domains). Verify this live before
+  building an AFL fetch function; if Squiggle genuinely lacks
+  quarter-level granularity, report that plainly and treat AFL as a
+  separate, harder follow-up rather than forcing a proxy score to hit a
+  completion target.
+
 ## TASK 1 — Fix classifySport() and soccerLeagueSlug()
 
 Add explicit `'wnba'` and `'afl'` classifications (exact string match,
@@ -92,13 +117,22 @@ new scoring design).
 
 ## TASK 3 — Add fetch functions for WNBA and AFL historical states
 
-WNBA and AFL are not soccer — they need their own historical-state
-fetchers analogous to `fetchMLBHistoricalStates`, using the real,
-verified ESPN summary path for each sport (confirmed live in the probe
-step, not guessed). Map ESPN's actual response shape to the same
-`{homeScore, awayScore, period, clock}` shape the scoring function
-expects — verify the real shape via a live fetch against a known event,
-same as the original MLB implementation did.
+**WNBA**: use the confirmed, real ESPN path
+(`sports/basketball/wnba/summary?event={id}`) — verified live, 409 real
+plays, correct shape. Write `fetchWNBAHistoricalStates` analogous to
+`fetchMLBHistoricalStates`, mapping ESPN's real play shape
+(`homeScore`/`awayScore`/`period`/`clock`) the same way.
+
+**AFL**: do NOT use ESPN — confirmed dead for this sport (every path
+404/400'd). Use Squiggle (`api.squiggle.com.au`, already the client's
+real AFL source, confirmed via `SQUIGGLE_BASE`). **First verify whether
+Squiggle's API returns quarter-by-quarter granularity** — if it only
+provides final/live current scores, a full historical reconstruction
+matching the WNBA/MLB pattern isn't possible the same way, and that's a
+real, acceptable finding to report rather than force. If granular data
+exists, write `fetchAFLHistoricalStates` against the real Squiggle
+endpoint/shape you find — do not guess field names, inspect the real
+response first.
 
 ## TASK 4 — Run it, verify real results
 
@@ -146,11 +180,13 @@ DO NOT:
 ## ONE-LINER
 git pull. Read docs/CC-CMD-2026-07-05-backfill-wnba-afl-epl.md. Fix
 classifySport() to recognize WNBA/AFL/EPL (currently all misclassified
-as 'other' and immediately zeroed, confirmed via real D1 data). Port the
-exact WNBA/AFL formulas quoted in this doc into the script's
-dramaScoreLive(). Before writing fetch code, verify the real ESPN
-summary URL paths for WNBA/AFL and the correct league slug for EPL live
-— do not guess them. Add WNBA/AFL fetch functions, route EPL through the
-existing soccer path. Run the workflow and report real before/after
-counts for all three sports. Do not commit unless confidence ≥ 95. If
-score < 95 report verbatim and stop.
+as 'other' and immediately zeroed). Port the exact WNBA/AFL formulas
+quoted in this doc into dramaScoreLive(). WNBA and EPL's real ESPN
+paths are already confirmed live in this doc (basketball/wnba, and
+eng.1 slug) -- use them directly. AFL is confirmed NOT to work via ESPN
+(every path 404/400'd) -- use Squiggle (api.squiggle.com.au) instead,
+and first verify whether it provides quarter-by-quarter granularity
+before building a fetch function; if it only has final scores, report
+that plainly rather than forcing a proxy score. Run the workflow and
+report real before/after counts for all three sports. Do not commit
+unless confidence ≥ 95. If score < 95 report verbatim and stop.
