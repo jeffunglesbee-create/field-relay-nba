@@ -2,6 +2,8 @@ name: Drama Peak Backfill (one-shot)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 */2 * * *'   # every 2 hours
 
 jobs:
   backfill:
