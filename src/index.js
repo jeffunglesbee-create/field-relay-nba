@@ -4509,6 +4509,7 @@ const ARCHIVE_SPORT_TO_ODDS_KEY = {
   bundesliga: 'soccer_germany_bundesliga',
   'serie a':  'soccer_italy_serie_a',
   cfl:        'americanfootball_cfl',
+  cfb:        'americanfootball_ncaaf',
   nfl:        'americanfootball_nfl',
   ufl:        'americanfootball_ufl',
   afl:        'aussierules_afl',
@@ -4651,6 +4652,129 @@ async function fetchSportOddsLive(env, sportKey) {
   let games = [];
   try { games = await r.json(); } catch (_) { games = []; }
   return { games: Array.isArray(games) ? games : [], quotaRemaining, ok: true };
+}
+
+// ── Win-probability resolver ────────────────────────────────────────────────
+// Per-sport best-effort fallback called server-side when pick_resolved lacks
+// revealedProbability. Returns { probability, source, label } or null.
+// Routes each sport to its real, confirmed data source — never invents.
+// Label is exactly "Market estimate" (odds-derived) or "Statistical probability"
+// (model-derived). Never throws — all error paths return null.
+async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
+  if (!sport || !predictedWinner) return null;
+  const s = String(sport).toLowerCase().trim();
+  try {
+    // ── ESPN native winprobability[] — NBA, WNBA, MLB ──────────────────────
+    if (s === 'nba' || s === 'wnba' || s === 'mlb') {
+      const espnPath = s === 'mlb'  ? 'baseball/mlb'
+                     : s === 'wnba' ? 'basketball/wnba'
+                     :                'basketball/nba';
+      const r = await fetch(
+        `${ESPN_SUMMARY_BASE}/sports/${espnPath}/summary?event=${gameId}`,
+        { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
+      );
+      if (r.ok) {
+        const d  = await r.json();
+        const wps = d.winprobability || [];
+        if (wps.length) {
+          const last = wps[wps.length - 1];
+          const pct  = typeof last.homeWinPercentage === 'number' ? last.homeWinPercentage : null;
+          if (pct !== null) {
+            const competitors = d.header?.competitions?.[0]?.competitors || [];
+            const homeComp    = competitors.find(c => c.homeAway === 'home');
+            const homeName    = homeComp?.team?.displayName || homeComp?.team?.shortDisplayName || '';
+            const isHome      = teamNameMatch(predictedWinner, homeName);
+            const prob        = isHome ? pct / 100 : 1 - pct / 100;
+            return { probability: Math.round(prob * 1000) / 1000, source: 'espn-native', label: 'Statistical probability' };
+          }
+        }
+      }
+      return null;
+    }
+
+    // ── Squiggle AFL tips — hconfidence is home-win % (0-100) ─────────────
+    if (s === 'afl') {
+      const year = new Date().getUTCFullYear();
+      const r = await fetch(
+        `${SQUIGGLE_BASE}/?q=tips;team=${encodeURIComponent(predictedWinner)};year=${year}`,
+        { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) }
+      );
+      if (r.ok) {
+        const d    = await r.json();
+        const tips = (d.tips || []).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+        if (tips.length) {
+          const tip  = tips[0];
+          const conf = parseFloat(tip.hconfidence) || 50;
+          const prob = teamNameMatch(predictedWinner, tip.hteam || '')
+            ? conf / 100
+            : (100 - conf) / 100;
+          return { probability: Math.round(prob * 1000) / 1000, source: 'squiggle', label: 'Statistical probability' };
+        }
+      }
+      return null;
+    }
+
+    // ── Soccer: ESPN WC summary winprobability[] ──────────────────────────
+    // computeLiveWP is the canonical live source; this path serves as a
+    // server-side fallback using ESPN's own WP data for the same event.
+    if (s === 'soccer') {
+      if (!gameId) return null;
+      const r = await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${gameId}`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (r.ok) {
+        const d   = await r.json();
+        const wps = d.winprobability || [];
+        if (wps.length) {
+          const last = wps[wps.length - 1];
+          const pct  = typeof last.homeWinPercentage === 'number' ? last.homeWinPercentage : null;
+          if (pct !== null) {
+            const competitors = d.header?.competitions?.[0]?.competitors || [];
+            const homeComp    = competitors.find(c => c.homeAway === 'home');
+            const homeName    = homeComp?.team?.displayName || homeComp?.team?.shortDisplayName || '';
+            const isHome      = teamNameMatch(predictedWinner, homeName);
+            const prob        = isHome ? pct / 100 : 1 - pct / 100;
+            return { probability: Math.round(prob * 1000) / 1000, source: 'espn-soccer', label: 'Statistical probability' };
+          }
+        }
+      }
+      return null;
+    }
+
+    // ── Odds API + American no-vig (NHL, MLS, EPL, NFL, CFL, CFB, etc.) ───
+    // fetchSportOddsLive calls consumeOddsCredit(env, 3) internally —
+    // budget tracking is automatic; do not call a lower-level fetch here.
+    const sportKey = ARCHIVE_SPORT_TO_ODDS_KEY[s];
+    if (sportKey) {
+      const { games, ok } = await fetchSportOddsLive(env, sportKey);
+      if (!ok || !games.length) return null;
+      for (const g of games) {
+        const homeMatch = teamNameMatch(predictedWinner, g.home_team);
+        const awayMatch = teamNameMatch(predictedWinner, g.away_team);
+        if (!homeMatch && !awayMatch) continue;
+        const books = g.bookmakers || [];
+        const bk    = books.find(b => b.key === ODDS_PREFERRED_BOOK) || books[0];
+        if (!bk) continue;
+        const h2h = (bk.markets || []).find(m => m.key === 'h2h');
+        if (!h2h) continue;
+        const hO = h2h.outcomes.find(o => o.name === g.home_team);
+        const aO = h2h.outcomes.find(o => o.name === g.away_team);
+        if (!hO || !aO) continue;
+        // American odds → implied probability, then normalize to remove vig
+        const implH = hO.price > 0 ? 100 / (hO.price + 100) : Math.abs(hO.price) / (Math.abs(hO.price) + 100);
+        const implA = aO.price > 0 ? 100 / (aO.price + 100) : Math.abs(aO.price) / (Math.abs(aO.price) + 100);
+        const vigSum = implH + implA;
+        if (vigSum <= 0) continue;
+        const prob = homeMatch ? implH / vigSum : implA / vigSum;
+        return { probability: Math.round(prob * 1000) / 1000, source: 'odds-api', label: 'Market estimate' };
+      }
+    }
+
+    return null;
+  } catch (_) {
+    return null;
+  }
 }
 
 // Per-cron snapshot. Discovers which sports have pending opening_odds rows
@@ -6741,6 +6865,34 @@ export default {
             const stub = env.USER_DO.get(doId);
             const doUrl = new URL(request.url);
             doUrl.hostname = 'user-do-internal';
+            // Server-side WP fallback for pick_resolved: if the caller provides sport
+            // and predictedWinner but omits revealedProbability, resolve it here using
+            // resolveWinProbability() before forwarding to the DO. The body is consumed
+            // here, so we always re-serialize it for the DO fetch regardless.
+            if (pathname === '/user/event' && request.method === 'POST') {
+                let evtBody = {};
+                try { evtBody = await request.json(); } catch (_) { /* invalid JSON — DO will reject */ }
+                if (evtBody?.type === 'pick_resolved' &&
+                    evtBody.sport && evtBody.predictedWinner &&
+                    evtBody.revealedProbability == null) {
+                    try {
+                        const wp = await resolveWinProbability(
+                            evtBody.sport,
+                            { gameId: evtBody.gameId, predictedWinner: evtBody.predictedWinner },
+                            env
+                        );
+                        if (wp) {
+                            evtBody.revealedProbability = wp.probability;
+                            evtBody.probabilitySource   = wp.source;
+                        }
+                    } catch (_) { /* non-fatal — DO still receives pick_resolved without WP */ }
+                }
+                return stub.fetch(new Request(doUrl.toString(), {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(evtBody),
+                }));
+            }
             return stub.fetch(new Request(doUrl.toString(), {
                 method:  request.method,
                 headers: request.headers,
