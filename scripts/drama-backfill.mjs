@@ -6,6 +6,7 @@
 // Scoring formulas ported verbatim from CC-CMD-2026-07-04-container-drama-backfill-v2.md.
 
 import { setTimeout as sleep } from 'node:timers/promises';
+import { resolveAFLTeamKey } from '../src/identity-resolver.js';
 
 const RELAY      = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const BATCH_SIZE = 20;
@@ -123,16 +124,6 @@ async function fetchWNBAHistoricalStates(espnEventId) {
 }
 
 // === AFL scoreboard — fetched ONCE per run, matched by team+date (not espn_event_id) ===
-// Ported normalization from src/index.js buildAFLJournalismContext (line ~2984).
-// GWS alias: D1 stores "Greater Western Sydney" (normalizes to "greate"),
-// ESPN stores "GWS Giants" (strips "giants" → "gws"). Alias D1-side to "gws" directly.
-function normAFL(s) {
-  let n = String(s || '').toLowerCase().trim();
-  if (n.includes('greater western sydney')) return 'gws';
-  return n
-    .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
-    .replace(/[^a-z]/g, '').slice(0, 6);
-}
 
 function buildAFLStates(homeLS, awayLS) {
   const states = [];
@@ -178,7 +169,7 @@ async function getAFLScoreboardIndex() {
     const awayName = awayComp.team?.displayName || '';
     const date = (ev.date || '').slice(0, 10);
 
-    index.set(`${normAFL(homeName)}|${normAFL(awayName)}|${date}`, { homeLS, awayLS });
+    index.set(`${resolveAFLTeamKey(homeName)}|${resolveAFLTeamKey(awayName)}|${date}`, { homeLS, awayLS });
   }
 
   _aflIndexCache = index;
@@ -332,8 +323,8 @@ async function main() {
           states = await fetchWNBAHistoricalStates(game.espn_event_id);
         } else if (sport === 'afl') {
           const index = await getAFLScoreboardIndex();
-          const key1 = `${normAFL(game.home)}|${normAFL(game.away)}|${game.date}`;
-          const key2 = `${normAFL(game.away)}|${normAFL(game.home)}|${game.date}`;
+          const key1 = `${resolveAFLTeamKey(game.home)}|${resolveAFLTeamKey(game.away)}|${game.date}`;
+          const key2 = `${resolveAFLTeamKey(game.away)}|${resolveAFLTeamKey(game.home)}|${game.date}`;
           const entry = index.get(key1) || index.get(key2);
           if (!entry) {
             await writeGameDrama(game.id, 0, null);

@@ -507,4 +507,33 @@ const SOCCER_PLAYER_ID_BY_KEY  = _SOCCER_BUILD.idByKey;
 _STRIP_BY_TYPE.soccer_player    = _stripPlayerSoccer;
 _CANONICAL_BY_TYPE.soccer_player = CANONICAL_PLAYER_SOCCER;
 
-export { resolveTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };
+// ── AFL team identity ──────────────────────────────────────────────────────────
+// Nickname-stripping + 6-char truncation bridges ESPN displayNames
+// (e.g. "Melbourne Demons") to D1 shorter forms ("Melbourne"). Migrated from
+// normAFL() in drama-backfill.mjs (2026-07-05, CC-CMD consolidate-afl-v2).
+// GWS Giants / Greater Western Sydney resolved via CANONICAL_AFL map below.
+function _stripAFL(name) {
+    return String(name || '').toLowerCase().trim()
+        .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
+        .replace(/[^a-z]/g, '').slice(0, 6);
+}
+
+const CANONICAL_AFL = (() => {
+    const pairs = [
+        // ESPN stores "GWS Giants"; D1 stores "Greater Western Sydney".
+        // Confirmed real mismatch, found 2026-07-05 during AFL drama backfill.
+        ['GWS Giants', 'Greater Western Sydney'],
+    ];
+    const out = {};
+    for (const [variant, canonical] of pairs) out[_stripAFL(variant)] = _stripAFL(canonical);
+    return out;
+})();
+
+_STRIP_BY_TYPE.afl_team    = _stripAFL;
+_CANONICAL_BY_TYPE.afl_team = CANONICAL_AFL;
+
+function resolveAFLTeamKey(name) {
+    return resolveEntity('afl_team', name);
+}
+
+export { resolveTeamKey, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };
