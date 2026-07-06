@@ -513,14 +513,63 @@ function scoreCandidatePick(game) {
 
 async function runPhase9FieldPick(env, today) {
     const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-    const settled = await Promise.allSettled(PHASE9_SPORTS.map(s =>
+
+    // D1 stores sport as the label value ('MLB', 'WNBA', 'FIFA World Cup 2026', etc.)
+    // not the /v2/games shortcodes ('mlb', 'wnba', 'wc26'). Map before querying.
+    const PHASE9_SPORT_LABELS = { nba: 'NBA', nhl: 'NHL', mlb: 'MLB', wnba: 'WNBA', wc26: 'FIFA World Cup 2026' };
+    const sportLabels = PHASE9_SPORTS.map(s => PHASE9_SPORT_LABELS[s] || s);
+    const ph = sportLabels.map(() => '?').join(',');
+
+    // 1. Primary source: archive tables carry round/odds/note/streams that /v2/games never has.
+    const archiveByEventId = new Map();
+    try {
+        const [regRes, psRes] = await Promise.allSettled([
+            env.ARCHIVE_DB.prepare(
+                `SELECT id, sport, home, away, note, closing_odds, opening_odds, streams, espn_event_id
+                 FROM regular_season_games WHERE date = ? AND sport IN (${ph})`
+            ).bind(today, ...sportLabels).all(),
+            env.ARCHIVE_DB.prepare(
+                `SELECT id, sport, home, away, note, round, closing_odds, opening_odds, streams, espn_event_id
+                 FROM postseason_games WHERE date = ? AND sport IN (${ph})`
+            ).bind(today, ...sportLabels).all(),
+        ]);
+        for (const res of [regRes, psRes]) {
+            if (res.status === 'fulfilled' && res.value?.results) {
+                for (const row of res.value.results) {
+                    if (row.espn_event_id) archiveByEventId.set(row.espn_event_id, row);
+                }
+            }
+        }
+    } catch (_) {}
+
+    // 2. Live fetch: enriches archive rows with start time for the prime-time check;
+    //    also provides fallback candidates for games not yet seeded in the archive
+    //    (pre-game seed runs on the same cron cycle — ordering not guaranteed).
+    const liveByEventId = new Map();
+    const liveSettled = await Promise.allSettled(PHASE9_SPORTS.map(s =>
         fetch(`${relayBase}/v2/games?sport=${s}&date=${today}`, { cf: { cacheTtl: 60, cacheEverything: true } })
             .then(r => r.ok ? r.json() : null)
             .then(j => (j && Array.isArray(j.games)) ? j.games : [])));
+    for (const s of liveSettled) {
+        if (s.status === 'fulfilled' && Array.isArray(s.value)) {
+            for (const g of s.value) {
+                const eid = String(g.espnEventId || '');
+                if (eid) liveByEventId.set(eid, g);
+            }
+        }
+    }
 
+    // 3. Merge: archive rows (primary) enriched with live start time;
+    //    games not yet in archive use the live entry as fallback candidate.
     const candidates = [];
-    for (const s of settled) {
-        if (s.status === 'fulfilled' && Array.isArray(s.value)) candidates.push(...s.value);
+    const seen = new Set();
+    for (const [eid, arc] of archiveByEventId) {
+        seen.add(eid);
+        const live = liveByEventId.get(eid);
+        candidates.push({ ...arc, start: live?.start || null });
+    }
+    for (const [eid, live] of liveByEventId) {
+        if (!seen.has(eid)) candidates.push(live);
     }
 
     if (candidates.length === 0) {

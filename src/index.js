@@ -5950,6 +5950,7 @@ async function handleJournalismCycle(env, opts = {}) {
               league: label,
               probableHome: home?.probables?.[0]?.athlete?.displayName || null,
               probableAway: away?.probables?.[0]?.athlete?.displayName || null,
+              broadcasts: (comp?.broadcasts || []).map(b => b.names || []).flat(),
             });
           }
         }
@@ -6027,6 +6028,7 @@ async function handleJournalismCycle(env, opts = {}) {
             away: gm.away,
             venue: gm.venue,
             start_time: gm.startTime || null,
+            streams: (gm.broadcasts && gm.broadcasts.length) ? gm.broadcasts.join(', ') : null,
             source_id: gm.eventId,
           }),
         }).catch(() => {});
