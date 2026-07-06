@@ -10675,6 +10675,130 @@ export default {
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // GET /wiki/trending?date=YYYY-MM-DD
+        // Returns Wikimedia 8-day trailing pageview spike data for every tracked team.
+        // KV-cached per date (TTL 26h). Cache miss: throttled batched fetches, never a
+        // naive Promise.all of ~86 calls. Individual team failures return null, not 500.
+        if (pathname === '/wiki/trending' && request.method === 'GET') {
+            const WIKI_TITLES = {
+                // NBA
+                'New York Knicks':'New_York_Knicks','Cleveland Cavaliers':'Cleveland_Cavaliers',
+                'San Antonio Spurs':'San_Antonio_Spurs','Oklahoma City Thunder':'Oklahoma_City_Thunder',
+                'Boston Celtics':'Boston_Celtics','Milwaukee Bucks':'Milwaukee_Bucks',
+                'Indiana Pacers':'Indiana_Pacers','Miami Heat':'Miami_Heat',
+                'Philadelphia 76ers':'Philadelphia_76ers','Orlando Magic':'Orlando_Magic',
+                'Denver Nuggets':'Denver_Nuggets','Minnesota Timberwolves':'Minnesota_Timberwolves',
+                'Dallas Mavericks':'Dallas_Mavericks','Los Angeles Lakers':'Los_Angeles_Lakers',
+                'Golden State Warriors':'Golden_State_Warriors','Los Angeles Clippers':'Los_Angeles_Clippers',
+                'Phoenix Suns':'Phoenix_Suns','Sacramento Kings':'Sacramento_Kings',
+                'Memphis Grizzlies':'Memphis_Grizzlies','New Orleans Pelicans':'New_Orleans_Pelicans',
+                'Houston Rockets':'Houston_Rockets','Atlanta Hawks':'Atlanta_Hawks',
+                'Chicago Bulls':'Chicago_Bulls','Brooklyn Nets':'Brooklyn_Nets',
+                'Toronto Raptors':'Toronto_Raptors','Detroit Pistons':'Detroit_Pistons',
+                // NHL
+                'Carolina Hurricanes':'Carolina_Hurricanes','Montreal Canadiens':'Montreal_Canadiens',
+                'Vegas Golden Knights':'Vegas_Golden_Knights','Colorado Avalanche':'Colorado_Avalanche',
+                'Florida Panthers':'Florida_Panthers','New York Rangers':'New_York_Rangers',
+                'Dallas Stars':'Dallas_Stars','Edmonton Oilers':'Edmonton_Oilers',
+                'Boston Bruins':'Boston_Bruins','Toronto Maple Leafs':'Toronto_Maple_Leafs',
+                'Tampa Bay Lightning':'Tampa_Bay_Lightning','New York Islanders':'New_York_Islanders',
+                'Winnipeg Jets':'Winnipeg_Jets','Nashville Predators':'Nashville_Predators',
+                'Washington Capitals':'Washington_Capitals','Pittsburgh Penguins':'Pittsburgh_Penguins',
+                // MLB
+                'New York Yankees':'New_York_Yankees','Los Angeles Dodgers':'Los_Angeles_Dodgers',
+                'Philadelphia Phillies':'Philadelphia_Phillies','Houston Astros':'Houston_Astros',
+                'San Diego Padres':'San_Diego_Padres','New York Mets':'New_York_Mets',
+                'Athletics':'Oakland_Athletics','Boston Red Sox':'Boston_Red_Sox',
+                'Chicago Cubs':'Chicago_Cubs','San Francisco Giants':'San_Francisco_Giants',
+                'Baltimore Orioles':'Baltimore_Orioles','Cleveland Guardians':'Cleveland_Guardians',
+                'Texas Rangers':'Texas_Rangers_(baseball)','Atlanta Braves':'Atlanta_Braves',
+                'Milwaukee Brewers':'Milwaukee_Brewers','Cincinnati Reds':'Cincinnati_Reds',
+                'Minnesota Twins':'Minnesota_Twins','Seattle Mariners':'Seattle_Mariners',
+                'St. Louis Cardinals':'St._Louis_Cardinals','Detroit Tigers':'Detroit_Tigers',
+                'Arizona Diamondbacks':'Arizona_Diamondbacks','Tampa Bay Rays':'Tampa_Bay_Rays',
+                'Kansas City Royals':'Kansas_City_Royals','Toronto Blue Jays':'Toronto_Blue_Jays',
+                // EPL
+                'Arsenal':'Arsenal_F.C.','Manchester City':'Manchester_City_F.C.',
+                'Liverpool':'Liverpool_F.C.','Manchester United':'Manchester_United_F.C.',
+                'Chelsea':'Chelsea_F.C.','Tottenham Hotspur':'Tottenham_Hotspur_F.C.',
+                'Newcastle United':'Newcastle_United_F.C.','Aston Villa':'Aston_Villa_F.C.',
+                'Brighton & Hove Albion':'Brighton_%26_Hove_Albion_F.C.',
+                'West Ham United':'West_Ham_United_F.C.','Everton':'Everton_F.C.',
+                'Crystal Palace':'Crystal_Palace_F.C.','Fulham':'Fulham_F.C.',
+                'Brentford':'Brentford_F.C.','Wolverhampton':'Wolverhampton_Wanderers_F.C.',
+                'Nottingham Forest':'Nottingham_Forest_F.C.',
+                // EFL
+                'Hull City':'Hull_City_A.F.C.','Bolton Wanderers':'Bolton_Wanderers_F.C.',
+                'Sunderland':'Sunderland_A.F.C.','Burnley':'Burnley_F.C.',
+            };
+
+            const dateParam = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+                return new Response(JSON.stringify({ ok: false, error: 'invalid date — expected YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            const cacheKey = `wiki:trending:${dateParam}`;
+            if (env.FIELD_JOURNALISM) {
+                try {
+                    const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+                    if (cached) {
+                        return new Response(cached,
+                            { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+                    }
+                } catch (_) { /* KV read failure falls through to fetch */ }
+            }
+
+            // Cache miss — fetch all teams with throttled batching (5 at a time, 150ms between batches)
+            // to avoid reproducing the client's rate-limiting problem server-side.
+            const teams = Object.entries(WIKI_TITLES);
+            const BATCH_SIZE = 5;
+            const BATCH_DELAY_MS = 150;
+            const result = {};
+
+            const fetchTeam = async ([teamName, wikiTitle]) => {
+                try {
+                    // 8-day trailing window ending on dateParam
+                    const end = new Date(dateParam);
+                    const start = new Date(end);
+                    start.setDate(start.getDate() - 7);
+                    const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+                    const wikiUrl = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/all-agents/${wikiTitle}/daily/${fmt(start)}/${fmt(end)}`;
+                    const resp = await fetch(wikiUrl, {
+                        headers: { 'User-Agent': 'FIELD-relay/1.0 (field.dev; sports-context-app)' },
+                        cf: { cacheTtl: 3600, cacheEverything: true },
+                    });
+                    if (!resp.ok) return [teamName, null];
+                    const data = await resp.json();
+                    const items = Array.isArray(data?.items) ? data.items : [];
+                    if (!items.length) return [teamName, null];
+                    const views = items.map(i => i.views || 0);
+                    const todayViews = views[views.length - 1];
+                    const avgViews = views.slice(0, -1).reduce((s, v) => s + v, 0) / Math.max(views.length - 1, 1);
+                    const spikeRatio = avgViews > 0 ? Math.round((todayViews / avgViews) * 100) / 100 : 0;
+                    return [teamName, { todayViews, avgViews: Math.round(avgViews), spikeRatio, trending: spikeRatio > 2.0 }];
+                } catch (_) {
+                    return [teamName, null];
+                }
+            };
+
+            for (let i = 0; i < teams.length; i += BATCH_SIZE) {
+                const batch = teams.slice(i, i + BATCH_SIZE);
+                const batchResults = await Promise.all(batch.map(fetchTeam));
+                for (const [teamName, val] of batchResults) result[teamName] = val;
+                if (i + BATCH_SIZE < teams.length) {
+                    await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+                }
+            }
+
+            const payload = JSON.stringify(result);
+            if (env.FIELD_JOURNALISM) {
+                try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 26 * 3600 }); } catch (_) {}
+            }
+            return new Response(payload,
+                { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+        }
+
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
         // Assembles all analytics_output features + KV editorial into one
         // atomic response. {date} = TODAY's date. Endpoint fetches recap
@@ -12779,7 +12903,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
