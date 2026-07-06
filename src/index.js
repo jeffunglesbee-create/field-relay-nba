@@ -12409,6 +12409,19 @@ export default {
                             `).all();
                             out.open_incidents = (cf.results || []).map(r => r.title);
                         } catch(_) { out.open_incidents = 'unavailable'; }
+
+                        try {
+                            const cq = await env.ARCHIVE_DB.prepare(`
+                                SELECT key, title, updated_at,
+                                       ROUND((julianday('now') - julianday(updated_at)) * 24, 1) AS hours_stale
+                                FROM codex
+                                WHERE category = 'cc-cmd-queue' AND title LIKE 'PENDING%'
+                                ORDER BY updated_at ASC LIMIT 15
+                            `).all();
+                            out.stale_pending_cc_cmds = (cq.results || [])
+                                .filter(r => r.hours_stale >= 2)
+                                .map(r => ({ key: r.key, title: r.title, hours_stale: r.hours_stale }));
+                        } catch(_) { out.stale_pending_cc_cmds = 'unavailable'; }
                     }
 
                     out.checked_at = new Date().toISOString();
