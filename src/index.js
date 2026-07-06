@@ -4437,7 +4437,7 @@ async function sweepKVBriefs(env) {
       // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
       const parts = key.name.replace('brief:game:', '').split(':');
       const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
-      const sport  = parts.length >= 2 ? parts[0] : null;
+      let sport    = parts.length >= 2 ? parts[0] : null;
       // Rule 73 (CLAIM-CONTEXT-A): null-sport keys skip when a sport-tagged
       // sibling already exists — the cron-tagged brief is authoritative.
       if (!sport) {
@@ -4451,12 +4451,13 @@ async function sweepKVBriefs(env) {
           let gameCtx = null;
           if (gameId) {
             const gameRow = await env.ARCHIVE_DB.prepare(
-              `SELECT home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+              `SELECT sport, home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
             ).bind(gameId).first().catch(() => null) ||
             await env.ARCHIVE_DB.prepare(
-              `SELECT home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
+              `SELECT sport, home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
             ).bind(gameId).first().catch(() => null);
             if (gameRow) gameCtx = { home: gameRow.home, away: gameRow.away, homeScore: gameRow.home_score, awayScore: gameRow.away_score };
+            if (gameRow && gameRow.sport) sport = gameRow.sport; // archive is authoritative; KV-key segment is not
           }
           qualityScore = await jqScoreProse(briefText, { sport, game: gameCtx });
         } catch (_) {}
