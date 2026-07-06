@@ -10758,13 +10758,13 @@ export default {
                     const [regGames, postGames] = await Promise.all([
                         env.ARCHIVE_DB.prepare(`
                             SELECT id, sport, home, away, home_score, away_score,
-                                   closing_odds, NULL AS importance
+                                   closing_odds, went_to_ot, NULL AS importance
                             FROM regular_season_games
                             WHERE date = ? AND home_score IS NOT NULL
                         `).bind(yesterday).all(),
                         env.ARCHIVE_DB.prepare(`
                             SELECT id, sport, home, away, home_score, away_score,
-                                   closing_odds, importance
+                                   closing_odds, went_to_ot, importance
                             FROM postseason_games
                             WHERE date = ? AND home_score IS NOT NULL
                         `).bind(yesterday).all(),
@@ -10803,7 +10803,7 @@ export default {
                             sport: g.sport,
                             home: g.home, away: g.away,
                             homeScore: g.home_score, awayScore: g.away_score,
-                            wentToOT: false, // not stored in D1
+                            wentToOT: !!g.went_to_ot,
                             wasUpset, isSeriesClinch, isElimination, margin,
                         };
                     });
