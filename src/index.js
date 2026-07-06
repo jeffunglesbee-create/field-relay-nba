@@ -5968,14 +5968,12 @@ async function handleJournalismCycle(env, opts = {}) {
       const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       for (const gm of gameMeta) {
         if (!gm.isFinal || !gm.eventId) continue;
-        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
-        if (!shortId) continue;
         const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
            UNION ALL
-           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
            LIMIT 1`
-        ).bind(shortId, shortId).first().catch(() => null);
+        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
         if (existing && existing.home_score !== null) continue;
         await fetch(relayBase + '/archive/game', {
           method: 'POST',
@@ -6011,14 +6009,12 @@ async function handleJournalismCycle(env, opts = {}) {
       const seedRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       for (const gm of gameMeta) {
         if (!gm.eventId) continue;
-        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
-        if (!shortId) continue;
         const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
            UNION ALL
-           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
            LIMIT 1`
-        ).bind(shortId, shortId).first().catch(() => null);
+        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
         if (existing) continue;
         await fetch(seedRelayBase + '/archive/game', {
           method: 'POST',
@@ -6080,14 +6076,12 @@ async function handleJournalismCycle(env, opts = {}) {
       let _ydayFilled = 0;
       for (const gm of yesterdayFinals) {
         if (!gm.eventId) continue;
-        const shortId = gm.eventId.replace(/[^a-z0-9]/gi, '');
-        if (!shortId) continue;
         const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE id LIKE '%' || ? || '%'
+          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
            UNION ALL
-           SELECT home_score FROM postseason_games WHERE id LIKE '%' || ? || '%'
+           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
            LIMIT 1`
-        ).bind(shortId, shortId).first().catch(() => null);
+        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
         if (existing && existing.home_score !== null) continue;
         await fetch(ydayRelayBase + '/archive/game', {
           method: 'POST',
@@ -13225,7 +13219,7 @@ export default {
                      word_count = excluded.word_count,
                      source = excluded.source`
                 ).bind(
-                  `game_recap_${job.sport}_${job.eventId}`,
+                  `game_recap_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
                   briefDate,
                   job.sport || null,
                   String(job.eventId),
