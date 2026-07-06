@@ -566,7 +566,9 @@ async function runPhase9FieldPick(env, today) {
     for (const [eid, arc] of archiveByEventId) {
         seen.add(eid);
         const live = liveByEventId.get(eid);
-        candidates.push({ ...arc, start: live?.start || null });
+        // Enrich with live start time; also pull round from live if not in archive
+        // (regular_season_games has no round column; postseason_games does).
+        candidates.push({ ...arc, start: live?.start || null, round: arc.round || live?.round || null });
     }
     for (const [eid, live] of liveByEventId) {
         if (!seen.has(eid)) candidates.push(live);
