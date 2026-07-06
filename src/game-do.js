@@ -403,6 +403,17 @@ export class GameDO {
                     // archive row lands complete on first write (June 19 2026).
                     // crew, streams, series_key, importance, game_number remain
                     // out of scope — manual seed / executeBackfill handle those.
+                    const REGULATION_PERIODS = { nba: 4, wnba: 4, nhl: 3, mlb: 9 };
+                    const SOCCER_SPORTS = new Set(['epl', 'mls', 'ucl', 'wc26']);
+                    let wentToOT = null; // null = unknown/not-applicable, not false
+                    if (facts.period != null) {
+                        if (SOCCER_SPORTS.has(this.sport)) {
+                            wentToOT = facts.period >= 3;
+                        } else if (REGULATION_PERIODS[this.sport]) {
+                            wentToOT = facts.period > REGULATION_PERIODS[this.sport];
+                        }
+                        // afl and any unlisted sport: wentToOT stays null, not guessed.
+                    }
                     const payload = {
                         sport:      this.sport,
                         date,
@@ -414,6 +425,7 @@ export class GameDO {
                         venue:      facts.venue,
                         league:     facts.league,
                         round:      facts.round,
+                        went_to_ot: wentToOT,
                     };
                     fetch(relayBase + '/archive/game', {
                         method: 'POST',

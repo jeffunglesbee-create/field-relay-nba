@@ -8524,7 +8524,7 @@ export default {
                 const {
                     sport, league, date, home, away, home_score, away_score,
                     venue, streams, note, crew, series_key, series_record,
-                    game_number, round, importance, source_id, start_time,
+                    game_number, round, importance, source_id, start_time, went_to_ot,
                 } = body || {};
                 if (!sport || !date) {
                     return new Response(JSON.stringify({ ok: false, error: 'missing required fields (sport, date)' }),
@@ -8545,8 +8545,8 @@ export default {
                             `INSERT INTO postseason_games
                                (id, sport, series_key, round, game_number, date, home, away,
                                 home_score, away_score, venue, streams, note, series_record,
-                                importance, league, crew, espn_event_id)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                importance, league, crew, espn_event_id, went_to_ot)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON CONFLICT(id) DO UPDATE SET
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
@@ -8556,7 +8556,8 @@ export default {
                                streams       = COALESCE(excluded.streams, streams),
                                crew          = COALESCE(excluded.crew, crew),
                                importance    = COALESCE(excluded.importance, importance),
-                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id)`
+                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
+                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot)`
                         ).bind(
                             id, sport, series_key,
                             round || null, game_number ?? null, date,
@@ -8565,14 +8566,15 @@ export default {
                             venue || null, streams || null,
                             note || null, series_record || null,
                             importance || null, league || null, crew || null,
-                            source_id ? String(source_id) : null
+                            source_id ? String(source_id) : null,
+                            went_to_ot ?? null
                         ).run();
                     } else {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO regular_season_games
                                (id, sport, league, date, home, away,
-                                home_score, away_score, venue, streams, note, crew, espn_event_id)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                home_score, away_score, venue, streams, note, crew, espn_event_id, went_to_ot)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                              ON CONFLICT(id) DO UPDATE SET
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
@@ -8580,14 +8582,16 @@ export default {
                                venue         = COALESCE(excluded.venue, venue),
                                streams       = COALESCE(excluded.streams, streams),
                                crew          = COALESCE(excluded.crew, crew),
-                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id)`
+                               espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
+                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot)`
                         ).bind(
                             id, sport, league || null, date,
                             home || null, away || null,
                             home_score ?? null, away_score ?? null,
                             venue || null, streams || null,
                             note || null, crew || null,
-                            source_id ? String(source_id) : null
+                            source_id ? String(source_id) : null,
+                            went_to_ot ?? null
                         ).run();
                     }
                 } catch (e) {
