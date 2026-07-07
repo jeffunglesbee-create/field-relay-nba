@@ -12965,6 +12965,8 @@ export default {
                         '/v2/golf/competitor-stats',
                         '/v2/golf/eventlog',
                         '/v2/golf/enriched',
+                        // Drama-score CPU cost test route (2026-07-07, test-only)
+                        '/test/drama-score-cost',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
