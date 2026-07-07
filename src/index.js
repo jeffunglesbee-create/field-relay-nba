@@ -10819,11 +10819,61 @@ export default {
         // Not linked from any production path. Not called by any client code.
         // MUST be removed or gated before any relay-side drama-score migration ships.
         // Measures per-call wall-clock cost via performance.now() around computation only.
+        // ?synthetic=1: skips live game fetch; runs fixed synthetic cases 1000×each instead.
         // See outbox/cc-drama-score-cost-measurement-2026-07-07.md for full context.
         if (pathname === '/test/drama-score-cost' && request.method === 'GET') {
+            const synthetic = url.searchParams.get('synthetic') === '1';
+            if (synthetic) {
+                // Synthetic benchmark mode — immune to time-of-day, exercises every sport branch.
+                // One case per major code path in dramaScoreLive(). 1000 iterations each to
+                // amortize JIT warm-up noise and get a stable, meaningful number.
+                const SYNTHETIC_CASES = [
+                    { sport: 'mlb',    eData: { state:'live', homeScore:4, awayScore:4, period:11, clock:'0', onFirst:true, onSecond:true, onThird:true, outs:2, balls:3, strikes:2 } },
+                    { sport: 'nba',    eData: { state:'live', homeScore:98, awayScore:96, period:5, clock:'1:30', situation:{ homeFoulsBonus:true, shotClock:'6' } } },
+                    { sport: 'nhl',    eData: { state:'live', homeScore:2, awayScore:2, period:3, clock:'1:00', situation:{ homeGoaliePulled:true } } },
+                    { sport: 'nfl',    eData: { state:'live', homeScore:21, awayScore:17, period:4, clock:'1:45', situation:{ isRedZone:true, downDistanceText:'4th and goal, 2-minute warning' } } },
+                    { sport: 'soccer', eData: { state:'live', homeScore:1, awayScore:1, period:2, clock:'90+3', _wcAdvProb:{ homeAdvance:0.15, awayAdvance:0.60 }, _wcOpeningAdvProb:{ homeAdvance:0.50, awayAdvance:0.55 } } },
+                    { sport: 'afl',    eData: { state:'live', homeScore:88, awayScore:85, period:4, clock:'3:00' } },
+                    { sport: 'cfl',    eData: { state:'live', homeScore:24, awayScore:22, period:4, clock:'1:20' } },
+                    { sport: 'wnba',   eData: { state:'live', homeScore:80, awayScore:78, period:4, clock:'0:45' } },
+                    { sport: 'tennis', eData: { state:'live', homeScore:6, awayScore:5, period:3 } },
+                ];
+                const ITERATIONS = 1000;
+                const perCase = SYNTHETIC_CASES.map(({ sport, eData }) => {
+                    const timings = [];
+                    for (let i = 0; i < ITERATIONS; i++) {
+                        const t0 = performance.now();
+                        dramaScoreLiveTest(eData, sport);
+                        timings.push(performance.now() - t0);
+                    }
+                    const sorted = [...timings].sort((a, b) => a - b);
+                    return {
+                        sport,
+                        min: sorted[0],
+                        max: sorted[sorted.length - 1],
+                        avg: timings.reduce((s, t) => s + t, 0) / ITERATIONS,
+                        p50: sorted[Math.floor(ITERATIONS / 2)],
+                    };
+                });
+                // Overall: aggregate across all cases' per-case stats.
+                const overallAvg = perCase.reduce((s, c) => s + c.avg, 0) / perCase.length;
+                const overallMin = Math.min(...perCase.map(c => c.min));
+                const overallMax = Math.max(...perCase.map(c => c.max));
+                const allP50s = [...perCase.map(c => c.p50)].sort((a, b) => a - b);
+                const overallP50 = allP50s[Math.floor(allP50s.length / 2)];
+                return new Response(JSON.stringify({
+                    mode: 'synthetic',
+                    casesRun: SYNTHETIC_CASES.length,
+                    iterationsPerCase: ITERATIONS,
+                    perCase,
+                    overall: { min: overallMin, max: overallMax, avg: overallAvg, p50: overallP50 },
+                    omittedBonuses: ['weather', 'soccer-upset-factor'],
+                    note: 'TEST-ONLY: remove or gate before any production drama-score migration',
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            // Live mode (default): fan out handleV2Games for all sports, collect live games.
             const today = new Date().toISOString().slice(0, 10);
             const sports = Object.keys(V2_LEAGUES);
-            // Fan out handleV2Games for all sports in parallel, collect live games.
             // Promise.allSettled: a failed sport fetch doesn't abort the whole response.
             const fanOut = await Promise.allSettled(
                 sports.map(async sport => {
@@ -10854,6 +10904,7 @@ export default {
                 p50 = sorted[Math.floor(gameCount / 2)];
             }
             return new Response(JSON.stringify({
+                mode: 'live',
                 gameCount,
                 timings,
                 min,
