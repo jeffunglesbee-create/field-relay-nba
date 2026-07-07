@@ -54,7 +54,7 @@ jobs:
           VIOLATION_FOUND=0
           for f in $RECENT_OUTBOX; do
             [ -f "$f" ] || continue
-            SCORE=$(grep -oE '(Score:|=)\s*[0-9]+/100' "$f" | grep -oE '[0-9]+' | head -1)
+            SCORE=$(sed -n '/^## Confidence Score/,$p' "$f" | grep -oE '[0-9]+/100' | grep -oE '^[0-9]+' | tail -1)
             [ -z "$SCORE" ] && continue
             if [ "$SCORE" -lt 95 ]; then
               # Real violation only if src/ was actually touched in the
