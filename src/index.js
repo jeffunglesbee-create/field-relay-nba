@@ -10838,33 +10838,38 @@ export default {
                     { sport: 'wnba',   eData: { state:'live', homeScore:80, awayScore:78, period:4, clock:'0:45' } },
                     { sport: 'tennis', eData: { state:'live', homeScore:6, awayScore:5, period:3 } },
                 ];
-                // Workers performance.now() is coarsened for security; 1k-iteration batches
-                // complete below the timer floor (~1ms). Use 10k warmup + two 100k batches
-                // to accumulate enough wall-clock time to get a non-zero reading.
-                // per-call avg = batchMs / ITERATIONS.
+                // Workers performance.now() is coarsened for security and may not advance
+                // during synchronous loops. Two mitigations applied:
+                //   1. sink accumulator: return value of each call is added to sink and
+                //      included in the response — prevents V8 TurboFan dead-code elimination.
+                //   2. 100k iterations per batch: accumulates enough CPU time to exceed
+                //      coarse timer resolution.
+                // If timings remain 0, the Workers frozen-clock constraint is confirmed
+                // (timer only advances at async boundaries, not during sync CPU work).
                 const WARMUP = 10000;
                 const ITERATIONS = 100000;
                 const perCase = SYNTHETIC_CASES.map(({ sport, eData }) => {
-                    // Warm-up: let JIT settle before measuring.
-                    for (let i = 0; i < WARMUP; i++) dramaScoreLiveTest(eData, sport);
-                    // Batch A
+                    // Warm-up with sink so JIT sees the function used before timing starts.
+                    let sink = 0;
+                    for (let i = 0; i < WARMUP; i++) sink += dramaScoreLiveTest(eData, sport);
+                    // Batch A — accumulate into sink to prevent DCE of the inner calls.
                     const tA0 = performance.now();
-                    for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
+                    for (let i = 0; i < ITERATIONS; i++) sink += dramaScoreLiveTest(eData, sport);
                     const batchA = performance.now() - tA0;
-                    // Batch B (independent measurement)
+                    // Batch B — second independent batch.
                     const tB0 = performance.now();
-                    for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
+                    for (let i = 0; i < ITERATIONS; i++) sink += dramaScoreLiveTest(eData, sport);
                     const batchB = performance.now() - tB0;
                     const avgPerCallMs = (batchA + batchB) / (ITERATIONS * 2);
                     return {
                         sport,
                         batchAms: batchA,
                         batchBms: batchB,
-                        // avg per call in ms; min/max/p50 not resolvable below timer floor
                         avg: avgPerCallMs,
                         min: Math.min(batchA, batchB) / ITERATIONS,
                         max: Math.max(batchA, batchB) / ITERATIONS,
                         p50: avgPerCallMs,
+                        _sink: sink, // included to prevent DCE; ignore this field
                     };
                 });
                 // Overall: aggregate across all cases.
