@@ -136,6 +136,8 @@ async function fetchSportOddsLive(env, sportKey) {
 export async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
     if (!sport || !predictedWinner) return null;
     const s = String(sport).toLowerCase().trim();
+    // Relay game IDs use "espn:XXXXXXX" prefix; ESPN's API needs the numeric part only.
+    const espnId = gameId ? String(gameId).replace(/^espn:/, '') : gameId;
     try {
         // ── ESPN native winprobability[] — NBA, WNBA, MLB ──────────────────
         if (s === 'nba' || s === 'wnba' || s === 'mlb') {
@@ -143,7 +145,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                            : s === 'wnba' ? 'basketball/wnba'
                            :                'basketball/nba';
             const r = await fetch(
-                `${ESPN_SUMMARY_BASE}/sports/${espnPath}/summary?event=${gameId}`,
+                `${ESPN_SUMMARY_BASE}/sports/${espnPath}/summary?event=${espnId}`,
                 { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
             );
             if (r.ok) {
@@ -189,9 +191,9 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
 
         // ── Soccer: ESPN WC summary winprobability[] ────────────────────────
         if (s === 'soccer') {
-            if (!gameId) return null;
+            if (!espnId) return null;
             const r = await fetch(
-                `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${gameId}`,
+                `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${espnId}`,
                 { signal: AbortSignal.timeout(5000) }
             );
             if (r.ok) {
