@@ -106,6 +106,8 @@ import {
 // coexist. See src/analytics-engine.js.
 import { analyticsEngine } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
+// TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
+import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
 
 // ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
 // Single hardcoded repo target for all L5 tools and /repo/archive. The relay
@@ -10811,6 +10813,56 @@ export default {
             }
             return new Response(payload,
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+        }
+
+        // GET /test/drama-score-cost — TEST-ONLY CPU cost measurement for dramaScoreLive().
+        // Not linked from any production path. Not called by any client code.
+        // MUST be removed or gated before any relay-side drama-score migration ships.
+        // Measures per-call wall-clock cost via performance.now() around computation only.
+        // See outbox/cc-drama-score-cost-measurement-2026-07-07.md for full context.
+        if (pathname === '/test/drama-score-cost' && request.method === 'GET') {
+            const today = new Date().toISOString().slice(0, 10);
+            const sports = Object.keys(V2_LEAGUES);
+            // Fan out handleV2Games for all sports in parallel, collect live games.
+            // Promise.allSettled: a failed sport fetch doesn't abort the whole response.
+            const fanOut = await Promise.allSettled(
+                sports.map(async sport => {
+                    const testUrl = new URL(`https://dummy/v2/games?sport=${encodeURIComponent(sport)}&date=${today}`);
+                    const resp = await handleV2Games(testUrl, env, ctx);
+                    const json = await resp.json().catch(() => ({ games: [] }));
+                    const liveGames = (json.games || []).filter(g => g.state === 'live');
+                    return liveGames.map(g => ({ ...g, _sportKey: sport }));
+                })
+            );
+            const liveGames = fanOut
+                .filter(r => r.status === 'fulfilled')
+                .flatMap(r => r.value);
+            // Time dramaScoreLive() for each live game — data fetch already done above,
+            // performance.now() wraps computation only.
+            const timings = liveGames.map(g => {
+                const t0 = performance.now();
+                dramaScoreLiveTest(g, g.sport || g._sportKey);
+                return performance.now() - t0;
+            });
+            const gameCount = timings.length;
+            let min = null, max = null, avg = null, p50 = null;
+            if (gameCount > 0) {
+                const sorted = [...timings].sort((a, b) => a - b);
+                min = sorted[0];
+                max = sorted[sorted.length - 1];
+                avg = timings.reduce((s, t) => s + t, 0) / gameCount;
+                p50 = sorted[Math.floor(gameCount / 2)];
+            }
+            return new Response(JSON.stringify({
+                gameCount,
+                timings,
+                min,
+                max,
+                avg,
+                p50,
+                omittedBonuses: ['weather', 'soccer-upset-factor'],
+                note: 'TEST-ONLY: remove or gate before any production drama-score migration',
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
