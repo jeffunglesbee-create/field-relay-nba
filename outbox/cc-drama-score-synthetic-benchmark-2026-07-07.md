@@ -122,7 +122,17 @@ the prior estimated range (0.001–0.010ms/call) remains the best available numb
 *User directed: "run local node.js." Executed via `process.hrtime.bigint()` (nanosecond
 precision, same V8 engine as Cloudflare Workers, no frozen-clock restriction). Script:
 `bench.mjs` using `src/drama-score-test.js` directly. 10k warmup + 100k measured iterations
-per sport case.*
+per sport case. Same-day correction (see below) adds a JIT warm-up caveat not present in
+the original write-up.*
+
+**JIT warm-up caveat (same-day correction, 2026-07-07):** The benchmark's 10k-warmup +
+100k-iteration design lets V8 TurboFan fully JIT-optimize the hot path in a long-running
+Node.js process. A real Cloudflare Workers isolate serving a single request receives no
+equivalent warm-up guarantee — a cold or lightly-used isolate could run measurably slower
+than this steady-state figure. This doesn't change the conclusion: even at 5× the measured
+582ns (~2,900ns per call), the monthly cost would be ~125ms/month — still 0.00042% of the
+30M CPU-ms budget, negligible by any measure. The caveat is named here rather than left
+implicit.
 
 ### Raw results (nanoseconds)
 
@@ -158,7 +168,7 @@ Using overall avg 582ns = 0.000582ms per call:
 | Budget fraction | 25.1 / 30,000,000 | **0.000084%** |
 | vs baseline cpuTimeP50 (984μs) | 0.582μs / 984μs | adds **0.059%** of median CPU per game call |
 
-Prior estimate (0.001ms/call) gave 432ms/month at 10× headroom. Actual measurement
+Prior estimate (0.01ms/call — the upper end of the original 0.001–0.01ms range) gave 432ms/month. Actual measurement
 gives 25.1ms/month — **17× cheaper** than the conservative estimate, and **0.000084%**
 of the included Workers Paid budget.
 
