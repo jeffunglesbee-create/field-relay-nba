@@ -8236,9 +8236,13 @@ export default {
                 }
 
                 try {
-                    await env.ARCHIVE_DB.prepare(
-                        `UPDATE ${table} SET drama_peak = ?, drama_arc = ? WHERE id = ?`
+                    const result = await env.ARCHIVE_DB.prepare(
+                        `UPDATE ${table} SET drama_peak = ?, drama_arc = ? WHERE id = ? AND drama_peak IS NULL`
                     ).bind(drama_peak, drama_arc, row.id).run();
+                    if ((result.meta?.changes ?? 0) === 0) {
+                        return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already_scored', id: row.id, table }),
+                            { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                    }
                 } catch (e) {
                     return new Response(JSON.stringify({ ok: false, error: e.message, id: row.id }),
                         { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -8274,12 +8278,22 @@ export default {
                 }
                 try {
                     let result = await env.ARCHIVE_DB.prepare(
-                        'UPDATE regular_season_games SET drama_peak = ?, drama_arc = ? WHERE id = ?'
+                        'UPDATE regular_season_games SET drama_peak = ?, drama_arc = ? WHERE id = ? AND drama_peak IS NULL'
                     ).bind(drama_peak, drama_arc, id).run();
                     if (!result.success || result.meta?.changes === 0) {
                         result = await env.ARCHIVE_DB.prepare(
-                            'UPDATE postseason_games SET drama_peak = ?, drama_arc = ? WHERE id = ?'
+                            'UPDATE postseason_games SET drama_peak = ?, drama_arc = ? WHERE id = ? AND drama_peak IS NULL'
                         ).bind(drama_peak, drama_arc, id).run();
+                    }
+                    if ((result.meta?.changes ?? 0) === 0) {
+                        const alreadyScored = await env.ARCHIVE_DB.prepare(
+                            `SELECT id FROM regular_season_games WHERE id = ? AND drama_peak IS NOT NULL
+                             UNION ALL SELECT id FROM postseason_games WHERE id = ? AND drama_peak IS NOT NULL LIMIT 1`
+                        ).bind(id, id).first().catch(() => null);
+                        if (alreadyScored) {
+                            return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already_scored', id }),
+                                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+                        }
                     }
                     return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0 }),
                         { headers: { ...CORS, 'Content-Type': 'application/json' } });
