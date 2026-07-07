@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 25  # git log -20 in confidence-gate step requires ≥20 commits
 
       - name: Live-check endpoints
         run: |
@@ -41,6 +43,35 @@ jobs:
             curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/preview/not-a-date"
           } > "$OUT"
           cat "$OUT"
+
+      - name: Check for confidence-gate violations
+        run: |
+          # Find outbox files modified in the last 20 commits (a pragmatic
+          # window covering "this same work session" without needing exact
+          # correlation to this specific deploy, since outbox commits often
+          # land a few minutes after the code commit that triggered deploy).
+          RECENT_OUTBOX=$(git log -20 --name-only --pretty=format: -- 'outbox/cc-*.md' | grep -v '^$' | sort -u)
+          VIOLATION_FOUND=0
+          for f in $RECENT_OUTBOX; do
+            [ -f "$f" ] || continue
+            SCORE=$(grep -oE '(Score:|=)\s*[0-9]+/100' "$f" | grep -oE '[0-9]+' | head -1)
+            [ -z "$SCORE" ] && continue
+            if [ "$SCORE" -lt 95 ]; then
+              # Real violation only if src/ was actually touched in the
+              # same recent window -- a sub-95 outbox with no code change
+              # (i.e. it correctly stopped) is not a violation.
+              SRC_TOUCHED=$(git log -20 --name-only --pretty=format: -- 'src/*.js' | grep -v '^$' | wc -l)
+              if [ "$SRC_TOUCHED" -gt 0 ]; then
+                echo "CONFIDENCE-GATE VIOLATION: $f reports $SCORE/100 (below 95) alongside real src/ changes in recent history."
+                VIOLATION_FOUND=1
+              fi
+            fi
+          done
+          if [ "$VIOLATION_FOUND" -eq 1 ]; then
+            echo "See output above for details." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "No confidence-gate violations detected in recent outbox history."
 
       - name: Commit results
         run: |
