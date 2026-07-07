@@ -10838,20 +10838,20 @@ export default {
                     { sport: 'wnba',   eData: { state:'live', homeScore:80, awayScore:78, period:4, clock:'0:45' } },
                     { sport: 'tennis', eData: { state:'live', homeScore:6, awayScore:5, period:3 } },
                 ];
-                // performance.now() on Cloudflare Workers has coarse resolution (~1ms);
-                // per-call timing rounds to 0 for μs-scale functions. Time entire batches
-                // instead and derive per-call avg by dividing total by iteration count.
-                // Three tiers: warm-up (discarded), batch-A, batch-B — avg of A+B is reported.
-                const WARMUP = 200;
-                const ITERATIONS = 1000;
+                // Workers performance.now() is coarsened for security; 1k-iteration batches
+                // complete below the timer floor (~1ms). Use 10k warmup + two 100k batches
+                // to accumulate enough wall-clock time to get a non-zero reading.
+                // per-call avg = batchMs / ITERATIONS.
+                const WARMUP = 10000;
+                const ITERATIONS = 100000;
                 const perCase = SYNTHETIC_CASES.map(({ sport, eData }) => {
-                    // Discard warm-up iterations so JIT is settled before measurement.
+                    // Warm-up: let JIT settle before measuring.
                     for (let i = 0; i < WARMUP; i++) dramaScoreLiveTest(eData, sport);
                     // Batch A
                     const tA0 = performance.now();
                     for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
                     const batchA = performance.now() - tA0;
-                    // Batch B (second independent measurement for stability check)
+                    // Batch B (independent measurement)
                     const tB0 = performance.now();
                     for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
                     const batchB = performance.now() - tB0;
@@ -10877,6 +10877,8 @@ export default {
                     mode: 'synthetic',
                     casesRun: SYNTHETIC_CASES.length,
                     iterationsPerCase: ITERATIONS,
+                    warmupIterations: WARMUP,
+                    timerNote: 'Workers performance.now() coarsened; batches of 100k iterations used to clear timer floor',
                     perCase,
                     overall: { min: overallMin, max: overallMax, avg: overallAvg, p50: overallP50 },
                     omittedBonuses: ['weather', 'soccer-upset-factor'],
