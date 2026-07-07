@@ -49,6 +49,8 @@
 //   pickLedger: PERMANENT — append-only, never purged
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { resolveWinProbability } from './wp-resolver.js';
+
 const WATCH_HISTORY_TTL_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MISSED_PEAK_TTL_MS    = 7  * 24 * 60 * 60 * 1000; // 7 days
 const MAX_WATCH_HISTORY     = 200;
@@ -227,15 +229,41 @@ export class UserDO {
         return new Response(JSON.stringify({ ok: false, error: 'pick not found or already resolved' }),
           { status: 404, headers: _cors() });
       }
-      pick.resolved = true;
-      pick.wasCorrect = !!wasCorrect;
-      pick.revealedProbability = revealedProbability ?? null;
-      pick.probabilitySource = probabilitySource || null;
+      let finalProbability = revealedProbability ?? null;
+      let finalSource      = probabilitySource || null;
+      let finalLabel       = null;
+      if (finalProbability == null && pick.sport && pick.predictedWinner) {
+        try {
+          const wp = await resolveWinProbability(
+            pick.sport,
+            { gameId: pick.gameId, predictedWinner: pick.predictedWinner },
+            this.env
+          );
+          if (wp) {
+            finalProbability = wp.probability;
+            finalSource      = wp.source;
+            finalLabel       = wp.label;
+          } else {
+            await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null');
+          }
+        } catch (_e) {
+          try { await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, _e?.message || 'threw'); } catch (_) {}
+        }
+      }
+      pick.resolved            = true;
+      pick.wasCorrect          = !!wasCorrect;
+      pick.revealedProbability = finalProbability;
+      pick.probabilitySource   = finalSource;
       if (wasCorrect) pl.totalCorrect++;
       await this.state.storage.put('pickLedger', pl);
       await this._touchMeta(now);
-      return new Response(JSON.stringify({ ok: true, totalCorrect: pl.totalCorrect }),
-        { headers: _cors() });
+      const resp = { ok: true, totalCorrect: pl.totalCorrect };
+      if (finalProbability != null) {
+        resp.resolvedProbability = finalProbability;
+        resp.probabilitySource   = finalSource;
+        resp.probabilityLabel    = finalLabel;
+      }
+      return new Response(JSON.stringify(resp), { headers: _cors() });
     }
 
     return new Response(JSON.stringify({ ok: false, error: `unknown event type: ${type}` }),
@@ -249,6 +277,28 @@ export class UserDO {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+async function _recordWpResolutionFailure(env, sport, gameId, reason) {
+    if (!env.ARCHIVE_DB) return;
+    try {
+        const existing = await env.ARCHIVE_DB.prepare(
+            `SELECT content FROM codex WHERE key = 'wp-resolution-failures'`
+        ).first();
+        const prior = existing ? JSON.parse(existing.content || '{}') : { count: 0, recent: [] };
+        const count = (prior.count || 0) + 1;
+        const recent = [{ sport, gameId, reason, at: new Date().toISOString() }, ...(prior.recent || [])].slice(0, 10);
+        await env.ARCHIVE_DB.prepare(`
+            INSERT INTO codex (key, category, title, content, status, updated_at)
+            VALUES ('wp-resolution-failures', 'incident', ?, ?, 'open', datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET
+                title=excluded.title, content=excluded.content,
+                status='open', updated_at=datetime('now')
+        `).bind(
+            `WP resolution failed ${count}x (most recent: ${sport} ${gameId})`,
+            JSON.stringify({ count, recent })
+        ).run();
+    } catch (_) { /* best-effort tracking, must never break pick resolution itself */ }
+}
 
 async function _sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256',
