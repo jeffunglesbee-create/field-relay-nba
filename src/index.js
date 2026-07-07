@@ -10838,24 +10838,36 @@ export default {
                     { sport: 'wnba',   eData: { state:'live', homeScore:80, awayScore:78, period:4, clock:'0:45' } },
                     { sport: 'tennis', eData: { state:'live', homeScore:6, awayScore:5, period:3 } },
                 ];
+                // performance.now() on Cloudflare Workers has coarse resolution (~1ms);
+                // per-call timing rounds to 0 for μs-scale functions. Time entire batches
+                // instead and derive per-call avg by dividing total by iteration count.
+                // Three tiers: warm-up (discarded), batch-A, batch-B — avg of A+B is reported.
+                const WARMUP = 200;
                 const ITERATIONS = 1000;
                 const perCase = SYNTHETIC_CASES.map(({ sport, eData }) => {
-                    const timings = [];
-                    for (let i = 0; i < ITERATIONS; i++) {
-                        const t0 = performance.now();
-                        dramaScoreLiveTest(eData, sport);
-                        timings.push(performance.now() - t0);
-                    }
-                    const sorted = [...timings].sort((a, b) => a - b);
+                    // Discard warm-up iterations so JIT is settled before measurement.
+                    for (let i = 0; i < WARMUP; i++) dramaScoreLiveTest(eData, sport);
+                    // Batch A
+                    const tA0 = performance.now();
+                    for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
+                    const batchA = performance.now() - tA0;
+                    // Batch B (second independent measurement for stability check)
+                    const tB0 = performance.now();
+                    for (let i = 0; i < ITERATIONS; i++) dramaScoreLiveTest(eData, sport);
+                    const batchB = performance.now() - tB0;
+                    const avgPerCallMs = (batchA + batchB) / (ITERATIONS * 2);
                     return {
                         sport,
-                        min: sorted[0],
-                        max: sorted[sorted.length - 1],
-                        avg: timings.reduce((s, t) => s + t, 0) / ITERATIONS,
-                        p50: sorted[Math.floor(ITERATIONS / 2)],
+                        batchAms: batchA,
+                        batchBms: batchB,
+                        // avg per call in ms; min/max/p50 not resolvable below timer floor
+                        avg: avgPerCallMs,
+                        min: Math.min(batchA, batchB) / ITERATIONS,
+                        max: Math.max(batchA, batchB) / ITERATIONS,
+                        p50: avgPerCallMs,
                     };
                 });
-                // Overall: aggregate across all cases' per-case stats.
+                // Overall: aggregate across all cases.
                 const overallAvg = perCase.reduce((s, c) => s + c.avg, 0) / perCase.length;
                 const overallMin = Math.min(...perCase.map(c => c.min));
                 const overallMax = Math.max(...perCase.map(c => c.max));
