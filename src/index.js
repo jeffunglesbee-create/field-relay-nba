@@ -4772,6 +4772,31 @@ async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
   }
 }
 
+// Upsert a single stable codex incident row for WP resolution failures.
+// Uses one key across all occurrences (count + rolling recent list) so
+// open_incidents never floods with near-duplicate entries.
+async function _recordWpResolutionFailure(env, sport, gameId, reason) {
+    if (!env.ARCHIVE_DB) return;
+    try {
+        const existing = await env.ARCHIVE_DB.prepare(
+            `SELECT content FROM codex WHERE key = 'wp-resolution-failures'`
+        ).first();
+        const prior = existing ? JSON.parse(existing.content || '{}') : { count: 0, recent: [] };
+        const count = (prior.count || 0) + 1;
+        const recent = [{ sport, gameId, reason, at: new Date().toISOString() }, ...(prior.recent || [])].slice(0, 10);
+        await env.ARCHIVE_DB.prepare(`
+            INSERT INTO codex (key, category, title, content, status, updated_at)
+            VALUES ('wp-resolution-failures', 'incident', ?, ?, 'open', datetime('now'))
+            ON CONFLICT(key) DO UPDATE SET
+                title=excluded.title, content=excluded.content,
+                status='open', updated_at=datetime('now')
+        `).bind(
+            `WP resolution failed ${count}x (most recent: ${sport} ${gameId})`,
+            JSON.stringify({ count, recent })
+        ).run();
+    } catch (_) { /* best-effort tracking, must never break pick resolution itself */ }
+}
+
 // Per-cron snapshot. Discovers which sports have pending opening_odds rows
 // for today directly from the archive (decoupled from the cron's LEAGUES
 // list — archive sport vocabulary is uppercase short codes, not the
@@ -6877,8 +6902,12 @@ export default {
                             evtBody.revealedProbability = wp.probability;
                             evtBody.probabilitySource   = wp.source;
                             resolvedWP = wp;
+                        } else {
+                            await _recordWpResolutionFailure(env, evtBody.sport, evtBody.gameId, 'resolveWinProbability returned null');
                         }
-                    } catch (_) { /* non-fatal — DO still receives pick_resolved without WP */ }
+                    } catch (_e) {
+                        try { await _recordWpResolutionFailure(env, evtBody.sport, evtBody.gameId, _e?.message || 'threw'); } catch (_) {}
+                    }
                 }
                 const doResp = await stub.fetch(new Request(doUrl.toString(), {
                     method:  'POST',
