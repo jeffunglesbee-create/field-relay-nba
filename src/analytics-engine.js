@@ -580,17 +580,25 @@ async function runPhase9FieldPick(env, today) {
         return { aiCalls: 0, skipped: true };
     }
 
-    let best = null;
-    for (const g of candidates) {
-        const { score, reasons } = scoreCandidatePick(g);
-        if (!best || score > best.score) best = { game: g, score, reasons };
-    }
+    const scored = candidates
+        .map(g => ({ game: g, ...scoreCandidatePick(g) }))
+        .sort((a, b) => b.score - a.score);
+    const best = scored[0] || null;
+    const ranked = scored.slice(0, 5).map(s => ({
+        game_id: s.game.id || null,
+        sport:   s.game.sport || null,
+        home:    s.game.home?.name || s.game.home || null,
+        away:    s.game.away?.name || s.game.away || null,
+        score:   s.score,
+        reasons: s.reasons,
+    }));
 
     if (!best || best.score <= 3) {
         const pass = {
             type: 'pass',
             score: best?.score || 0,
             reason: best ? `top game scored ${best.score.toFixed(1)} — under the 3.0 watch-bar` : 'no candidates',
+            ranked,
         };
         const passLine = "Not every night has a must-watch. Tonight's one of those.";
         try {
@@ -624,6 +632,7 @@ async function runPhase9FieldPick(env, today) {
         away:    g.away?.name || g.away || null,
         score:   best.score,
         reasons: best.reasons,
+        ranked,
     };
     try {
         if (env.FIELD_JOURNALISM) {
