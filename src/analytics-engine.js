@@ -26,6 +26,23 @@ const KV_REPORT_TTL_SECS = 60 * 60 * 48;
 // Kept narrow to limit api-sports/ESPN spend per nightly run.
 const PHASE9_SPORTS = ['nba', 'nhl', 'mlb', 'wnba', 'wc26'];
 
+// Shared with src/index.js push-heartbeat gate (imported there).
+// minPeriod/maxMargin are per-sport factual gates over raw game state (late
+// phase, close margin) — two standalone booleans, never summed into a score.
+// WNBA reuses NBA's exact thresholds (same quarter structure).
+// WC26 reuses EPL's exact thresholds (same soccer half structure).
+// Path 'soccer/fifa.world' confirmed via html_probe 2026-07-04 and index.js line ~1984.
+export const SPORT_CONFIG = [
+    {sport:'NBA',  path:'basketball/nba',    minPeriod:3, maxMargin:10},
+    {sport:'NHL',  path:'hockey/nhl',        minPeriod:3, maxMargin:3 },
+    {sport:'MLB',  path:'baseball/mlb',      minPeriod:7, maxMargin:4 },
+    {sport:'NFL',  path:'football/nfl',      minPeriod:3, maxMargin:10},
+    {sport:'MLS',  path:'soccer/usa.1',      minPeriod:2, maxMargin:2 },
+    {sport:'EPL',  path:'soccer/eng.1',      minPeriod:2, maxMargin:2 },
+    {sport:'WNBA', path:'basketball/wnba',   minPeriod:3, maxMargin:10}, // reuses NBA's exact thresholds — same period structure
+    {sport:'WC26', path:'soccer/fifa.world', minPeriod:2, maxMargin:2 }, // reuses EPL's exact thresholds — same soccer structure
+];
+
 // Idempotent schema creation. Called at the top of every run so a fresh
 // ARCHIVE_DB is bootstrapped without a separate migration.
 export async function ensureAnalyticsTables(env) {
@@ -525,11 +542,11 @@ async function runPhase9FieldPick(env, today) {
     try {
         const [regRes, psRes] = await Promise.allSettled([
             env.ARCHIVE_DB.prepare(
-                `SELECT id, sport, home, away, note, closing_odds, opening_odds, streams, espn_event_id
+                `SELECT id, sport, home, away, note, went_to_ot, closing_odds, opening_odds, streams, espn_event_id
                  FROM regular_season_games WHERE date = ? AND sport IN (${ph})`
             ).bind(today, ...sportLabels).all(),
             env.ARCHIVE_DB.prepare(
-                `SELECT id, sport, home, away, note, round, closing_odds, opening_odds, streams, espn_event_id
+                `SELECT id, sport, home, away, note, round, went_to_ot, closing_odds, opening_odds, streams, espn_event_id
                  FROM postseason_games WHERE date = ? AND sport IN (${ph})`
             ).bind(today, ...sportLabels).all(),
         ]);
@@ -559,19 +576,26 @@ async function runPhase9FieldPick(env, today) {
         }
     }
 
-    // 3. Merge: archive rows (primary) enriched with live start time;
-    //    games not yet in archive use the live entry as fallback candidate.
+    // 3. Merge: archive rows (primary) enriched with live state for tier
+    //    computation; live-only fallback candidates for unseeded games.
+    //    Wrapped as { game, fromArchive, livePeriodNum, liveHomeScore, liveAwayScore }
+    //    so tier logic has access to both DB fields and live game state without
+    //    polluting the game object passed to scoreCandidatePick.
     const candidates = [];
     const seen = new Set();
     for (const [eid, arc] of archiveByEventId) {
         seen.add(eid);
         const live = liveByEventId.get(eid);
-        // Enrich with live start time; also pull round from live if not in archive
-        // (regular_season_games has no round column; postseason_games does).
-        candidates.push({ ...arc, start: live?.start || null, round: arc.round || live?.round || null });
+        candidates.push({
+            game:          { ...arc, start: live?.start || null, round: arc.round || live?.round || null },
+            fromArchive:   true,
+            livePeriodNum: live?.periodNum ?? null,
+            liveHomeScore: live?.home?.score ?? null,
+            liveAwayScore: live?.away?.score ?? null,
+        });
     }
     for (const [eid, live] of liveByEventId) {
-        if (!seen.has(eid)) candidates.push(live);
+        if (!seen.has(eid)) candidates.push({ game: live, fromArchive: false, livePeriodNum: null, liveHomeScore: null, liveAwayScore: null });
     }
 
     if (candidates.length === 0) {
@@ -580,9 +604,31 @@ async function runPhase9FieldPick(env, today) {
         return { aiCalls: 0, skipped: true };
     }
 
+    // 3-tier stakes ordering: Tier 0 (elimination/final round) > Tier 1 (OT or
+    // currently late+close) > Tier 2 (everything else). scoreCandidatePick score
+    // is the tiebreaker within a tier. Live-fallback candidates (fromArchive=false)
+    // lack DB fields (went_to_ot, round) and default to Tier 2.
+    const ARCHIVE_SPORT_TO_CFG_KEY = { 'FIFA World Cup 2026': 'WC26', 'FIFA World Cup': 'WC26' };
+    const sportCfgByKey = new Map(SPORT_CONFIG.map(c => [c.sport.toUpperCase(), c]));
+    function computeTier(c) {
+        if (!c.fromArchive) return 2;
+        const g = c.game;
+        const round = (g.round || '').toLowerCase();
+        const note  = (g.note  || '').toLowerCase();
+        if (round.includes('final') || round.includes('elim') || /\bg(?:ame)?\s*7\b/i.test(note)) return 0;
+        if (g.went_to_ot === 1 || g.went_to_ot === true) return 1;
+        const cfgKey = ARCHIVE_SPORT_TO_CFG_KEY[g.sport] || (g.sport || '').toUpperCase();
+        const cfg = sportCfgByKey.get(cfgKey);
+        if (cfg && c.livePeriodNum != null && c.liveHomeScore != null && c.liveAwayScore != null) {
+            const margin = Math.abs(c.liveHomeScore - c.liveAwayScore);
+            if (c.livePeriodNum >= cfg.minPeriod && margin <= cfg.maxMargin) return 1;
+        }
+        return 2;
+    }
+
     const scored = candidates
-        .map(g => ({ game: g, ...scoreCandidatePick(g) }))
-        .sort((a, b) => b.score - a.score);
+        .map(c => ({ game: c.game, tier: computeTier(c), ...scoreCandidatePick(c.game) }))
+        .sort((a, b) => a.tier - b.tier || b.score - a.score);
     const best = scored[0] || null;
     const ranked = scored.slice(0, 5).map(s => ({
         game_id: s.game.id || null,
@@ -590,6 +636,7 @@ async function runPhase9FieldPick(env, today) {
         home:    s.game.home?.name || s.game.home || null,
         away:    s.game.away?.name || s.game.away || null,
         score:   s.score,
+        tier:    s.tier,
         reasons: s.reasons,
     }));
 

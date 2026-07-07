@@ -104,7 +104,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -3929,18 +3929,10 @@ async function handleCron(env) {
     const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
     // ── Multi-sport ESPN polling ──────────────────────────────────
+    // SPORT_CONFIG imported from analytics-engine.js (shared constant).
     // minPeriod/maxMargin are per-dimension FACTUAL gates over raw game
     // state (late phase, close margin). They are separate logical gates,
     // never summed into a score. No dramaBase — no composite exists.
-    const SPORT_CONFIG = [
-        {sport:'NBA', path:'basketball/nba',  minPeriod:3, maxMargin:10},
-        {sport:'NHL', path:'hockey/nhl',      minPeriod:3, maxMargin:3 },
-        {sport:'MLB', path:'baseball/mlb',    minPeriod:7, maxMargin:4 },
-        {sport:'NFL', path:'football/nfl',    minPeriod:3, maxMargin:10},
-        {sport:'MLS', path:'soccer/usa.1',    minPeriod:2, maxMargin:2 },
-        {sport:'EPL', path:'soccer/eng.1',    minPeriod:2, maxMargin:2 },
-    ];
-
     const live = [];
     for (const cfg of SPORT_CONFIG) {
         try {
