@@ -182,3 +182,114 @@ providing the quota protection it's intended to provide — worth a focused
 follow-up CC-CMD with proper in-Worker instrumentation (`wrangler tail` or
 equivalent) rather than continuing to guess from outside via response
 headers and timing.**
+
+## TASK 4 Follow-Up — Root Cause Found via `wrangler tail` (2026-07-08, same day)
+
+User instruction: "Follow up on the wrangler tail." No local Cloudflare
+credentials were available in this session (`wrangler whoami` →
+unauthenticated; no `CLOUDFLARE_API_TOKEN` in env; network policy blocks
+`sparrow.cloudflare.com`, Cloudflare's own telemetry endpoint, ruling out
+an interactive login flow too). Per user direction ("check if Cloudflare
+credentials can be accessed by github"), used the repo's own pre-existing
+`secrets.CLOUDFLARE_API_TOKEN` / `secrets.CLOUDFLARE_ACCOUNT_ID` (already
+present in `.github/workflows/deploy.yml`, used there for the wrangler
+deploy step and a KV-bootstrap curl) via a new, temporary,
+`workflow_dispatch`-triggered workflow
+(`.github/workflows/cache-tail-diagnostic.yml`) that ran
+`wrangler tail field-relay-nba` in the background while firing three real
+requests to a fresh, never-before-used cache key
+(`/kali/predictions?year=2026&round=101`), 3-4s apart.
+
+**Captured tail output (real, in-Worker `console.log`, not inferred from
+outside):**
+
+```
+GET .../kali/predictions?year=2026&round=101 - Ok @ 8:48:07 PM
+  [cache-diag] relayFetch source=kali key=...round=101 match=MISS
+  [cache-diag] relayFetch source=kali key=...round=101 cache.put() RESOLVED
+GET .../kali/predictions?year=2026&round=101 - Ok @ 8:48:11 PM   (4s later)
+  [cache-diag] relayFetch source=kali key=...round=101 match=MISS
+  [cache-diag] relayFetch source=kali key=...round=101 cache.put() RESOLVED
+GET .../kali/predictions?year=2026&round=101 - Ok @ 8:48:15 PM   (4s later)
+  [cache-diag] relayFetch source=kali key=...round=101 match=MISS
+  [cache-diag] relayFetch source=kali key=...round=101 cache.put() RESOLVED
+```
+
+Every `cache.put()` resolves cleanly (no thrown error, ruling out a
+malformed-response or quota-limit bug). Every `cache.match()` on the
+identical key, seconds later, still reports MISS. This directly explains
+the earlier session's contradictory header/timing evidence: there was
+never a real cache hit to detect from outside — the fast/slow timing
+pattern really was coincidental network variance, exactly as that
+session's honest (if inconclusive) writeup suspected.
+
+**Root cause, verified against current Cloudflare documentation** (not
+assumed — searched live via `search_cloudflare_documentation`):
+`developers.cloudflare.com/workers/runtime-apis/cache/` states *"Workers
+deployed to custom domains have access to functional cache operations. So
+do Pages functions, whether attached to custom domains or `*.pages.dev`
+domains"* — `workers.dev` subdomains are conspicuously absent from that
+list. `wrangler.toml` for this repo has **no `[[routes]]` block and no
+custom domain configured** (confirmed via grep — zero matches for
+`route|workers_dev|custom_domain`), meaning this Worker is served
+exclusively at `field-relay-nba.jeffunglesbee.workers.dev`. On that
+deployment shape, `caches.default` silently no-ops: `put()` resolves
+without error, `match()` never returns a hit. This matches the captured
+tail output exactly and is a platform-level constraint, not a code defect
+in `relayFetch`/`relayFetchAwaited` — no change to `cache-helpers.js` can
+fix it. The only real fix is adding a custom domain route to
+`wrangler.toml`, which is an infrastructure change requiring explicit
+authorization per this repo's "What NOT to do" list
+(`wrangler.toml` bindings/routing not to be modified without approval)
+and the Infrastructure Change Protocol (Rule 39) — out of scope for this
+CC-CMD, not attempted here.
+
+**Practical impact:** `resolveWinProbability` and `buildAFLJournalismContext`
+remain fully correct (TASK 1-3 stands) — every call simply falls through
+to a real upstream Kali fetch on every request, identical to pre-CC-CMD
+behavior, just without the intended quota-protection caching layer
+actually engaging. No user-facing regression; the optimization this
+CC-CMD set out to enable does not currently function given this Worker's
+deployment shape.
+
+**Cleanup:** all temporary `console.log` diagnostics stripped from
+`src/cache-helpers.js` (`git diff 1b51e70 -- src/cache-helpers.js
+src/wp-resolver.js src/user-do.js src/index.js` returns empty — confirmed
+byte-for-byte identical to the pre-diagnostic TASK 1-3 state).
+`.github/workflows/cache-tail-diagnostic.yml` deleted (its one-time
+diagnostic purpose is served; not needed going forward).
+
+**Updated confidence: TASK 4 is now conclusively diagnosed** (root cause
+found and verified against live platform docs, not guessed) even though
+the caching optimization itself remains non-functional pending a
+follow-up infra decision. This session did not add a fix for the
+`workers.dev`/Cache API restriction — that requires a custom-domain
+decision outside this CC-CMD's authority — so no new commit changes
+runtime behavior here beyond removing dead diagnostic code and the
+temporary workflow.
+
+## Follow-Up Needed (new CC-CMD, out of scope here)
+
+To make `relayFetch`/`relayFetchAwaited`'s caching actually take effect,
+one of:
+1. Add a custom domain route for `field-relay-nba` in `wrangler.toml`
+   (requires a zone Jeff controls, DNS record, and explicit approval —
+   infra decision, not a code change).
+2. Switch to Cloudflare's newer "Workers Caching" (`cache: {enabled:
+   true}` in `wrangler.toml`, mentioned in current docs as the
+   recommended replacement for manual Cache API use) — also requires
+   custom domain per the same docs and its own wrangler.toml/exports
+   changes, so does not avoid the infra dependency.
+3. Accept that on `workers.dev`, this specific caching layer cannot
+   reduce Kali quota usage, and rely on the existing `ttl`/`Cache-Control`
+   response header alone (no Cloudflare-side enforcement without a zone).
+
+Not resolved in this session — flagged here per Rule 74 (STAGED requires
+explicit unblock criteria) rather than left as a silent gap.
+
+## Commits (this follow-up)
+
+- `f6367d0` — wrangler-tail diagnostic instrumentation added
+- `b0d3479` — temporary `cache-tail-diagnostic.yml` workflow added
+- (next commit) — diagnostics + temporary workflow stripped; this outbox
+  entry documents the confirmed root cause

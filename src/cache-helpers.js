@@ -30,22 +30,14 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4,
-    // wrangler-tail follow-up) -- console.log-based, read via a GitHub
-    // Actions workflow running `wrangler tail` with the repo's own
-    // CLOUDFLARE_API_TOKEN secret, since interactive wrangler login isn't
-    // available in this session. Removed once cache-hit is diagnosed.
-    console.log(`[cache-diag] relayFetch source=${source} key=${targetUrl} match=${response ? 'HIT' : 'MISS'}`);
     if (response) return response;
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true } });
     } catch (err) {
-        console.log(`[cache-diag] relayFetch source=${source} upstream fetch threw: ${err.message}`);
         return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network`, ...CORS } });
     }
     if (!upstream.ok) {
-        console.log(`[cache-diag] relayFetch source=${source} upstream not ok: ${upstream.status}`);
         return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
     }
     response = new Response(upstream.body, {
@@ -65,10 +57,7 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
                 : {}),
         }
     });
-    const _putPromise = cache.put(cacheKey, response.clone())
-        .then(() => console.log(`[cache-diag] relayFetch source=${source} key=${targetUrl} cache.put() RESOLVED`))
-        .catch(err => console.log(`[cache-diag] relayFetch source=${source} key=${targetUrl} cache.put() THREW: ${err.message}`));
-    ctx.waitUntil(_putPromise);
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
 }
 
@@ -95,18 +84,14 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    // TEMPORARY DIAGNOSTIC, see relayFetch's comment above
-    console.log(`[cache-diag] relayFetchAwaited source=${source} key=${targetUrl} match=${response ? 'HIT' : 'MISS'}`);
     if (response) return response;
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true }, signal: AbortSignal.timeout(timeoutMs) });
     } catch (err) {
-        console.log(`[cache-diag] relayFetchAwaited source=${source} upstream fetch threw: ${err.message}`);
         return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network`, ...CORS } });
     }
     if (!upstream.ok) {
-        console.log(`[cache-diag] relayFetchAwaited source=${source} upstream not ok: ${upstream.status}`);
         return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
     }
     response = new Response(upstream.body, {
@@ -125,11 +110,6 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
                 : {}),
         }
     });
-    try {
-        await cache.put(cacheKey, response.clone());
-        console.log(`[cache-diag] relayFetchAwaited source=${source} key=${targetUrl} cache.put() RESOLVED`);
-    } catch (err) {
-        console.log(`[cache-diag] relayFetchAwaited source=${source} key=${targetUrl} cache.put() THREW: ${err.message}`);
-    }
+    await cache.put(cacheKey, response.clone());
     return response;
 }
