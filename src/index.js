@@ -10168,6 +10168,33 @@ export default {
         // Free tier: 5,000 req/day, resets 00:00 UTC. CF edge cache keeps usage low.
         // Provides: predictions/factors, tips (30 models), player-stats, advanced stats,
         //           standings, leaderboards, head-to-head (team_a= team_b= slug params).
+        // TEMPORARY (CC-CMD-2026-07-08-afl-kali-kv-cache TASK 4) -- direct,
+        // observable verification of relayFetchKV's cache-hit behavior: the
+        // real function, the real cache key shape both production call
+        // sites use, a fresh round number so it never collides with real
+        // data. Removed once verified.
+        if (pathname === '/debug/kali-kv-verify') {
+            const kaliKey = env.KALI_AFL_TOKEN;
+            if (!kaliKey) return new Response('KALI_AFL_TOKEN not configured', { status: 500, headers: CORS });
+            const year  = url.searchParams.get('year')  || '2026';
+            const round = url.searchParams.get('round') || '999';
+            const targetUrl = `${KALI_BASE}/predictions?year=${year}&round=${round}`;
+            const r = await relayFetchKV(
+                targetUrl,
+                { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
+                3600, 'kali-debug-verify', env.KALI_CACHE
+            );
+            const rawKV = await env.KALI_CACHE.get(targetUrl);
+            return new Response(JSON.stringify({
+                targetUrl,
+                responseOk:         r.ok,
+                xFieldProxy:        r.headers.get('X-FIELD-Proxy'),
+                xRequestsRemaining: r.headers.get('X-Requests-Remaining'),
+                kvHasValue:         rawKV !== null,
+                kvValuePreview:     rawKV ? rawKV.slice(0, 200) : null,
+            }, null, 2), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         if (pathname.startsWith('/kali/')) {
             const kaliKey = env.KALI_AFL_TOKEN;
             if (!kaliKey) return new Response(
