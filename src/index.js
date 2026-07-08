@@ -9207,7 +9207,6 @@ export default {
             && !(pathname === '/savant/sync' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/analytics/night-stars/recompute' && request.method === 'POST')
-            && !(pathname === '/debug/anomaly-watcher-run' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -10763,20 +10762,6 @@ export default {
             }
             const result = await recomputeNightStars(env, date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
-                { headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
-        // TEMPORARY (CC-CMD-2026-07-08-anomaly-draft-watcher TASK 4) --
-        // manually invokes checkIncidentThresholds without waiting for the
-        // real hourly cron tick, so this can be live-verified against a
-        // real, test-scoped incident. Removed once verified.
-        if (pathname === '/debug/anomaly-watcher-run' && request.method === 'POST') {
-            const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
-                return new Response('unauthorized', { status: 401, headers: CORS });
-            }
-            const result = await checkIncidentThresholds(env);
-            return new Response(JSON.stringify({ ok: true, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
