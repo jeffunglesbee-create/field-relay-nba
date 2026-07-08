@@ -105,7 +105,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG, recomputeNightStars } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -8987,6 +8987,7 @@ export default {
             && !(pathname === '/journalism/game-complete' && request.method === 'POST')
             && !(pathname === '/savant/sync' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
+            && !(pathname === '/analytics/night-stars/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -10521,6 +10522,27 @@ export default {
             }
             const result = await analyticsEngine(env, body || {});
             return new Response(JSON.stringify({ triggered: 'analytics-engine', result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // POST /analytics/night-stars/recompute?date=YYYY-MM-DD — surgical
+        // recompute for a single feature (night_stars) on a single date, for
+        // when drama-backfill.yml catches up to a full slate's drama_peak
+        // AFTER the 0 9 * * * analytics cron already stored a stale/degraded
+        // snapshot. Does not re-run the rest of processDate's phases (no
+        // redundant AI-call cost) — see CC-CMD-2026-07-08-night-stars-recompute.
+        if (pathname === '/analytics/night-stars/recompute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const date = url.searchParams.get('date');
+            if (!date) {
+                return new Response(JSON.stringify({ ok: false, error: 'date query param required (YYYY-MM-DD)' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const result = await recomputeNightStars(env, date);
+            return new Response(JSON.stringify({ ok: true, date, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 

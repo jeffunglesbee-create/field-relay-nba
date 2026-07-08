@@ -177,6 +177,41 @@ async function writeAnalyticsOutput(env, { date, feature, sport, value, briefTex
     `).bind(id, date, feature, sport || null, JSON.stringify(value), briefText || null).run();
 }
 
+// recomputeNightStars: surgical, single-feature recompute for when
+// drama_peak backfill (drama-backfill.yml, ~2hr cron) catches up to a full
+// day's games AFTER night_stars was already computed and stored (0 9 * * *
+// cron) with a stale/degraded snapshot. Does not touch processDate,
+// analyticsEngine, or any other feature's compute/write logic -- reuses the
+// same fetchContextGraph/computeNightStars/writeAnalyticsOutput functions
+// processDate's own Phase 2 uses, so the write lands on the identical
+// `${feature}_${date}` id (INSERT OR REPLACE) rather than creating a
+// duplicate or orphan row. Does not fix the underlying cron-timing race --
+// see docs/CC-CMD-2026-07-08-night-stars-recompute.md CONTEXT.
+export async function recomputeNightStars(env, date) {
+    const beforeRow = await env.ARCHIVE_DB.prepare(`
+        SELECT value FROM analytics_output
+        WHERE feature = 'night_stars' AND date = ? LIMIT 1
+    `).bind(date).first();
+    let before = null;
+    if (beforeRow) {
+        try { before = JSON.parse(beforeRow.value); } catch (_) { before = null; }
+    }
+
+    const ctx = await fetchContextGraph(env, date);
+    const allGames = [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])];
+    const after = computeNightStars(allGames);
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'night_stars',
+        sport:   null,
+        value:   after,
+        briefText: null,
+    });
+
+    return { before, after };
+}
+
 async function writeRunStatus(env, status) {
     // KV first (fast read for /analytics/status + /health). D1 next for history.
     try {
