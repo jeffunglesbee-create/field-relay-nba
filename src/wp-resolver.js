@@ -471,6 +471,12 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                               cacheKey: `kali:predictions:${year}:${round}` },
                         signal: AbortSignal.timeout(5000),
                     });
+                    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-cache-audit TASK 3) --
+                    // proves the cf.cacheTtl directive above is actually being hit, not just
+                    // present in code, matching the CFL cache-guard precedent's exact
+                    // methodology (docs/CC-CMD-2026-07-05-cfl-scoreboard-cache-guard.md).
+                    // Removed once cache-hit behavior is behaviorally confirmed.
+                    const _kaliCacheStatus = r.headers.get('CF-Cache-Status') || 'none';
                     if (r.ok) {
                         const kd = await r.json();
                         for (const pred of (kd.data || [])) {
@@ -484,7 +490,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                             // source in this file. Normalize to the same 0-1 scale as the
                             // ESPN-native/odds-api/Squiggle branches before returning.
                             const prob = rawProb / 100;
-                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability' };
+                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability', _kaliCacheStatus };
                         }
                     }
                 } catch (_) { /* fall through to Squiggle */ }
