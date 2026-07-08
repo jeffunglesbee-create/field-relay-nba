@@ -76,46 +76,117 @@ function teamNameMatch(oddsName, fieldName) {
 // Maps the client's display-label sport values (e.g. "Baseball (MLB)", "NBA Playoffs",
 // "Premier League") to the bare codes this function's branches expect.
 // The client's sec.sport is never guaranteed to be a bare code — it's the section label
-// surfaced in the UI. This normalizer must handle the full, messy real-world set.
-// Returns null for sports this function has no real branch for (Golf, Tennis, etc.).
+// surfaced in the UI.
+//
+// SPORT_LABEL_MAP is grounded in the real, exhaustive set of section labels found in
+// jeffunglesbee-create/jubilant-bassoon/index.html (probed 2026-07-08 at commit 6a699a0):
+// every `sections.push({sport:"..."})` / `allSections.push({sport:section,...})` literal,
+// plus the ESPN_SPORTS and bootstrap-fetch section labels ("NBA", "WNBA", "NHL",
+// "NCAA Football", "NCAA Basketball", "Formula 1", etc). Not inferred — enumerated.
+// Values that are `null` are sports the client genuinely sends that this function has
+// no real data source for (Golf, Tennis, Rugby, UEFA club competitions, EFL playoffs,
+// NCAA hoops/football, Formula 1, WWE) — correctly unsupported, not a gap.
+const SPORT_LABEL_MAP = {
+    // ── ESPN-native (MLB / NBA / WNBA) ──────────────────────────────────
+    'baseball (mlb)':               'mlb',
+    'baseball':                     'mlb',
+    'mlb':                          'mlb',
+    'nba playoffs':                 'nba',
+    'nba':                          'nba',
+    'basketball':                   'nba', // bare "basketball" is ambiguous (NBA vs WNBA);
+                                            // WNBA always sends its own distinct "wnba"/"WNBA" label
+    'wnba':                         'wnba',
+
+    // ── Soccer: ESPN WC summary branch ──────────────────────────────────
+    'fifa world cup 2026':          'soccer',
+    'soccer':                       'soccer',
+
+    // ── Odds-API branch — soccer domestic leagues ───────────────────────
+    'premier league':               'epl',
+    'epl':                          'epl',
+    'la liga':                      'la liga',
+    'ligue 1':                      'ligue 1',
+    'bundesliga':                   'bundesliga',
+    'serie a':                      'serie a',
+    'mls soccer':                   'mls',
+    'mls':                          'mls',
+
+    // ── Odds-API branch — hockey ─────────────────────────────────────────
+    'nhl playoffs':                 'nhl',
+    'nhl':                          'nhl',
+    'hockey':                       'nhl',
+    'ice hockey':                   'nhl',
+
+    // ── Odds-API branch — American / Australian / Canadian football ─────
+    'american football (nfl)':      'nfl',
+    'nfl':                          'nfl',
+    'canadian football (cfl)':      'cfl',
+    'cfl':                          'cfl',
+    'ncaa football':                'cfb',
+    'cfb':                          'cfb',
+    'ufl — united football league': 'ufl',
+    'ufl - united football league': 'ufl', // hyphen variant, defensive
+    'ufl':                          'ufl',
+    'australian football (afl)':    'afl',
+    'australian rules football':    'afl',
+    'afl':                          'afl',
+
+    // ── Odds-API branch — cricket ─────────────────────────────────────────
+    'ipl':                          'ipl',
+    'cricket':                      'ipl',
+
+    // ── Confirmed real client labels with no data source in this function ──
+    'efl championship playoffs':    null,
+    'efl league one playoffs':      null,
+    'efl league two playoffs':      null,
+    'uefa champions league':        null,
+    'uefa europa league':           null,
+    'uefa conference league':       null,
+    'golf':                         null,
+    'tennis':                       null,
+    'rugby':                        null,
+    'wwe/pro wrestling':            null,
+    'ncaa basketball':              null,
+    'formula 1':                    null,
+    'f1':                           null,
+    'racing':                       null,
+    'unknown':                      null,
+};
+
 function normalizeSportCode(sport) {
     if (!sport) return null;
     const raw = String(sport).toLowerCase().trim();
 
-    // Exact pass-through for all recognized bare codes (ARCHIVE_SPORT_TO_ODDS_KEY keys
-    // plus the ESPN-native and soccer branch codes)
-    const KNOWN_BARE = new Set([
-        'mlb', 'nba', 'wnba', 'nhl', 'soccer',
-        'mls', 'epl', 'la liga', 'ligue 1', 'bundesliga', 'serie a',
-        'cfl', 'cfb', 'nfl', 'ufl', 'afl', 'ipl',
-    ]);
-    if (KNOWN_BARE.has(raw)) return raw;
-
-    // Extract parenthesized code: "Baseball (MLB)" → "mlb", "Basketball (WNBA)" → "wnba"
-    const parenMatch = raw.match(/\(([^)]+)\)/);
-    if (parenMatch) {
-        const inner = parenMatch[1].trim();
-        if (KNOWN_BARE.has(inner)) return inner;
+    if (Object.prototype.hasOwnProperty.call(SPORT_LABEL_MAP, raw)) {
+        return SPORT_LABEL_MAP[raw];
     }
 
-    // Keyword matching for display labels — WNBA before NBA to avoid false-positive
+    // Fallback for labels not yet seen in the real client (defense-in-depth only —
+    // every label confirmed in the client today is covered by the exact map above).
+    // resolveWinProbability logs every null resolution with the raw sport string via
+    // _recordWpResolutionFailure, so a genuinely new client label surfaces in the
+    // wp-resolution-failures codex rather than failing silently forever.
+    const parenMatch = raw.match(/\(([^)]+)\)/);
+    if (parenMatch && Object.prototype.hasOwnProperty.call(SPORT_LABEL_MAP, parenMatch[1].trim())) {
+        return SPORT_LABEL_MAP[parenMatch[1].trim()];
+    }
     if (raw.includes('baseball')) return 'mlb';
-    if (raw.includes('wnba') || (raw.includes('basketball') && raw.includes('wom'))) return 'wnba';
+    if (raw.includes('wnba')) return 'wnba';
     if (raw.includes('nba') || raw.includes('basketball')) return 'nba';
-    if (raw.includes('hockey') || raw.includes('nhl') || raw.includes('ice hockey')) return 'nhl';
-    if (raw.includes('premier league') || raw.includes('eng.1')) return 'epl';
-    if (raw.includes('la liga') || raw.includes('laliga') || raw.includes('esp.1')) return 'la liga';
-    if (raw.includes('ligue') || raw.includes('fra.1')) return 'ligue 1';
-    if (raw.includes('bundesliga') || raw.includes('ger.1')) return 'bundesliga';
-    if (raw.includes('serie a') || raw.includes('ita.1')) return 'serie a';
-    if (raw.includes('major league soccer') || raw.includes('usa.1')) return 'mls';
-    if (raw.includes('canadian football') || (raw.includes('cfl') && !raw.includes('ncf'))) return 'cfl';
-    if (raw.includes('college football') || raw.includes('ncaaf') || (raw.includes('cfb') && !raw.includes('cfl'))) return 'cfb';
-    if (raw.includes('nfl') || (raw.includes('american football') && !raw.includes('can'))) return 'nfl';
-    if (raw.includes('ufl') || raw.includes('united football')) return 'ufl';
-    if (raw.includes('australian') || (raw.includes('afl') && !raw.includes('nfl') && !raw.includes('cfl'))) return 'afl';
+    if (raw.includes('hockey') || raw.includes('nhl')) return 'nhl';
+    if (raw.includes('premier league')) return 'epl';
+    if (raw.includes('la liga') || raw.includes('laliga')) return 'la liga';
+    if (raw.includes('ligue')) return 'ligue 1';
+    if (raw.includes('bundesliga')) return 'bundesliga';
+    if (raw.includes('serie a')) return 'serie a';
+    if (raw.includes('mls') || raw.includes('major league soccer')) return 'mls';
+    if (raw.includes('canadian football') || raw.includes('cfl')) return 'cfl';
+    if (raw.includes('ncaa football') || raw.includes('college football') || raw.includes('cfb')) return 'cfb';
+    if (raw.includes('nfl')) return 'nfl';
+    if (raw.includes('ufl')) return 'ufl';
+    if (raw.includes('afl') || raw.includes('australian')) return 'afl';
     if (raw.includes('ipl') || raw.includes('cricket')) return 'ipl';
-    if (raw === 'soccer' || raw.includes('soccer')) return 'soccer';
+    if (raw.includes('soccer')) return 'soccer';
 
     return null;
 }
