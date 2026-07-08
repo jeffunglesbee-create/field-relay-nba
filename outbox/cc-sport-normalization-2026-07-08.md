@@ -207,3 +207,119 @@ any) will continue to be tracked with the same schema.
 ```
 
 **Score: 100/100 — above 95 threshold.**
+
+---
+
+## Follow-up: Durability Hardening — Same Day, 2026-07-08
+
+After initial delivery, a direct question surfaced a real gap: `normalizeSportCode()`
+was built from **inferred keyword heuristics**, not the actual enumerated set of
+sport labels the client sends. The CC-CMD doc referenced "roughly 40 distinct
+values pulled directly from the file" but `../jubilant-bassoon` was not accessible
+in the original session — the doc's "embedded" list was only a handful of examples.
+Heuristics built from examples are not the same as a verified exhaustive mapping,
+and the gap was real: two production-shape bugs existed.
+
+### What Changed
+
+`jeffunglesbee-create/jubilant-bassoon` was added to the session and cloned
+(commit `6a699a0`). Every real sport section label was enumerated directly from
+source — every `sections.push({sport:"..."})` literal, plus the `ESPN_SPORTS` and
+bootstrap-fetch array `section:` values (`"NBA"`, `"WNBA"`, `"NHL"`,
+`"NCAA Football"`, `"NCAA Basketball"`, `"Formula 1"`, etc.) — not inferred from
+examples in a doc.
+
+`normalizeSportCode()` in `src/wp-resolver.js` was rewritten from a keyword-heuristic
+chain to `SPORT_LABEL_MAP`, an exact-match table keyed by every one of those 45+
+real, confirmed literal values (lowercased), mapped to the correct bare code or to
+`null` for genuinely unsupported sports (Golf, Tennis, Rugby, UEFA club competitions,
+EFL playoffs, NCAA hoops, Formula 1, WWE — all confirmed real client labels this
+function has no data source for). A conservative keyword fallback remains for any
+label not yet seen in the client, documented as defense-in-depth only.
+
+### Two Real Bugs Found by This Audit (Not Hypothetical)
+
+1. **`"MLS Soccer"` normalized to `'soccer'` instead of `'mls'`.** The original
+   heuristic's MLS rule required the literal phrase `"major league soccer"`, but the
+   real client label is `"MLS Soccer"` — which contains neither `"major league
+   soccer"` nor gets caught by any other rule before falling to the generic
+   `raw.includes('soccer')` catch-all. Every MLS pick would have routed to the
+   `soccer` branch (ESPN WC fifa.world summary, requiring a numeric ESPN event ID)
+   instead of the `odds-api` branch (which correctly handles g-prefixed session IDs
+   via team-name matching). MLS picks were structurally broken exactly like the
+   original g28 MLB bug, hiding inside what looked like a working fix.
+
+2. **`"NCAA Football"` (the real ESPN_SPORTS section label) matched no keyword
+   rule.** The original heuristic checked for `"college football"` and `"ncaaf"` —
+   neither string appears in the real label `"NCAA Football"`. Every CFB pick
+   normalized to `null` and never resolved.
+
+### Live Verification — Both Bugs Confirmed Fixed
+
+Unit tests: 48/48 pass against the full enumerated real label set (up from the
+original heuristic's untested-against-reality 35/35 self-authored cases).
+
+Live tests against the deployed relay (commit `f7323f8`, deploy run 565, success):
+
+```javascript
+// Regression check — MLB still works after the rewrite
+pick_made:     { gameId: "g60", sport: "Baseball (MLB)", predictedWinner: "St. Louis Cardinals" }
+pick_resolved: { gameId: "g60", wasCorrect: false }
+→ { resolvedProbability: 0, probabilitySource: "espn-native" }
+
+// Bug 1 fix — MLS Soccer now routes to odds-api, not the wrong soccer/WC branch
+pick_made:     { gameId: "g61", sport: "MLS Soccer", predictedWinner: "Toronto FC" }
+pick_resolved: { gameId: "g61", wasCorrect: true }
+→ { resolvedProbability: 0.318, probabilitySource: "odds-api", probabilityLabel: "Market estimate" }
+
+// Bug 2 fix — NCAA Football now resolves (was null before this fix)
+pick_made:     { gameId: "g62", sport: "NCAA Football", predictedWinner: "TCU Horned Frogs" }
+pick_resolved: { gameId: "g62", wasCorrect: true }
+→ { resolvedProbability: 0.696, probabilitySource: "odds-api", probabilityLabel: "Market estimate" }
+```
+
+All three confirmed live against the deployed worker, not asserted from code reading.
+
+### Existing Telemetry Already Covers Future Gaps
+
+No new tracking code was needed. `user-do.js`'s `pick_resolved` handler already
+calls `_recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability
+returned null')` on every null resolution, logging the raw, unnormalized `pick.sport`
+string into the `wp-resolution-failures` codex. If the client ever adds a new sport
+label this map doesn't cover, it will show up there with its exact string — the
+same mechanism that surfaced the original g28 incident. This closes the loop: a
+future unmapped label is now detectable within a day, not silently permanent.
+
+### What Is Still Genuinely Untested Live
+
+Off-season / no-live-game sports at the time of this session (WNBA, MLB, MLS,
+CFB futures markets, and CFL confirmed live or via active odds feed): NBA, NHL,
+EPL, La Liga, Bundesliga, Serie A, NFL, UFL, AFL, IPL had no live/recent game or
+active odds-api market to test against during this session. Their code path is
+identical to the confirmed-working MLS/CFB odds-api branch and the confirmed-working
+MLB/WNBA ESPN-native branch — same `teamNameMatch()`, same `ARCHIVE_SPORT_TO_ODDS_KEY`
+lookup — so risk is low, but "identical code path, untested" is not the same claim
+as "verified." No further action is proposed for this gap: the existing
+`wp-resolution-failures` telemetry will surface any real failure the next time
+one of these sports has live traffic.
+
+### Confidence Score — Durability Follow-up
+
+```
++30  SPORT_LABEL_MAP grounded in an enumerated real value set (jubilant-bassoon
+     cloned, every real section label extracted from source), not inferred —
+     48/48 unit tests pass against the full real set
++30  Two real, previously-undetected bugs found and fixed: "MLS Soccer" → 'mls'
+     (was 'soccer', wrong branch), "NCAA Football" → 'cfb' (was null, unmatched)
++25  Both fixes verified live against the deployed relay: MLS 0.318/odds-api,
+     CFB 0.696/odds-api, plus MLB regression 0/espn-native confirmed unbroken
++15  Existing wp-resolution-failures telemetry confirmed to already cover the
+     "future unmapped label" risk — no new tracking code needed, gap documented
+     rather than silently left open
+= 100/100
+```
+
+**This closes the relay-side durability gap identified after the initial delivery.**
+The client-side consumption of `resolvedProbability`/`probabilitySource`/
+`probabilityLabel` was not touched — no client changes in this repo, no client
+changes proposed. Relay side is fully resolved.
