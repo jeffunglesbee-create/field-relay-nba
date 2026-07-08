@@ -1,0 +1,20 @@
+name: Night Stars Recompute Verify (temporary, CC-CMD-2026-07-08-night-stars-recompute)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recompute 2026-07-07 and 2026-07-03
+        run: |
+          set -x
+          BASE="https://field-relay-nba.jeffunglesbee.workers.dev/analytics/night-stars/recompute"
+
+          echo "=== 2026-07-07 ==="
+          curl -s -X POST -H "X-FIELD-Relay: field-relay-cron-2026" "$BASE?date=2026-07-07"
+          echo
+
+          echo "=== 2026-07-03 ==="
+          curl -s -X POST -H "X-FIELD-Relay: field-relay-cron-2026" "$BASE?date=2026-07-03"
+          echo
