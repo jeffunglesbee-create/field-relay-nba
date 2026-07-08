@@ -4504,18 +4504,35 @@ CC-CMD.
 
   const utf8 = unescape(encodeURIComponent(content));
   const b64  = btoa(utf8);
+  const ghReqHeaders = {
+    'Authorization': `Bearer ${ghToken}`,
+    'User-Agent': 'field-relay-anomaly-watcher',
+    'Accept': 'application/vnd.github+json',
+  };
+  // GitHub's Contents API requires `sha` when overwriting a file that
+  // already exists (PUT without it fails with 409/422) and forbids it when
+  // creating a brand-new one. A same-day redraft for the same incident
+  // reuses the same date-based path, so the file may already exist (e.g.
+  // an earlier draft the same day, before its count last increased) --
+  // check first, same pattern as the write_handoff MCP tool above. A 404
+  // here is the expected, common case (first draft of the day).
+  let existingSha;
+  const curR = await fetch(`${ANOMALY_WATCHER_REPO_API}/contents/${path}`, { headers: ghReqHeaders });
+  if (curR.ok) {
+    const cur = await curR.json();
+    existingSha = cur.sha;
+  } else if (curR.status !== 404) {
+    const txt = await curR.text();
+    return { ok: false, error: `GitHub SHA read failed: ${curR.status} ${txt}` };
+  }
   const putR = await fetch(`${ANOMALY_WATCHER_REPO_API}/contents/${path}`, {
     method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${ghToken}`,
-      'User-Agent': 'field-relay-anomaly-watcher',
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json',
-    },
+    headers: { ...ghReqHeaders, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: `docs: auto-generated draft CC-CMD for ${incidentRow.key} (count=${count}) [skip ci]`,
       content: b64,
       branch: 'main',
+      ...(existingSha ? { sha: existingSha } : {}),
     }),
   });
   if (!putR.ok) {
