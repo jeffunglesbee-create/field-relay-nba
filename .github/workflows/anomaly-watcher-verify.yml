@@ -1,0 +1,14 @@
+name: Anomaly Watcher Verify (temporary, CC-CMD-2026-07-08-anomaly-draft-watcher)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke checkIncidentThresholds
+        run: |
+          set -x
+          curl -s -X POST -H "X-FIELD-Relay: field-relay-cron-2026" \
+            "https://field-relay-nba.jeffunglesbee.workers.dev/debug/anomaly-watcher-run"
+          echo
