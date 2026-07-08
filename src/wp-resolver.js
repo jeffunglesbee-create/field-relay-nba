@@ -12,6 +12,8 @@ import { checkAndIncrementDailyOdds } from './budget-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
 const ESPN_SUMMARY_BASE    = 'https://site.web.api.espn.com/apis/site/v2';
+// ESPN scoreboard base — confirmed against journalism cron (site.api.espn.com)
+const ESPN_SCOREBOARD_BASE = 'https://site.api.espn.com/apis/site/v2';
 const ESPN_SUMMARY_HEADERS = {
     'Origin':  'https://www.espn.com',
     'Referer': 'https://www.espn.com/',
@@ -69,6 +71,53 @@ function teamNameMatch(oddsName, fieldName) {
         if (b.includes(a.slice(0, pfx)) || a.includes(b.slice(0, pfx))) return true;
     }
     return false;
+}
+
+// Maps the client's display-label sport values (e.g. "Baseball (MLB)", "NBA Playoffs",
+// "Premier League") to the bare codes this function's branches expect.
+// The client's sec.sport is never guaranteed to be a bare code — it's the section label
+// surfaced in the UI. This normalizer must handle the full, messy real-world set.
+// Returns null for sports this function has no real branch for (Golf, Tennis, etc.).
+function normalizeSportCode(sport) {
+    if (!sport) return null;
+    const raw = String(sport).toLowerCase().trim();
+
+    // Exact pass-through for all recognized bare codes (ARCHIVE_SPORT_TO_ODDS_KEY keys
+    // plus the ESPN-native and soccer branch codes)
+    const KNOWN_BARE = new Set([
+        'mlb', 'nba', 'wnba', 'nhl', 'soccer',
+        'mls', 'epl', 'la liga', 'ligue 1', 'bundesliga', 'serie a',
+        'cfl', 'cfb', 'nfl', 'ufl', 'afl', 'ipl',
+    ]);
+    if (KNOWN_BARE.has(raw)) return raw;
+
+    // Extract parenthesized code: "Baseball (MLB)" → "mlb", "Basketball (WNBA)" → "wnba"
+    const parenMatch = raw.match(/\(([^)]+)\)/);
+    if (parenMatch) {
+        const inner = parenMatch[1].trim();
+        if (KNOWN_BARE.has(inner)) return inner;
+    }
+
+    // Keyword matching for display labels — WNBA before NBA to avoid false-positive
+    if (raw.includes('baseball')) return 'mlb';
+    if (raw.includes('wnba') || (raw.includes('basketball') && raw.includes('wom'))) return 'wnba';
+    if (raw.includes('nba') || raw.includes('basketball')) return 'nba';
+    if (raw.includes('hockey') || raw.includes('nhl') || raw.includes('ice hockey')) return 'nhl';
+    if (raw.includes('premier league') || raw.includes('eng.1')) return 'epl';
+    if (raw.includes('la liga') || raw.includes('laliga') || raw.includes('esp.1')) return 'la liga';
+    if (raw.includes('ligue') || raw.includes('fra.1')) return 'ligue 1';
+    if (raw.includes('bundesliga') || raw.includes('ger.1')) return 'bundesliga';
+    if (raw.includes('serie a') || raw.includes('ita.1')) return 'serie a';
+    if (raw.includes('major league soccer') || raw.includes('usa.1')) return 'mls';
+    if (raw.includes('canadian football') || (raw.includes('cfl') && !raw.includes('ncf'))) return 'cfl';
+    if (raw.includes('college football') || raw.includes('ncaaf') || (raw.includes('cfb') && !raw.includes('cfl'))) return 'cfb';
+    if (raw.includes('nfl') || (raw.includes('american football') && !raw.includes('can'))) return 'nfl';
+    if (raw.includes('ufl') || raw.includes('united football')) return 'ufl';
+    if (raw.includes('australian') || (raw.includes('afl') && !raw.includes('nfl') && !raw.includes('cfl'))) return 'afl';
+    if (raw.includes('ipl') || raw.includes('cricket')) return 'ipl';
+    if (raw === 'soccer' || raw.includes('soccer')) return 'soccer';
+
+    return null;
 }
 
 function _oddsCreditMonthKey() {
@@ -129,21 +178,15 @@ async function fetchSportOddsLive(env, sportKey) {
     return { games: Array.isArray(games) ? games : [], quotaRemaining, ok: true };
 }
 
-// ── Public export ───────────────────────────────────────────────────────────
-
-// Per-sport best-effort resolver. Returns { probability, source, label } or null.
-// Routes each sport to its confirmed data source; never invents; never throws.
-export async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
-    if (!sport || !predictedWinner) return null;
-    const s = String(sport).toLowerCase().trim();
-    // Relay game IDs use "espn:XXXXXXX" prefix; ESPN's API needs the numeric part only.
-    const espnId = gameId ? String(gameId).replace(/^espn:/, '') : gameId;
-    try {
-        // ── ESPN native winprobability[] — NBA, WNBA, MLB ──────────────────
-        if (s === 'nba' || s === 'wnba' || s === 'mlb') {
-            const espnPath = s === 'mlb'  ? 'baseball/mlb'
-                           : s === 'wnba' ? 'basketball/wnba'
-                           :                'basketball/nba';
+// Fetch ESPN scoreboard for a given sport/league path, match predictedWinner by team name,
+// then fetch the summary for the matched event to get winprobability[].
+// Checks both today and yesterday (picks may resolve the morning after a game).
+async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
+    // Fast path: if gameId is a real ESPN numeric ID (e.g. stripped from "espn:401871790"),
+    // try the summary directly first. Client g-prefixed IDs fail this test cleanly.
+    const isRealEspnId = espnId && /^\d{6,}$/.test(String(espnId));
+    if (isRealEspnId) {
+        try {
             const r = await fetch(
                 `${ESPN_SUMMARY_BASE}/sports/${espnPath}/summary?event=${espnId}`,
                 { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
@@ -164,7 +207,85 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                     }
                 }
             }
-            return null;
+        } catch (_) { /* fall through to scoreboard lookup */ }
+    }
+
+    // Scoreboard lookup by team name — handles g-prefixed session IDs and real-ID misses.
+    // Same pattern as the odds-api branch: fetch all games for the sport, match by name.
+    // Check today and yesterday since resolution may fire the morning after a game ends.
+    const now = new Date();
+    const toDateStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    const yesterday = new Date(now.getTime() - 86400000);
+    const datesToCheck = [toDateStr(now), toDateStr(yesterday)];
+
+    let espnEventId = null;
+    let isHomeTeam  = null;
+
+    for (const dateStr of datesToCheck) {
+        if (espnEventId) break;
+        const sbUrl = `${ESPN_SCOREBOARD_BASE}/sports/${espnPath}/scoreboard?dates=${dateStr}`;
+        try {
+            const sbR = await fetch(sbUrl, { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) });
+            if (!sbR.ok) continue;
+            const sbD = await sbR.json();
+            for (const ev of (sbD.events || [])) {
+                const comp  = ev.competitions?.[0] || {};
+                const teams = comp.competitors || [];
+                const home  = teams.find(t => t.homeAway === 'home');
+                const away  = teams.find(t => t.homeAway === 'away');
+                const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
+                const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
+                if (teamNameMatch(predictedWinner, homeN)) { espnEventId = ev.id; isHomeTeam = true;  break; }
+                if (teamNameMatch(predictedWinner, awayN)) { espnEventId = ev.id; isHomeTeam = false; break; }
+            }
+        } catch (_) { /* continue to next date */ }
+    }
+
+    if (!espnEventId) return null;
+
+    // Fetch the summary for the matched event to get winprobability[]
+    try {
+        const r = await fetch(
+            `${ESPN_SUMMARY_BASE}/sports/${espnPath}/summary?event=${espnEventId}`,
+            { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
+        );
+        if (!r.ok) return null;
+        const d   = await r.json();
+        const wps = d.winprobability || [];
+        if (!wps.length) return null;
+        const last = wps[wps.length - 1];
+        const pct  = typeof last.homeWinPercentage === 'number' ? last.homeWinPercentage : null;
+        if (pct === null) return null;
+        const prob = isHomeTeam ? pct : 1 - pct;
+        return { probability: Math.round(prob * 1000) / 1000, source: 'espn-native', label: 'Statistical probability' };
+    } catch (_) {
+        return null;
+    }
+}
+
+// ── Public export ───────────────────────────────────────────────────────────
+
+// Per-sport best-effort resolver. Returns { probability, source, label } or null.
+// Routes each sport to its confirmed data source; never invents; never throws.
+export async function resolveWinProbability(sport, { gameId, predictedWinner }, env) {
+    if (!sport || !predictedWinner) return null;
+    // Normalize the client's display-label sport value to the bare code each branch expects.
+    // Real client sport values are display labels (e.g. "Baseball (MLB)", "NBA Playoffs",
+    // "Premier League") — never reliably bare codes. Returns null for unrecognized sports.
+    const s = normalizeSportCode(sport);
+    if (!s) return null;
+    // Relay game IDs use "espn:XXXXXXX" prefix; ESPN's API needs the numeric part only.
+    // Client session IDs ("g28") are not stripped — they're caught by isRealEspnId below.
+    const espnId = gameId ? String(gameId).replace(/^espn:/, '') : gameId;
+    try {
+        // ── ESPN native winprobability[] — NBA, WNBA, MLB ──────────────────
+        // Migrated from direct ?event= lookup (broken for client g-prefixed IDs)
+        // to scoreboard name-matching (same pattern as the odds-api branch below).
+        if (s === 'nba' || s === 'wnba' || s === 'mlb') {
+            const espnPath = s === 'mlb'  ? 'baseball/mlb'
+                           : s === 'wnba' ? 'basketball/wnba'
+                           :                'basketball/nba';
+            return await fetchESPNNativeWP(espnPath, espnId, predictedWinner);
         }
 
         // ── Squiggle AFL tips ───────────────────────────────────────────────
