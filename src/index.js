@@ -69,6 +69,7 @@ import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } f
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
+import { relayFetch } from './cache-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -703,41 +704,8 @@ function _parseUmpireHTML(html) {
     return Object.keys(out).length >= 3 ? out : null;
 }
 
-// ── Shared relay fetch helper ──────────────────────────────────────────────
-async function relayFetch(targetUrl, headers, ttl, source, ctx) {
-    const cache    = caches.default;
-    const cacheKey = new Request(targetUrl, { method: 'GET' });
-    let   response = await cache.match(cacheKey);
-    if (response) return response;
-    let upstream;
-    try {
-        upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true } });
-    } catch (err) {
-        return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network`, ...CORS } });
-    }
-    if (!upstream.ok) {
-        return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
-    }
-    response = new Response(upstream.body, {
-        status: 200,
-        headers: {
-            'Content-Type':               'application/json',
-            ...CORS,
-            'Cache-Control':              `public, max-age=${ttl}`,
-            'X-FIELD-Proxy':              `relay-${source}`,
-            'X-Cache-TTL':                String(ttl),
-            // Forward quota headers from upstream where present
-            ...(upstream.headers.get('x-requests-remaining') !== null
-                ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
-                : {}),
-            ...(upstream.headers.get('x-requests-used') !== null
-                ? {'X-Requests-Used': upstream.headers.get('x-requests-used')}
-                : {}),
-        }
-    });
-    ctx.waitUntil(cache.put(cacheKey, response.clone()));
-    return response;
-}
+// relayFetch extracted to src/cache-helpers.js (CC-CMD-2026-07-08-afl-kali-relayfetch-fix)
+// — imported above, alongside budget-helpers.js's import.
 
 // ── Worker ─────────────────────────────────────────────────────────────────
 
@@ -2963,7 +2931,11 @@ async function handleGolfEnriched(date, env, ctx) {
     return result;
 }
 
-async function buildAFLJournalismContext(games, round, year, env) {
+// execCtx is the Worker's ExecutionContext (named to avoid colliding with
+// this function's own `ctx` local, the journalism-context accumulator
+// below) -- threaded through so the Kali call can use relayFetch's
+// caches.default-based caching (CC-CMD-2026-07-08-afl-kali-relayfetch-fix).
+async function buildAFLJournalismContext(games, round, year, env, execCtx) {
     if (!round || !year || !games.length) return {};
     const ctx = {};
     for (const g of games) {
@@ -2980,12 +2952,14 @@ async function buildAFLJournalismContext(games, round, year, env) {
     );
     const kaliKey = env.KALI_AFL_TOKEN;
     const [kaliResp, squiggleResp] = await Promise.allSettled([
+        // relayFetch (not fetch()'s cf:{} shorthand) -- this request carries
+        // an Authorization header, which Cloudflare does not cache via
+        // cacheEverything (confirmed live, CC-CMD-2026-07-08-afl-kali-cache-audit).
+        // relayFetch's caches.default-keyed-on-URL approach sidesteps this.
         kaliKey
-            ? fetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`, {
-                headers: { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
-                cf: { cacheTtl: 3600, cacheEverything: true,
-                      cacheKey: `kali:predictions:${year}:${round}` },
-              })
+            ? relayFetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`,
+                { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
+                3600, 'kali-journalism', execCtx)
             : Promise.reject(new Error('KALI_AFL_TOKEN not set')),
         fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
             headers: SQUIGGLE_HEADERS,
@@ -3141,7 +3115,7 @@ async function handleV2Games(url, env, ctx) {
             try {
                 const _aflRound = games[0]?.round ?? null;  // games[0].round set by adaptESPNBasketball (ev.week?.number) — espnData is block-scoped
                 const _aflYear  = cfg.season ?? new Date().getUTCFullYear();
-                const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env);
+                const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env, ctx);
                 for (const g of games) {
                     if (g.espnEventId && _aflCtx[g.espnEventId]) {
                         g.journalism = _aflCtx[g.espnEventId];
