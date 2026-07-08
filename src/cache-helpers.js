@@ -36,9 +36,9 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     let   response = await cache.match(cacheKey);
     // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
     if (response) {
-        const hitResp = new Response(response.body, response);
-        hitResp.headers.set('X-Cache-Hit-Diag', 'true');
-        return hitResp;
+        const hitHeaders = new Headers(response.headers);
+        hitHeaders.set('X-Cache-Hit-Diag', 'true');
+        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: hitHeaders });
     }
     let upstream;
     try {
@@ -96,9 +96,9 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     let   response = await cache.match(cacheKey);
     // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
     if (response) {
-        const hitResp = new Response(response.body, response);
-        hitResp.headers.set('X-Cache-Hit-Diag', 'true');
-        return hitResp;
+        const hitHeaders = new Headers(response.headers);
+        hitHeaders.set('X-Cache-Hit-Diag', 'true');
+        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: hitHeaders });
     }
     let upstream;
     try {
