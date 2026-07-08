@@ -468,8 +468,13 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                             const isHome = isMatch(pred.homeTeam);
                             const isAway = isMatch(pred.awayTeam);
                             if (!isHome && !isAway) continue;
-                            const prob = isHome ? pred.homeProbability : pred.awayProbability;
-                            if (typeof prob !== 'number') continue;
+                            const rawProb = isHome ? pred.homeProbability : pred.awayProbability;
+                            if (typeof rawProb !== 'number') continue;
+                            // Kali's API returns a 0-100 percentage (confirmed live: a real
+                            // response returned 57.9, not a 0-1 fraction), unlike every other
+                            // source in this file. Normalize to the same 0-1 scale as the
+                            // ESPN-native/odds-api/Squiggle branches before returning.
+                            const prob = rawProb / 100;
                             return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability' };
                         }
                     }
