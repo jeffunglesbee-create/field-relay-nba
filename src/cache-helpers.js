@@ -23,7 +23,11 @@ const CORS = {
     'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Expose-Headers': 'X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy',
+    // X-Cache-Hit-Diag added TEMPORARILY (CC-CMD-2026-07-08-afl-kali-relayfetch-fix
+    // TASK 4) so the browser-side verification fetch can actually observe it --
+    // fetch()'s Response.headers only exposes headers listed here on a
+    // cross-origin-treated request. Removed once cache-hit is demonstrated.
+    'Access-Control-Expose-Headers': 'X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-Cache-Hit-Diag',
 };
 
 export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
