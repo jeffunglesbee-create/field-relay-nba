@@ -30,7 +30,12 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    if (response) return response;
+    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
+    if (response) {
+        const hitResp = new Response(response.body, response);
+        hitResp.headers.set('X-Cache-Hit-Diag', 'true');
+        return hitResp;
+    }
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true } });
@@ -48,6 +53,7 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
             'Cache-Control':              `public, max-age=${ttl}`,
             'X-FIELD-Proxy':              `relay-${source}`,
             'X-Cache-TTL':                String(ttl),
+            'X-Cache-Hit-Diag':           'false', // TEMPORARY DIAGNOSTIC, see above
             // Forward quota headers from upstream where present
             ...(upstream.headers.get('x-requests-remaining') !== null
                 ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
@@ -84,7 +90,12 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    if (response) return response;
+    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
+    if (response) {
+        const hitResp = new Response(response.body, response);
+        hitResp.headers.set('X-Cache-Hit-Diag', 'true');
+        return hitResp;
+    }
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true }, signal: AbortSignal.timeout(timeoutMs) });
@@ -102,6 +113,7 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
             'Cache-Control':              `public, max-age=${ttl}`,
             'X-FIELD-Proxy':              `relay-${source}`,
             'X-Cache-TTL':                String(ttl),
+            'X-Cache-Hit-Diag':           'false', // TEMPORARY DIAGNOSTIC, see above
             ...(upstream.headers.get('x-requests-remaining') !== null
                 ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
                 : {}),
