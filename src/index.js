@@ -4382,6 +4382,23 @@ async function ensureCodexStatusColumn(env) {
   _codexStatusReady = true;
 }
 
+let _finalizedAtReady = false;
+async function ensureFinalizedAtColumn(env) {
+  if (_finalizedAtReady) return;
+  if (!env.ARCHIVE_DB) return;
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE regular_season_games ADD COLUMN finalized_at TEXT DEFAULT NULL`
+    ).run();
+  } catch (_) { /* column already exists — expected on every run after the first */ }
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE postseason_games ADD COLUMN finalized_at TEXT DEFAULT NULL`
+    ).run();
+  } catch (_) { /* column already exists — expected on every run after the first */ }
+  _finalizedAtReady = true;
+}
+
 // Allowlisted target tables for POST /savant/sync. Add an entry here (schema
 // + name) each time a genuinely new Savant/lineup/weather/injury tracking
 // table is needed — this is the one place that grows, not a new endpoint.
@@ -8197,6 +8214,7 @@ export default {
             // optionally espn_event_id) for a row identified by exact id.
             // Used by score-fill.mjs. Rule 47 compliant — stores real facts only.
             if (pathname === '/archive/score-by-id' && request.method === 'POST') {
+                await ensureFinalizedAtColumn(env);
                 let body;
                 try { body = await request.json(); }
                 catch (_) {
@@ -8216,20 +8234,20 @@ export default {
                     let result;
                     if (newEspnId) {
                         result = await env.ARCHIVE_DB.prepare(
-                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?) WHERE id = ?'
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
                         ).bind(home_score, away_score, String(newEspnId), id).run();
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
-                                'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?) WHERE id = ?'
+                                'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
                             ).bind(home_score, away_score, String(newEspnId), id).run();
                         }
                     } else {
                         result = await env.ARCHIVE_DB.prepare(
-                            'UPDATE regular_season_games SET home_score = ?, away_score = ? WHERE id = ?'
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
                         ).bind(home_score, away_score, id).run();
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
-                                'UPDATE postseason_games SET home_score = ?, away_score = ? WHERE id = ?'
+                                'UPDATE postseason_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
                             ).bind(home_score, away_score, id).run();
                         }
                     }
@@ -10857,13 +10875,13 @@ export default {
                     const [regGames, postGames] = await Promise.all([
                         env.ARCHIVE_DB.prepare(`
                             SELECT id, sport, home, away, home_score, away_score,
-                                   closing_odds, went_to_ot, NULL AS importance
+                                   closing_odds, went_to_ot, finalized_at, NULL AS importance
                             FROM regular_season_games
                             WHERE date = ? AND home_score IS NOT NULL
                         `).bind(yesterday).all(),
                         env.ARCHIVE_DB.prepare(`
                             SELECT id, sport, home, away, home_score, away_score,
-                                   closing_odds, went_to_ot, importance
+                                   closing_odds, went_to_ot, finalized_at, importance
                             FROM postseason_games
                             WHERE date = ? AND home_score IS NOT NULL
                         `).bind(yesterday).all(),
@@ -10904,6 +10922,7 @@ export default {
                             homeScore: g.home_score, awayScore: g.away_score,
                             wentToOT: !!g.went_to_ot,
                             wasUpset, isSeriesClinch, isElimination, margin,
+                            finalizedAt: g.finalized_at || null,
                         };
                     });
                 } catch (_) { /* game tables may be empty/missing — keep [] */ }
