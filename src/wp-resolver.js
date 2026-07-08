@@ -474,8 +474,6 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                         { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
                         3600, 'kali-pick-resolution',
                     );
-                    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
-                    const _kaliCacheHitDiag = r.headers.get('X-Cache-Hit-Diag') || 'unknown';
                     if (r.ok) {
                         const kd = await r.json();
                         for (const pred of (kd.data || [])) {
@@ -489,7 +487,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                             // source in this file. Normalize to the same 0-1 scale as the
                             // ESPN-native/odds-api/Squiggle branches before returning.
                             const prob = rawProb / 100;
-                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability', _kaliCacheHitDiag };
+                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability' };
                         }
                     }
                 } catch (_) { /* fall through to Squiggle */ }

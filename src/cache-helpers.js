@@ -23,23 +23,14 @@ const CORS = {
     'Access-Control-Allow-Origin':  '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    // X-Cache-Hit-Diag added TEMPORARILY (CC-CMD-2026-07-08-afl-kali-relayfetch-fix
-    // TASK 4) so the browser-side verification fetch can actually observe it --
-    // fetch()'s Response.headers only exposes headers listed here on a
-    // cross-origin-treated request. Removed once cache-hit is demonstrated.
-    'Access-Control-Expose-Headers': 'X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy, X-Cache-Hit-Diag',
+    'Access-Control-Expose-Headers': 'X-JQ-Score, X-JQ-Retries, X-JQ-Layers, X-FIELD-Proxy',
 };
 
 export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
-    if (response) {
-        const hitHeaders = new Headers(response.headers);
-        hitHeaders.set('X-Cache-Hit-Diag', 'true');
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: hitHeaders });
-    }
+    if (response) return response;
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true } });
@@ -57,7 +48,6 @@ export async function relayFetch(targetUrl, headers, ttl, source, ctx) {
             'Cache-Control':              `public, max-age=${ttl}`,
             'X-FIELD-Proxy':              `relay-${source}`,
             'X-Cache-TTL':                String(ttl),
-            'X-Cache-Hit-Diag':           'false', // TEMPORARY DIAGNOSTIC, see above
             // Forward quota headers from upstream where present
             ...(upstream.headers.get('x-requests-remaining') !== null
                 ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
@@ -94,12 +84,7 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     const cache    = caches.default;
     const cacheKey = new Request(targetUrl, { method: 'GET' });
     let   response = await cache.match(cacheKey);
-    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-relayfetch-fix TASK 4)
-    if (response) {
-        const hitHeaders = new Headers(response.headers);
-        hitHeaders.set('X-Cache-Hit-Diag', 'true');
-        return new Response(response.body, { status: response.status, statusText: response.statusText, headers: hitHeaders });
-    }
+    if (response) return response;
     let upstream;
     try {
         upstream = await fetch(targetUrl, { headers, cf: { cacheTtl: ttl, cacheEverything: true }, signal: AbortSignal.timeout(timeoutMs) });
@@ -117,7 +102,6 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
             'Cache-Control':              `public, max-age=${ttl}`,
             'X-FIELD-Proxy':              `relay-${source}`,
             'X-Cache-TTL':                String(ttl),
-            'X-Cache-Hit-Diag':           'false', // TEMPORARY DIAGNOSTIC, see above
             ...(upstream.headers.get('x-requests-remaining') !== null
                 ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
                 : {}),

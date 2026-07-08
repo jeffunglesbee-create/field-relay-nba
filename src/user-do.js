@@ -232,7 +232,6 @@ export class UserDO {
       let finalProbability = revealedProbability ?? null;
       let finalSource      = probabilitySource || null;
       let finalLabel       = null;
-      let _kaliCacheHitDiag = null; // TEMPORARY DIAGNOSTIC -- see wp-resolver.js AFL branch comment
       if (finalProbability == null && pick.sport && pick.predictedWinner) {
         try {
           const wp = await resolveWinProbability(
@@ -244,7 +243,6 @@ export class UserDO {
             finalProbability = wp.probability;
             finalSource      = wp.source;
             finalLabel       = wp.label;
-            _kaliCacheHitDiag = wp._kaliCacheHitDiag || null;
           } else if (!isWpUnsupportedSport(pick.sport)) {
             if (!normalizeSportCode(pick.sport)) {
               // Genuinely unrecognized sport label -- not in SPORT_LABEL_MAP at all,
@@ -277,7 +275,6 @@ export class UserDO {
         resp.probabilitySource   = finalSource;
         resp.probabilityLabel    = finalLabel;
       }
-      if (_kaliCacheHitDiag) resp._kaliCacheHitDiag = _kaliCacheHitDiag; // TEMPORARY DIAGNOSTIC
       return new Response(JSON.stringify(resp), { headers: _cors() });
     }
 
