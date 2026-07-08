@@ -458,25 +458,26 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
 
             if (kaliKey) {
                 try {
-                    // Cached identically to buildAFLJournalismContext's proven Kali
-                    // call (src/index.js) -- 1hr TTL, shared cache key means every
-                    // pick resolved against the same round hits the edge cache, not
-                    // KALI_AFL_TOKEN's 5,000/day quota fresh each time. Omitted from
-                    // the original CC-CMD spec -- added on review, not live-tested
-                    // for cache-hit behavior (unlike the CFL cache-guard precedent),
-                    // flagged here honestly rather than claimed as verified.
+                    // cf.cacheTtl/cacheEverything/cacheKey mirrors buildAFLJournalismContext's
+                    // Kali call (src/index.js) syntactically, but live testing
+                    // (CC-CMD-2026-07-08-afl-kali-cache-audit) confirmed via CF-Cache-Status
+                    // that this request is NOT actually being cached -- Cloudflare returns
+                    // BYPASS on every request, most likely because the request carries an
+                    // Authorization header (Cloudflare does not cache authenticated requests
+                    // by default; cacheEverything does not override this). This directive is
+                    // currently a no-op for quota protection -- KALI_AFL_TOKEN's 5,000/day
+                    // limit is NOT being shielded by it. Left in place (harmless, matches the
+                    // documented sibling pattern) rather than removed, since removing it
+                    // wouldn't fix anything either -- a real fix (e.g. routing through the
+                    // Cache API directly, or stripping Authorization from the cached fetch)
+                    // needs its own CC-CMD. Flagged honestly, not silently left as an
+                    // unverified assumption.
                     const r = await fetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`, {
                         headers: { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
                         cf: { cacheTtl: 3600, cacheEverything: true,
                               cacheKey: `kali:predictions:${year}:${round}` },
                         signal: AbortSignal.timeout(5000),
                     });
-                    // TEMPORARY DIAGNOSTIC (CC-CMD-2026-07-08-afl-kali-cache-audit TASK 3) --
-                    // proves the cf.cacheTtl directive above is actually being hit, not just
-                    // present in code, matching the CFL cache-guard precedent's exact
-                    // methodology (docs/CC-CMD-2026-07-05-cfl-scoreboard-cache-guard.md).
-                    // Removed once cache-hit behavior is behaviorally confirmed.
-                    const _kaliCacheStatus = r.headers.get('CF-Cache-Status') || 'none';
                     if (r.ok) {
                         const kd = await r.json();
                         for (const pred of (kd.data || [])) {
@@ -490,7 +491,7 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
                             // source in this file. Normalize to the same 0-1 scale as the
                             // ESPN-native/odds-api/Squiggle branches before returning.
                             const prob = rawProb / 100;
-                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability', _kaliCacheStatus };
+                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability' };
                         }
                     }
                 } catch (_) { /* fall through to Squiggle */ }
