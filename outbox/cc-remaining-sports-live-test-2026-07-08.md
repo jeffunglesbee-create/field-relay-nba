@@ -72,3 +72,26 @@ This is exploratory verification, not a fix — no code was changed, no
 commit confidence gate applies. The AFL finding is a real follow-up
 candidate for a future CC-CMD once Squiggle's team-name format can be
 inspected directly.
+
+
+## CORRECTION (2026-07-08, later same day) — root cause was wrong, real one found
+
+The hypothesis above (team-name format, "Fremantle" vs "Fremantle Dockers")
+was tested directly and ruled out: both the bare canonical name and the
+Dockers-suffixed version return zero tips via Squiggle's `team=` filter,
+despite 29 real tips existing for gameid 38646 in the unfiltered response
+(including a `source:"Squiggle"` tip with `hteam:"Fremantle"`).
+
+Real root cause, confirmed against Squiggle's own API documentation page:
+the `team` parameter is documented as **"Team ID"** (numeric — `team=11`,
+`team=14`), never a team name string. `resolveWinProbability`'s AFL branch
+passes `predictedWinner` (a name) directly into this numeric-ID param,
+which silently returns empty for any non-numeric value rather than
+erroring. This has likely never worked for any AFL pick, not specific to
+Fremantle.
+
+Fix direction: fetch tips scoped by `year`+`round` unfiltered (no `team=`
+param), then apply `teamNameMatch()` client-side against `hteam`/`ateam`
+— the same scoreboard-then-name-match pattern the MLB/NBA/WNBA branches
+already use in this file. Logged to codex
+(`afl-squiggle-team-id-not-name-bug`). Not yet fixed, needs a CC-CMD.
