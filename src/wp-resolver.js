@@ -458,8 +458,17 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
 
             if (kaliKey) {
                 try {
+                    // Cached identically to buildAFLJournalismContext's proven Kali
+                    // call (src/index.js) -- 1hr TTL, shared cache key means every
+                    // pick resolved against the same round hits the edge cache, not
+                    // KALI_AFL_TOKEN's 5,000/day quota fresh each time. Omitted from
+                    // the original CC-CMD spec -- added on review, not live-tested
+                    // for cache-hit behavior (unlike the CFL cache-guard precedent),
+                    // flagged here honestly rather than claimed as verified.
                     const r = await fetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`, {
                         headers: { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
+                        cf: { cacheTtl: 3600, cacheEverything: true,
+                              cacheKey: `kali:predictions:${year}:${round}` },
                         signal: AbortSignal.timeout(5000),
                     });
                     if (r.ok) {
