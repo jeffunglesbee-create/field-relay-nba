@@ -51,9 +51,14 @@ jobs:
           # correlation to this specific deploy, since outbox commits often
           # land a few minutes after the code commit that triggered deploy).
           RECENT_OUTBOX=$(git log -20 --name-only --pretty=format: -- 'outbox/cc-*.md' | grep -v '^$' | sort -u)
+          ACKNOWLEDGED=$(grep -v '^#' docs/confidence-gate-acknowledged.txt | grep -v '^\s*$' || true)
           VIOLATION_FOUND=0
           for f in $RECENT_OUTBOX; do
             [ -f "$f" ] || continue
+            if echo "$ACKNOWLEDGED" | grep -qxF "$f"; then
+              echo "SKIPPED (acknowledged): $f — see docs/confidence-gate-acknowledged.txt for reason"
+              continue
+            fi
             SCORE=$(sed -n '/^## Confidence Score/,$p' "$f" | grep -oE '[0-9]+/100' | grep -oE '^[0-9]+' | tail -1)
             [ -z "$SCORE" ] && continue
             if [ "$SCORE" -lt 95 ]; then

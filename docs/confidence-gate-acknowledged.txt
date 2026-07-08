@@ -1,0 +1,26 @@
+# Confidence-gate acknowledgment list.
+# One outbox filename (relative to repo root) per line. A `#` comment
+# above each entry states who/when/why it was reviewed and judged
+# non-actionable — required, not optional, so this file stays auditable
+# rather than becoming an opaque bypass list. Do NOT add an entry here
+# without a real reason; this suppresses a CI check, not decorates one.
+
+# Reviewed 2026-07-08 (chat session): PARTIALLY COMPLETE at 75/100 due
+# to an upstream 403 that self-resolved between 2026-07-04 and review;
+# endpoint confirmed working live. Process violation stands as a
+# historical record but no further action needed.
+outbox/cc-archive-catchup-existence-check-fix-2026-07-06.md
+
+# Reviewed 2026-07-08 (chat session): cost-measurement work, 85/100,
+# independently reviewed, no actionable defect found.
+outbox/cc-drama-score-cost-measurement-2026-07-07.md
+
+# Reviewed 2026-07-08 (chat session): 70/100 was an honest "could not
+# conclusively demonstrate cache-hit behavior" result per the CC-CMD's
+# own gate, not a quality defect -- superseded by the CC-CMD-2026-07-08-
+# afl-kali-kv-cache follow-up (100/100, live cache-hit demonstrated via
+# KV), documented in outbox/cc-afl-kali-relayfetch-fix-2026-07-08.md's
+# later "TASK 2 Follow-Up" section (not a separate outbox file, despite
+# this CC-CMD's own text implying one at the time it was written) --
+# which resolved the underlying question this one correctly left open.
+outbox/cc-afl-kali-cache-audit-2026-07-08.md
