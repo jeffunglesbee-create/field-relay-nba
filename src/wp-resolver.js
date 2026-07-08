@@ -229,7 +229,12 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
             if (!sbR.ok) continue;
             const sbD = await sbR.json();
             for (const ev of (sbD.events || [])) {
-                const comp  = ev.competitions?.[0] || {};
+                const comp      = ev.competitions?.[0] || {};
+                const statusTyp = comp.status?.type || {};
+                // Skip pre-game events — winprobability[] is only available for live/final games
+                const completed = statusTyp.completed === true;
+                const live      = statusTyp.state === 'in';
+                if (!completed && !live) continue;
                 const teams = comp.competitors || [];
                 const home  = teams.find(t => t.homeAway === 'home');
                 const away  = teams.find(t => t.homeAway === 'away');
