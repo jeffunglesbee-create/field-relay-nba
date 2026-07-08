@@ -49,7 +49,7 @@
 //   pickLedger: PERMANENT — append-only, never purged
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { resolveWinProbability } from './wp-resolver.js';
+import { resolveWinProbability, isWpUnsupportedSport } from './wp-resolver.js';
 
 const WATCH_HISTORY_TTL_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MISSED_PEAK_TTL_MS    = 7  * 24 * 60 * 60 * 1000; // 7 days
@@ -244,7 +244,9 @@ export class UserDO {
             finalSource      = wp.source;
             finalLabel       = wp.label;
           } else {
-            await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null');
+            if (!isWpUnsupportedSport(pick.sport)) {
+              await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null');
+            }
           }
         } catch (_e) {
           try { await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, _e?.message || 'threw'); } catch (_) {}

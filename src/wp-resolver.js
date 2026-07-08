@@ -191,6 +191,26 @@ function normalizeSportCode(sport) {
     return null;
 }
 
+// Returns true only when `sport` is a real, known client label that
+// SPORT_LABEL_MAP explicitly maps to null — i.e. a sport with genuinely
+// no win-probability data source (Golf, Tennis, etc.), confirmed
+// correct-and-expected behavior, not a bug.
+//
+// Deliberately does NOT reuse normalizeSportCode()'s fallback substring
+// matching: every fallback branch in that function returns a real
+// supported code, never null, so an exact-match-only check here is
+// sufficient and avoids re-implementing that logic. A label that matches
+// nothing at all (genuinely new/unrecognized) correctly returns false
+// here, so it still surfaces as a failure rather than being silently
+// swallowed — preserving normalizeSportCode's own stated purpose for
+// that fallthrough case.
+export function isWpUnsupportedSport(sport) {
+    if (!sport) return false;
+    const raw = String(sport).toLowerCase().trim();
+    return Object.prototype.hasOwnProperty.call(SPORT_LABEL_MAP, raw)
+        && SPORT_LABEL_MAP[raw] === null;
+}
+
 function _oddsCreditMonthKey() {
     const d = new Date();
     const m = String(d.getUTCMonth() + 1).padStart(2, '0');
