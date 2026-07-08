@@ -28,6 +28,9 @@ const SQUIGGLE_HEADERS = {
     'User-Agent': 'FIELD-Global-Sports-Intelligence/1.0 (jeffunglesbee-create/jubilant-bassoon)',
 };
 
+// ── Kali AFL Stats (keep in sync with index.js) ────────────────────────────
+const KALI_BASE = 'https://kaliaflstats.com/api/afl/v1';
+
 // ── Odds API (keep in sync with index.js) ──────────────────────────────────
 const ODDS_BASE             = 'https://api.the-odds-api.com';
 const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038';
@@ -359,6 +362,42 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
     }
 }
 
+// _discoverAFLRound: AFL is ESPN-native for scores (adaptESPNBasketball
+// reuses the WNBA adapter — quarters map naturally), but resolveWinProbability
+// has no round/year context yet at this point, unlike buildAFLJournalismContext
+// which receives it from the already-fetched games array. Mirrors
+// fetchESPNNativeWP's own scoreboard-lookup-by-team-name shape (same file)
+// rather than inventing a new lookup pattern.
+async function _discoverAFLRound(predictedWinner) {
+    const now = new Date();
+    const toDateStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    const yesterday = new Date(now.getTime() - 86400000);
+    for (const dateStr of [toDateStr(now), toDateStr(yesterday)]) {
+        try {
+            const r = await fetch(
+                `${ESPN_SCOREBOARD_BASE}/sports/australian-football/afl/scoreboard?dates=${dateStr}`,
+                { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
+            );
+            if (!r.ok) continue;
+            const d = await r.json();
+            const round = d.week?.number ?? null;
+            if (!round) continue;
+            for (const ev of (d.events || [])) {
+                const comp = ev.competitions?.[0] || {};
+                const teams = comp.competitors || [];
+                const home = teams.find(t => t.homeAway === 'home');
+                const away = teams.find(t => t.homeAway === 'away');
+                const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
+                const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
+                if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {
+                    return { round, year: now.getUTCFullYear() };
+                }
+            }
+        } catch (_) { /* try next date */ }
+    }
+    return null;
+}
+
 // ── Public export ───────────────────────────────────────────────────────────
 
 // Per-sport best-effort resolver. Returns { probability, source, label } or null.
@@ -384,25 +423,64 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
             return await fetchESPNNativeWP(espnPath, espnId, predictedWinner);
         }
 
-        // ── Squiggle AFL tips ───────────────────────────────────────────────
+        // ── AFL: Kali (richer, already incorporates Squiggle consensus + h2h/
+        // form/stats/venue/scoring) first, Squiggle Aggregate as fallback —
+        // same source priority buildAFLJournalismContext (src/index.js) already
+        // proved correct. Ported from that function's real matching logic
+        // (year+round only, zero team param — Squiggle's `team=` filter is
+        // documented as a numeric Team ID, never a name; the previous branch
+        // passed predictedWinner directly into it and never worked for any
+        // AFL pick), not reinvented.
         if (s === 'afl') {
-            const year = new Date().getUTCFullYear();
-            const r = await fetch(
-                `${SQUIGGLE_BASE}/?q=tips;team=${encodeURIComponent(predictedWinner)};year=${year}`,
-                { headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000) }
-            );
-            if (r.ok) {
-                const d    = await r.json();
-                const tips = (d.tips || []).sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
-                if (tips.length) {
-                    const tip  = tips[0];
-                    const conf = parseFloat(tip.hconfidence) || 50;
-                    const prob = teamNameMatch(predictedWinner, tip.hteam || '')
-                        ? conf / 100
-                        : (100 - conf) / 100;
-                    return { probability: Math.round(prob * 1000) / 1000, source: 'squiggle', label: 'Statistical probability' };
-                }
+            const discovered = await _discoverAFLRound(predictedWinner);
+            if (!discovered) return null;
+            const { round, year } = discovered;
+            const kaliKey = env.KALI_AFL_TOKEN;
+            const _norm = str => String(str || '').toLowerCase()
+                .replace(/\b(lions|swans|eagles|hawks|magpies|bombers|cats|blues|tigers|bulldogs|kangaroos|power|crows|demons|dockers|suns|giants|saints|roos)\b/g, '')
+                .replace(/[^a-z]/g, '').slice(0, 6);
+            const isMatch = name => teamNameMatch(predictedWinner, name) ||
+                (_norm(predictedWinner) && _norm(predictedWinner) === _norm(name));
+
+            if (kaliKey) {
+                try {
+                    const r = await fetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`, {
+                        headers: { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
+                        signal: AbortSignal.timeout(5000),
+                    });
+                    if (r.ok) {
+                        const kd = await r.json();
+                        for (const pred of (kd.data || [])) {
+                            const isHome = isMatch(pred.homeTeam);
+                            const isAway = isMatch(pred.awayTeam);
+                            if (!isHome && !isAway) continue;
+                            const prob = isHome ? pred.homeProbability : pred.awayProbability;
+                            if (typeof prob !== 'number') continue;
+                            return { probability: Math.round(prob * 1000) / 1000, source: 'kali', label: 'Statistical probability' };
+                        }
+                    }
+                } catch (_) { /* fall through to Squiggle */ }
             }
+
+            try {
+                const r = await fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
+                    headers: SQUIGGLE_HEADERS, signal: AbortSignal.timeout(5000),
+                });
+                if (r.ok) {
+                    const sd = await r.json();
+                    const aggTip = (sd.tips || []).find(t => t.source === 'Aggregate' &&
+                        (isMatch(t.hteam) || isMatch(t.ateam)));
+                    if (aggTip) {
+                        const isHome = isMatch(aggTip.hteam);
+                        const conf = parseFloat(aggTip.hconfidence);
+                        if (!isNaN(conf)) {
+                            const prob = isHome ? conf / 100 : (100 - conf) / 100;
+                            return { probability: Math.round(prob * 1000) / 1000, source: 'squiggle', label: 'Statistical probability' };
+                        }
+                    }
+                }
+            } catch (_) { /* both sources exhausted */ }
+
             return null;
         }
 
