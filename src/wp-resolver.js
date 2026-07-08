@@ -153,7 +153,7 @@ const SPORT_LABEL_MAP = {
     'unknown':                      null,
 };
 
-function normalizeSportCode(sport) {
+export function normalizeSportCode(sport) {
     if (!sport) return null;
     const raw = String(sport).toLowerCase().trim();
 
