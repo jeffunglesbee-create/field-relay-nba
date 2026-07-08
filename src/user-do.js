@@ -49,7 +49,7 @@
 //   pickLedger: PERMANENT — append-only, never purged
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { resolveWinProbability, isWpUnsupportedSport } from './wp-resolver.js';
+import { resolveWinProbability, isWpUnsupportedSport, normalizeSportCode } from './wp-resolver.js';
 
 const WATCH_HISTORY_TTL_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MISSED_PEAK_TTL_MS    = 7  * 24 * 60 * 60 * 1000; // 7 days
@@ -243,8 +243,18 @@ export class UserDO {
             finalProbability = wp.probability;
             finalSource      = wp.source;
             finalLabel       = wp.label;
-          } else {
-            if (!isWpUnsupportedSport(pick.sport)) {
+          } else if (!isWpUnsupportedSport(pick.sport)) {
+            if (!normalizeSportCode(pick.sport)) {
+              // Genuinely unrecognized sport label -- not in SPORT_LABEL_MAP at all,
+              // not even via normalizeSportCode's own fallback matching. Tracked under
+              // a separate codex key (not wp-resolution-failures) so a burst of drift
+              // entries for one new client label can't evict genuine resolution-failure
+              // signal for other, already-supported sports from that incident's
+              // 10-entry recent[] window.
+              await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId,
+                'sport label not found in SPORT_LABEL_MAP',
+                { codexKey: 'wp-sport-label-drift', titleLabel: 'Unrecognized sport label seen' });
+            } else {
               await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null');
             }
           }
@@ -280,23 +290,25 @@ export class UserDO {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function _recordWpResolutionFailure(env, sport, gameId, reason) {
+async function _recordWpResolutionFailure(env, sport, gameId, reason, opts = {}) {
+    const { codexKey = 'wp-resolution-failures', titleLabel = 'WP resolution failed' } = opts;
     if (!env.ARCHIVE_DB) return;
     try {
         const existing = await env.ARCHIVE_DB.prepare(
-            `SELECT content FROM codex WHERE key = 'wp-resolution-failures'`
-        ).first();
+            `SELECT content FROM codex WHERE key = ?`
+        ).bind(codexKey).first();
         const prior = existing ? JSON.parse(existing.content || '{}') : { count: 0, recent: [] };
         const count = (prior.count || 0) + 1;
         const recent = [{ sport, gameId, reason, at: new Date().toISOString() }, ...(prior.recent || [])].slice(0, 10);
         await env.ARCHIVE_DB.prepare(`
             INSERT INTO codex (key, category, title, content, status, updated_at)
-            VALUES ('wp-resolution-failures', 'incident', ?, ?, 'open', datetime('now'))
+            VALUES (?, 'incident', ?, ?, 'open', datetime('now'))
             ON CONFLICT(key) DO UPDATE SET
                 title=excluded.title, content=excluded.content,
                 status='open', updated_at=datetime('now')
         `).bind(
-            `WP resolution failed ${count}x (most recent: ${sport} ${gameId})`,
+            codexKey,
+            `${titleLabel} ${count}x (most recent: ${sport} ${gameId})`,
             JSON.stringify({ count, recent })
         ).run();
     } catch (_) { /* best-effort tracking, must never break pick resolution itself */ }
