@@ -365,36 +365,50 @@ async function fetchESPNNativeWP(espnPath, espnId, predictedWinner) {
 // _discoverAFLRound: AFL is ESPN-native for scores (adaptESPNBasketball
 // reuses the WNBA adapter — quarters map naturally), but resolveWinProbability
 // has no round/year context yet at this point, unlike buildAFLJournalismContext
-// which receives it from the already-fetched games array. Mirrors
-// fetchESPNNativeWP's own scoreboard-lookup-by-team-name shape (same file)
-// rather than inventing a new lookup pattern.
+// which receives it from the already-fetched games array.
+//
+// Does NOT mirror fetchESPNNativeWP's today/yesterday window — confirmed live
+// that it doesn't work for AFL: fetchESPNNativeWP's window exists for
+// resolving picks on games that already happened (daily sports), but AFL
+// plays one round per week and a pick can legitimately be made on a game
+// still days away. Live-tested 2026-07-08: the only AFL fixture (Fremantle
+// v Sydney Swans, round 18) was on 2026-07-09 — a next-day game invisible to
+// a backward-only window, confirmed via a direct today+yesterday query
+// returning zero events both days.
+//
+// Single date-RANGE request (-3d/+6d, comfortably spans a round's Thu-Mon
+// scheduling variance) instead of looping individual dates. Reads round from
+// each EVENT's own `week.number`, not the top-level `d.week.number` --
+// confirmed live these disagree for a multi-day range (top-level reflects a
+// single ambient "current week" concept; a range spanning two rounds' worth
+// of games returned top-level week=17 while the round-18 games inside that
+// same response each correctly carried their own week.number=18).
 async function _discoverAFLRound(predictedWinner) {
     const now = new Date();
     const toDateStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
-    const yesterday = new Date(now.getTime() - 86400000);
-    for (const dateStr of [toDateStr(now), toDateStr(yesterday)]) {
-        try {
-            const r = await fetch(
-                `${ESPN_SCOREBOARD_BASE}/sports/australian-football/afl/scoreboard?dates=${dateStr}`,
-                { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
-            );
-            if (!r.ok) continue;
-            const d = await r.json();
-            const round = d.week?.number ?? null;
+    const rangeStart = new Date(now.getTime() - 3 * 86400000);
+    const rangeEnd   = new Date(now.getTime() + 6 * 86400000);
+    try {
+        const r = await fetch(
+            `${ESPN_SCOREBOARD_BASE}/sports/australian-football/afl/scoreboard?dates=${toDateStr(rangeStart)}-${toDateStr(rangeEnd)}`,
+            { headers: ESPN_SUMMARY_HEADERS, signal: AbortSignal.timeout(5000) }
+        );
+        if (!r.ok) return null;
+        const d = await r.json();
+        for (const ev of (d.events || [])) {
+            const round = ev.week?.number ?? null;
             if (!round) continue;
-            for (const ev of (d.events || [])) {
-                const comp = ev.competitions?.[0] || {};
-                const teams = comp.competitors || [];
-                const home = teams.find(t => t.homeAway === 'home');
-                const away = teams.find(t => t.homeAway === 'away');
-                const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
-                const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
-                if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {
-                    return { round, year: now.getUTCFullYear() };
-                }
+            const comp = ev.competitions?.[0] || {};
+            const teams = comp.competitors || [];
+            const home = teams.find(t => t.homeAway === 'home');
+            const away = teams.find(t => t.homeAway === 'away');
+            const homeN = home?.team?.displayName || home?.team?.shortDisplayName || '';
+            const awayN = away?.team?.displayName || away?.team?.shortDisplayName || '';
+            if (teamNameMatch(predictedWinner, homeN) || teamNameMatch(predictedWinner, awayN)) {
+                return { round, year: now.getUTCFullYear() };
             }
-        } catch (_) { /* try next date */ }
-    }
+        }
+    } catch (_) { /* return null below */ }
     return null;
 }
 
