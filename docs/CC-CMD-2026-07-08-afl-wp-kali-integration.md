@@ -197,9 +197,16 @@ if (s === 'afl') {
 
 ## TASK 3 — Verification (Rule 87 — inside this session, not deferred)
 
-1. Run whatever this repo's actual test/smoke command is (per prior
-   session's finding: root-level `test-*.js`, plain `node` execution,
-   `package.json` has no `scripts` key — confirm this is still accurate).
+1. **No CI coverage exists for this code path — confirmed by reading
+   `.github/workflows/deploy.yml` directly, not assumed.** The 8 hard
+   STRUCTURAL checks (health, NBA/NHL/FPL/FD whitelist, CORS, journalism
+   e2e, BSD R2) and 6 informational PROBEs (NBA CDN, NHL, FPL, FD) never
+   touch Squiggle, Kali, or AFL — the health check's own string-match list
+   doesn't even include `kali`. Passing deploy.yml's gate proves nothing
+   about this change; do not report it as verification. The root-level
+   `test-*.js` files (plain `node`, no `npm test` script — `package.json`
+   has no `scripts` key) are the only static coverage; run any that exist
+   for this file, but they don't substitute for step 2 below.
 2. **Live end-to-end**, not just code-presence: make a real
    `pick_made`/`pick_resolved` round-trip against a real, current AFL
    fixture with real odds/tips data (the Fremantle v Sydney game
