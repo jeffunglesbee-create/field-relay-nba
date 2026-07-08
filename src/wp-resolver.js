@@ -9,7 +9,7 @@
 
 import { resolveTeamKey } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds } from './budget-helpers.js';
-import { relayFetchAwaited } from './cache-helpers.js';
+import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
 const ESPN_SUMMARY_BASE    = 'https://site.web.api.espn.com/apis/site/v2';
@@ -459,20 +459,22 @@ export async function resolveWinProbability(sport, { gameId, predictedWinner }, 
 
             if (kaliKey) {
                 try {
-                    // relayFetchAwaited (not fetch()'s cf:{} shorthand) -- this request
-                    // carries an Authorization header, which Cloudflare does not cache
-                    // via cacheEverything (confirmed live, CC-CMD-2026-07-08-afl-kali-
-                    // cache-audit: CF-Cache-Status was BYPASS on every request). UserDO
-                    // has no ExecutionContext (confirmed live, CC-CMD-2026-07-08-afl-
-                    // kali-relayfetch-fix probe: constructor(state, env) only, no ctx,
-                    // no precedent anywhere in this codebase for Cache API from inside a
-                    // DO) -- relayFetchAwaited directly awaits cache.put() instead of
-                    // ctx.waitUntil(cache.put()), which is correct here (this handler
-                    // doesn't return until this whole async chain completes anyway).
-                    const r = await relayFetchAwaited(
+                    // relayFetchKV (not fetch()'s cf:{} shorthand, not relayFetch's
+                    // caches.default) -- this request carries an Authorization header,
+                    // which Cloudflare does not cache via cacheEverything (confirmed
+                    // live, CC-CMD-2026-07-08-afl-kali-cache-audit: CF-Cache-Status was
+                    // BYPASS on every request). caches.default was tried next
+                    // (relayFetchAwaited) but confirmed live via wrangler tail
+                    // (CC-CMD-2026-07-08-afl-kali-relayfetch-fix follow-up) to silently
+                    // no-op on this Worker -- it has no custom domain, only
+                    // *.workers.dev, and Cloudflare documents the Cache API as
+                    // functional only on custom domains. KV isn't zone-scoped and needs
+                    // no ExecutionContext (UserDO has none -- confirmed live,
+                    // constructor(state, env) only), sidestepping both restrictions.
+                    const r = await relayFetchKV(
                         `${KALI_BASE}/predictions?year=${year}&round=${round}`,
                         { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
-                        3600, 'kali-pick-resolution',
+                        3600, 'kali-pick-resolution', env.KALI_CACHE, 5000,
                     );
                     if (r.ok) {
                         const kd = await r.json();

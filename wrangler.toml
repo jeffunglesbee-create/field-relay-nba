@@ -38,6 +38,20 @@ id      = "83edf19398da4ed184a42746cb85c9d7"
 binding = "MCP_OAUTH"
 id      = "MCP_OAUTH_PLACEHOLDER_REPLACE_WITH_REAL_ID"
 
+# ── Kali AFL Response Cache (CC-CMD-2026-07-08-afl-kali-relayfetch-fix
+# follow-up — 2026-07-08) ────────────────────────────────────────────────────
+# KV namespace for caching authenticated Kali AFL API responses. Not the
+# Workers Cache API (caches.default) -- confirmed live via wrangler tail that
+# caches.default silently no-ops on this Worker (no custom domain, only
+# *.workers.dev; Cloudflare documents the Cache API as functional only on
+# custom domains). KV isn't zone-scoped, so it works regardless of domain.
+# Binding KALI_CACHE consumed by src/cache-helpers.js's relayFetchKV(),
+# called from buildAFLJournalismContext (src/index.js) and
+# resolveWinProbability's AFL branch (src/wp-resolver.js, via UserDO).
+[[kv_namespaces]]
+binding = "KALI_CACHE"
+id      = "d1d6aec6be0d454a823199f184798fcd"
+
 # Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
 # + analytics engine daily at 09:00 UTC (5 AM ET) — see src/analytics-engine.js
 [triggers]

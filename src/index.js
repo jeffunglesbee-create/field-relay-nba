@@ -69,7 +69,7 @@ import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } f
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
-import { relayFetch } from './cache-helpers.js';
+import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -2931,11 +2931,7 @@ async function handleGolfEnriched(date, env, ctx) {
     return result;
 }
 
-// execCtx is the Worker's ExecutionContext (named to avoid colliding with
-// this function's own `ctx` local, the journalism-context accumulator
-// below) -- threaded through so the Kali call can use relayFetch's
-// caches.default-based caching (CC-CMD-2026-07-08-afl-kali-relayfetch-fix).
-async function buildAFLJournalismContext(games, round, year, env, execCtx) {
+async function buildAFLJournalismContext(games, round, year, env) {
     if (!round || !year || !games.length) return {};
     const ctx = {};
     for (const g of games) {
@@ -2952,14 +2948,21 @@ async function buildAFLJournalismContext(games, round, year, env, execCtx) {
     );
     const kaliKey = env.KALI_AFL_TOKEN;
     const [kaliResp, squiggleResp] = await Promise.allSettled([
-        // relayFetch (not fetch()'s cf:{} shorthand) -- this request carries
-        // an Authorization header, which Cloudflare does not cache via
-        // cacheEverything (confirmed live, CC-CMD-2026-07-08-afl-kali-cache-audit).
-        // relayFetch's caches.default-keyed-on-URL approach sidesteps this.
+        // relayFetchKV (not relayFetch's caches.default, not fetch()'s cf:{}
+        // shorthand) -- this request carries an Authorization header, which
+        // Cloudflare does not cache via cacheEverything (confirmed live,
+        // CC-CMD-2026-07-08-afl-kali-cache-audit). relayFetch's
+        // caches.default approach was tried next but confirmed (live,
+        // wrangler tail, CC-CMD-2026-07-08-afl-kali-relayfetch-fix follow-up)
+        // to silently no-op on this Worker: it has no custom domain, only
+        // *.workers.dev, and Cloudflare documents the Cache API as
+        // functional only on custom domains. KV namespaces aren't
+        // zone-scoped, so field-kali-cache (KALI_CACHE) sidesteps both
+        // restrictions at once.
         kaliKey
-            ? relayFetch(`${KALI_BASE}/predictions?year=${year}&round=${round}`,
+            ? relayFetchKV(`${KALI_BASE}/predictions?year=${year}&round=${round}`,
                 { 'Authorization': `Bearer ${kaliKey}`, 'Accept': 'application/json' },
-                3600, 'kali-journalism', execCtx)
+                3600, 'kali-journalism', env.KALI_CACHE)
             : Promise.reject(new Error('KALI_AFL_TOKEN not set')),
         fetch(`${SQUIGGLE_BASE}/?q=tips;year=${year};round=${round}`, {
             headers: SQUIGGLE_HEADERS,
@@ -3115,7 +3118,7 @@ async function handleV2Games(url, env, ctx) {
             try {
                 const _aflRound = games[0]?.round ?? null;  // games[0].round set by adaptESPNBasketball (ev.week?.number) — espnData is block-scoped
                 const _aflYear  = cfg.season ?? new Date().getUTCFullYear();
-                const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env, ctx);
+                const _aflCtx   = await buildAFLJournalismContext(games, _aflRound, _aflYear, env);
                 for (const g of games) {
                     if (g.espnEventId && _aflCtx[g.espnEventId]) {
                         g.journalism = _aflCtx[g.espnEventId];

@@ -113,3 +113,70 @@ export async function relayFetchAwaited(targetUrl, headers, ttl, source, timeout
     await cache.put(cacheKey, response.clone());
     return response;
 }
+
+// relayFetchKV: KV-backed alternative to relayFetch/relayFetchAwaited, for
+// Workers with no custom domain. The Cache API (caches.default) is
+// documented by Cloudflare as functional only on Workers attached to a
+// custom domain -- confirmed live via wrangler tail
+// (CC-CMD-2026-07-08-afl-kali-relayfetch-fix follow-up): cache.put()
+// resolved without error on every request, but cache.match() never hit the
+// same key seconds later, because field-relay-nba has no [[routes]] or
+// custom domain in wrangler.toml, only the *.workers.dev subdomain. KV
+// namespaces are not zone-scoped -- they work identically regardless of
+// which domain the Worker is invoked through, sidestepping the restriction
+// entirely.
+//
+// Takes a KV namespace binding directly (not env), matching this
+// codebase's one-namespace-per-concern convention -- field-kali-cache
+// (binding KALI_CACHE) is dedicated to this, distinct from
+// FIELD_JOURNALISM's prose-only contract (ADR-002 Rule A).
+//
+// No ExecutionContext needed at all (unlike relayFetch's ctx.waitUntil) --
+// kv.put() works identically from the stateless Worker and from inside a
+// Durable Object (UserDO), so this one function covers both this
+// module's two Kali call sites without a ctx-vs-no-ctx split.
+//
+// timeoutMs defaults to null (no timeout) to match relayFetch's original,
+// timeout-free behavior for buildAFLJournalismContext's call. Callers that
+// need a timeout (resolveWinProbability's AFL branch, which had a 5s
+// AbortSignal.timeout via relayFetchAwaited before this) pass it explicitly.
+export async function relayFetchKV(targetUrl, headers, ttl, source, kv, timeoutMs = null) {
+    const cacheKey = targetUrl;
+    const cached   = await kv.get(cacheKey);
+    if (cached !== null) {
+        return new Response(cached, {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', ...CORS, 'X-FIELD-Proxy': `relay-${source}-kv` }
+        });
+    }
+    let upstream;
+    try {
+        upstream = await fetch(targetUrl, {
+            headers,
+            ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
+        });
+    } catch (err) {
+        return new Response(`${source} network error: ${err.message}`, { status: 502, headers: { 'X-RELAY-Error': `${source}-network`, ...CORS } });
+    }
+    if (!upstream.ok) {
+        return new Response(`${source} returned ${upstream.status}`, { status: upstream.status, headers: { 'X-RELAY-Error': `${source}-${upstream.status}`, ...CORS } });
+    }
+    const bodyText = await upstream.text();
+    await kv.put(cacheKey, bodyText, { expirationTtl: ttl });
+    return new Response(bodyText, {
+        status: 200,
+        headers: {
+            'Content-Type':               'application/json',
+            ...CORS,
+            'Cache-Control':              `public, max-age=${ttl}`,
+            'X-FIELD-Proxy':              `relay-${source}`,
+            'X-Cache-TTL':                String(ttl),
+            ...(upstream.headers.get('x-requests-remaining') !== null
+                ? {'X-Requests-Remaining': upstream.headers.get('x-requests-remaining')}
+                : {}),
+            ...(upstream.headers.get('x-requests-used') !== null
+                ? {'X-Requests-Used': upstream.headers.get('x-requests-used')}
+                : {}),
+        }
+    });
+}
