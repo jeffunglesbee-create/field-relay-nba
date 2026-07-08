@@ -4359,6 +4359,187 @@ async function ensureCodexStatusColumn(env) {
   _codexStatusReady = true;
 }
 
+// ── Anomaly-to-draft watcher (CC-CMD-2026-07-08-anomaly-draft-watcher) ──────
+// DRAFT ONLY. Never auto-commits a real CC-CMD, never auto-dispatches to
+// Claude Code, never auto-merges, never touches anything user-facing, never
+// scores "interest" or notifies an end user of anything — categorically
+// distinct from RUWT's patent-claimed processing/notification engines (see
+// the CC-CMD's own CONTEXT for the full distinction). This is DevOps triage
+// automation over engineering incident *counts*, producing a draft document
+// a human/chat must review before it ever becomes a real, dispatch-ready
+// CC-CMD.
+//
+// Hardcodes its own target repo/path (field-relay-nba, docs/CC-CMD-DRAFT-*)
+// -- no caller-controlled repo/path input anywhere, matching the same
+// security convention already established by the HANDOFF MCP tools above
+// (see their own comment: "no path/repo input accepted from the caller").
+const ANOMALY_WATCHER_REPO_API = 'https://api.github.com/repos/jeffunglesbee-create/field-relay-nba';
+
+// checkIncidentThresholds: reads open codex 'incident' rows, parses each
+// row's `count` field (the existing wp-resolution-failures shape), and
+// drafts a new CC-CMD-DRAFT for any incident whose count has increased
+// since the last draft was written for it (dedup — see below). v1 scope is
+// exactly this one trigger source; not a generic "watch anything" framework.
+async function checkIncidentThresholds(env) {
+  if (!env.ARCHIVE_DB) return { checked: 0, drafted: 0 };
+  await ensureCodexStatusColumn(env);
+  const THRESHOLD = 3;
+  const { results } = await env.ARCHIVE_DB.prepare(`
+    SELECT key, title, content FROM codex
+    WHERE category = 'incident' AND (status IS NULL OR status != 'resolved')
+  `).all();
+  let drafted = 0;
+  for (const row of (results || [])) {
+    let parsed;
+    try { parsed = JSON.parse(row.content); } catch (_) { continue; }
+    const count = parsed && typeof parsed.count === 'number' ? parsed.count : null;
+    if (count === null || count < THRESHOLD) continue;
+
+    // Dedup state lives in its own codex row/category ('watcher-state'), not
+    // as a bolted-on field inside the incident row's own content -- that
+    // content gets fully overwritten on every new occurrence (see
+    // _recordWpResolutionFailure in user-do.js: it reads `prior`, writes
+    // back only {count, recent}), which would silently drop any extra field
+    // added there. A separate row sidesteps that collision entirely and
+    // needs no change to the existing incident-writing code path.
+    const dedupKey = `anomaly-watcher-state/${row.key}`;
+    const dedupRow = await env.ARCHIVE_DB.prepare(
+      `SELECT content FROM codex WHERE key = ?`
+    ).bind(dedupKey).first();
+    let lastDraftedCount = 0;
+    if (dedupRow) {
+      try { lastDraftedCount = JSON.parse(dedupRow.content).last_drafted_count || 0; } catch (_) {}
+    }
+    if (count <= lastDraftedCount) continue; // already drafted at this count or higher
+
+    const result = await writeAnomalyDraft(env, row, parsed, count);
+    if (!result.ok) {
+      console.error('[ANOMALY-WATCHER]', row.key, result.error);
+      continue; // do not advance the dedup marker on a failed write
+    }
+    drafted++;
+    await env.ARCHIVE_DB.prepare(`
+      INSERT INTO codex (key, category, title, content, updated_at)
+      VALUES (?, 'watcher-state', ?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET content = excluded.content, updated_at = datetime('now')
+    `).bind(
+      dedupKey,
+      `Anomaly watcher dedup state for ${row.key}`,
+      JSON.stringify({ last_drafted_count: count, last_drafted_at: new Date().toISOString() })
+    ).run();
+  }
+  return { checked: (results || []).length, drafted };
+}
+
+// writeAnomalyDraft: commits docs/CC-CMD-DRAFT-{date}-{slug}.md to
+// field-relay-nba via the GitHub Contents API (same PAT/pattern as the
+// write_handoff MCP tool, adapted to this repo and a brand-new file each
+// time -- no `sha` fetch step, since a draft file never already exists).
+// Content is honest about not having diagnosed root cause: states only the
+// observed incident key/count/recent occurrences, never a fabricated fix.
+async function writeAnomalyDraft(env, incidentRow, parsed, count) {
+  const ghToken = env.GITHUB_PAT;
+  if (!ghToken) return { ok: false, error: 'GITHUB_PAT not configured' };
+
+  const date = new Date().toISOString().slice(0, 10);
+  const slug = incidentRow.key.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 40);
+  const path = `docs/CC-CMD-DRAFT-${date}-${slug}.md`;
+
+  const recentLines = (parsed.recent || []).slice(0, 5)
+    .map(r => `- ${r.at || 'unknown time'}: ${r.sport || ''} ${r.gameId || ''} — ${r.reason || ''}`.trim())
+    .join('\n') || '(no per-occurrence detail recorded)';
+
+  const content = `# CC-CMD DRAFT: ${incidentRow.title}
+
+**⚠️ AUTO-GENERATED DRAFT — NOT REVIEWED, NOT DISPATCH-READY. A human/chat must investigate and complete this before it becomes a real CC-CMD.**
+
+**Date:** ${date}
+**Repo:** jeffunglesbee-create/field-relay-nba (sole)
+**Generated by:** anomaly-to-draft watcher (automated, hourly cron, CC-CMD-2026-07-08-anomaly-draft-watcher)
+
+## CONTEXT
+
+Incident key: \`${incidentRow.key}\`
+Observed count: ${count}
+Recent occurrences:
+${recentLines}
+
+This draft was machine-generated from an incident count crossing a
+threshold. No root-cause investigation has been performed by this watcher
+-- it has no ability to read code, trace logic, or reason about what is
+actually wrong. Do not treat this file as a diagnosis or a proposed fix.
+
+## PROBE BLOCK
+
+\`\`\`bash
+git log --oneline -5
+# Investigate ${incidentRow.key}'s actual root cause before writing any code.
+\`\`\`
+
+## TASKS
+
+Investigate root cause (not yet done — this draft was machine-generated
+from an incident count, not a real diagnosis). A human or chat session
+must complete this section before this draft is dispatch-ready.
+
+## DONE CONDITIONS
+
+- [ ] Root cause identified
+- [ ] Fix implemented and verified
+- [ ] Outbox documents the fix
+
+## CONFIDENCE SCORING
+
+(To be defined once root cause and fix are known -- not yet possible.)
+
+**Do not commit unless confidence >= 95. If score < 95, report verbatim
+and stop.**
+
+## ONE-LINER
+
+Not dispatch-ready -- this is a DRAFT. Complete investigation and fill in
+TASKS/DONE CONDITIONS/CONFIDENCE SCORING before treating this as a real
+CC-CMD.
+`;
+
+  const utf8 = unescape(encodeURIComponent(content));
+  const b64  = btoa(utf8);
+  const putR = await fetch(`${ANOMALY_WATCHER_REPO_API}/contents/${path}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${ghToken}`,
+      'User-Agent': 'field-relay-anomaly-watcher',
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: `docs: auto-generated draft CC-CMD for ${incidentRow.key} (count=${count}) [skip ci]`,
+      content: b64,
+      branch: 'main',
+    }),
+  });
+  if (!putR.ok) {
+    const txt = await putR.text();
+    return { ok: false, error: `GitHub write failed: ${putR.status} ${txt}` };
+  }
+  const putData = await putR.json();
+
+  await ensureCodexStatusColumn(env);
+  await env.ARCHIVE_DB.prepare(`
+    INSERT INTO codex (key, category, title, content, status, updated_at)
+    VALUES (?, 'cc-cmd-draft-queue', ?, ?, 'open', datetime('now'))
+    ON CONFLICT(key) DO UPDATE SET
+      title = excluded.title, content = excluded.content,
+      status = 'open', updated_at = datetime('now')
+  `).bind(
+    `draft/${date}/${slug}`,
+    `DRAFT (auto-generated, unreviewed): ${incidentRow.title}`,
+    JSON.stringify({ path, incident_key: incidentRow.key, count, commit: putData.commit?.sha || null })
+  ).run();
+
+  return { ok: true, path, commit: putData.commit?.sha || null };
+}
+
 let _finalizedAtReady = false;
 async function ensureFinalizedAtColumn(env) {
   if (_finalizedAtReady) return;
@@ -6532,6 +6713,27 @@ export default {
     //   */5  * * * * → push notification heartbeat (drama threshold)
     //   */15 * * * * → journalism cycle (O(1) Newspaper — Layer 2)
     async scheduled(event, env, ctx) {
+        // Anomaly-to-draft watcher — fully isolated 4th cron trigger. This
+        // MUST be an early return, not just an added branch: everything
+        // below this point runs unconditionally on every cron tick
+        // regardless of event.cron (confirmed via probe -- only
+        // analyticsEngine just below is itself conditionally gated; the
+        // journalism cycle, KV sweep, handleCron, and several of the R2
+        // update windows are not gated by event.cron at all, only by
+        // date/time checks). Without this early return, adding a 4th cron
+        // trigger would cause a redundant journalism cycle + KV sweep +
+        // handleCron (and possibly R2 updates, if the tick lands inside one
+        // of their date/time windows) every hour -- exactly what the
+        // isolation requirement (CC-CMD-2026-07-08-anomaly-draft-watcher
+        // TASK 1: "so this new, unproven concern never risks interfering
+        // with journalism generation or the analytics pipeline") exists to
+        // prevent.
+        if (event.cron === '0 * * * *') {
+            ctx.waitUntil(checkIncidentThresholds(env).catch(e =>
+                console.error('[ANOMALY-WATCHER]', e.message)));
+            return;
+        }
+
         // Analytics engine fires only on its dedicated daily 0 9 * * * trigger
         // so the */5 + */15 ticks never invoke it. The other handlers below
         // continue to run on every tick (existing behavior).
@@ -8988,6 +9190,7 @@ export default {
             && !(pathname === '/savant/sync' && request.method === 'POST')
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/analytics/night-stars/recompute' && request.method === 'POST')
+            && !(pathname === '/debug/anomaly-watcher-run' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -10543,6 +10746,20 @@ export default {
             }
             const result = await recomputeNightStars(env, date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // TEMPORARY (CC-CMD-2026-07-08-anomaly-draft-watcher TASK 4) --
+        // manually invokes checkIncidentThresholds without waiting for the
+        // real hourly cron tick, so this can be live-verified against a
+        // real, test-scoped incident. Removed once verified.
+        if (pathname === '/debug/anomaly-watcher-run' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const result = await checkIncidentThresholds(env);
+            return new Response(JSON.stringify({ ok: true, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 

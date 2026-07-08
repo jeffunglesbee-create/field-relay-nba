@@ -54,8 +54,13 @@ id      = "d1d6aec6be0d454a823199f184798fcd"
 
 # Cron triggers: push heartbeat every 5 min + journalism cycle every 15 min
 # + analytics engine daily at 09:00 UTC (5 AM ET) — see src/analytics-engine.js
+# + anomaly-to-draft watcher hourly (CC-CMD-2026-07-08-anomaly-draft-watcher,
+# 2026-07-08) — fully isolated via an early return in scheduled() before any
+# of the other three triggers' unconditional logic runs; see that early
+# return's comment in src/index.js for why the isolation must be a return,
+# not just an added branch.
 [triggers]
-crons = ["*/5 * * * *", "*/15 * * * *", "0 9 * * *"]
+crons = ["*/5 * * * *", "*/15 * * * *", "0 9 * * *", "0 * * * *"]
 
 # ── Durable Objects (WOW 1 + WOW 2 — May 31 2026, Workers Plus) ─────────────
 # GameDO: one DO per active game. Browsers WebSocket-connect for live score
