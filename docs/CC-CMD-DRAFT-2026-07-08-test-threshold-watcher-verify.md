@@ -9,9 +9,10 @@
 ## CONTEXT
 
 Incident key: `test-threshold-watcher-verify`
-Observed count: 3
+Observed count: 4
 Recent occurrences:
 - 2026-07-08T22:00:00.000Z: TEST test1 — synthetic test occurrence
+- 2026-07-08T23:30:00.000Z: TEST test2 — synthetic test occurrence 2
 
 This draft was machine-generated from an incident count crossing a
 threshold. No root-cause investigation has been performed by this watcher
