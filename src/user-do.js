@@ -163,19 +163,6 @@ export class UserDO {
     const now = Date.now();
     const type = body.type;
 
-    // TEMPORARY (CC-CMD-2026-07-08-wp-failure-predictedwinner-logging TASK 3)
-    // -- direct, isolated invocation of _recordWpResolutionFailure with a
-    // fully synthetic codexKey, so live verification never touches the real
-    // wp-resolution-failures/wp-sport-label-drift incident counts (both are
-    // hardcoded at their real call sites, not caller-controlled). Removed
-    // once verified.
-    if (type === 'test_wp_failure_log') {
-      await _recordWpResolutionFailure(this.env, body.sport, body.gameId, body.reason, {
-        codexKey: body.codexKey, titleLabel: body.titleLabel, predictedWinner: body.predictedWinner,
-      });
-      return new Response(JSON.stringify({ ok: true }), { headers: _cors() });
-    }
-
     if (type === 'watch_open') {
       // Append to watchHistory, prune to rolling 30d + max 200
       let wh = (await this.state.storage.get('watchHistory')) || [];
