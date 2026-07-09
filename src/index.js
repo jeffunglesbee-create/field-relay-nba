@@ -11210,8 +11210,8 @@ export default {
         // only when needed). Identical to browser-side chain that runs today.
         //
         // RUWT: no interest level computation. No threshold against composite
-        // value. The "score < 130" check is on prose QUALITY (specificity +
-        // variety + density + statDepth), not on interest. Pure editorial
+        // value. The "score < threshold" check is on prose QUALITY (specificity +
+        // variety + density + statDepth + ...), not on interest. Pure editorial
         // rule. ✅ CLEAN.
         if (pathname === '/journalism/generate' && request.method === 'POST') {
           try {
@@ -11223,7 +11223,15 @@ export default {
             const sport       = body.sport || null;
             const briefType   = body.briefType || 'generic';
             const max_tokens  = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
-            const scoreFloor  = body.scoreThreshold || 130;
+            // Fallback when a caller doesn't pass an explicit scoreThreshold.
+            // 240/300 (80%) is the real, current "excellence" standard,
+            // established by the 2026-06-24 session that wired full game
+            // context through and confirmed Dims 7/10 are reachable at the
+            // relay after all. 130 (this fallback's value until now) was a
+            // fossil from before the 300-point scale existed at all --
+            // never revisited by either later correction. See
+            // CC-CMD-2026-07-09-jq-threshold-240-migration.
+            const scoreFloor  = body.scoreThreshold || 240;
             const game        = body.game        || null;
             const matchupNote = body.matchupNote || null;
 
