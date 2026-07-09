@@ -4095,9 +4095,21 @@ function getQualityTarget(sport) {
   if (_qualityCalibration?.[sport]?.count >= 5) {
     return _qualityCalibration[sport].p25;
   }
-  // hardcoded fallback — sport-specific if defined, generic otherwise
-  const HARDCODED = { nba: 160, nhl: 155, mlb: 145, wnba: 150 };
-  return HARDCODED[sport?.toLowerCase()] || 150;
+  // hardcoded fallback — sport-specific if defined, generic otherwise.
+  // Recalibrated 2026-07-09 (CC-CMD-2026-07-09-getqualitytarget-fallback-fix):
+  // original values (nba:160, nhl:155, mlb:145, wnba:150, default:150) were
+  // set 2026-06-17 against the then-current 245-point relay ceiling (JQ v3,
+  // RELAY_CEILING=245, see git history of journalism-quality.js), *before*
+  // the 2026-06-23 change to the full 300-point scale (Dims 7+10 wired in,
+  // excellence threshold raised 175->240). These are p25-style retry floors,
+  // not the 240 excellence bar, so they're rescaled proportionally
+  // (x * 300/245) to preserve the same relative position on the new scale,
+  // not flattened to 240: 160->196, 155->190, 145->178, 150->184.
+  // This function remains genuinely unused (zero call sites, confirmed by
+  // probe) — this fix does not activate it. A future session wiring it in
+  // must re-verify these numbers are still current before relying on them.
+  const HARDCODED = { nba: 196, nhl: 190, mlb: 178, wnba: 184 };
+  return HARDCODED[sport?.toLowerCase()] || 184;
 }
 
 // ── Layer 1: banned phrases (mirrors index.html BANNED_PHRASES) ───────────────
