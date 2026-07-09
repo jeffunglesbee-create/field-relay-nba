@@ -11448,10 +11448,6 @@ export default {
               homeScore: body.homeScore ?? null,
               awayScore: body.awayScore ?? null,
               matchupNote: body.matchupNote || null,
-              // TEMPORARY (CC-CMD-2026-07-09-enqueue-context-gap TASK 4) --
-              // opt-in diagnostic flag, forwarded verbatim. See the queue
-              // consumer's _diag block. Removed once verified.
-              ...(body._diag ? { _diag: true } : {}),
               enqueuedAt: Date.now(),
             });
             // Seed status row in KV so result endpoint can report "queued" before processing.
@@ -13660,29 +13656,6 @@ export default {
           // PF-1 parity: strip markdown headers/bold before persisting, so the
           // queue consumer's KV output matches the sync /journalism/generate path.
           const cleanText = stripMarkdown(result.text);
-          // TEMPORARY (CC-CMD-2026-07-09-enqueue-context-gap TASK 4) -- direct,
-          // observable proof that job.home/away/matchupNote genuinely reached
-          // this consumer and are scoreable, not inferred from a score change
-          // alone. Only computed when the caller opts in via job._diag, so
-          // real production jobs are unaffected. Removed once verified.
-          let _diag;
-          if (job._diag) {
-            const _bd = await jqScoreProse(cleanText, {
-              sport: job.sport || null,
-              game: (job.home && job.away)
-                ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
-                : null,
-              matchupNote: job.matchupNote || null,
-              breakdown: true,
-            });
-            _diag = {
-              receivedHome: job.home, receivedAway: job.away,
-              receivedHomeScore: job.homeScore, receivedAwayScore: job.awayScore,
-              receivedMatchupNote: job.matchupNote,
-              promptContains180: /\/180\b/.test(job.prompt || ''),
-              dims: _bd.dims,
-            };
-          }
           // Persist completed result.
           await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
             JSON.stringify({
@@ -13693,7 +13666,6 @@ export default {
               layers_fired: result.layers_fired,
               ms: result.ms,
               completedAt: Date.now(),
-              ...(job._diag ? { _diag } : {}),
             }),
             {expirationTtl: 86400});
           msg.ack();
