@@ -1,0 +1,24 @@
+name: PredictedWinner Logging Verify (temporary, CC-CMD-2026-07-08-wp-failure-predictedwinner-logging)
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger synthetic WP failure log
+        run: |
+          set -x
+          USERID="test-predictedwinner-verify-user-000001"
+          BASE="https://field-relay-nba.jeffunglesbee.workers.dev/user/event?userId=${USERID}"
+
+          curl -s -X POST -H "Content-Type: application/json" "$BASE" -d '{
+            "type": "test_wp_failure_log",
+            "sport": "Baseball (MLB)",
+            "gameId": "test-game-predictedwinner-001",
+            "reason": "synthetic test occurrence",
+            "codexKey": "test-predictedwinner-verify",
+            "titleLabel": "TEST predictedWinner logging verification",
+            "predictedWinner": "Test Marlins XYZ"
+          }'
+          echo
