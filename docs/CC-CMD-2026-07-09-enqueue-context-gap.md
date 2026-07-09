@@ -39,12 +39,41 @@ that was never actually 300. This is the real explanation for the flat
 A/B result, confirmed by tracing the actual data flow, not by re-running
 the same test with different inputs.
 
-**Scope discipline:** this does not touch `getQualityTarget()`
-(confirmed real, well-built, but genuinely unused anywhere — zero call
-sites found via grep). That's a separate, standalone finding — a
-built-but-disconnected calibration system — not something this CC-CMD
-activates or removes. Note its existence and dead-code status in the
-outbox; do not wire it in speculatively as part of this fix.
+**Correction to this doc's own prior draft, found before dispatch —
+read carefully:** an earlier version of this investigation checked
+`field-relay-nba` for `getQualityTarget(` call sites, found zero, and
+concluded it was dead code. That was wrong — it only checked one of the
+two repos. A **different, genuinely active** `getQualityTarget(sport)`
+exists client-side (`jubilant-bassoon/index.html:25452`), reading
+`field_jq_scores` from `localStorage`, called at two real sites
+(`index.html:27789`, inside `j2-series`'s prompt build, and
+`index.html:39056`, inside `night-owl`'s), guarded by smoke assertions
+A349/A350. It is a **third fossil from the pre-300-point-scale era**,
+distinct from both the relay's `130` default (fixed 2026-07-09 morning)
+and the relay's dead calibration function (still genuinely unused,
+that part of the original finding stands). Its returned string is
+embedded directly into the generation prompt itself:
+
+```javascript
+lines.push(`- QUALITY TARGET: recent ${labelStr} briefs averaged score ${Math.round(avgScore)}/180. Target ≥ 145 — add more specific facts...`);
+```
+
+`/180` — a scale that stopped existing weeks ago. This means every
+`night-owl` and `j2-series` brief has been explicitly instructed, in
+its own prompt, to aim for "≥145" against an obsolete ceiling —
+independent of whatever `scoreThreshold` governs the retry gate
+afterward. The observed live scores (130, 141, 137) cluster tightly
+around this stale instruction — tighter than around either
+`scoreThreshold` value tested — making this a strong, possibly
+dominant, independent contributor to the flat A/B result, not just the
+enqueue/game-data gap alone. Both are real; neither alone may fully
+explain the observed plateau; fix both, verify together.
+
+**Scope discipline, revised:** the relay-side `getQualityTarget()`
+(field-relay-nba) is confirmed genuinely unused there — that finding
+stands, do not activate it speculatively. The **client-side**
+`getQualityTarget()` is a different function entirely and is in scope
+for TASK 5 below.
 
 ## PROBE BLOCK
 
@@ -102,18 +131,44 @@ reads these field names correctly (confirmed via probe) — this is
 purely closing the gap where they were dropped at write time, not a
 consumer-side change.
 
+## TASK 5 — jubilant-bassoon: fix the stale /180 scale in getQualityTarget()
+
+Re-probe `getQualityTarget()` at its current line before editing — this
+doc's line citation may already be stale. Update the scale reference
+from `/180` to `/300`, and reconsider the `avgScore < 130` / `Target ≥
+145` thresholds against the current 240 standard rather than assuming
+the same relative gap still makes sense (145/180 ≈ 81%; the equivalent
+on a 300 scale would be ~242, i.e. approximately the same 240 this whole
+CC-CMD is built around — confirm this arithmetic against the real
+`W.spec`/etc. weight constants in `journalism-quality.js` rather than
+trusting this doc's own quick estimate). Do not touch the
+`field_jq_scores` localStorage read itself, or the sport-tag matching
+logic — both are unrelated to the scale question and out of scope here.
+If `field_jq_scores` itself was populated under the old 180-point scale
+historically (check the data shape/values actually stored, don't
+assume), state that explicitly in the outbox — stale historical data
+feeding a now-corrected formula is a different, real problem from the
+formula being wrong, and conflating them would hide one or the other.
+
 ## TASK 4 — Live verification: prove the real ceiling actually opens up
 
 Repeat the exact same A/B methodology the prior session used (real
 POSTs to the actual deployed relay via `JOURNALISM_ENQUEUE_RELAY`, not
-simulated) for night-owl, using a real current game. This time, confirm
-via the completed job's result that `game`/`matchupNote` are non-null
-in what the consumer receives (may require a temporary diagnostic log,
-cleaned up after, matching this session's own established pattern for
-this) — the deliverable is proof that Context Anchoring and Matchup
-Depth are now actually scoreable, not just that word count changed.
+simulated) for night-owl, using a real current game — this time with
+BOTH fixes live (TASK 2/3's game/matchupNote threading AND TASK 5's
+corrected quality-target scale). Confirm via the completed job's result
+that `game`/`matchupNote` are non-null in what the consumer receives
+(may require a temporary diagnostic log, cleaned up after) — the
+deliverable is proof that Context Anchoring and Matchup Depth are now
+actually scoreable, not just that word count changed. Separately
+confirm the prompt actually sent to the model no longer contains a
+"/180" reference (re-derive the prompt text the same way the real code
+does, don't assume TASK 5's edit propagated correctly without checking).
 Report the resulting score honestly, whatever it is — this task's job
-is to prove the ceiling opened, not to prove 240 is now reached.
+is to prove both ceilings opened, not to prove 240 is now reached. If
+time allows, running the two fixes' live-test isolated (game/matchupNote
+alone, then quality-target scale alone) before combining them would
+show which contributed how much — valuable but not required for DONE.
 
 ## DONE CONDITIONS
 
@@ -121,19 +176,26 @@ is to prove the ceiling opened, not to prove 240 is now reached.
 - [x] `night-owl`/`scouts-pick` send real game/matchupNote data at enqueue
 - [x] `/journalism/enqueue` stores and forwards the new fields, consumer
       untouched (it already reads them correctly)
-- [x] Live test proves `game`/`matchupNote` are non-null downstream —
-      the actual mechanism fixed, not inferred from a score change alone
-- [x] `getQualityTarget()`'s dead-code status noted in the outbox,
-      explicitly not activated as part of this fix
+- [x] Client-side `getQualityTarget()`'s stale `/180` reference corrected
+      to the current 300-point scale, with honest arithmetic shown
+- [x] Live test proves `game`/`matchupNote` are non-null downstream AND
+      the prompt no longer contains a stale scale reference — the actual
+      mechanisms fixed, not inferred from a score change alone
+- [x] Relay-side `getQualityTarget()`'s dead-code status (confirmed,
+      separate function) noted in the outbox, correctly left alone
 
 ## CONFIDENCE SCORING
 
-- +15 — prior correct work committed cleanly, verified unchanged
-- +20 — client sends real game/matchupNote data at both call sites
-- +25 — relay correctly stores and forwards both new fields
-- +30 — live test proves game/matchupNote are genuinely non-null
-  downstream, not inferred
-- +10 — `getQualityTarget()` correctly left alone, noted not activated
+- +10 — prior correct threshold work committed cleanly, verified unchanged
+- +15 — client sends real game/matchupNote data at both call sites
+- +20 — relay correctly stores and forwards both new fields
+- +15 — client-side getQualityTarget's scale correctly updated, honest
+  arithmetic shown, field_jq_scores data-shape question addressed
+- +30 — live test proves both fixes are genuinely active downstream
+  (non-null game/matchupNote AND no stale scale reference in the
+  prompt), not inferred from a score change alone
+- +10 — relay-side getQualityTarget correctly left alone, noted as a
+  separate, distinct function from the client-side one
 
 **Do not commit unless confidence >= 95. If score < 95, report verbatim
 and stop.**
