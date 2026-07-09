@@ -5217,7 +5217,6 @@ async function executeSeriesPreviewBackfill(env) {
     const qResult = await runQualityChain(seriesPrompt, initial, callProxy, {
       sport,
       scoreThreshold: 240,
-      maxRetries: 3,
       game:        { home: higherSeed, away: lowerSeed },
       matchupNote: series.narrative || null,
     });
@@ -5335,7 +5334,6 @@ async function executeGameBriefBackfill(env, date) {
     const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
       sport,
       scoreThreshold: 240,
-      maxRetries: 3,
       game: { home, away, homeScore: game.home_score, awayScore: game.away_score },
       matchupNote: game.note || null,
     });
@@ -5429,7 +5427,6 @@ async function executeBackfill(env, date) {
   const qResult = await runQualityChain(prompt, initial, callProxy, {
     sport: null,
     scoreThreshold: 240,
-    maxRetries: 6,
   });
   const prose = qResult.text;
   const score = qResult.score;
@@ -6562,7 +6559,6 @@ async function handleJournalismCycle(env, opts = {}) {
     const qualityResult = await runQualityChain(buildPrompt(), prose, callProxy, {
       sport: null, // slate brief covers multiple sports
       scoreThreshold: 240,
-      maxRetries: 6,
     });
     prose = qualityResult.text;
     const finalScore   = qualityResult.score;
@@ -9553,7 +9549,6 @@ export default {
                         const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
                             sport: sportLabel,
                             scoreThreshold: 240,
-                            maxRetries: 2,
                             game: { home: game.home, away: game.away, homeScore: game.home_score, awayScore: game.away_score },
                             matchupNote: game.note || null,
                         });
@@ -11316,7 +11311,6 @@ export default {
             const result = await runQualityChain(promptWithVoice, initial, callProxy, {
               sport,
               scoreThreshold: scoreFloor,
-              maxRetries: 6,
               game,
               matchupNote,
             });
@@ -13550,7 +13544,6 @@ export default {
             const qResult = await runQualityChain(jobPrompt, initial, callProxy, {
               sport: job.sport || null,
               scoreThreshold: 240,
-              maxRetries: 2,
               game: (job.home && job.away)
                 ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
                 : null,
@@ -13642,7 +13635,6 @@ export default {
           const result = await runQualityChain(job.prompt, initial, callProxy, {
             sport: job.sport,
             scoreThreshold: job.scoreThreshold || 240,
-            maxRetries: 6,
             game: (job.home && job.away)
               ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
               : null,
