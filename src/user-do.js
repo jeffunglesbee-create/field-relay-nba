@@ -163,6 +163,19 @@ export class UserDO {
     const now = Date.now();
     const type = body.type;
 
+    // TEMPORARY (CC-CMD-2026-07-08-wp-failure-predictedwinner-logging TASK 3)
+    // -- direct, isolated invocation of _recordWpResolutionFailure with a
+    // fully synthetic codexKey, so live verification never touches the real
+    // wp-resolution-failures/wp-sport-label-drift incident counts (both are
+    // hardcoded at their real call sites, not caller-controlled). Removed
+    // once verified.
+    if (type === 'test_wp_failure_log') {
+      await _recordWpResolutionFailure(this.env, body.sport, body.gameId, body.reason, {
+        codexKey: body.codexKey, titleLabel: body.titleLabel, predictedWinner: body.predictedWinner,
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: _cors() });
+    }
+
     if (type === 'watch_open') {
       // Append to watchHistory, prune to rolling 30d + max 200
       let wh = (await this.state.storage.get('watchHistory')) || [];
@@ -253,13 +266,13 @@ export class UserDO {
               // 10-entry recent[] window.
               await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId,
                 'sport label not found in SPORT_LABEL_MAP',
-                { codexKey: 'wp-sport-label-drift', titleLabel: 'Unrecognized sport label seen' });
+                { codexKey: 'wp-sport-label-drift', titleLabel: 'Unrecognized sport label seen', predictedWinner: pick.predictedWinner });
             } else {
-              await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null');
+              await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, 'resolveWinProbability returned null', { predictedWinner: pick.predictedWinner });
             }
           }
         } catch (_e) {
-          try { await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, _e?.message || 'threw'); } catch (_) {}
+          try { await _recordWpResolutionFailure(this.env, pick.sport, pick.gameId, _e?.message || 'threw', { predictedWinner: pick.predictedWinner }); } catch (_) {}
         }
       }
       pick.resolved            = true;
@@ -291,7 +304,7 @@ export class UserDO {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function _recordWpResolutionFailure(env, sport, gameId, reason, opts = {}) {
-    const { codexKey = 'wp-resolution-failures', titleLabel = 'WP resolution failed' } = opts;
+    const { codexKey = 'wp-resolution-failures', titleLabel = 'WP resolution failed', predictedWinner } = opts;
     if (!env.ARCHIVE_DB) return;
     try {
         const existing = await env.ARCHIVE_DB.prepare(
@@ -299,7 +312,12 @@ async function _recordWpResolutionFailure(env, sport, gameId, reason, opts = {})
         ).bind(codexKey).first();
         const prior = existing ? JSON.parse(existing.content || '{}') : { count: 0, recent: [] };
         const count = (prior.count || 0) + 1;
-        const recent = [{ sport, gameId, reason, at: new Date().toISOString() }, ...(prior.recent || [])].slice(0, 10);
+        // predictedWinner omitted entirely (not written as literal `undefined`)
+        // when not provided, so both pre-change entries and any future caller
+        // that doesn't pass it parse cleanly without implying false precision.
+        const entry = { sport, gameId, reason, at: new Date().toISOString() };
+        if (predictedWinner) entry.predictedWinner = predictedWinner;
+        const recent = [entry, ...(prior.recent || [])].slice(0, 10);
         await env.ARCHIVE_DB.prepare(`
             INSERT INTO codex (key, category, title, content, status, updated_at)
             VALUES (?, 'incident', ?, ?, 'open', datetime('now'))
