@@ -111,13 +111,32 @@ import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
 
 // ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
-// Single hardcoded repo target for all L5 tools and /repo/archive. The relay
-// is the sole credential holder (Rule 80 / CREDENTIAL-BOUNDARY-A): the PAT
-// never leaves the worker. Path allowlists below are the enforcement seam
-// for Rule 81 (WRITE-GATE-A) and Rule 83 (NO-EXFIL-A).
+// Multi-repo target for read_file/read_source/read_lines/commit_file/
+// get_archive_url (CC-CMD-2026-07-10-mcp-multi-repo-create-support). The
+// relay is still the sole credential holder (Rule 80 / CREDENTIAL-BOUNDARY-A):
+// the PAT never leaves the worker. Path allowlists below are the enforcement
+// seam for Rule 81 (WRITE-GATE-A) and Rule 83 (NO-EXFIL-A) -- shared,
+// unmodified across both repos (confirmed via TASK 4: field-relay-nba has no
+// HANDOFF.md/CODE_MAP.json/README.md/index.html of its own, so those prefixes
+// are simply inert there; docs/, src/, scripts/, .github/, CLAUDE.md exist
+// identically in both).
 const REPO_OWNER = 'jeffunglesbee-create';
+const REPO_NAMES = { 'jubilant-bassoon': 'jubilant-bassoon', 'field-relay-nba': 'field-relay-nba' };
+function repoApiFor(repoKey) {
+    const name = REPO_NAMES[repoKey] || REPO_NAMES['jubilant-bassoon']; // default preserves all pre-existing callers' behavior
+    return `https://api.github.com/repos/${REPO_OWNER}/${name}`;
+}
+function repoNameFor(repoKey) {
+    return REPO_NAMES[repoKey] || REPO_NAMES['jubilant-bassoon'];
+}
+// Legacy aliases -- read_handoff/write_handoff/get_head_sha (below) are
+// deliberately hardcoded to jubilant-bassoon only, per their own comment:
+// no path/repo input accepted from the caller. NOT in this CC-CMD's scope
+// (only read_file/read_source/read_lines/commit_file/get_archive_url are)
+// and left untouched; REPO_NAME/REPO_API keep their original values so
+// HANDOFF_API_BASE's behavior is byte-identical to before this change.
 const REPO_NAME  = 'jubilant-bassoon';
-const REPO_API   = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+const REPO_API   = repoApiFor(REPO_NAME);
 
 // READ_ALLOWLIST: prefixes (path.startsWith) that read_file / read_source /
 // read_lines may target. Keep narrow; expand only with an explicit prompt.
@@ -6934,6 +6953,10 @@ export default {
         // and expiry verified relay-side; the relay then forwards the request
         // to GitHub's tarball endpoint using the relay-held PAT, so the PAT
         // never leaves the worker (Rule 80 / CREDENTIAL-BOUNDARY-A).
+        // repo is part of the SIGNED payload (not just a query param read
+        // separately) -- otherwise a validly-signed URL for one repo could be
+        // replayed against the other by simply editing ?repo= in the query
+        // string, since exp/sig alone wouldn't cover which repo was granted.
         if (pathname === '/repo/archive' && request.method === 'GET') {
             const secret = env.FIELD_MCP_SECRET;
             if (!secret) return new Response('FIELD_MCP_SECRET not configured', { status: 503, headers: CORS });
@@ -6941,9 +6964,10 @@ export default {
             if (!ghToken) return new Response('GITHUB_PAT not configured', { status: 503, headers: CORS });
             const exp = parseInt(url.searchParams.get('exp') || '0', 10);
             const sig = url.searchParams.get('sig') || '';
+            const repoParam = url.searchParams.get('repo') || 'jubilant-bassoon';
             if (!exp || !sig) return new Response('Missing exp or sig', { status: 400, headers: CORS });
             if (Math.floor(Date.now() / 1000) > exp) return new Response('Signed URL expired', { status: 403, headers: CORS });
-            const payload = `repo-archive:${exp}`;
+            const payload = `repo-archive:${repoParam}:${exp}`;
             const key = await crypto.subtle.importKey(
                 'raw',
                 new TextEncoder().encode(secret),
@@ -6954,7 +6978,8 @@ export default {
             const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
             const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
             if (sigHex !== sig) return new Response('Invalid signature', { status: 403, headers: CORS });
-            const tarR = await fetch(`${REPO_API}/tarball/main`, {
+            const repoName = repoNameFor(repoParam);
+            const tarR = await fetch(`${repoApiFor(repoParam)}/tarball/main`, {
                 headers: {
                     'Authorization': `Bearer ${ghToken}`,
                     'User-Agent': 'field-relay-mcp',
@@ -6970,7 +6995,7 @@ export default {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/gzip',
-                    'Content-Disposition': `attachment; filename="${REPO_NAME}-main.tar.gz"`,
+                    'Content-Disposition': `attachment; filename="${repoName}-main.tar.gz"`,
                     'Access-Control-Allow-Origin': '*',
                 },
             });
@@ -12504,61 +12529,66 @@ export default {
                     // ── L5: Repo Source Access (FIELD Session Memory) ──
                     {
                         name: 'read_file',
-                        description: 'Read a single file from jubilant-bassoon main branch. Path must be in READ_ALLOWLIST (index.html, src/, docs/, scripts/, .github/, CODE_MAP.json, HANDOFF.md, STANDARDS.md, README.md, CLAUDE.md). Returns { path, sha, size, content } as JSON text.',
+                        description: 'Read a single file from a repo main branch (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Path must be in READ_ALLOWLIST (index.html, src/, docs/, scripts/, .github/, CODE_MAP.json, HANDOFF.md, STANDARDS.md, README.md, CLAUDE.md — same allowlist for both repos; prefixes that don\'t exist in a given repo are simply inert there). Returns { repo, path, sha, size, content } as JSON text.',
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 path: { type: 'string', description: 'Repo-relative path, e.g. "src/index.js" or "index.html"' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path'],
                         },
                     },
                     {
                         name: 'read_source',
-                        description: 'Search jubilant-bassoon for a literal string and return matching files with sha and size. Use this before read_file when locating where a function/symbol lives. Limited to READ_ALLOWLIST paths.',
+                        description: 'Search a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) for a literal string and return matching files with sha and size. Use this before read_file when locating where a function/symbol lives. Limited to READ_ALLOWLIST paths.',
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 query: { type: 'string', description: 'Literal substring to search for, e.g. "function renderAll"' },
                                 max_results: { type: 'number', description: 'Max results to return (default 10, max 25)' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['query'],
                         },
                     },
                     {
                         name: 'read_lines',
-                        description: 'Read a line range of a single file (1-indexed, inclusive). Useful for cheap surgical reads when full file would blow context. Path must be in READ_ALLOWLIST.',
+                        description: 'Read a line range of a single file (1-indexed, inclusive) from a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Useful for cheap surgical reads when full file would blow context. Path must be in READ_ALLOWLIST.',
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 path:  { type: 'string', description: 'Repo-relative path' },
                                 start: { type: 'number', description: '1-indexed first line' },
                                 end:   { type: 'number', description: '1-indexed last line (inclusive)' },
+                                repo:  { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path', 'start', 'end'],
                         },
                     },
                     {
                         name: 'commit_file',
-                        description: 'Replace one file in jubilant-bassoon and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json). Caller MUST pass parent_sha (the sha returned by read_file/read_source); a stale parent_sha is rejected to prevent blind overwrite. Commit message is auto-prefixed with [skip ci].',
+                        description: 'Create or replace one file in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json). To UPDATE an existing file, pass parent_sha (the sha returned by read_file/read_source) — a stale or missing parent_sha for an existing file is rejected to prevent blind overwrite. To CREATE a new file, omit parent_sha entirely; if the path already exists this is rejected (re-read and use parent_sha instead). Commit message is auto-prefixed with [skip ci].',
                         inputSchema: {
                             type: 'object',
                             properties: {
-                                path: { type: 'string', description: 'Repo-relative path to overwrite' },
+                                path: { type: 'string', description: 'Repo-relative path to create or overwrite' },
                                 content: { type: 'string', description: 'Full new file content (UTF-8)' },
                                 commit_message: { type: 'string', description: 'Commit message body; [skip ci] is added automatically' },
-                                parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path' },
+                                parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path. Required to update an existing file; omit to create a new one.' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
-                            required: ['path', 'content', 'commit_message', 'parent_sha'],
+                            required: ['path', 'content', 'commit_message'],
                         },
                     },
                     {
                         name: 'get_archive_url',
-                        description: 'Mint a time-limited HMAC-signed URL to download the jubilant-bassoon tarball via the relay (/repo/archive). The PAT never leaves the relay; the URL expires after ttl_seconds (default 300, max 900). Use this when a session needs to ingest the whole repo at once.',
+                        description: 'Mint a time-limited HMAC-signed URL to download a repo tarball (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) via the relay (/repo/archive). The PAT never leaves the relay; the target repo is bound into the signature itself (not just a bare query param), so a URL minted for one repo cannot be redirected to the other. The URL expires after ttl_seconds (default 300, max 900). Use this when a session needs to ingest the whole repo at once.',
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 ttl_seconds: { type: 'number', description: 'URL lifetime in seconds (default 300, max 900)' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: [],
                         },
@@ -12705,8 +12735,10 @@ export default {
                 // tools. Returns { ok:true, content, sha, size } on success,
                 // { ok:false, status, error } on failure. Caller is responsible
                 // for allowlist gating (isPathAllowed) before invoking.
-                const fetchRepoFile = async (token, path) => {
-                    const r = await fetch(`${REPO_API}/contents/${path}?ref=main`, { headers: ghHeaders(token) });
+                // repoApi defaults to REPO_API (jubilant-bassoon) so any
+                // caller that doesn't pass it behaves exactly as before.
+                const fetchRepoFile = async (token, path, repoApi = REPO_API) => {
+                    const r = await fetch(`${repoApi}/contents/${path}?ref=main`, { headers: ghHeaders(token) });
                     if (!r.ok) {
                         const txt = await r.text();
                         return { ok: false, status: r.status, error: txt };
@@ -13215,18 +13247,18 @@ export default {
                 if (toolName === 'read_file') {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
-                    const { path } = toolArgs;
+                    const { path, repo } = toolArgs;
                     if (typeof path !== 'string') {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: path (string)'}], isError:true}));
                     }
                     if (!isPathAllowed(path, READ_ALLOWLIST)) {
                         return respond(jsonrpc2({content:[{type:'text',text:`Path not in READ_ALLOWLIST: ${path}`}], isError:true}));
                     }
-                    const f = await fetchRepoFile(ghToken, path);
+                    const f = await fetchRepoFile(ghToken, path, repoApiFor(repo));
                     if (!f.ok) {
                         return respond(jsonrpc2({content:[{type:'text',text:`GitHub read failed: ${f.status} ${f.error}`}], isError:true}));
                     }
-                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, sha:f.sha, size:f.size, content:f.content})}]}));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), path, sha:f.sha, size:f.size, content:f.content})}]}));
                 }
 
                 // ── L5: read_source ──
@@ -13236,12 +13268,12 @@ export default {
                 if (toolName === 'read_source') {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
-                    const { query } = toolArgs;
+                    const { query, repo } = toolArgs;
                     const maxResults = Math.min(toolArgs.max_results || 10, 25);
                     if (typeof query !== 'string' || query.length === 0) {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: query (non-empty string)'}], isError:true}));
                     }
-                    const q = encodeURIComponent(`"${query}" repo:${REPO_OWNER}/${REPO_NAME}`);
+                    const q = encodeURIComponent(`"${query}" repo:${REPO_OWNER}/${repoNameFor(repo)}`);
                     const r = await fetch(`https://api.github.com/search/code?q=${q}&per_page=${maxResults}`, {
                         headers: { ...ghHeaders(ghToken), 'Accept': 'application/vnd.github.v3.text-match+json' },
                     });
@@ -13254,14 +13286,14 @@ export default {
                         .filter(it => isPathAllowed(it.path, READ_ALLOWLIST))
                         .slice(0, maxResults)
                         .map(it => ({ path: it.path, sha: it.sha, score: it.score }));
-                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({query, total_count: data.total_count, hits})}]}));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), query, total_count: data.total_count, hits})}]}));
                 }
 
                 // ── L5: read_lines ──
                 if (toolName === 'read_lines') {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
-                    const { path, start, end } = toolArgs;
+                    const { path, start, end, repo } = toolArgs;
                     if (typeof path !== 'string' || typeof start !== 'number' || typeof end !== 'number') {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: path (string), start (number), end (number)'}], isError:true}));
                     }
@@ -13271,51 +13303,69 @@ export default {
                     if (start < 1 || end < start) {
                         return respond(jsonrpc2({content:[{type:'text',text:'start must be >= 1 and end must be >= start'}], isError:true}));
                     }
-                    const f = await fetchRepoFile(ghToken, path);
+                    const f = await fetchRepoFile(ghToken, path, repoApiFor(repo));
                     if (!f.ok) {
                         return respond(jsonrpc2({content:[{type:'text',text:`GitHub read failed: ${f.status} ${f.error}`}], isError:true}));
                     }
                     const lines = f.content.split('\n');
                     const slice = lines.slice(start - 1, end).join('\n');
-                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, sha:f.sha, start, end, total_lines: lines.length, content: slice})}]}));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), path, sha:f.sha, start, end, total_lines: lines.length, content: slice})}]}));
                 }
 
                 // ── L5: commit_file ──
                 // Rule 81 (WRITE-GATE-A) + Rule 82 (ARCHIVE-FRESHNESS-A):
-                // parent_sha must match live HEAD for the file. GitHub Contents
-                // PUT enforces this when `sha` is supplied; relay double-checks
-                // explicitly so the error message is actionable.
+                // parent_sha must match live HEAD for an EXISTING file. GitHub
+                // Contents PUT enforces this when `sha` is supplied; relay
+                // double-checks explicitly so the error message is actionable.
+                // parent_sha is OPTIONAL as of CC-CMD-2026-07-10-mcp-multi-repo-
+                // create-support -- omitting it (and the path not existing yet,
+                // confirmed via a live 404) means create. Supplying it against
+                // a path that doesn't exist is rejected, not silently treated as
+                // a create -- avoids a caller papering over a wrong path.
                 if (toolName === 'commit_file') {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
-                    const { path, content, commit_message, parent_sha } = toolArgs;
-                    if (typeof path !== 'string' || typeof content !== 'string' || typeof commit_message !== 'string' || typeof parent_sha !== 'string') {
-                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path, content, commit_message, parent_sha (all strings)'}], isError:true}));
+                    const { path, content, commit_message, parent_sha, repo } = toolArgs;
+                    if (typeof path !== 'string' || typeof content !== 'string' || typeof commit_message !== 'string' || (parent_sha !== undefined && typeof parent_sha !== 'string')) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path, content, commit_message (all strings). Optional: parent_sha (string, required only when overwriting an existing file), repo.'}], isError:true}));
                     }
                     if (!isPathAllowed(path, WRITE_ALLOWLIST)) {
                         return respond(jsonrpc2({content:[{type:'text',text:`Path not in WRITE_ALLOWLIST: ${path}`}], isError:true}));
                     }
-                    const live = await fetchRepoFile(ghToken, path);
-                    if (!live.ok) {
+                    const repoApi = repoApiFor(repo);
+                    const live = await fetchRepoFile(ghToken, path, repoApi);
+                    let shaForPut;
+                    if (live.ok) {
+                        // File exists -- update, same strictness as before this change.
+                        if (!parent_sha || live.sha !== parent_sha) {
+                            return respond(jsonrpc2({content:[{type:'text',text:`Stale or missing parent_sha for existing file: caller has ${parent_sha || '(none)'}, live is ${live.sha}. Re-read and retry.`}], isError:true}));
+                        }
+                        shaForPut = parent_sha;
+                    } else if (live.status === 404) {
+                        // File does not exist -- create.
+                        if (parent_sha) {
+                            return respond(jsonrpc2({content:[{type:'text',text:'Path does not exist (404) but parent_sha was supplied. Omit parent_sha to create a new file, or re-check the path.'}], isError:true}));
+                        }
+                        shaForPut = undefined;
+                    } else {
                         return respond(jsonrpc2({content:[{type:'text',text:`Live read failed: ${live.status} ${live.error}`}], isError:true}));
-                    }
-                    if (live.sha !== parent_sha) {
-                        return respond(jsonrpc2({content:[{type:'text',text:`Stale parent_sha: caller has ${parent_sha}, live is ${live.sha}. Re-read and retry.`}], isError:true}));
                     }
                     const utf8 = unescape(encodeURIComponent(content));
                     const b64  = btoa(utf8);
                     const msg  = commit_message.includes('[skip ci]') ? commit_message : `${commit_message} [skip ci]`;
-                    const putR = await fetch(`${REPO_API}/contents/${path}`, {
+                    const putBody = { message: msg, content: b64, branch: 'main' };
+                    if (shaForPut) putBody.sha = shaForPut; // omitted entirely on create -- GitHub Contents API create/update is keyed off sha's presence
+                    const putR = await fetch(`${repoApi}/contents/${path}`, {
                         method: 'PUT',
                         headers: { ...ghHeaders(ghToken), 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: msg, content: b64, sha: parent_sha, branch: 'main' }),
+                        body: JSON.stringify(putBody),
                     });
                     if (!putR.ok) {
                         const txt = await putR.text();
                         return respond(jsonrpc2({content:[{type:'text',text:`GitHub write failed: ${putR.status} ${txt}`}], isError:true}));
                     }
                     const putData = await putR.json();
-                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({path, commit: putData.commit.sha, message: msg, new_sha: putData.content.sha})}]}));
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), path, created: !shaForPut, commit: putData.commit.sha, message: msg, new_sha: putData.content.sha})}]}));
                 }
 
                 // ── L5: get_archive_url ──
@@ -13323,13 +13373,16 @@ export default {
                 // We mint an HMAC-signed URL with an expiry; /repo/archive
                 // verifies the signature then proxies the tarball using the
                 // relay-held PAT. The signed URL itself is harmless if leaked
-                // after expiry.
+                // after expiry. repo is part of the signed payload (not a bare
+                // query param) so a URL minted for one repo can't be redirected
+                // to the other by editing the query string -- see /repo/archive.
                 if (toolName === 'get_archive_url') {
                     const secret = env.FIELD_MCP_SECRET;
                     if (!secret) return respond(jsonrpc2({content:[{type:'text',text:'FIELD_MCP_SECRET not configured on worker'}], isError:true}));
+                    const repoKey = repoNameFor(toolArgs.repo);
                     const ttl = Math.min(toolArgs.ttl_seconds || 300, 900);
                     const exp = Math.floor(Date.now() / 1000) + ttl;
-                    const payload = `repo-archive:${exp}`;
+                    const payload = `repo-archive:${repoKey}:${exp}`;
                     const key = await crypto.subtle.importKey(
                         'raw',
                         new TextEncoder().encode(secret),
@@ -13339,8 +13392,8 @@ export default {
                     );
                     const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
                     const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
-                    const urlOut = `${url.origin}/repo/archive?exp=${exp}&sig=${sigHex}`;
-                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({url: urlOut, expires_at: exp, ttl_seconds: ttl})}]}));
+                    const urlOut = `${url.origin}/repo/archive?exp=${exp}&sig=${sigHex}&repo=${repoKey}`;
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoKey, url: urlOut, expires_at: exp, ttl_seconds: ttl})}]}));
                 }
 
                 // ── L4: codex_write ──
