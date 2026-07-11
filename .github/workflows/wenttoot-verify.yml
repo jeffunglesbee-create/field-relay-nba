@@ -1,0 +1,53 @@
+name: wenttoot-verify
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Independently re-verify ESPN period data for the three named games
+        run: |
+          echo "=== 2026-07-07 MLB scoreboard (Marlins/Mariners, event 401816060) ==="
+          curl -s "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=20260707" \
+            | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for ev in d.get('events',[]):
+    if str(ev.get('id')) == '401816060':
+        c = ev['competitions'][0]
+        print('id:', ev.get('id'), 'name:', ev.get('shortName'))
+        print('period:', c['status'].get('period'))
+        print('completed:', c['status']['type'].get('completed'))
+        print('detail:', c['status']['type'].get('detail'))
+"
+
+          echo "=== 2026-07-06 MLB scoreboard (Braves/Mets event 401816047, Dodgers/Rockies event 401816051) ==="
+          curl -s "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=20260706" \
+            | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+targets = {'401816047':'Braves/Mets', '401816051':'Dodgers/Rockies'}
+for ev in d.get('events',[]):
+    eid = str(ev.get('id'))
+    if eid in targets:
+        c = ev['competitions'][0]
+        print('id:', eid, 'name:', ev.get('shortName'))
+        print('period:', c['status'].get('period'))
+        print('completed:', c['status']['type'].get('completed'))
+        print('detail:', c['status']['type'].get('detail'))
+
+          echo '=== control: a non-OT MLB game from the same 2026-07-06 slate (first game, period<=9) ==='
+"
+          curl -s "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=20260706" \
+            | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+targets = {'401816047','401816051'}
+for ev in d.get('events',[]):
+    eid = str(ev.get('id'))
+    if eid in targets: continue
+    c = ev['competitions'][0]
+    if c['status']['type'].get('completed') and (c['status'].get('period') or 0) <= 9:
+        print('control candidate id:', eid, 'name:', ev.get('shortName'), 'period:', c['status'].get('period'))
+        break
+"
