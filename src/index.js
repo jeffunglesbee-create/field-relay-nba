@@ -9312,7 +9312,8 @@ export default {
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
             && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST')
-            && !(pathname === '/wc/matchup/cache' && request.method === 'POST'))
+            && !(pathname === '/wc/matchup/cache' && request.method === 'POST')
+            && !(pathname === '/nhl-gsax/trigger' && request.method === 'POST')) // TEMPORARY, see CC-CMD-2026-07-11-nhl-nba-regular-season-continuation
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
