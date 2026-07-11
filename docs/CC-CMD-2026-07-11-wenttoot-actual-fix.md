@@ -9,34 +9,23 @@ git pull. Read CLAUDE.md and STANDARDS.md before touching anything.
 
 Write findings to outbox/cc-wenttoot-actual-fix-2026-07-11.md.
 
-## CONTEXT — hard evidence gathered from chat tonight, verified live against production, not self-reported
+## IMPORTANT — identify games by exact `id`, never by team name alone
 
-Five real MLB games, independently confirmed via ESPN's scoreboard API to have gone to extra innings (full week scanned, not a sample), all show `wentToOT: false` in the live `GET /analytics/newspaper/{date}` response — a 100% failure rate on every qualifying game found, both before and after the claimed fix date:
+The teams below play multi-game series against each other on consecutive dates. Team-name-only identification is genuinely ambiguous — a prior verification pass mistook two different games (`MLB_2026-07-06_dodgers_rockies` and `MLB_2026-07-08_dodgers_rockies`) for the same one. Every game below is identified by its real `id`. Use that, not the team names, for every check in this doc.
 
-| Game | Date | Actual innings (ESPN-confirmed) | `wentToOT` returned |
+## CONTEXT — hard evidence, verified directly against the D1 table (`regular_season_games`, database `cc49101c-0569-4d41-8e7a-be139cde4f26`), not the endpoint alone
+
+Current raw state of the five known-broken rows, queried directly just now:
+
+| game_id | went_to_ot | finalized_at | Actual innings (ESPN-confirmed) |
 |---|---|---|---|
-| CHW @ CLE (White Sox @ Guardians) | 2026-07-03 | 10 | `false` |
-| MIL @ ARI (Brewers @ Diamondbacks) | 2026-07-03 | 11 | `false` |
-| NYM @ ATL (Mets @ Braves) | 2026-07-06 | 10 | `false` |
-| COL @ LAD (Rockies @ Dodgers) | 2026-07-06 | 11 | `false` |
-| SEA @ MIA (Mariners @ Marlins) | 2026-07-07 | 10 | `false` |
+| `MLB_2026-07-03_guardians_whitesox` | `null` | `null` | 10 |
+| `MLB_2026-07-03_diamondbacks_brewers` | `null` | `null` | 11 |
+| `MLB_2026-07-06_braves_mets` | `1` | `null` | 10 |
+| `MLB_2026-07-06_dodgers_rockies` | `1` | `null` | 11 |
+| `MLB_2026-07-07_marlins_mariners` | `1` | `null` | 10 |
 
-The July 3 games predate the claimed fix and are expected to be wrong. The July 6 games are from the *same day* the relay-side fix was supposedly committed — if the write path worked at all after that commit, it's very unlikely both of that day's own qualifying games were missed. July 7 postdates the fix entirely and is also wrong.
-
-Full raw object pulled live for the Marlins/Mariners game, for reference — the field exists in the schema, so the bundle-wire half of the prior fix did land:
-```json
-{
-  "id": "MLB_2026-07-07_marlins_mariners",
-  "sport": "MLB", "home": "Marlins", "away": "Mariners",
-  "homeScore": 6, "awayScore": 5,
-  "wentToOT": false,
-  "wasUpset": false, "isSeriesClinch": false, "isElimination": false,
-  "margin": 1,
-  "finalizedAt": null
-}
-```
-
-`finalizedAt: null` on a completed game (both scores present) is a real clue, not confirmed as the cause — if `wentToOT` and `finalizedAt` are set by the same final-state-transition hook, a hook that never fires would explain both symptoms at once. This is a hypothesis to check, not something to assume true.
+**Three of five already show `went_to_ot: 1`. This is NOT evidence the underlying bug is fixed — treat it as a red flag, not progress.** No code has changed since the original diagnosis (confirmed: `src/index.js`'s blob sha is unchanged, and repo HEAD is still the commit that pushed this very doc). `finalized_at` is `null` on all five rows, including the three showing `went_to_ot: 1`. This strongly suggests those three values were set by a direct, manual D1 UPDATE — not by any real trigger — while the actual write-path bug (TASK 1/2 below) remains completely untouched. Do not treat the three `went_to_ot: 1` rows as "already done." If TASK 1 finds no real trigger wired anywhere, that confirms this hypothesis and the three patched values should be understood as cosmetic, not fixed.
 
 ## TASK 1 — Read the actual current implementation before touching anything
 
@@ -45,37 +34,35 @@ Find and read the real, current source for:
 2. The specific column(s) `wentToOT` (and `finalizedAt`, if related) reads from in the newspaper bundle endpoint.
 3. The two prior commits' actual diffs (`cc-wenttoot-relay-side-2026-07-06.md` and `cc-wenttoot-newspaper-bundle-wire-2026-07-06.md` outbox files, plus their corresponding code commits) — read what they actually shipped, not just their self-reported scores.
 
-Report explicitly: is there a write path that's wired but not firing, a write path that fires but writes the wrong thing, or no real write path at all despite the outbox claiming one exists? Don't guess — trace the actual call graph.
+Report explicitly: is there a write path that's wired but not firing, a write path that fires but writes the wrong thing, or no real write path at all despite the outbox claiming one exists? Don't guess — trace the actual call graph. Also check directly whether `went_to_ot=1` on the three rows above came from any code path you can find, or has no traceable origin in the codebase at all.
 
 ## TASK 2 — Fix the real defect found in Task 1
 
-Whatever Task 1 finds, fix it. If it's a missing trigger wire-up (most likely given `finalizedAt` is also null), wire it correctly into wherever game-final state transitions actually get detected today. If it's a genuinely different bug, fix that instead — Task 1's finding governs, not this task's assumption.
+Whatever Task 1 finds, fix it. If it's a missing trigger wire-up (most likely, given `finalized_at` is null on every row including the three with `went_to_ot` already set), wire it correctly into wherever game-final state transitions actually get detected today. If it's a genuinely different bug, fix that instead — Task 1's finding governs, not this task's assumption.
 
-## TASK 3 — Backfill the five known-broken games specifically
+## TASK 3 — Backfill all five known-broken games, including the three already showing went_to_ot:1
 
-All five games above are real, already-archived, and currently wrong. Once the forward-going write path is fixed, explicitly correct these five existing D1 rows too (not just rely on new games going forward being right) — a one-time UPDATE against the same detection logic used going forward, scoped to just these five `game_id`s or a short reasonable date range around them. Do not do a blind full-archive backfill without checking cost/scope first — report the estimated row count before running anything broader than the five named games.
+Once the forward-going write path is genuinely fixed, run the real detection logic against all five game_ids listed above — including the three that already show `went_to_ot: 1` — and let the real logic set the value, not just leave the existing possibly-manual value in place. `finalized_at` must end up non-null on all five if it's part of the same hook. Do not do a blind full-archive backfill without checking cost/scope first — report the estimated row count before running anything broader than these five specific game_ids.
 
-## VERIFICATION — against the same five real games, not new synthetic ones
+## VERIFICATION — against the same five real game_ids, checked in D1 directly, not just the endpoint
 
-- `GET /analytics/newspaper/2026-07-04` → Guardians/White Sox row → `wentToOT` must now be `true`.
-- Same call → Diamondbacks/Brewers row → `wentToOT` must now be `true`.
-- `GET /analytics/newspaper/2026-07-07` → Braves/Mets row → `wentToOT` must now be `true`.
-- Same call → Dodgers/Rockies row → `wentToOT` must now be `true`.
-- `GET /analytics/newspaper/2026-07-08` → Marlins/Mariners row → `wentToOT` must now be `true`.
-- Confirm at least one *non*-extra-innings game in the same responses still correctly shows `false` — this proves the fix discriminates correctly rather than flipping everything to `true`.
-- If `finalizedAt` was part of the same hook, confirm it's now populated (non-null) for all five games too.
+- Query `regular_season_games` directly (not just the newspaper endpoint) for all five game_ids above. All five must show `went_to_ot: 1` AND `finalized_at` non-null (if finalized_at is part of the real hook).
+- `GET /analytics/newspaper/{date}` for each game's relevant date must also return `wentToOT: true` for these five, confirming the endpoint reads the same real data.
+- Confirm at least one *non*-extra-innings game_id in the same date ranges still correctly shows `went_to_ot: null`/`false` — proves the fix discriminates correctly rather than flipping everything.
+- Explicitly state in the outbox whether the three previously-`went_to_ot:1` rows were confirmed to have a real code-traceable origin, or were re-set by this session's own real fix (i.e., don't just leave them alone because they already "look" right).
 
-This verification must be run live against the deployed endpoint after deploy, not just asserted from code review — that's exactly the step that was skipped last time.
+This verification must be run live against the deployed endpoint and the raw D1 table after deploy, not just asserted from code review.
 
 ## DONE CONDITION
 
-All five named games return `wentToOT: true` from the live production endpoint. A control non-OT game in the same response still returns `false`. Root cause is stated explicitly in the outbox, not just "fixed." Confidence ≥ 95.
+All five named game_ids show `went_to_ot: 1` in the raw D1 table AND `wentToOT: true` from the live production endpoint, with a real, traceable code path responsible — not an unexplained value sitting in the column. A control non-OT game_id in the same date ranges still returns `false`/`null`. Root cause is stated explicitly in the outbox, not just "fixed." Confidence ≥ 95.
 
 **Confidence scoring:**
-- Task 1 traces the real call graph and states the actual root cause found, not an assumption (30 pts)
+- Task 1 traces the real call graph and states the actual root cause found, not an assumption — including explicitly addressing the origin of the three pre-existing `went_to_ot:1` values (25 pts)
 - Fix addresses the traced cause, not a guess (20 pts)
-- All five named games verified live post-deploy as `true` (30 pts)
-- Control non-OT game confirmed still `false` post-deploy (10 pts)
+- All five named game_ids verified in D1 directly as `went_to_ot:1` with a real traceable origin (25 pts)
+- Same five verified live via the endpoint as `wentToOT:true` (10 pts)
+- Control non-OT game_id confirmed still `false`/`null` post-deploy (10 pts)
 - Backfill scoped correctly, cost/row-count reported before running (10 pts)
 
 Do not commit unless confidence >= 95. If score < 95, report verbatim and stop.
