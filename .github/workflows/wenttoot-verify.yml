@@ -1,6 +1,10 @@
 name: wenttoot-verify
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wenttoot-verify.yml'
 jobs:
   probe:
     runs-on: ubuntu-latest
