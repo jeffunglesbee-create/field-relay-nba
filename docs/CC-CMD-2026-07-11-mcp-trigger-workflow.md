@@ -9,6 +9,12 @@ git pull. Read CLAUDE.md and STANDARDS.md Rules 80/81 before touching this file.
 
 Write findings to outbox/cc-mcp-trigger-workflow-2026-07-11.md.
 
+## TASK 0 — Verify the stored PAT actually has `workflow` scope before building anything
+
+`commit_file` working proves the stored `GITHUB_PAT` has `repo` scope. It does NOT prove `workflow` scope, which is a separate, additional OAuth scope required specifically for the Actions dispatches endpoint. Building TASK 2 without checking this first risks a tool that fails on its first real call.
+
+Check this directly: any authenticated GitHub API response includes an `X-OAuth-Scopes` response header listing the token's granted scopes. Make one authenticated GET request (e.g. `GET /user` or `GET /repos/jeffunglesbee-create/field-relay-nba`) using the existing `ghHeaders(ghToken)` pattern, and inspect that header. Report the actual scope list found. If `workflow` is present, proceed to TASK 1. If it is not present, stop and report this explicitly — do not proceed to build a tool that cannot work, and do not attempt to silently work around a missing scope. A missing scope needs a human to add it (GitHub → Settings → Developer settings → the token → edit scopes → check `workflow`), not a code workaround.
+
 ## CONTEXT — confirmed directly, re-verify from HEAD before building
 
 - `commit_file`'s handler (`src/index.js`) already does `const ghToken = env3.GITHUB_PAT;` and calls `ghHeaders(ghToken)` to build authenticated GitHub API requests. This is the exact pattern to reuse — same token, same header helper, same base auth approach. Do not invent a new auth path.
@@ -23,6 +29,7 @@ Write findings to outbox/cc-mcp-trigger-workflow-2026-07-11.md.
   `workflow_dispatch` takes no required inputs — a bare `{"ref":"main"}` body is sufficient.
 - The stuck commit `494d53b` almost certainly hit the `[skip ci]` suppression documented elsewhere in this project (a push-trigger commit with `[skip ci]` in the message never fires, even if it touches a watched path). This CC-CMD does not need to diagnose that further — it needs to add the capability to manually catch up when it happens, since it will happen again.
 - Repo owner/name: `jeffunglesbee-create/field-relay-nba` — reuse whatever repo-resolution pattern TASK 2 of the earlier multi-repo CC-CMD established (`repoApiFor`/`REPO_NAMES`), do not hardcode a second, separate constant.
+- Confirmed this session via full source read of every workflow in `.github/workflows/`: no existing workflow has a push-trigger path reachable via `commit_file`'s own WRITE_ALLOWLIST (`docs/`, `HANDOFF.md`, `CODE_MAP.json`) — the closest candidates (`drive-upload-outbox.yml` on `outbox/**`, `mcp-oauth-probe.yml` on a specific outbox trigger file, `scoreboard-probe.yml` on its own workflow file) all watch paths outside that allowlist. There is no indirect trigger available through an existing workflow — TASK 1/2 below is the real gap, not a redundant effort.
 
 ## TASK 1 — Re-verify against actual HEAD
 
@@ -45,6 +52,7 @@ Then poll `GET /deploy/verify` (already exists, no changes needed) every ~15s fo
 
 ## VERIFICATION
 
+- TASK 0's scope check genuinely performed and reported, not skipped.
 - `trigger_workflow` tool genuinely added, using the exact existing auth pattern (confirm via source read, not assumption).
 - Called for real against field-relay-nba's `deploy.yml` — not simulated.
 - `GET /deploy/verify` confirmed to show `match: true` after the run completes, with `deployed` now equal to `494d53b` (or whatever the current HEAD is by execution time, if something else lands first — the point is `expected == deployed`, not a specific hash).
@@ -52,12 +60,13 @@ Then poll `GET /deploy/verify` (already exists, no changes needed) every ~15s fo
 
 ## DONE CONDITION
 
-`trigger_workflow` exists, reuses the existing GitHub connection with no new credential, and has been used to genuinely resolve the real stuck deploy confirmed at the start of this CC-CMD — `/deploy/verify` shows `match: true` afterward, verified live. Confidence ≥ 95.
+TASK 0 confirms `workflow` scope is present. `trigger_workflow` exists, reuses the existing GitHub connection with no new credential, and has been used to genuinely resolve the real stuck deploy confirmed at the start of this CC-CMD — `/deploy/verify` shows `match: true` afterward, verified live. If TASK 0 finds the scope is missing, the done condition becomes: report that finding clearly and stop, confidence scored on the honesty and completeness of that report, not on building something that can't work.
 
 **Confidence scoring:**
-- TASK 1 re-verification against actual HEAD, drift reported honestly (15 pts)
-- `trigger_workflow` correctly reuses existing auth/repo-resolution patterns, no new credential introduced (25 pts)
-- Real, live trigger call made against the actual stuck deploy, not simulated (25 pts)
+- TASK 0 scope check genuinely performed, real header inspected, not assumed either way (15 pts)
+- TASK 1 re-verification against actual HEAD, drift reported honestly (10 pts)
+- `trigger_workflow` correctly reuses existing auth/repo-resolution patterns, no new credential introduced (20 pts)
+- Real, live trigger call made against the actual stuck deploy, not simulated (20 pts)
 - `/deploy/verify` confirmed `match: true` after completion, polled live (25 pts)
 - Cross-repo call (jubilant-bassoon) confirmed working too (10 pts)
 
