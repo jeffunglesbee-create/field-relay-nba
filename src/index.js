@@ -10531,7 +10531,13 @@ export default {
         }
 
         // /nhl/* → api-web.nhle.com
-        if (pathname.startsWith('/nhl')) {
+        // CC-CMD-2026-07-11-nhl-series-gsax-403: missing trailing slash meant
+        // this prefix check also matched /nhl-series/* and /nhl-gsax/* (both
+        // literally start with the substring "/nhl"), intercepting them with
+        // a false 403 before the fetch handler ever reached their real,
+        // correct handlers further down this file (~L11828, ~L11853). Fixed
+        // by requiring the slash, matching only genuine /nhl/* sub-paths.
+        if (pathname.startsWith('/nhl/')) {
             const cleanPath = pathname.replace(/^\/nhl/, '') || '/';
             const nhlPath   = cleanPath + (url.search || '');
             if (!nhlAllowed(cleanPath)) return new Response('NHL path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nhl-path-not-whitelisted', ...CORS } });
