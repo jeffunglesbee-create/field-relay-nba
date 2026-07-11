@@ -5986,6 +5986,28 @@ async function handleJournalismCycle(env, opts = {}) {
       {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
       {sport:'golf',      league:'pga',        label:'PGA Tour'},
     ];
+    // CC-CMD-2026-07-11-wenttoot-actual-fix: mirrors src/game-do.js's
+    // completed-state archive hook (wentToOT computation) so a game archived
+    // via this cron catch-up path (no live GameDO viewer) and one archived via
+    // an actual live GameDO agree on the same value for the same game. Only
+    // covers the sports GameDO itself covers -- other LEAGUES entries (La
+    // Liga, Serie A, Bundesliga, Ligue 1, NFL, PGA Tour) correctly return
+    // null, same as they would via GameDO.
+    const _WENTTOOT_REGULATION_PERIODS = { nba: 4, wnba: 4, nhl: 3, mlb: 9 };
+    const _WENTTOOT_SOCCER_SPORTS = new Set(['epl', 'mls', 'ucl', 'wc26']);
+    const _WENTTOOT_LEAGUE_TO_SPORT_KEY = {
+      NBA: 'nba', NHL: 'nhl', MLB: 'mlb', WNBA: 'wnba',
+      EPL: 'epl', MLS: 'mls', 'FIFA World Cup': 'wc26',
+    };
+    function computeWentToOT(leagueLabel, period) {
+      if (period == null) return null;
+      const sportKey = _WENTTOOT_LEAGUE_TO_SPORT_KEY[leagueLabel];
+      if (!sportKey) return null; // unmapped league: unknown, not guessed
+      if (_WENTTOOT_SOCCER_SPORTS.has(sportKey)) return period >= 3;
+      if (_WENTTOOT_REGULATION_PERIODS[sportKey]) return period > _WENTTOOT_REGULATION_PERIODS[sportKey];
+      return null;
+    }
+
     const gameLines = [];
     // Parallel to gameLines — captures the sport + ESPN team names for each
     // pushed line so the odds-injection step (below) can look up opening_odds
@@ -6016,6 +6038,11 @@ async function handleJournalismCycle(env, opts = {}) {
               homeScore: home?.score ?? null,
               awayScore: away?.score ?? null,
               isFinal: comp?.status?.type?.completed === true,
+              // CC-CMD-2026-07-11-wenttoot-actual-fix: inning/period number
+              // at time of fetch. comp.status.period is the same ESPN field
+              // already relied on elsewhere in this file for MLB innings /
+              // NBA-WNBA quarters / NHL periods (see line ~1259, ~1050).
+              periodNum: comp?.status?.period ?? null,
               startTime: comp?.date || null,
               venue: comp?.venue?.fullName || '',
               eventId: String(ev.id || ''),
@@ -6063,6 +6090,12 @@ async function handleJournalismCycle(env, opts = {}) {
             venue: gm.venue,
             start_time: gm.startTime || null,
             source_id: gm.eventId,
+            // CC-CMD-2026-07-11-wenttoot-actual-fix: this catch-up path is
+            // the ONLY write these games ever get when no live GameDO viewer
+            // was watching (existing.home_score !== null skips re-firing on
+            // later ticks) -- it must compute went_to_ot itself, the same
+            // way GameDO does, or the field is permanently stuck at NULL.
+            went_to_ot: computeWentToOT(gm.league, gm.periodNum),
           }),
         }).catch(() => {});
         _catchupFilled++;
@@ -6141,6 +6174,7 @@ async function handleJournalismCycle(env, opts = {}) {
               away: away?.team?.shortDisplayName || away?.team?.displayName || '',
               homeScore: home?.score ?? null,
               awayScore: away?.score ?? null,
+              periodNum: comp?.status?.period ?? null,
               startTime: comp?.date || null,
               venue: comp?.venue?.fullName || '',
               eventId: String(ev.id || ''),
@@ -6172,6 +6206,9 @@ async function handleJournalismCycle(env, opts = {}) {
             venue: gm.venue,
             start_time: gm.startTime || null,
             source_id: gm.eventId,
+            // CC-CMD-2026-07-11-wenttoot-actual-fix: same reasoning as the
+            // today's-finals catch-up loop above -- this is a one-shot write.
+            went_to_ot: computeWentToOT(gm.league, gm.periodNum),
           }),
         }).catch(() => {});
         _ydayFilled++;
