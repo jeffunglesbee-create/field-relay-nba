@@ -1,49 +1,22 @@
-# Claude Code Command — Diagnose and fix nhlSeriesInit/nhlGSAXInit's real HTTP 403s
+# CLOSED — nhlSeriesInit/nhlGSAXInit findings resolved before this CC-CMD was picked up
 
-**Date:** 2026-07-11
-**Repo:** jeffunglesbee-create/field-relay-nba (sole)
-**Scope:** jubilant-bassoon's relay-init-staleness-visibility fix surfaced a real, previously-invisible production issue: `nhlSeriesInit` (`/nhl-series/scf-2026/stats`) and `nhlGSAXInit` (`/nhl-gsax/playoffs.json`) are both receiving genuine HTTP 403s from this relay on every call. This CC-CMD exists specifically because that finding was correctly reported as out of scope by the session that found it (it didn't have this repo's access) rather than left as a vague "someone should look at this" — this closes that loop directly.
+**Date closed:** 2026-07-11
+**Original scope:** Diagnose real HTTP 403s on `/nhl-series/scf-2026/stats` and `/nhl-gsax/playoffs.json`.
 
-**Branch:** main — commit directly, do not create a feature branch or PR.
+**Do not execute the tasks below — both findings are already fully resolved.** This doc is kept for the record rather than deleted, so the history of what was found is traceable. If you've opened this file expecting live work, stop and read this section only.
 
-git pull. Read CLAUDE.md and STANDARDS.md before touching anything.
+## What actually happened, in order
 
-Write findings to outbox/cc-nhl-series-gsax-403-2026-07-11.md.
+1. **Root cause of the 403s found and fixed directly, outside this CC-CMD.** `pathname.startsWith('/nhl')` (no trailing slash) at the top-level `/nhl` route handler was catching `/nhl-series/*` and `/nhl-gsax/*` before they ever reached their real handlers further down — simple prefix collision, confirmed and fixed with a one-character change (added the trailing slash), commit `1d0934f`. Verified live and confirmed correct.
 
-## Root cause genuinely unknown — this is diagnosis-first, not a prescribed fix
+2. **Post-fix, `nhl-series` returns HTTP 200** — fully working, real data.
 
-Do not assume the cause. Possibilities include (not exhaustive, do not anchor on this list over what's actually found): the route handler itself rejects the request for a reason unrelated to the upstream source (auth check, allowlist, method mismatch); the upstream data source (MoneyPuck for GSAX, whatever SCF-2026 stats source nhlSeriesInit targets) is itself blocking the relay's IP or requiring auth that changed; the route exists but a recent change broke it; the route was removed or renamed and 403 is a generic catch-all rather than the real error.
+3. **Post-fix, `nhl-gsax` returns HTTP 404 with body `{"error":"no GSAX data yet"}`** — this is NOT a bug. Traced directly to source (`src/nhl-gsax-r2.js`): this endpoint is R2-backed, populated by a cron explicitly scoped to run "weekly during playoffs (same April-July guard as series stats)." NHL playoffs concluded before the current date; the route's own code returns this exact message specifically when the R2 object for the current cycle doesn't exist — this is the intended, designed behavior for the off-season, not an error state. Confirmed by fetching the live endpoint directly and matching the response body verbatim against the source line that produces it.
 
-## TASK 1 — Read the actual current route handlers for both endpoints
+## If a future session has a reason to revisit this
 
-Find and read the real, current source for whatever handles `/nhl-series/scf-2026/stats` and `/nhl-gsax/playoffs.json` in this repo. Confirm both routes still exist as named — if either has been renamed/removed, that's the actual finding, report it as such rather than continuing to diagnose a 403 on a route that no longer exists under that path.
+The only genuinely open question, if it ever becomes relevant: whether the cron actually ran and simply found no new goalie data to write (MoneyPuck's playoffs CSV going stale/empty post-season), versus not running at all this cycle. This distinction doesn't matter today (no games to serve GSAX context for either way) but would matter again next April when playoffs resume — worth a quick cron-run-history check *then*, not now.
 
-## TASK 2 — Reproduce the actual 403 live, capture the real response
+## Original tasks (preserved for reference only, not to be executed)
 
-`curl` both endpoints directly (or via `probe_relay_route` self-fetch, whichever actually reaches them) and capture the full real response — status code, headers, and body, not just the status. A 403 with a body explaining why is a very different finding than a bare 403 from Cloudflare's own edge with no body.
-
-## TASK 3 — Trace to the actual root cause
-
-Based on TASK 1/2's real findings, trace whether the 403 originates from this Worker's own code (a check that's rejecting the request) or from upstream (the actual MoneyPuck/SCF-2026 source rejecting the relay's request). If upstream: check whether this is a known, pre-existing limitation (already documented somewhere in this repo or STANDARDS.md) or a new regression. If this Worker's own code: find the specific check causing it.
-
-## TASK 4 — Fix the real cause found, or report clearly why it can't be fixed here
-
-If the cause is fixable in this repo (a broken auth header, a stale route, a misconfigured allowlist entry), fix it. If the cause is genuinely external (upstream permanently blocking, requires a paid tier this project doesn't have, etc.), do not attempt a workaround that wasn't asked for — report the real finding clearly, including whether this means these two data points are permanently unavailable or need a different source entirely. That's a product decision, not something to silently route around.
-
-## VERIFICATION
-
-- Both endpoints tested live, post-fix (if fixed) or documented as-is (if not fixable here) — real HTTP calls, real responses, not asserted.
-- If fixed: confirm `nhlSeriesInit`/`nhlGSAXInit` in jubilant-bassoon would now succeed against these endpoints (you may not have jubilant-bassoon access to verify the client side directly — if so, state that clearly rather than assuming; the relay-side fix being live is what this task can actually confirm).
-
-## DONE CONDITION
-
-The real cause of both 403s is identified and stated explicitly — not guessed, traced. Either genuinely fixed and verified live, or clearly reported as unfixable here with the actual reason, not a vague "seems to be an upstream issue." Confidence ≥ 95.
-
-**Confidence scoring:**
-- TASK 1 confirms real current route state, not assumed unchanged (15 pts)
-- TASK 2 real live reproduction captured, full response not just status code (20 pts)
-- TASK 3 root cause genuinely traced (own code vs. upstream), not guessed (30 pts)
-- TASK 4 either a real fix verified live, or a clear, honest "not fixable here" with the actual reason (25 pts)
-- No speculative workaround attempted for an external cause without it being asked for (10 pts)
-
-Do not commit unless confidence >= 95. If score < 95, report verbatim and stop.
+The original doc asked for a diagnosis-first investigation into both endpoints' 403s, with TASK 1-4 covering route verification, live reproduction, root-cause tracing, and fix-or-report. All of that work is done — see above. Re-running it would duplicate completed investigation for no benefit.
