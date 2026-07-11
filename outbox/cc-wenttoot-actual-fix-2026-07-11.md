@@ -256,6 +256,121 @@ itself this time (the fix required no runtime-conditional debug path —
 
 **Score: 100/100. Clears the >=95 threshold.**
 
+## Addendum — 2026-07-11, later same day: scope expanded to 5 games
+
+An external chat session revised this CC-CMD's doc after the above was
+filed: it found 2 more broken games from an earlier date
+(`MLB_2026-07-03_guardians_whitesox`, `MLB_2026-07-03_diamondbacks_brewers`)
+and raised a fair, worth-answering concern about the 3 games this
+session had already backfilled: since `finalized_at` is still `null` on
+all of them and `src/index.js` hadn't changed again since the fix above,
+were the 3 `went_to_ot: 1` values real, or "cosmetic" (i.e., set by
+something with no real basis)?
+
+**Answer, re-verified directly rather than assumed either way:** the 3
+values are real and traceable — to this session's own TASK 3 backfill
+above (the `UPDATE ... SET went_to_ot = 1 WHERE id IN (...)` statement
+shown a few sections up), which used real ESPN period data independently
+re-fetched and confirmed (10, 10, 11 innings, all `>9`). They were never
+going to get picked up by the forward-fix's cron path regardless of
+whether the fix works correctly, because both catch-up loops skip any
+game whose `home_score` is already non-null (`if (existing &&
+existing.home_score !== null) continue;`) — these 3 rows already had
+real scores from before the fix existed, so the cron will never
+re-visit them. That's not a defect in the fix; it's exactly why TASK 3's
+backfill step exists at all, and it's exactly what happened. `code
+unchanged since the original diagnosis` is also independently
+re-confirmed accurate: `grep -n "computeWentToOT" src/index.js` still
+shows the same function at the same call sites as `e4b24c8` deployed
+(no regression) — the concern about staleness was really about the
+*data* (2 more historical rows), not the *code* (still correct,
+un-regressed).
+
+Re-verified real ESPN innings for the 2 new games (GitHub Actions run
+`29159451380`, same independent-fetch method as before, plus a
+redundant re-check of the original 3 for completeness — all 5 match
+exactly, no drift):
+
+```
+id: 401816003 (Guardians/White Sox, 2026-07-03)   period: 10  detail: Final/10
+id: 401816012 (Diamondbacks/Brewers, 2026-07-03)  period: 11  detail: Final/11
+control candidate: 401816007 (Cardinals/Cubs, 2026-07-03)  period: 9
+(re-check, unchanged) 401816047: 10  401816051: 11  401816060: 10
+```
+
+Backfilled the 2 new rows the same way as the original 3:
+
+```sql
+UPDATE regular_season_games SET went_to_ot = 1
+  WHERE id IN ('MLB_2026-07-03_guardians_whitesox',
+               'MLB_2026-07-03_diamondbacks_brewers')
+  AND went_to_ot IS NULL;
+-- changes: 2
+```
+
+All 5 named game_ids now `went_to_ot: 1` in D1, confirmed via direct
+read-back. `finalized_at` remains `null` on all 5 — re-confirmed this is
+expected, not a gap in this fix: it's set only by `/archive/score-by-id`
+(`scripts/score-fill.mjs`), which only ever touches rows where
+`home_score IS NULL`. None of these 5 rows have ever had a null score,
+so that mechanism has no reason to touch them — it is not part of the
+same hook as `went_to_ot` and this CC-CMD's TASK 2 fix correctly leaves
+it alone (Rule 69 — don't fix an unrelated system as a side effect).
+
+**Live production endpoint, all 5 (GitHub Actions run `29159486731`,
+`/analytics/newspaper/{2026-07-04, 2026-07-07, 2026-07-08}`):**
+
+```
+MLB_2026-07-03_guardians_whitesox    -> wentToOT: true
+MLB_2026-07-03_diamondbacks_brewers  -> wentToOT: true
+MLB_2026-07-06_braves_mets           -> wentToOT: true
+MLB_2026-07-06_dodgers_rockies       -> wentToOT: true
+MLB_2026-07-07_marlins_mariners      -> wentToOT: true
+```
+
+Control check strengthened beyond a single game this round: the full
+`2026-07-04` newspaper response's `completed_games` list contains 13 MLB
+games total — the 2 real OT games both `true`, and all 11 other games on
+the same slate (Cubs/Cardinals, Nationals/Pirates, Yankees/Twins, etc.)
+correctly `false`. Plus the original Royals/Phillies 15-1 blowout,
+re-checked, still `false`. The fix discriminates across a real,
+non-cherry-picked slate, not just the 2 named OT games.
+
+**Fresh row-count for anything broader than these 5** (re-run after this
+backfill, same in-scope/out-of-scope split as before): 519 more rows
+across MLB(297)/WNBA(63)/EPL(26)/MLS(12)/FIFA World Cup(97)/NBA(11)/
+NHL(13) are in sports this fix can classify but still show `went_to_ot:
+NULL`; 177 more (AFL, La Liga, Ligue 1, PGA Tour, golf, UEFA
+Champions/Conference/Europa League) have no OT convention anywhere in
+this codebase. Same conclusion as before: a broader backfill is real,
+separate, out-of-scope work — not run here, not silently dropped either.
+
+### Updated Confidence Score (5-game scope)
+
+```
++25  TASK 1: real root cause re-confirmed unregressed (computeWentToOT
+     still present and correct at the same call sites); the 3
+     pre-existing went_to_ot:1 values' origin explicitly addressed and
+     shown to be real (this session's own TASK 3 backfill, real ESPN
+     data) rather than an unexplained value -- not assumed either way,
+     independently re-derived
++20  Fix re-confirmed live and correct -- no new code change needed
+     since the traced defect (missing OT computation in the catch-up
+     cron) was already fixed and remains deployed and unregressed
++25  All five named game_ids verified in D1 directly as went_to_ot:1,
+     each with a real, traceable origin (a deliberate D1 UPDATE backed
+     by independently re-fetched ESPN period data, not a guess)
++10  Same five verified live via the endpoint as wentToOT:true
++10  Control confirmed still false/null post-deploy -- strengthened to
+     11 other same-slate games, not just one
++10  Backfill scoped correctly (5 named games only), fresh row-count
+     (519 in-scope / 177 out-of-scope) reported before running anything
+     broader
+= 100/100
+```
+
+**Score: 100/100. Clears the >=95 threshold.**
+
 ## Commits
 
 - `e4b24c8` — the real fix: `computeWentToOT()` wired into both catch-up
@@ -263,6 +378,7 @@ itself this time (the fix required no runtime-conditional debug path —
 - `ad630f2`, `fecb224`, `9081e19`, `ca024bf`, `9c6273c` — temporary
   verification workflow iterations (including a self-caused YAML bug,
   found and fixed, documented above rather than hidden)
-- (this commit) — D1 backfill for the three named games (run directly,
-  not part of a src/index.js diff), temporary workflow removed, this
-  outbox
+- `cbf5ea6` — original outbox (3-game scope), cleanup
+- `b9eeecd`, `2ab28a4` — temporary 5-game-scope verification workflows
+- (this commit) — D1 backfill for the 2 additional named games, temporary
+  workflow removed, this outbox updated to the full 5-game scope
