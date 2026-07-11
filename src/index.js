@@ -9312,8 +9312,7 @@ export default {
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
             && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST')
-            && !(pathname === '/wc/matchup/cache' && request.method === 'POST')
-            && !(pathname === '/nhl-gsax/trigger' && request.method === 'POST')) // TEMPORARY, see CC-CMD-2026-07-11-nhl-nba-regular-season-continuation
+            && !(pathname === '/wc/matchup/cache' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
@@ -11860,24 +11859,6 @@ export default {
             } catch(e) {
                 return new Response(JSON.stringify({ error: e.message }),
                     { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
-            }
-        }
-
-        // TEMPORARY (CC-CMD-2026-07-11-nhl-nba-regular-season-continuation TASK
-        // 2/VERIFICATION) -- manual trigger to prove runNHLGSAXUpdate('regular')
-        // works end-to-end against real live upstream data, without waiting for
-        // the real Thursday-11:00-UTC cron tick. Removed once verified.
-        if (pathname === '/nhl-gsax/trigger' && request.method === 'POST') {
-            const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
-                return new Response('unauthorized', { status: 401, headers: CORS });
-            }
-            const seasonType = url.searchParams.get('seasonType') || 'regular';
-            try {
-                const result = await runNHLGSAXUpdate(env, seasonType);
-                return new Response(JSON.stringify(result), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-            } catch (e) {
-                return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
         }
 
