@@ -12366,20 +12366,35 @@ export default {
                 return respond(jsonrpc2({ tools: [
                     {
                         name: 'get_ci_status',
-                        description: 'Get the latest GitHub Actions CI run status for jubilant-bassoon. Returns workflow name, conclusion (success/failure/in_progress), and HEAD commit.',
-                        inputSchema: { type: 'object', properties: {}, required: [] },
+                        description: 'Get the latest GitHub Actions CI run status for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Returns workflow name, conclusion (success/failure/in_progress), and HEAD commit.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                            },
+                            required: [],
+                        },
                     },
                     {
                         name: 'get_smoke_count',
-                        description: 'Get the current smoke assertion count from the latest index.html in the jubilant-bassoon repo.',
-                        inputSchema: { type: 'object', properties: {}, required: [] },
+                        description: 'Get the current smoke assertion count from smoke.js in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). field-relay-nba has no smoke.js of its own (its quality gate is a plain syntax check, not smoke assertions) -- calling with repo:"field-relay-nba" will return a real 404, not an error in the tool.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                            },
+                            required: [],
+                        },
                     },
                     {
                         name: 'get_deploy_status',
-                        description: 'Get the last 3 GitHub Actions workflow runs for jubilant-bassoon with their status and conclusions.',
+                        description: 'Get the last 3 GitHub Actions workflow runs for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) with their status and conclusions.',
                         inputSchema: {
                             type: 'object',
-                            properties: { limit: { type: 'number', description: 'Number of runs to return (default 3, max 5)' } },
+                            properties: {
+                                limit: { type: 'number', description: 'Number of runs to return (default 3, max 5)' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                            },
                             required: [],
                         },
                     },
@@ -12660,7 +12675,7 @@ export default {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured in relay env'}]}));
                     const r = await fetch(
-                        `https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon/actions/runs?per_page=${limit}`,
+                        `${repoApiFor(toolArgs.repo)}/actions/runs?per_page=${limit}`,
                         { headers:{ 'Authorization':`Bearer ${ghToken}`, 'User-Agent':'field-relay-mcp', 'Accept':'application/vnd.github+json' } }
                     );
                     if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
@@ -12675,7 +12690,7 @@ export default {
                     const ghToken = env.GITHUB_PAT;
                     if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured'}]}));
                     const r = await fetch(
-                        'https://api.github.com/repos/jeffunglesbee-create/jubilant-bassoon/contents/smoke.js',
+                        `${repoApiFor(toolArgs.repo)}/contents/smoke.js`,
                         { headers:{ 'Authorization':`Bearer ${ghToken}`, 'User-Agent':'field-relay-mcp', 'Accept':'application/vnd.github+json' } }
                     );
                     if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
