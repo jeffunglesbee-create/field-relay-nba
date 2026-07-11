@@ -10,9 +10,12 @@
 // MoneyPuck URL: moneypuck.com/moneypuck/playerData/seasonSummary/{year}/playoffs/goalies.csv
 //   where year = season start year (2025 for 2025-26 season)
 //
-// R2 key: nhl/2026/gsax-playoffs.json
-// Relay route: /nhl-gsax/playoffs.json
-// Cron: weekly during playoffs (same April-July guard as series stats)
+// R2 key: nhl/2026/gsax-playoffs.json (playoffs) | nhl/2026/gsax-regular.json (regular season)
+// Relay route: /nhl-gsax/playoffs.json | /nhl-gsax/regular.json
+// Cron: weekly, both windows (CC-CMD-2026-07-11-nhl-nba-regular-season-continuation
+//   TASK 2) -- April-July for playoffs (same guard as series stats), Oct-March for
+//   regular season. Confirmed live (2026-07-11) that MoneyPuck's regular-season CSV
+//   exists in the identical column shape as playoffs -- not assumed.
 //
 // ToS: MoneyPuck publishes free analytics for fan consumption.
 //   Data is publicly available, non-commercial use.
@@ -38,12 +41,15 @@ function parseCSVRows(text) {
 
 function sf(v) { const f = parseFloat(v); return isNaN(f) ? null : Math.round(f * 100) / 100; }
 
-export async function runNHLGSAXUpdate(env) {
+export async function runNHLGSAXUpdate(env, seasonType = 'playoffs') {
   if (!env.FIELD_DATA) throw new Error('FIELD_DATA R2 binding not configured');
+  if (seasonType !== 'playoffs' && seasonType !== 'regular') {
+    throw new Error(`invalid seasonType: ${seasonType}`);
+  }
   const now = new Date().toISOString();
 
-  // Fetch playoff goalie CSV
-  const url = `${MONEYPUCK_BASE}/${SEASON_YEAR}/playoffs/goalies.csv`;
+  // Fetch goalie CSV -- 'playoffs' or 'regular', same column shape either way.
+  const url = `${MONEYPUCK_BASE}/${SEASON_YEAR}/${seasonType}/goalies.csv`;
   const r = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FIELD/1.0)' },
   });
@@ -79,19 +85,27 @@ export async function runNHLGSAXUpdate(env) {
   }
 
   const count = Object.keys(goalies).length;
+  // Don't overwrite existing good data with an empty result -- e.g. a
+  // regular-season CSV fetched right at the season's start before MoneyPuck
+  // has published any games yet. Same reasoning that applies to nba-clutch's
+  // Season-locked query (see nba-clutch-r2.js), applied here defensively.
+  if (count === 0) {
+    return { ok: true, updated: false, seasonType, reason: 'empty upstream result, R2 not overwritten' };
+  }
+  const r2Key = seasonType === 'playoffs' ? 'gsax-playoffs.json' : 'gsax-regular.json';
   const payload = {
     updated: now,
     source: 'MoneyPuck via CF Worker',
     season: `${SEASON_YEAR}-${SEASON_YEAR + 1}`,
-    seasonType: 'Playoffs',
+    seasonType: seasonType === 'playoffs' ? 'Playoffs' : 'Regular Season',
     definition: 'GSAX = xGoals - goalsAllowed (positive = above expected)',
     goalies,
   };
 
-  await env.FIELD_DATA.put('nhl/2026/gsax-playoffs.json', JSON.stringify(payload), {
+  await env.FIELD_DATA.put(`nhl/2026/${r2Key}`, JSON.stringify(payload), {
     httpMetadata: { contentType: 'application/json' },
     customMetadata: { updatedAt: now, goalieCount: String(count) },
   });
 
-  return { ok: true, updated: now, goalieCount: count };
+  return { ok: true, updated: now, seasonType, goalieCount: count };
 }

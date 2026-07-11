@@ -6843,13 +6843,44 @@ export default {
             ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
         }
         // NHL SCF series-adjusted PP/PK: every 15-min journalism tick, April-July.
+        // Genuinely playoffs-only by nature (CC-CMD-2026-07-11-nhl-nba-regular-
+        // season-continuation TASK 1) -- hardcoded to a single specific best-of-7
+        // series (SCF_2026_SERIES), a concept that doesn't exist in the 82-game
+        // regular season. Not extended; confirmed correct as-is.
         const _month = _now.getUTCMonth() + 1;
         if ((_month >= 4 && _month <= 7) && env.FIELD_DATA) {
             ctx.waitUntil(runNHLSeriesUpdate(env).catch(e => console.error('[NHL-SERIES]', e.message)));
         }
+        // NHL GSAX (goalie season stats, MoneyPuck) -- weekly, both windows.
+        // CC-CMD-2026-07-11-nhl-nba-regular-season-continuation TASK 1/2: this
+        // pipeline was previously imported but never invoked by any cron trigger
+        // at all (confirmed via full-file grep) -- not just playoffs-scoped, it
+        // had never run in production. Wired here for both the playoffs window
+        // (same April-July guard as series stats) and the regular season window
+        // (Oct-March) -- confirmed live that MoneyPuck publishes the regular-
+        // season goalie CSV in the identical column shape as playoffs. Aug-Sep
+        // is a genuine dead window (no NHL games at all); no cron fires, R2
+        // continues serving the last real data, matching the pattern every
+        // other seasonal pipeline in this file already uses.
+        const _isNHLPlayoffsWindow = _month >= 4 && _month <= 7;
+        const _isNHLRegularWindow  = _month >= 10 || _month <= 3;
+        if (_utcDay === 4 && _utcHour === 11 && env.FIELD_DATA) {
+            if (_isNHLPlayoffsWindow) {
+                ctx.waitUntil(runNHLGSAXUpdate(env, 'playoffs').catch(e => console.error('[NHL-GSAX]', e.message)));
+            } else if (_isNHLRegularWindow) {
+                ctx.waitUntil(runNHLGSAXUpdate(env, 'regular').catch(e => console.error('[NHL-GSAX]', e.message)));
+            }
+        }
         // NBA clutch stats (relay-native — no GH Actions needed, stats.nba.com works with headers):
         // Mon/Wed/Fri during Finals window (June-July), Wed-only outside.
         // Avoids running every 15min — clutch stats update daily at most.
+        // Already genuinely year-round (CC-CMD-2026-07-11-nhl-nba-regular-season-
+        // continuation TASK 1) -- the "outside" branch below has no month gate at
+        // all, confirmed via direct read, not the comment alone. Not extended;
+        // confirmed already correct. TASK 3: this cron previously had no guard
+        // against an empty upstream result during the Aug-Sep dead window (no
+        // NBA games yet for the new season) -- fixed in nba-clutch-r2.js itself
+        // (skip the R2 write on a zero-row result) rather than here.
         const _isFinalsWindow = _month === 6 || _month === 7;
         const _isMWF = _utcDay === 1 || _utcDay === 3 || _utcDay === 5;
         if (_isFinalsWindow && _isMWF && _utcHour === 12 && env.FIELD_DATA) {
@@ -11828,6 +11859,24 @@ export default {
             } catch(e) {
                 return new Response(JSON.stringify({ error: e.message }),
                     { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+        }
+
+        // TEMPORARY (CC-CMD-2026-07-11-nhl-nba-regular-season-continuation TASK
+        // 2/VERIFICATION) -- manual trigger to prove runNHLGSAXUpdate('regular')
+        // works end-to-end against real live upstream data, without waiting for
+        // the real Thursday-11:00-UTC cron tick. Removed once verified.
+        if (pathname === '/nhl-gsax/trigger' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const seasonType = url.searchParams.get('seasonType') || 'regular';
+            try {
+                const result = await runNHLGSAXUpdate(env, seasonType);
+                return new Response(JSON.stringify(result), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
         }
 

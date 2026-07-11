@@ -91,6 +91,16 @@ export async function runNBACluichUpdate(env) {
     try {
       const teams = await fetchClutchStats(seasonType);
       const count = Object.keys(teams).length;
+      // CC-CMD-2026-07-11-nhl-nba-regular-season-continuation TASK 3: this
+      // cron runs year-round with no month gate (Wed-only outside the Finals
+      // window), including the Aug-Sep offseason when the hardcoded 2025-26
+      // Season param has no games yet -- stats.nba.com returns zero rows.
+      // Without this guard, every offseason Wednesday would silently
+      // overwrite the last real playoff data with an empty payload.
+      if (count === 0) {
+        results[key] = { ok: true, updated: false, reason: 'empty upstream result, R2 not overwritten' };
+        continue;
+      }
       const payload = {
         updated: now,
         source: 'stats.nba.com via CF Worker (relay-native — no GH Actions needed)',
