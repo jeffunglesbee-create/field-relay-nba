@@ -7,8 +7,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Check current MLB game states
+      - name: Get real final score for a completed MLB game
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb" > /tmp/games.json
-          jq -c '.games[] | {id, home: .home.name, away: .away.name, state, periodLabel}' /tmp/games.json
+          jq '.games[] | select(.id=="espn:401816130")' /tmp/games.json
