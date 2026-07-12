@@ -110,6 +110,35 @@ import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
 
+// ── relayOperation() — field-relay-nba's analog of jubilant-bassoon's
+// fieldOperation() (CC-CMD-2026-07-12-relay-operation-primitive) ───────────
+// Plumbing/telemetry only (Rule 47 — records success/failure of operations
+// that already happen; computes nothing, no composite interest/drama value).
+// No existing relay-side telemetry store found to extend (confirmed via
+// grep: the sole `captureFieldError` reference at the push-send catch block
+// is an undefined global — typeof-guarded so it silently never fires —
+// vestigial, not a real store; left untouched, out of this CC-CMD's scope).
+const RELAY_OPERATIONS = {
+    recordFailure(failure) {
+        console.error(JSON.stringify({ type: 'relay_operation_failure', ...failure }));
+    },
+};
+
+async function relayOperation({ subsystem, operation, retryable = false, context = {}, swallow = false }, fn) {
+    try {
+        const value = await fn();
+        return { ok: true, value };
+    } catch (error) {
+        const failure = { subsystem, operation, retryable, context, error: error?.message || String(error), at: Date.now() };
+        RELAY_OPERATIONS.recordFailure(failure);
+        // `swallow` is a documentation marker for the call site (e.g. a DO's
+        // fire-and-forget POST per Rule 5) -- relayOperation() always returns
+        // the same typed result either way; it never branches on `swallow`.
+        void swallow;
+        return { ok: false, ...failure };
+    }
+}
+
 // ── Repo source access (L5 — FIELD Session Memory Architecture) ─────────────
 // Multi-repo target for read_file/read_source/read_lines/commit_file/
 // get_archive_url (CC-CMD-2026-07-10-mcp-multi-repo-create-support). The
