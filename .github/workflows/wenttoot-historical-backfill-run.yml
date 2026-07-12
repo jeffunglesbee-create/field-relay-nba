@@ -7,24 +7,12 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Sanity -- GET /admin/wc/bsd-backfill (expect NOT 405/403 now)
+      - name: Check /v2/games for WNBA 2026-05-20 (row has real espn_event_id 401856920, still unresolved)
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-05-20" | python3 -m json.tool
 
-      - name: Sanity -- POST /admin/archive/backfill-went-to-ot, no auth (expect 401, not 405)
+      - name: Check /v2/games for MLB 2026-06-20 (row has NULL espn_event_id)
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -H "Content-Type: application/json" -d '{}' -w "\nHTTP:%{http_code}\n"
-
-      - name: Run the real historical backfill (full backlog, no body filter)
-        env:
-          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
-        run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" --max-time 120 -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
-            -H "Authorization: Bearer $FIELD_MCP_SECRET" \
-            -H "Content-Type: application/json" \
-            -d '{}' -o /tmp/result.json -w "\nHTTP:%{http_code}\n"
-          echo "--- result ---"
-          cat /tmp/result.json | python3 -m json.tool
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-06-20" | python3 -m json.tool
