@@ -14068,7 +14068,7 @@ export default {
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
-                     source = excluded.source`
+                     source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                 ).bind(
                   `game_recap_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
                   briefDate,
