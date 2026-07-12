@@ -7,27 +7,24 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Echo -- GET /admin/archive/backfill-went-to-ot
-        run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -w "\nHTTP:%{http_code}\n"
-
-      - name: Echo -- POST /admin/archive/backfill-went-to-ot
-        run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -w "\nHTTP:%{http_code}\n"
-
-      - name: Echo -- GET /admin/wc/bsd-backfill
+      - name: Sanity -- GET /admin/wc/bsd-backfill (expect NOT 405/403 now)
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" -w "\nHTTP:%{http_code}\n"
 
-      - name: Echo -- POST /admin/wc/bsd-backfill
+      - name: Sanity -- POST /admin/archive/backfill-went-to-ot, no auth (expect 401, not 405)
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -H "Content-Type: application/json" -d '{}' -w "\nHTTP:%{http_code}\n"
 
-      - name: Echo -- GET /admin/xyz (nonexistent, sanity baseline)
+      - name: Run the real historical backfill (full backlog, no body filter)
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/xyz" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" --max-time 120 -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
+            -H "Authorization: Bearer $FIELD_MCP_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}' -o /tmp/result.json -w "\nHTTP:%{http_code}\n"
+          echo "--- result ---"
+          cat /tmp/result.json | python3 -m json.tool
