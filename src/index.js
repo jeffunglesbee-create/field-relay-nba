@@ -10995,6 +10995,48 @@ export default {
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
         }
 
+        // GET /datamuse/words — proxy for api.datamuse.com/words (word-frequency lookups).
+        // CC-CMD-2026-07-12-datamuse-relay-proxy TASK 1: the relay has unrestricted
+        // egress, so a caller that can't reach api.datamuse.com directly (e.g. a
+        // sandboxed iframe context) can go through here instead. Word-frequency data
+        // is effectively static, so responses are cached (KV, 30-day TTL) keyed on the
+        // full query string — transparent passthrough of whatever params the caller
+        // sends to Datamuse's own /words endpoint, no assumption made about which
+        // subset of Datamuse's params any given caller uses.
+        if (pathname === '/datamuse/words' && request.method === 'GET') {
+            const qs = url.search; // includes leading '?', or '' if no params
+            const cacheKey = `datamuse:words:${qs}`;
+            if (env.FIELD_JOURNALISM) {
+                try {
+                    const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+                    if (cached) {
+                        return new Response(cached,
+                            { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+                    }
+                } catch (_) { /* KV read failure falls through to fetch */ }
+            }
+
+            try {
+                const dmResp = await fetch(`https://api.datamuse.com/words${qs}`, {
+                    headers: { 'User-Agent': 'FIELD-relay/1.0 (field.dev; sports-context-app)' },
+                });
+                if (!dmResp.ok) {
+                    return new Response(JSON.stringify({ ok: false, error: `datamuse HTTP ${dmResp.status}` }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const payload = await dmResp.text();
+                if (env.FIELD_JOURNALISM) {
+                    // 30-day TTL -- a word's frequency ranking is effectively static.
+                    try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 30 * 86400 }); } catch (_) {}
+                }
+                return new Response(payload,
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // GET /test/drama-score-cost — TEST-ONLY CPU cost measurement for dramaScoreLive().
         // Not linked from any production path. Not called by any client code.
         // MUST be removed or gated before any relay-side drama-score migration ships.
