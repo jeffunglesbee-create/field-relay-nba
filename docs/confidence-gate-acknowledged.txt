@@ -24,3 +24,22 @@ outbox/cc-drama-score-cost-measurement-2026-07-07.md
 # this CC-CMD's own text implying one at the time it was written) --
 # which resolved the underlying question this one correctly left open.
 outbox/cc-afl-kali-cache-audit-2026-07-08.md
+
+# Reviewed 2026-07-12 (chat session, CC-CMD-completion-field-parity-gate-
+# resolution): TASKS 0-3 are complete, real, and live-verified (100%
+# genuine work -- see the outbox for the live-invariant fail-then-pass
+# proof). TASK 4 (jubilant-bassoon STANDARDS.md Rule 97) was blocked for
+# this session by a structural tool-access gap, not a shortcut -- no
+# available write path reaches STANDARDS.md (commit_file's
+# WRITE_ALLOWLIST is docs/, HANDOFF.md, CODE_MAP.json only; this
+# session's GitHub MCP tools are hard-scoped to field-relay-nba only).
+# Re-confirmed independently this review, not copied forward. TASK 4 is
+# now genuinely resolved: a separate jubilant-bassoon session with real
+# write access added Rule 97 (CI-AS-INVARIANT-A) for real, verbatim,
+# at the correct number, with its own fail-then-pass-equivalent
+# verification (jubilant-bassoon commit b1a1db0cfc7fb0af1a6d42f2de0d5cf8ebf8e7f1,
+# "docs: add Rule 97 CI-AS-INVARIANT-A to STANDARDS.md", outbox
+# docs/outbox/cc-rule97-ci-as-invariant-2026-07-12.md in that repo) --
+# independently re-read and confirmed live at jubilant-bassoon HEAD
+# before citing it here, not trusted from the commit message alone.
+outbox/cc-completion-field-parity-2026-07-12.md
