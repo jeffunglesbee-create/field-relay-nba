@@ -6941,16 +6941,6 @@ export default {
         const url      = new URL(request.url);
         const pathname = url.pathname;
 
-        // TEMP DIAGNOSTIC (real commit, no [skip ci] this time) — remove after use.
-        // Echoes exactly what pathname/method this Worker sees for the two
-        // 405-ing /admin/* routes, to rule out a silent rewrite/normalization
-        // between the edge and this handler.
-        if (pathname.includes('backfill-went-to-ot') || pathname.includes('bsd-backfill')) {
-            return new Response(JSON.stringify({
-                echo_pathname: pathname, echo_method: request.method, echo_url: request.url,
-            }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
-        }
-
         // CORS preflight handler — must be FIRST, before any route logic.
         // Browsers issue OPTIONS preflight automatically for CORS-complex
         // requests (e.g. POST with Content-Type: application/json).
@@ -7865,24 +7855,6 @@ export default {
             if (pathname === '/wc/admin/seed' && request.method === 'POST')
                 return handleWCAdminSeed(request, env);
 
-            // Manual trigger for BSD event-ID backfill. Also auto-fires inside
-            // writeWCResult once per day (gated by FIELD_JOURNALISM KV) — this
-            // endpoint exists for diagnostics, dry-runs, and forced re-runs.
-            if (pathname === '/admin/wc/bsd-backfill' && request.method === 'POST') {
-                const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
-                if (auth !== env.FIELD_MCP_SECRET)
-                    return new Response('Unauthorized', { status: 401, headers: CORS });
-                const body = await request.json().catch(() => ({}));
-                const result = await backfillWCBsdEventIds(env, {
-                    leagueId: body.leagueId ? String(body.leagueId) : undefined,
-                    since:    body.since ? String(body.since) : undefined,
-                });
-                return new Response(JSON.stringify(result), {
-                    status: result.ok ? 200 : 400,
-                    headers: { 'Content-Type': 'application/json', ...CORS },
-                });
-            }
-
             // ── WC Tournament Projections (June 11 2026) ───────────────────────
             // GET  /wc/projections          — current per-team path probabilities
             // GET  /wc/movers               — today's movers + secondary beneficiaries
@@ -8232,6 +8204,131 @@ export default {
                 return new Response(JSON.stringify({ ok: true, game_id: gameId, odds: [], _note: 'odds_history table may not exist yet' }), {
                     headers: { ...CORS, 'Content-Type': 'application/json' },
                 });
+            }
+        }
+
+        // ── /admin/* routes ──────────────────────────────────────────────────────
+        // CC-CMD-2026-07-12-went-to-ot-historical-backfill: both routes below were
+        // found, while debugging this CC-CMD's own new route, to have been
+        // nested INSIDE prefix-guarded blocks whose own startsWith() condition
+        // their /admin/... path can never satisfy -- /admin/wc/bsd-backfill was
+        // sitting inside `if (pathname.startsWith('/wc/'))` (pre-existing, not
+        // touched by any commit this session; confirmed dead code via a live
+        // pathname/method echo probe) and this route was accidentally nested the
+        // same way inside `if (pathname.startsWith('/archive/'))` when first
+        // added, since /archive/backfill-enrich and /archive/game visually
+        // neighbor it. Moved both here, top-level, un-nested -- the actual,
+        // structural fix, not a workaround.
+
+        // Manual trigger for BSD event-ID backfill. Also auto-fires inside
+        // writeWCResult once per day (gated by FIELD_JOURNALISM KV) — this
+        // endpoint exists for diagnostics, dry-runs, and forced re-runs.
+        if (pathname === '/admin/wc/bsd-backfill' && request.method === 'POST') {
+            const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
+            if (auth !== env.FIELD_MCP_SECRET)
+                return new Response('Unauthorized', { status: 401, headers: CORS });
+            const body = await request.json().catch(() => ({}));
+            const result = await backfillWCBsdEventIds(env, {
+                leagueId: body.leagueId ? String(body.leagueId) : undefined,
+                since:    body.since ? String(body.since) : undefined,
+            });
+            return new Response(JSON.stringify(result), {
+                status: result.ok ? 200 : 400,
+                headers: { 'Content-Type': 'application/json', ...CORS },
+            });
+        }
+
+        // POST /admin/archive/backfill-went-to-ot — one-time retroactive backfill
+        // (CC-CMD-2026-07-12-went-to-ot-historical-backfill), not a cron. Fixes
+        // rows that already have a real score but were never live-tracked, so
+        // went_to_ot was never computed for them. Reuses the exact matchV2Game +
+        // computeWentToOT logic /archive/score-by-id already uses for new rows --
+        // this route just wraps it in a batch loop grouped by (sport, date) to
+        // minimize /v2/games calls (one per distinct date, not one per row).
+        // MLB/WNBA only, same reasoning as /archive/score-by-id's enrichment
+        // (only sports whose ESPN adapter reports a real final period for a
+        // completed game). Body: {sport?: 'MLB'|'WNBA', limit?: number} -- both
+        // optional, filters the population for incremental/paginated runs; no
+        // body processes the full known backlog. COALESCE on write -- never
+        // overwrites a real value, never guesses when no match is found.
+        if (pathname === '/admin/archive/backfill-went-to-ot' && request.method === 'POST') {
+            const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
+            if (auth !== env.FIELD_MCP_SECRET)
+                return new Response('Unauthorized', { status: 401, headers: CORS });
+
+            const body = await request.json().catch(() => ({}));
+            const sportFilter = body.sport === 'MLB' || body.sport === 'WNBA' ? body.sport : null;
+            const limit = Number.isInteger(body.limit) && body.limit > 0 ? body.limit : null;
+
+            const _V2_SPORT     = { MLB: 'mlb', WNBA: 'wnba' };
+            const _LEAGUE_LABEL = { MLB: 'MLB', WNBA: 'WNBA' };
+
+            try {
+                let sql = `SELECT id, sport, date, home, away, espn_event_id FROM regular_season_games
+                           WHERE home_score IS NOT NULL AND went_to_ot IS NULL AND sport IN ('MLB','WNBA')`;
+                const params = [];
+                if (sportFilter) { sql += ' AND sport = ?'; params.push(sportFilter); }
+                sql += ' ORDER BY date';
+                if (limit) { sql += ' LIMIT ?'; params.push(limit); }
+
+                const rows = (await env.ARCHIVE_DB.prepare(sql).bind(...params).all()).results || [];
+
+                const groups = new Map();
+                for (const r of rows) {
+                    const key = `${r.sport}|${r.date}`;
+                    if (!groups.has(key)) groups.set(key, []);
+                    groups.get(key).push(r);
+                }
+
+                const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+                let resolved = 0;
+                const unresolved = [];
+
+                for (const [groupKey, groupRows] of groups) {
+                    const [sport, date] = groupKey.split('|');
+                    const v2sport = _V2_SPORT[sport];
+                    let games = [];
+                    try {
+                        const v2Url = `${relayBase}/v2/games?sport=${v2sport}&date=${encodeURIComponent(date)}`;
+                        const resp = await fetch(v2Url, { cf: { cacheTtl: 60 } });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            games = Array.isArray(data?.games) ? data.games : [];
+                        }
+                    } catch (_) { /* group's rows fall through to per-row unresolved below */ }
+
+                    for (const row of groupRows) {
+                        const match = matchV2Game(games, {
+                            espnId: row.espn_event_id, home: row.home, away: row.away,
+                        });
+                        if (!match || match.periodNum == null) {
+                            unresolved.push({ id: row.id, reason: match ? 'matched but no periodNum' : 'no v2/games match' });
+                            continue;
+                        }
+                        const wentToOt = computeWentToOT(_LEAGUE_LABEL[sport], match.periodNum);
+                        if (wentToOt == null) {
+                            unresolved.push({ id: row.id, reason: 'computeWentToOT returned null' });
+                            continue;
+                        }
+                        try {
+                            const result = await env.ARCHIVE_DB.prepare(
+                                'UPDATE regular_season_games SET went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
+                            ).bind(wentToOt, row.id).run();
+                            if (result.meta?.changes > 0) resolved++;
+                            else unresolved.push({ id: row.id, reason: 'UPDATE matched 0 rows' });
+                        } catch (e) {
+                            unresolved.push({ id: row.id, reason: `write-error: ${e.message}` });
+                        }
+                    }
+                }
+
+                return new Response(JSON.stringify({
+                    ok: true, processed: rows.length, resolved,
+                    unresolved, groups_fetched: groups.size,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
         }
 
@@ -8769,100 +8866,6 @@ export default {
                     skipped,
                     _errors: _errors.length ? _errors : undefined,
                 }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-            }
-
-            // POST /admin/archive/backfill-went-to-ot — one-time retroactive backfill
-            // (CC-CMD-2026-07-12-went-to-ot-historical-backfill), not a cron. Fixes
-            // rows that already have a real score but were never live-tracked, so
-            // went_to_ot was never computed for them. Reuses the exact matchV2Game +
-            // computeWentToOT logic /archive/score-by-id already uses for new rows --
-            // this route just wraps it in a batch loop grouped by (sport, date) to
-            // minimize /v2/games calls (one per distinct date, not one per row).
-            // MLB/WNBA only, same reasoning as /archive/score-by-id's enrichment
-            // (only sports whose ESPN adapter reports a real final period for a
-            // completed game). Body: {sport?: 'MLB'|'WNBA', limit?: number} -- both
-            // optional, filters the population for incremental/paginated runs; no
-            // body processes the full known backlog. COALESCE on write -- never
-            // overwrites a real value, never guesses when no match is found.
-            if (pathname === '/admin/archive/backfill-went-to-ot' && request.method === 'POST') {
-                const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
-                if (auth !== env.FIELD_MCP_SECRET)
-                    return new Response('Unauthorized', { status: 401, headers: CORS });
-
-                const body = await request.json().catch(() => ({}));
-                const sportFilter = body.sport === 'MLB' || body.sport === 'WNBA' ? body.sport : null;
-                const limit = Number.isInteger(body.limit) && body.limit > 0 ? body.limit : null;
-
-                const _V2_SPORT     = { MLB: 'mlb', WNBA: 'wnba' };
-                const _LEAGUE_LABEL = { MLB: 'MLB', WNBA: 'WNBA' };
-
-                try {
-                    let sql = `SELECT id, sport, date, home, away, espn_event_id FROM regular_season_games
-                               WHERE home_score IS NOT NULL AND went_to_ot IS NULL AND sport IN ('MLB','WNBA')`;
-                    const params = [];
-                    if (sportFilter) { sql += ' AND sport = ?'; params.push(sportFilter); }
-                    sql += ' ORDER BY date';
-                    if (limit) { sql += ' LIMIT ?'; params.push(limit); }
-
-                    const rows = (await env.ARCHIVE_DB.prepare(sql).bind(...params).all()).results || [];
-
-                    const groups = new Map();
-                    for (const r of rows) {
-                        const key = `${r.sport}|${r.date}`;
-                        if (!groups.has(key)) groups.set(key, []);
-                        groups.get(key).push(r);
-                    }
-
-                    const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-                    let resolved = 0;
-                    const unresolved = [];
-
-                    for (const [groupKey, groupRows] of groups) {
-                        const [sport, date] = groupKey.split('|');
-                        const v2sport = _V2_SPORT[sport];
-                        let games = [];
-                        try {
-                            const v2Url = `${relayBase}/v2/games?sport=${v2sport}&date=${encodeURIComponent(date)}`;
-                            const resp = await fetch(v2Url, { cf: { cacheTtl: 60 } });
-                            if (resp.ok) {
-                                const data = await resp.json();
-                                games = Array.isArray(data?.games) ? data.games : [];
-                            }
-                        } catch (_) { /* group's rows fall through to per-row unresolved below */ }
-
-                        for (const row of groupRows) {
-                            const match = matchV2Game(games, {
-                                espnId: row.espn_event_id, home: row.home, away: row.away,
-                            });
-                            if (!match || match.periodNum == null) {
-                                unresolved.push({ id: row.id, reason: match ? 'matched but no periodNum' : 'no v2/games match' });
-                                continue;
-                            }
-                            const wentToOt = computeWentToOT(_LEAGUE_LABEL[sport], match.periodNum);
-                            if (wentToOt == null) {
-                                unresolved.push({ id: row.id, reason: 'computeWentToOT returned null' });
-                                continue;
-                            }
-                            try {
-                                const result = await env.ARCHIVE_DB.prepare(
-                                    'UPDATE regular_season_games SET went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
-                                ).bind(wentToOt, row.id).run();
-                                if (result.meta?.changes > 0) resolved++;
-                                else unresolved.push({ id: row.id, reason: 'UPDATE matched 0 rows' });
-                            } catch (e) {
-                                unresolved.push({ id: row.id, reason: `write-error: ${e.message}` });
-                            }
-                        }
-                    }
-
-                    return new Response(JSON.stringify({
-                        ok: true, processed: rows.length, resolved,
-                        unresolved, groups_fetched: groups.size,
-                    }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
-                } catch (e) {
-                    return new Response(JSON.stringify({ ok: false, error: e.message }),
-                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
-                }
             }
 
             // POST /archive/game — receives game data (typically from GameDO
