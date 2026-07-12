@@ -6941,9 +6941,10 @@ export default {
         const url      = new URL(request.url);
         const pathname = url.pathname;
 
-        // TEMP DIAGNOSTIC — remove after use. Echoes exactly what pathname/method
-        // this Worker sees for the two 405-ing /admin/* routes, to rule out a
-        // silent rewrite/normalization between the edge and this handler.
+        // TEMP DIAGNOSTIC (real commit, no [skip ci] this time) — remove after use.
+        // Echoes exactly what pathname/method this Worker sees for the two
+        // 405-ing /admin/* routes, to rule out a silent rewrite/normalization
+        // between the edge and this handler.
         if (pathname.includes('backfill-went-to-ot') || pathname.includes('bsd-backfill')) {
             return new Response(JSON.stringify({
                 echo_pathname: pathname, echo_method: request.method, echo_url: request.url,
