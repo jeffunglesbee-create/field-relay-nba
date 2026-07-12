@@ -1,0 +1,39 @@
+name: wenttoot-historical-backfill-run
+on:
+  push:
+    paths: ['.github/workflows/wenttoot-historical-backfill-run.yml']
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll /deploy/verify until commit 703a63c is live
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          for i in $(seq 1 20); do
+            OUT=$(curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/deploy/verify")
+            echo "[$i] $OUT"
+            if echo "$OUT" | grep -q '"deployed":"703a63c"'; then
+              echo "DEPLOYED"
+              break
+            fi
+            sleep 15
+          done
+
+      - name: Run the full backfill (no body = full known backlog)
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          curl -sS -A "$UA" --max-time 120 -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
+            -H "Authorization: Bearer $FIELD_MCP_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}' -o /tmp/result.json -w "\nHTTP:%{http_code}\n"
+          echo "--- result ---"
+          cat /tmp/result.json | python3 -m json.tool
+
+      - name: No-auth check (expect 401)
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
+            -H "Content-Type: application/json" -d '{}' -w "\nHTTP:%{http_code}\n"
