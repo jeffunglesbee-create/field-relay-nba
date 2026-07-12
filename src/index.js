@@ -6941,6 +6941,15 @@ export default {
         const url      = new URL(request.url);
         const pathname = url.pathname;
 
+        // TEMP DIAGNOSTIC — remove after use. Echoes exactly what pathname/method
+        // this Worker sees for the two 405-ing /admin/* routes, to rule out a
+        // silent rewrite/normalization between the edge and this handler.
+        if (pathname.includes('backfill-went-to-ot') || pathname.includes('bsd-backfill')) {
+            return new Response(JSON.stringify({
+                echo_pathname: pathname, echo_method: request.method, echo_url: request.url,
+            }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+        }
+
         // CORS preflight handler — must be FIRST, before any route logic.
         // Browsers issue OPTIONS preflight automatically for CORS-complex
         // requests (e.g. POST with Content-Type: application/json).
