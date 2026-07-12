@@ -368,20 +368,27 @@ async function main() {
 
   console.log(`\n=== Done: ${totalProcessed} processed, ${totalErrors} errors ===`);
 
+  // Best-effort: each (feature, date) recompute call is independently
+  // wrapped so one failing (e.g. jinx 401s) never blocks or skips the
+  // other (e.g. night-stars), and neither ever fails the backfill run.
+  async function recomputeFeature(feature, endpoint, date) {
+    try {
+      const r = await fetch(`${RELAY}${endpoint}?date=${date}`, {
+        method: 'POST',
+        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026' },
+      });
+      const body = await r.json().catch(() => ({}));
+      console.log(`  [recompute:${feature}] ${date} → HTTP ${r.status} ${JSON.stringify(body).slice(0, 150)}`);
+    } catch (err) {
+      console.error(`  [recompute-error:${feature}] ${date}: ${err.message}`);
+    }
+  }
+
   if (touchedDates.size > 0) {
     console.log(`\n=== Recompute trigger: ${touchedDates.size} date(s) touched ===`);
     for (const date of touchedDates) {
-      try {
-        const r = await fetch(`${RELAY}/analytics/night-stars/recompute?date=${date}`, {
-          method: 'POST',
-          headers: { 'X-FIELD-Relay': 'field-relay-cron-2026' },
-        });
-        const body = await r.json().catch(() => ({}));
-        console.log(`  [recompute] ${date} → HTTP ${r.status} ${JSON.stringify(body).slice(0, 150)}`);
-      } catch (err) {
-        console.error(`  [recompute-error] ${date}: ${err.message}`);
-        // best-effort — a failed recompute call must never fail the backfill run itself
-      }
+      await recomputeFeature('night_stars', '/analytics/night-stars/recompute', date);
+      await recomputeFeature('jinx', '/analytics/jinx/recompute', date);
     }
   }
 

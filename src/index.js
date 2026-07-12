@@ -105,7 +105,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -11118,6 +11118,30 @@ export default {
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
             const result = await recomputeNightStars(env, date);
+            return new Response(JSON.stringify({ ok: true, date, ...result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // POST /analytics/jinx/recompute?date=YYYY-MM-DD — surgical recompute
+        // for a single feature (jinx) on a single date, for when
+        // drama-backfill.yml catches up to the pick game's drama_peak AFTER
+        // the 0 9 * * * analytics cron already graded the pick with a
+        // not-yet-backfilled drama_peak. Jinx never writes a degraded flag
+        // (confirmed via TASK 0 of analytics-degraded-sweep), so this push
+        // trigger is its only correction path — see
+        // CC-CMD-2026-07-12-jinx-drama-peak-invalidation. Mirrors
+        // /analytics/night-stars/recompute exactly.
+        if (pathname === '/analytics/jinx/recompute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const date = url.searchParams.get('date');
+            if (!date) {
+                return new Response(JSON.stringify({ ok: false, error: 'date query param required (YYYY-MM-DD)' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const result = await recomputePhase(env, 'jinx', date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
