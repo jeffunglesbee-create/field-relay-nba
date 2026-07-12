@@ -11531,7 +11531,7 @@ export default {
                             sport: g.sport,
                             home: g.home, away: g.away,
                             homeScore: g.home_score, awayScore: g.away_score,
-                            wentToOT: !!g.went_to_ot,
+                            wentToOT: g.went_to_ot == null ? null : Boolean(g.went_to_ot),
                             wasUpset, isSeriesClinch, isElimination, margin,
                             finalizedAt: g.finalized_at || null,
                         };
