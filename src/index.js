@@ -5712,6 +5712,42 @@ async function findEnrichment(env, id) {
     };
 }
 
+// CC-CMD-2026-07-11-wenttoot-actual-fix / CC-CMD-2026-07-12-completion-field-parity:
+// mirrors src/game-do.js's completed-state archive hook (wentToOT computation)
+// so a game archived via live GameDO, the journalism-cron catch-up path, and
+// the score-fill backfill path (/archive/score-by-id) all agree on the same
+// value for the same game. Hoisted to module scope (was previously local to
+// handleJournalismCycle) specifically so /archive/score-by-id can reuse the
+// exact same function -- no second, diverging copy of this formula anywhere.
+// Only covers the sports GameDO itself covers -- other LEAGUES entries (La
+// Liga, Serie A, Bundesliga, Ligue 1, NFL, PGA Tour) correctly return null,
+// same as they would via GameDO.
+const _WENTTOOT_REGULATION_PERIODS = { nba: 4, wnba: 4, nhl: 3, mlb: 9 };
+const _WENTTOOT_SOCCER_SPORTS = new Set(['epl', 'mls', 'ucl', 'wc26']);
+const _WENTTOOT_LEAGUE_TO_SPORT_KEY = {
+  NBA: 'nba', NHL: 'nhl', MLB: 'mlb', WNBA: 'wnba',
+  EPL: 'epl', MLS: 'mls', 'FIFA World Cup': 'wc26',
+};
+function computeWentToOT(leagueLabel, period) {
+  if (period == null) return null;
+  const sportKey = _WENTTOOT_LEAGUE_TO_SPORT_KEY[leagueLabel];
+  if (!sportKey) return null; // unmapped league: unknown, not guessed
+  if (_WENTTOOT_SOCCER_SPORTS.has(sportKey)) return period >= 3;
+  if (_WENTTOOT_REGULATION_PERIODS[sportKey]) return period > _WENTTOOT_REGULATION_PERIODS[sportKey];
+  return null;
+}
+
+// CC-CMD-2026-07-12-completion-field-parity TASK 2: every field a "complete
+// game record" must carry. This is the structural guardrail against the
+// exact root cause found twice now (drama_peak, then went_to_ot): a field
+// added to live-archival (/archive/game) silently missing from backfill
+// (/archive/score-by-id), or vice versa. Both write paths reference this
+// constant in a comment at their write statement -- CI's "completion
+// field-list superset" check (.github/workflows/post-deploy-live-verify.yml)
+// statically verifies every name below appears in both routes' source, so a
+// future field added to one path cannot silently go missing from the other.
+const COMPLETION_FIELDS = ['home_score', 'away_score', 'went_to_ot', 'finalized_at', 'espn_event_id'];
+
 async function handleJournalismCycle(env, opts = {}) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   // Load per-sport quality calibration once per cron tick. Lightweight D1
@@ -6005,27 +6041,9 @@ async function handleJournalismCycle(env, opts = {}) {
       {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
       {sport:'golf',      league:'pga',        label:'PGA Tour'},
     ];
-    // CC-CMD-2026-07-11-wenttoot-actual-fix: mirrors src/game-do.js's
-    // completed-state archive hook (wentToOT computation) so a game archived
-    // via this cron catch-up path (no live GameDO viewer) and one archived via
-    // an actual live GameDO agree on the same value for the same game. Only
-    // covers the sports GameDO itself covers -- other LEAGUES entries (La
-    // Liga, Serie A, Bundesliga, Ligue 1, NFL, PGA Tour) correctly return
-    // null, same as they would via GameDO.
-    const _WENTTOOT_REGULATION_PERIODS = { nba: 4, wnba: 4, nhl: 3, mlb: 9 };
-    const _WENTTOOT_SOCCER_SPORTS = new Set(['epl', 'mls', 'ucl', 'wc26']);
-    const _WENTTOOT_LEAGUE_TO_SPORT_KEY = {
-      NBA: 'nba', NHL: 'nhl', MLB: 'mlb', WNBA: 'wnba',
-      EPL: 'epl', MLS: 'mls', 'FIFA World Cup': 'wc26',
-    };
-    function computeWentToOT(leagueLabel, period) {
-      if (period == null) return null;
-      const sportKey = _WENTTOOT_LEAGUE_TO_SPORT_KEY[leagueLabel];
-      if (!sportKey) return null; // unmapped league: unknown, not guessed
-      if (_WENTTOOT_SOCCER_SPORTS.has(sportKey)) return period >= 3;
-      if (_WENTTOOT_REGULATION_PERIODS[sportKey]) return period > _WENTTOOT_REGULATION_PERIODS[sportKey];
-      return null;
-    }
+    // computeWentToOT is now module-scoped (see above handleJournalismCycle) --
+    // CC-CMD-2026-07-12-completion-field-parity hoisted it so /archive/score-by-id
+    // could reuse the exact same function. Closure still resolves it here unchanged.
 
     const gameLines = [];
     // Parallel to gameLines — captures the sport + ESPN team names for each
@@ -8510,6 +8528,9 @@ export default {
             // POST /archive/score-by-id — writes real home_score/away_score (and
             // optionally espn_event_id) for a row identified by exact id.
             // Used by score-fill.mjs. Rule 47 compliant — stores real facts only.
+            // Completion field-list (COMPLETION_FIELDS): every field named there
+            // must be set by this route's UPDATE statements below, same as
+            // /archive/game's INSERT statements -- CC-CMD-2026-07-12-completion-field-parity.
             if (pathname === '/archive/score-by-id' && request.method === 'POST') {
                 await ensureFinalizedAtColumn(env);
                 let body;
@@ -8527,28 +8548,82 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'home_score and away_score must be numbers' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+
+                // CC-CMD-2026-07-12-completion-field-parity TASK 1: this UPDATE
+                // never touched went_to_ot, so any game whose score arrived here
+                // (not live tracking) kept went_to_ot NULL forever -- the second
+                // known instance of the drama_peak-style backfill/live-archival
+                // field-parity gap. Self-fetches /v2/games (same established
+                // pattern as /archive/backfill-enrich just below) to recover real
+                // period data and compute it via the exact same computeWentToOT
+                // live-archival uses (module-scoped above handleJournalismCycle) --
+                // no second, diverging copy of the formula.
+                //
+                // MLB/WNBA only, deliberately not all of score-fill.mjs's SPORT_MAP:
+                // those are the only two sports whose ESPN adapter reports a real
+                // final period for a COMPLETED game (adaptESPNMLB/adaptESPNBasketball
+                // read status.period unconditionally). FIFA World Cup 2026 is
+                // excluded on purpose -- adaptESPNWCSoccer's periodNum is derived
+                // from `situation`, which is null whenever state !== 'live', so
+                // every finished match would read periodNum=0 regardless of
+                // whether it actually went to extra time. Computing went_to_ot from
+                // that would silently fabricate "no OT" for real OT games -- worse
+                // than leaving it null (flagged in the outbox as a separate,
+                // unfixed gap in adaptESPNWCSoccer itself, out of this CC-CMD's
+                // scope). Best-effort only: any failure here must never block the
+                // real home_score/away_score write below (Rule 5).
+                let wentToOtValue = null;
+                try {
+                    const _row = await env.ARCHIVE_DB.prepare(
+                        `SELECT sport, date, home, away, espn_event_id FROM regular_season_games WHERE id = ?
+                         UNION ALL
+                         SELECT sport, date, home, away, espn_event_id FROM postseason_games WHERE id = ?
+                         LIMIT 1`
+                    ).bind(id, id).first().catch(() => null);
+                    const _V2_SPORT     = { MLB: 'mlb', WNBA: 'wnba' };
+                    const _LEAGUE_LABEL = { MLB: 'MLB', WNBA: 'WNBA' };
+                    const v2sport = _row && _V2_SPORT[_row.sport];
+                    if (_row && v2sport) {
+                        const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+                        const v2Url = `${relayBase}/v2/games?sport=${v2sport}&date=${encodeURIComponent(_row.date)}`;
+                        const resp = await fetch(v2Url, { cf: { cacheTtl: 60 } });
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            const games = Array.isArray(data?.games) ? data.games : [];
+                            const wantEspnId = String(newEspnId || _row.espn_event_id || '');
+                            const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const homeNorm = norm(_row.home), awayNorm = norm(_row.away);
+                            const match = (wantEspnId && games.find(g => String(g.espnEventId) === wantEspnId))
+                                || games.find(g => norm(g.home?.name) === homeNorm && norm(g.away?.name) === awayNorm);
+                            if (match && match.periodNum != null) {
+                                wentToOtValue = computeWentToOT(_LEAGUE_LABEL[_row.sport], match.periodNum);
+                            }
+                        }
+                    }
+                } catch (_) { /* enrichment failure never blocks the real score write */ }
+
                 try {
                     let result;
                     if (newEspnId) {
                         result = await env.ARCHIVE_DB.prepare(
-                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
-                        ).bind(home_score, away_score, String(newEspnId), id).run();
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
+                        ).bind(home_score, away_score, String(newEspnId), wentToOtValue, id).run();
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
-                                'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
-                            ).bind(home_score, away_score, String(newEspnId), id).run();
+                                'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
+                            ).bind(home_score, away_score, String(newEspnId), wentToOtValue, id).run();
                         }
                     } else {
                         result = await env.ARCHIVE_DB.prepare(
-                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
-                        ).bind(home_score, away_score, id).run();
+                            'UPDATE regular_season_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
+                        ).bind(home_score, away_score, wentToOtValue, id).run();
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
-                                'UPDATE postseason_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')) WHERE id = ?'
-                            ).bind(home_score, away_score, id).run();
+                                'UPDATE postseason_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
+                            ).bind(home_score, away_score, wentToOtValue, id).run();
                         }
                     }
-                    return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0 }),
+                    return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0, went_to_ot: wentToOtValue }),
                         { headers: { ...CORS, 'Content-Type': 'application/json' } });
                 } catch (e) {
                     return new Response(JSON.stringify({ ok: false, error: e.message, id }),
@@ -8686,6 +8761,9 @@ export default {
             // (its lastFacts has no team names — see src/game-do.js _fetchFacts).
             // ON CONFLICT(id) DO UPDATE refreshes scores + notes so a pre-final
             // archive write gets upgraded by the final-state write.
+            // Completion field-list (COMPLETION_FIELDS): every field named there
+            // must be set by this route's INSERT statements below, same as
+            // /archive/score-by-id's UPDATE statements -- CC-CMD-2026-07-12-completion-field-parity.
             if (pathname === '/archive/game' && request.method === 'POST') {
                 let body;
                 try { body = await request.json(); }
@@ -8711,14 +8789,27 @@ export default {
                     : (source_id ? `src${shortify(source_id)}` : `g${Date.now()}`);
                 const id = `${sport}_${date}_${idTail}`;
 
+                // CC-CMD-2026-07-12-completion-field-parity TASK 2: while building
+                // the completion field-list guardrail, found this route was itself
+                // missing finalized_at -- the inverse of the went_to_ot gap this
+                // CC-CMD was written for (there, backfill set it and live-archival
+                // didn't; here, live-archival never set it at all, only backfill's
+                // /archive/score-by-id did). Stamped only when home_score is
+                // actually present in this call (this route is also used for
+                // pre-game skeleton seeds with no score yet -- those must not be
+                // marked finalized). First-write-wins, same COALESCE semantics
+                // score-by-id already uses.
+                await ensureFinalizedAtColumn(env);
+
                 try {
                     if (series_key) {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO postseason_games
                                (id, sport, series_key, round, game_number, date, home, away,
                                 home_score, away_score, venue, streams, note, series_record,
-                                importance, league, crew, espn_event_id, went_to_ot)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                importance, league, crew, espn_event_id, went_to_ot, finalized_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                     CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
@@ -8729,7 +8820,8 @@ export default {
                                crew          = COALESCE(excluded.crew, crew),
                                importance    = COALESCE(excluded.importance, importance),
                                espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
-                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot)`
+                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot),
+                               finalized_at  = COALESCE(finalized_at, excluded.finalized_at)`
                         ).bind(
                             id, sport, series_key,
                             round || null, game_number ?? null, date,
@@ -8739,14 +8831,16 @@ export default {
                             note || null, series_record || null,
                             importance || null, league || null, crew || null,
                             source_id ? String(source_id) : null,
-                            went_to_ot ?? null
+                            went_to_ot ?? null,
+                            home_score ?? null
                         ).run();
                     } else {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO regular_season_games
                                (id, sport, league, date, home, away,
-                                home_score, away_score, venue, streams, note, crew, espn_event_id, went_to_ot)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                home_score, away_score, venue, streams, note, crew, espn_event_id, went_to_ot, finalized_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                     CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
@@ -8755,7 +8849,8 @@ export default {
                                streams       = COALESCE(excluded.streams, streams),
                                crew          = COALESCE(excluded.crew, crew),
                                espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
-                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot)`
+                               went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot),
+                               finalized_at  = COALESCE(finalized_at, excluded.finalized_at)`
                         ).bind(
                             id, sport, league || null, date,
                             home || null, away || null,
@@ -8763,7 +8858,8 @@ export default {
                             venue || null, streams || null,
                             note || null, crew || null,
                             source_id ? String(source_id) : null,
-                            went_to_ot ?? null
+                            went_to_ot ?? null,
+                            home_score ?? null
                         ).run();
                     }
                 } catch (e) {
