@@ -285,6 +285,7 @@ async function main() {
   console.log(`Relay: ${RELAY}\n`);
 
   let totalProcessed = 0, totalErrors = 0, batchNum = 0;
+  const touchedDates = new Set();
 
   while (batchNum < MAX_BATCHES) {
     batchNum++;
@@ -303,6 +304,7 @@ async function main() {
     console.log(`Batch ${batchNum}: ${games.length} games`);
 
     for (const game of games) {
+      touchedDates.add(game.date);
       const sport = classifySport(game.sport);
       const label = `${game.sport} | ${game.home} vs ${game.away} (${game.date}) [event=${game.espn_event_id}]`;
 
@@ -365,6 +367,24 @@ async function main() {
   }
 
   console.log(`\n=== Done: ${totalProcessed} processed, ${totalErrors} errors ===`);
+
+  if (touchedDates.size > 0) {
+    console.log(`\n=== Recompute trigger: ${touchedDates.size} date(s) touched ===`);
+    for (const date of touchedDates) {
+      try {
+        const r = await fetch(`${RELAY}/analytics/night-stars/recompute?date=${date}`, {
+          method: 'POST',
+          headers: { 'X-FIELD-Relay': 'field-relay-cron-2026' },
+        });
+        const body = await r.json().catch(() => ({}));
+        console.log(`  [recompute] ${date} → HTTP ${r.status} ${JSON.stringify(body).slice(0, 150)}`);
+      } catch (err) {
+        console.error(`  [recompute-error] ${date}: ${err.message}`);
+        // best-effort — a failed recompute call must never fail the backfill run itself
+      }
+    }
+  }
+
   if (totalErrors > 0) process.exit(1);
 }
 
