@@ -13197,7 +13197,7 @@ export default {
                             const phases = {};
                             for (const r of (p.results || []))
                                 if (!phases[r.feature])
-                                    phases[r.feature] = { date: r.date, degraded: !!r.degraded };
+                                    phases[r.feature] = { date: r.date, degraded: r.degraded == null ? null : !!r.degraded };
                             out.analytics_phases = phases;
                         } catch(_) { out.analytics_phases = 'unavailable'; }
 
