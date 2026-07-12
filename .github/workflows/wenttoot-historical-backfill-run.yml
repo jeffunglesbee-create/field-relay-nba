@@ -1,0 +1,16 @@
+name: wenttoot-historical-backfill-run
+on:
+  push:
+    paths: ['.github/workflows/wenttoot-historical-backfill-run.yml']
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /journalism/game-complete with real data from the actually-completed Pirates/Brewers game
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/game-complete" \
+            -H "Content-Type: application/json" \
+            -d '{"sport":"MLB","gameId":"401816130","home":"Pittsburgh Pirates","away":"Milwaukee Brewers","homeScore":14,"awayScore":5}' \
+            -w "\nHTTP:%{http_code}\n"
