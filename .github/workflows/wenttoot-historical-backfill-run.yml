@@ -7,31 +7,22 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnostic -- sibling admin POST route (known working) still works?
-        env:
-          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+      - name: Diagnostic -- immediate neighbor route /archive/backfill-enrich (GET, no auth) still routes?
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" \
-            -H "Authorization: Bearer $FIELD_MCP_SECRET" -H "Content-Type: application/json" \
-            -d '{}' -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/archive/backfill-enrich" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- GET to the new route path (expect 404-ish, NOT 405, since GET bypasses the gate)
+      - name: Diagnostic -- /archive/score-missing (GET, no auth, another close neighbor) still routes?
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/archive/score-missing" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- POST with no auth header at all (expect 401 if route matched, 405 if not)
+      - name: Diagnostic -- /health baseline
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
-            -H "Content-Type: application/json" -d '{}' -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/health" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- POST with real auth, verbose headers
-        env:
-          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+      - name: Diagnostic -- /deploy/verify (confirm which commit is actually live right now)
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sSv -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" \
-            -H "Authorization: Bearer $FIELD_MCP_SECRET" -H "Content-Type: application/json" \
-            -d '{}' 2>&1 | tail -40
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/deploy/verify" -w "\nHTTP:%{http_code}\n"
