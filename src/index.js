@@ -12645,6 +12645,19 @@ export default {
                             required: [],
                         },
                     },
+                    {
+                        name: 'trigger_workflow',
+                        description: 'Manually fire a workflow_dispatch trigger for a GitHub Actions workflow in a repo (jubilant-bassoon or field-relay-nba; default field-relay-nba). Reuses the same GITHUB_PAT and auth pattern as commit_file/read_file -- no new credential. Use this to manually re-run a workflow (e.g. deploy.yml) that a push-trigger commit did not fire (a commit outside the workflow\'s watched paths, or with [skip ci] in its message). Returns { ok, workflow_file, repo, ref, triggered_at } on success (GitHub returns 204 with no body for a successful dispatch); on failure, returns the real HTTP status and response body verbatim.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                workflow_file: { type: 'string', description: 'Workflow filename, e.g. "deploy.yml"' },
+                                ref: { type: 'string', description: 'Git ref to run against (default "main")' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default field-relay-nba (the primary use case for this tool).' },
+                            },
+                            required: ['workflow_file'],
+                        },
+                    },
                     // ── L4: Codex (persistent operational knowledge) ──
                     {
                         name: 'codex_write',
@@ -13446,6 +13459,33 @@ export default {
                     const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
                     const urlOut = `${url.origin}/repo/archive?exp=${exp}&sig=${sigHex}&repo=${repoKey}`;
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoKey, url: urlOut, expires_at: exp, ttl_seconds: ttl})}]}));
+                }
+
+                // ── L5: trigger_workflow ──
+                // CC-CMD-2026-07-11-mcp-trigger-workflow. Reuses the exact same
+                // GITHUB_PAT + ghHeaders(token) auth pattern as commit_file/
+                // read_file -- no new credential. Default repo is field-relay-nba
+                // (not jubilant-bassoon, unlike every other L5 tool) since manually
+                // re-firing this repo's own deploy.yml is the primary use case.
+                if (toolName === 'trigger_workflow') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { workflow_file, ref } = toolArgs;
+                    if (typeof workflow_file !== 'string' || workflow_file.length === 0) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: workflow_file (string)'}], isError:true}));
+                    }
+                    const repo = toolArgs.repo === 'jubilant-bassoon' ? 'jubilant-bassoon' : 'field-relay-nba';
+                    const targetRef = typeof ref === 'string' && ref.length > 0 ? ref : 'main';
+                    const putR = await fetch(`${repoApiFor(repo)}/actions/workflows/${workflow_file}/dispatches`, {
+                        method: 'POST',
+                        headers: { ...ghHeaders(ghToken), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ref: targetRef }),
+                    });
+                    if (putR.status !== 204) {
+                        const txt = await putR.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub dispatch failed: ${putR.status} ${txt}`}], isError:true}));
+                    }
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ ok: true, workflow_file, repo, ref: targetRef, triggered_at: new Date().toISOString() })}]}));
                 }
 
                 // ── L4: codex_write ──
