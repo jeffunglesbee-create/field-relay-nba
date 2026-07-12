@@ -7,22 +7,27 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnostic -- /archive/backfill-enrich via POST (same method as the broken admin routes)
+      - name: Echo -- GET /admin/archive/backfill-went-to-ot
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/archive/backfill-enrich" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- totally nonexistent /admin/xyz path (POST, no auth)
+      - name: Echo -- POST /admin/archive/backfill-went-to-ot
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/xyz" -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/archive/backfill-went-to-ot" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- /admin/wc/bsd-backfill via GET (should 403 Path-not-allowed like the other route did, confirming same catch-all)
+      - name: Echo -- GET /admin/wc/bsd-backfill
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" -w "\nHTTP:%{http_code}\n"
 
-      - name: Diagnostic -- /wc/admin/seed via POST (another admin-labeled POST route, different prefix order)
+      - name: Echo -- POST /admin/wc/bsd-backfill
         run: |
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/wc/admin/seed" -H "Content-Type: application/json" -d '{}' -w "\nHTTP:%{http_code}\n"
+          curl -sS -A "$UA" -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/admin/wc/bsd-backfill" -w "\nHTTP:%{http_code}\n"
+
+      - name: Echo -- GET /admin/xyz (nonexistent, sanity baseline)
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+          curl -sS -A "$UA" "https://field-relay-nba.jeffunglesbee.workers.dev/admin/xyz" -w "\nHTTP:%{http_code}\n"
