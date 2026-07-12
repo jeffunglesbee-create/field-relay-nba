@@ -11843,35 +11843,52 @@ export default {
                 const body = await request.json().catch(() => null);
                 const { sport, gameId, home, away, homeScore, awayScore } = body || {};
                 if (sport && gameId && home && away && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
-                    const existing = await env.FIELD_JOURNALISM.get(`brief:game:${gameId}`).catch(() => null);
-                    if (!existing) {
-                        const scoreStr = (homeScore != null && awayScore != null)
-                            ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
-                        const sportLabel = sport.toUpperCase();
-                        const prompt = [
-                            FIELD_VOICE_REGISTER,
-                            `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
-                            `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
-                            `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
-                            scoreStr,
-                            `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
-                            `Write the brief as a single paragraph. No headers, no bullet points.`,
-                            JQ_STYLE,
-                        ].filter(Boolean).join('\n');
-                        await env.JOURNALISM_QUEUE.send({
-                            type:        'game-brief',
-                            prompt,
-                            eventId:     gameId,
-                            gameHash:    computeGameHash(prompt),
-                            max_tokens:  300,
-                            sport,
-                            home,
-                            away,
-                            homeScore:   homeScore ?? null,
-                            awayScore:   awayScore ?? null,
-                            enqueuedAt:  Date.now(),
-                        });
-                    }
+                    // CC-CMD-2026-07-12-completion-trigger-close TASK 2: removed the
+                    // naive `FIELD_JOURNALISM.get('brief:game:'+gameId)` existence
+                    // gate that used to wrap this block. It skipped the enqueue
+                    // whenever ANY brief was already cached, which in practice was
+                    // always true -- the ordinary ~15min cron generates and caches a
+                    // brief for every live game long before it goes final, so the
+                    // completion-triggered enqueue was silently skipped essentially
+                    // every time (confirmed live against 7 real in-progress games).
+                    // Enqueuing unconditionally on every genuine completion event is
+                    // safe: GameDO's own `archived` DO-storage flag one level up
+                    // already guarantees this fires at most once per game, and the
+                    // queue consumer's own content-validated gameHash check below
+                    // (not a blind existence check) correctly distinguishes "state
+                    // genuinely unchanged" from "state changed" -- computeGameHash
+                    // hashes the built prompt text, and this prompt includes the
+                    // final `RESULT: ...` score line no earlier live-cycle prompt
+                    // for the same game would contain, so job.gameHash here will
+                    // never coincidentally match a live-cycle-cached contextHash,
+                    // and the consumer correctly falls through to regenerate.
+                    const scoreStr = (homeScore != null && awayScore != null)
+                        ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
+                    const sportLabel = sport.toUpperCase();
+                    const prompt = [
+                        FIELD_VOICE_REGISTER,
+                        `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
+                        `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
+                        `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+                        scoreStr,
+                        `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
+                        `Write the brief as a single paragraph. No headers, no bullet points.`,
+                        JQ_STYLE,
+                    ].filter(Boolean).join('\n');
+                    await env.JOURNALISM_QUEUE.send({
+                        type:        'game-brief',
+                        prompt,
+                        eventId:     gameId,
+                        gameHash:    computeGameHash(prompt),
+                        max_tokens:  300,
+                        sport,
+                        home,
+                        away,
+                        homeScore:   homeScore ?? null,
+                        awayScore:   awayScore ?? null,
+                        enqueuedAt:  Date.now(),
+                        source:      'completion-trigger',
+                    });
                 }
             } catch (_) { /* errors must not surface — DO fan-out cannot be affected */ }
             return new Response(JSON.stringify({ ok: true }),
@@ -13944,15 +13961,26 @@ export default {
             // mostly-static Stakes/Night Owl briefs cached in
             // /journalism/generate earlier today. A naive TTL here risks
             // suppressing a genuinely-needed regeneration when the real
-            // game state changes. Safe across all 6 real enqueue sites
-            // for this message type -- confirmed only 1 of 6 (the
-            // per-game card-brief pre-generation site) reliably sets
-            // job.gameHash today; the other 5 leave it undefined, which
-            // never matches a real stored hash, so this check safely
-            // falls through to normal regeneration there. Real cost
-            // benefit today is limited to that 1 site until the other 5
-            // are updated to compute and pass a real gameHash too --
-            // that's a separate, larger follow-up, not done here.
+            // game state changes.
+            //
+            // CORRECTION (CC-CMD-2026-07-12-completion-trigger-close TASK 0
+            // probe): this comment previously claimed "only 1 of 6 sites
+            // reliably sets job.gameHash today; the other 5 leave it
+            // undefined." That was stale -- computeGameHash() (defined near
+            // the top of this file, "Shared by all 6 real enqueue sites")
+            // was added to give every one of the 6 game-brief enqueue sites
+            // a real, content-derived hash; confirmed via direct source read
+            // that all 6 call it (5 inline, 1 via a pre-computed variable of
+            // the same name). job.gameHash is populated on every real
+            // enqueue today, not just one. The safety property this check
+            // relies on still holds, for the correct reason: each site's
+            // hash is derived from that site's own built prompt text, so a
+            // hash computed from a genuinely different game state (e.g. a
+            // final-state completion prompt containing a RESULT: line vs.
+            // an earlier live-cycle prompt without one) will not
+            // coincidentally match a stale cached hash -- the check falls
+            // through to regenerate exactly when the real state changed,
+            // not because gameHash happens to be absent.
             if (job.gameHash) {
               const existing = await env.FIELD_JOURNALISM.get(`brief:game:${job.eventId}`).catch(() => null);
               if (existing) {
@@ -14036,7 +14064,7 @@ export default {
                 await env.ARCHIVE_DB.prepare(
                   `INSERT INTO briefs
                      (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
-                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, ?, 'cron')
+                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
@@ -14050,7 +14078,19 @@ export default {
                   'claude-haiku-4-5-20251001',
                   qualityScore,
                   job.gameHash || null,
-                  finalText.split(/\s+/).length
+                  finalText.split(/\s+/).length,
+                  // CC-CMD-2026-07-12-completion-trigger-close TASK 1: was hardcoded
+                  // 'cron' regardless of which of the 6 enqueue sites sent this job --
+                  // /journalism/game-complete's completion-triggered rows were
+                  // permanently mislabeled 'cron' (0/679 game_recap rows ever showed
+                  // 'completion-trigger'). ?? not || -- source has no legitimate
+                  // falsy-but-meaningful value today, so this doesn't change behavior
+                  // for the other 5 sites (none set job.source, so ?? falls through
+                  // to 'cron' exactly as || would have) -- but ?? fails safely if a
+                  // future enqueue site ever accidentally passes source:'' or
+                  // source:0, surfacing that as a visible bug instead of silently
+                  // swallowing it into 'cron' forever.
+                  job.source ?? 'cron'
                 ).run();
               }
             } catch (_archiveErr) { /* archive failure must not break game-brief delivery */ }

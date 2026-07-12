@@ -8,16 +8,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check savant change_log entry
-        id: savant
-        run: |
-          RESULT=$(curl -s -X POST https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute \
-            -H "X-FIELD-Relay: field-relay-cron-2026" \
-            -H "Content-Type: application/json" \
-            -d '{"sql": "SELECT COUNT(*) as n FROM change_log WHERE source = ?", "params": ["savant"]}')
-          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
-          echo "$RESULT"
-
+      # CC-CMD-2026-07-12-completion-trigger-close TASK 3: the savant check
+      # (change_log rows with source='savant') has been independently
+      # confirmed done -- 1115 real rows, permanently answered. Removed;
+      # re-checking a permanently-true fact every 6 hours forever added no
+      # value. If an ongoing "has savant gone silent recently" signal is
+      # ever wanted, that's a separate, different check (see outbox).
       - name: Check completion-trigger brief entry
         id: journalism
         run: |
@@ -28,29 +24,32 @@ jobs:
           echo "result=$RESULT" >> "$GITHUB_OUTPUT"
           echo "$RESULT"
 
-      - name: Log results to codex if either newly passed
+      - name: Log results to codex if newly passed
         env:
-          SAVANT_JSON: ${{ steps.savant.outputs.result }}
           JOURNALISM_JSON: ${{ steps.journalism.outputs.result }}
         run: |
           python3 << 'PYEOF'
-          import json, os, urllib.request
+          import json, os, sys, urllib.request, urllib.error
           from datetime import datetime, timezone
 
-          savant = json.loads(os.environ['SAVANT_JSON'])
+          # CC-CMD-2026-07-12-completion-trigger-close TASK 3: root cause of
+          # this step's real, repeated crash (confirmed via the actual failed
+          # run's logs, not guessed) -- urllib.error.HTTPError: HTTP Error
+          # 403: Forbidden. The urlopen() call below sent no User-Agent header
+          # at all; Cloudflare's edge blocks bare/default-UA requests. Same
+          # bug class hit multiple times elsewhere in this repo's CI this
+          # session. Fixed by sending a real browser UA, same as every other
+          # workflow in this repo that talks to the relay.
+          UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+
           journalism = json.loads(os.environ['JOURNALISM_JSON'])
-
-          savant_n = savant.get('results', [{}])[0].get('n', 0)
           journalism_n = journalism.get('results', [{}])[0].get('n', 0)
-
-          print(f'savant change_log entries: {savant_n}')
           print(f'completion-trigger briefs: {journalism_n}')
 
-          if savant_n > 0 or journalism_n > 0:
+          if journalism_n > 0:
               now = datetime.now(timezone.utc)
               content = json.dumps({
                   'checked_at': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                  'savant_change_log_entries': savant_n,
                   'completion_trigger_briefs': journalism_n,
                   'note': 'auto-verified by verify-pending-checks.yml',
               })
@@ -61,16 +60,30 @@ jobs:
                   'sql': sql,
                   'params': [f'auto-verify-{now.strftime("%Y%m%d")}',
                              'verification',
-                             'Auto-verified: xERA pipeline and/or completion-triggered journalism confirmed live',
+                             'Auto-verified: completion-triggered journalism confirmed live',
                              content],
               }).encode()
               req = urllib.request.Request(
                   'https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute',
                   data=payload, method='POST',
-                  headers={'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026'},
+                  headers={
+                      'Content-Type': 'application/json',
+                      'X-FIELD-Relay': 'field-relay-cron-2026',
+                      'User-Agent': UA,
+                  },
               )
-              urllib.request.urlopen(req)
+              # Real error visibility, not a guess and not swallowed -- prints
+              # the actual status/body on failure, then re-raises so the step
+              # still fails loudly if something genuinely goes wrong.
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      body = resp.read().decode()
+                      print(f'codex write status={resp.status} body={body}')
+              except urllib.error.HTTPError as e:
+                  body = e.read().decode()
+                  print(f'codex write FAILED: HTTP {e.code} body={body}', file=sys.stderr)
+                  raise
               print('Logged to codex — condition newly confirmed.')
           else:
-              print('Neither condition met yet — no codex write, avoiding noise.')
+              print('Condition not met yet — no codex write, avoiding noise.')
           PYEOF
