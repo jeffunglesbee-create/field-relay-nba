@@ -1802,3 +1802,116 @@ export async function analyticsEngine(env, opts = {}) {
         total_ms: Date.now() - startedAt,
     };
 }
+
+// ── Generic Degraded-Phase Sweep (CC-CMD-2026-07-12-analytics-degraded-sweep) ──
+// Generalizes recomputeNightStars' exact shape (read before, recompute, write,
+// return {before, after}) to every phase confirmed PURE below -- classified by
+// reading each runPhaseN function's full body for callProxy(), not inferred
+// from its name. See outbox/cc-analytics-degraded-sweep-2026-07-12.md for the
+// full classification table + evidence.
+//
+// PURE_PHASE_DISPATCH is the ONLY set of features this file will ever
+// auto-recompute on a schedule. AI-COSTING phases (truth_is, morning_report,
+// field_pick, composite_brief, contradiction, circadian_preview) are
+// deliberately absent -- recomputePhase() throws on any feature not in this
+// map, so there is no code path (grep-provable: neither this map's entries
+// nor recomputePhase/runDegradedPhaseSweep reference callProxy anywhere)
+// by which the automatic sweep can ever trigger a paid AI call. A human or
+// chat session recomputing an AI-costing phase must call the phase's own
+// existing entry point directly (e.g. POST /analytics/run) -- Rule 78
+// (API-COST-A).
+const PURE_PHASE_DISPATCH = {
+    night_stars: async (env, date) => recomputeNightStars(env, date),
+    jinx: async (env, date) => {
+        const beforeRow = await env.ARCHIVE_DB.prepare(
+            `SELECT value FROM analytics_output WHERE feature = 'jinx' AND date = ? LIMIT 1`
+        ).bind(date).first();
+        const ctx = await fetchContextGraph(env, date);
+        await runPhase4Jinx(env, date, ctx);
+        void beforeRow; // before/after are read generically by recomputePhase()
+    },
+    streak_board:     async (env, date) => runPhase7StreakBoard(env, date),
+    quality_feedback: async (env, date) => runPhase8QualityFeedback(env, date),
+    sport_of_week:    async (env, date) => runPhase6ASportOfWeek(env, date),
+    broken_record:    async (env, date) => runPhase6DBrokenRecord(env, date),
+    circadian_late:   async (env, date) => runPhase10BLate(env, date),
+    quality_alert:    async (env, date) => runPhase12QualityAlert(env, date),
+};
+
+// Feature names classified AI-COSTING in the same TASK 0 sweep (confirmed
+// callProxy() in the function body) -- exported so callers can label a
+// degraded row without needing to re-derive the classification themselves.
+// Never added to PURE_PHASE_DISPATCH; never auto-recomputed.
+export const AI_COSTING_FEATURES = new Set([
+    'truth_is', 'morning_report', 'field_pick',
+    'composite_brief', 'contradiction', 'circadian_preview',
+]);
+export const PURE_FEATURES = new Set(Object.keys(PURE_PHASE_DISPATCH));
+
+// Read-only: every analytics_output row (any feature) marked degraded=1 on
+// or after sinceDate. Pure read, no writes, safe to call from any context.
+export async function getDegradedPhases(env, sinceDate) {
+    const res = await env.ARCHIVE_DB.prepare(`
+        SELECT id, date, feature, sport, value, brief_text, created_at
+        FROM analytics_output
+        WHERE date >= ? AND JSON_EXTRACT(value, '$.degraded') = 1
+        ORDER BY date DESC, feature ASC
+    `).bind(sinceDate).all();
+    return res.results || [];
+}
+
+// Generalized recomputeNightStars: read the current stored value (before),
+// invoke the feature's own PURE run function (which does its own D1 write,
+// same as it does inside processDate), re-read what landed (after). Throws
+// if `feature` is not in PURE_PHASE_DISPATCH -- callers must not guess or
+// fall back to a generic dispatch for an unclassified/AI-costing feature.
+export async function recomputePhase(env, feature, date) {
+    const runner = PURE_PHASE_DISPATCH[feature];
+    if (!runner) {
+        throw new Error(`recomputePhase: '${feature}' is not a PURE-classified phase (no dispatch entry) -- refusing to guess`);
+    }
+    const beforeRow = await env.ARCHIVE_DB.prepare(
+        `SELECT value FROM analytics_output WHERE feature = ? AND date = ? LIMIT 1`
+    ).bind(feature, date).first();
+    let before = null;
+    if (beforeRow) { try { before = JSON.parse(beforeRow.value); } catch (_) { before = null; } }
+
+    if (feature === 'night_stars') {
+        // recomputeNightStars already returns {before, after} directly --
+        // reuse it rather than re-deriving the same read/write (Rule 63).
+        return runner(env, date);
+    }
+    await runner(env, date);
+
+    const afterRow = await env.ARCHIVE_DB.prepare(
+        `SELECT value FROM analytics_output WHERE feature = ? AND date = ? LIMIT 1`
+    ).bind(feature, date).first();
+    let after = null;
+    if (afterRow) { try { after = JSON.parse(afterRow.value); } catch (_) { after = null; } }
+
+    return { before, after };
+}
+
+// Scheduled entry point: find every currently-degraded row within the
+// lookback window, auto-recompute the PURE-classified ones only, skip
+// (never touch) AI-costing ones. One phase's failure never blocks another
+// (matches processDate's per-phase try/catch isolation).
+export async function runDegradedPhaseSweep(env, { lookbackDays = 14 } = {}) {
+    const sinceDate = addDays(isoDate(new Date()), -lookbackDays);
+    const degraded = await getDegradedPhases(env, sinceDate);
+
+    const results = [];
+    for (const row of degraded) {
+        if (!PURE_PHASE_DISPATCH[row.feature]) continue; // AI-costing or unclassified -- never auto-fired
+        try {
+            const { before, after } = await recomputePhase(env, row.feature, row.date);
+            results.push({
+                feature: row.feature, date: row.date, ok: true,
+                before_degraded: !!before?.degraded, after_degraded: !!after?.degraded,
+            });
+        } catch (e) {
+            results.push({ feature: row.feature, date: row.date, ok: false, error: e.message });
+        }
+    }
+    return { checked: degraded.length, attempted: results.length, results };
+}

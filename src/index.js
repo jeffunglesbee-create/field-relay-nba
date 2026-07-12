@@ -105,7 +105,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG, recomputeNightStars } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -6853,6 +6853,12 @@ export default {
         if (event.cron === '0 9 * * *') {
             ctx.waitUntil(analyticsEngine(env).catch(e =>
                 console.error('[ANALYTICS]', e.message)));
+            // Degraded-phase sweep: recomputes only PURE-classified phases
+            // (zero reachable path to callProxy — see PURE_PHASE_DISPATCH in
+            // analytics-engine.js). AI-costing phases are surfaced read-only
+            // via GET /analytics/degraded, never auto-fired here.
+            ctx.waitUntil(runDegradedPhaseSweep(env).catch(e =>
+                console.error('[DEGRADED-SWEEP]', e.message)));
         }
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
@@ -11085,6 +11091,29 @@ export default {
             const result = await recomputeNightStars(env, date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // GET /analytics/degraded?since=YYYY-MM-DD — read-only surfacing of
+        // every currently-degraded analytics_output row, split by whether
+        // the feature auto-recomputes (PURE, via the 0 9 * * * sweep) or
+        // needs an explicit human/session-triggered call (AI_COSTING —
+        // never auto-fired, per Rule 78). Pure read, no writes, no proxy
+        // calls anywhere in this handler.
+        if (pathname === '/analytics/degraded' && request.method === 'GET') {
+            const since = url.searchParams.get('since') ||
+                new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+            const rows = await getDegradedPhases(env, since);
+            const pure = rows.filter(r => PURE_FEATURES.has(r.feature));
+            const aiCosting = rows.filter(r => AI_COSTING_FEATURES.has(r.feature));
+            const unclassified = rows.filter(r =>
+                !PURE_FEATURES.has(r.feature) && !AI_COSTING_FEATURES.has(r.feature));
+            return new Response(JSON.stringify({
+                ok: true, since,
+                total: rows.length,
+                auto_recomputed: pure.map(r => ({ feature: r.feature, date: r.date, sport: r.sport })),
+                needs_manual_recompute: aiCosting.map(r => ({ feature: r.feature, date: r.date, sport: r.sport })),
+                unclassified: unclassified.map(r => ({ feature: r.feature, date: r.date, sport: r.sport })),
+            }, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // GET /wiki/trending?date=YYYY-MM-DD
