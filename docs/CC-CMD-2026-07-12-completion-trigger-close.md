@@ -1,6 +1,6 @@
 # Claude Code Command — Close out completion-triggered journalism (source tag + shadowing) and fix verify-pending-checks.yml
 
-**Date:** 2026-07-12
+**Date:** 2026-07-12 (self-audited same day — see note at end of TASK 1)
 **Repo:** jeffunglesbee-create/field-relay-nba (sole)
 **Branch:** main — commit directly, do not create a feature branch or PR.
 **Scope:** src/index.js (2 targeted changes) + .github/workflows/verify-pending-checks.yml.
@@ -22,7 +22,9 @@ The queue consumer already has a *better* check available for exactly this situa
 
 ## TASK 1 — Tag the source correctly
 
-In `/journalism/game-complete`'s handler, add `source: 'completion-trigger'` to the `JOURNALISM_QUEUE.send({...})` payload. In the queue consumer's `INSERT INTO briefs`, replace the hardcoded `'cron'` literal with a bound parameter reading `job.source || 'cron'` — preserves current behavior for the other 5 enqueue sites (none of which currently set `job.source`), makes this one path distinguishable going forward. Do not touch the other 5 sites' payload construction — out of scope, they're working correctly as `'cron'`.
+In `/journalism/game-complete`'s handler, add `source: 'completion-trigger'` to the `JOURNALISM_QUEUE.send({...})` payload. In the queue consumer's `INSERT INTO briefs`, replace the hardcoded `'cron'` literal with a bound parameter reading `job.source ?? 'cron'` — **use `??`, not `||`.** `source` has no legitimate falsy-but-meaningful value today, so this doesn't change behavior versus `||` right now — but `??` is this session's established standard for exactly this shape of default (see the went_to_ot CC-CMD earlier today), and it fails safely if a future enqueue site ever accidentally passes `source:''` or `source:0`: `??` surfaces that as a real, visible bug; `||` would silently swallow it into `'cron'` forever. No reason to use the weaker operator when the stronger one costs nothing here.
+
+This preserves current behavior for the other 5 enqueue sites (none of which currently set `job.source`) — deliberately. Do not touch their payload construction or add explicit `source:'cron'` to each: they are not broken, and rewriting 5 working call sites to make an implicit default explicit is a separate refactor with its own justification, not something this fix needs (Rule 69, TOUCH-ONLY-A). The scope here is the one path that was actually wrong.
 
 ## TASK 2 — Remove the naive existence check, trust the gameHash cache instead
 
@@ -39,7 +41,7 @@ Confirm the exact current line numbers and surrounding code before editing — t
 
 ## TASK 3 — Fix verify-pending-checks.yml
 
-- Fix the crash in the "Log results to codex" step. Probe first — do not guess at the cause: add a status-code check after `urllib.request.urlopen(req)` (or wrap with a try/except that prints the real response body on failure) and re-run via `workflow_dispatch` to observe the actual failure, rather than assuming what it is.
+- Fix the crash in the "Log results to codex" step. Probe first — do not guess at the cause: add a status-code check after `urllib.request.urlopen(req)` (or wrap with a try/except that prints the real response body on failure, purely for diagnosis — not to swallow and continue past it) and re-run via `workflow_dispatch` to observe the actual failure, rather than assuming what it is.
 - The `savant` check has been independently confirmed done (1115 real `change_log` rows). Remove it from this workflow — it's answered permanently, re-checking it every 6 hours forever adds no value. If a *different*, ongoing signal is wanted (e.g. "has savant gone silent recently"), that's a separate, different check — do not build it here, note it as a possible future item in the outbox only.
 - After TASK 1/2 land and deploy, the `completion-trigger` check becomes meaningful for the first time. Leave the check in place, but confirm the workflow correctly reports success once a real game completes post-fix — do not assume, wait for or manually trigger a real completion if one is available within this session's time, and report the real outcome either way.
 
@@ -56,9 +58,10 @@ Source correctly threaded through for the completion-trigger path specifically, 
 
 **Confidence scoring:**
 - TASK 0 probe confirms real current line numbers/code before editing (10 pts)
-- TASK 1 source threading correct, zero change to other 5 sites (20 pts)
+- TASK 1 source threading correct, uses `??` not `||`, zero change to other 5 sites (15 pts)
 - TASK 2 naive check removed, reasoning for safety (gameHash fallthrough, DO-level dedup) verified not assumed (25 pts)
 - TASK 3 workflow crash fixed with a confirmed real cause; savant check removed (25 pts)
-- TASK 4 honest reporting of whether a live completion was actually observed post-fix, not claimed without evidence (20 pts)
+- TASK 4 honest reporting of whether a live completion was actually observed post-fix, not claimed without evidence (15 pts)
+- Zero new `||`/`!!`-style fallback coercions introduced anywhere in the fix, confirmed via `git diff` (10 pts)
 
 Do not commit unless confidence >= 95. If score < 95, report verbatim and stop.
