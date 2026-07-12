@@ -1,0 +1,1 @@
+$(cat /home/claude/CC-CMD-2026-07-12-completion-field-parity.md)
