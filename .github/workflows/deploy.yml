@@ -75,6 +75,14 @@ jobs:
           echo "✅ field-mcp-oauth KV ID: $KV_ID"
           sed -i "s/MCP_OAUTH_PLACEHOLDER_REPLACE_WITH_REAL_ID/$KV_ID/" wrangler.toml
 
+      # CC-CMD-2026-07-13-duplicate-prefix-detector: two real route-shadowing
+      # bugs (/mlb-stats/{file}, /odds/history/) were found by accident this
+      # session. Warn-not-block — some overlaps are legitimate (mutually
+      # exclusive env.X/!env.X branches, GET vs POST on the same path).
+      - name: Check for shadowed route prefixes (warn-only)
+        continue-on-error: true
+        run: node scripts/check-route-shadowing.mjs src/index.js
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
