@@ -44,7 +44,7 @@ jobs:
             cat "outbox/temp-analytics-fix-result-${TS}.json"
           ) &
 
-          timeout -k 5s 40s npx wrangler tail field-relay-nba --format json --search "ANALYTICS" > "$OUT" 2>tail.err || true
+          timeout -k 5s 40s npx wrangler tail field-relay-nba --format json > "$OUT" 2>tail.err || true
 
           echo "=== tail.err ==="
           cat tail.err || true
