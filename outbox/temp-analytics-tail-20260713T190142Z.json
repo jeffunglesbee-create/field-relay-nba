@@ -1,0 +1,3536 @@
+{
+    "wallTime": 80,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969307220,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "172.214.47.16",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa89ca0ce9e9c2",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "172.214.47.16"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Washington",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-78.15944",
+                "latitude": "38.71345",
+                "postalCode": "22747",
+                "metroCode": "511",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "1E0rLuwMpjDlc2l7GPR/dTfHgiP+6dIoF3g4xoVtq1k=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "c876c612428694d9bb266b4c27228265a6dc24d4b2f61ac9445e6c3d6bc21690207cf770c34794667370a52f4582f09e",
+                    "serverHandshake": "5aa1687897468b6157fc07ff3467194d18c1fd467fdefdf09a237234d87dccd794415f90611ea7f7220bab4725d9819b",
+                    "clientFinished": "8eb3055c1a6d8863348912abf1e8868e2db6b3c7dd4d2d98e75210e3d0ea9a463ae54527c6c03a427004eee3b776fe94",
+                    "serverFinished": "7a73576e849349b563cdbeb3aec96593a77158d498ca5bc485bcd203757051f50e499d2c6d6eb57e6cbaaaad7d7b3c81"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1741463
+                }
+            }
+        },
+        "response": {
+            "status": 403
+        }
+    }
+}
+{
+    "wallTime": 399,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969307855,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/fpl/fixtures?event=38",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "172.214.47.16",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa89ce0acc2158",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "172.214.47.16"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Washington",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-78.15944",
+                "latitude": "38.71345",
+                "postalCode": "22747",
+                "metroCode": "511",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "xa5Gwi+Wmro6oj0ef8xJAwtoQS67MYt5on8RxKiZmZE=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "586214e2ee4cf4f7c88d7326ddc733002439314b3a97df4ecd5fc27fa8616b9271813614e1114d52c7b62e19da953b40",
+                    "serverHandshake": "9b299b2cb290fa5b580b618bb8c6f03b04c9ea431fcaef06efa34e0ccb6dc46347ce38ca859fa0ca1cebfa82df3fc6e9",
+                    "clientFinished": "f845465668de061fadaca3208de6bb930d11ea4e06fd0d3fe251e85a5fd3b46c37fc6f928859fa031f5f21ca45c3a876",
+                    "serverFinished": "4123c108d7617ea9675b4764441fdd991b2bf11d95ee4cffa77fd3ee3b9ba70381aa80e13a3f7f87e818c5233ad24fee"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1837049
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1132,
+    "cpuTime": 27,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969308331,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/fd/matches?competitions=PL,PD,SA,BL1,FL1&dateFrom=2026-07-13&dateTo=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "172.214.47.16",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa89d10a1a1ffa",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "172.214.47.16"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Washington",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-78.15944",
+                "latitude": "38.71345",
+                "postalCode": "22747",
+                "metroCode": "511",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "LXXykOyqkJGEQ1naPPiQhqZK68ki25JlKaCAkavF62A=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "f8fbfbfd4e256202466129e77d886097b7a1dbc9c8a927294dd97625d970960c22c6515014ed8b502d49a4c1c135e16a",
+                    "serverHandshake": "2199129b09d04bf17125be473d7e7401883c735ab5ce40c6f0b1f0a0b9d684a88e3f1699c9d7f8a9b05e97f024962959",
+                    "clientFinished": "5e6e9dae453233d97602b9686879e7118ade03ed436f278e77b343e95cd8bc63e7a47493009618231dced7fabed32ed2",
+                    "serverFinished": "4cee9eff4b709d66b49658af0465e653f73ed1e3ce78a9542b4a1af2bd79820c4d983ab9bb4f88e959fdf3d86a427aeb"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2594791
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 95,
+    "cpuTime": 25,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969310387,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/bsd/r2/read?key=bsd/wc26/8346/stats.json",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "172.214.47.16",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa89dde825d629",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "172.214.47.16"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Washington",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-78.15944",
+                "latitude": "38.71345",
+                "postalCode": "22747",
+                "metroCode": "511",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "ksoIeW/D14waeYR+5RBBsbO2krPJAtPwgob7czAf+4g=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "1ec4ea7a7ab3a65590c48a8a79c139b968cd517d5c315a7210e756c8eefaa09c81dc799f0f5a1e6bf1757c98f9f1578e",
+                    "serverHandshake": "226d52a02e05c0a49d35730f516e8b1ef64be0a8413c28e5fafea80f9283cd0cc3f968520eedaef17abd8d6e39a05104",
+                    "clientFinished": "3e49d098d416de5bfad7422dd06a5b47d2813e9174f6b079902e0c42cb05cdc797d33f1fd7da71825a6b8b0e97e5ba86",
+                    "serverFinished": "2b16580170120b17d8eeed5234bca2eb5d4fcc0d37bce4155f767a01d1bc44b23950883a727bb03939b509262269c2a6"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 3156963
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 91,
+    "cpuTime": 21,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969321064,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/preview/2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a2098fae06f",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "3t4lKT/vHYGhlX92I40agcj76OssWHRPhbueziaJH9Y=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "d33e0bcafdec04356513bc6e728ed32b67f0f9d6d89a47eea90381e56ce6a88138c08dc384bddd5dcb7c2bfc3778397f",
+                    "serverHandshake": "1903b75bf2c49fa2fc9cab119e7ea7d67462d2c5fe1677a3ced8684c89050a4c28f4e94b73b7a8430b08a6149f34265f",
+                    "clientFinished": "2fdab9bd03861f93f7ed13f98cf015de99acfc51eba7593f9bbb9a1881bd8bb4dba21b42ea0fcacce079a9b9780c7cea",
+                    "serverFinished": "256cf15d48f68cb8e24467e33e13b99c5bcc2944068447f5b168a2cdc3c976aab39cb3e29be7f9c0622b375827eed1ce"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1848144
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 161,
+    "cpuTime": 21,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969321558,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/late/2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a23b9451279",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "d3GlOoju05Qdjs4M8Qg61dM6gZ/U9RfNO12TuFGIsYI=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "81afd56b4a3a93ab74b234f34a9f9dba1587f7bb29ad5a68a7079b26c69ac2fde2a91efffa2703bcdff8ab7bff90dd16",
+                    "serverHandshake": "ddd4212f2c50e03e61f37e8d0c0ab5f62de76613142d6530d5a4e262c7933e0e2a4caa2b63840a18cb5df89c7cb75878",
+                    "clientFinished": "47212eea03a10236189f616b465107b54c62bcfb74fe54719b63287ddf71e7ef2285c05b8f819e4f3251416016f47a1d",
+                    "serverFinished": "2f3c423a5494b11412018e23f8453e5488c8ac05e85d351651d72d8056bd600cff2c1fc617e00a6bbf440719ef2e6913"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2143071
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 105,
+    "cpuTime": 23,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969321845,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/late/2026-07-12",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a25783a1144",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "emW9elX07jy6zIexvS2WJlcx1t5oxyEtanLCK/bX9gQ=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "18a953114844e2057a3597e8163e6bb20614f454a2dba89c36e2c86d2bbf3adbd14010b7f969d76b1026427068550f42",
+                    "serverHandshake": "a2e8c6d693ceb94fa43d96902bcb1991cb300710e1058066b7ac0644f4519e2bc6c51dea59ce5ab144a066c77df53c6b",
+                    "clientFinished": "6edcefef103d282eed59dd072e359a383ca0880533ae7b5cb205af1e86155be4a7bf4422da9942076f834be00ed5066a",
+                    "serverFinished": "2dc7ec26cd2772e0a7e20ee950c5bde37214dbbcedab178a78fceadf98ea7407d950080cbb34410ff5c090ce3eabeec6"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2417607
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 21,
+    "cpuTime": 19,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969322105,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/bogus/2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a2718762fb7",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "dFxwNGY5qTMep5nSJNwpZmXrq/abvzpERsoHlbNKh+U=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "66f1e9386416c1fa8a37fdfa2e7c07b1bc6904c9f50df04ca86a8ba4ed730f43a1272a9b5d52e110f423ed3b0942023e",
+                    "serverHandshake": "199f33bb8543e1d21ca07ea1b7e622c8d34158776d518cdff092f2f4b5bfeaf82877a9c14a87a91157f03ce61932b73e",
+                    "clientFinished": "9be29b909827809406a4305cbc4b5435ec6adde90348b8dcfa8b80674ae8e8f43c8663cd496bd99106382128c656b8c3",
+                    "serverFinished": "cd7a0188ed1abefe72348a05474d8ff458d8058d8535ecdac712005f7969042f9ff4df8c86ca563d5ea2af07d4a6677d"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1640122
+                }
+            }
+        },
+        "response": {
+            "status": 400
+        }
+    }
+}
+{
+    "wallTime": 15,
+    "cpuTime": 15,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969322285,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/preview/not-a-date",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a283dc50cda",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "7VydZTQJOZJKSkJKUZcdPXUJHF8GR6VbM94ZJIgC4M0=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "d2eada44fb121edb4fbf45c95503484d527b8295917f5e9ef417bf5d371235c774dc78a48884a4a72cea2e4ca63803ff",
+                    "serverHandshake": "8884a7483d3648686167fbf9eb5dd3798ae0a720ff61a455807531a0dfdbd32f74c92a61b8e970d2718d1408206c30e1",
+                    "clientFinished": "25a7e26bef99ad1e9962410dcd34d5a8d77a19692a6b362645aaf1d2f364ee49846087c999c78138c9fe0abb9fe1e4ee",
+                    "serverFinished": "6e93192799b0d5210e7be84766b8778ce5506738bb940e49d2a5bae5e8f4712e98e47c0db8d4ee62102a50db10099290"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1964236
+                }
+            }
+        },
+        "response": {
+            "status": 400
+        }
+    }
+}
+{
+    "wallTime": 77,
+    "cpuTime": 25,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969323553,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a302e874783",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "5TjMAB4qR2rRFzELXO2Fph01IV+7NObiZUMb8W/pAI8=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "8b1a044d3dcb964c46d75e29125ba481e47831ee16e4480f00436e3d009482ef4b7f1524af0754feeff5387356682795",
+                    "serverHandshake": "5319424b19dfd808bcfb6ec4fa6619be56286c08dd2b8ebb3c9f591a7b648cc93352ef9e963264751fbe6054b2b2e3ff",
+                    "clientFinished": "ed27195ee6af44fa004eef60411f296a8dd835dd4806a4563bea20ba64143f482182ccb8af0bbabfc5bdaa3d3db5418f",
+                    "serverFinished": "eb7350bf224c785bd16d51cdea4558cb6d1d7320e1e7609c9f7a830e53875c8aea8f020ab27d4f111b09d7e777ae312b"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2183486
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 62,
+    "cpuTime": 23,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969323763,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a316a8eedc5",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "Ohgdj2bSLNXUMSlsRkHy4HX6OY8aQaweN6gJdIUx5P0=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "9f87edf1da624e9e6b21a9e3cb4647733fa1aa6d0c22dc3d46971bd1163e9dcd5ff4adff94f913c3e3d0a5ff569680f8",
+                    "serverHandshake": "f8c2425dd2393b755943f48286cbc1454aa84aadd9069eca86e849fbc1f3e5c9b6f634b1c92d038f1b2e418cbd90878b",
+                    "clientFinished": "9261f2a036592a8f188ead35b9a22953285e01168a916621ff1aa44dfd062b055fa064b841bfd2a243235f77f015b9bc",
+                    "serverFinished": "fc7e9618229676592ab6a8ed6970360219407b48ea63c7fa511fd31019aa04fb7b104fea78d6bc3523aa08edc22b2c98"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 3194630
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 41,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969323969,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a32cc6def0a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "NnBU5uyaWuyRoWacoFPNq6bZsX+7ElLX9FMZiJlsLtY=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "cb17a3a07a50a263cf18b42061c5efed1cce4bc331e6a5febafecd433d0398454e3c521ee84adfd2ea79c7d324d9b8ab",
+                    "serverHandshake": "97e4e0df71a4377fc8f9f52f1e44547f6600605a33a9a1cbc3bcc21cdd34d4d42f3d66e2fd8a1f4e43de6311b8a68c6b",
+                    "clientFinished": "287459d43aa37212020f4c8914a38c754bd31ce8cd1ff66cbb557a2f7e2d35557122bc2d99bc683087fa393b3256a13c",
+                    "serverFinished": "1bedf13696193b6d096c7e08cd24526967f8993c00a8a3928ee2ef202e3fecd08e84ba5ba8df4d52651830948ba4e678"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1871559
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 355,
+    "cpuTime": 27,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969324058,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a333ab90a26",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "CW3hWz0kNBeXnd3oyoh76IjlaNICBp5ekGHiq9O2O7E=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "f06132b4ce8c8c6235cef59dd3d6bda0fe52a4cecec0ebe0e3b175ecf8be87ae5e98cede68d807ba8fb45e0fff03c11d",
+                    "serverHandshake": "d63cb12d89854c2561a00fc81bb95c0280ae5134b4111ab44bc01dbd48fc5fb30dbf7c66daeea3e4cbf6b6183d4bfbfb",
+                    "clientFinished": "94eb65fc3c9da35f1e111c7072b84fa0ba8bc1779a8acd465e38c6f1d8eee1e1f5a3dd3118423b02b33c30c32f5ffec3",
+                    "serverFinished": "271999df153a99c62729d7bfc0487151436d60c8bc4a01c0246cb1e038c093f4d3f88a4e1556807d4eef246485c5a496"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1890556
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 83,
+    "cpuTime": 33,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969324562,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a366a2a7fb0",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "iKY4FRmruiAYpxvYom+UbmK4qc5q+FCDhA3hVqSpnls=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "fc3cbb2ab5da7d9cfe4dcf0eb1b9689289dd424cf9e0075ccc0be135b3a2803ff808d2c14a12f850ec28ef399381db2b",
+                    "serverHandshake": "21aa761e0b5cacedbc408d8d5453a102b1323bb366eb56ce517f37b7bd943f5b11949f4fbcc303cf6fe78fdb216ae755",
+                    "clientFinished": "ed2b11195ce9fa4d74787533bba5d307927e57fe7a96cb7e956788b014117c8fee3feb84b9be736d3963ee47fca05382",
+                    "serverFinished": "3e9a1420551f7f7a6372a5dd223ea9058f26d97b7696ac5ef615f4b40a46d1078867f88289398e5e2c73bdce910f2cec"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1851339
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 47,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969324804,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a37fdd8706b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "tHu4+FwrA5k8zYnJL4bRNf4CMjkhbN7V/X+YiFljKfk=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "f1b08195f982c44a85700b8825428ac4e7093e189214908f0c7216e6de54a6f26a2ee16def71c5b7df10e8028c29f312",
+                    "serverHandshake": "783549d96909084942f8943e8edb4fa5c7e8c6193b95fcb9a4cf1d07f9bb75d6f677d783540ada03e3dba6620924b8bd",
+                    "clientFinished": "d814e1b24fdb1d4f074f9e3bb5f27d4979fb928b65baeab39b0904109491d6f433f83b68e922a40299d181618e22b8e5",
+                    "serverFinished": "e8dfe029fdf5553c1e8c876bfea7ede73459e185a30903b2ffee90ca4ea43469b5a54bb558bef68ed6d4fd24a82b1382"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1594936
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 85,
+    "cpuTime": 34,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969324900,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a388f22226d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "+3aUScOF5ZM1Z2PCu9ZKAWsgaQY7ZEp/EUqbPo7Gw3U=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "b257c746f14e04dc567aea716809679682966703bdb183c59fdb184d28233d4280dd015a3f1fb5dbff447c1e2f73d764",
+                    "serverHandshake": "f0d0ce75e6835d95e2e6792b1d385149bce6de6189fe5bd1cbc2933bc242ae275803c2f7c1a75ddade98e7e9907394d5",
+                    "clientFinished": "0bf88fccf0bb1315029fc10131f5771ebe4b568d62e2772015ce616605d7c4dc10a1f60af74fe51445635d1f4c299c53",
+                    "serverFinished": "f35b3f58917acd4a9c115bc7c7d37fc7a39df0bb32b8da31e7df541d792ad3ad641873f77b3dc3ffed46c6e551bee88e"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1859375
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 61,
+    "cpuTime": 16,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969325185,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a3a29bde815",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "hJB7jlgcC7ufNaVJnAcGFzO/2hOPw5Lc7IIbm/mY+PU=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "56c7636b963b499f5fbb7ec279cd4c6400c3064e0db5b594b1622e476e281f9b033d09184e6357d42ec2ec229c4592d5",
+                    "serverHandshake": "d0b827f2e3242e844ad008117e6dfbb1fc04f672ead0f5388c450d2b76d85fc03beed4c3e0cff20536dc4e0d174aba9a",
+                    "clientFinished": "71dea4690ee6fc8ddff639589a07ec15e8b8420957f17bc7ff4a32ee7e23752d2bcab3c070d360140e82266b8f1807a8",
+                    "serverFinished": "7a1fb37bc030e11445141be19159e6a2b92d83d7028eca693c08b54298bc140f08a15a4bf950c7b7bbf4222a99b88db7"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1570957
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 51,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969325392,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a3b98b0e124",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "100",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "7hAkcrIAlNl3tmqT4vhzM7zw8Pky1aKL4umTXfqOeeY=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "c07e5b4fabf4d7f4b7fccb59bc082eceb278c3c72905722dd7a1c8e492e3bd5029b1c2cfa9dddca42e6438b8085a7cff",
+                    "serverHandshake": "9766995aff3c3dc4beaf39c7dbdb80b23c8d744db585eced1cf5f71c2950e3a4727eaa4f301ef93bf685dd6b36ec2ee2",
+                    "clientFinished": "4122b355dd8f6b2337b73fee502d3288c2b814053c5cfcc0d0a3d5371cd0b1ed9f311d812a4c940b153991aed26dc9e9",
+                    "serverFinished": "f7620f1f16764a78655e9f0970b402d87aa538a5a3bd54b4e18ce51bd18952c86d0242b1dd2ea308281925825f772712"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1867480
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 89,
+    "cpuTime": 41,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969325797,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a3e19f1f571",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "184",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "MGRxIRg0FUAvxAqm+H+lDK5c/f0ZVA/U91wskTwFqZs=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "db0f0e616fbb3f5395d6279baa4c90e3d6a1379699af79de7f5b9841f0e82c8ef4959614c7f8b0e8d97994c07cb86a01",
+                    "serverHandshake": "8ea817391a4013ee5ad4cba5a2c60f64fdac46fc8419f79153a0627882f114ae4ac3a29b09d3cfe655f7fa16873746d3",
+                    "clientFinished": "e6ae4baa0f8452d207590b775ea795b675e94b88cb307dcd7f62887ac68c9abb7d2a8562edd34c9b0a5d091119db4269",
+                    "serverFinished": "5b793fb4deec3a952ef691d33e15857e33fa6ab8102ed1c213695fb84c74874b3f2b57215b591f9041921151516e5096"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2675827
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 65,
+    "cpuTime": 22,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969326906,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a452d2f0ea2",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "176",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 2,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "WPHiFOT7RA1XpKpEjfgAnhWE0bKGuskExa3vbvNlKA8=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "ab3f2130c1e8dda9dfdbe774b4cfe9a0389655af510624bd07e8629d4a7ef97ea443f661dd1327c6101d4a6d2bb38e48",
+                    "serverHandshake": "3f4760129960370b3347c91ce976ffc32917169ce7f18d1a8d9fa74ff91e5e9da465dd4388aa3ff5f65a089a6fcc495b",
+                    "clientFinished": "1943b9386d1053fbd6db8b8057abd42c98cc8f5c9479270d44c0dfc8e89ca5cf7c1e169bd867b2eeb16654a3177052e5",
+                    "serverFinished": "c5ab21b5bfda4de6b67c38b73818e8c275aa119e444c853553d225c5d32532579bde33e86e7ca083a49454c473ad5476"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 1870742
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 64,
+    "cpuTime": 21,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969327081,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute",
+            "method": "POST",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "64.236.133.129",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8a46384bc5fe",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "265",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "x-field-relay": "field-relay-cron-2026",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "64.236.133.129"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "clientAcceptEncoding": "identity",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 1,
+                "clientQuicRtt": 0,
+                "colo": "ORD",
+                "asn": 8075,
+                "asOrganization": "Microsoft Limited",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Chicago",
+                "continent": "NA",
+                "region": "Illinois",
+                "regionCode": "IL",
+                "timezone": "America/Chicago",
+                "longitude": "-87.65005",
+                "latitude": "41.85003",
+                "postalCode": "60608",
+                "metroCode": "602",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "K2mM5gsE3ThIdeJ7ShdRpn8O5DNZLCGqXSsQmr7kIc8=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "FxGBXcehyrq6bHh55sf9OAe5PTE=",
+                "tlsClientExtensionsSha1Le": "hpTxbP4OCp/6eUN5uUpw0jGjOy4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "534db8c1c3ecd379256ae4cf07586d87064905e30ffa67bdedac43cb835bce632d4f3bce528f4525c18cd390c7e96d33",
+                    "serverHandshake": "a12b363832dfcc4d495d4ecf25d98f90ecadbeb57d2469827b67740a12e99be6bb67e76f01343f3bff892d9b59aa88b9",
+                    "clientFinished": "23c946625503517779d77d13f926e65251dd6f2688a75b79c81a3edf76bb828a1b190cb074ac524ef5eb48bef60966fe",
+                    "serverFinished": "8eb36194b9e0a35364777b1f02f52d2a53cd5aec88c64b3c0f83210bb3e438c5aef5189be94f298b391d5e5dd6548202"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 2838966
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 66,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375280,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d0fe78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 57,
+    "cpuTime": 26,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375280,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d10e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 303,
+    "cpuTime": 9,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375280,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d11e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 308,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375281,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d13e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 326,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375281,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d14e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1471,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375281,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8b737d12e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1655,
+    "cpuTime": 8,
+    "truncated": false,
+    "executionModel": "durableObject",
+    "outcome": "ok",
+    "durableObjectId": "e33d52fcb519a734b2fd8b0c09fa84cb4dfcf8b0571471ffd6c7a3bc15f0838e",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "entrypoint": "AmbientDO",
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969375141,
+    "event": {
+        "scheduledTime": "2026-07-13T19:02:55.140Z"
+    }
+}
+{
+    "wallTime": 21505,
+    "cpuTime": 42,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969356338,
+    "event": {
+        "batchSize": 4,
+        "queue": "field-journalism-queue"
+    }
+}
+{
+    "wallTime": 112,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969384765,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/health",
+            "method": "GET",
+            "headers": {
+                "accept": "application/json, text/plain, */*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bae8d2e065c",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "field-relay-probe",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Ashburn",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-77.48749",
+                "latitude": "39.04372",
+                "postalCode": "20147",
+                "metroCode": "511",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 291,
+    "cpuTime": 24,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969384598,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/mcp?token=REDACTED",
+            "method": "POST",
+            "headers": {
+                "accept": "application/json, text/event-stream",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "160.79.106.35",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8badbfd47b59",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "200",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "mcp-protocol-version": "2025-03-26",
+                "traceparent": "00-1b359bdd29bd90e6f5e27b75acccb5d3-c68955eb03769037-01",
+                "user-agent": "Claude-User",
+                "x-anthropic-client": "ClaudeCode",
+                "x-cloud-trace-context": "1b359bdd29bd90e6f5e27b75acccb5d3/14306060159182868535;o=1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "160.79.106.35"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 10,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 396982,
+                "asOrganization": "Anthropic, PBC",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Columbus",
+                "continent": "NA",
+                "region": "Ohio",
+                "regionCode": "OH",
+                "timezone": "America/New_York",
+                "longitude": "-82.99879",
+                "latitude": "39.96118",
+                "postalCode": "43215",
+                "metroCode": "535",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "Ao6wI1VhDttTIcuQn3EeekOMPQB2YFw0Rye/dP5DJ2M=",
+                "tlsClientCiphersSha1": "PPJlK7s0reMX4JkzHIaXBcX3W2k=",
+                "tlsClientExtensionsSha1": "eBrZDr0YocoC2Wfqz/18YVTvEQE=",
+                "tlsClientExtensionsSha1Le": "dC4haEKQu51afM2H7tInG8zYGBw=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "c7d84f2de69994d0d877c213709676751fa364ba8d9ce3967e5c14df81a9c878e0e5d91ee1a420e0ab652d130d4db0c4",
+                    "serverHandshake": "1c83813948f3ffa2f7b1c82b0981def9141686c163b0df250b12e097e0e92f5a097aedca270feecb75d9274a2b01f93f",
+                    "clientFinished": "2327f441c0f293b7be1e3470303d86b3824d19be74f2f8dd6c9c0ecaf928081391698162e1c8e83b17ae52ffecc46a5a",
+                    "serverFinished": "6353e1c17ff9e3cc7ede035a0590a16b0ba5b915a346836fd01d2ec4d21433825a6b267e546b849b981a17f9f0a9e657"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 405829
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 108,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969389137,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/tonight",
+            "method": "GET",
+            "headers": {
+                "accept": "application/json, text/plain, */*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bc9da8e1972",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "field-relay-probe",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Ashburn",
+                "continent": "NA",
+                "region": "Virginia",
+                "regionCode": "VA",
+                "timezone": "America/New_York",
+                "longitude": "-77.48749",
+                "latitude": "39.04372",
+                "postalCode": "20147",
+                "metroCode": "511",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 248,
+    "cpuTime": 22,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969388994,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/mcp?token=REDACTED",
+            "method": "POST",
+            "headers": {
+                "accept": "application/json, text/event-stream",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "160.79.106.35",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bc92cf95707",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "content-length": "212",
+                "content-type": "application/json",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "mcp-protocol-version": "2025-03-26",
+                "traceparent": "00-26ea418ec6367507bc11d2e619f584db-0460405ddcd2c581-01",
+                "user-agent": "Claude-User",
+                "x-anthropic-client": "ClaudeCode",
+                "x-cloud-trace-context": "26ea418ec6367507bc11d2e619f584db/315322745796871553;o=1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "160.79.106.35"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 9,
+                "clientQuicRtt": 0,
+                "colo": "IAD",
+                "asn": 396982,
+                "asOrganization": "Anthropic, PBC",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Columbus",
+                "continent": "NA",
+                "region": "Ohio",
+                "regionCode": "OH",
+                "timezone": "America/New_York",
+                "longitude": "-82.99879",
+                "latitude": "39.96118",
+                "postalCode": "43215",
+                "metroCode": "535",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "Hba3kdZJhQb+MqOrNyqW9mmJ1YlsFy+NiVPcheJ7NPI=",
+                "tlsClientCiphersSha1": "PPJlK7s0reMX4JkzHIaXBcX3W2k=",
+                "tlsClientExtensionsSha1": "eBrZDr0YocoC2Wfqz/18YVTvEQE=",
+                "tlsClientExtensionsSha1Le": "dC4haEKQu51afM2H7tInG8zYGBw=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "e20985172c8ad24103bf4083b32ec2250186dbacd902f62c35f7725fcdc80d35dc87208c4bdb246f72d6b3c5f4881cf2",
+                    "serverHandshake": "10091b58851bc817ad846d27307f6479c2fce1d57c65e5f59fa98e09c400b4d3a63e25d4d1606e39cb3404ebba404c7c",
+                    "clientFinished": "62e52b5a90cc4e74d2de084dbc5e58f05ea4e530263569398aa6c01878126aff650e67859ff322ecb5461185c54bed87",
+                    "serverFinished": "cd0de323c894fabeacf854a81c26a2340cfb8703cbe7d85a035fd214bccb9690d141510b8c5ef1e003e1dc5a7ec333ac"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 452688
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 18,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969391902,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bdb5c68e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 38,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969391902,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bdb5c69e78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 257,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969391902,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bdb5c6ae78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 310,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969391904,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bdb6c6de78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 332,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "38ebb85d-34b3-4740-b654-f2ca677b3a7e"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1783969391904,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-13",
+            "method": "GET",
+            "headers": {
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "2a06:98c0:3600::103",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1aa8bdb6c6ce78a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "cf-worker": "jeffunglesbee.workers.dev",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "x-ambient-internal": "1",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "2a06:98c0:3600::103"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/1.1",
+                "requestPriority": "",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 0,
+                "clientQuicRtt": 0,
+                "colo": "DFW",
+                "asn": 13335,
+                "asOrganization": "Cloudflare, Inc.",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Dallas",
+                "continent": "NA",
+                "region": "Texas",
+                "regionCode": "TX",
+                "timezone": "America/Chicago",
+                "longitude": "-96.80667",
+                "latitude": "32.78306",
+                "postalCode": "75201",
+                "metroCode": "623",
+                "tlsVersion": "",
+                "tlsCipher": "",
+                "tlsClientRandom": "",
+                "tlsClientCiphersSha1": "",
+                "tlsClientExtensionsSha1": "",
+                "tlsClientExtensionsSha1Le": "",
+                "tlsClientHelloLength": "0",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": ""
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
