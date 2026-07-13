@@ -5862,10 +5862,25 @@ async function handleJournalismCycle(env, opts = {}) {
           // (ok:true -- benign, not a failure) and 'proxy returned no prose'
           // (no `skipped` key at all -- a transient failure that should
           // still retry on a later tick, not be permanently given up on).
+          //
+          // Real bug found live during TASK 3 verification: pickNextBackfillDate
+          // can select a genuinely FUTURE or very-recent date (a pre-seeded
+          // skeleton row for a game that hasn't been played yet -- confirmed
+          // live, 2026-07-14's MLS_..._cavalryfc_vancouverwhitecapsfc row, both
+          // scores NULL because the game literally hasn't happened). That also
+          // produces 'insufficient data' -- but marking it tried would suppress
+          // this date for 30 days even after the game finishes and gets a real
+          // score. Only mark tried once the date is safely in the past, giving
+          // the other backfill/catch-up mechanisms (archive catch-up, yesterday
+          // catch-up, score-fill) a real window to populate scores first.
           if (briefResult && briefResult.skipped && !briefResult.ok) {
-            try {
-              await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
-            } catch (_) { /* best-effort */ }
+            const dateAgeMs = now - new Date(nextDate + 'T00:00:00Z').getTime();
+            const MIN_AGE_BEFORE_GIVING_UP_MS = 2 * 86400 * 1000;
+            if (dateAgeMs > MIN_AGE_BEFORE_GIVING_UP_MS) {
+              try {
+                await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
+              } catch (_) { /* best-effort */ }
+            }
           }
         }
 
@@ -8348,15 +8363,20 @@ export default {
             }
             const nextDate = await pickNextBackfillDate(env);
             let briefResult = null;
+            let markedTried = false;
             if (nextDate) {
                 briefResult = await executeBackfill(env, nextDate);
                 if (briefResult && briefResult.skipped && !briefResult.ok) {
-                    try {
-                        await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
-                    } catch (_) { /* best-effort */ }
+                    const dateAgeMs = Date.now() - new Date(nextDate + 'T00:00:00Z').getTime();
+                    if (dateAgeMs > 2 * 86400 * 1000) {
+                        try {
+                            await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
+                            markedTried = true;
+                        } catch (_) { /* best-effort */ }
+                    }
                 }
             }
-            return new Response(JSON.stringify({ nextDate, briefResult }),
+            return new Response(JSON.stringify({ nextDate, briefResult, markedTried }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
