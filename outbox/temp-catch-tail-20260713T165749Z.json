@@ -1,0 +1,432 @@
+{
+    "wallTime": 196,
+    "cpuTime": 27,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "13a7f7ad-88b8-4e2f-a6e3-8734c04959d2"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [
+        {
+            "message": [
+                "[GOLF] scoreboard KV read failed:",
+                "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+            ],
+            "level": "error",
+            "timestamp": 1783961890793
+        }
+    ],
+    "eventTimestamp": 1783961890606,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=pga&date=CATCHTEST",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "20.169.72.166",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1a9d4b84fedeb2a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "20.169.72.166"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 15,
+                "clientQuicRtt": 0,
+                "colo": "SJC",
+                "asn": 8075,
+                "asOrganization": "Microsoft Corporation",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Phoenix",
+                "continent": "NA",
+                "region": "Arizona",
+                "regionCode": "AZ",
+                "timezone": "America/Phoenix",
+                "longitude": "-112.07404",
+                "latitude": "33.44838",
+                "postalCode": "85003",
+                "metroCode": "753",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "QXmsQaAgxwbXN7XMmFms/k/Sr0QYwDom8pDEXa3cB4k=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "b8d8b8b72782e2975c1366de3c7e98df33002f12b00842aca1c6c7ebafe46334e130f45961085b736f4355f9d7072ba5",
+                    "serverHandshake": "4dbb384861fb7133d5b193f9f04adc74ef6f5794eb24faf8df44b94b08b003cf02aa009bf7c026ab2fa1e353cf613e51",
+                    "clientFinished": "a6b2da004d8f6aaf10aa57dc5134c5f70aa8caf5555f5ca930f9f8bef1b2e4661ef697ec111c7b25ed1fe79f2e9a009d",
+                    "serverFinished": "8ae6e27b15fb1a281bae72ac8c0baf2004e971d70f428439097e90624e1f082d0a81c1d48b83b21bdb00fbf2841d37df"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 270539
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 278,
+    "cpuTime": 18,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "13a7f7ad-88b8-4e2f-a6e3-8734c04959d2"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [
+        {
+            "message": [
+                "[GOLF] player-stats KV read failed:",
+                "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+            ],
+            "level": "error",
+            "timestamp": 1783961891131
+        }
+    ],
+    "eventTimestamp": 1783961891012,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/player-stats?athleteId=CATCHTEST&season=2026",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "20.169.72.166",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1a9d4bacd4e2271",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "20.169.72.166"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 16,
+                "clientQuicRtt": 0,
+                "colo": "SJC",
+                "asn": 8075,
+                "asOrganization": "Microsoft Corporation",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Phoenix",
+                "continent": "NA",
+                "region": "Arizona",
+                "regionCode": "AZ",
+                "timezone": "America/Phoenix",
+                "longitude": "-112.07404",
+                "latitude": "33.44838",
+                "postalCode": "85003",
+                "metroCode": "753",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "wHSThJGV2TUOPa1hmXrj4iUa3FuFXhuo1x2ad4wckv4=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "8b742063c0abd50b4a4ddcecbadb4ec893988fc0b4de0dfae0f4f62d0c04ace9dd9ba552d827f3d17d5b4901da168270",
+                    "serverHandshake": "c18c1f0932cc0f5de4388056888ec3da7973bae5e3ea5737700a7d8853ef0316030063b8d620f1a1452169f789469dd8",
+                    "clientFinished": "ac6ee0fb72e2a2e60b25e2f0f746ecff2d44c37ef6dade3049269f04f83be62cdeffec40d2f4ec08be39fd9b9fb96cf9",
+                    "serverFinished": "6fe4666f91a03426d903409538daedc1f7971f4839d3ee4617ba0b5f5929b7f20f626c57a6f579873f3b320f7807f720"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 256496
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 700,
+    "cpuTime": 38,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "13a7f7ad-88b8-4e2f-a6e3-8734c04959d2"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [
+        {
+            "message": [
+                "[GOLF] competitor-stats KV read failed:",
+                "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+            ],
+            "level": "error",
+            "timestamp": 1783961891596
+        }
+    ],
+    "eventTimestamp": 1783961891428,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/competitor-stats?eventId=CATCHTESTEVT&athleteId=CATCHTESTATH",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "20.169.72.166",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1a9d4bd5ae0e9e4",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "20.169.72.166"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 8,
+                "clientQuicRtt": 0,
+                "colo": "LAX",
+                "asn": 8075,
+                "asOrganization": "Microsoft Corporation",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Phoenix",
+                "continent": "NA",
+                "region": "Arizona",
+                "regionCode": "AZ",
+                "timezone": "America/Phoenix",
+                "longitude": "-112.07404",
+                "latitude": "33.44838",
+                "postalCode": "85003",
+                "metroCode": "753",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "hWZ6eiPczm/gPDSkhsVhYNBkZ+2rueSVGBdXilOolYA=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "78b577b75675053aea55abbf435f83c06e4e63869546b43549201aaff19ccf6f97f5c513722188e6b2cdbe46848be85c",
+                    "serverHandshake": "e1af71a9c4f697e762db4a16ef5e10fa434ca29a65debf0e7d2059b7fd4acded87239a60c595859b56fd7402ccf491ac",
+                    "clientFinished": "b37ac641fe91ad98fc9c9a79e19bf1db9a350596fa13aca01ff253070bcdf4b5a41dc7a70f727a1c3d672b510febee6b",
+                    "serverFinished": "f52549465614be39eaba51703700c3b9cad03dac64647e6a39e07541d38598375a4b72ff574392a62297c8068af0f384"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 513176
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 332,
+    "cpuTime": 31,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "13a7f7ad-88b8-4e2f-a6e3-8734c04959d2"
+    },
+    "scriptName": "field-relay-nba",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [
+        {
+            "message": [
+                "[GOLF] eventlog KV read failed:",
+                "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+            ],
+            "level": "error",
+            "timestamp": 1783961892590
+        }
+    ],
+    "eventTimestamp": 1783961892373,
+    "event": {
+        "request": {
+            "url": "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/eventlog?athleteId=CATCHTEST&season=2026",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-connecting-ip": "20.169.72.166",
+                "cf-ipcountry": "US",
+                "cf-ray": "a1a9d4c34e4e238f",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "field-relay-nba.jeffunglesbee.workers.dev",
+                "user-agent": "curl/8.5.0",
+                "x-forwarded-proto": "https",
+                "x-real-ip": "20.169.72.166"
+            },
+            "cf": {
+                "httpProtocol": "HTTP/2",
+                "requestPriority": "weight=16;exclusive=0;group=0;group-weight=0",
+                "edgeRequestKeepAliveStatus": 1,
+                "requestHeaderNames": {},
+                "clientTcpRtt": 17,
+                "clientQuicRtt": 0,
+                "colo": "SJC",
+                "asn": 8075,
+                "asOrganization": "Microsoft Corporation",
+                "country": "US",
+                "isEUCountry": false,
+                "city": "Phoenix",
+                "continent": "NA",
+                "region": "Arizona",
+                "regionCode": "AZ",
+                "timezone": "America/Phoenix",
+                "longitude": "-112.07404",
+                "latitude": "33.44838",
+                "postalCode": "85003",
+                "metroCode": "753",
+                "tlsVersion": "TLSv1.3",
+                "tlsCipher": "AEAD-AES256-GCM-SHA384",
+                "tlsClientRandom": "7/ndlKWYke2ofG1mxD0HF3LHUwDz0Q+qEIUHHeBU7Z4=",
+                "tlsClientCiphersSha1": "GXSPDLP4G3X+prK73a4wBuOaHRc=",
+                "tlsClientExtensionsSha1": "tlH5gnoC5Z1HF45J5OgHEi338V0=",
+                "tlsClientExtensionsSha1Le": "mRCkyUCRFDTLCNHGQsZNFhkU1/4=",
+                "tlsExportedAuthenticator": {
+                    "clientHandshake": "15d68d1698edf5c4f06a0a922aff8f46e53d20b8f93c133f1723568897c3106e4ca86b3196047588156b038e71c44993",
+                    "serverHandshake": "935de4e38957166374c54932c96df9b6a7da50bafbfc97bf5934acdf44dfe84ffe5f8d4afd1535ab1a04406cb66b0c16",
+                    "clientFinished": "ab3c301ac10bea2503f18fc3b34c8e01dfe36747f532396b7916bde1944079b80fa4d3b6d50d61006a3072312684148b",
+                    "serverFinished": "6640813d840d92b966df3a905ce87e2d51f0daa2827074eed39f05a7433a3f9c96033beef4cd0a3ffb77b5f7cd762d9a"
+                },
+                "tlsClientHelloLength": "508",
+                "tlsClientAuth": {
+                    "certPresented": "0",
+                    "certVerified": "NONE",
+                    "certRevoked": "0",
+                    "certIssuerDN": "",
+                    "certSubjectDN": "",
+                    "certIssuerDNRFC2253": "",
+                    "certSubjectDNRFC2253": "",
+                    "certIssuerDNLegacy": "",
+                    "certSubjectDNLegacy": "",
+                    "certSerial": "",
+                    "certIssuerSerial": "",
+                    "certSKI": "",
+                    "certIssuerSKI": "",
+                    "certFingerprintSHA1": "",
+                    "certFingerprintSHA256": "",
+                    "certNotBefore": "",
+                    "certNotAfter": "",
+                    "certRFC9440": "",
+                    "certRFC9440TooLarge": false,
+                    "certChainRFC9440": "",
+                    "certChainRFC9440TooLarge": false
+                },
+                "verifiedBotCategory": "",
+                "edgeL4": {
+                    "deliveryRate": 249316
+                }
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
