@@ -503,7 +503,7 @@ async function oddsFetchWithFallback(env, buildUrl, fetchInit, tag) {
         console.warn(`[odds-fallback] primary key returned ${r.status} on ${tag}; switching to ODDS_API_KEY_FALLBACK for the day`);
         await env.FIELD_JOURNALISM.put(flagKey, '1', { expirationTtl: 86400 });
       }
-    } catch (_) { /* logging best-effort */ }
+    } catch (e) { console.error("[odds-fallback] fallback-flag write failed:", e.message); /* logging best-effort */ }
   }
   const url2 = buildUrl(fallbackKey);
   try { r = await fetch(url2, fetchInit); }
@@ -1599,7 +1599,7 @@ async function backfillWCBsdEventIds(env, { leagueId, since } = {}) {
                     }
                 }
             }
-        } catch (_) {}
+        } catch (e) { console.error("[BSD-BACKFILL] league discovery fetch failed:", e.message); }
     }
     if (!league) return { ok: false, error: 'league_id not discoverable from live events' };
 
@@ -1612,7 +1612,7 @@ async function backfillWCBsdEventIds(env, { leagueId, since } = {}) {
             const d = await r.json();
             seasonEvents = d.results || d.events || [];
         }
-    } catch (_) {}
+    } catch (e) { console.error("[BSD-BACKFILL] season events fetch failed:", e.message); }
     if (!seasonEvents.length) return { ok: false, error: 'BSD season returned no events', league_id: league };
 
     // 3. Load wc_results rows lacking bsd_event_id (optionally filtered by since)
@@ -1685,7 +1685,7 @@ async function captureWithRetry(url, r2Key, env, meta,
                 });
                 return true;
             }
-        } catch (_) {}
+        } catch (e) { console.error("[BSD-CAPTURE] capture fetch/write failed:", e.message); }
         if (attempt < maxAttempts - 1)
             await new Promise(res => setTimeout(res, intervalMs));
     }
@@ -1911,7 +1911,7 @@ async function writeWCResult(db, game, env, ctx) {
                 const mc = await env.FIELD_JOURNALISM.get(mcKey);
                 if (mc) matchupContext = `\n\nPRE-GAME CONTEXT:\n${mc}`;
             }
-        } catch (_) { /* non-blocking */ }
+        } catch (e) { console.error("[WC-RESULT] matchup context lookup failed:", e.message); /* non-blocking */ }
 
         // Fetch group standings for journalism context (post-result table —
         // recomputeGroupStandings has already run above). Non-blocking: empty
@@ -1929,7 +1929,7 @@ async function writeWCResult(db, game, env, ctx) {
                 ).join('\n');
                 standingsContext = `\n\nGROUP ${groupId} STANDINGS (after this result):\n${standingsLines}`;
             }
-        } catch (_) { /* non-blocking — standings context is additive */ }
+        } catch (e) { console.error("[WC-RESULT] standings context lookup failed:", e.message); /* non-blocking — standings context is additive */ }
 
         // BSD shotmap: fetch for xG enrichment of goalscorer events. One call per
         // WC game final. Not reusing R2 cache here — the captureWithRetry write
@@ -1963,7 +1963,7 @@ async function writeWCResult(db, game, env, ctx) {
                         }
                     }
                 }
-            } catch (_) { /* xG enrichment is additive — never block journalism */ }
+            } catch (e) { console.error("[WC-RESULT] BSD xG enrichment failed:", e.message); /* xG enrichment is additive — never block journalism */ }
         }
 
         // Match events for journalism brief. Prefer comp.details threaded via
@@ -2022,7 +2022,7 @@ async function writeWCResult(db, game, env, ctx) {
                     }
                 }
             }
-        } catch (_) {}
+        } catch (e) { console.error("[WC-RESULT] match events lookup failed:", e.message); }
 
         // Weather context from BSD event (injected by ESPN WC enrichment).
         // Only surfaced when meaningful (rain / extreme wind / heat) — clear skies skipped.
@@ -3057,7 +3057,7 @@ async function buildAFLJournalismContext(games, round, year, env) {
                     },
                 };
             }
-        } catch (_) {}
+        } catch (e) { console.error("[AFL-CONTEXT] kali predictions parse failed:", e.message); }
     }
     if (squiggleResp.status === 'fulfilled' && squiggleResp.value.ok) {
         try {
@@ -3071,7 +3071,7 @@ async function buildAFLJournalismContext(games, round, year, env) {
                     awayConfidence: 100 - tip.hconfidence,
                 };
             }
-        } catch (_) {}
+        } catch (e) { console.error("[AFL-CONTEXT] squiggle tips parse failed:", e.message); }
     }
     return ctx;
 }
@@ -3852,7 +3852,7 @@ async function runWCTournamentProjections(env) {
                 lambdaAway: pregameLa,
                 _live: true,
             });
-        } catch (_) {}
+        } catch (e) { console.error("[WC-PROJ] live WP compute failed:", e.message); }
     }
 
     // 2. Build remainingFixtures:
@@ -3909,7 +3909,7 @@ async function runWCTournamentProjections(env) {
     try {
         const prevJson = await KV.get('wc:projections:prev');
         if (prevJson) prev = JSON.parse(prevJson);
-    } catch (_) {}
+    } catch (e) { console.error("[WC-PROJ] previous snapshot parse failed:", e.message); }
 
     // 5. Compute movers
     const movers = prev ? computeMovers(prev, curr, playedTodaySet) : null;
@@ -3962,7 +3962,7 @@ async function runWCTournamentProjections(env) {
                         }), { expirationTtl: 86400 });
                     }
                 }
-            } catch (_) {}
+            } catch (e) { console.error("[WC-PROJ] movers brief generation failed:", e.message); }
         }
     }
 
@@ -4026,7 +4026,7 @@ async function handleCron(env) {
                     watchUrl: null,
                 });
             }
-        } catch(_) { /* sport unavailable — skip */ }
+        } catch (e) { console.error("[PUSH-CRON] sport poll failed:", e.message); /* sport unavailable — skip */ }
     }
 
     if (!live.length) return;
@@ -4441,7 +4441,7 @@ async function ensureCodexStatusColumn(env) {
     await env.ARCHIVE_DB.prepare(
       `ALTER TABLE codex ADD COLUMN status TEXT DEFAULT 'open'`
     ).run();
-  } catch (_) { /* column already exists — expected on every run after the first */ }
+  } catch (e) { console.error("[CODEX-STATUS] status column migration failed:", e.message); /* column already exists — expected on every run after the first */ }
   _codexStatusReady = true;
 }
 
@@ -4494,7 +4494,7 @@ async function checkIncidentThresholds(env) {
     ).bind(dedupKey).first();
     let lastDraftedCount = 0;
     if (dedupRow) {
-      try { lastDraftedCount = JSON.parse(dedupRow.content).last_drafted_count || 0; } catch (_) {}
+      try { lastDraftedCount = JSON.parse(dedupRow.content).last_drafted_count || 0; } catch (e) { console.error("[ANOMALY-WATCHER] dedup state parse failed:", e.message); }
     }
     if (count <= lastDraftedCount) continue; // already drafted at this count or higher
 
@@ -4651,12 +4651,12 @@ async function ensureFinalizedAtColumn(env) {
     await env.ARCHIVE_DB.prepare(
       `ALTER TABLE regular_season_games ADD COLUMN finalized_at TEXT DEFAULT NULL`
     ).run();
-  } catch (_) { /* column already exists — expected on every run after the first */ }
+  } catch (e) { console.error("[FINALIZED-AT] regular_season_games migration failed:", e.message); /* column already exists — expected on every run after the first */ }
   try {
     await env.ARCHIVE_DB.prepare(
       `ALTER TABLE postseason_games ADD COLUMN finalized_at TEXT DEFAULT NULL`
     ).run();
-  } catch (_) { /* column already exists — expected on every run after the first */ }
+  } catch (e) { console.error("[FINALIZED-AT] postseason_games migration failed:", e.message); /* column already exists — expected on every run after the first */ }
   _finalizedAtReady = true;
 }
 
@@ -4703,7 +4703,7 @@ async function sweepKVBriefs(env) {
           const p = JSON.parse(kvVal);
           briefText = p.brief || p.brief_text || p.text || kvVal;
           qualityScore = p.quality_score || p.score || null;
-        } catch (_) { /* fall back to raw value */ }
+        } catch (e) { console.error("[KV-SWEEP] brief JSON parse failed:", e.message); /* fall back to raw value */ }
       }
       if (!briefText || briefText.length < 50) continue;
       // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
@@ -4732,7 +4732,7 @@ async function sweepKVBriefs(env) {
             if (gameRow && gameRow.sport) sport = gameRow.sport; // archive is authoritative; KV-key segment is not
           }
           qualityScore = await jqScoreProse(briefText, { sport, game: gameCtx });
-        } catch (_) {}
+        } catch (e) { console.error("[KV-SWEEP] quality score compute failed:", e.message); }
       }
       const sweepDate = new Date().toISOString().slice(0, 10);
       await env.ARCHIVE_DB.prepare(
@@ -4747,7 +4747,7 @@ async function sweepKVBriefs(env) {
       ).run();
       swept++;
     }
-  } catch (_) { /* sweep failure never breaks cron */ }
+  } catch (e) { console.error("[KV-SWEEP] sweep failed:", e.message); /* sweep failure never breaks cron */ }
   return swept > 0 ? { swept } : null;
 }
 
@@ -5184,7 +5184,7 @@ function buildBackfillPrompt(date, games, seriesNarratives) {
         if (o.moneyline) oddsParts.push(`ML ${o.moneyline.home}/${o.moneyline.away}`);
         if (o.total && typeof o.total.over === 'number') oddsParts.push(`O/U ${o.total.over}`);
         if (oddsParts.length) parts.push(`odds: ${oddsParts.join(', ')}`);
-      } catch (_) { /* skip malformed odds JSON */ }
+      } catch (e) { console.error("[BACKFILL-PROMPT] malformed odds JSON:", e.message); /* skip malformed odds JSON */ }
     }
     return parts.join(' | ');
   };
@@ -5369,7 +5369,7 @@ async function executeGameBriefBackfill(env, date) {
         league: game.league || null,           // enables WNBA/WTA/soccer sport promotion
         espnLeague: game.espn_league || null,
       }, 600);
-    } catch (_) { /* non-fatal */ }
+    } catch (e) { console.error("[GAME-BRIEF-BACKFILL] sport context assembly failed:", e.message); /* non-fatal */ }
 
     let seriesContext = '';
     if (isPostseason && game.series_key) {
@@ -5663,11 +5663,11 @@ async function findGame(env, id) {
     if (!row) return null;
     let openingOdds = null, closingOdds = null;
     let dramaArc    = null;
-    try { if (row.opening_odds) openingOdds = JSON.parse(row.opening_odds); } catch (_) {}
-    try { if (row.closing_odds) closingOdds = JSON.parse(row.closing_odds); } catch (_) {}
+    try { if (row.opening_odds) openingOdds = JSON.parse(row.opening_odds); } catch (e) { console.error("[FIND-GAME] opening_odds parse failed:", e.message); }
+    try { if (row.closing_odds) closingOdds = JSON.parse(row.closing_odds); } catch (e) { console.error("[FIND-GAME] closing_odds parse failed:", e.message); }
     // drama_arc is the full client-computed drama summary object — JSON TEXT.
     // ADR-002: relay does not compute drama, only stores and surfaces it.
-    try { if (row.drama_arc)    dramaArc    = JSON.parse(row.drama_arc);    } catch (_) {}
+    try { if (row.drama_arc)    dramaArc    = JSON.parse(row.drama_arc);    } catch (e) { console.error("[FIND-GAME] drama_arc parse failed:", e.message); }
     return {
         ...row,
         opening_odds_parsed: openingOdds,
