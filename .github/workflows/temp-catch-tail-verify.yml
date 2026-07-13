@@ -1,20 +1,13 @@
 name: TEMP Catch Tail Verify
 
 # TEMP-CATCH-VERIFY-2026-07-13: forced-failure telemetry verification for
-# relay-empty-catches-cluster1. Delete after use — see
-# docs/CC-CMD-2026-07-13-relay-empty-catches-cluster1.md
+# relay-empty-catches-cluster1. Corrupts throwaway KV test keys, triggers
+# the corresponding routes, captures wrangler tail output proving the new
+# console.error lines fire, then cleans up the test keys.
+# Delete after use — see docs/CC-CMD-2026-07-13-relay-empty-catches-cluster1.md
 
 on:
   workflow_dispatch:
-    inputs:
-      search:
-        description: 'wrangler tail --search filter'
-        required: true
-        default: '[GOLF]'
-      duration:
-        description: 'seconds to tail'
-        required: false
-        default: '50'
 
 permissions:
   contents: write
@@ -32,19 +25,51 @@ jobs:
       - name: Install deps
         run: npm install --no-save wrangler
 
-      - name: Tail worker logs
+      - name: Corrupt test KV keys, trigger routes, capture tail
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          SEARCH: ${{ github.event.inputs.search }}
-          DURATION: ${{ github.event.inputs.duration }}
         run: |
+          set -x
           TS=$(date -u +%Y%m%dT%H%M%SZ)
           OUT="outbox/temp-catch-tail-${TS}.json"
           mkdir -p outbox
-          timeout "${DURATION}s" npx wrangler tail --format json --search "$SEARCH" > "$OUT" 2>&1 || true
+
+          # Start tail in background, filtered to [GOLF]
+          npx wrangler tail field-relay-nba --format json --search "[GOLF]" > "$OUT" 2>tail.err &
+          TAIL_PID=$!
+          sleep 12
+
+          # Corrupt throwaway KV cache keys (malformed JSON forces JSON.parse to throw
+          # inside the try block, exercising the KV-read-fallback catch)
+          npx wrangler kv key put --binding=FIELD_JOURNALISM "v2:golf:scoreboard:r3:CATCHTEST" "{not-valid-json" --remote || true
+          npx wrangler kv key put --binding=FIELD_JOURNALISM "golf:player-stats:CATCHTEST:2026" "{not-valid-json" --remote || true
+          npx wrangler kv key put --binding=FIELD_JOURNALISM "golf:competitor-stats:CATCHTESTEVT:CATCHTESTATH" "{not-valid-json" --remote || true
+          npx wrangler kv key put --binding=FIELD_JOURNALISM "golf:eventlog:CATCHTEST:2026" "{not-valid-json" --remote || true
+
+          sleep 3
+
+          # Trigger the routes that read those exact cache keys
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=pga&date=CATCHTEST" -o /dev/null -w "scoreboard: %{http_code}\n"
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/player-stats?athleteId=CATCHTEST&season=2026" -o /dev/null -w "player-stats: %{http_code}\n"
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/competitor-stats?eventId=CATCHTESTEVT&athleteId=CATCHTESTATH" -o /dev/null -w "competitor-stats: %{http_code}\n"
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/eventlog?athleteId=CATCHTEST&season=2026" -o /dev/null -w "eventlog: %{http_code}\n"
+
+          sleep 15
+          kill $TAIL_PID 2>/dev/null || true
+          wait $TAIL_PID 2>/dev/null || true
+
+          echo "=== tail.err ==="
+          cat tail.err || true
           echo "=== File: $OUT ==="
           cat "$OUT"
+
+          # Cleanup: delete the throwaway test keys so nothing lingers
+          npx wrangler kv key delete --binding=FIELD_JOURNALISM "v2:golf:scoreboard:r3:CATCHTEST" --remote --force || true
+          npx wrangler kv key delete --binding=FIELD_JOURNALISM "golf:player-stats:CATCHTEST:2026" --remote --force || true
+          npx wrangler kv key delete --binding=FIELD_JOURNALISM "golf:competitor-stats:CATCHTESTEVT:CATCHTESTATH" --remote --force || true
+          npx wrangler kv key delete --binding=FIELD_JOURNALISM "golf:eventlog:CATCHTEST:2026" --remote --force || true
+
           echo "OUT=$OUT" >> $GITHUB_ENV
 
       - name: Push result
@@ -53,7 +78,7 @@ jobs:
           git config user.email "probe@field"
           git config user.name "Debug-Probe"
           git add outbox/
-          git commit -m "temp: catch-tail verify capture [skip ci]" || echo "(nothing to commit)"
+          git commit -m "temp: catch-tail verify capture (KV-corruption forced test) [skip ci]" || echo "(nothing to commit)"
           for i in 1 2 3; do
             git pull --rebase --autostash origin main && git push origin main && break
             sleep $((i * 5))
