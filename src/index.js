@@ -2476,7 +2476,10 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
             if (cached) return JSON.parse(cached);
-        } catch (_) { /* KV read failure falls through to fetch */ }
+        } catch (e) {
+            console.error("[GOLF] scoreboard KV read failed:", e.message);
+            /* falls through to fetch */
+        }
     }
     const url = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=${date}`;
     let data;
@@ -2501,7 +2504,8 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
             }));
         const result = { active: false, schedule };
         if (env.FIELD_JOURNALISM) {
-            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); }
+            catch (e) { console.error("[GOLF] scoreboard KV write (off-tournament) failed:", e.message); }
         }
         return result;
     }
@@ -2624,7 +2628,8 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
         leaderboard,
     };
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 300 }); }
+        catch (e) { console.error("[GOLF] scoreboard KV write (active) failed:", e.message); }
     }
     return result;
 }
@@ -2641,7 +2646,7 @@ async function handleGolfPlayerStats(athleteId, season, env) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
             if (cached) return JSON.parse(cached);
-        } catch (_) {}
+        } catch (e) { console.error("[GOLF] player-stats KV read failed:", e.message); }
     }
     const url = `https://site.web.api.espn.com/apis/common/v3/sports/golf/athletes/${encodeURIComponent(athleteId)}/stats?season=${encodeURIComponent(season)}`;
     let data;
@@ -2680,7 +2685,8 @@ async function handleGolfPlayerStats(athleteId, season, env) {
     });
     const result = { ok: true, athleteId, season, events };
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 3600 }); }
+        catch (e) { console.error("[GOLF] player-stats KV write failed:", e.message); }
     }
     return result;
 }
@@ -2696,7 +2702,7 @@ async function handleGolfCompetitorStats(eventId, athleteId, env) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
             if (cached) return JSON.parse(cached);
-        } catch (_) {}
+        } catch (e) { console.error("[GOLF] competitor-stats KV read failed:", e.message); }
     }
     // eventId appears twice — events/{id}/competitions/{same_id}/competitors/{athleteId}
     const url = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/events/${encodeURIComponent(eventId)}/competitions/${encodeURIComponent(eventId)}/competitors/${encodeURIComponent(athleteId)}/statistics/0`;
@@ -2737,7 +2743,8 @@ async function handleGolfCompetitorStats(eventId, athleteId, env) {
     // Cache 600s — fits both active rounds (600s) and post-round (longer is fine
     // but a single TTL keeps the helper simple; clients may set their own).
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 600 }); }
+        catch (e) { console.error("[GOLF] competitor-stats KV write failed:", e.message); }
     }
     return result;
 }
@@ -2752,7 +2759,7 @@ async function handleGolfEventlog(athleteId, season, env) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
             if (cached) return JSON.parse(cached);
-        } catch (_) {}
+        } catch (e) { console.error("[GOLF] eventlog KV read failed:", e.message); }
     }
     const url = `https://sports.core.api.espn.com/v2/sports/golf/leagues/pga/seasons/${encodeURIComponent(season)}/athletes/${encodeURIComponent(athleteId)}/eventlog?limit=25`;
     let data;
@@ -2790,7 +2797,8 @@ async function handleGolfEventlog(athleteId, season, env) {
         .filter(ev => ev.league === 'pga');
     const result = { ok: true, athleteId, season, events };
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 21600 }); }
+        catch (e) { console.error("[GOLF] eventlog KV write failed:", e.message); }
     }
     return result;
 }
@@ -2813,7 +2821,7 @@ async function handleGolfEnriched(date, env, ctx) {
         try {
             const cached = await env.FIELD_JOURNALISM.get(cacheKey);
             if (cached) return JSON.parse(cached);
-        } catch (_) {}
+        } catch (e) { console.error("[GOLF] enriched KV read failed:", e.message); }
     }
     const scoreboard = await handleESPNGolfScoreboard(date_clean, env, ctx);
     if (!scoreboard.active) {
@@ -2822,7 +2830,8 @@ async function handleGolfEnriched(date, env, ctx) {
             .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0] || null;
         const result = { active: false, nextEvent, schedule: scoreboard.schedule || [] };
         if (env.FIELD_JOURNALISM) {
-            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 1800 }); } catch (_) {}
+            try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 1800 }); }
+            catch (e) { console.error("[GOLF] enriched KV write (off-tournament) failed:", e.message); }
         }
         return result;
     }
@@ -2846,7 +2855,10 @@ async function handleGolfEnriched(date, env, ctx) {
                 courseState = c.address?.state || null;
             }
         }
-    } catch (_) { /* course fetch failure never blocks enrichment */ }
+    } catch (e) {
+        console.error("[GOLF] enriched course-details fetch failed:", e.message);
+        /* course fetch failure never blocks enrichment */
+    }
 
     const statsByAthlete = {};
     await Promise.all(top20.map(async entry => {
@@ -2854,7 +2866,10 @@ async function handleGolfEnriched(date, env, ctx) {
         try {
             const stats = await handleGolfCompetitorStats(eventId, entry.athleteId, env);
             if (stats && stats.ok) statsByAthlete[entry.athleteId] = stats;
-        } catch (_) { /* per-athlete failure must not break enrichment */ }
+        } catch (e) {
+            console.error(`[GOLF] enriched per-athlete stats failed (${entry.athleteId}):`, e.message);
+            /* per-athlete failure must not break enrichment */
+        }
     }));
 
     // Canonical field mapping — ESPN native names stay inside
@@ -2974,7 +2989,8 @@ async function handleGolfEnriched(date, env, ctx) {
         leaderboard: enriched,
     };
     if (env.FIELD_JOURNALISM) {
-        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 180 }); } catch (_) {}
+        try { await env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(result), { expirationTtl: 180 }); }
+        catch (e) { console.error("[GOLF] enriched KV write (active) failed:", e.message); }
     }
     return result;
 }
@@ -3172,7 +3188,10 @@ async function handleV2Games(url, env, ctx) {
                         g.journalism = _aflCtx[g.espnEventId];
                     }
                 }
-            } catch (_) { /* non-blocking — journalism context optional */ }
+            } catch (e) {
+                console.error("[V2GAMES] AFL journalism context failed:", e.message);
+                /* non-blocking — journalism context optional */
+            }
         }
 
         // ── BSD group_name + weather enrichment ──────────────────────────────
@@ -3212,7 +3231,7 @@ async function handleV2Games(url, env, ctx) {
                         }
                     }
                 }
-            } catch (_) {}
+            } catch (e) { console.error("[V2GAMES] BSD group/weather enrichment failed:", e.message); }
         }
 
         if (env.BSD_API_TOKEN) {
@@ -3242,7 +3261,7 @@ async function handleV2Games(url, env, ctx) {
                         }
                     }
                 }
-            } catch (_) {}
+            } catch (e) { console.error("[V2GAMES] BSD live enrichment failed:", e.message); }
         }
 
         // ── Two-legged aggregate enrichment — only for likely second legs ─────────
@@ -3265,7 +3284,10 @@ async function handleV2Games(url, env, ctx) {
                         if (!resp.ok) return;
                         const d = await resp.json();
                         if (d?._series) g.series = d._series;
-                    } catch (_) { /* non-blocking */ }
+                    } catch (e) {
+                        console.error(`[V2GAMES] two-legged aggregate failed (${g.espnEventId}):`, e.message);
+                        /* non-blocking */
+                    }
                 }));
             }
         }
@@ -3328,7 +3350,7 @@ async function handleV2Games(url, env, ctx) {
                                 standings, g.home.name, g.away.name, wp, thirdPlace
                             );
                         }
-                    } catch (_) {}
+                    } catch (e) { console.error("[V2GAMES] WC advancement-prob standings query failed:", e.message); }
                 }
             }
 
@@ -3350,8 +3372,8 @@ async function handleV2Games(url, env, ctx) {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ condition: crunchCondition, gameId: g.id, ts: Date.now() }),
-                        })).catch(() => {});
-                    } catch (_) {}
+                        })).catch(e => console.error(`[V2GAMES] GAME_DO crunch signal POST failed (${g.id}):`, e.message));
+                    } catch (e) { console.error(`[V2GAMES] GAME_DO crunch signal setup failed (${g.id}):`, e.message); }
                 }
             }
         }
@@ -3469,7 +3491,7 @@ async function handleV2Games(url, env, ctx) {
                                     });
                                     if (lines.length) starsContext = '\n\nTHREE STARS:\n' + lines.join('\n');
                                 }
-                            } catch (_) {}
+                            } catch (e) { console.error(`[V2GAMES] NHL three-stars fetch failed (${g.id}):`, e.message); }
 
                             const prompt = [
                                 FIELD_VOICE_REGISTER,
@@ -3588,7 +3610,7 @@ async function handleV2Games(url, env, ctx) {
                                     const lines = [formatTeam(gameData?.homeTeam), formatTeam(gameData?.awayTeam)].filter(Boolean);
                                     if (lines.length) statsContext = '\n\nKEY PERFORMERS:\n' + lines.join('\n');
                                 }
-                            } catch (_) {}
+                            } catch (e) { console.error(`[V2GAMES] NBA CDN boxscore fetch failed (${g.id}):`, e.message); }
 
                             const prompt = [
                                 FIELD_VOICE_REGISTER,
