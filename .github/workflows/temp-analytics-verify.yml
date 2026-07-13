@@ -35,14 +35,14 @@ jobs:
           OUT="outbox/temp-analytics-tail-${TS}.json"
           mkdir -p outbox
 
-          timeout 90s npx wrangler tail field-relay-nba --format json > "$OUT" 2>tail.err &
-          sleep 10
+          timeout 60s npx wrangler tail field-relay-nba --format json --search "journalism" > "$OUT" 2>tail.err &
+          sleep 6
 
           echo "=== triggering /journalism/run?force=true ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/run?force=true" -o "outbox/temp-analytics-run-result-${TS}.json" -w "HTTP %{http_code}\n"
           cat "outbox/temp-analytics-run-result-${TS}.json"
 
-          sleep 15
+          sleep 25
           wait || true
 
           echo "=== tail.err ==="
