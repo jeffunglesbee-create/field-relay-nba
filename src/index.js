@@ -7218,7 +7218,7 @@ export default {
             doUrl.hostname = 'user-do-internal';
             if (pathname === '/user/event' && request.method === 'POST') {
                 let evtBody = {};
-                try { evtBody = await request.json(); } catch (_) { /* invalid JSON — DO will reject */ }
+                try { evtBody = await request.json(); } catch (e) { console.error("[USER-DO] event body JSON parse failed:", e.message); /* invalid JSON — DO will reject */ }
                 return stub.fetch(new Request(doUrl.toString(), {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -7357,7 +7357,7 @@ export default {
                 try {
                     const kv = await env.FIELD_JOURNALISM.get(QUALITY_CALIBRATION_KV_KEY, 'json');
                     qSource = isCalibrationFresh(kv) ? 'analytics-cron' : 'd1-live';
-                } catch (_) { /* leave 'unloaded' */ }
+                } catch (e) { console.error("[QUALITY] health-check calibration source lookup failed:", e.message); /* leave 'unloaded' */ }
             }
 
             return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron, quality-source=${qSource}`, {
@@ -7826,7 +7826,7 @@ export default {
                             hasOpening, hasClosing, story,
                         });
                     }
-                } catch (_) { /* table absent or query fail — silent per Rule 5 */ }
+                } catch (e) { console.error("[ODDS-STORY] odds-story table query failed:", e.message); /* table absent or query fail — silent per Rule 5 */ }
             }
             return new Response(JSON.stringify({
                 date, total: games.length,
@@ -8229,7 +8229,7 @@ export default {
                                            'Cache-Control': 'public,max-age=60', 'X-Cache': 'HIT' },
                             });
                         }
-                    } catch (_) { /* fall through to query */ }
+                    } catch (e) { console.error("[CONTEXT-GAME] cache read failed:", e.message); /* fall through to query */ }
                 }
                 const _errors = [];
                 const settled = await Promise.allSettled([
@@ -8260,7 +8260,7 @@ export default {
                         await env.FIELD_JOURNALISM.put(cacheKey, body, {
                             expirationTtl: isFinal ? 300 : 60,
                         });
-                    } catch (_) { /* cache write best-effort */ }
+                    } catch (e) { console.error("[CONTEXT-GAME] cache write failed:", e.message); /* cache write best-effort */ }
                 }
                 return new Response(body, {
                     headers: { ...CORS, 'Content-Type': 'application/json',
@@ -8432,7 +8432,7 @@ export default {
                             const data = await resp.json();
                             games = Array.isArray(data?.games) ? data.games : [];
                         }
-                    } catch (_) { /* group's rows fall through to per-row unresolved below */ }
+                    } catch (e) { console.error("[WENT-TO-OT-BACKFILL] v2/games group fetch failed:", e.message); /* group's rows fall through to per-row unresolved below */ }
 
                     for (const row of groupRows) {
                         const match = matchV2Game(games, {
@@ -8651,14 +8651,14 @@ export default {
                         `SELECT id FROM postseason_games WHERE id LIKE ? LIMIT 1`
                     ).bind(fuzzy).first();
                     if (row) table = 'postseason_games';
-                } catch (_) { /* fall through to regular */ }
+                } catch (e) { console.error("[ARCHIVE-DRAMA] postseason lookup failed:", e.message); /* fall through to regular */ }
                 if (!row) {
                     try {
                         row = await env.ARCHIVE_DB.prepare(
                             `SELECT id FROM regular_season_games WHERE id LIKE ? LIMIT 1`
                         ).bind(fuzzy).first();
                         if (row) table = 'regular_season_games';
-                    } catch (_) { /* both queries failed — surface no_row */ }
+                    } catch (e) { console.error("[ARCHIVE-DRAMA] regular_season lookup failed:", e.message); /* both queries failed — surface no_row */ }
                 }
                 if (!row || !table) {
                     return new Response(JSON.stringify({ ok: false, error: 'no_row', source_id }),
@@ -8857,7 +8857,7 @@ export default {
                             }
                         }
                     }
-                } catch (_) { /* enrichment failure never blocks the real score write */ }
+                } catch (e) { console.error("[SCORE-BY-ID] went_to_ot enrichment failed:", e.message); /* enrichment failure never blocks the real score write */ }
 
                 try {
                     let result;
@@ -8945,7 +8945,7 @@ export default {
                             const data = await resp.json();
                             games = Array.isArray(data?.games) ? data.games : [];
                         }
-                    } catch (_) { /* V2 unreachable for this group — skip silently */ }
+                    } catch (e) { console.error("[BACKFILL-ENRICH] v2/games group fetch failed:", e.message); /* V2 unreachable for this group — skip silently */ }
 
                     if (!games.length) { skipped += groupRows.length; continue; }
 
@@ -9152,7 +9152,7 @@ export default {
                             try {
                                 const parsed = JSON.parse(kvVal);
                                 briefText = parsed.brief || parsed.brief_text || parsed.text || null;
-                            } catch (_) { /* treat as raw string */ }
+                            } catch (e) { console.error("[ARCHIVE-GAME] KV brief JSON parse failed:", e.message); /* treat as raw string */ }
                         }
                         if (briefText && briefText.length > 50) {
                             await ensureBriefsTable(env);
@@ -9168,7 +9168,7 @@ export default {
                                     sport: sportKey,
                                     game: { home, away, homeScore: home_score, awayScore: away_score },
                                 });
-                            } catch (_) {}
+                            } catch (e) { console.error("[ARCHIVE-GAME] KV brief quality score compute failed:", e.message); }
                             await env.ARCHIVE_DB.prepare(
                                 `INSERT INTO briefs
                                    (id, date, brief_type, sport, game_id, brief_text, quality_score, source, word_count)
@@ -9181,7 +9181,7 @@ export default {
                             briefCaptured = briefId;
                         }
                     }
-                } catch (_) { /* brief capture failure never breaks /archive/game */ }
+                } catch (e) { console.error("[ARCHIVE-GAME] brief capture failed:", e.message); /* brief capture failure never breaks /archive/game */ }
 
                 // ── Closing-odds capture ──────────────────────────────────
                 // Fire-and-forget enrichment; never affects core response.
@@ -9215,7 +9215,7 @@ export default {
                             }
                         }
                     }
-                } catch (_) { /* closing-odds capture never breaks core response */ }
+                } catch (e) { console.error("[ARCHIVE-GAME] closing-odds capture failed:", e.message); /* closing-odds capture never breaks core response */ }
 
                 return new Response(JSON.stringify({
                     ok: true,
@@ -9348,7 +9348,7 @@ export default {
                                     };
                                     _archiveMatchupNote = _gRow.note || null;
                                 }
-                            } catch (_) { /* non-fatal — Dims 7+10 unavailable for this brief */ }
+                            } catch (e) { console.error("[ARCHIVE-BRIEF] game context lookup failed:", e.message); /* non-fatal — Dims 7+10 unavailable for this brief */ }
                         }
                         const scoringPrompt = `Score this sports brief for journalism quality:\n\n${brief_text}`;
                         const qResult = await runQualityChain(scoringPrompt, brief_text, callProxy, {
@@ -9359,7 +9359,7 @@ export default {
                             matchupNote: _archiveMatchupNote,
                         });
                         finalScore = qResult?.score ?? null;
-                    } catch (_) { /* scoring failure must not break archival */ }
+                    } catch (e) { console.error("[ARCHIVE-BRIEF] quality scoring failed:", e.message); /* scoring failure must not break archival */ }
                 }
 
                 await env.ARCHIVE_DB.prepare(
@@ -9972,7 +9972,7 @@ export default {
                                     seriesContext = `\nSeries record: ${hW}-${aW}`;
                                     if (series.narrative) seriesContext += `\nContext: ${series.narrative}`;
                                 }
-                            } catch (_) {}
+                            } catch (e) { console.error("[BACKFILL-GAME-BRIEFS] series context lookup failed:", e.message); }
                         }
 
                         let sportContext = '';
@@ -9984,7 +9984,7 @@ export default {
                                 league: game.league || null,           // enables WNBA/WTA sport promotion
                                 espnLeague: game.espn_league || null,
                             }, 600);
-                        } catch (_) {}
+                        } catch (e) { console.error("[BACKFILL-GAME-BRIEFS] sport context assembly failed:", e.message); }
 
                         const gamePrompt = [
                             FIELD_VOICE_REGISTER,
@@ -10735,7 +10735,7 @@ export default {
                         }
                     }
                 }
-            } catch (_) { /* fall through to midnight default */ }
+            } catch (e) { console.error("[FRESHNESS] slate generatedAt lookup failed:", e.message); /* fall through to midnight default */ }
             const fallbackGen = `${date}T00:00:00Z`;
             try {
                 // Per-game briefs only — slate briefs have no per-game id, so
@@ -11343,7 +11343,7 @@ export default {
                         return new Response(cached,
                             { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
                     }
-                } catch (_) { /* KV read failure falls through to fetch */ }
+                } catch (e) { console.error("[WIKI-TRENDING] cache read failed:", e.message); /* KV read failure falls through to fetch */ }
             }
 
             // Cache miss — fetch all teams with throttled batching (5 at a time, 150ms between batches)
@@ -11390,7 +11390,7 @@ export default {
 
             const payload = JSON.stringify(result);
             if (env.FIELD_JOURNALISM) {
-                try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 26 * 3600 }); } catch (_) {}
+                try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 26 * 3600 }); } catch (e) { console.error("[WIKI-TRENDING] cache write failed:", e.message); }
             }
             return new Response(payload,
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
