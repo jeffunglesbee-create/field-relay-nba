@@ -5542,20 +5542,42 @@ async function pickNextOddsBackfillDate(env) {
 // Pick the next backfill date during dead-hour cron ticks.
 // Postseason dates first (sorted ascending), then regular season — skipping any
 // date that already has a source='backfill' brief.
+//
+// CC-CMD-2026-07-13-backfill-stall-diagnosis: root cause of the 10-day stall
+// (last write 2026-07-03) was that this function has no memory of a date it
+// already tried and permanently can't backfill (e.g. a postseason "if
+// necessary" game slot that was never played, so home_score/away_score stay
+// NULL forever — confirmed live: 2026-05-18's only postseason_games row,
+// nhl-east-semis-2026-g7, has both scores NULL). executeBackfill's
+// buildBackfillPrompt thinness check correctly refuses to write a brief for
+// such a date, but writing nothing means this function re-selects the exact
+// same oldest date on every future tick, forever, blocking every newer date
+// behind it too. Fixed the same way the adjacent odds-backfill skip-check
+// already does (see 'Skip-on-no-progress (F2)' below) -- a KV 'tried' marker,
+// set by the call site only for the two permanent (non-retriable) skip
+// reasons, checked here so those dates get skipped on future ticks.
 async function pickNextBackfillDate(env) {
   if (!env.ARCHIVE_DB) return null;
+  const tried = async (date) => {
+    if (!env.FIELD_JOURNALISM) return false;
+    return !!(await env.FIELD_JOURNALISM.get(`backfill:tried:${date}`).catch(() => null));
+  };
   const ps = await env.ARCHIVE_DB.prepare(
     `SELECT DISTINCT date FROM postseason_games
       WHERE date NOT IN (SELECT date FROM briefs WHERE source = 'backfill')
-      ORDER BY date ASC LIMIT 1`
+      ORDER BY date ASC LIMIT 20`
   ).all();
-  if (ps.results && ps.results.length) return ps.results[0].date;
+  for (const row of (ps.results || [])) {
+    if (!(await tried(row.date))) return row.date;
+  }
   const rs = await env.ARCHIVE_DB.prepare(
     `SELECT DISTINCT date FROM regular_season_games
       WHERE date NOT IN (SELECT date FROM briefs WHERE source = 'backfill')
-      ORDER BY date ASC LIMIT 1`
+      ORDER BY date ASC LIMIT 20`
   ).all();
-  if (rs.results && rs.results.length) return rs.results[0].date;
+  for (const row of (rs.results || [])) {
+    if (!(await tried(row.date))) return row.date;
+  }
   return null;
 }
 
@@ -5830,6 +5852,21 @@ async function handleJournalismCycle(env, opts = {}) {
               lastAt: now,
             }), { expirationTtl: 7 * 86400 });
           } catch (_) { /* cursor write best-effort */ }
+          // CC-CMD-2026-07-13-backfill-stall-diagnosis: mark permanently
+          // tried, matching pickNextBackfillDate's own skip check, but ONLY
+          // for the two skip reasons that are genuinely date-inherent and
+          // won't change on retry (no archived games at all for the date;
+          // buildBackfillPrompt's thinness check finding no scored games and
+          // no notes -- e.g. an "if necessary" postseason slot never played).
+          // `skipped && !ok` deliberately excludes 'backfill already exists'
+          // (ok:true -- benign, not a failure) and 'proxy returned no prose'
+          // (no `skipped` key at all -- a transient failure that should
+          // still retry on a later tick, not be permanently given up on).
+          if (briefResult && briefResult.skipped && !briefResult.ok) {
+            try {
+              await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
+            } catch (_) { /* best-effort */ }
+          }
         }
 
         // Odds backfill — lower priority than brief backfill. Runs whether
@@ -5943,6 +5980,7 @@ async function handleJournalismCycle(env, opts = {}) {
           seriesPreviewBackfill: seriesPreviewResult,
         };
       } catch (e) {
+        console.error("[BACKFILL] dead-hour block failed:", e.message);
         return {ok:false, reason:`backfill error: ${e.message}`};
       }
     }
