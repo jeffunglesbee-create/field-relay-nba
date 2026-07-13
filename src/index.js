@@ -6793,11 +6793,17 @@ async function handleJournalismCycle(env, opts = {}) {
     // One row per cron slate-brief generation. Distinguished from live path
     // by briefType='cron-slate'. Same dataset → unified queries can group
     // both paths or filter to one.
+    // CC-CMD-2026-07-13-analytics-index-fix: Analytics Engine allows exactly
+    // 1 index (this write silently failed on every call since it shipped —
+    // caught by Cluster 2's [ANALYTICS] telemetry). 'multi' (the sport-slot
+    // value for a multi-sport slate brief, matching the live path's
+    // sport||'none' in that same position) moved into blobs rather than
+    // dropped — it's a real dimension, just not an index-eligible one.
     try {
       if (env.JQ_ANALYTICS) {
         env.JQ_ANALYTICS.writeDataPoint({
-          indexes: ['cron-slate', 'multi'],
-          blobs:   [qualityResult.layers_fired.join(',') || 'none'],
+          indexes: ['cron-slate'],
+          blobs:   [qualityResult.layers_fired.join(',') || 'none', 'multi'],
           doubles: [
             finalScore,
             qualityResult.retries,
