@@ -11890,11 +11890,17 @@ export default {
             // — NOT editorial decisions about interest level. The score field
             // is prose-quality (specificity+variety+density+statDepth), not
             // user-facing interest. Pure editorial-quality observability.
+            // CC-CMD-2026-07-13-relay-empty-catches-cluster5 follow-up: Analytics
+            // Engine allows exactly 1 index (this write silently failed on every
+            // call since it shipped — caught by Cluster 5's [ANALYTICS]
+            // telemetry). 'sport' moved into blobs rather than dropped — it's a
+            // real dimension, just not an index-eligible one, matching the
+            // cron-slate fix's shape (CC-CMD-2026-07-13-analytics-index-fix).
             try {
               if (env.JQ_ANALYTICS) {
                 env.JQ_ANALYTICS.writeDataPoint({
-                  indexes: [briefType, sport || 'none'],
-                  blobs:   [result.layers_fired.join(',') || 'none'],
+                  indexes: [briefType],
+                  blobs:   [result.layers_fired.join(',') || 'none', sport || 'none'],
                   doubles: [
                     result.score,
                     result.retries,
