@@ -4109,7 +4109,7 @@ async function loadQualityCalibration(env) {
   try {
     if (!env.ARCHIVE_DB) return;
     const rows = await env.ARCHIVE_DB.prepare(
-      `SELECT sport, quality_score FROM briefs_TEMP_FORCE_THROW_QC_TEST
+      `SELECT sport, quality_score FROM briefs
        WHERE quality_score IS NOT NULL AND sport IS NOT NULL
        AND date >= date('now', '-30 days')
        ORDER BY sport, quality_score`
