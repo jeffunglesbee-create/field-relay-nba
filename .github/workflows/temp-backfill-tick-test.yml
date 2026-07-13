@@ -1,0 +1,29 @@
+name: TEMP Backfill Tick Test
+
+on:
+  push:
+    paths: ['.github/workflows/temp-backfill-tick-test.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Walk the backfill tick sequence
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, urllib.error, json, time
+          UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          URL = 'https://field-relay-nba.jeffunglesbee.workers.dev/admin/backfill-tick-test'
+          for i in range(6):
+              req = urllib.request.Request(URL, method='POST',
+                  headers={'User-Agent': UA, 'X-FIELD-Relay': 'field-relay-cron-2026'})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      body = r.read().decode()
+                      print(f"--- tick {i+1} --- HTTP {r.status}")
+                      print(body)
+              except urllib.error.HTTPError as e:
+                  print(f"--- tick {i+1} --- HTTP {e.code}")
+                  print(e.read().decode())
+              time.sleep(2)
+          PYEOF
