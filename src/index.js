@@ -5873,7 +5873,7 @@ async function handleJournalismCycle(env, opts = {}) {
               lastResult: briefResult.ok ? 'ok' : (briefResult.skipped ? 'skipped' : 'error'),
               lastAt: now,
             }), { expirationTtl: 7 * 86400 });
-          } catch (_) { /* cursor write best-effort */ }
+          } catch (e) { console.error("[BACKFILL] cursor write failed:", e.message); /* cursor write best-effort */ }
           // CC-CMD-2026-07-13-backfill-stall-diagnosis: mark permanently
           // tried, matching pickNextBackfillDate's own skip check, but ONLY
           // for the two skip reasons that are genuinely date-inherent and
@@ -5901,7 +5901,7 @@ async function handleJournalismCycle(env, opts = {}) {
             if (dateAgeMs > MIN_AGE_BEFORE_GIVING_UP_MS) {
               try {
                 await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
-              } catch (_) { /* best-effort */ }
+              } catch (e) { console.error("[BACKFILL] tried-marker write failed:", e.message); /* best-effort */ }
             }
           }
         }
@@ -5928,7 +5928,7 @@ async function handleJournalismCycle(env, opts = {}) {
                   lastResult: 'skipped_tried',
                   lastAt: now,
                 }), { expirationTtl: 7 * 86400 });
-              } catch (_) { /* best-effort */ }
+              } catch (e) { console.error("[BACKFILL] odds cursor write (skipped_tried) failed:", e.message); /* best-effort */ }
             } else {
               oddsResult = await runOddsBackfillForDate(env, oddsDate);
               try {
@@ -5940,7 +5940,7 @@ async function handleJournalismCycle(env, opts = {}) {
                   quotaRemaining: oddsResult ? oddsResult.quota_remaining : null,
                   lastAt: now,
                 }), { expirationTtl: 7 * 86400 });
-              } catch (_) { /* cursor write best-effort */ }
+              } catch (e) { console.error("[BACKFILL] odds cursor write failed:", e.message); /* cursor write best-effort */ }
               // Mark date 'tried' if this run populated nothing — the remaining
               // rows are unmatched team names; further runs would burn ~30
               // credits each for zero new data. 30-day TTL — re-attempted next
@@ -5948,11 +5948,11 @@ async function handleJournalismCycle(env, opts = {}) {
               if (oddsResult && oddsResult.odds_populated === 0) {
                 try {
                   await env.FIELD_JOURNALISM.put(triedKey, '1', { expirationTtl: 30 * 86400 });
-                } catch (_) { /* best-effort */ }
+                } catch (e) { console.error("[BACKFILL] odds tried-marker write failed:", e.message); /* best-effort */ }
               }
             }
           }
-        } catch (_) { /* odds backfill failure cannot break journalism cron */ }
+        } catch (e) { console.error("[BACKFILL] odds backfill failed:", e.message); /* odds backfill failure cannot break journalism cron */ }
 
         // KV → D1 sweep — extracted into sweepKVBriefs() (module scope).
         // The live-hour cron path calls it too via ctx.waitUntil in
@@ -5960,7 +5960,7 @@ async function handleJournalismCycle(env, opts = {}) {
         // TTL expires even on busy nights.
         let sweepResult = null;
         try { sweepResult = await sweepKVBriefs(env); }
-        catch (_) { /* sweep failure never breaks cron */ }
+        catch (e) { console.error("[BACKFILL] KV sweep failed:", e.message); /* sweep failure never breaks cron */ }
 
         // One-time cleanup: delete null-sport briefs where a sport-tagged sibling exists.
         // Root cause: KV keys were brief:game:{id} without sport prefix. The sweep
@@ -5974,7 +5974,7 @@ async function handleJournalismCycle(env, opts = {}) {
                )`
             ).run();
           }
-        } catch(_) { /* cleanup failure never breaks cron */ }
+        } catch (e) { console.error("[BACKFILL] null-sport brief cleanup failed:", e.message); /* cleanup failure never breaks cron */ }
 
         // Game brief backfill — per-game briefs for dates where a slate
         // brief exists (whether pre-existing OR just written this tick).
@@ -5987,7 +5987,7 @@ async function handleJournalismCycle(env, opts = {}) {
               && (briefResult.skipped || briefResult.ok)) {
             gameBriefResult = await executeGameBriefBackfill(env, nextDate);
           }
-        } catch(_) { /* game brief backfill failure never breaks cron */ }
+        } catch (e) { console.error("[BACKFILL] game brief backfill failed:", e.message); /* game brief backfill failure never breaks cron */ }
 
         // Series preview backfill — per-series previews for active postseason series.
         // Max 2 series per tick. Unconditional — runs every dead-hour tick.
@@ -5996,7 +5996,7 @@ async function handleJournalismCycle(env, opts = {}) {
           if (env.ARCHIVE_DB) {
             seriesPreviewResult = await executeSeriesPreviewBackfill(env);
           }
-        } catch(_) { /* series preview backfill failure never breaks cron */ }
+        } catch (e) { console.error("[BACKFILL] series preview backfill failed:", e.message); /* series preview backfill failure never breaks cron */ }
 
         if (!nextDate && !oddsResult && !sweepResult && !gameBriefResult
             && !(seriesPreviewResult && seriesPreviewResult.ok)) {
@@ -6113,7 +6113,7 @@ async function handleJournalismCycle(env, opts = {}) {
             });
           }
         }
-      } catch(_) {}
+      } catch (e) { console.error("[ARCHIVE-CATCHUP] per-league ESPN fetch failed:", e.message); }
     }
 
     let _catchupFilled = 0;
@@ -6159,7 +6159,7 @@ async function handleJournalismCycle(env, opts = {}) {
     if (_catchupFilled > 0) {
       console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
     }
-  } catch (_) { /* league fetch / catch-up setup failure must never block WC morning-brief or slate-brief paths below */ }
+  } catch (e) { console.error("[ARCHIVE-CATCHUP] league fetch / catch-up setup failed:", e.message); /* league fetch / catch-up setup failure must never block WC morning-brief or slate-brief paths below */ }
 
   // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
   // Runs in the gap between the live-hours cron (UTC 10am–2am) and the
@@ -6315,7 +6315,7 @@ async function handleJournalismCycle(env, opts = {}) {
         }).catch(() => {});
         _seededCount++;
       }
-    } catch (_) { /* seeding failure never breaks journalism */ }
+    } catch (e) { console.error("[ARCHIVE-SEED] pre-game slate seed failed:", e.message); /* seeding failure never breaks journalism */ }
     if (_seededCount > 0) {
       console.log(`[ARCHIVE-SEED] ${_seededCount} pre-game rows seeded`);
     }
@@ -6355,7 +6355,7 @@ async function handleJournalismCycle(env, opts = {}) {
               eventId: String(ev.id || ''),
             });
           }
-        } catch (_) {}
+        } catch (e) { console.error("[ARCHIVE-YDAY] per-league ESPN fetch (yesterday) failed:", e.message); }
       }
       let _ydayFilled = 0;
       for (const gm of yesterdayFinals) {
@@ -6391,7 +6391,7 @@ async function handleJournalismCycle(env, opts = {}) {
       if (_ydayFilled > 0) {
         console.log(`[ARCHIVE-YDAY] ${_ydayFilled} yesterday finals gap-filled`);
       }
-    } catch (_) { /* yesterday catch-up failure never breaks journalism */ }
+    } catch (e) { console.error("[ARCHIVE-YDAY] yesterday catch-up failed:", e.message); /* yesterday catch-up failure never breaks journalism */ }
 
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
@@ -6400,7 +6400,7 @@ async function handleJournalismCycle(env, opts = {}) {
       try {
         const existing = JSON.parse(existingRaw);
         if (existing.contextHash === contextHash) return {ok:false, reason:'context unchanged (already cached)'};
-      } catch(_) {}
+      } catch (e) { console.error("[JOURNALISM-CYCLE] cached context-hash parse failed:", e.message); }
     }
 
     // 3. Layer 1: full style prompt
@@ -6437,7 +6437,7 @@ async function handleJournalismCycle(env, opts = {}) {
         }
       }
     }
-    catch (_) { /* golf context failure cannot break journalism cron */ }
+    catch (e) { console.error("[GOLF] slate-context fetch failed:", e.message); /* golf context failure cannot break journalism cron */ }
 
     // ── Golf per-round brief (when round completes) ─────────────────────────
     // Golf doesn't have home/away games — a "game" is a tournament round.
@@ -6502,7 +6502,7 @@ async function handleJournalismCycle(env, opts = {}) {
           }
         }
       }
-    } catch (_) { /* golf brief failure cannot break journalism cron */ }
+    } catch (e) { console.error("[GOLF-BRIEF] per-round brief enqueue failed:", e.message); /* golf brief failure cannot break journalism cron */ }
 
     // ── Odds snapshot (opening_odds) ────────────────────────────────────────
     // Captures pre-game odds onto archive game rows for tonight's slate. Only
@@ -6511,7 +6511,7 @@ async function handleJournalismCycle(env, opts = {}) {
     // Wrapped in try/catch per CLAUDE.md Rule 5; the cycle MUST NOT break if
     // the Odds API is down or the snapshot throws.
     try { await snapshotCronOdds(env, dateKey); }
-    catch (_) { /* odds snapshot failure cannot break journalism */ }
+    catch (e) { console.error("[ODDS-SNAPSHOT] snapshot failed:", e.message); /* odds snapshot failure cannot break journalism */ }
 
     // ── Odds annotations for prompt injection ───────────────────────────────
     // Read opening_odds rows from the archive for today's sports, build a
@@ -6551,10 +6551,10 @@ async function handleJournalismCycle(env, opts = {}) {
             if (odds.moneyline) parts.push(`ML ${odds.moneyline.home}/${odds.moneyline.away}`);
             if (odds.total && typeof odds.total.over === 'number') parts.push(`O/U ${odds.total.over}`);
             if (parts.length) oddsAnnotations[i] = ` [ODDS: ${parts.join(', ')}]`;
-          } catch (_) { /* skip malformed odds JSON */ }
+          } catch (e) { console.error("[ODDS-ANNOTATIONS] malformed odds JSON:", e.message); /* skip malformed odds JSON */ }
         }
       }
-    } catch (_) { /* odds annotations are an enhancement */ }
+    } catch (e) { console.error("[ODDS-ANNOTATIONS] annotation build failed:", e.message); /* odds annotations are an enhancement */ }
 
     // ── Closing-the-loop: temporal continuity + enrichment context ──────────
     // Both queries are ENHANCEMENTS — wrapped in try/catch per CLAUDE.md
@@ -6573,7 +6573,7 @@ async function handleJournalismCycle(env, opts = {}) {
         const ctxJson = await ctxResp.json();
         if (ctxJson && Array.isArray(ctxJson.briefs)) ctxBriefs = ctxJson.briefs;
       }
-    } catch (_) { /* Context Graph optional — direct D1 fallback below */ }
+    } catch (e) { console.error("[CONTEXT-GRAPH] self-fetch failed:", e.message); /* Context Graph optional — direct D1 fallback below */ }
 
     let recentCoverageBlock = '';
     try {
@@ -6608,7 +6608,7 @@ async function handleJournalismCycle(env, opts = {}) {
           ].join('\n');
         }
       }
-    } catch (_) { /* temporal context is an enhancement, not a requirement */ }
+    } catch (e) { console.error("[TEMPORAL-CONTEXT] recent coverage lookup failed:", e.message); /* temporal context is an enhancement, not a requirement */ }
 
     let enrichmentBlock = '';
     try {
@@ -6645,7 +6645,7 @@ async function handleJournalismCycle(env, opts = {}) {
           ].join('\n');
         }
       }
-    } catch (_) { /* enrichment context is an enhancement */ }
+    } catch (e) { console.error("[ENRICHMENT-CONTEXT] enrichment lookup failed:", e.message); /* enrichment context is an enhancement */ }
 
     // Voice exemplars — top 3 quality_score slate briefs from the last 7 days.
     // Shows the model what high-scoring FIELD prose looks like in its own voice.
@@ -6683,7 +6683,7 @@ async function handleJournalismCycle(env, opts = {}) {
         });
         voiceExemplarBlock = lines.join('\n');
       }
-    } catch (_) { /* voice exemplars are an enhancement */ }
+    } catch (e) { console.error("[VOICE-EXEMPLARS] exemplar lookup failed:", e.message); /* voice exemplars are an enhancement */ }
 
     // Per-game sport context from R2 (MLB ABS, NHL series PP/PK, NBA clutch,
     // soccer FBref). Iterates gameMeta in parallel, falls back to '' on any
@@ -6810,7 +6810,7 @@ async function handleJournalismCycle(env, opts = {}) {
           ],
         });
       }
-    } catch(_aeErr) { /* analytics failures must not affect cron */ }
+    } catch (e) { console.error("[ANALYTICS] cron-slate write failed:", e.message); /* analytics failures must not affect cron */ }
 
     // 6. Store J3 brief in KV
     const cycleId = crypto.randomUUID();
@@ -6858,7 +6858,7 @@ async function handleJournalismCycle(env, opts = {}) {
         contextHash,
         prose.split(/\s+/).length
       ).run();
-    } catch (_archiveErr) { /* archive failure must not break journalism cron */ }
+    } catch (e) { console.error("[ARCHIVE-SLATE] slate brief D1 write failed:", e.message); /* archive failure must not break journalism cron */ }
 
     // 7. Pre-generate per-game card briefs — enqueue via JOURNALISM_QUEUE
     // Replaces the previous sequential loop + setTimeout stagger (1500ms/game).
@@ -6886,7 +6886,7 @@ async function handleJournalismCycle(env, opts = {}) {
               try {
                 const eg = JSON.parse(existingGame);
                 if (eg.contextHash === gameHash) continue;
-              } catch(_) {}
+              } catch (e) { console.error("[GAME-BRIEF-ENQUEUE] cached game-hash parse failed:", e.message); }
             }
 
             const gameLine = buildGameLine(ev, label);
