@@ -15,6 +15,7 @@ permissions:
 jobs:
   tail:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +48,7 @@ jobs:
             cat "outbox/temp-analytics-run-result-${TS}.json"
           ) &
 
-          timeout 45s npx wrangler tail field-relay-nba --format json --search "journalism" > "$OUT" 2>tail.err || true
+          timeout -k 5s 45s npx wrangler tail field-relay-nba --format json --search "journalism" > "$OUT" 2>tail.err || true
 
           echo "=== tail.err ==="
           cat tail.err || true
