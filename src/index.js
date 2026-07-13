@@ -8323,27 +8323,6 @@ export default {
                 { status: 404, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
-        // ── /odds/history — Historical odds from D1 backfill ──────────────────
-        if (pathname.startsWith('/odds/history/') && env.ARCHIVE_DB) {
-            const gameId = decodeURIComponent(pathname.slice('/odds/history/'.length));
-            if (!gameId) {
-                return new Response(JSON.stringify({ ok: false, error: 'missing game_id' }),
-                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
-            }
-            try {
-                const rows = await env.ARCHIVE_DB.prepare(
-                    `SELECT * FROM odds_history WHERE game_id = ? ORDER BY snapshot_time DESC`
-                ).bind(gameId).all();
-                return new Response(JSON.stringify({ ok: true, game_id: gameId, odds: rows.results || [] }), {
-                    headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=3600' },
-                });
-            } catch (e) {
-                return new Response(JSON.stringify({ ok: true, game_id: gameId, odds: [], _note: 'odds_history table may not exist yet' }), {
-                    headers: { ...CORS, 'Content-Type': 'application/json' },
-                });
-            }
-        }
-
         // ── /admin/* routes ──────────────────────────────────────────────────────
         // CC-CMD-2026-07-12-went-to-ot-historical-backfill: both routes below were
         // found, while debugging this CC-CMD's own new route, to have been
@@ -10878,6 +10857,12 @@ export default {
         // .github/workflows/odds-backfill.yml job. Returns all snapshots for
         // a game (typically one 'close' row per bookmaker) ordered by capture
         // time. Match MUST come before the /odds/* passthrough below.
+        // CC-CMD-2026-07-13-odds-history-shadow-fix: an earlier, broader block
+        // (L~8326, removed) shadowed this one whenever ARCHIVE_DB was bound
+        // (always in production) -- it silently returned {ok:true, odds:[]}
+        // on any query error, masking real failures. This block's honest
+        // error surfacing and explicit chronological order are kept as the
+        // real, intended behavior.
         if (pathname.startsWith('/odds/history/')) {
             if (!env.ARCHIVE_DB) {
                 return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
