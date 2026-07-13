@@ -4132,7 +4132,10 @@ async function loadQualityCalibration(env) {
     }
     _qualityCalibrationSource = 'd1-live';
     console.log(`[QUALITY] calibration source=d1-live sports=${Object.keys(_qualityCalibration).length}`);
-  } catch(e) { /* calibration failure never breaks journalism */ }
+  } catch(e) {
+    console.error("[QUALITY] D1 fallback failed:", e.message);
+    /* calibration failure never breaks journalism */
+  }
 }
 
 // Returns the quality retry threshold for a sport. Uses p25 from calibration
