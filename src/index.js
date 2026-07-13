@@ -6044,7 +6044,11 @@ async function handleJournalismCycle(env, opts = {}) {
     let _catchupFilled = 0;
     try {
       const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
-      for (const gm of gameMeta) {
+      // TEMP TEST ONLY -- forces a real throw partway through, after a real
+      // POST fires, to verify the outer catch fires + prior writes persist.
+      // Reverted immediately after use.
+      const _TEMP_TEST_ENTRY = {isFinal:true, eventId:'9999999999_TEMP_CATCHUP_TEST', sport:'mlb', league:'MLB', home:'Test Home', away:'Test Away', homeScore:1, awayScore:0, venue:null, startTime:null, periodNum:9};
+      for (const gm of [...gameMeta, _TEMP_TEST_ENTRY]) {
         if (!gm.isFinal || !gm.eventId) continue;
         const existing = await env.ARCHIVE_DB.prepare(
           `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
@@ -6076,6 +6080,9 @@ async function handleJournalismCycle(env, opts = {}) {
           }),
         }).catch(() => {});
         _catchupFilled++;
+        if (gm.eventId === '9999999999_TEMP_CATCHUP_TEST') {
+          throw new Error('TEMP_CATCHUP_TEST_FORCED_THROW_AFTER_POST');
+        }
       }
     } catch (e) {
       console.error("[ARCHIVE-CATCHUP] loop failed:", e.message);
