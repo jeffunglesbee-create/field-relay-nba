@@ -27,3 +27,4 @@ jobs:
                   print(e.read().decode())
               time.sleep(2)
           PYEOF
+# retry after route relocation fix
