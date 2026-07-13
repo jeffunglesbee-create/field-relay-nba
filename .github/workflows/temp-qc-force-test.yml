@@ -1,3 +1,4 @@
+# Re-run: verify the genuine D1 success path after reverting the temp break
 name: TEMP QC Force-Failure Test
 
 on:
