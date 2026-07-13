@@ -6077,7 +6077,10 @@ async function handleJournalismCycle(env, opts = {}) {
         }).catch(() => {});
         _catchupFilled++;
       }
-    } catch (_) { /* catch-up failure never breaks journalism */ }
+    } catch (e) {
+      console.error("[ARCHIVE-CATCHUP] loop failed:", e.message);
+      /* catch-up failure never breaks journalism */
+    }
     if (_catchupFilled > 0) {
       console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
     }
