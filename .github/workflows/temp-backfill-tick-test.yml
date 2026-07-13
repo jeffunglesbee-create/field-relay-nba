@@ -15,7 +15,7 @@ jobs:
           UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
           URL = 'https://field-relay-nba.jeffunglesbee.workers.dev/admin/backfill-tick-test'
           for i in range(6):
-              req = urllib.request.Request(URL, method='POST',
+              req = urllib.request.Request(URL, method='GET',
                   headers={'User-Agent': UA, 'X-FIELD-Relay': 'field-relay-cron-2026'})
               try:
                   with urllib.request.urlopen(req, timeout=60) as r:
