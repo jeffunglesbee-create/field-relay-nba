@@ -5945,6 +5945,141 @@ async function handleJournalismCycle(env, opts = {}) {
     }
     return {ok:false, reason:`not live hours (UTC ${hour})`};
   }
+
+  // ── Archive catch-up: server-side gap-fill (Rule 68 case study) ───
+  // Games that went final while no client was watching have no GameDO
+  // archive row. This fills the gap every cron tick. ON CONFLICT in the
+  // /archive/game handler means: no row → INSERT, skeleton row → UPDATE
+  // scores, complete row → no-op via COALESCE.
+  //
+  // CC-CMD-2026-07-13-p15b: moved here, ahead of the WC morning-brief
+  // check below, because every path inside that check's `if` block
+  // returns (dedup hit, no results, success, or error) -- confirmed via
+  // a full control-flow read, not assumed. The real bug was broader
+  // than the original June 20 diagnosis: catch-up was unreachable for
+  // the ENTIRE 11:00-13:00 UTC window whenever WC2026_DB/JOURNALISM_QUEUE
+  // are bound, not just on ticks after the dedup guard fired. Requires
+  // its own ESPN-scoreboard fetch (LEAGUES/gameLines/gameMeta), also
+  // moved here since catch-up cannot run without it -- reused below by
+  // the main brief-generation path and the pre-game slate seed, not
+  // re-fetched. Whole block wrapped in try/catch so a failure here can
+  // never block the WC morning-brief or slate-brief paths that follow
+  // (Rule 5).
+  const LEAGUES = [
+    {sport:'basketball',league:'nba',        label:'NBA'},
+    {sport:'hockey',    league:'nhl',        label:'NHL'},
+    {sport:'baseball',  league:'mlb',        label:'MLB'},
+    {sport:'basketball',league:'wnba',       label:'WNBA'},
+    {sport:'soccer',    league:'eng.1',      label:'EPL'},
+    {sport:'soccer',    league:'usa.1',      label:'MLS'},
+    {sport:'soccer',    league:'esp.1',      label:'La Liga'},
+    {sport:'soccer',    league:'ita.1',      label:'Serie A'},
+    {sport:'soccer',    league:'ger.1',      label:'Bundesliga'},
+    {sport:'soccer',    league:'fra.1',      label:'Ligue 1'},
+    {sport:'football',  league:'nfl',        label:'NFL'},
+    // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
+    // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
+    // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
+    // isLiveHours gate (UTC 10-2) covers all WC group-stage kickoffs (UTC 17-01).
+    {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
+    {sport:'golf',      league:'pga',        label:'PGA Tour'},
+  ];
+  // computeWentToOT is now module-scoped (see above handleJournalismCycle) --
+  // CC-CMD-2026-07-12-completion-field-parity hoisted it so /archive/score-by-id
+  // could reuse the exact same function. Closure still resolves it here unchanged.
+
+  const gameLines = [];
+  // Parallel to gameLines — captures the sport + ESPN team names for each
+  // pushed line so the odds-injection step (below) can look up opening_odds
+  // in the archive without re-parsing the line string.
+  const gameMeta = [];
+  try {
+    for (const {sport,league,label} of LEAGUES) {
+      try {
+        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const events = d?.events || [];
+        for (const ev of events) {
+          const line = buildGameLine(ev, label);
+          if (line) {
+            gameLines.push(line);
+            const comp = ev.competitions?.[0];
+            const teams = comp?.competitors || [];
+            const home = teams.find(t => t.homeAway === 'home') || teams[0];
+            const away = teams.find(t => t.homeAway === 'away') || teams[1];
+            gameMeta.push({
+              sport,
+              home: home?.team?.shortDisplayName || home?.team?.displayName || '',
+              away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+              // Captured for context-assembler R2 key lookups (NBA clutch +
+              // NHL series + MLB ABS all key by 3-letter team abbreviation).
+              homeAbbr: home?.team?.abbreviation || '',
+              awayAbbr: away?.team?.abbreviation || '',
+              homeScore: home?.score ?? null,
+              awayScore: away?.score ?? null,
+              isFinal: comp?.status?.type?.completed === true,
+              // CC-CMD-2026-07-11-wenttoot-actual-fix: inning/period number
+              // at time of fetch. comp.status.period is the same ESPN field
+              // already relied on elsewhere in this file for MLB innings /
+              // NBA-WNBA quarters / NHL periods (see line ~1259, ~1050).
+              periodNum: comp?.status?.period ?? null,
+              startTime: comp?.date || null,
+              venue: comp?.venue?.fullName || '',
+              eventId: String(ev.id || ''),
+              espnLeague: league,  // slug e.g. "fifa.world" — used by soccer_xg builder
+              league: label,
+              probableHome: home?.probables?.[0]?.athlete?.displayName || null,
+              probableAway: away?.probables?.[0]?.athlete?.displayName || null,
+              broadcasts: (comp?.broadcasts || []).map(b => b.names || []).flat(),
+            });
+          }
+        }
+      } catch(_) {}
+    }
+
+    let _catchupFilled = 0;
+    try {
+      const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+      for (const gm of gameMeta) {
+        if (!gm.isFinal || !gm.eventId) continue;
+        const existing = await env.ARCHIVE_DB.prepare(
+          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
+           UNION ALL
+           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
+           LIMIT 1`
+        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
+        if (existing && existing.home_score !== null) continue;
+        await fetch(relayBase + '/archive/game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            league: gm.league,
+            date: dateKey,
+            home: gm.home,
+            away: gm.away,
+            home_score: gm.homeScore,
+            away_score: gm.awayScore,
+            venue: gm.venue,
+            start_time: gm.startTime || null,
+            source_id: gm.eventId,
+            // CC-CMD-2026-07-11-wenttoot-actual-fix: this catch-up path is
+            // the ONLY write these games ever get when no live GameDO viewer
+            // was watching (existing.home_score !== null skips re-firing on
+            // later ticks) -- it must compute went_to_ot itself, the same
+            // way GameDO does, or the field is permanently stuck at NULL.
+            went_to_ot: computeWentToOT(gm.league, gm.periodNum),
+          }),
+        }).catch(() => {});
+        _catchupFilled++;
+      }
+    } catch (_) { /* catch-up failure never breaks journalism */ }
+    if (_catchupFilled > 0) {
+      console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
+    }
+  } catch (_) { /* league fetch / catch-up setup failure must never block WC morning-brief or slate-brief paths below */ }
+
   // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
   // Runs in the gap between the live-hours cron (UTC 10am–2am) and the
   // next live window. Queries D1 for WC group results completed in the
@@ -6059,131 +6194,10 @@ async function handleJournalismCycle(env, opts = {}) {
 
 
   try {
-    // 1. Fetch ESPN scoreboard — richer context (Fix 5)
-    // O(1) Newspaper coverage — added EPL May 31 2026.
-    // Each league here is iterated TWICE per cron cycle: once for the slate
-    // brief context (gameLines), once for per-game brief generation. Adding
-    // a league to this array immediately expands cache coverage for the
-    // 97% LLM-cost-reduction path.
-    const LEAGUES = [
-      {sport:'basketball',league:'nba',        label:'NBA'},
-      {sport:'hockey',    league:'nhl',        label:'NHL'},
-      {sport:'baseball',  league:'mlb',        label:'MLB'},
-      {sport:'basketball',league:'wnba',       label:'WNBA'},
-      {sport:'soccer',    league:'eng.1',      label:'EPL'},
-      {sport:'soccer',    league:'usa.1',      label:'MLS'},
-      {sport:'soccer',    league:'esp.1',      label:'La Liga'},
-      {sport:'soccer',    league:'ita.1',      label:'Serie A'},
-      {sport:'soccer',    league:'ger.1',      label:'Bundesliga'},
-      {sport:'soccer',    league:'fra.1',      label:'Ligue 1'},
-      {sport:'football',  league:'nfl',        label:'NFL'},
-      // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
-      // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
-      // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
-      // isLiveHours gate (UTC 10-2) covers all WC group-stage kickoffs (UTC 17-01).
-      {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
-      {sport:'golf',      league:'pga',        label:'PGA Tour'},
-    ];
-    // computeWentToOT is now module-scoped (see above handleJournalismCycle) --
-    // CC-CMD-2026-07-12-completion-field-parity hoisted it so /archive/score-by-id
-    // could reuse the exact same function. Closure still resolves it here unchanged.
-
-    const gameLines = [];
-    // Parallel to gameLines — captures the sport + ESPN team names for each
-    // pushed line so the odds-injection step (below) can look up opening_odds
-    // in the archive without re-parsing the line string.
-    const gameMeta = [];
-    for (const {sport,league,label} of LEAGUES) {
-      try {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
-        if (!r.ok) continue;
-        const d = await r.json();
-        const events = d?.events || [];
-        for (const ev of events) {
-          const line = buildGameLine(ev, label);
-          if (line) {
-            gameLines.push(line);
-            const comp = ev.competitions?.[0];
-            const teams = comp?.competitors || [];
-            const home = teams.find(t => t.homeAway === 'home') || teams[0];
-            const away = teams.find(t => t.homeAway === 'away') || teams[1];
-            gameMeta.push({
-              sport,
-              home: home?.team?.shortDisplayName || home?.team?.displayName || '',
-              away: away?.team?.shortDisplayName || away?.team?.displayName || '',
-              // Captured for context-assembler R2 key lookups (NBA clutch +
-              // NHL series + MLB ABS all key by 3-letter team abbreviation).
-              homeAbbr: home?.team?.abbreviation || '',
-              awayAbbr: away?.team?.abbreviation || '',
-              homeScore: home?.score ?? null,
-              awayScore: away?.score ?? null,
-              isFinal: comp?.status?.type?.completed === true,
-              // CC-CMD-2026-07-11-wenttoot-actual-fix: inning/period number
-              // at time of fetch. comp.status.period is the same ESPN field
-              // already relied on elsewhere in this file for MLB innings /
-              // NBA-WNBA quarters / NHL periods (see line ~1259, ~1050).
-              periodNum: comp?.status?.period ?? null,
-              startTime: comp?.date || null,
-              venue: comp?.venue?.fullName || '',
-              eventId: String(ev.id || ''),
-              espnLeague: league,  // slug e.g. "fifa.world" — used by soccer_xg builder
-              league: label,
-              probableHome: home?.probables?.[0]?.athlete?.displayName || null,
-              probableAway: away?.probables?.[0]?.athlete?.displayName || null,
-              broadcasts: (comp?.broadcasts || []).map(b => b.names || []).flat(),
-            });
-          }
-        }
-      } catch(_) {}
-    }
-
+    // LEAGUES/gameLines/gameMeta built above (CC-CMD-2026-07-13-p15b —
+    // moved ahead of the WC morning-brief check so archive catch-up runs
+    // on every live-hours tick, not just when that check is skipped).
     if (!gameLines.length) return {ok:false, reason:'no game lines from ESPN'};
-
-    // ── Archive catch-up: server-side gap-fill (Rule 68 case study) ───
-    // Games that went final while no client was watching have no GameDO
-    // archive row. This fills the gap every cron tick. ON CONFLICT in the
-    // /archive/game handler means: no row → INSERT, skeleton row → UPDATE
-    // scores, complete row → no-op via COALESCE.
-    let _catchupFilled = 0;
-    try {
-      const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
-      for (const gm of gameMeta) {
-        if (!gm.isFinal || !gm.eventId) continue;
-        const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
-           UNION ALL
-           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
-           LIMIT 1`
-        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
-        if (existing && existing.home_score !== null) continue;
-        await fetch(relayBase + '/archive/game', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
-            league: gm.league,
-            date: dateKey,
-            home: gm.home,
-            away: gm.away,
-            home_score: gm.homeScore,
-            away_score: gm.awayScore,
-            venue: gm.venue,
-            start_time: gm.startTime || null,
-            source_id: gm.eventId,
-            // CC-CMD-2026-07-11-wenttoot-actual-fix: this catch-up path is
-            // the ONLY write these games ever get when no live GameDO viewer
-            // was watching (existing.home_score !== null skips re-firing on
-            // later ticks) -- it must compute went_to_ot itself, the same
-            // way GameDO does, or the field is permanently stuck at NULL.
-            went_to_ot: computeWentToOT(gm.league, gm.periodNum),
-          }),
-        }).catch(() => {});
-        _catchupFilled++;
-      }
-    } catch (_) { /* catch-up failure never breaks journalism */ }
-    if (_catchupFilled > 0) {
-      console.log(`[ARCHIVE-CATCHUP] ${_catchupFilled} finals gap-filled`);
-    }
 
     // ── Pre-game slate seed: insert skeleton rows for today's upcoming games ──
     // Enables opening_odds to attach — snapshotCronOdds only writes to rows
