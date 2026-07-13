@@ -8550,6 +8550,30 @@ export default {
                 }
             }
 
+            // TEMP TEST ONLY -- CC-CMD-2026-07-13-backfill-stall-diagnosis TASK 3.
+            // Mirrors the real dead-hour call site 1:1 (pickNextBackfillDate ->
+            // executeBackfill -> mark-tried-on-permanent-skip) so the fix can be
+            // exercised live without waiting for the real UTC 3-9 dead-hour
+            // window. Removed after verification.
+            if (pathname === '/admin/backfill-tick-test' && (request.method === 'GET' || request.method === 'POST')) {
+                const authHeader = request.headers.get('X-FIELD-Relay');
+                if (authHeader !== 'field-relay-cron-2026') {
+                    return new Response('unauthorized', { status: 401, headers: CORS });
+                }
+                const nextDate = await pickNextBackfillDate(env);
+                let briefResult = null;
+                if (nextDate) {
+                    briefResult = await executeBackfill(env, nextDate);
+                    if (briefResult && briefResult.skipped && !briefResult.ok) {
+                        try {
+                            await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
+                        } catch (_) { /* best-effort */ }
+                    }
+                }
+                return new Response(JSON.stringify({ nextDate, briefResult }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
             // POST /archive/drama — persists client-computed drama summary onto
             // the archived game row (ADR-002: relay stores, never computes).
             // The client computes drama_peak (0-100) and the full drama_arc
