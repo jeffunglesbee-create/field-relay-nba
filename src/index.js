@@ -11414,7 +11414,7 @@ export default {
                         return new Response(cached,
                             { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
                     }
-                } catch (_) { /* KV read failure falls through to fetch */ }
+                } catch (e) { console.error("[DATAMUSE] cache read failed:", e.message); /* KV read failure falls through to fetch */ }
             }
 
             try {
@@ -11428,7 +11428,7 @@ export default {
                 const payload = await dmResp.text();
                 if (env.FIELD_JOURNALISM) {
                     // 30-day TTL -- a word's frequency ranking is effectively static.
-                    try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 30 * 86400 }); } catch (_) {}
+                    try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: 30 * 86400 }); } catch (e) { console.error("[DATAMUSE] cache write failed:", e.message); }
                 }
                 return new Response(payload,
                     { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
@@ -11678,7 +11678,7 @@ export default {
                                     }
                                 }
                             }
-                        } catch (_) { /* odds malformed — leave wasUpset false */ }
+                        } catch (e) { console.error("[ANALYTICS-NEWSPAPER] closing-odds parse failed:", e.message); /* odds malformed — leave wasUpset false */ }
                         const margin = Math.abs((g.home_score || 0) - (g.away_score || 0));
                         const isSeriesClinch = g.importance === 'clinch';
                         const isElimination  = g.importance === 'elimination';
@@ -11692,7 +11692,7 @@ export default {
                             finalizedAt: g.finalized_at || null,
                         };
                     });
-                } catch (_) { /* game tables may be empty/missing — keep [] */ }
+                } catch (e) { console.error("[ANALYTICS-NEWSPAPER] completed-games query failed:", e.message); /* game tables may be empty/missing — keep [] */ }
 
                 return new Response(JSON.stringify({ ok: true, ...bundle }), {
                     headers: {
@@ -11806,7 +11806,7 @@ export default {
                   const parsed = JSON.parse(cached);
                   return new Response(JSON.stringify({ ...parsed, cached: true }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
-                } catch (e) { /* corrupt cache entry -- fall through to regenerate */ }
+                } catch (e) { console.error("[JOURNALISM-GENERATE] cache entry parse failed:", e.message); /* corrupt cache entry -- fall through to regenerate */ }
               }
             }
 
@@ -11908,7 +11908,8 @@ export default {
                   ],
                 });
               }
-            } catch(_aeErr) {
+            } catch (e) {
+              console.error("[ANALYTICS] journalism/generate write failed:", e.message);
               // Analytics write failures must not affect the response.
               // Worst case: this row is lost. The brief still ships clean.
             }
@@ -12075,7 +12076,7 @@ export default {
                         source:      'completion-trigger',
                     });
                 }
-            } catch (_) { /* errors must not surface — DO fan-out cannot be affected */ }
+            } catch (e) { console.error("[GAME-COMPLETE] DO fan-out failed:", e.message); /* errors must not surface — DO fan-out cannot be affected */ }
             return new Response(JSON.stringify({ ok: true }),
                 { status: 202, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
@@ -12175,7 +12176,7 @@ export default {
                 try {
                   const parsed = JSON.parse(raw);
                   text = parsed.text || parsed.brief || parsed.brief_text || raw;
-                } catch (_) {}
+                } catch (e) { console.error("[JOURNALISM-GAME-LINES] brief JSON parse failed:", e.message); }
                 const first = String(text).split(/\.\s+/)[0].trim();
                 if (first.length < 20) return;
                 // Key format is brief:game:{sport}:{id} OR brief:game:{id}
@@ -12183,7 +12184,7 @@ export default {
                 const parts = name.replace('brief:game:', '').split(':');
                 const espnId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
                 lines[espnId] = first.endsWith('.') ? first : first + '.';
-              } catch (_) {}
+              } catch (e) { console.error("[JOURNALISM-GAME-LINES] per-key read failed:", e.message); }
             }));
 
             const body = JSON.stringify({ ok: true, lines, count: Object.keys(lines).length });
@@ -12227,7 +12228,7 @@ export default {
                                        'X-Source': 'r2', ...CORS }
                         });
                     }
-                } catch(e_) {}
+                } catch (e) { console.error("[NFLVERSE] R2 read failed:", e.message); }
             }
             if (!NFLVERSE_OUT_ALLOWED.includes(file))
                 return new Response('nflverse file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nflverse-not-whitelisted', ...CORS } });
@@ -12267,7 +12268,7 @@ export default {
                             }
                         });
                     }
-                } catch(e_) { /* R2 miss — fall through to GitHub raw */ }
+                } catch (e) { console.error("[MLB-STATS-R2] R2 read failed:", e.message); /* R2 miss — fall through to GitHub raw */ }
             }
             // Fallback: GitHub raw (mlb-weekly-update.yml output)
             const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
@@ -12337,7 +12338,7 @@ export default {
                                        'X-Source': 'r2', ...CORS }
                         });
                     }
-                } catch(e_) {}
+                } catch (e) { console.error("[NHL-GSAX] R2 read failed:", e.message); }
             }
             return new Response(JSON.stringify({ error: 'no GSAX data yet' }),
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -12361,7 +12362,7 @@ export default {
                                        'X-Source': 'r2', ...CORS }
                         });
                     }
-                } catch(e_) {}
+                } catch (e) { console.error("[NHL-SERIES] R2 read failed:", e.message); }
             }
             return new Response(JSON.stringify({ error: 'no series data yet' }),
                 { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -12385,7 +12386,7 @@ export default {
                                        'X-Source': 'r2', ...CORS }
                         });
                     }
-                } catch(e_) {}
+                } catch (e) { console.error("[NBA-CLUTCH] R2 read failed:", e.message); }
             }
             const nbaCDN = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nba';
             return relayFetch(`${nbaCDN}/${nbaFile}`, { 'Accept': 'application/json' }, 86400, 'nba-clutch', ctx);
@@ -12539,7 +12540,7 @@ export default {
                                        'X-Source': 'r2', ...CORS }
                         });
                     }
-                } catch(e_) {}
+                } catch (e) { console.error("[SOCCER-FBREF] R2 read failed:", e.message); }
             }
             // Fallback: GitHub raw outbox/soccer/
             const sfRaw = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/soccer';
@@ -12702,7 +12703,7 @@ export default {
                         const parsed = _parseUmpireArray(Array.isArray(c) ? c : Object.values(c));
                         if (parsed && Object.keys(parsed).length >= 5) { umpires = parsed; break; }
                     }
-                } catch(e) {}
+                } catch (e) { console.error("[MLB-UMPIRE-SCRAPE] __NEXT_DATA__ parse failed:", e.message); }
             }
 
             // ── Parse strategy 2: HTML table regex ─────────────────────────────
@@ -13497,7 +13498,7 @@ export default {
                         // JSON-LD
                         let jsonLd = null;
                         const ldMatch = html.match(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i);
-                        if (ldMatch) { try { jsonLd = JSON.parse(ldMatch[1].trim()); } catch {} }
+                        if (ldMatch) { try { jsonLd = JSON.parse(ldMatch[1].trim()); } catch (e) { console.error("[HTML-PROBE] JSON-LD parse failed:", e.message); } }
 
                         // Framework detection
                         const frameworks = {};
@@ -14062,7 +14063,7 @@ export default {
             // POST endpoints: /html-probe and /hc-probe accept JSON body
             if (request.method === 'POST' && (statPath === '/html-probe' || statPath === '/hc-probe')) {
                 let body = '{}';
-                try { body = await request.text(); } catch {}
+                try { body = await request.text(); } catch (e) { console.error("[STAT-PROXY] request body read failed:", e.message); }
                 const statRes = await fetch(statUrl, {
                     method: 'POST',
                     headers: {
@@ -14175,7 +14176,7 @@ export default {
                     msg.ack();
                     continue; // real game state unchanged since last generation -- skip
                   }
-                } catch (e) { /* corrupt cache entry -- fall through to regenerate */ }
+                } catch (e) { console.error("[JOURNALISM-QUEUE] cache entry parse failed:", e.message); /* corrupt cache entry -- fall through to regenerate */ }
               }
             }
 
@@ -14214,7 +14215,7 @@ export default {
                         });
                         jobPrompt = jobPrompt + `\n\n[BRACKET IMPACT]\n${lines.join('\n')}`;
                     }
-                } catch (_) { /* bracket impact is additive — never block brief generation */ }
+                } catch (e) { console.error("[JOURNALISM-QUEUE] bracket impact lookup failed:", e.message); /* bracket impact is additive — never block brief generation */ }
             }
             const initial = await callProxy(jobPrompt);
             if (!initial) throw new Error('proxy returned no prose');
@@ -14278,7 +14279,7 @@ export default {
                   job.source ?? 'cron'
                 ).run();
               }
-            } catch (_archiveErr) { /* archive failure must not break game-brief delivery */ }
+            } catch (e) { console.error("[JOURNALISM-QUEUE] archive write failed:", e.message); /* archive failure must not break game-brief delivery */ }
             msg.ack();
           } catch(e) {
             if (msg.attempts >= 3) { msg.ack(); } else { msg.retry(); }
