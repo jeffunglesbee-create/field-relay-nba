@@ -11037,6 +11037,31 @@ export default {
                                           'pitch_tempo.json','pitch_arsenals.json','umpire_abs.json'];
             const analyticsFile = cleanPath.replace(/^\//, '');
             if (MLB_ANALYTICS_FILES.includes(analyticsFile)) {
+                // R2-first: read from FIELD_DATA R2 bucket (MLB-A pipeline, June 10 2026,
+                // populated by runMLBSavantUpdate() -- Monday cron or /mlb-savant-update).
+                // Falls back to raw.githubusercontent.com/jubilant-bassoon outbox/mlb/ on
+                // a miss. umpire_abs.json excluded -- runMLBSavantUpdate() never writes it
+                // (full-season Statcast CSV exceeds Worker CPU budget; stays on GitHub
+                // Actions mlb-weekly-update.yml + /mlb-umpire-scrape).
+                // CC-CMD-2026-07-13-mlb-stats-r2-merge: this R2-first logic previously
+                // lived in an unreachable block further down this file, shadowed by this
+                // same broader /mlb-stats* match -- merged here so it actually executes.
+                if (env.FIELD_DATA && analyticsFile !== 'umpire_abs.json') {
+                    try {
+                        const r2obj = await env.FIELD_DATA.get(`mlb/2026/${analyticsFile}`);
+                        if (r2obj) {
+                            const body = await r2obj.text();
+                            return new Response(body, {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Cache-Control': 'public, max-age=43200',
+                                    'X-Source': 'r2',
+                                    ...CORS
+                                }
+                            });
+                        }
+                    } catch (e) { console.error("[MLB-STATS-R2] R2 read failed:", e.message); /* R2 miss — fall through to GitHub raw */ }
+                }
                 const rawBase = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/mlb';
                 return relayFetch(`${rawBase}/${analyticsFile}`, { 'Accept': 'application/json' }, 43200, 'mlb-analytics', ctx);
             }
@@ -12240,45 +12265,6 @@ export default {
                 return new Response('nflverse file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'nflverse-not-whitelisted', ...CORS } });
             const targetUrl = `${NFLVERSE_RAW_BASE}/${file}`;
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
-        }
-
-        // ── /mlb-stats/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/mlb ─
-        // Serves weekly-updated MLB analytics JSON from mlb-weekly-update.yml pipeline.
-        // Files: team_abs.json, expected_stats.json, sprint_speed.json,
-        //        pitch_tempo.json, pitch_arsenals.json
-        // TTL: 43200 (12h) — updated Monday, FIELD refreshes mid-week on reload
-        const MLB_STATS_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/mlb';
-        const MLB_STATS_ALLOWED  = ['team_abs.json','expected_stats.json','sprint_speed.json',
-                                     'pitch_tempo.json','pitch_arsenals.json','umpire_abs.json'];
-        if (pathname.startsWith('/mlb-stats/')) {
-            const file = pathname.replace(/^\/mlb-stats\//, '');
-            if (!MLB_STATS_ALLOWED.includes(file))
-                return new Response('mlb-stats file not allowed', { status: 403, headers: { 'X-RELAY-Error': 'mlb-stats-not-whitelisted', ...CORS } });
-
-            // R2-first: read from FIELD_DATA R2 bucket (MLB-A pipeline, June 10 2026).
-            // R2 is populated by runMLBSavantUpdate() (Monday cron or /mlb-savant-update).
-            // Falls back to raw.githubusercontent.com/jubilant-bassoon outbox/mlb/ if R2 miss.
-            // This makes GitHub Actions mlb-weekly-update.yml optional (not a hard dependency).
-            if (env.FIELD_DATA && !file.includes('umpire_abs')) {
-                try {
-                    const r2Key = `mlb/2026/${file}`;
-                    const r2obj = await env.FIELD_DATA.get(r2Key);
-                    if (r2obj) {
-                        const body = await r2obj.text();
-                        return new Response(body, {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Cache-Control': 'public, max-age=43200',
-                                'X-Source': 'r2',
-                                ...CORS
-                            }
-                        });
-                    }
-                } catch (e) { console.error("[MLB-STATS-R2] R2 read failed:", e.message); /* R2 miss — fall through to GitHub raw */ }
-            }
-            // Fallback: GitHub raw (mlb-weekly-update.yml output)
-            const targetUrl = `${MLB_STATS_RAW_BASE}/${file}`;
-            return relayFetch(targetUrl, { 'Accept': 'application/json' }, 43200, 'mlb-stats', ctx);
         }
 
         // ── POST /wc-context-patch → write team context patch to R2 ───────────────
