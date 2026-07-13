@@ -8346,40 +8346,6 @@ export default {
             });
         }
 
-        // TEMP TEST ONLY -- CC-CMD-2026-07-13-backfill-stall-diagnosis TASK 3.
-        // Mirrors the real dead-hour call site 1:1 (pickNextBackfillDate ->
-        // executeBackfill -> mark-tried-on-permanent-skip) so the fix can be
-        // exercised live without waiting for the real UTC 3-9 dead-hour
-        // window. Placed here, top-level in the dedicated /admin/* section
-        // per this file's own documented convention (see the comment above
-        // at line ~8303) -- NOT nested near /archive/* routes, which was the
-        // exact mistake that made this route unreachable on first attempt
-        // (confirmed live: fell through to the NBA-CDN catch-all, 403 "Path
-        // not allowed"). Removed after verification.
-        if (pathname === '/admin/backfill-tick-test' && (request.method === 'GET' || request.method === 'POST')) {
-            const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
-                return new Response('unauthorized', { status: 401, headers: CORS });
-            }
-            const nextDate = await pickNextBackfillDate(env);
-            let briefResult = null;
-            let markedTried = false;
-            if (nextDate) {
-                briefResult = await executeBackfill(env, nextDate);
-                if (briefResult && briefResult.skipped && !briefResult.ok) {
-                    const dateAgeMs = Date.now() - new Date(nextDate + 'T00:00:00Z').getTime();
-                    if (dateAgeMs > 2 * 86400 * 1000) {
-                        try {
-                            await env.FIELD_JOURNALISM.put(`backfill:tried:${nextDate}`, '1', { expirationTtl: 30 * 86400 });
-                            markedTried = true;
-                        } catch (_) { /* best-effort */ }
-                    }
-                }
-            }
-            return new Response(JSON.stringify({ nextDate, briefResult, markedTried }),
-                { headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
         // POST /admin/archive/backfill-went-to-ot — one-time retroactive backfill
         // (CC-CMD-2026-07-12-went-to-ot-historical-backfill), not a cron. Fixes
         // rows that already have a real score but were never live-tracked, so
