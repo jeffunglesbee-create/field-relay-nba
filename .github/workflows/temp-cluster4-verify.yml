@@ -36,7 +36,7 @@ jobs:
           mkdir -p outbox
 
           (
-            sleep 6
+            sleep 12
             echo "=== forced-failure: malformed JSON body to /user/event ==="
             curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/user/event?userId=CATCHTEST12345678" \
               -H "Content-Type: application/json" \
