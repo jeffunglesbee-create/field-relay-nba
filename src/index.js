@@ -282,6 +282,7 @@ const MLB_STATS_API_ALLOWED_PREFIXES = [
     '/game/',       // /game/{gamePk}/boxscore + /game/{gamePk}/feed/live
     '/people/',     // /people/{playerId}/stats — career/season stats
     '/schedule',    // /schedule — probable pitchers for today's games (MLB pitcher init)
+    '/homeRunDerby/', // /homeRunDerby/{gamePk} — bracket/pool data (CC-CMD-2026-07-13-hrd-relay-allowlist)
 ];
 function mlbStatsApiAllowed(path) {
     return MLB_STATS_API_ALLOWED_PREFIXES.some(p => path.startsWith(p));
