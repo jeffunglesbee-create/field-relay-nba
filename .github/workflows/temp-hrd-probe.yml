@@ -1,0 +1,43 @@
+name: TEMP HRD Schedule Probe
+
+# TEMP-HRD-PROBE-2026-07-13: find the real Home Run Derby gamePk via the
+# relay's already-allowed /mlb-stats/schedule endpoint. Delete after use --
+# see docs/CC-CMD-2026-07-13-hrd-relay-allowlist.md
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Query schedule for events around All-Star week, search for Derby
+        run: |
+          set -x
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="outbox/temp-hrd-schedule-${TS}.json"
+          mkdir -p outbox
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/mlb-stats/schedule?sportId=1&startDate=2026-07-11&endDate=2026-07-15&scheduleTypes=events,games" \
+            | python3 -m json.tool > "$OUT"
+          echo "=== Full response size ==="
+          wc -l "$OUT"
+          echo "=== Grepping for Derby ==="
+          grep -i -B5 -A40 "derby" "$OUT" || echo "NO DERBY MATCH FOUND"
+          echo "OUT=$OUT" >> $GITHUB_ENV
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "Debug-Probe"
+          git add outbox/
+          git commit -m "temp: hrd schedule probe capture [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
