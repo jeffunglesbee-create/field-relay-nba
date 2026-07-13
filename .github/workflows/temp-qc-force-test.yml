@@ -13,16 +13,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Tail worker logs while triggering the request
+      - name: Tail worker logs (filtered) while triggering the request
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx --yes wrangler@latest tail field-relay-nba --format json > tail.log 2> tail.err &
+          npx --yes wrangler@latest tail field-relay-nba --format json --search "QUALITY" > tail.log 2> tail.err &
           TAIL_PID=$!
           sleep 15
-          echo "=== tail.err so far (startup) ==="
-          cat tail.err || true
           python3 -c "
           import urllib.request, urllib.error
           UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
@@ -38,7 +36,27 @@ jobs:
           sleep 10
           kill $TAIL_PID 2>/dev/null || true
           sleep 1
-          echo "=== tail.log ==="
+          echo "=== tail.log (filtered to QUALITY) ==="
           cat tail.log || true
-          echo "=== tail.err (full) ==="
-          cat tail.err || true
+          echo "=== extracted logs[] entries ==="
+          python3 -c "
+          import json
+          with open('tail.log') as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  try:
+                      obj = json.loads(line)
+                  except Exception:
+                      continue
+                  logs = obj.get('logs', [])
+                  if logs:
+                      for l in logs:
+                          print('LOG:', l)
+                  exc = obj.get('exceptions', [])
+                  if exc:
+                      print('EXCEPTIONS:', exc)
+          " || true
+          echo "=== tail.err (last 15 lines) ==="
+          tail -15 tail.err || true
