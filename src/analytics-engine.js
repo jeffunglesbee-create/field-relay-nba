@@ -122,13 +122,66 @@ async function fetchContextGraph(env, date) {
 // matching "walkover" (tennis) when we mean baseball/softball walk-off.
 const WALKOFF_RE = /\bwalk[-\s]?off\b/i;
 
+// Signature-event registry (CC-CMD-2026-07-14-night-stars-signature-events).
+// Exhibition/skills events (Home Run Derby, All-Star Skills Challenge, etc.)
+// have no win-probability curve and never appear in ctx.games, so
+// computeNightStars has zero signal for them today. There's no live feed the
+// relay can query for this: the MLB Stats API homeRunDerby passthrough still
+// reports status.state "Preview" a day after the event concluded (checked
+// live 2026-07-14), so this is a small, manually-verified registry — the
+// same pattern jubilant-bassoon uses for its own HRD_2026_VERIFIED_FINAL
+// constant, cross-checked live against the deployed page 2026-07-14. Add an
+// entry only once a signature event's outcome is independently confirmed.
+const SIGNATURE_EVENTS = {
+    '2026-07-13': [
+        {
+            type: 'derby',
+            label: 'Home Run Derby',
+            // Jordan Walker trailed Kyle Schwarber 8-11 with one swing left in
+            // the final round, then hit 4 straight home runs to win 12-11.
+            deficitOvercome: 3,
+            marginOfVictory: 1,
+            comebackSwings: 4,
+        },
+    ],
+};
+
+// Generic structural scoring over signature-event descriptors — not HRD-
+// specific. Any exhibition/skills event that supplies these three fields
+// (how big a deficit was overcome, how close the final margin was, how
+// sustained the closing run was) scores the same way.
+function computeSignatureEventScore(events) {
+    if (!events || events.length === 0) return 0;
+    let total = 0;
+    for (const ev of events) {
+        let s = 0;
+        if (ev.deficitOvercome >= 3) s += 2.0;
+        else if (ev.deficitOvercome >= 1) s += 1.0;
+        if (ev.marginOfVictory === 1) s += 1.0;
+        if (ev.comebackSwings >= 3) s += 1.0;
+        total += s;
+    }
+    return total;
+}
+
 // Phase 2: Night Stars. Rates the slate 1-5 stars from drama_peak + margin +
-// extras + walkoff. If drama_peak is missing for >50% of games, falls back to
-// close-game count alone (degraded mode flagged in output).
-function computeNightStars(games) {
+// extras + walkoff, plus any signature (exhibition/skills) event for that
+// date. If drama_peak is missing for >50% of games, falls back to close-game
+// count alone (degraded mode flagged in output) — signature-event score is
+// additive on top of either path, since a verified event's drama doesn't
+// depend on the rest of the slate's drama_peak coverage.
+function computeNightStars(games, signatureEvents = []) {
     const totalGames = games.length;
     if (totalGames === 0) {
-        return { stars: 1, starScore: 0, dramaGames: 0, closeGames: 0, extras: 0, walkoffs: 0, totalGames: 0, degraded: false };
+        // No scheduled games doesn't mean no signal -- an All-Star-break
+        // night can carry only a signature event (e.g. Home Run Derby).
+        const eventScore = computeSignatureEventScore(signatureEvents);
+        const stars0 =
+            eventScore >= 8 ? 5 :
+            eventScore >= 5 ? 4 :
+            eventScore >= 3 ? 3 :
+            eventScore >= 1 ? 2 : 1;
+        return { stars: stars0, starScore: eventScore, dramaGames: 0, closeGames: 0, extras: 0, walkoffs: 0, totalGames: 0, degraded: false };
     }
 
     const dramaMissing = games.filter(g => g.drama_peak == null).length;
@@ -159,6 +212,7 @@ function computeNightStars(games) {
             extras     * 0.75 +
             walkoffs   * 1.0;
     }
+    starScore += computeSignatureEventScore(signatureEvents);
 
     const stars =
         starScore >= 8 ? 5 :
@@ -199,7 +253,7 @@ export async function recomputeNightStars(env, date) {
 
     const ctx = await fetchContextGraph(env, date);
     const allGames = [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])];
-    const after = computeNightStars(allGames);
+    const after = computeNightStars(allGames, SIGNATURE_EVENTS[date] || []);
 
     await writeAnalyticsOutput(env, {
         date,
@@ -1570,7 +1624,7 @@ async function processDate(env, date, { selfHealed }) {
             const allGames = ctx
                 ? [...(ctx.games?.regular || []), ...(ctx.games?.postseason || [])]
                 : [];
-            starsOut = computeNightStars(allGames);
+            starsOut = computeNightStars(allGames, SIGNATURE_EVENTS[date] || []);
             await writeAnalyticsOutput(env, {
                 date,
                 feature: 'night_stars',
