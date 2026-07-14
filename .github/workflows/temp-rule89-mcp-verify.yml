@@ -43,7 +43,7 @@ jobs:
 
           echo "" >> "$OUT"
           echo "=== 3. read_file scratch test file (get live sha) ===" >> "$OUT"
-          READ1=$(call '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}')
+          READ1=$(call '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md","repo":"field-relay-nba"}}}')
           echo "$READ1" >> "$OUT"
           SHA=$(echo "$READ1" | python3 scripts/temp-rule89-extract-sha.py)
           echo "SHA=$SHA" >> "$OUT"
@@ -55,12 +55,12 @@ jobs:
 
           echo "" >> "$OUT"
           echo "=== 5. read_file again -- confirm both edits landed ===" >> "$OUT"
-          call '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}' \
+          call '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md","repo":"field-relay-nba"}}}' \
             | python3 scripts/temp-rule89-print-file.py >> "$OUT" 2>&1
 
           echo "" >> "$OUT"
           echo "=== 6. commit_file_patch -- rejection case (old_str occurs 0 times) ===" >> "$OUT"
-          READ2=$(call '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}')
+          READ2=$(call '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md","repo":"field-relay-nba"}}}')
           SHA2=$(echo "$READ2" | python3 scripts/temp-rule89-extract-sha.py)
           REJECT_BODY=$(python3 scripts/temp-rule89-build-reject-body.py "$SHA2")
           call "$REJECT_BODY" >> "$OUT" 2>&1
