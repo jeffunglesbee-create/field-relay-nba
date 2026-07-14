@@ -1368,6 +1368,43 @@ function adaptESPNMLB(ev) {
     };
 }
 
+// CC-CMD-2026-07-14-soccer-league-label: adaptESPNWCSoccer was built solely
+// for wc26 -- its hardcoded `league: 'FIFA World Cup'` silently mislabeled
+// all 12 club competitions the June 26 2026 migration routed through this
+// same function (confirmed live: 3 weeks of real MLS games returning
+// "FIFA World Cup" with zero thrown exceptions or failed requests -- HTTP
+// 200 with valid-looking JSON the entire time). This table is the single
+// source of truth for sportKey -> real league display name, covering
+// every key that reaches adaptESPNWCSoccer (see the routing ternary in
+// the /v2/games ESPN dispatcher: espnLeague set AND espnSport not one of
+// baseball/football/basketball/australian-football). Named and exported
+// at module scope specifically so post-deploy-live-verify.yml's contract
+// check can read it directly (same pattern as COMPLETION_FIELDS) rather
+// than duplicating a second, driftable copy of these names in CI.
+//
+// Names match this repo's own already-established display-label
+// convention (the LEAGUES table inside handleJournalismCycle, ~L6072 --
+// 'EPL' not 'Premier League', 'La Liga', 'Serie A', 'Bundesliga',
+// 'Ligue 1', 'FIFA World Cup' are all real, currently-live labels serving
+// production cron traffic today) rather than inventing new display
+// strings. The 6 competitions not in that table (UCL, Europa, Conference,
+// and the 3 EFL tiers) use their real, standard names.
+const SOCCER_LEAGUE_LABELS = {
+    wc26:       'FIFA World Cup',
+    epl:        'EPL',
+    mls:        'MLS',
+    ucl:        'UEFA Champions League',
+    europa:     'UEFA Europa League',
+    conference: 'UEFA Europa Conference League',
+    eflchamp:   'EFL Championship',
+    eflone:     'EFL League One',
+    efltwo:     'EFL League Two',
+    laliga:     'La Liga',
+    seriea:     'Serie A',
+    bundesliga: 'Bundesliga',
+    ligue1:     'Ligue 1',
+};
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -1444,7 +1481,13 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         id:          `espn:${ev.id}`,
         espnEventId: String(ev.id),
         sport:       sportKey,
-        league:      'FIFA World Cup',
+        // Unmapped fallback is sportKey itself, not a guessed real-league name --
+        // falling back to a plausible-but-wrong name (e.g. the old hardcoded
+        // 'FIFA World Cup') is exactly the bug this table exists to prevent for
+        // any future sportKey added to V2_LEAGUES before this table is updated.
+        // TASK 2's contract check (post-deploy-live-verify.yml) is the real
+        // backstop that catches this case going forward.
+        league:      SOCCER_LEAGUE_LABELS[sportKey] || sportKey,
         state,
         start:       comp.date || '',
         home:        { name: home.team?.displayName || '', abbr: home.team?.abbreviation || '', score: homeScore },
