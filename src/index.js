@@ -3460,7 +3460,13 @@ async function handleV2Games(url, env, ctx) {
                     const enqueueNHLBriefs = async () => {
                         for (const g of nhlFinals) {
                             const kvKey = `brief:game:${g.id}`;
-                            const existing = await env.FIELD_JOURNALISM.get(kvKey).catch(() => null);
+                            let existing;
+                            try {
+                                existing = await env.FIELD_JOURNALISM.get(kvKey);
+                            } catch (e) {
+                                console.error("[V2GAMES] NHL brief dedup-check KV read failed:", e.message);
+                                continue; // can't confirm whether a brief already exists -- skip rather than risk a duplicate enqueue
+                            }
                             if (existing) continue;
 
                             const home      = g.home?.name || '';
@@ -3575,7 +3581,13 @@ async function handleV2Games(url, env, ctx) {
                     const enqueueNBABriefs = async () => {
                         for (const g of nbaFinals) {
                             const kvKey = `brief:game:${g.id}`;
-                            const existing = await env.FIELD_JOURNALISM.get(kvKey).catch(() => null);
+                            let existing;
+                            try {
+                                existing = await env.FIELD_JOURNALISM.get(kvKey);
+                            } catch (e) {
+                                console.error("[V2GAMES] NBA brief dedup-check KV read failed:", e.message);
+                                continue; // can't confirm whether a brief already exists -- skip rather than risk a duplicate enqueue
+                            }
                             if (existing) continue;
 
                             const home      = g.home?.name || '';
@@ -4693,8 +4705,8 @@ async function sweepKVBriefs(env) {
   try {
     const listed = await env.FIELD_JOURNALISM.list({ prefix: 'brief:game:', limit: 50 });
     for (const key of (listed.keys || [])) {
-      const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(() => null);
-      if (!kvVal) continue;
+      const kvVal = await env.FIELD_JOURNALISM.get(key.name).catch(e => { console.error("[KV-SWEEP] key read failed:", e.message); return null; });
+      if (!kvVal) continue; // retry-safe -- key isn't deleted, next sweep (every 15min cron or dead-hour backfill) re-attempts it
       let briefText = kvVal;
       let qualityScore = null;
       if (kvVal[0] === '{') {
@@ -4712,9 +4724,15 @@ async function sweepKVBriefs(env) {
       // Rule 73 (CLAIM-CONTEXT-A): null-sport keys skip when a sport-tagged
       // sibling already exists — the cron-tagged brief is authoritative.
       if (!sport) {
-        const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
-        ).bind(gameId).first().catch(() => null);
+        let existing;
+        try {
+          existing = await env.ARCHIVE_DB.prepare(
+            `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
+          ).bind(gameId).first();
+        } catch (e) {
+          console.error("[KV-SWEEP] sport-sibling dedup check failed:", e.message);
+          continue; // can't confirm whether a sport-tagged sibling exists -- skip rather than risk a redundant null-sport row
+        }
         if (existing) continue;
       }
       if (!qualityScore) {
@@ -4723,10 +4741,10 @@ async function sweepKVBriefs(env) {
           if (gameId) {
             const gameRow = await env.ARCHIVE_DB.prepare(
               `SELECT sport, home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
-            ).bind(gameId).first().catch(() => null) ||
+            ).bind(gameId).first().catch(e => { console.error("[KV-SWEEP] regular_season_games enrichment lookup failed:", e.message); return null; }) ||
             await env.ARCHIVE_DB.prepare(
               `SELECT sport, home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
-            ).bind(gameId).first().catch(() => null);
+            ).bind(gameId).first().catch(e => { console.error("[KV-SWEEP] postseason_games enrichment lookup failed:", e.message); return null; });
             if (gameRow) gameCtx = { home: gameRow.home, away: gameRow.away, homeScore: gameRow.home_score, awayScore: gameRow.away_score };
             if (gameRow && gameRow.sport) sport = gameRow.sport; // archive is authoritative; KV-key segment is not
           }
@@ -5374,17 +5392,25 @@ async function executeGameBriefBackfill(env, date) {
     if (isPostseason && game.series_key) {
       const series = await env.ARCHIVE_DB.prepare(
         `SELECT * FROM postseason_series WHERE series_key = ? LIMIT 1`
-      ).bind(game.series_key).first().catch(() => null);
+      ).bind(game.series_key).first().catch(e => { console.error("[GAME-BRIEF-BACKFILL] series lookup failed:", e.message); return null; });
       if (series) {
-        const hW = (await env.ARCHIVE_DB.prepare(
+        // CC-CMD-2026-07-13-promise-catch-tier1: a win-count query failure
+        // used to fall back to 0, presenting a fabricated "0-2" style record
+        // as if confirmed (Rule 2 -- DO NOT INVENT). Now tracks whether both
+        // counts were genuinely confirmed and omits the record line entirely
+        // on failure, rather than asserting a false count.
+        let countsOk = true;
+        const hWRow = await env.ARCHIVE_DB.prepare(
           `SELECT COUNT(*) AS n FROM postseason_games
            WHERE series_key = ? AND home_score > away_score AND home_score IS NOT NULL`
-        ).bind(game.series_key).first().catch(() => null))?.n || 0;
-        const aW = (await env.ARCHIVE_DB.prepare(
+        ).bind(game.series_key).first().catch(e => { console.error("[GAME-BRIEF-BACKFILL] series home-win count failed:", e.message); countsOk = false; return null; });
+        const aWRow = await env.ARCHIVE_DB.prepare(
           `SELECT COUNT(*) AS n FROM postseason_games
            WHERE series_key = ? AND away_score > home_score AND away_score IS NOT NULL`
-        ).bind(game.series_key).first().catch(() => null))?.n || 0;
-        seriesContext = `\nSeries record: ${hW}-${aW}`;
+        ).bind(game.series_key).first().catch(e => { console.error("[GAME-BRIEF-BACKFILL] series away-win count failed:", e.message); countsOk = false; return null; });
+        if (countsOk) {
+          seriesContext = `\nSeries record: ${hWRow?.n || 0}-${aWRow?.n || 0}`;
+        }
         if (series.narrative) seriesContext += `\nContext: ${series.narrative}`;
       }
     }
@@ -5582,7 +5608,7 @@ async function pickNextBackfillDate(env) {
   if (!env.ARCHIVE_DB) return null;
   const tried = async (date) => {
     if (!env.FIELD_JOURNALISM) return false;
-    return !!(await env.FIELD_JOURNALISM.get(`backfill:tried:${date}`).catch(() => null));
+    return !!(await env.FIELD_JOURNALISM.get(`backfill:tried:${date}`).catch(e => { console.error("[BACKFILL] tried-marker read failed:", e.message); return null; }));
   };
   const ps = await env.ARCHIVE_DB.prepare(
     `SELECT DISTINCT date FROM postseason_games
@@ -8752,7 +8778,7 @@ export default {
                         const alreadyScored = await env.ARCHIVE_DB.prepare(
                             `SELECT id FROM regular_season_games WHERE id = ? AND drama_peak IS NOT NULL
                              UNION ALL SELECT id FROM postseason_games WHERE id = ? AND drama_peak IS NOT NULL LIMIT 1`
-                        ).bind(id, id).first().catch(() => null);
+                        ).bind(id, id).first().catch(e => { console.error("[DRAMA-PEAK] already-scored diagnostic check failed:", e.message); return null; });
                         if (alreadyScored) {
                             return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already_scored', id }),
                                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -8870,7 +8896,7 @@ export default {
                          UNION ALL
                          SELECT sport, date, home, away, espn_event_id FROM postseason_games WHERE id = ?
                          LIMIT 1`
-                    ).bind(id, id).first().catch(() => null);
+                    ).bind(id, id).first().catch(e => { console.error("[SCORE-BY-ID] went_to_ot row lookup failed:", e.message); return null; });
                     const _V2_SPORT     = { MLB: 'mlb', WNBA: 'wnba' };
                     const _LEAGUE_LABEL = { MLB: 'MLB', WNBA: 'WNBA' };
                     const v2sport = _row && _V2_SPORT[_row.sport];
@@ -9225,10 +9251,22 @@ export default {
                         const oddsSportKey = archiveSportToOddsKey(sport);
                         if (oddsSportKey) {
                             const oddsTable = series_key ? 'postseason_games' : 'regular_season_games';
-                            const rowCheck = await env.ARCHIVE_DB.prepare(
-                                `SELECT closing_odds FROM ${oddsTable} WHERE id = ?`
-                            ).bind(id).first().catch(() => null);
-                            if (!rowCheck?.closing_odds) {
+                            // CC-CMD-2026-07-13-promise-catch-tier1: a read failure here used to
+                            // fall back to null, treated identically to "no closing_odds yet" --
+                            // which would proceed to fetch and overwrite, violating the "never
+                            // overwrites" invariant this check exists to enforce. Now skips the
+                            // whole enrichment on a read failure (retry-safe: /archive/game is
+                            // called again on future score/status updates for the same game).
+                            let rowCheck, rowCheckOk = true;
+                            try {
+                                rowCheck = await env.ARCHIVE_DB.prepare(
+                                    `SELECT closing_odds FROM ${oddsTable} WHERE id = ?`
+                                ).bind(id).first();
+                            } catch (e) {
+                                console.error("[ARCHIVE-GAME] closing-odds dedup check failed:", e.message);
+                                rowCheckOk = false;
+                            }
+                            if (rowCheckOk && !rowCheck?.closing_odds) {
                                 const { games, ok: oddsOk } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
                                     const byPair = new Map();
@@ -9359,20 +9397,20 @@ export default {
                                     const r = await env.ARCHIVE_DB.prepare(
                                         `SELECT home, away, home_score, away_score, note
                                          FROM regular_season_games WHERE id = ? LIMIT 1`
-                                    ).bind(game_id).first().catch(() => null);
+                                    ).bind(game_id).first().catch(e => { console.error("[ARCHIVE-BRIEF] game context lookup (try 1) failed:", e.message); return null; });
                                     if (r) return r;
                                     // Try 2: espn_event_id match (client night_owl/mlb_game briefs
                                     // pass topGame.sourceId = ESPN numeric event ID as game_id)
                                     const r2 = await env.ARCHIVE_DB.prepare(
                                         `SELECT home, away, home_score, away_score, note
                                          FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
-                                    ).bind(game_id).first().catch(() => null);
+                                    ).bind(game_id).first().catch(e => { console.error("[ARCHIVE-BRIEF] game context lookup (try 2) failed:", e.message); return null; });
                                     if (r2) return r2;
                                     // Try 3: postseason primary key
                                     return await env.ARCHIVE_DB.prepare(
                                         `SELECT home, away, home_score, away_score, NULL as note
                                          FROM postseason_games WHERE id = ? LIMIT 1`
-                                    ).bind(game_id).first().catch(() => null);
+                                    ).bind(game_id).first().catch(e => { console.error("[ARCHIVE-BRIEF] game context lookup (try 3) failed:", e.message); return null; });
                                 })();
                                 if (_gRow && _gRow.home && _gRow.away) {
                                     _archiveGameCtx = {
@@ -9994,15 +10032,22 @@ export default {
                                     `SELECT * FROM postseason_series WHERE series_key = ? LIMIT 1`
                                 ).bind(game.series_key).first();
                                 if (series) {
-                                    const hW = (await env.ARCHIVE_DB.prepare(
+                                    // CC-CMD-2026-07-13-promise-catch-tier1: a count-query failure
+                                    // used to fall back to 0, presenting a fabricated record as
+                                    // confirmed (Rule 2 -- DO NOT INVENT). Now omits the record
+                                    // line entirely on failure instead of asserting a false count.
+                                    let countsOk = true;
+                                    const hWRow = await env.ARCHIVE_DB.prepare(
                                         `SELECT COUNT(*) AS n FROM postseason_games
                                          WHERE series_key = ? AND home_score > away_score AND home_score IS NOT NULL`
-                                    ).bind(game.series_key).first().catch(() => null))?.n || 0;
-                                    const aW = (await env.ARCHIVE_DB.prepare(
+                                    ).bind(game.series_key).first().catch(e => { console.error("[BACKFILL-GAME-BRIEFS] series home-win count failed:", e.message); countsOk = false; return null; });
+                                    const aWRow = await env.ARCHIVE_DB.prepare(
                                         `SELECT COUNT(*) AS n FROM postseason_games
                                          WHERE series_key = ? AND away_score > home_score AND away_score IS NOT NULL`
-                                    ).bind(game.series_key).first().catch(() => null))?.n || 0;
-                                    seriesContext = `\nSeries record: ${hW}-${aW}`;
+                                    ).bind(game.series_key).first().catch(e => { console.error("[BACKFILL-GAME-BRIEFS] series away-win count failed:", e.message); countsOk = false; return null; });
+                                    if (countsOk) {
+                                        seriesContext = `\nSeries record: ${hWRow?.n || 0}-${aWRow?.n || 0}`;
+                                    }
                                     if (series.narrative) seriesContext += `\nContext: ${series.narrative}`;
                                 }
                             } catch (e) { console.error("[BACKFILL-GAME-BRIEFS] series context lookup failed:", e.message); }
@@ -10047,9 +10092,15 @@ export default {
                         const finalText = stripMarkdown(qResult.text);
 
                         if (force) {
+                            // CC-CMD-2026-07-13-promise-catch-tier1: swallowing this failure
+                            // meant a caller's explicit force=true silently did nothing when
+                            // the DELETE failed (the subsequent INSERT's ON CONFLICT DO NOTHING
+                            // would then no-op against the stale row, with no error surfaced).
+                            // The enclosing per-item try/catch already reports { ok:false,
+                            // reason: e.message } for this game on failure -- let it.
                             await env.ARCHIVE_DB.prepare(
                                 `DELETE FROM briefs WHERE game_id = ? AND brief_type = 'game_brief' AND source = 'backfill'`
-                            ).bind(String(game.id)).run().catch(() => {});
+                            ).bind(String(game.id)).run();
                         }
 
                         await env.ARCHIVE_DB.prepare(
@@ -10235,10 +10286,10 @@ export default {
                         if (row.game_id) {
                             const gameRow = await env.ARCHIVE_DB.prepare(
                                 `SELECT home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
-                            ).bind(row.game_id).first().catch(() => null) ||
+                            ).bind(row.game_id).first().catch(e => { console.error("[BACKFILL-SCORE] regular_season_games lookup failed:", e.message); return null; }) ||
                             await env.ARCHIVE_DB.prepare(
                                 `SELECT home, away, home_score, away_score FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
-                            ).bind(row.game_id).first().catch(() => null);
+                            ).bind(row.game_id).first().catch(e => { console.error("[BACKFILL-SCORE] postseason_games lookup failed:", e.message); return null; });
                             if (gameRow) gameCtx = { home: gameRow.home, away: gameRow.away, homeScore: gameRow.home_score, awayScore: gameRow.away_score };
                         }
                         const score = await jqScoreProse(row.brief_text, { sport: row.sport, game: gameCtx });
@@ -10658,18 +10709,30 @@ export default {
             const channel = session_type === 'docs' ? 'chat' : 'CC';
             const anchor = `CLIENT HEAD ${client_head} · ${date} · via ${channel}. ` +
                            `RELAY HEAD ${relay_head} · ${date} · via ${channel}.`;
+            // CC-CMD-2026-07-13-promise-catch-tier1: this used to swallow every write
+            // failure and still report carry_forwards_written = the full requested
+            // count, regardless of how many actually landed (Rule 2 -- DO NOT INVENT
+            // extends to response claims, not just prose). Now tracks and reports the
+            // real count; a single write failure doesn't block the rest (still
+            // best-effort, the primary session record above already succeeded).
+            let carryForwardsWritten = 0;
             for (const cf of carry_forwards.slice(0, 10)) {
                 const slug = cf.slice(0, 40).replace(/\s+/g, '-').toLowerCase()
                               .replace(/[^a-z0-9-]/g, '');
-                await env.ARCHIVE_DB.prepare(`
-                    INSERT INTO codex (key, category, title, content, updated_at)
-                    VALUES (?, 'incident', ?, ?, datetime('now'))
-                    ON CONFLICT(key) DO NOTHING
-                `).bind(`cf/${date}/${slug}`, cf.slice(0, 120), cf).run().catch(() => {});
+                try {
+                    await env.ARCHIVE_DB.prepare(`
+                        INSERT INTO codex (key, category, title, content, updated_at)
+                        VALUES (?, 'incident', ?, ?, datetime('now'))
+                        ON CONFLICT(key) DO NOTHING
+                    `).bind(`cf/${date}/${slug}`, cf.slice(0, 120), cf).run();
+                    carryForwardsWritten++;
+                } catch (e) {
+                    console.error("[SESSION-RECORD] carry-forward write failed:", e.message);
+                }
             }
             return new Response(JSON.stringify({
                 ok: true, session_id: id, anchor,
-                carry_forwards_written: Math.min(carry_forwards.length, 10),
+                carry_forwards_written: carryForwardsWritten,
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
@@ -11864,7 +11927,7 @@ export default {
             // caches an error or a suppressed model-refusal response.
             const cacheKey = game?._id ? `jqcache:${game._id}:${briefType}` : null;
             if (cacheKey && env.FIELD_JOURNALISM) {
-              const cached = await env.FIELD_JOURNALISM.get(cacheKey).catch(() => null);
+              const cached = await env.FIELD_JOURNALISM.get(cacheKey).catch(e => { console.error("[JOURNALISM-GENERATE] cache read failed:", e.message); return null; });
               if (cached) {
                 try {
                   const parsed = JSON.parse(cached);
@@ -14313,7 +14376,7 @@ export default {
             // through to regenerate exactly when the real state changed,
             // not because gameHash happens to be absent.
             if (job.gameHash) {
-              const existing = await env.FIELD_JOURNALISM.get(`brief:game:${job.eventId}`).catch(() => null);
+              const existing = await env.FIELD_JOURNALISM.get(`brief:game:${job.eventId}`).catch(e => { console.error("[JOURNALISM-QUEUE] unchanged-hash dedup check failed:", e.message); return null; });
               if (existing) {
                 try {
                   const parsed = JSON.parse(existing);
