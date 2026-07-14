@@ -13072,6 +13072,32 @@ export default {
                         },
                     },
                     {
+                        name: 'commit_file_patch',
+                        description: 'Update an EXISTING file in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html, src/index.js) where round-tripping the whole body every edit is expensive. Each edit is {old_str, new_str}; old_str must occur exactly once in the file\'s current content (after any earlier edits in the same call have already been applied in-memory) or the ENTIRE request is rejected with no commit made -- all edits succeed or none do. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), same as commit_file. parent_sha is always required (this tool never creates a new file -- use commit_file for that). Commit message is auto-prefixed with [skip ci].',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                path: { type: 'string', description: 'Repo-relative path of an existing file to update' },
+                                edits: {
+                                    type: 'array',
+                                    description: 'Ordered list of find/replace edits, applied sequentially. Each old_str must match exactly once in the content at the time it is applied.',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            old_str: { type: 'string', description: 'Exact existing text to find -- must occur exactly once' },
+                                            new_str: { type: 'string', description: 'Replacement text' },
+                                        },
+                                        required: ['old_str', 'new_str'],
+                                    },
+                                },
+                                commit_message: { type: 'string', description: 'Commit message body; [skip ci] is added automatically' },
+                                parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path. Always required.' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                            },
+                            required: ['path', 'edits', 'commit_message', 'parent_sha'],
+                        },
+                    },
+                    {
                         name: 'get_archive_url',
                         description: 'Mint a time-limited HMAC-signed URL to download a repo tarball (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) via the relay (/repo/archive). The PAT never leaves the relay; the target repo is bound into the signature itself (not just a bare query param), so a URL minted for one repo cannot be redirected to the other. The URL expires after ttl_seconds (default 300, max 900). Use this when a session needs to ingest the whole repo at once.',
                         inputSchema: {
@@ -13885,6 +13911,62 @@ export default {
                     }
                     const putData = await putR.json();
                     return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), path, created: !shaForPut, commit: putData.commit.sha, message: msg, new_sha: putData.content.sha})}]}));
+                }
+
+                // CC-CMD-2026-07-13-rule89-scoped-tools TASK 2: find/replace patch
+                // tool for large files, mirroring the chat session's own str_replace
+                // safety semantics (old_str must be unambiguous) applied across a
+                // batch, all-or-nothing. Reuses fetchRepoFile/isPathAllowed/
+                // repoApiFor/ghHeaders exactly as commit_file does -- no reinvented
+                // logic, no change to commit_file itself.
+                if (toolName === 'commit_file_patch') {
+                    const ghToken = env.GITHUB_PAT;
+                    if (!ghToken) return respond(jsonrpc2({content:[{type:'text',text:'GITHUB_PAT not configured on worker'}], isError:true}));
+                    const { path, edits, commit_message, parent_sha, repo } = toolArgs;
+                    if (typeof path !== 'string' || !Array.isArray(edits) || edits.length === 0 ||
+                        typeof commit_message !== 'string' || typeof parent_sha !== 'string' || parent_sha.length === 0) {
+                        return respond(jsonrpc2({content:[{type:'text',text:'Required: path (string), edits (non-empty array of {old_str,new_str}), commit_message (string), parent_sha (string -- always required, this tool only updates existing files). Optional: repo.'}], isError:true}));
+                    }
+                    for (let i = 0; i < edits.length; i++) {
+                        const e = edits[i];
+                        if (!e || typeof e.old_str !== 'string' || e.old_str.length === 0 || typeof e.new_str !== 'string') {
+                            return respond(jsonrpc2({content:[{type:'text',text:`Edit index ${i} invalid: requires old_str (non-empty string) and new_str (string). No commit made.`}], isError:true}));
+                        }
+                    }
+                    if (!isPathAllowed(path, WRITE_ALLOWLIST)) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Path not in WRITE_ALLOWLIST: ${path}`}], isError:true}));
+                    }
+                    const repoApi = repoApiFor(repo);
+                    const live = await fetchRepoFile(ghToken, path, repoApi);
+                    if (!live.ok) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Live read failed: ${live.status} ${live.error}. commit_file_patch only updates existing files -- use commit_file to create a new one.`}], isError:true}));
+                    }
+                    if (live.sha !== parent_sha) {
+                        return respond(jsonrpc2({content:[{type:'text',text:`Stale parent_sha for existing file: caller has ${parent_sha}, live is ${live.sha}. Re-read and retry. No commit made.`}], isError:true}));
+                    }
+                    let working = live.content;
+                    for (let i = 0; i < edits.length; i++) {
+                        const { old_str, new_str } = edits[i];
+                        const occurrences = working.split(old_str).length - 1;
+                        if (occurrences !== 1) {
+                            return respond(jsonrpc2({content:[{type:'text',text:`Edit index ${i} rejected: old_str occurs ${occurrences} time(s) in current content (must occur exactly once). No commit made -- all-or-nothing, earlier edits in this call are also discarded.`}], isError:true}));
+                        }
+                        working = working.replace(old_str, new_str);
+                    }
+                    const utf8 = unescape(encodeURIComponent(working));
+                    const b64  = btoa(utf8);
+                    const msg  = commit_message.includes('[skip ci]') ? commit_message : `${commit_message} [skip ci]`;
+                    const putR = await fetch(`${repoApi}/contents/${path}`, {
+                        method: 'PUT',
+                        headers: { ...ghHeaders(ghToken), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: msg, content: b64, branch: 'main', sha: parent_sha }),
+                    });
+                    if (!putR.ok) {
+                        const txt = await putR.text();
+                        return respond(jsonrpc2({content:[{type:'text',text:`GitHub write failed: ${putR.status} ${txt}`}], isError:true}));
+                    }
+                    const putData = await putR.json();
+                    return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({repo: repoNameFor(repo), path, edits_applied: edits.length, commit: putData.commit.sha, message: msg, new_sha: putData.content.sha})}]}));
                 }
 
                 // ── L5: get_archive_url ──
