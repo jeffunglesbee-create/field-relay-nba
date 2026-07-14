@@ -12841,7 +12841,7 @@ export default {
                 return respond(jsonrpc2({ tools: [
                     {
                         name: 'get_ci_status',
-                        description: 'Get the latest GitHub Actions CI run status for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Returns workflow name, conclusion (success/failure/in_progress), and HEAD commit.',
+                        description: 'Get the latest GitHub Actions CI run status for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Returns workflow name, trigger event (push/workflow_dispatch/schedule/etc), conclusion (success/failure/in_progress), and HEAD commit.',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -12863,7 +12863,7 @@ export default {
                     },
                     {
                         name: 'get_deploy_status',
-                        description: 'Get the last 3 GitHub Actions workflow runs for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) with their status and conclusions.',
+                        description: 'Get the last 3 GitHub Actions workflow runs for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) with their trigger event (push/workflow_dispatch/schedule/etc), status, and conclusions.',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -13169,7 +13169,7 @@ export default {
                     if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`GitHub API error: ${r.status}`}]}));
                     const data = await r.json();
                     const runs = (data.workflow_runs||[]).slice(0, limit).map(run => (
-                        `${run.name} | ${run.conclusion || run.status} | ${run.head_sha?.slice(0,7)} | ${run.updated_at}`
+                        `${run.name} | ${run.event} | ${run.conclusion || run.status} | ${run.head_sha?.slice(0,7)} | ${run.updated_at}`
                     )).join('\n');
                     return respond(jsonrpc2({content:[{type:'text',text:runs||'No runs found'}]}));
                 }
