@@ -547,4 +547,71 @@ function resolveAFLTeamKey(name) {
     return resolveEntity('afl_team', name);
 }
 
-export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY };
+// ── MLS club identity — team name -> stats-api.mlssoccer.com MLS-CLU-xxxxxx ──
+// CC-CMD-2026-07-14-mls-identity-resolver. /soccer/season-form (index.js)
+// needs a real MLS-CLU-xxxxxx club ID, not a team name -- nothing resolved
+// that before this. Populated from a real live fetch 2026-07-14 against
+// /statistics/clubs/competitions/MLS-COM-000001/seasons/MLS-SEA-0001KA (the
+// exact same real endpoint /soccer/season-form itself queries) -- all 30
+// real 2026 MLS clubs, read from team_statistics[].team_id/team_name.
+// MLS-CLU-000008 (Inter Miami CF) matches the previously known-correct
+// anchor (confirmed live 2026-06-30, re-confirmed live 2026-07-14 with
+// identical xG/xG_efficiency/clean_sheets/possession_ratio). 3 of 30 IDs
+// (Inter Miami CF, FC Cincinnati, Vancouver Whitecaps FC) independently
+// re-verified live against real /soccer/season-form responses (_hasForm:
+// true, correct team_name echoed back) before this table was trusted.
+// Keyed by resolveTeamKey(team_name) so ESPN's shortDisplayName/
+// displayName variants resolve to the same key on lookup -- checked all 30
+// real stats-api names against CANONICAL_TEAM above: every one already
+// matches an existing entry or alias (New York City Football Club, Red
+// Bull New York, Los Angeles Football Club) with zero new aliases needed.
+const MLS_CLUB_ID_BY_NAME = (() => {
+    const pairs = [
+        ['Inter Miami CF',              'MLS-CLU-000008'],
+        ['FC Cincinnati',               'MLS-CLU-000007'],
+        ['Vancouver Whitecaps FC',      'MLS-CLU-00000C'],
+        ['San Jose Earthquakes',        'MLS-CLU-00000Q'],
+        ['Nashville SC',                'MLS-CLU-000009'],
+        ['San Diego FC',                'MLS-CLU-000065'],
+        ['FC Dallas',                   'MLS-CLU-000005'],
+        ['Chicago Fire FC',             'MLS-CLU-00000F'],
+        ['New York City Football Club', 'MLS-CLU-000004'],
+        ['Charlotte FC',                'MLS-CLU-00000I'],
+        ['Colorado Rapids',             'MLS-CLU-00000J'],
+        ['Real Salt Lake',              'MLS-CLU-00000R'],
+        ['Orlando City',                'MLS-CLU-00000O'],
+        ['Red Bull New York',           'MLS-CLU-00000B'],
+        ['Los Angeles Football Club',   'MLS-CLU-000001'],
+        ['New England Revolution',      'MLS-CLU-00000N'],
+        ['CF Montréal',                 'MLS-CLU-000006'],
+        ['LA Galaxy',                   'MLS-CLU-00000G'],
+        ['Portland Timbers',            'MLS-CLU-00000P'],
+        ['D.C. United',                 'MLS-CLU-00000D'],
+        ['Toronto FC',                  'MLS-CLU-00000M'],
+        ['Columbus Crew',               'MLS-CLU-00000E'],
+        ['Houston Dynamo FC',           'MLS-CLU-00000H'],
+        ['Austin FC',                   'MLS-CLU-000003'],
+        ['Minnesota United FC',         'MLS-CLU-00000L'],
+        ['Philadelphia Union',          'MLS-CLU-000002'],
+        ['Seattle Sounders FC',         'MLS-CLU-00000S'],
+        ['St. Louis CITY SC',           'MLS-CLU-00001L'],
+        ['Atlanta United',              'MLS-CLU-00000A'],
+        ['Sporting Kansas City',        'MLS-CLU-00000K'],
+    ];
+    const out = {};
+    for (const [name, id] of pairs) out[resolveTeamKey(name)] = id;
+    return out;
+})();
+
+/**
+ * Resolve a team name (ESPN shortDisplayName/displayName, or any known
+ * alias) to its real stats-api.mlssoccer.com MLS-CLU-xxxxxx club ID.
+ * @param {string|null|undefined} name
+ * @returns {string|null} MLS-CLU-xxxxxx, or null if not a recognized MLS club
+ */
+function resolveMLSClubId(name) {
+    const key = resolveTeamKey(name);
+    return MLS_CLUB_ID_BY_NAME[key] || null;
+}
+
+export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId };

@@ -67,7 +67,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
@@ -6155,10 +6155,22 @@ async function handleJournalismCycle(env, opts = {}) {
             const teams = comp?.competitors || [];
             const home = teams.find(t => t.homeAway === 'home') || teams[0];
             const away = teams.find(t => t.homeAway === 'away') || teams[1];
+            const homeName = home?.team?.shortDisplayName || home?.team?.displayName || '';
+            const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '';
+            // CC-CMD-2026-07-14-mls-identity-resolver: only MLS games carry a
+            // stats-api.mlssoccer.com club ID -- feeds buildSoccerSeasonFormContext
+            // (context-assembler.js), which was silently returning '' for
+            // every MLS game with no way to populate these two fields. Only
+            // spread in for MLS so non-MLS gameMeta entries stay unaffected
+            // (no MLS-specific keys on their objects at all, not even null).
+            const mlsIds = label === 'MLS'
+              ? { mlsHomeTeamId: resolveMLSClubId(homeName), mlsAwayTeamId: resolveMLSClubId(awayName) }
+              : {};
             gameMeta.push({
               sport,
-              home: home?.team?.shortDisplayName || home?.team?.displayName || '',
-              away: away?.team?.shortDisplayName || away?.team?.displayName || '',
+              home: homeName,
+              away: awayName,
+              ...mlsIds,
               // Captured for context-assembler R2 key lookups (NBA clutch +
               // NHL series + MLB ABS all key by 3-letter team abbreviation).
               homeAbbr: home?.team?.abbreviation || '',
@@ -6803,6 +6815,8 @@ async function handleJournalismCycle(env, opts = {}) {
                 espnLeague: m.espnLeague,  // slug for /soccer/xg lookup
                 eventId:    m.eventId,
                 sourceId:   m.eventId,     // feeds buildESPNSummaryContext
+                mlsHomeTeamId: m.mlsHomeTeamId || null,  // feeds buildSoccerSeasonFormContext
+                mlsAwayTeamId: m.mlsAwayTeamId || null,
                 probableHome: m.probableHome || null,
                 probableAway: m.probableAway || null,
             }, 600);
