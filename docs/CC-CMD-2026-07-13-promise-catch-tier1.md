@@ -7,7 +7,7 @@
 
 git remote get-url origin | grep -q field-relay-nba || { echo "WRONG REPO — this CC-CMD targets field-relay-nba"; exit 1; }; git pull.
 
-Write findings to outbox/promise-catch-tier1-2026-07-13.md.
+Write findings to outbox/promise-catch-tier1-2026-07-13.md. Commit the outbox manifest with `[skip ci]` in the message — it's a docs-only addition after the real fix commits are already in and deployed, same convention as this repo's other outbox writes; do not let it re-trigger CI.
 
 ## CONTEXT — a real, previously-uncounted gap, and a proven bug pattern within it
 
