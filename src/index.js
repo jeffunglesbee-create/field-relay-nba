@@ -5921,7 +5921,7 @@ async function handleJournalismCycle(env, opts = {}) {
           const oddsDate = await pickNextOddsBackfillDate(env);
           if (oddsDate) {
             const triedKey = `odds:backfill:tried:${oddsDate}`;
-            const alreadyTried = await env.FIELD_JOURNALISM.get(triedKey).catch(() => null);
+            const alreadyTried = await env.FIELD_JOURNALISM.get(triedKey);
             if (alreadyTried) {
               try {
                 await env.FIELD_JOURNALISM.put('odds_backfill_cursor', JSON.stringify({
@@ -6122,12 +6122,18 @@ async function handleJournalismCycle(env, opts = {}) {
       const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       for (const gm of gameMeta) {
         if (!gm.isFinal || !gm.eventId) continue;
-        const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
-           UNION ALL
-           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
-           LIMIT 1`
-        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
+        let existing;
+        try {
+          existing = await env.ARCHIVE_DB.prepare(
+            `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
+             UNION ALL
+             SELECT home_score FROM postseason_games WHERE espn_event_id = ?
+             LIMIT 1`
+          ).bind(gm.eventId, gm.eventId).first();
+        } catch (e) {
+          console.error("[ARCHIVE-CATCHUP] dedup-check read failed, skipping this game to avoid a duplicate archive write:", e.message);
+          continue;
+        }
         if (existing && existing.home_score !== null) continue;
         await fetch(relayBase + '/archive/game', {
           method: 'POST',
@@ -6150,7 +6156,7 @@ async function handleJournalismCycle(env, opts = {}) {
             // way GameDO does, or the field is permanently stuck at NULL.
             went_to_ot: computeWentToOT(gm.league, gm.periodNum),
           }),
-        }).catch(() => {});
+        }).catch((e) => { console.error("[ARCHIVE-CATCHUP] archive write failed, will retry next cycle:", e.message); });
         _catchupFilled++;
       }
     } catch (e) {
@@ -6292,12 +6298,18 @@ async function handleJournalismCycle(env, opts = {}) {
       const seedRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       for (const gm of gameMeta) {
         if (!gm.eventId) continue;
-        const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
-           UNION ALL
-           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
-           LIMIT 1`
-        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
+        let existing;
+        try {
+          existing = await env.ARCHIVE_DB.prepare(
+            `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
+             UNION ALL
+             SELECT home_score FROM postseason_games WHERE espn_event_id = ?
+             LIMIT 1`
+          ).bind(gm.eventId, gm.eventId).first();
+        } catch (e) {
+          console.error("[ARCHIVE-SEED] dedup-check read failed, skipping this game to avoid a duplicate seed write:", e.message);
+          continue;
+        }
         if (existing) continue;
         await fetch(seedRelayBase + '/archive/game', {
           method: 'POST',
@@ -6313,7 +6325,7 @@ async function handleJournalismCycle(env, opts = {}) {
             streams: (gm.broadcasts && gm.broadcasts.length) ? gm.broadcasts.join(', ') : null,
             source_id: gm.eventId,
           }),
-        }).catch(() => {});
+        }).catch((e) => { console.error("[ARCHIVE-SEED] seed write failed, will retry next cycle:", e.message); });
         _seededCount++;
       }
     } catch (e) { console.error("[ARCHIVE-SEED] pre-game slate seed failed:", e.message); /* seeding failure never breaks journalism */ }
@@ -6361,12 +6373,18 @@ async function handleJournalismCycle(env, opts = {}) {
       let _ydayFilled = 0;
       for (const gm of yesterdayFinals) {
         if (!gm.eventId) continue;
-        const existing = await env.ARCHIVE_DB.prepare(
-          `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
-           UNION ALL
-           SELECT home_score FROM postseason_games WHERE espn_event_id = ?
-           LIMIT 1`
-        ).bind(gm.eventId, gm.eventId).first().catch(() => null);
+        let existing;
+        try {
+          existing = await env.ARCHIVE_DB.prepare(
+            `SELECT home_score FROM regular_season_games WHERE espn_event_id = ?
+             UNION ALL
+             SELECT home_score FROM postseason_games WHERE espn_event_id = ?
+             LIMIT 1`
+          ).bind(gm.eventId, gm.eventId).first();
+        } catch (e) {
+          console.error("[ARCHIVE-YDAY] dedup-check read failed, skipping this game to avoid a duplicate archive write:", e.message);
+          continue;
+        }
         if (existing && existing.home_score !== null) continue;
         await fetch(ydayRelayBase + '/archive/game', {
           method: 'POST',
@@ -6386,7 +6404,7 @@ async function handleJournalismCycle(env, opts = {}) {
             // today's-finals catch-up loop above -- this is a one-shot write.
             went_to_ot: computeWentToOT(gm.league, gm.periodNum),
           }),
-        }).catch(() => {});
+        }).catch((e) => { console.error("[ARCHIVE-YDAY] archive write failed, will retry next cycle:", e.message); });
         _ydayFilled++;
       }
       if (_ydayFilled > 0) {
@@ -6452,7 +6470,7 @@ async function handleJournalismCycle(env, opts = {}) {
         const roundNum = golfData.round || '';
         if (roundComplete && eventId && roundNum) {
           const dedupKey = `brief:golf:round:${eventId}:R${roundNum}`;
-          const existing = await env.FIELD_JOURNALISM.get(dedupKey).catch(() => null);
+          const existing = await env.FIELD_JOURNALISM.get(dedupKey);
           if (!existing) {
             const evName = golfData.eventName || golfData.name || 'PGA Tour event';
             const venue = golfData.venue || '';
@@ -6844,10 +6862,10 @@ async function handleJournalismCycle(env, opts = {}) {
       // change_log sits alongside briefs in ARCHIVE_DB. Bootstrap on the
       // same path so reconcile() always has its target table available
       // — odds sync, etc. may run inside this same cron tick.
-      await ensureChangeLogTable(env).catch(() => {});
+      await ensureChangeLogTable(env).catch((e) => { console.error("[ARCHIVE-SLATE] change_log bootstrap failed:", e.message); });
       // 30-day retention cleanup — delete consumed changelog entries older
       // than 30 days. Cheap (one DELETE), safe to run every tick.
-      await cleanupChangelog(env).catch(() => {});
+      await cleanupChangelog(env).catch((e) => { console.error("[ARCHIVE-SLATE] changelog cleanup failed:", e.message); });
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
            (id, date, brief_type, sport, brief_text, model, quality_score, context_hash, word_count, source)
@@ -6888,7 +6906,13 @@ async function handleJournalismCycle(env, opts = {}) {
 
             // Skip if already cached and context unchanged
             const gameHash = (ev.id + (comp.status?.type?.description||'') + (comp.competitors?.map(c=>c.score).join('|')||'')).split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
-            const existingGame = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`).catch(()=>null);
+            let existingGame;
+            try {
+              existingGame = await env.FIELD_JOURNALISM.get(`brief:game:${eventId}`);
+            } catch (e) {
+              console.error("[GAME-BRIEF-ENQUEUE] dedup-check read failed, skipping this event to avoid a duplicate enqueue:", e.message);
+              continue;
+            }
             if (existingGame) {
               try {
                 const eg = JSON.parse(existingGame);
