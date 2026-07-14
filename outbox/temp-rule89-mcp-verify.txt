@@ -1,0 +1,20 @@
+=== 1. tools/list ===
+--- get_ci_status ---
+description: Get the latest GitHub Actions CI run status for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon). Returns workflow name, trigger event (push/workflow_dispatch/schedule/etc), conc
+required: []
+--- get_deploy_status ---
+description: Get the last 3 GitHub Actions workflow runs for a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) with their trigger event (push/workflow_dispatch/schedule/etc), status, and concl
+required: []
+--- commit_file_patch ---
+description: Update an EXISTING file in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html
+required: ['path', 'edits', 'commit_message', 'parent_sha']
+
+=== 2. get_deploy_status (real event field, mixed triggers) ===
+TEMP Rule89 MCP Tools Verify | workflow_dispatch | in_progress | 7311222 | 2026-07-14T03:12:46Z
+.github/workflows/temp-rule89-mcp-verify.yml | push | failure | 1a267de | 2026-07-14T03:09:29Z
+Post-deploy live verification | workflow_run | success | cdbf240 | 2026-07-14T03:07:41Z
+Post-deploy live verification | workflow_run | success | 91b58f4 | 2026-07-14T03:06:49Z
+Deploy RELAY Worker | push | success | 91b58f4 | 2026-07-14T03:07:26Z
+
+=== 3. read_file scratch test file (get live sha) ===
+{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"GitHub read failed: 404 {\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/contents#get-repository-content\",\"status\":\"404\"}"}],"isError":true}}
