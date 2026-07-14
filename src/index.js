@@ -1954,7 +1954,7 @@ async function writeWCResult(db, game, env, ctx) {
                       signal: AbortSignal.timeout(4000) }
                 );
                 if (bsdStatsResp.ok) {
-                    const bsdStats = await bsdStatsResp.json().catch(() => null);
+                    const bsdStats = await bsdStatsResp.json().catch(e => { console.error("[WC-RESULT] BSD stats parse failed:", e.message); return null; });
                     for (const shot of (bsdStats?.shotmap || [])) {
                         if (shot.type === 'goal' && shot.player_id != null && shot.xg != null
                                 && !(shot.player_id in bsdGoalXg)) {
@@ -3779,7 +3779,7 @@ async function handleTubiPreGameAlerts(env) {
         );
         const validSubs = subRecs.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean);
         const results = await Promise.allSettled(
-            validSubs.map(sub => sendWebPush(sub, payload, env).catch(() => null))
+            validSubs.map(sub => sendWebPush(sub, payload, env).catch(e => { console.error("[PUSH-TUBI] send failed:", e.message); return null; }))
         );
         let sent = results.filter(r => r.status === 'fulfilled' && (r.value?.ok || r.value?.status === 201)).length;
     }
@@ -5310,7 +5310,7 @@ async function executeSeriesPreviewBackfill(env) {
           messages: [{role: 'user', content: promptText}]}),
       });
       if (!resp.ok) return null;
-      const data = await resp.json().catch(() => null);
+      const data = await resp.json().catch(e => { console.error("[SERIES-PREVIEW-BACKFILL] proxy response parse failed:", e.message); return null; });
       return data ? (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
     };
 
@@ -5435,7 +5435,7 @@ async function executeGameBriefBackfill(env, date) {
           messages: [{role: 'user', content: promptText}]}),
       });
       if (!resp.ok) return null;
-      const data = await resp.json().catch(() => null);
+      const data = await resp.json().catch(e => { console.error("[GAME-BRIEF-BACKFILL] proxy response parse failed:", e.message); return null; });
       return data ? (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
     };
 
@@ -7536,10 +7536,17 @@ export default {
                                        'Cache-Control': 'public, max-age=25' } });
                         if (r.ok) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
                     }
-                    const data = await resp.clone().json().catch(() => null);
+                    // CC-CMD-2026-07-13-promise-catch-tier2: this used to swallow a JSON
+                    // parse failure locally (.catch(() => null)) and fall through to
+                    // liveIds.has() on an empty Set, returning false ("not live") -- the
+                    // exact opposite of the outer catch's documented fail-safe below. Let
+                    // a genuine parse failure propagate so that fail-safe actually applies
+                    // consistently, regardless of which line in this function fails.
+                    const data = await resp.clone().json();
                     const liveIds = new Set((data?.events || []).map(e => String(e.id)));
                     return liveIds.has(String(eventId));
-                } catch (_) {
+                } catch (e) {
+                    console.error("[BSD-LIVE-CHECK] live-check failed:", e.message);
                     // Fail safe: if the live-check itself fails for any reason,
                     // treat as live (no caching) rather than risk serving stale
                     // data for a game that might genuinely be in progress.
@@ -8083,7 +8090,7 @@ export default {
                 if (!raw) {
                     // Not computed yet — trigger immediately and return placeholder
                     if (env.FIELD_JOURNALISM) {
-                        ctx.waitUntil(runWCTournamentProjections(env).catch(() => {}));
+                        ctx.waitUntil(runWCTournamentProjections(env).catch(e => console.error("[WC-PROJECTIONS] background compute failed:", e.message)));
                     }
                     return new Response(JSON.stringify({ ok: true, pending: true,
                         message: 'Projections computing — retry in 30s' }),
@@ -8112,7 +8119,7 @@ export default {
                                'Cache-Control': 'public, max-age=1800' } });
             }
             if (pathname === '/wc/projections/refresh' && request.method === 'POST') {
-                ctx.waitUntil(runWCTournamentProjections(env).catch(() => {}));
+                ctx.waitUntil(runWCTournamentProjections(env).catch(e => console.error("[WC-PROJECTIONS] background compute failed:", e.message)));
                 return new Response(JSON.stringify({ ok: true, message: 'Refresh triggered' }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
@@ -9381,7 +9388,7 @@ export default {
                                 }),
                             });
                             if (!r.ok) return null;
-                            const d = await r.json().catch(() => null);
+                            const d = await r.json().catch(e => { console.error("[ARCHIVE-BRIEF] proxy response parse failed:", e.message); return null; });
                             return d ? (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
                         };
                         // Dim 7+10 context: look up game row from D1 by game_id.
@@ -10015,7 +10022,7 @@ export default {
                             messages: [{ role: 'user', content: promptText }] }),
                     });
                     if (!resp.ok) return null;
-                    const data = await resp.json().catch(() => null);
+                    const data = await resp.json().catch(e => { console.error("[BACKFILL-GAME-BRIEFS] proxy response parse failed:", e.message); return null; });
                     return data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
                 };
 
@@ -10195,7 +10202,7 @@ export default {
                     }),
                 });
                 if (!resp.ok) return null;
-                const data = await resp.json().catch(() => null);
+                const data = await resp.json().catch(e => { console.error("[BACKFILL-BRIEF-SCORES] proxy response parse failed:", e.message); return null; });
                 return data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() || null : null;
             };
 
@@ -10674,7 +10681,7 @@ export default {
                 JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
                 { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } }
             );
-            const body = await request.json().catch(() => null);
+            const body = await request.json().catch(e => { console.error("[SESSION-RECORD] request body parse failed:", e.message); return null; });
             if (!body) return new Response(
                 JSON.stringify({ ok: false, error: 'invalid json' }),
                 { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
@@ -11891,7 +11898,7 @@ export default {
         // rule. ✅ CLEAN.
         if (pathname === '/journalism/generate' && request.method === 'POST') {
           try {
-            const body = await request.json().catch(()=>null);
+            const body = await request.json().catch(e => { console.error("[JOURNALISM-GENERATE] request body parse failed:", e.message); return null; });
             if (!body || typeof body.prompt !== 'string' || body.prompt.length < 10) {
               return new Response(JSON.stringify({error:'missing or invalid prompt'}),
                 {status:400, headers:{...CORS,'Content-Type':'application/json'}});
@@ -12075,7 +12082,12 @@ export default {
               // tests (same cache key, waits up to 65s, never hit).
               // ctx.waitUntil() is this exact codebase's own established
               // pattern for this (6+ other real uses in this same file).
-              const _cacheWrite = env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(_responsePayload), { expirationTtl: 86400 }).catch(() => {});
+              // CC-CMD-2026-07-13-promise-catch-tier2: a failure here just means this
+              // result isn't cached (next identical request regenerates fresh -- costly
+              // but not wrong, nothing downstream assumes this write succeeded). Logged
+              // so a systematic FIELD_JOURNALISM outage is visible rather than silently
+              // burning the API quota this cache exists to protect (Rule 78).
+              const _cacheWrite = env.FIELD_JOURNALISM.put(cacheKey, JSON.stringify(_responsePayload), { expirationTtl: 86400 }).catch(e => console.error("[JOURNALISM-GENERATE] cache write failed:", e.message));
               if (ctx?.waitUntil) ctx.waitUntil(_cacheWrite);
             }
 
@@ -12159,7 +12171,7 @@ export default {
         // Always returns 202; all errors are swallowed (DO fan-out must not be affected).
         if (pathname === '/journalism/game-complete' && request.method === 'POST') {
             try {
-                const body = await request.json().catch(() => null);
+                const body = await request.json().catch(e => { console.error("[GAME-COMPLETE] request body parse failed:", e.message); return null; });
                 const { sport, gameId, home, away, homeScore, awayScore } = body || {};
                 if (sport && gameId && home && away && env.JOURNALISM_QUEUE && env.FIELD_JOURNALISM) {
                     // CC-CMD-2026-07-12-completion-trigger-close TASK 2: removed the
@@ -12551,10 +12563,10 @@ export default {
             const [homeStats, awayStats] = await Promise.all([
                 fetch(`${compBase}/competitors/${homeId}/statistics`,
                     { headers: { 'User-Agent': 'FIELD/1.0' } })
-                    .then(r => r.ok ? r.json() : null).catch(() => null),
+                    .then(r => r.ok ? r.json() : null).catch(e => { console.error("[SOCCER-XG] home competitor stats fetch failed:", e.message); return null; }),
                 fetch(`${compBase}/competitors/${awayId}/statistics`,
                     { headers: { 'User-Agent': 'FIELD/1.0' } })
-                    .then(r => r.ok ? r.json() : null).catch(() => null),
+                    .then(r => r.ok ? r.json() : null).catch(e => { console.error("[SOCCER-XG] away competitor stats fetch failed:", e.message); return null; }),
             ]);
 
             const XG_FIELDS = new Set([
@@ -12700,7 +12712,7 @@ export default {
         // itself only prevents SQL injection, not target scope).
         if (pathname === '/savant/sync' && request.method === 'POST') {
             try {
-                const body = await request.json().catch(() => null);
+                const body = await request.json().catch(e => { console.error("[SAVANT-SYNC] request body parse failed:", e.message); return null; });
                 const { table, rows, source, label } = body || {};
                 if (!table || !_SYNC_TABLE_SCHEMAS[table]) {
                     return new Response(JSON.stringify({ ok: false, error: 'table not allowlisted' }),
@@ -14397,7 +14409,7 @@ export default {
               });
               if (r.status === 429) throw new Error('upstream 429');
               if (!r.ok) return null;
-              const d = await r.json().catch(()=>null);
+              const d = await r.json().catch(e => { console.error("[JOURNALISM-QUEUE] proxy response parse failed:", e.message); return null; });
               return d ? (d.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim()||null : null;
             };
             // Append [BRACKET IMPACT] for WC game-briefs when pre/post snapshots
@@ -14525,7 +14537,7 @@ export default {
               throw new Error('upstream 429 rate-limited');
             }
             if (!r.ok) return null;
-            const data = await r.json().catch(() => null);
+            const data = await r.json().catch(e => { console.error("[JOURNALISM-JOBS] proxy response parse failed:", e.message); return null; });
             if (!data) return null;
             return (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim() || null;
           };
@@ -14559,9 +14571,19 @@ export default {
           // Let CF Queues retry up to max_retries. If we've already retried max,
           // CF will move on; record a 'failed' marker so the polling endpoint reports it.
           if (msg.attempts && msg.attempts >= 3) {
+            // CC-CMD-2026-07-13-promise-catch-tier2: real residual risk, noted not
+            // silently accepted -- msg.ack() below fires unconditionally regardless
+            // of whether this write succeeds. If it fails too (a compound failure:
+            // the job itself failed 3x AND this status-write also fails), the
+            // polling endpoint never sees a 'failed' record for this jobId, and
+            // nothing retries it again since the message is already ack'd. Not
+            // upgraded to msg.retry() here -- that would break the established
+            // "give up after 3 attempts" ceiling and risk an infinite retry loop
+            // on a genuine FIELD_JOURNALISM outage, which is a worse failure mode.
+            // Logged so the compound failure is at least visible operationally.
             await env.FIELD_JOURNALISM.put(`jobs:${jobId}`,
               JSON.stringify({status:'failed', error:e.message, failedAt: Date.now()}),
-              {expirationTtl: 86400}).catch(() => {});
+              {expirationTtl: 86400}).catch(e2 => console.error("[JOURNALISM-JOBS] failed-status write itself failed:", e2.message));
             msg.ack();
           } else {
             msg.retry();
