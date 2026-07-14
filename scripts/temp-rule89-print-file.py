@@ -1,6 +1,0 @@
-import json, sys
-d = json.load(sys.stdin)
-t = json.loads(d['result']['content'][0]['text'])
-print('sha:', t['sha'])
-print('content:')
-print(t['content'])
