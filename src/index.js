@@ -1946,12 +1946,18 @@ async function writeWCResult(db, game, env, ctx) {
         // POST /wc/matchup/cache. Keys: wc:matchup:{home}_{away} and reverse.
         // Non-blocking — empty string on miss or FIELD_JOURNALISM unavailable.
         let matchupContext = '';
+        // CC-CMD-2026-07-14-jq-context-and-calibration: real, already-fetched
+        // data below (raw `mc`) was only ever baked into the prompt text as
+        // `matchupContext` -- never forwarded to the queue job, making Dim 10
+        // (Matchup Depth) structurally unreachable for every WC26 game-brief
+        // enqueued here even though the underlying data was already in hand.
+        let rawMatchupNote = null;
         try {
             if (env.FIELD_JOURNALISM) {
                 const _norm = s => (s || '').trim().toLowerCase().replace(/\s+/g, '_');
                 const mcKey = `wc:matchup:${_norm(homeName)}_${_norm(awayName)}`;
                 const mc = await env.FIELD_JOURNALISM.get(mcKey);
-                if (mc) matchupContext = `\n\nPRE-GAME CONTEXT:\n${mc}`;
+                if (mc) { matchupContext = `\n\nPRE-GAME CONTEXT:\n${mc}`; rawMatchupNote = mc; }
             }
         } catch (e) { console.error("[WC-RESULT] matchup context lookup failed:", e.message); /* non-blocking */ }
 
@@ -2111,6 +2117,7 @@ async function writeWCResult(db, game, env, ctx) {
                 away: awayName,
                 homeScore,
                 awayScore,
+                matchupNote: rawMatchupNote,
                 bracketTriggeredBy: `${homeName}_${awayName}_${matchDate}`.replace(/\s+/g, '_').slice(0, 120),
                 enqueuedAt: Date.now(),
             });
@@ -7014,6 +7021,34 @@ async function handleJournalismCycle(env, opts = {}) {
             const broadcast = comp.broadcasts?.[0]?.names?.[0] || label.toUpperCase();
             const isPlayoff = !!(series || /playoff|final|series/i.test(ev.name||''));
 
+            // CC-CMD-2026-07-14-jq-context-and-calibration: this is the
+            // dominant real game_recap enqueue site (confirmed via a live
+            // D1 query: 122 of 206 real 'cron'-sourced game_recap rows over
+            // 10 days are MLB, all produced here). Dims 7 (Context
+            // Anchoring) + 10 (Matchup Depth), 55/300 pts, were structurally
+            // unreachable at this specific site -- not because the queue
+            // consumer doesn't support them (it does, unconditionally --
+            // see the two runQualityChain calls in the queue() handler
+            // below), but because this enqueue call never forwarded
+            // homeScore/awayScore (already sitting on the ESPN `home`/`away`
+            // competitor objects fetched two lines up) or a matchupNote.
+            // matchupNote is built from probable pitchers + top statistical
+            // leader per team -- both already extracted by buildGameLine
+            // above for the prompt text; this just also surfaces them
+            // structurally, per-team, for Dim 10 to detect. No new fetch.
+            const homeScore = home?.score ?? null;
+            const awayScore = away?.score ?? null;
+            const matchupNoteParts = [];
+            for (const team of [home, away]) {
+              const probAthlete = team?.probables?.[0]?.athlete?.displayName;
+              if (probAthlete) matchupNoteParts.push(probAthlete);
+              const topLeader = team?.leaders?.[0]?.leaders?.[0];
+              if (topLeader?.athlete?.displayName && topLeader?.displayValue) {
+                matchupNoteParts.push(`${topLeader.athlete.displayName} ${topLeader.displayValue}`);
+              }
+            }
+            const matchupNote = matchupNoteParts.length ? matchupNoteParts.join(', ') : null;
+
             const gamePrompt = [
               `Write a FIELD Game Brief for this ${label} game.`,
               `${awayName} @ ${homeName}.`,
@@ -7037,6 +7072,9 @@ async function handleJournalismCycle(env, opts = {}) {
               sport:      label,
               home:       homeName,
               away:       awayName,
+              homeScore,
+              awayScore,
+              matchupNote,
               cycleId,
               prompt:     gamePrompt,
               max_tokens: 400,
@@ -10408,7 +10446,46 @@ export default {
                 'wc_matchup', 'standings_snapshot', 'narrative_context',
                 'enrichment', 'kv_harvest', 'wc_tab',
             ]);
-            // Excellence threshold: 80% of 300 = 240. Failure = below 240.
+            // ── Per-brief-type calibration (CC-CMD-2026-07-14-jq-context-
+            // and-calibration) — restores the per-type-aware threshold that
+            // existed once (_alertThreshold, 2026-06-24) and was lost during
+            // the same-day 300-point rebuild, without porting its stale
+            // numbers (those were calibrated against the dead 245-point
+            // ceiling). Different brief types have different real, structural
+            // ceilings (cron-slate/wc-morning cover multiple games at once
+            // and can never earn Dims 7+10; golf has no per-game context
+            // builder) -- a single flat 240 bar flags types that can
+            // structurally never reach it as permanently "failing" even
+            // when they're performing at their own real ceiling. Extends
+            // (does not replace) the existing loadQualityCalibration() p25
+            // pattern already used for sport-level retry floors -- same
+            // empirical method (p25 of the type's own real recent scores),
+            // just keyed by brief_type instead of sport, and requiring the
+            // same >=5-sample floor before trusting it over the flat 240
+            // fallback used everywhere else in this file.
+            const typeRows = await env.ARCHIVE_DB.prepare(
+                `SELECT brief_type, quality_score FROM briefs
+                 WHERE quality_score IS NOT NULL AND date >= date('now', '-30 days')
+                 ORDER BY brief_type, quality_score`
+            ).all();
+            const scoresByType = {};
+            for (const row of (typeRows.results || [])) {
+                if (!scoresByType[row.brief_type]) scoresByType[row.brief_type] = [];
+                scoresByType[row.brief_type].push(row.quality_score);
+            }
+            const briefTypeCalibration = {};
+            for (const [briefType, scores] of Object.entries(scoresByType)) {
+                if (scores.length < 5) continue; // not enough real data -- flat 240 fallback applies
+                scores.sort((a, b) => a - b);
+                briefTypeCalibration[briefType] = {
+                    p25: scores[Math.floor(scores.length * 0.25)],
+                    p50: scores[Math.floor(scores.length * 0.50)],
+                    p75: scores[Math.floor(scores.length * 0.75)],
+                    count: scores.length,
+                };
+            }
+            // Excellence threshold: 80% of 300 = 240 -- stays the fallback
+            // for any brief_type without enough real data to calibrate.
             // Enrichment types and golf (no context builder) stay excluded —
             // structural floor, not a tuning problem.
             const alerts = summary
@@ -10416,15 +10493,21 @@ export default {
                 .filter(r => {
                     if (ENRICHMENT_TYPES.has(r.brief_type)) return false;
                     if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
-                    return r.avg_score < 240 || (r.below_240 / r.scored) > 0.2;
+                    const threshold = briefTypeCalibration[r.brief_type]?.p25 ?? 240;
+                    return r.avg_score < threshold || (r.below_240 / r.scored) > 0.2;
                 })
-                .map(r => ({
-                    brief_type: r.brief_type, sport: r.sport || 'all',
-                    alert: r.avg_score < 240 ? 'avg_below_240' : 'high_failure_rate',
-                    threshold: 240,
-                    avg_score: r.avg_score,
-                    failure_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
-                }));
+                .map(r => {
+                    const cal = briefTypeCalibration[r.brief_type];
+                    const threshold = cal?.p25 ?? 240;
+                    return {
+                        brief_type: r.brief_type, sport: r.sport || 'all',
+                        alert: r.avg_score < threshold ? 'avg_below_calibrated_p25' : 'high_failure_rate',
+                        threshold,
+                        threshold_source: cal ? `brief_type_p25(n=${cal.count})` : 'flat_240_fallback',
+                        avg_score: r.avg_score,
+                        failure_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
+                    };
+                });
             const unscored = summary
                 .filter(r => r.total > 5 && r.scored === 0)
                 .map(r => ({ brief_type: r.brief_type, sport: r.sport, total: r.total }));
@@ -10433,6 +10516,7 @@ export default {
                 alert_count: alerts.length,
                 unscored_types: unscored,
                 unscored_count: unscored.length,
+                brief_type_calibration: briefTypeCalibration,
             }), { headers: { ...CORS, 'Content-Type': 'application/json',
                              'Cache-Control': 'public, max-age=300' } });
         }
