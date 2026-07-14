@@ -7124,6 +7124,9 @@ export default {
         // Log every /.well-known, /oauth, /mcp, /debug/recent-requests request
         // to MCP_OAUTH KV (1h TTL) for diagnostic. ctx.waitUntil so the log
         // write doesn't block the response.
+        if (env.MCP_OAUTH && pathname === '/mcp') {
+            ctx.waitUntil(env.MCP_OAUTH.put('debug:direct-write-test', JSON.stringify({ts: new Date().toISOString(), pathname})).catch(e => env.MCP_OAUTH.put('debug:direct-write-error', e.message)));
+        }
         if (env.MCP_OAUTH && (
             pathname.startsWith('/.well-known/') ||
             pathname.startsWith('/oauth/') ||
@@ -7166,6 +7169,14 @@ export default {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
             return oauthRevoke(request, env);
         }
+        // TEMP DIAGNOSTIC — remove after root-causing the debug log gap
+        if (pathname === '/debug/direct-write-test' && request.method === 'GET') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            const v = await env.MCP_OAUTH.get('debug:direct-write-test');
+            const e = await env.MCP_OAUTH.get('debug:direct-write-error');
+            return new Response(JSON.stringify({value: v, error: e}), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // TEMP DIAGNOSTIC — remove after root-causing the debug log gap
         if (pathname === '/debug/last-log-error' && request.method === 'GET') {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
