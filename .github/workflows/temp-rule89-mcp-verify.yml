@@ -1,0 +1,150 @@
+name: TEMP Rule89 MCP Tools Verify
+
+# TEMP-RULE89-MCP-VERIFY-2026-07-13: real end-to-end verification for
+# CC-CMD-2026-07-13-rule89-scoped-tools TASK 1 (event field) and TASK 2
+# (commit_file_patch), via the real /mcp JSON-RPC endpoint with the real
+# FIELD_MCP_SECRET. Delete after use.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Real MCP tool calls
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: |
+          set -x
+          mkdir -p outbox
+          OUT="outbox/temp-rule89-mcp-verify.txt"
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev/mcp"
+          AUTH="Authorization: Bearer $FIELD_MCP_SECRET"
+
+          call() {
+            curl -sS -X POST "$RELAY" -H "$AUTH" -H "Content-Type: application/json" -d "$1"
+          }
+
+          echo "=== 1. tools/list ===" >> "$OUT"
+          call '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+            | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+tools = {t['name']: t for t in d['result']['tools']}
+for name in ['get_ci_status','get_deploy_status','commit_file_patch']:
+    t = tools.get(name)
+    print(f'--- {name} ---')
+    if not t:
+        print('MISSING')
+        continue
+    print('description:', t['description'][:200])
+    print('required:', t['inputSchema'].get('required'))
+" >> "$OUT" 2>&1
+
+          echo "" >> "$OUT"
+          echo "=== 2. get_deploy_status (real event field, mixed triggers) ===" >> "$OUT"
+          call '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_deploy_status","arguments":{"repo":"field-relay-nba","limit":5}}}' \
+            | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+print(d['result']['content'][0]['text'])
+" >> "$OUT" 2>&1
+
+          echo "" >> "$OUT"
+          echo "=== 3. read_file scratch test file (get live sha) ===" >> "$OUT"
+          READ1=$(call '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}')
+          echo "$READ1" >> "$OUT"
+          SHA=$(echo "$READ1" | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+t = json.loads(d['result']['content'][0]['text'])
+print(t['sha'])
+")
+          echo "SHA=$SHA" >> "$OUT"
+
+          echo "" >> "$OUT"
+          echo "=== 4. commit_file_patch -- real 2-edit success case ===" >> "$OUT"
+          PATCH_BODY=$(python3 -c "
+import json
+body = {
+  'jsonrpc':'2.0','id':4,'method':'tools/call',
+  'params': {
+    'name':'commit_file_patch',
+    'arguments': {
+      'path':'docs/TEMP-commit-file-patch-test.md',
+      'edits': [
+        {'old_str':'MARKER_ONE: unchanged sentinel value alpha.','new_str':'MARKER_ONE: CHANGED sentinel value alpha-prime.'},
+        {'old_str':'MARKER_TWO: unchanged sentinel value beta.','new_str':'MARKER_TWO: CHANGED sentinel value beta-prime.'}
+      ],
+      'commit_message':'temp: commit_file_patch live verification edit',
+      'parent_sha':'$SHA',
+      'repo':'field-relay-nba'
+    }
+  }
+}
+print(json.dumps(body))
+")
+          call "$PATCH_BODY" >> "$OUT" 2>&1
+
+          echo "" >> "$OUT"
+          echo "=== 5. read_file again -- confirm both edits landed ===" >> "$OUT"
+          call '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}' \
+            | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+t = json.loads(d['result']['content'][0]['text'])
+print('sha:', t['sha'])
+print('content:')
+print(t['content'])
+" >> "$OUT" 2>&1
+
+          echo "" >> "$OUT"
+          echo "=== 6. commit_file_patch -- rejection case (old_str occurs 0 times) ===" >> "$OUT"
+          READ2=$(call '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"read_file","arguments":{"path":"docs/TEMP-commit-file-patch-test.md"}}}')
+          SHA2=$(echo "$READ2" | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+t = json.loads(d['result']['content'][0]['text'])
+print(t['sha'])
+")
+          REJECT_BODY=$(python3 -c "
+import json
+body = {
+  'jsonrpc':'2.0','id':7,'method':'tools/call',
+  'params': {
+    'name':'commit_file_patch',
+    'arguments': {
+      'path':'docs/TEMP-commit-file-patch-test.md',
+      'edits': [
+        {'old_str':'THIS_STRING_DOES_NOT_EXIST_ANYWHERE_XYZ','new_str':'irrelevant'}
+      ],
+      'commit_message':'temp: this should be rejected',
+      'parent_sha':'$SHA2',
+      'repo':'field-relay-nba'
+    }
+  }
+}
+print(json.dumps(body))
+")
+          call "$REJECT_BODY" >> "$OUT" 2>&1
+
+          echo "" >> "$OUT"
+          cat "$OUT"
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "Debug-Probe"
+          git add outbox/
+          git commit -m "temp: rule89 mcp verify capture [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
