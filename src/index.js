@@ -7137,13 +7137,28 @@ export default {
             // not fully identified. Same entry shape as before.
             const _logTs = new Date().toISOString();
             const _logNonce = Math.random().toString(16).slice(2, 10);
+            // 2026-07-14: root-cause fix for a real credential leak (FIELD_MCP_SECRET
+            // exposed via this exact log, read back through /debug/recent-requests and
+            // committed by debug-log-probe.yml -- twice, months apart). The /mcp auth
+            // gate accepts FOUR credential channels (Authorization header, X-FIELD-MCP-
+            // Secret header, ?token= query param, and OAuth bearer tokens) -- the header
+            // filter below previously excluded only cookie/x-real-ip/cf-*, and the query
+            // log had no filter at all, so any of those channels logged the live secret
+            // in plaintext. Redact all four here, not just scrub the resulting leaks
+            // after the fact.
+            const _redactedQuery = Object.fromEntries(
+                [...url.searchParams.entries()].map(([k, v]) => [k, /^token$/i.test(k) ? '[REDACTED]' : v])
+            );
+            const _redactedHeaders = Object.fromEntries(
+                [...request.headers.entries()]
+                    .filter(([k]) => !/^(cookie|x-real-ip|cf-)/i.test(k))
+                    .map(([k, v]) => [k, /^(authorization|x-field-mcp-secret)$/i.test(k) ? '[REDACTED]' : v])
+            );
             const _logEntry = {
                 ts: _logTs, label: 'route',
                 method: request.method, path: pathname,
-                query: Object.fromEntries(url.searchParams),
-                headers: Object.fromEntries(
-                    [...request.headers.entries()].filter(([k]) => !/^(cookie|x-real-ip|cf-)/i.test(k))
-                ),
+                query: _redactedQuery,
+                headers: _redactedHeaders,
             };
             ctx.waitUntil(env.MCP_OAUTH.put(`log:${_logTs}-${_logNonce}`, JSON.stringify(_logEntry), { expirationTtl: 3600 }));
         }
