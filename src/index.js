@@ -12794,11 +12794,14 @@ export default {
         }
 
         if (pathname === '/mcp' && request.method === 'POST') {
-            // Auth gate — accepts THREE credentials, any one suffices:
+            // Auth gate — accepts FOUR credentials, any one suffices:
             //   1. OAuth Bearer access token (claude.ai custom connector path)
             //      → validateBearer reads MCP_OAUTH KV (Tier 1 Phase 2)
             //   2. FIELD_MCP_SECRET in Authorization / X-FIELD-MCP-Secret / ?token=
             //      → CI probes (post-probe.yml), Artifact callers
+            //   3. FIELD_MCP_CONNECTOR_TOKEN, same header/query shape as #2
+            //      → dedicated persistent-connector credential, decoupled from
+            //        FIELD_MCP_SECRET's rotation schedule (2026-07-14, see below)
             // Hardened June 2 2026: previous "if (mcpSecret)" let unconfigured worker
             // expose all tools wide open. Now: no secret on worker → 503 Misconfigured.
             // 401 carries WWW-Authenticate per RFC 6750 + MCP spec, advertising
@@ -12820,7 +12823,20 @@ export default {
             const incomingLegacy = xSecret || authHeader || qToken;
             const legacyOK = incomingLegacy && incomingLegacy.includes(mcpSecret);
 
-            if (!oauthOK && !legacyOK) {
+            // 3. 2026-07-14 (connector-secret-decouple): a dedicated,
+            // permanent credential for the persistent claude.ai connector,
+            // separate from FIELD_MCP_SECRET's broader CI/admin/probe use.
+            // Tonight's incident: rotating FIELD_MCP_SECRET (required after
+            // it leaked via a diagnostic capture) silently broke the live
+            // connector mid-session, because it was authenticating with the
+            // same value as every CI probe. This token has no other
+            // consumer and no reason to rotate on that schedule -- optional
+            // (env var may be unset on older deploys), additive, never
+            // required to match FIELD_MCP_SECRET's own rotation.
+            const connectorToken = env.FIELD_MCP_CONNECTOR_TOKEN;
+            const connectorOK = connectorToken && incomingLegacy && incomingLegacy.includes(connectorToken);
+
+            if (!oauthOK && !legacyOK && !connectorOK) {
                 const wwwAuth = `Bearer realm="MCP", resource_metadata="${url.origin}/.well-known/oauth-protected-resource"`;
                 return new Response(JSON.stringify({error:'Unauthorized'}), {
                     status: 401,
