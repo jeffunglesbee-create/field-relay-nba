@@ -95,9 +95,7 @@ export async function logRequest(env, request, label) {
             JSON.stringify(entry),
             { expirationTtl: TTL_LOG }
         );
-    } catch (e) {
-        try { await env.MCP_OAUTH.put('debug:last-log-error', JSON.stringify({ message: e.message, stack: e.stack, ts: new Date().toISOString() })); } catch (_) {}
-    }
+    } catch (e) { /* never let logging fail the request */ }
 }
 
 // ── GET /.well-known/oauth-authorization-server (RFC 8414) ──────────────────

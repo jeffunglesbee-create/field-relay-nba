@@ -98,7 +98,6 @@ import {
   revoke as oauthRevoke,
   validateBearer as oauthValidateBearer,
   debugRecentRequests as oauthDebugRecentRequests,
-  logRequest as oauthLogRequest,
 } from './mcp-oauth.js';
 
 // ── Analytics Cron Engine (June 20 2026) ────────────────────────────────────
@@ -7124,16 +7123,29 @@ export default {
         // Log every /.well-known, /oauth, /mcp, /debug/recent-requests request
         // to MCP_OAUTH KV (1h TTL) for diagnostic. ctx.waitUntil so the log
         // write doesn't block the response.
-        if (env.MCP_OAUTH && pathname === '/mcp') {
-            ctx.waitUntil(env.MCP_OAUTH.put('debug:direct-write-test', JSON.stringify({ts: new Date().toISOString(), pathname})).catch(e => env.MCP_OAUTH.put('debug:direct-write-error', e.message)));
-        }
         if (env.MCP_OAUTH && (
             pathname.startsWith('/.well-known/') ||
             pathname.startsWith('/oauth/') ||
             pathname === '/mcp' ||
             pathname === '/debug/recent-requests'
         )) {
-            ctx.waitUntil(oauthLogRequest(env, request, 'route'));
+            // 2026-07-14: inlined after oauthLogRequest() proved to silently
+            // fail here (no exception ever surfaced despite instrumenting
+            // its own catch block; a direct env.MCP_OAUTH.put() at this
+            // exact call site, proven via isolation test, works fine) --
+            // pragmatic fix, root cause of the original function's failure
+            // not fully identified. Same entry shape as before.
+            const _logTs = new Date().toISOString();
+            const _logNonce = Math.random().toString(16).slice(2, 10);
+            const _logEntry = {
+                ts: _logTs, label: 'route',
+                method: request.method, path: pathname,
+                query: Object.fromEntries(url.searchParams),
+                headers: Object.fromEntries(
+                    [...request.headers.entries()].filter(([k]) => !/^(cookie|x-real-ip|cf-)/i.test(k))
+                ),
+            };
+            ctx.waitUntil(env.MCP_OAUTH.put(`log:${_logTs}-${_logNonce}`, JSON.stringify(_logEntry), { expirationTtl: 3600 }));
         }
 
         // /.well-known/oauth-authorization-server (RFC 8414)
@@ -7169,21 +7181,6 @@ export default {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
             return oauthRevoke(request, env);
         }
-        // TEMP DIAGNOSTIC — remove after root-causing the debug log gap
-        if (pathname === '/debug/direct-write-test' && request.method === 'GET') {
-            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
-            const v = await env.MCP_OAUTH.get('debug:direct-write-test');
-            const e = await env.MCP_OAUTH.get('debug:direct-write-error');
-            return new Response(JSON.stringify({value: v, error: e}), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
-        // TEMP DIAGNOSTIC — remove after root-causing the debug log gap
-        if (pathname === '/debug/last-log-error' && request.method === 'GET') {
-            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
-            const v = await env.MCP_OAUTH.get('debug:last-log-error');
-            return new Response(v || 'no error captured', { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
-        }
-
         // GET /debug/recent-requests — read OAuth/MCP request log (FIELD_MCP_SECRET-gated)
         if (pathname === '/debug/recent-requests' && request.method === 'GET') {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
