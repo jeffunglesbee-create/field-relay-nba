@@ -26,7 +26,7 @@ Some sites in this Tier will genuinely be safe as-is (a failed dedup-write skip-
 ```bash
 pip install tree-sitter tree-sitter-javascript --break-system-packages -q
 python3 scripts/audit-empty-catches.py src/index.js > /tmp/full_audit.txt
-grep -A100 "promise chains:" /tmp/full_audit.txt | grep "ARCHIVE_DB\|FIELD_JOURNALISM"
+grep -A100 "promise chains:" /tmp/full_audit.txt | grep "ARCHIVE_DB\|FIELD_JOURNALISM\.get\b"
 ```
 
 This is the real, current, authoritative site list for this Tier — not the reference categorization above, which was accurate when written but will drift the moment any other commit touches this file. Confirm the real count and real line numbers fresh. For each site, read the full enclosing function (not just the catch line) before deciding whether it's the bug pattern or a safe swallow — matching the standing "read the whole function" lesson from every prior cluster tonight.
