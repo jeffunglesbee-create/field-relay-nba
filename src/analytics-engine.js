@@ -146,6 +146,89 @@ const SIGNATURE_EVENTS = {
     ],
 };
 
+// Known-dates calendar (CC-CMD-2026-07-14-signature-event-detection).
+// Signature events (HRD, All-Star Skills Challenge, etc.) have real,
+// publicly-announced dates well in advance -- this calendar closes the
+// "event gets forgotten entirely" risk (what nearly happened with the 2026
+// HRD until caught by hand hours after the fact), NOT the "no live feed"
+// risk. The live-feed gap is real and investigated, not a fixable query-
+// shape bug: MLB Stats API's /homeRunDerby/{gamePk} stayed stuck in
+// "Preview" state through the actual event (7 direct probe attempts,
+// codex key hrd-live-gamepk-stuck-preview-2026-07-13) because the 2026
+// Derby moved exclusively to Netflix, off MLB's own broadcast
+// infrastructure for the first time -- ESPN's structured scoreboard also
+// returned zero events for that date. Accepted as a real, likely-
+// persistent constraint; not attempted here.
+// Real, source-verified dates only -- start narrow, pad only when a new
+// date is independently confirmed, never guessed:
+//   2026-07-13 Home Run Derby -- verified via live web search 2026-07-14
+//   (mlb.com, espn.com, foxsports.com all confirm: Citizens Bank Park,
+//   Jordan Walker def. Kyle Schwarber) -- matches
+//   SIGNATURE_EVENTS['2026-07-13'] exactly.
+const KNOWN_SIGNATURE_EVENT_DATES = [
+    { date: '2026-07-13', label: 'Home Run Derby' },
+];
+
+// checkSignatureEventCalendar: for every known date that has passed,
+// confirm a matching SIGNATURE_EVENTS entry exists. Reuses the exact
+// existing codex 'incident' mechanism (checkIncidentThresholds /
+// session_health's own open_incidents read already query
+// category='incident' AND status != 'resolved' -- no new alerting
+// surface). Missing -> opens (or keeps open) an incident. Present ->
+// resolves any previously-open incident for that date -- self-heals the
+// same way PURE_FEATURES degradation self-heals, just via an explicit
+// status transition since codex has no implicit recompute-and-overwrite
+// path the way analytics_output does.
+// datesOverride: test-only injection point (defaults to the real
+// production calendar) -- lets TASK 3's forced-condition tests exercise
+// this exact function with a controlled missing/present/future date
+// instead of a parallel reimplementation of the same logic.
+export async function checkSignatureEventCalendar(env, today = null, datesOverride = null) {
+    if (!env.ARCHIVE_DB) return { checked: 0, opened: 0, resolved: 0 };
+    try {
+        await env.ARCHIVE_DB.prepare(
+            `ALTER TABLE codex ADD COLUMN status TEXT DEFAULT 'open'`
+        ).run();
+    } catch (_) { /* column already exists -- expected on every run after the first */ }
+
+    const todayIso = today || new Date().toISOString().slice(0, 10);
+    const dates = datesOverride || KNOWN_SIGNATURE_EVENT_DATES;
+    const due = dates.filter(d => d.date <= todayIso);
+    let opened = 0, resolved = 0;
+    for (const { date, label } of due) {
+        const key = `signature-event-missing/${date}`;
+        if (!SIGNATURE_EVENTS[date]) {
+            try {
+                await env.ARCHIVE_DB.prepare(`
+                    INSERT INTO codex (key, category, title, content, status, updated_at)
+                    VALUES (?, 'incident', ?, ?, 'open', datetime('now'))
+                    ON CONFLICT(key) DO UPDATE SET
+                        title = excluded.title, content = excluded.content,
+                        status = 'open', updated_at = datetime('now')
+                `).bind(
+                    key,
+                    `Signature event missing: ${label} (${date}) has no SIGNATURE_EVENTS entry`,
+                    JSON.stringify({ date, label, detected_at: new Date().toISOString() })
+                ).run();
+                opened++;
+            } catch (e) { console.error("[SIGNATURE-EVENT-CALENDAR] incident open failed:", e.message); }
+        } else {
+            try {
+                const existing = await env.ARCHIVE_DB.prepare(
+                    `SELECT status FROM codex WHERE key = ?`
+                ).bind(key).first();
+                if (existing && existing.status !== 'resolved') {
+                    await env.ARCHIVE_DB.prepare(
+                        `UPDATE codex SET status = 'resolved', updated_at = datetime('now') WHERE key = ?`
+                    ).bind(key).run();
+                    resolved++;
+                }
+            } catch (e) { console.error("[SIGNATURE-EVENT-CALENDAR] incident resolve failed:", e.message); }
+        }
+    }
+    return { checked: due.length, opened, resolved };
+}
+
 // Generic structural scoring over signature-event descriptors — not HRD-
 // specific. Any exhibition/skills event that supplies these three fields
 // (how big a deficit was overcome, how close the final margin was, how

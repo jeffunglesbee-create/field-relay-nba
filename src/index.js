@@ -104,7 +104,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES, checkSignatureEventCalendar } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -7134,6 +7134,12 @@ export default {
             // via GET /analytics/degraded, never auto-fired here.
             ctx.waitUntil(runDegradedPhaseSweep(env).catch(e =>
                 console.error('[DEGRADED-SWEEP]', e.message)));
+            // Signature-event calendar check (CC-CMD-2026-07-14-signature-
+            // event-detection): same daily trigger, same isolation pattern --
+            // opens/resolves a codex incident, never touches Night Stars'
+            // own scoring.
+            ctx.waitUntil(checkSignatureEventCalendar(env).catch(e =>
+                console.error('[SIGNATURE-EVENT-CALENDAR]', e.message)));
         }
         ctx.waitUntil(handleCron(env));
         ctx.waitUntil(handleJournalismCycle(env));
