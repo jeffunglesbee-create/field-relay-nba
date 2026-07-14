@@ -13330,8 +13330,24 @@ export default {
                             `).bind(today, yest).all();
                             const phases = {};
                             for (const r of (p.results || []))
-                                if (!phases[r.feature])
-                                    phases[r.feature] = { date: r.date, degraded: r.degraded == null ? null : !!r.degraded };
+                                if (!phases[r.feature]) {
+                                    // 2026-07-13 (CC-CMD-sessionhealth-phase-signal-fix): PURE features
+                                    // auto-recompute on the 0 9 * * * sweep (runDegradedPhaseSweep) --
+                                    // a stale degraded:true here is often just "hasn't been swept yet
+                                    // this cycle", not a standing problem (confirmed live via
+                                    // /analytics/degraded's own auto_recomputed bucket for night_stars).
+                                    // AI_COSTING features never auto-fire (Rule 78) and frequently show
+                                    // degraded:null simply because no session has explicitly triggered
+                                    // them today, not because anything is wrong. Label both using the
+                                    // same PURE_FEATURES/AI_COSTING_FEATURES sets /analytics/degraded
+                                    // already uses, rather than re-deriving this distinction from source
+                                    // every session (see codex: session_health phase degradation signal
+                                    // gap, root-caused 2026-07-13).
+                                    const category = PURE_FEATURES.has(r.feature) ? 'pure_auto_recompute'
+                                        : AI_COSTING_FEATURES.has(r.feature) ? 'ai_costing_manual_trigger'
+                                        : 'unclassified';
+                                    phases[r.feature] = { date: r.date, degraded: r.degraded == null ? null : !!r.degraded, category };
+                                }
                             out.analytics_phases = phases;
                         } catch(_) { out.analytics_phases = 'unavailable'; }
 
