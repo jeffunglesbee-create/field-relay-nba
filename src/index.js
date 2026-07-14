@@ -7166,6 +7166,13 @@ export default {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
             return oauthRevoke(request, env);
         }
+        // TEMP DIAGNOSTIC — remove after root-causing the debug log gap
+        if (pathname === '/debug/last-log-error' && request.method === 'GET') {
+            if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
+            const v = await env.MCP_OAUTH.get('debug:last-log-error');
+            return new Response(v || 'no error captured', { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /debug/recent-requests — read OAuth/MCP request log (FIELD_MCP_SECRET-gated)
         if (pathname === '/debug/recent-requests' && request.method === 'GET') {
             if (!env.MCP_OAUTH) return new Response('MCP_OAUTH KV not bound', { status: 503, headers: CORS });
