@@ -1807,6 +1807,114 @@ async function runBSDEndgameCapture(env) {
     }));
 }
 
+// BSD league_id -> R2 sport-slug map for club-league endgame capture (TASK 1,
+// CC-CMD-2026-07-14-bsd-endgame-capture-generalize). Derived from V2_LEAGUES
+// itself, not hand-duplicated, so the two tables can't drift out of sync.
+// WC26 has no bsdLeagueId field on its V2_LEAGUES entry (captured separately
+// by runBSDEndgameCapture above, unchanged) so it's naturally excluded here.
+// Where two slugs share a bsdLeagueId (europa/conference both = 8), the
+// first-listed slug in V2_LEAGUES wins -- 'europa' -- a disclosed, accepted
+// ambiguity (BSD itself doesn't distinguish the two competitions by ID).
+const BSD_LEAGUE_ID_TO_SLUG = (() => {
+    const map = {};
+    for (const [slug, cfg] of Object.entries(V2_LEAGUES)) {
+        const lid = cfg?.bsdLeagueId;
+        if (Number.isInteger(lid) && !(lid in map)) map[lid] = slug;
+    }
+    return map;
+})();
+
+// BSD club-league endgame capture -- called from scheduled() on every cron
+// tick, year-round (not gated by the WC window). Generalizes post-game BSD
+// capture (runBSDEndgameCapture above stays WC26-only, unchanged) to every
+// BSD-covered club league.
+// TASK 0 finding (2026-07-14, empirical): BSD's date= query param does not
+// filter -- confirmed by querying by-date+league_id for both league_id=27
+// and league_id=18 with a deliberately wrong test date and still getting
+// the full, unfiltered dataset back. The by-date+league_id workaround
+// runBSDEndgameCapture uses is only affordable because the WC is a small
+// (~248-event) bounded tournament -- replicating it per club league (MLS
+// alone: 1058+ events, 21+ paginated requests) every 5 min would be an
+// unacceptable ongoing API cost (Rule 78/API-COST-A). /api/v2/events/live/
+// is used instead: confirmed live via a real probe (2026-07-14) to return
+// { count, events: [...] } -- one cheap call covers every league at once,
+// filtered client-side by league_id membership in BSD_LEAGUE_ID_TO_SLUG.
+// Per-event field names (id, league_id, current_minute, status, home_team,
+// away_team, event_date) are confirmed real from the by-date endpoint's
+// response (same underlying BSD events resource, different top-level
+// wrapper key) -- no club match was live during this dispatch's
+// investigation window to observe a populated /live/ response directly, so
+// this is a reasonable, disclosed inference, not a directly-observed
+// field-by-field match against a live /live/ payload.
+async function runBSDClubLeagueEndgameCapture(env) {
+    if (!env?.FIELD_DATA || !env?.BSD_API_TOKEN) return;
+    const bsdHdrs = {
+        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+        'User-Agent': 'FIELD/1.0',
+        'Accept': 'application/json',
+    };
+
+    let liveData;
+    try {
+        const liveResp = await fetch('https://sports.bzzoiro.com/api/v2/events/live/',
+            { headers: bsdHdrs, signal: AbortSignal.timeout(6000) });
+        if (!liveResp.ok) return;
+        liveData = await liveResp.json();
+    } catch (e) {
+        console.error('[BSD-CLUB-ENDGAME] live fetch failed:', e.message);
+        return;
+    }
+
+    const nowMs   = Date.now();
+    const targets = (liveData.events || []).filter(e => {
+        if (!BSD_LEAGUE_ID_TO_SLUG[e.league_id]) return false; // untracked league -- skip, never write a garbage key
+        if ((e.status || '').toLowerCase() === 'finished') return false;
+        if ((e.status || '').toLowerCase() === 'notstarted') {
+            // Fallback: use kickoff time if BSD hasn't updated status yet
+            const startMs   = new Date(e.event_date).getTime();
+            const elapsedMin = (nowMs - startMs) / 60000;
+            return elapsedMin >= 80 && elapsedMin <= 120;
+        }
+        // BSD is reporting live status — trust current_minute
+        return (e.current_minute || 0) >= 80;
+    });
+
+    if (!targets.length) {
+        console.log('[BSD-CLUB-ENDGAME] no club-league targets in 80-120min window');
+        return;
+    }
+
+    await Promise.allSettled(targets.map(async game => {
+        const bsdId  = String(game.id);
+        const slug   = BSD_LEAGUE_ID_TO_SLUG[game.league_id];
+        const prefix = `bsd/${slug}/${bsdId}`;
+        const elapsedMin = Math.round((nowMs - new Date(game.event_date).getTime()) / 60000);
+        const meta   = {
+            bsd_event_id: bsdId,
+            league_id:    String(game.league_id),
+            minute:       String(game.current_minute || elapsedMin),
+            home:         String(game.home_team || ''),
+            away:         String(game.away_team || ''),
+            source:       'club-endgame-cron',
+            captured:     new Date().toISOString(),
+        };
+        const bsdBase = 'https://sports.bzzoiro.com';
+        await Promise.allSettled(
+            ['momentum', 'stats', 'incidents', 'average-positions'].map(
+                async type => captureWithRetry(
+                    `${bsdBase}/api/v2/events/${bsdId}/${type}/`,
+                    `${prefix}/${type}.json`,
+                    env,
+                    { ...meta, type },
+                    1,   // single attempt per tick — cron fires every 5 min
+                    0
+                )
+            )
+        );
+        console.log(`[BSD-CLUB-ENDGAME] attempted bsdId=${bsdId} slug=${slug} elapsed=${elapsedMin}' status=${game.status}`);
+    }));
+}
+
 async function writeWCResult(db, game, env, ctx) {
     const homeName  = resolveTeamName(game.home?.name || '');
     const awayName  = resolveTeamName(game.away?.name || '');
@@ -7221,6 +7329,13 @@ export default {
         if (_isWCWindow && env.FIELD_DATA && env.BSD_API_TOKEN) {
             ctx.waitUntil(runBSDEndgameCapture(env).catch(e =>
                 console.error('[BSD-ENDGAME]', e.message)));
+        }
+        // BSD club-league endgame capture — every cron tick, year-round. NOT
+        // gated by _isWCWindow: club leagues run outside the WC calendar.
+        // CC-CMD-2026-07-14-bsd-endgame-capture-generalize TASK 1.
+        if (env.FIELD_DATA && env.BSD_API_TOKEN) {
+            ctx.waitUntil(runBSDClubLeagueEndgameCapture(env).catch(e =>
+                console.error('[BSD-CLUB-ENDGAME]', e.message)));
         }
     },
 

@@ -514,3 +514,31 @@ game.round: string   // human-readable, vocabulary varies by source:
 Deliberately not normalized across sources — rendered as-is. A unified
 taxonomy would be a future data-layer decision, not assumed needed.
 
+## BSD endgame-capture R2 key format (FIELD_DATA bucket)
+
+Producer: `runBSDEndgameCapture` (WC26) and `runBSDClubLeagueEndgameCapture`
+(all other BSD-covered leagues), both `src/index.js`, relay commit TBD —
+CC-CMD-2026-07-14-bsd-endgame-capture-generalize. Fired from `scheduled()`
+on every cron tick; captures momentum/stats/incidents/average-positions for
+any live game crossing the 80-120 minute window.
+
+```
+R2 key: bsd/{slug}/{bsdEventId}/{momentum,stats,incidents,average-positions}.json
+  slug = 'wc26' for World Cup games (unchanged, pre-existing format)
+       = one of epl, mls, ucl, europa, eflchamp, laliga, seriea, bundesliga,
+         ligue1 for club leagues (new, this CC-CMD) — derived from BSD's own
+         league_id via BSD_LEAGUE_ID_TO_SLUG, itself derived from V2_LEAGUES
+         so the two tables can't drift apart. europa/conference share BSD
+         league_id 8 (BSD doesn't distinguish the two competitions) — both
+         write under 'europa'; this is a disclosed, accepted ambiguity.
+```
+
+Consumer: **none yet.** jubilant-bassoon's post-game pitch replay ("site 3",
+`index.html` ~L42601) still reads the pre-existing hardcoded
+`bsd/wc26/${_bsBsdEventId}/stats.json` key only — confirmed untouched as of
+its own CC-CMD-2026-07-14-bsd-pitch-generalize (`docs/outbox/cc-bsd-pitch-
+generalize-2026-07-14.md`, scored 100/100), which explicitly scoped site 3
+out. This entry documents the convention a future client-side fix to site 3
+must match — `bsd/{slug}/{bsdEventId}/stats.json` — so that fix doesn't have
+to independently reverse-engineer or guess the relay's real key shape.
+
