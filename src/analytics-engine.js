@@ -581,9 +581,10 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
 
     // One-line recap per game. Keep prompt tight — Gemini handles ~250 words
     // of context comfortably, beyond that it tends to enumerate.
-    const recapLines = games
+    const recapGames = games
         .filter(g => g.note || (typeof g.home_score === 'number' && typeof g.away_score === 'number'))
-        .slice(0, 16)
+        .slice(0, 16);
+    const recapLines = recapGames
         .map(g => {
             // Score must be explicitly bound to each team name, not a bare
             // "X-Y" string relying on positional order matching the team
@@ -635,10 +636,75 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         // elsewhere in this codebase -- ported here, not invented fresh.
         `ONLY reference games and scores listed above in ALL RESULTS. ` +
         `Never invent a team, sport, matchup, or score not present there -- ` +
-        `if a sport has no real completed games above, do not mention it.`;
+        `if a sport has no real completed games above, do not mention it. ` +
+        // Added 2026-07-15 -- real, confirmed incident, live: "Portland Fire"
+        // (real WNBA team, exact string present in ALL RESULTS above) was
+        // rendered as "Chicago Fire" (a real, unrelated MLS team, NOT present
+        // anywhere in ALL RESULTS) while the real score (90-87) was kept
+        // correct -- confirmed the relay's own /v2/games data was already
+        // correct at prompt-build time (checked directly), so this was a
+        // generation-time name substitution, not a data-pipeline bug. Most
+        // likely cause: "Chicago Fire" is a far more common name in training
+        // data than a brand-new WNBA expansion team sharing the same
+        // nickname. This is a different failure mode from the invented-team
+        // case above (a real, unrelated team's name replacing a real,
+        // listed team's name, not a fabricated game) -- addressed with its
+        // own explicit instruction rather than assuming the instruction
+        // above already covers it (it didn't, live).
+        `Use each team's exact name AS WRITTEN in ALL RESULTS above. Do not ` +
+        `substitute a different, more familiar team name that happens to ` +
+        `share a nickname (e.g. a city/mascot combination) with a team ` +
+        `actually listed above -- the team listed above is correct even if ` +
+        `a different, better-known team elsewhere shares part of its name.`;
 
     const prose = await callProxy(prompt, { maxTokens: 250 });
-    const briefText = prose || `Quiet night across the slate for ${date}. Tomorrow brings another set.`;
+    // Structural guard, added alongside the prompt instruction above (2026-07-15,
+    // real live incident -- see comment above): a prompt instruction alone
+    // already failed to prevent one real substitution (the "never invent"
+    // instruction predates this incident and did not stop it, since Chicago
+    // Fire is a real team, not an invented one -- instructions are not a
+    // reliable guarantee against this specific failure mode). For every game
+    // whose exact score string appears in the generated prose, both of that
+    // game's real team names (the exact strings given to the model above)
+    // must also appear verbatim -- if a real score appears with a team name
+    // that isn't either of the two real teams for that score, the brief is
+    // rejected and the same deterministic fallback below is used instead.
+    // A team is "present" if its exact full name appears, OR the common
+    // "the <nickname>" shorthand appears (e.g. "the Tempo") -- real,
+    // legitimate prose style confirmed in the same real incident text this
+    // guard was built from ("dominated the Tempo"), not a hypothetical.
+    // This shorthand form is deliberately NOT just the bare nickname: "the
+    // Chicago Fire" does not contain "the Fire" as a substring (a different
+    // city sits between "the" and "Fire"), so this stays precise enough to
+    // reject the real incident (Portland Fire -> Chicago Fire) while
+    // accepting genuine shorthand for the correct team.
+    const teamPresent = (prose, name) => {
+        if (!name) return true; // nothing to check
+        if (prose.includes(name)) return true;
+        const lastWord = name.trim().split(/\s+/).pop();
+        return lastWord ? prose.includes(`the ${lastWord}`) : false;
+    };
+    const teamNameSubstitutionDetected = recapGames.some(g => {
+        if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') return false;
+        if (!prose) return false;
+        // Check both score orders -- the prompt's own recapLines always uses
+        // away-home order, but prose narration naturally leads with whichever
+        // team the sentence is about (often the winner), which can flip the
+        // literal digit order (real incident text used "90-87", home-first,
+        // for a game recapLines listed as "87-90" away-first -- confirmed via
+        // a forced-condition test against the real incident text, which the
+        // away-first-only version of this check silently failed to match).
+        const awayFirst = `${g.away_score}-${g.home_score}`;
+        const homeFirst = `${g.home_score}-${g.away_score}`;
+        if (!prose.includes(awayFirst) && !prose.includes(homeFirst)) return false;
+        return !teamPresent(prose, g.home) || !teamPresent(prose, g.away);
+    });
+    if (teamNameSubstitutionDetected) {
+        console.error('[ANALYTICS] morning_report rejected: real score present with a team name not matching either real team for that game');
+    }
+    const briefText = (prose && !teamNameSubstitutionDetected)
+        ? prose
+        : `Quiet night across the slate for ${date}. Tomorrow brings another set.`;
 
     // KV write — best-effort, doesn't fail the phase if KV is unavailable.
     try {
@@ -661,6 +727,38 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         briefText,
     });
     return { aiCalls: prose ? 1 : 0, briefText };
+}
+
+// Manual, single-purpose recompute for morning_report alone (2026-07-15,
+// CC-CMD-2026-07-15-morning-report-cross-sport-contamination) -- needed
+// because morning_report is AI-costing (never auto-fired outside the daily
+// 0 9 * * * cron, by design -- Rule 78/API-COST-A) and analyticsEngine's own
+// planDates() watermark refuses to re-run an already-processed date, so
+// there was no existing way to get a live-fixed correction to a
+// TODAY-already-generated brief without waiting for tomorrow's cron.
+// Reuses the SAME night_stars/truth_is values already correctly computed
+// for this date (read from D1, not recomputed -- Rule 63, avoids a second
+// unnecessary AI call for truth_is) rather than re-running the full
+// processDate pipeline, which would touch already-correct phases
+// (night_stars, jinx, etc.) unnecessarily. Makes exactly one real LLM call
+// (inside runPhase5MorningReport itself). circadian_late is PURE-classified
+// (a copy of morning_report's text, no LLM call of its own) and already has
+// its own generic recompute path -- callers should follow this with
+// recomputePhase(env, 'circadian_late', date) to refresh that copy too.
+export async function recomputeMorningReport(env, date) {
+    const [starsRow, truthRow, beforeRow] = await Promise.all([
+        env.ARCHIVE_DB.prepare(`SELECT value FROM analytics_output WHERE feature = 'night_stars' AND date = ? LIMIT 1`).bind(date).first(),
+        env.ARCHIVE_DB.prepare(`SELECT value FROM analytics_output WHERE feature = 'truth_is' AND date = ? LIMIT 1`).bind(date).first(),
+        env.ARCHIVE_DB.prepare(`SELECT brief_text FROM analytics_output WHERE feature = 'morning_report' AND date = ? LIMIT 1`).bind(date).first(),
+    ]);
+    let stars = null, truthIs = null;
+    try { stars = starsRow?.value ? JSON.parse(starsRow.value) : null; } catch (_) { stars = null; }
+    try { truthIs = truthRow?.value ? JSON.parse(truthRow.value) : null; } catch (_) { truthIs = null; }
+    const before = beforeRow?.brief_text || null;
+
+    const ctx = await fetchContextGraph(env, date);
+    const r = await runPhase5MorningReport(env, date, { stars, truthIs, ctx });
+    return { before, after: r.briefText, aiCalls: r.aiCalls };
 }
 
 // ── Phase 9: FIELD's Pick (TODAY) ──────────────────────────────────────────

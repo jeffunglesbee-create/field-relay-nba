@@ -104,7 +104,7 @@ import {
 // Daily 0 9 * * * cron — pre-computes Night Stars (Phase 2) and writes a
 // health status snapshot. Separate from handleJournalismCycle; both crons
 // coexist. See src/analytics-engine.js.
-import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES, checkSignatureEventCalendar } from './analytics-engine.js';
+import { analyticsEngine, SPORT_CONFIG, recomputeNightStars, recomputePhase, recomputeMorningReport, getDegradedPhases, runDegradedPhaseSweep, PURE_FEATURES, AI_COSTING_FEATURES, checkSignatureEventCalendar } from './analytics-engine.js';
 import { validateUrl as validateBrowserUrl, browserQuick } from './browser-quick.js';
 // TEST-ONLY — drama score CPU cost measurement. Remove before any real migration ships.
 import { dramaScoreLive as dramaScoreLiveTest } from './drama-score-test.js';
@@ -11744,6 +11744,35 @@ export default {
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
             const result = await recomputePhase(env, 'jinx', date);
+            return new Response(JSON.stringify({ ok: true, date, ...result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // POST /analytics/morning-report/recompute?date=YYYY-MM-DD — manual,
+        // single-purpose recompute for the AI-costing morning_report feature.
+        // CC-CMD-2026-07-15-morning-report-cross-sport-contamination: a real,
+        // live, high-priority team-name-substitution bug was found and fixed
+        // in runPhase5MorningReport; this route exists to correct an
+        // already-generated, already-published brief for a specific date
+        // without waiting for tomorrow's 0 9 * * * cron (morning_report is
+        // deliberately never auto-fired outside that cron, Rule 78, and
+        // analyticsEngine's own watermark refuses to re-run an
+        // already-processed date). Same auth pattern as
+        // /analytics/jinx/recompute. Does NOT recompute night_stars/truth_is
+        // (reuses their existing, already-correct D1 values) -- one real LLM
+        // call only. Caller should follow with a circadian_late recompute
+        // (PURE-classified, no LLM cost) to refresh that copy too.
+        if (pathname === '/analytics/morning-report/recompute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const date = url.searchParams.get('date');
+            if (!date) {
+                return new Response(JSON.stringify({ ok: false, error: 'date query param required (YYYY-MM-DD)' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const result = await recomputeMorningReport(env, date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
