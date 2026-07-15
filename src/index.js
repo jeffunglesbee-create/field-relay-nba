@@ -1450,6 +1450,25 @@ function canonicalizeWC26Sport(sport) {
     return sport;
 }
 
+// CC-CMD-2026-07-15-brief-game-kv-id-convention: strips a leading sport-tag
+// prefix (espn:/nhl:/nba:/etc -- one word, colon-delimited) from an id used
+// specifically to build a `brief:game:{id}` KV key. Real, verified client
+// behavior (jubilant-bassoon's scripts/night-owl-email.js, read directly via
+// mcp__FIELD_Handoff__read_source) calls GET /journalism/game/{espnEventId}
+// with the BARE numeric ESPN event id -- no sport prefix. WC26 (`espn:X`),
+// NHL (`nhl:X`), and NBA (`nba:X`) all wrote/read this KV key under their own
+// internal, sport-prefixed id, so a real client request for a WC26/NHL/NBA
+// brief silently got {brief:null} even when a real brief already existed
+// under the prefixed key -- confirmed live, not assumed (Rule 71/72). Applied
+// ONLY at the point the KV key is built; job.eventId / g.id / briefs.game_id
+// keep their original prefixed values everywhere else (bracket-impact checks,
+// D1 columns, etc. are out of scope for this fix and untouched).
+function stripKVIdPrefix(id) {
+    const s = String(id || '');
+    const m = s.match(/^[a-z]+:(.+)$/i);
+    return m ? m[1] : s;
+}
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -3736,7 +3755,7 @@ async function handleV2Games(url, env, ctx) {
                 if (nhlFinals.length > 0) {
                     const enqueueNHLBriefs = async () => {
                         for (const g of nhlFinals) {
-                            const kvKey = `brief:game:${g.id}`;
+                            const kvKey = `brief:game:${stripKVIdPrefix(g.id)}`;
                             let existing;
                             try {
                                 existing = await env.FIELD_JOURNALISM.get(kvKey);
@@ -3857,7 +3876,7 @@ async function handleV2Games(url, env, ctx) {
                 if (nbaFinals.length > 0) {
                     const enqueueNBABriefs = async () => {
                         for (const g of nbaFinals) {
-                            const kvKey = `brief:game:${g.id}`;
+                            const kvKey = `brief:game:${stripKVIdPrefix(g.id)}`;
                             let existing;
                             try {
                                 existing = await env.FIELD_JOURNALISM.get(kvKey);
@@ -14985,7 +15004,7 @@ export default {
             // through to regenerate exactly when the real state changed,
             // not because gameHash happens to be absent.
             if (job.gameHash) {
-              const existing = await env.FIELD_JOURNALISM.get(`brief:game:${job.eventId}`).catch(e => { console.error("[JOURNALISM-QUEUE] unchanged-hash dedup check failed:", e.message); return null; });
+              const existing = await env.FIELD_JOURNALISM.get(`brief:game:${stripKVIdPrefix(job.eventId)}`).catch(e => { console.error("[JOURNALISM-QUEUE] unchanged-hash dedup check failed:", e.message); return null; });
               if (existing) {
                 try {
                   const parsed = JSON.parse(existing);
@@ -15048,7 +15067,7 @@ export default {
             const finalText = stripMarkdown(qResult.text);
             const qualityScore = qResult.score ?? null;
             await env.FIELD_JOURNALISM.put(
-              `brief:game:${job.eventId}`,
+              `brief:game:${stripKVIdPrefix(job.eventId)}`,
               JSON.stringify({
                 brief: finalText,
                 generatedAt: Date.now(),
