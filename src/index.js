@@ -10060,6 +10060,7 @@ export default {
             && !(pathname === '/analytics/night-stars/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/jinx/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/morning-report/recompute' && request.method === 'POST')
+            && !(pathname === '/analytics/circadian-late/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -11774,6 +11775,32 @@ export default {
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
             const result = await recomputeMorningReport(env, date);
+            return new Response(JSON.stringify({ ok: true, date, ...result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // POST /analytics/circadian-late/recompute?date=YYYY-MM-DD — refreshes
+        // circadian_late's copy of morning_report's brief_text. circadian_late
+        // is PURE-classified (runPhase10BLate just re-reads morning_report from
+        // D1 and copies it, no LLM call), so this reuses the existing generic
+        // recomputePhase(env, feature, date) directly -- no new recompute logic,
+        // just a new route entry mirroring jinx/morning-report exactly. Needed
+        // because the client reads bundle.late (circadian_late) FIRST, falling
+        // back to bundle.morning_report only if late is falsy -- fixing
+        // morning_report alone does not change what's actually displayed until
+        // circadian_late is refreshed too (CC-CMD-2026-07-15-morning-report-
+        // cross-sport-contamination TASK 2).
+        if (pathname === '/analytics/circadian-late/recompute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const date = url.searchParams.get('date');
+            if (!date) {
+                return new Response(JSON.stringify({ ok: false, error: 'date query param required (YYYY-MM-DD)' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const result = await recomputePhase(env, 'circadian_late', date);
             return new Response(JSON.stringify({ ok: true, date, ...result }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
