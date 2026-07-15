@@ -593,3 +593,49 @@ means the rank signal safely never fires (no crash, no invented data) —
 consistent with how this repo's other "producer ships, consumer pending"
 entries above are handled.
 
+---
+
+## GET /journalism/game/{eventId} — per-game brief lookup
+
+Producer: `src/index.js` ~L12906 route handler; backing KV key written by
+the `JOURNALISM_QUEUE` consumer's `game-brief` branch (`src/index.js`,
+`async queue()`) and by `enqueueNHLBriefs`/`enqueueNBABriefs`'s own
+pre-enqueue dedup checks (`src/index.js` ~L3758/~L3879).
+Consumer: jubilant-bassoon `scripts/night-owl-email.js`'s `fetchRelayBrief()`
+— confirmed via direct source read (`mcp__FIELD_Handoff__read_source`,
+2026-07-15), not assumed.
+
+```
+GET /journalism/game/{eventId} → { brief: string | null }
+  eventId MUST be the bare, unprefixed ESPN numeric event id (e.g. "760424",
+  not "espn:760424" / "nhl:760424" / "nba:760424"). Confirmed live 2026-07-15
+  against the real client call site:
+    fetch(`https://field-relay-nba.jeffunglesbee.workers.dev/journalism/game/${espnEventId}`)
+  where espnEventId is a raw ESPN scoreboard event id, never sport-prefixed.
+  Route strips non [a-zA-Z0-9_:-] characters from the path segment and does
+  a direct KV get on `brief:game:{eventId}` — no normalization, no fallback
+  lookup across shapes. {brief: null} on any miss (never an error status).
+```
+
+**Write-side id shape — CC-CMD-2026-07-15-brief-game-kv-id-convention (fixed
+2026-07-15):** every real writer of the backing `brief:game:{id}` KV key
+strips its own internal sport-tag prefix (`espn:`/`nhl:`/`nba:`) before
+building the key, via `stripKVIdPrefix()` (`src/index.js`, defined next to
+`canonicalizeWC26Sport`) — applied only at the KV-key-construction point;
+`job.eventId` / `g.id` / the `briefs.game_id` D1 column keep their original
+prefixed values everywhere else. Before this fix, WC26/NHL/NBA game briefs
+were silently unreachable via this route (real briefs existed in KV, but
+under a prefixed key the client's bare-id request never matched) — MLB/WNBA/
+other sports flowing through `handleJournalismCycle`'s generic per-league
+loop already used bare ids and were unaffected.
+
+**Known gap, deliberately not fixed in this pass:** Golf's KV key
+(`golf_{eventId}_R{roundNum}`, `src/index.js` ~L6927) is not a
+`{prefix}:{id}` shape `stripKVIdPrefix()` recognizes, and its round suffix
+is functionally load-bearing (distinguishes R1–R4 recaps for the same
+event) — collapsing it to match the client's round-agnostic bare-id request
+needs its own dedicated look, not a rushed change under this dispatch.
+`/journalism/game-complete`'s GameDO-sourced `gameId` (`src/game-do.js`,
+set from a client-supplied WebSocket query param) was also left unverified
+— not confirmed against real client code in this session.
+
