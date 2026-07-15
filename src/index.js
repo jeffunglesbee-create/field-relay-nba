@@ -5881,6 +5881,35 @@ async function pickNextOddsBackfillDate(env) {
 // already does (see 'Skip-on-no-progress (F2)' below) -- a KV 'tried' marker,
 // set by the call site only for the two permanent (non-retriable) skip
 // reasons, checked here so those dates get skipped on future ticks.
+// ── WC26 game-brief coverage sweep (CC-CMD-2026-07-15-queue-dlq-wc26-sweep-gap) ──
+// Safety net for writeWCResult's request-triggered enqueue: a WC26 group-stage
+// game that goes final while no client re-requests /v2/games?sport=wc26 for
+// that date never gets its game_recap brief enqueued at all -- writeWCResult
+// is called ONLY from that route's ESPN-adapter branch (confirmed via grep,
+// no cron path calls it). Finds group-stage wc_results rows (ESPN-sourced,
+// game_id LIKE 'espn:%' -- legacy 'football:' rows predate the ESPN pipeline
+// and are not brief-eligible; knockout rows are excluded by design since
+// writeWCResult itself never enqueues a brief for them) lacking a matching
+// briefs.game_id (brief_type='game_recap'), accounting for the same
+// espn:-prefix mismatch documented in
+// outbox/wc26-archive-audit-brief-backfill-2026-07-15.md. wc_results lives in
+// WC2026_DB, briefs lives in ARCHIVE_DB -- separate D1 bindings, so the diff
+// is done in JS, not a cross-DB SQL join.
+async function pickWC26BriefGaps(env, limit) {
+  if (!env.WC2026_DB || !env.ARCHIVE_DB) return [];
+  const wr = await env.WC2026_DB.prepare(
+    `SELECT game_id, group_id, home, away, home_score, away_score, match_date, bsd_event_id
+       FROM wc_results WHERE phase = 'group' AND game_id LIKE 'espn:%'`
+  ).all();
+  const br = await env.ARCHIVE_DB.prepare(
+    `SELECT DISTINCT game_id FROM briefs WHERE brief_type = 'game_recap'`
+  ).all();
+  const covered = new Set((br.results || []).map(r => String(r.game_id).replace(/^espn:/, '')));
+  const gaps = (wr.results || []).filter(r => !covered.has(String(r.game_id).replace(/^espn:/, '')));
+  gaps.sort((a, b) => (a.match_date < b.match_date ? -1 : 1));
+  return gaps.slice(0, limit);
+}
+
 async function pickNextBackfillDate(env) {
   if (!env.ARCHIVE_DB) return null;
   const tried = async (date) => {
@@ -6301,14 +6330,63 @@ async function handleJournalismCycle(env, opts = {}) {
           }
         } catch (e) { console.error("[BACKFILL] series preview backfill failed:", e.message); /* series preview backfill failure never breaks cron */ }
 
+        // WC26 game-brief coverage sweep — safety net for writeWCResult's
+        // request-triggered enqueue (see pickWC26BriefGaps above). Capped at
+        // 3 games/tick (Rule 76/78 — bounded, cost-conscious fallback #2;
+        // the primary path is the /v2/games?sport=wc26 request trigger, this
+        // only catches games nobody re-requested after they went final).
+        // Per-game tried-marker (30d TTL, mirrors backfill:tried:{date})
+        // prevents burning LLM calls retrying a game that fails
+        // deterministically for a real reason.
+        let wc26SweepResult = null;
+        try {
+          const gaps = await pickWC26BriefGaps(env, 3);
+          if (gaps.length) {
+            let processed = 0, skipped = 0;
+            for (const g of gaps) {
+              const triedKey = `wc26_sweep:tried:${g.game_id}`;
+              const tried = await env.FIELD_JOURNALISM.get(triedKey).catch(e => { console.error("[WC26-SWEEP] tried-marker read failed:", e.message); return null; });
+              if (tried) { skipped++; continue; }
+              // Cross-check: extractWCGroup's team-name fallback must agree
+              // with wc_results' own group_id (ground truth from this game's
+              // original write) before reusing writeWCResult — a mismatch
+              // means the synthetic game object below would file under the
+              // wrong group, so skip and mark tried rather than risk a
+              // silent misfile.
+              const derivedGroup = extractWCGroup('', g.home, g.away);
+              if (derivedGroup !== g.group_id) {
+                console.error(`[WC26-SWEEP] group mismatch for ${g.game_id}: derived ${derivedGroup} vs known ${g.group_id} -- skipping`);
+                await env.FIELD_JOURNALISM.put(triedKey, '1', { expirationTtl: 30 * 86400 }).catch(e => console.error("[WC26-SWEEP] tried-marker write failed:", e.message));
+                skipped++;
+                continue;
+              }
+              const syntheticGame = {
+                id: g.game_id,
+                home: { name: g.home, score: g.home_score },
+                away: { name: g.away, score: g.away_score },
+                round: '',
+                start: `${g.match_date}T00:00:00Z`,
+                bsdEventId: g.bsd_event_id || undefined,
+                espnEventId: g.game_id.replace(/^espn:/, ''),
+              };
+              try {
+                await writeWCResult(env.WC2026_DB, syntheticGame, env, null);
+                processed++;
+              } catch (e) { console.error(`[WC26-SWEEP] writeWCResult failed for ${g.game_id}:`, e.message); skipped++; }
+              await env.FIELD_JOURNALISM.put(triedKey, '1', { expirationTtl: 30 * 86400 }).catch(e => console.error("[WC26-SWEEP] tried-marker write failed:", e.message));
+            }
+            wc26SweepResult = { ok: processed > 0, processed, skipped, found: gaps.length };
+          }
+        } catch (e) { console.error("[BACKFILL] WC26 brief coverage sweep failed:", e.message); /* sweep failure never breaks cron -- Rule 5 */ }
+
         if (!nextDate && !oddsResult && !sweepResult && !gameBriefResult
-            && !(seriesPreviewResult && seriesPreviewResult.ok)) {
+            && !(seriesPreviewResult && seriesPreviewResult.ok) && !(wc26SweepResult && wc26SweepResult.ok)) {
           return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
         }
         return {
           ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok)
               || !!sweepResult || !!(gameBriefResult && gameBriefResult.ok)
-              || !!(seriesPreviewResult && seriesPreviewResult.ok),
+              || !!(seriesPreviewResult && seriesPreviewResult.ok) || !!(wc26SweepResult && wc26SweepResult.ok),
           reason: nextDate
             ? `backfill ${nextDate}: ${briefResult.reason || (briefResult.ok ? 'wrote brief' : 'no result')}`
             : sweepResult ? `kv_sweep: ${sweepResult.swept} briefs captured`
@@ -6318,6 +6396,7 @@ async function handleJournalismCycle(env, opts = {}) {
           kvSweep: sweepResult,
           gameBriefBackfill: gameBriefResult,
           seriesPreviewBackfill: seriesPreviewResult,
+          wc26Sweep: wc26SweepResult,
         };
       } catch (e) {
         console.error("[BACKFILL] dead-hour block failed:", e.message);
@@ -14995,7 +15074,22 @@ export default {
             } catch (e) { console.error("[JOURNALISM-QUEUE] archive write failed:", e.message); /* archive failure must not break game-brief delivery */ }
             msg.ack();
           } catch(e) {
-            if (msg.attempts >= 3) { msg.ack(); } else { msg.retry(); }
+            if (msg.attempts >= 3) {
+              // CC-CMD-2026-07-15-queue-dlq-wc26-sweep-gap TASK 1a: mirrors the
+              // jobId route's failure-marker shape below ({status,error,failedAt})
+              // but writes to a SEPARATE key (brief:game:{eventId}:failed), not
+              // brief:game:{eventId} itself -- that key holds the real generated
+              // brief consumed by other readers on success (dedup check above,
+              // downstream brief readers); overwriting it here on failure would
+              // destroy a previously-good brief from an earlier game state
+              // instead of just recording this attempt's failure.
+              await env.FIELD_JOURNALISM.put(`brief:game:${job.eventId}:failed`,
+                JSON.stringify({status:'failed', error:e.message, failedAt: Date.now(), sport: job.sport || null}),
+                {expirationTtl: 86400}).catch(e2 => console.error("[JOURNALISM-QUEUE] game-brief failed-status write itself failed:", e2.message));
+              msg.ack();
+            } else {
+              msg.retry();
+            }
           }
           continue;
         }
