@@ -976,7 +976,16 @@ async function buildTeamFormContext(env, game) {
 // covers players who've already scored (backward-looking, not predictive
 // context); set-piece-takers-only would miss a team's most involved
 // non-taker (e.g. a creative midfielder). ict_index is FPL's own
-// already-computed ranking, not a new metric invented here.
+// already-computed ranking, not a new metric invented here -- confirmed
+// live it's NOT reset to 0 at a fresh season's start (Haaland 302.3, Salah
+// 207.1), unlike form/expected_goals which genuinely are 0 for everyone
+// with 0 gameweeks played.
+//
+// element-summary IS wired in (see below), reversing this CC-CMD's initial
+// plan to allowlist it but leave it unused -- real live data changed that
+// call: its history[] carries the full completed-season gameweek log,
+// which bootstrap-static doesn't expose at all, and is currently more
+// informative than bootstrap-static's zeroed current-season fields.
 //
 // Team matching: ESPN's competitor.abbreviation and FPL's team.short_name
 // are NOT always the same 3-letter code -- confirmed live 2026-07-15
@@ -1028,16 +1037,48 @@ async function buildFPLPlayerContext(env, game) {
     const players = [...topTwo(homeId, homeAbbr), ...topTwo(awayId, awayAbbr)];
     if (!players.length) return '';
 
+    // element-summary: real, live-verified 2026-07-15 to add genuine value
+    // beyond bootstrap-static -- its per-player history[] carries the full
+    // completed-season gameweek log (goals/assists/minutes/ict per game),
+    // which bootstrap-static does NOT expose at all (only season-aggregate
+    // totals, which read as 0 for every player right at a fresh season's
+    // start -- confirmed live: form:"0.0" for literally every sampled
+    // player including Haaland/Salah, while their ict_index, a rolling/
+    // price-driving metric, is NOT reset and still real -- 302.3/207.1).
+    // Best-effort per player: a failure here still leaves the
+    // bootstrap-static line (name/xG/xA/ICT/news) intact.
+    const summaries = await Promise.all(players.map(async p => {
+        try {
+            const r = await fetch(`${base}/fpl/element-summary/${p.id}`, { signal: AbortSignal.timeout(4000) });
+            if (!r.ok) return null;
+            const d = await r.json();
+            const hist = d?.history || [];
+            if (!hist.length) return null;
+            const last3 = hist.slice(-3);
+            const pts = last3.reduce((s, h) => s + (h.total_points || 0), 0);
+            const goals = last3.reduce((s, h) => s + (h.goals_scored || 0), 0);
+            const assists = last3.reduce((s, h) => s + (h.assists || 0), 0);
+            const avgIct = last3.reduce((s, h) => s + (parseFloat(h.ict_index) || 0), 0) / last3.length;
+            return { pts, goals, assists, avgIct, games: last3.length };
+        } catch (_) { return null; }
+    }));
+
     const lines = ['', '[FPL PLAYER CONTEXT]'];
-    for (const p of players) {
+    players.forEach((p, i) => {
         const xg = parseFloat(p.expected_goals) || 0;
         const xa = parseFloat(p.expected_assists) || 0;
         const ict = parseFloat(p.ict_index) || 0;
-        const form = parseFloat(p.form) || 0;
-        let line = `${p._teamAbbr} ${p.web_name}: xG ${xg.toFixed(2)}, xA ${xa.toFixed(2)}, ICT ${ict.toFixed(1)}, form ${form.toFixed(1)}`;
+        let line = `${p._teamAbbr} ${p.web_name}: season xG ${xg.toFixed(2)}, xA ${xa.toFixed(2)}, ICT ${ict.toFixed(1)}`;
+        const s = summaries[i];
+        if (s) {
+            line += ` — last ${s.games}: ${s.goals}G ${s.assists}A ${s.pts}pts (ICT avg ${s.avgIct.toFixed(1)})`;
+        } else {
+            const form = parseFloat(p.form) || 0;
+            line += `, form ${form.toFixed(1)}`;
+        }
         if (p.news) line += ` — ${p.news}`;
         lines.push(line);
-    }
+    });
 
     // set-piece-notes: real, distinctive data bootstrap-static doesn't
     // carry at all (penalty/corner/free-kick taker assignments). Best
@@ -1248,4 +1289,5 @@ export {
     buildBSDMomentumContext,
     buildBSDHistoryContext,
     buildTeamFormContext,
+    buildFPLPlayerContext,
 };
