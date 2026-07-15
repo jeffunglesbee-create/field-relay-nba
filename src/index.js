@@ -1434,6 +1434,22 @@ const SOCCER_LEAGUE_LABELS = {
     ligue1:     'Ligue 1',
 };
 
+// CC-CMD-2026-07-15-wc-label-fragmentation: every write path that persists a
+// `sport` string for a WC26 brief/game must converge on SOCCER_LEAGUE_LABELS.wc26
+// instead of writing its own literal or case variant. Live D1 probe found 12
+// real distinct variants under `briefs.sport` alone (wc26, FIFA World Cup,
+// FIFA World Cup 2026, fifa world cup 2026, and 8 "FIFA World Cup 2026 —
+// Group X" suffixed values from client-supplied archival calls) -- a prefix
+// match on 'fifa world cup' plus an exact match on the internal slug 'wc26'
+// catches all of them without touching any other sport's labeling (no other
+// real sport string starts with 'fifa world cup' or equals 'wc26').
+function canonicalizeWC26Sport(sport) {
+    if (!sport) return sport;
+    const s = String(sport).toLowerCase();
+    if (s === 'wc26' || s.startsWith('fifa world cup')) return SOCCER_LEAGUE_LABELS.wc26;
+    return sport;
+}
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -6437,6 +6453,15 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
+            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
+            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
+            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
+            // the id this exact literal produces. Changing it would change the id on
+            // this game's next write, missing ON CONFLICT and orphaning the row.
+            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
+            // built) already normalizes the persisted `sport` COLUMN for this and every
+            // other caller regardless of the literal sent here -- no change needed.
             sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
             league: gm.league,
             date: dateKey,
@@ -6613,6 +6638,15 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
+            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
+            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
+            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
+            // the id this exact literal produces. Changing it would change the id on
+            // this game's next write, missing ON CONFLICT and orphaning the row.
+            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
+            // built) already normalizes the persisted `sport` COLUMN for this and every
+            // other caller regardless of the literal sent here -- no change needed.
             sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
             league: gm.league,
             date: dateKey,
@@ -6688,6 +6722,15 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
+            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
+            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
+            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
+            // the id this exact literal produces. Changing it would change the id on
+            // this game's next write, missing ON CONFLICT and orphaning the row.
+            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
+            // built) already normalizes the persisted `sport` COLUMN for this and every
+            // other caller regardless of the literal sent here -- no change needed.
             sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
             league: gm.league,
             date: yesterdayKey,
@@ -9413,7 +9456,7 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                const {
+                let {
                     sport, league, date, home, away, home_score, away_score,
                     venue, streams, note, crew, series_key, series_record,
                     game_number, round, importance, source_id, start_time, went_to_ot,
@@ -9429,7 +9472,17 @@ export default {
                 const idTail = (homeShort && awayShort)
                     ? `${homeShort}_${awayShort}`
                     : (source_id ? `src${shortify(source_id)}` : `g${Date.now()}`);
+                // id keeps the raw (pre-normalization) `sport` string -- an in-progress
+                // WC26 game's pre-final skeleton row (seeded under whatever id-prefix
+                // that caller used) must still ON CONFLICT-match its later completion
+                // write. Canonicalizing before this line would change the id for any
+                // caller whose raw sport string differs from the canonical label,
+                // orphaning the pre-final row instead of upgrading it. CC-CMD-2026-07-
+                // 15-wc-label-fragmentation is scoped to the `sport` COLUMN value (used
+                // for briefs/calibration grouping), not the archive tables' id scheme --
+                // normalize AFTER id is built, so only the persisted column changes.
                 const id = `${sport}_${date}_${idTail}`;
+                sport = canonicalizeWC26Sport(sport);
 
                 // CC-CMD-2026-07-12-completion-field-parity TASK 2: while building
                 // the completion field-list guardrail, found this route was itself
@@ -9560,7 +9613,12 @@ export default {
                                  VALUES (?, ?, ?, ?, ?, ?, ?, 'kv_capture', ?)
                                  ON CONFLICT(id) DO NOTHING`
                             ).bind(
-                                briefId, date, briefType, sportKey, sid, briefText,
+                                // sportKey is the lowercased KV-lookup key (a separate
+                                // purpose from the persisted column) -- CC-CMD-2026-07-
+                                // 15-wc-label-fragmentation: bind the canonical, already-
+                                // normalized `sport` here instead, so this path stops
+                                // lowercasing an otherwise-correct label on the way in.
+                                briefId, date, briefType, sport, sid, briefText,
                                 kvCaptureScore, briefText.split(/\s+/).length
                             ).run();
                             briefCaptured = briefId;
@@ -9680,12 +9738,20 @@ export default {
                     return new Response(JSON.stringify({ ok: false, error: 'invalid JSON' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                const { id, brief_type, date, sport, game_id, brief_text,
+                let { id, brief_type, date, sport, game_id, brief_text,
                         model, quality_score, context_hash, word_count, source } = body || {};
                 if (!id || !brief_type || !date || !brief_text) {
                     return new Response(JSON.stringify({ ok: false, error: 'missing required fields (id, brief_type, date, brief_text)' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
+                // CC-CMD-2026-07-15-wc-label-fragmentation: this `sport` is entirely
+                // client-supplied (jubilant-bassoon) and was never normalized -- the
+                // single largest real source of the fragmentation found live (12
+                // distinct WC26 variants under briefs.sport, including 8 "FIFA World
+                // Cup 2026 — Group X" suffixed values from this exact route). Relay
+                // owns the data contract (Rule 60) -- normalize here rather than
+                // relying on the client to send a canonical string.
+                sport = canonicalizeWC26Sport(sport);
 
                 // ── Quality scoring for client-archived briefs ───────────────
                 // mlb_game / night_owl / wc_matchup arrive with quality_score=null
@@ -14898,9 +14964,14 @@ export default {
                      word_count = excluded.word_count,
                      source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                 ).bind(
+                  // id keeps the raw job.sport slug (e.g. 'wc26') -- unrelated to the
+                  // persisted display value, no change needed for CC-CMD-2026-07-15-
+                  // wc-label-fragmentation. job.sport itself stays 'wc26' upstream
+                  // (line 14842's bracket-impact check keys off that literal) --
+                  // canonicalize only at this final persistence boundary.
                   `game_recap_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
                   briefDate,
-                  job.sport || null,
+                  canonicalizeWC26Sport(job.sport) || null,
                   String(job.eventId),
                   finalText,
                   'claude-haiku-4-5-20251001',
