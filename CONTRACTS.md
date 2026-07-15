@@ -533,6 +533,16 @@ R2 key: bsd/{slug}/{bsdEventId}/{momentum,stats,incidents,average-positions}.jso
          write under 'europa'; this is a disclosed, accepted ambiguity.
 ```
 
+**BSD source-endpoint note (real, live-probed 2026-07-15):** `average-positions.json`'s
+content does NOT come from a `/api/v2/events/{id}/average-positions/` URL —
+that URL doesn't exist as its own BSD endpoint (confirmed 404). It's an
+embedded `average_positions` sub-field inside the `/api/v2/events/{id}/stats/`
+response. `runBSDClubLeagueEndgameCapture` derives it correctly (one `/stats/`
+call feeds both `stats.json` and `average-positions.json`). `runBSDEndgameCapture`
+(WC26) still calls the dead URL directly and has likely never written a real
+`average-positions.json` for any WC26 game — flagged, not fixed here (out of
+that dispatch's scope); see `docs/CC-CMD-2026-07-15-bsd-wc26-avgpos-fix.md`.
+
 Consumer: **none yet.** jubilant-bassoon's post-game pitch replay ("site 3",
 `index.html` ~L42601) still reads the pre-existing hardcoded
 `bsd/wc26/${_bsBsdEventId}/stats.json` key only — confirmed untouched as of

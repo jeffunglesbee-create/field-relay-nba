@@ -1824,6 +1824,50 @@ const BSD_LEAGUE_ID_TO_SLUG = (() => {
     return map;
 })();
 
+// Real, live-probed finding (2026-07-15, this dispatch): BSD's
+// /api/v2/events/{id}/average-positions/ URL does NOT exist as its own
+// endpoint (confirmed 404 against a real, known event ID) -- unlike
+// momentum/ and incidents/, which are real, working, dedicated endpoints
+// (confirmed 200 with real data on the same event ID). average_positions
+// is instead embedded as a sub-field inside the /stats/ response (confirmed
+// directly -- fetched /stats/ for the same event ID and found a populated
+// average_positions{home,away} object matching the shape captureWithRetry
+// would otherwise have silently failed to fetch). runBSDEndgameCapture
+// (WC26, above) still calls the dead URL directly and has therefore likely
+// never written a real average-positions.json for any WC26 game either --
+// out of this CC-CMD's scope to fix (preserving WC26 capture mechanics
+// unchanged was an explicit instruction), flagged instead in this
+// dispatch's outbox and a follow-up CC-CMD. This new function avoids
+// shipping the same known-dead call for club leagues: stats and
+// average-positions are captured together from the one real /stats/ call.
+async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
+    const bsdHdrs = {
+        'Authorization': `Token ${env.BSD_API_TOKEN}`,
+        'User-Agent': 'FIELD/1.0',
+        'Accept': 'application/json',
+    };
+    try {
+        const r = await fetch(`https://sports.bzzoiro.com/api/v2/events/${bsdId}/stats/`,
+            { headers: bsdHdrs, signal: AbortSignal.timeout(6000) });
+        if (!r.ok) return;
+        const buf = await r.arrayBuffer();
+        await env.FIELD_DATA.put(`${prefix}/stats.json`, buf, {
+            httpMetadata: { contentType: 'application/json' },
+            customMetadata: { ...meta, type: 'stats' },
+        });
+        const parsed = JSON.parse(new TextDecoder().decode(buf));
+        if (parsed?.average_positions) {
+            await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
+                JSON.stringify(parsed.average_positions), {
+                    httpMetadata: { contentType: 'application/json' },
+                    customMetadata: { ...meta, type: 'average-positions' },
+                });
+        }
+    } catch (e) {
+        console.error('[BSD-CLUB-ENDGAME] stats/average-positions capture failed:', e.message);
+    }
+}
+
 // BSD club-league endgame capture -- called from scheduled() on every cron
 // tick, year-round (not gated by the WC window). Generalizes post-game BSD
 // capture (runBSDEndgameCapture above stays WC26-only, unchanged) to every
@@ -1899,8 +1943,8 @@ async function runBSDClubLeagueEndgameCapture(env) {
             captured:     new Date().toISOString(),
         };
         const bsdBase = 'https://sports.bzzoiro.com';
-        await Promise.allSettled(
-            ['momentum', 'stats', 'incidents', 'average-positions'].map(
+        await Promise.allSettled([
+            ...['momentum', 'incidents'].map(
                 async type => captureWithRetry(
                     `${bsdBase}/api/v2/events/${bsdId}/${type}/`,
                     `${prefix}/${type}.json`,
@@ -1909,8 +1953,11 @@ async function runBSDClubLeagueEndgameCapture(env) {
                     1,   // single attempt per tick — cron fires every 5 min
                     0
                 )
-            )
-        );
+            ),
+            // stats + average-positions come from the one real /stats/ call —
+            // see _bsdCaptureStatsWithAvgPositions above for why.
+            _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta),
+        ]);
         console.log(`[BSD-CLUB-ENDGAME] attempted bsdId=${bsdId} slug=${slug} elapsed=${elapsedMin}' status=${game.status}`);
     }));
 }
