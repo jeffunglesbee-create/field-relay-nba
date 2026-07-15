@@ -9560,7 +9560,37 @@ export default {
                 // 15-wc-label-fragmentation is scoped to the `sport` COLUMN value (used
                 // for briefs/calibration grouping), not the archive tables' id scheme --
                 // normalize AFTER id is built, so only the persisted column changes.
-                const id = `${sport}_${date}_${idTail}`;
+                //
+                // CC-CMD-2026-07-15-archive-game-series-upsert-key: series_key-bearing
+                // writes (postseason bracket legs) build id from series_key+round+date
+                // instead of team names, so a TBC-placeholder-to-real-name transition
+                // UPDATEs the existing row via ON CONFLICT instead of inserting a
+                // duplicate (the real, observed MLS-COM-00002V_SF-01 4-row bug this
+                // CC-CMD exists for). game_number was the CC-CMD's originally-suggested
+                // disambiguator but live D1 data ruled it out: real external callers
+                // leave it stuck at 1 for every MLS two-leg bracket tie (confirmed real
+                // 2-row collisions under (series_key, game_number) alone -- e.g.
+                // MLS-COM-00002V_SF-01, MLS-COM-00000K_QF-01 through SF-02) or leave it
+                // NULL entirely (ufl-playoffs-2026, also a confirmed 2-row collision).
+                // date does NOT collide -- verified live, zero (series_key, round, date)
+                // duplicates across all 501 real postseason_games rows at the time this
+                // was written -- so date is the disambiguator, not game_number.
+                // Non-bracket callers (series_key absent) keep the exact prior
+                // name-based id, unchanged.
+                //
+                // Deliberately NOT backfilling existing rows' ids to this new scheme:
+                // /archive/score-by-id and other routes look games up by `id`, and an
+                // external caller could be holding a cached old-scheme id for an
+                // in-progress series. Retroactively renaming ids risks silently
+                // breaking those lookups -- a materially riskier change than accepted
+                // here. Net effect, disclosed: any CURRENTLY-PENDING (not yet resolved)
+                // placeholder leg will still duplicate exactly once on its next
+                // resolution (old id -> new id, unavoidable without that riskier
+                // rename), then self-heals -- every subsequent write to that same
+                // series_key+round+date correctly upserts via the new id from then on.
+                const id = series_key
+                    ? `${sport}_${series_key}_${shortify(round) || 'r'}_${date}`
+                    : `${sport}_${date}_${idTail}`;
                 sport = canonicalizeWC26Sport(sport);
 
                 // CC-CMD-2026-07-12-completion-field-parity TASK 2: while building
