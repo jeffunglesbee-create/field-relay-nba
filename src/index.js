@@ -10059,6 +10059,7 @@ export default {
             && !(pathname === '/analytics/run' && request.method === 'POST')
             && !(pathname === '/analytics/night-stars/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/jinx/recompute' && request.method === 'POST')
+            && !(pathname === '/analytics/morning-report/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
