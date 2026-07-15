@@ -960,6 +960,107 @@ async function buildTeamFormContext(env, game) {
   }
 }
 
+// ── buildFPLPlayerContext ────────────────────────────────────────────────
+// CC-CMD-2026-07-15-fpl-analytics-context. EPL-only (FPL is a Premier
+// League-specific data model). Real xG/xA/ICT/form context nothing else in
+// the stack provides (ESPN gives scores, BSD gives shot data, FD gives
+// standings -- none give per-player underlying-numbers trend or set-piece
+// taker assignments).
+//
+// Player selection: top-2 per team by ict_index (a single composite
+// influence/creativity/threat metric FPL already computes -- more
+// appropriate for "who's driving this team's attacking output" than a
+// single raw stat like goals), excluding anyone FPL has explicitly ruled
+// out (chance_of_playing_next_round === 0). Reasoned choice over the other
+// two options the CC-CMD raised: reusing the existing goalscorer path only
+// covers players who've already scored (backward-looking, not predictive
+// context); set-piece-takers-only would miss a team's most involved
+// non-taker (e.g. a creative midfielder). ict_index is FPL's own
+// already-computed ranking, not a new metric invented here.
+//
+// Team matching: ESPN's competitor.abbreviation and FPL's team.short_name
+// are NOT always the same 3-letter code -- confirmed live 2026-07-15
+// against real ESPN EPL scoreboard data across 3 real matchdays (19/20
+// teams observed). 18/20 matched directly; 2 real, confirmed mismatches:
+// Man City (FPL short_name MCI, ESPN abbr MNC) and Man Utd (FPL MUN, ESPN
+// MAN). This table is the full real, live-verified mapping, not a partial
+// guess extended by pattern-matching the other 18.
+const _FPL_SHORT_TO_ESPN_ABBR = {
+    'ARS': 'ARS', 'AVL': 'AVL', 'BUR': 'BUR', 'BOU': 'BOU', 'BRE': 'BRE',
+    'BHA': 'BHA', 'CHE': 'CHE', 'CRY': 'CRY', 'EVE': 'EVE', 'FUL': 'FUL',
+    'LEE': 'LEE', 'LIV': 'LIV', 'MCI': 'MNC', 'MUN': 'MAN', 'NEW': 'NEW',
+    'NFO': 'NFO', 'SUN': 'SUN', 'TOT': 'TOT', 'WHU': 'WHU', 'WOL': 'WOL',
+};
+
+async function buildFPLPlayerContext(env, game) {
+    const homeAbbr = String(game.home?.abbr || game.homeAbbr || '').toUpperCase();
+    const awayAbbr = String(game.away?.abbr || game.awayAbbr || '').toUpperCase();
+    if (!homeAbbr && !awayAbbr) return '';
+
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    let boot;
+    try {
+        const r = await fetch(`${base}/fpl/bootstrap-static`, { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return '';
+        boot = await r.json();
+    } catch (_) { return ''; }
+
+    const teams = boot?.teams || [];
+    const elements = boot?.elements || [];
+    if (!teams.length || !elements.length) return '';
+
+    const teamIdFor = (espnAbbr) => {
+        const t = teams.find(t => _FPL_SHORT_TO_ESPN_ABBR[t.short_name] === espnAbbr);
+        return t ? t.id : null;
+    };
+    const homeId = homeAbbr ? teamIdFor(homeAbbr) : null;
+    const awayId = awayAbbr ? teamIdFor(awayAbbr) : null;
+    if (!homeId && !awayId) return '';
+
+    const topTwo = (teamId, teamAbbr) => {
+        if (!teamId) return [];
+        return elements
+            .filter(e => e.team === teamId && e.chance_of_playing_next_round !== 0)
+            .sort((a, b) => (parseFloat(b.ict_index) || 0) - (parseFloat(a.ict_index) || 0))
+            .slice(0, 2)
+            .map(e => ({ ...e, _teamAbbr: teamAbbr }));
+    };
+    const players = [...topTwo(homeId, homeAbbr), ...topTwo(awayId, awayAbbr)];
+    if (!players.length) return '';
+
+    const lines = ['', '[FPL PLAYER CONTEXT]'];
+    for (const p of players) {
+        const xg = parseFloat(p.expected_goals) || 0;
+        const xa = parseFloat(p.expected_assists) || 0;
+        const ict = parseFloat(p.ict_index) || 0;
+        const form = parseFloat(p.form) || 0;
+        let line = `${p._teamAbbr} ${p.web_name}: xG ${xg.toFixed(2)}, xA ${xa.toFixed(2)}, ICT ${ict.toFixed(1)}, form ${form.toFixed(1)}`;
+        if (p.news) line += ` — ${p.news}`;
+        lines.push(line);
+    }
+
+    // set-piece-notes: real, distinctive data bootstrap-static doesn't
+    // carry at all (penalty/corner/free-kick taker assignments). Best
+    // effort -- a fetch failure here doesn't drop the player-analytics
+    // block already built above.
+    try {
+        const spr = await fetch(`${base}/fpl/set-piece-notes`, { signal: AbortSignal.timeout(5000) });
+        if (spr.ok) {
+            const spData = await spr.json();
+            const relevantTeamIds = new Set([homeId, awayId].filter(Boolean));
+            const spTeams = (spData?.teams || []).filter(t => relevantTeamIds.has(t.id));
+            for (const t of spTeams) {
+                const teamAbbr = t.id === homeId ? homeAbbr : awayAbbr;
+                for (const note of (t.notes || [])) {
+                    if (note.info_message) lines.push(`${teamAbbr} set pieces: ${note.info_message}`);
+                }
+            }
+        }
+    } catch (_) { /* set-piece notes are a bonus, not required */ }
+
+    return lines.length > 2 ? lines.join('\n') : '';
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
@@ -1034,6 +1135,11 @@ const CONTEXT_SOURCES = [
     // Activates when wc_results rows have bsd_event_id (backfill via CC-CMD-H Task 1).
     { id: 'bsd_history', priority: 7, budget: 200, builder: buildBSDHistoryContext,
       sports: ['wc26'] },
+    // FPL player analytics: xG/xA/ICT/form for each team's top-2 by
+    // ict_index, plus set-piece taker assignments. EPL-only -- FPL's data
+    // model is Premier League-specific (CC-CMD-2026-07-15-fpl-analytics-context).
+    { id: 'fpl_player_context', priority: 8, budget: 150, builder: buildFPLPlayerContext,
+      sports: ['epl'] },
     // Team form: last 5 completed games per team from regular_season_games.
     // Factual W/L/score history only — no drama values (Rule 47/ADR-002).
     { id: 'team_form', priority: 9, budget: 200, builder: buildTeamFormContext,

@@ -369,8 +369,14 @@ const FPL_HEADERS = {
 };
 const FPL_TTL_BOOTSTRAP = 3600;
 const FPL_TTL_LIVE      = 30;
-const FPL_ALLOWED_EXACT    = ['/bootstrap-static', '/fixtures'];
-const FPL_ALLOWED_PREFIXES_FPL = ['/fixtures?', '/event/'];
+// element-summary + set-piece-notes added 2026-07-15
+// (CC-CMD-2026-07-15-fpl-analytics-context): both previously 403'd at the
+// relay level (confirmed via reading the actual response body, not the
+// status code alone) despite being real, valid upstream FPL endpoints.
+// element-summary takes a path-embedded player ID (prefix); set-piece-notes
+// is a fixed path (exact) -- same array-based pattern as the existing two.
+const FPL_ALLOWED_EXACT    = ['/bootstrap-static', '/fixtures', '/set-piece-notes'];
+const FPL_ALLOWED_PREFIXES_FPL = ['/fixtures?', '/event/', '/element-summary/'];
 function fplAllowed(path) {
     if (FPL_ALLOWED_EXACT.includes(path) || FPL_ALLOWED_EXACT.includes(path.replace(/\/$/, ''))) return true;
     return FPL_ALLOWED_PREFIXES_FPL.some(p => path.startsWith(p));
