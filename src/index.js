@@ -1009,6 +1009,18 @@ const V2_LEAGUES = {
     'ucl':        { sport: 'soccer', espnLeague: 'uefa.champions',   bsdLeagueId: 7,    season: '2026-27' },
     'europa':     { sport: 'soccer', espnLeague: 'uefa.europa',      bsdLeagueId: 8,    season: '2026-27' },
     'conference': { sport: 'soccer', espnLeague: 'uefa.europa.conf', bsdLeagueId: 8,    season: '2026-27' }, // same BSD lid=8 as Europa
+    // Qualifying rounds -- CC-CMD-2026-07-15-european-qualifying. Real, distinct
+    // ESPN slugs (confirmed live) but the SAME bsdLeagueId as each main-tournament
+    // counterpart -- BSD doesn't distinguish qualifying from main tournament at
+    // the API level, confirmed live (real qualifying matches, round_name
+    // "Qualification Round 1/2", returned under league_id=7 with no separate ID).
+    // Deliberately listed AFTER ucl/europa/conference above: BSD_LEAGUE_ID_TO_SLUG
+    // (~L1838) resolves ties on shared bsdLeagueId by first-listed-wins -- keeping
+    // these after their main-tournament counterparts preserves 'ucl'/'europa' as
+    // the winning slug for the BSD endgame-capture R2 key naming, unchanged.
+    'uclqual':        { sport: 'soccer', espnLeague: 'uefa.champions_qual',   bsdLeagueId: 7, season: '2026-27' },
+    'europaqual':     { sport: 'soccer', espnLeague: 'uefa.europa_qual',      bsdLeagueId: 8, season: '2026-27' },
+    'conferencequal': { sport: 'soccer', espnLeague: 'uefa.europa.conf_qual', bsdLeagueId: 8, season: '2026-27' },
     'eflchamp':   { sport: 'soccer', espnLeague: 'eng.2',            bsdLeagueId: 12,   season: '2026-27' },
     'eflone':     { sport: 'soccer', espnLeague: 'eng.3',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'efltwo':     { sport: 'soccer', espnLeague: 'eng.4',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
@@ -1410,6 +1422,9 @@ const SOCCER_LEAGUE_LABELS = {
     ucl:        'UEFA Champions League',
     europa:     'UEFA Europa League',
     conference: 'UEFA Europa Conference League',
+    uclqual:        'UEFA Champions League Qualifying',
+    europaqual:     'UEFA Europa League Qualifying',
+    conferencequal: 'UEFA Europa Conference League Qualifying',
     eflchamp:   'EFL Championship',
     eflone:     'EFL League One',
     efltwo:     'EFL League Two',
