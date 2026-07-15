@@ -1791,8 +1791,8 @@ async function runBSDEndgameCapture(env) {
             captured:     new Date().toISOString(),
         };
         const bsdBase = 'https://sports.bzzoiro.com';
-        await Promise.allSettled(
-            ['momentum', 'stats', 'incidents', 'average-positions'].map(
+        await Promise.allSettled([
+            ...['momentum', 'incidents'].map(
                 async type => captureWithRetry(
                     `${bsdBase}/api/v2/events/${bsdId}/${type}/`,
                     `${prefix}/${type}.json`,
@@ -1801,8 +1801,14 @@ async function runBSDEndgameCapture(env) {
                     1,   // single attempt per tick — cron fires every 5 min
                     0
                 )
-            )
-        );
+            ),
+            // stats + average-positions: dedicated live endpoint first, falls
+            // back to /stats/'s embedded field if that fails -- see
+            // _bsdCaptureStatsWithAvgPositions above (CC-CMD-2026-07-15-
+            // bsd-wc26-avgpos-fix) for why this isn't a single captureWithRetry
+            // call like the other two types.
+            _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta),
+        ]);
         console.log(`[BSD-ENDGAME] attempted bsdId=${bsdId} elapsed=${elapsedMin}' status=${game.status}`);
     }));
 }
