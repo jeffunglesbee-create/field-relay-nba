@@ -637,52 +637,61 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         `ONLY reference games and scores listed above in ALL RESULTS. ` +
         `Never invent a team, sport, matchup, or score not present there -- ` +
         `if a sport has no real completed games above, do not mention it. ` +
-        // Added 2026-07-15 -- real, confirmed incident, live: "Portland Fire"
-        // (real WNBA team, exact string present in ALL RESULTS above) was
-        // rendered as "Chicago Fire" (a real, unrelated MLS team, NOT present
-        // anywhere in ALL RESULTS) while the real score (90-87) was kept
-        // correct -- confirmed the relay's own /v2/games data was already
-        // correct at prompt-build time (checked directly), so this was a
-        // generation-time name substitution, not a data-pipeline bug. Most
-        // likely cause: "Chicago Fire" is a far more common name in training
-        // data than a brand-new WNBA expansion team sharing the same
-        // nickname. This is a different failure mode from the invented-team
-        // case above (a real, unrelated team's name replacing a real,
-        // listed team's name, not a fabricated game) -- addressed with its
-        // own explicit instruction rather than assuming the instruction
-        // above already covers it (it didn't, live).
-        `Use each team's exact name AS WRITTEN in ALL RESULTS above. Do not ` +
-        `substitute a different, more familiar team name that happens to ` +
-        `share a nickname (e.g. a city/mascot combination) with a team ` +
-        `actually listed above -- the team listed above is correct even if ` +
-        `a different, better-known team elsewhere shares part of its name.`;
+        // Added 2026-07-15, REVISED same day after a second real, live
+        // incident survived the first version of this instruction (see the
+        // structural guard's comment below for the full story): ALL
+        // RESULTS above gives bare mascot names only ("Fire", "Sun" -- no
+        // city, e.g. "WNBA: Fire at Sun 87-90"), confirmed live by reading
+        // the real ctx.games data this function actually consumes -- NOT
+        // full city-qualified names as first assumed. "Fire" was rendered
+        // as "Chicago Fire" (a real MLS team) instead of the correct WNBA
+        // team, while the real score (90-87) stayed correct -- a
+        // generation-time name expansion, not a data-pipeline bug (the
+        // relay's own data was already correct at prompt-build time,
+        // confirmed directly). Since the data never supplies a city, the
+        // model has nothing to correctly expand a bare mascot into --
+        // asking it to use the exact string it's given is the only
+        // reliable instruction here.
+        `Use each team's name EXACTLY as written above -- just the name given ` +
+        `(e.g. "the Fire", "the Sun"), nothing more. Do NOT add a city, ` +
+        `location, or league qualifier in front of a team name unless that ` +
+        `exact qualifier appears in ALL RESULTS above -- if you're unsure ` +
+        `which city or league a team belongs to, do not guess or add one.`;
 
     const prose = await callProxy(prompt, { maxTokens: 250 });
     // Structural guard, added alongside the prompt instruction above (2026-07-15,
-    // real live incident -- see comment above): a prompt instruction alone
-    // already failed to prevent one real substitution (the "never invent"
-    // instruction predates this incident and did not stop it, since Chicago
-    // Fire is a real team, not an invented one -- instructions are not a
-    // reliable guarantee against this specific failure mode). For every game
-    // whose exact score string appears in the generated prose, both of that
-    // game's real team names (the exact strings given to the model above)
-    // must also appear verbatim -- if a real score appears with a team name
-    // that isn't either of the two real teams for that score, the brief is
-    // rejected and the same deterministic fallback below is used instead.
-    // A team is "present" if its exact full name appears, OR the common
-    // "the <nickname>" shorthand appears (e.g. "the Tempo") -- real,
-    // legitimate prose style confirmed in the same real incident text this
-    // guard was built from ("dominated the Tempo"), not a hypothetical.
-    // This shorthand form is deliberately NOT just the bare nickname: "the
-    // Chicago Fire" does not contain "the Fire" as a substring (a different
-    // city sits between "the" and "Fire"), so this stays precise enough to
-    // reject the real incident (Portland Fire -> Chicago Fire) while
-    // accepting genuine shorthand for the correct team.
+    // real live incident -- see comment above). REVISED same day after a
+    // second real, live occurrence survived the first version of this guard:
+    // ctx.games (fetchContextGraph / /context/date/{date}, the REAL data
+    // this function actually consumes -- confirmed live, NOT assumed from
+    // /v2/games's fuller shape, which was this dispatch's first, wrong
+    // assumption) stores team names as BARE MASCOTS ONLY ("Sun", "Fire"),
+    // never a city-qualified full name ("Connecticut Sun", "Portland
+    // Fire"). A simple "is the real team's name present" check is
+    // structurally unable to catch this bug: "Fire" (correct) and "Chicago
+    // Fire" (real incident's wrong substitution) both trivially contain the
+    // substring "Fire". Since the data never supplies a city, there is no
+    // way to verify a city-qualified reference is CORRECT either (we can't
+    // tell "Connecticut Sun" is right from data alone) -- so, matching this
+    // repo's established fail-safe convention (uncertain -> treat as risk,
+    // e.g. _bsdEventIsLive), ANY invented city/qualifier immediately before
+    // a real team's bare mascot is treated as suspect and rejected, not
+    // just outright name swaps. A team is "present" if its bare mascot
+    // appears (optionally as "the <mascot>" shorthand) with no fabricated
+    // qualifier immediately before it.
     const teamPresent = (prose, name) => {
         if (!name) return true; // nothing to check
         if (prose.includes(name)) return true;
         const lastWord = name.trim().split(/\s+/).pop();
         return lastWord ? prose.includes(`the ${lastWord}`) : false;
+    };
+    const hasFabricatedQualifier = (prose, mascot) => {
+        if (!mascot) return false;
+        const esc = mascot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // A capitalized word immediately before the mascot that isn't "The"
+        // -- e.g. "Chicago Fire" when the real team is bare "Fire".
+        const re = new RegExp(`\\b(?!The\\b)([A-Z][a-zA-Z']*)\\s+${esc}\\b`);
+        return re.test(prose);
     };
     const teamNameSubstitutionDetected = recapGames.some(g => {
         if (typeof g.home_score !== 'number' || typeof g.away_score !== 'number') return false;
@@ -697,10 +706,12 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         const awayFirst = `${g.away_score}-${g.home_score}`;
         const homeFirst = `${g.home_score}-${g.away_score}`;
         if (!prose.includes(awayFirst) && !prose.includes(homeFirst)) return false;
-        return !teamPresent(prose, g.home) || !teamPresent(prose, g.away);
+        const missingTeam = !teamPresent(prose, g.home) || !teamPresent(prose, g.away);
+        const fabricatedQualifier = hasFabricatedQualifier(prose, g.home) || hasFabricatedQualifier(prose, g.away);
+        return missingTeam || fabricatedQualifier;
     });
     if (teamNameSubstitutionDetected) {
-        console.error('[ANALYTICS] morning_report rejected: real score present with a team name not matching either real team for that game');
+        console.error('[ANALYTICS] morning_report rejected: real score present with a missing or fabricated-qualifier team name for that game');
     }
     const briefText = (prose && !teamNameSubstitutionDetected)
         ? prose
