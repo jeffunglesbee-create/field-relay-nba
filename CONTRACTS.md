@@ -533,15 +533,24 @@ R2 key: bsd/{slug}/{bsdEventId}/{momentum,stats,incidents,average-positions}.jso
          write under 'europa'; this is a disclosed, accepted ambiguity.
 ```
 
-**BSD source-endpoint note (real, live-probed 2026-07-15):** `average-positions.json`'s
-content does NOT come from a `/api/v2/events/{id}/average-positions/` URL —
-that URL doesn't exist as its own BSD endpoint (confirmed 404). It's an
-embedded `average_positions` sub-field inside the `/api/v2/events/{id}/stats/`
-response. `runBSDClubLeagueEndgameCapture` derives it correctly (one `/stats/`
-call feeds both `stats.json` and `average-positions.json`). `runBSDEndgameCapture`
-(WC26) still calls the dead URL directly and has likely never written a real
-`average-positions.json` for any WC26 game — flagged, not fixed here (out of
-that dispatch's scope); see `docs/CC-CMD-2026-07-15-bsd-wc26-avgpos-fix.md`.
+**BSD source-endpoint note, revised (2026-07-15):** `/api/v2/events/{id}/average-positions/`
+404s when tested against a finished event — but that's consistent with two
+different explanations that weren't distinguished by testing against a
+weeks-old finished game: either the route doesn't exist, or it's a
+live-only real-time feed that stops serving once the match ends. Two
+independent historical codex entries (`bsd-endgame-cron-validation-june26`,
+`cf/2026-07-02/soccer-crosscheck-first-run-bugs`) both hit the identical
+404 against non-live events, and the first explicitly labels its own
+confirmation that `/stats/`'s embedded `average_positions` field is
+populated as "post-final" — not confirmed present during live play, which
+is when this cron's 80-120 min window actually fires. Neither source is
+safely known-good for the live window alone. `runBSDClubLeagueEndgameCapture`
+tries the dedicated endpoint first, falls back to the `/stats/`-embedded
+field only if that fails (2-level fallback, Rule 76) — genuine live-endpoint
+behavior remains unverified since no club match was live during this
+investigation. `runBSDEndgameCapture` (WC26) is unchanged — out of that
+dispatch's scope; see `docs/CC-CMD-2026-07-15-bsd-wc26-avgpos-fix.md`
+(updated to recommend the same fallback, not a straight swap).
 
 Consumer: **none yet.** jubilant-bassoon's post-game pitch replay ("site 3",
 `index.html` ~L42601) still reads the pre-existing hardcoded

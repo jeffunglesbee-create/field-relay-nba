@@ -1824,30 +1824,49 @@ const BSD_LEAGUE_ID_TO_SLUG = (() => {
     return map;
 })();
 
-// Real, live-probed finding (2026-07-15, this dispatch): BSD's
-// /api/v2/events/{id}/average-positions/ URL does NOT exist as its own
-// endpoint (confirmed 404 against a real, known event ID) -- unlike
-// momentum/ and incidents/, which are real, working, dedicated endpoints
-// (confirmed 200 with real data on the same event ID). average_positions
-// is instead embedded as a sub-field inside the /stats/ response (confirmed
-// directly -- fetched /stats/ for the same event ID and found a populated
-// average_positions{home,away} object matching the shape captureWithRetry
-// would otherwise have silently failed to fetch). runBSDEndgameCapture
-// (WC26, above) still calls the dead URL directly and has therefore likely
-// never written a real average-positions.json for any WC26 game either --
-// out of this CC-CMD's scope to fix (preserving WC26 capture mechanics
-// unchanged was an explicit instruction), flagged instead in this
-// dispatch's outbox and a follow-up CC-CMD. This new function avoids
-// shipping the same known-dead call for club leagues: stats and
-// average-positions are captured together from the one real /stats/ call.
+// Real, live-probed finding (2026-07-15, this dispatch, revised after a
+// correction): BSD's /api/v2/events/{id}/average-positions/ URL 404'd when
+// tested against a real event ID (8345) -- but that event had finished
+// weeks earlier, so the test can't distinguish "route doesn't exist" from
+// "route is a live-only real-time feed that stops serving once the match
+// ends" -- and two independent, real, historical codex entries
+// (bsd-endgame-cron-validation-june26, cf/2026-07-02/soccer-crosscheck-
+// first-run-bugs) both document the identical 404 against non-live events,
+// while explicitly labeling their own confirmation that /stats/'s embedded
+// average_positions field is populated as "post-final" specifically -- no
+// evidence it's populated during live play, which is exactly when this
+// cron's 80-120 min capture window fires (before most games' final
+// whistle). So neither source is safely known-good for the live window in
+// isolation: the dedicated endpoint is plausibly the real live-data source
+// (untested live, since no club match was live during this investigation),
+// and the /stats/ embedded field is only confirmed for post-final. This
+// tries the dedicated live endpoint first (2-level fallback, Rule 76) and
+// falls back to the /stats/-embedded field only if that fails -- covering
+// both "genuinely live, dedicated endpoint has real-time data" and
+// "capture landed at/after final, dedicated endpoint already gone but
+// /stats/ has since been finalized" without betting the whole capture on
+// either theory alone. runBSDEndgameCapture (WC26, above) is unchanged --
+// out of this CC-CMD's scope -- flagged in the outbox and a follow-up
+// CC-CMD instead.
 async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
     const bsdHdrs = {
         'Authorization': `Token ${env.BSD_API_TOKEN}`,
         'User-Agent': 'FIELD/1.0',
         'Accept': 'application/json',
     };
+    const bsdBase = 'https://sports.bzzoiro.com';
+
+    const gotAvgPositions = await captureWithRetry(
+        `${bsdBase}/api/v2/events/${bsdId}/average-positions/`,
+        `${prefix}/average-positions.json`,
+        env,
+        { ...meta, type: 'average-positions' },
+        1,   // single attempt per tick — cron fires every 5 min
+        0
+    );
+
     try {
-        const r = await fetch(`https://sports.bzzoiro.com/api/v2/events/${bsdId}/stats/`,
+        const r = await fetch(`${bsdBase}/api/v2/events/${bsdId}/stats/`,
             { headers: bsdHdrs, signal: AbortSignal.timeout(6000) });
         if (!r.ok) return;
         const buf = await r.arrayBuffer();
@@ -1855,13 +1874,15 @@ async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
             httpMetadata: { contentType: 'application/json' },
             customMetadata: { ...meta, type: 'stats' },
         });
-        const parsed = JSON.parse(new TextDecoder().decode(buf));
-        if (parsed?.average_positions) {
-            await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
-                JSON.stringify(parsed.average_positions), {
-                    httpMetadata: { contentType: 'application/json' },
-                    customMetadata: { ...meta, type: 'average-positions' },
-                });
+        if (!gotAvgPositions) {
+            const parsed = JSON.parse(new TextDecoder().decode(buf));
+            if (parsed?.average_positions) {
+                await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
+                    JSON.stringify(parsed.average_positions), {
+                        httpMetadata: { contentType: 'application/json' },
+                        customMetadata: { ...meta, type: 'average-positions', source: 'stats-fallback' },
+                    });
+            }
         }
     } catch (e) {
         console.error('[BSD-CLUB-ENDGAME] stats/average-positions capture failed:', e.message);
