@@ -561,3 +561,35 @@ out. This entry documents the convention a future client-side fix to site 3
 must match — `bsd/{slug}/{bsdEventId}/stats.json` — so that fix doesn't have
 to independently reverse-engineer or guess the relay's real key shape.
 
+## FieldGame home/away curatedRank (NFL/CFB, ESPN adapter)
+
+Producer: `adaptESPNFootball(ev, sport)`, `src/index.js` ~L1249 —
+CC-CMD-2026-07-15-cfb-curatedrank-relay. `home`/`away` objects now carry
+`curatedRank: number | null`, sourced from ESPN's raw competitor field
+`curatedRank.current` (flattened, matching the existing `score` convention).
+
+```
+FieldGame.home.curatedRank / FieldGame.away.curatedRank: number | null
+  1-25 for ranked teams, 99 for unranked (ESPN's own convention) — confirmed
+  live 2026-07-15 against a real ESPN CFB scoreboard fetch (Ohio State
+  Buckeyes curatedRank.current: 1, UCLA Bruins: 99). null only if ESPN omits
+  the field entirely (not observed within FBS scope — groups=80 always
+  returns at least {current: 99} for unranked FBS teams; the null fallback
+  is a defensive guard, not a case seen in real data).
+  NFL/CFB (+ future CBB, unconfirmed) only — not added to adaptESPNMLB or
+  other sport adapters, since ESPN's curatedRank convention is specific to
+  American football / basketball ranking polls.
+```
+
+Consumer: jubilant-bassoon's `isFeaturedTierGame` (rank ≤25 signal), which
+reads `g.homeCuratedRank`/`g.awayCuratedRank` on the client's schedule
+objects — a *different* field name/location than `FieldGame.home.curatedRank`
+above. This relay change alone does not thread the value all the way to the
+client grid: a separate client-side pipeline (CFB section-injection,
+`docs/CC-CMD-2026-07-15-cfb-section-injection.md`, jubilant-bassoon) still
+needs to map `fg.home.curatedRank` → `g.homeCuratedRank` on schedule
+objects. Until that lands, the client's existing `?? 99` defensive read
+means the rank signal safely never fires (no crash, no invented data) —
+consistent with how this repo's other "producer ships, consumer pending"
+entries above are handled.
+

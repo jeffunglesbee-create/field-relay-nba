@@ -1246,6 +1246,12 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
 // the real game checked was pre-season and situation was null there, as
 // expected for a not-yet-started game -- same defensive-null pattern
 // already used elsewhere in this file for the same real reason.
+// curatedRank added 2026-07-15 (CC-CMD-2026-07-15-cfb-curatedrank-relay):
+// ESPN puts curatedRank:{current:N} directly on each raw competitor object
+// (1-25 ranked, 99 unranked) -- confirmed live against a real 2025 CFB
+// scoreboard fetch (Ohio State curatedRank.current:1, UCLA:99). Flattened
+// to a plain number, same convention as score above. NFL/CBB-only per
+// ESPN's own convention -- not added to adaptESPNMLB or other sports.
 function adaptESPNFootball(ev, sport) {
     const comp  = ev.competitions?.[0] || {};
     const teams = comp.competitors || [];
@@ -1283,11 +1289,13 @@ function adaptESPNFootball(ev, sport) {
             name:  home.team?.displayName  || '',
             abbr:  home.team?.abbreviation || '',
             score: home.score != null ? Number(home.score) : null,
+            curatedRank: home.curatedRank?.current ?? null,
         },
         away: {
             name:  away.team?.displayName  || '',
             abbr:  away.team?.abbreviation || '',
             score: away.score != null ? Number(away.score) : null,
+            curatedRank: away.curatedRank?.current ?? null,
         },
         periodNum,
         periodLabel,
