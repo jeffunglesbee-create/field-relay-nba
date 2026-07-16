@@ -48,3 +48,14 @@ TASK 1: met, with strong, real, live evidence exceeding the doc's own "3+ real c
 **Total: 87/100.**
 
 Score is below the 95 commit threshold. Per the standing policy corrected earlier this session (no more self-authorized exceptions for under-threshold scores), this outbox is written and the dispatch stops here rather than being closed out unilaterally. Everything forceable within this session has now been forced; what remains is a real-time-only observation, not further investigatable work.
+
+## Addendum (2026-07-16, ~14:00 UTC) — TASK 2 re-checked after real elapsed time
+
+`CC-CMD-2026-07-16-calibration-trend-recheck` (outbox: `outbox/calibration-trend-recheck-2026-07-16.md`) re-ran the TASK 2 unblock criteria above (~13 hours of real elapsed time, ~5 hours of it real live-hours cron activity) with a rigor upgrade this dispatch didn't have: cross-checking every candidate post-fix row against the real schedule tables before counting it as genuine data.
+
+**Result: still inconclusive**, but now for a fully-understood, precisely-quantified reason rather than just "not enough time yet." Two things were found:
+
+1. **Real post-fix volume is still genuinely thin** — 0 real `game_recap` scores, 0 real `mlb_game` scores, 1 real `night_owl` score, 1 real `slate` score, as of the check. Consistent with this dispatch's own diagnosis (real elapsed time, not tooling, was the blocker) — the time simply hasn't produced volume yet, for `game_recap` specifically compounded by GameDO's completion-detection being client-driven (documented elsewhere this session).
+2. **New finding this dispatch didn't have visibility into:** the `espn:8880001` forced-completion test above (line 33) left a KV cache entry behind after its direct D1 cleanup, which `sweepKVBriefs` swept into a new parallel D1 row (`game_recap_8880001_2026-07-16`) on a later cron tick — one of 17 total synthetic rows the follow-up dispatch found and removed, all traceable to the same KV-leftover pattern. This means the *raw* `/quality/report` numbers this outbox's TASK 2 read from were, in retrospect, at real risk of the same contamination this addendum's follow-up now documents precisely — worth knowing for anyone reading this outbox's numbers later, even though the actual `alert_count`/percentile values cited above were captured before this specific contamination existed.
+
+A further follow-up (`docs/CC-CMD-2026-07-17-calibration-trend-recheck-2.md`) is filed with a concrete re-check condition. This TASK 2 gap remains open, now with a precise, disclosed reason and a real next step — not closed here.
