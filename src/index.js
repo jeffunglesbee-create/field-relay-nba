@@ -10391,6 +10391,112 @@ export default {
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // GET /integrity/game-briefs?date=YYYY-MM-DD[&repair=true] —
+        // Per-game counterpart to /integrity/briefs (slate-only, above).
+        // That route's own comment explicitly scoped per-game repair out
+        // ("would need a separate KV scan + INSERT loop") -- found live
+        // 2026-07-16 while investigating a real, confirmed silent
+        // KV-succeeds/D1-fails divergence for per-game briefs specifically.
+        //
+        // Deliberately does NOT reuse sweepKVBriefs's approach: that sweep
+        // builds its own id as `game_recap_${gameId}_${sweepDate}` --
+        // different from the real queue consumer's `game_recap_${sport}_
+        // ${eventId}` -- and uses ON CONFLICT DO NOTHING, so it can never
+        // repair an existing stale row, only insert a parallel one under a
+        // different id it never converges with. This route instead looks
+        // up the existing row by the reliable `game_id` column (not a
+        // reconstructed id string, which is fragile given this repo's own
+        // documented sport-label fragmentation history), and repairs via a
+        // real ON CONFLICT DO UPDATE when one exists.
+        //
+        // Candidate list comes from the archive game tables for the date
+        // (mirrors the existing archive-catchup convention) rather than a
+        // raw KV list() scan, which has no date filter. Capped at 50
+        // candidates per call (matches sweepKVBriefs's own limit) --
+        // truncation is disclosed in the response, not silent.
+        if (pathname === '/integrity/game-briefs' && request.method === 'GET') {
+            const date = url.searchParams.get('date');
+            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ARCHIVE_DB || !env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB or FIELD_JOURNALISM not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const repair = url.searchParams.get('repair') === 'true';
+            const CANDIDATE_CAP = 50;
+
+            const allCandidates = [];
+            for (const table of ['regular_season_games', 'postseason_games']) {
+                const rows = await env.ARCHIVE_DB.prepare(
+                    `SELECT espn_event_id, sport, home, away, home_score, away_score
+                       FROM ${table} WHERE date = ? AND espn_event_id IS NOT NULL AND espn_event_id != ''`
+                ).bind(date).all().catch(e => { console.error("[INTEGRITY-GAME-BRIEFS] candidate query failed:", e.message); return { results: [] }; });
+                for (const r of (rows.results || [])) allCandidates.push(r);
+            }
+            const candidates = allCandidates.slice(0, CANDIDATE_CAP);
+            const truncated = allCandidates.length > CANDIDATE_CAP;
+
+            const results = [];
+            let divergentCount = 0, repairedCount = 0;
+            for (const cand of candidates) {
+                const eventId = cand.espn_event_id;
+                let kvRaw;
+                try { kvRaw = await env.FIELD_JOURNALISM.get(`brief:game:${stripKVIdPrefix(eventId)}`); }
+                catch (e) { console.error("[INTEGRITY-GAME-BRIEFS] KV read failed:", e.message); continue; }
+                let kvBrief = null;
+                if (kvRaw) { try { kvBrief = JSON.parse(kvRaw); } catch (_) { kvBrief = null; } }
+                if (!kvBrief || !kvBrief.brief) continue; // nothing in KV to compare/repair from
+
+                const d1Row = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, context_hash FROM briefs WHERE game_id = ? AND brief_type = 'game_recap' LIMIT 1`
+                ).bind(String(eventId)).first().catch(e => { console.error("[INTEGRITY-GAME-BRIEFS] D1 lookup failed:", e.message); return null; });
+
+                const divergence = !d1Row || d1Row.context_hash !== (kvBrief.contextHash || null);
+                if (!divergence) continue;
+                divergentCount++;
+
+                let repairResult = null;
+                if (repair) {
+                    try {
+                        const text = String(kvBrief.brief);
+                        const id = d1Row?.id || `game_recap_${String(cand.sport || '').toLowerCase()}_${eventId}`;
+                        const gameCtx = { home: cand.home, away: cand.away, homeScore: cand.home_score, awayScore: cand.away_score };
+                        const qualityScore = await jqScoreProse(text, { sport: cand.sport, game: gameCtx })
+                            .catch(e => { console.error("[INTEGRITY-GAME-BRIEFS] score compute failed:", e.message); return null; });
+                        await env.ARCHIVE_DB.prepare(
+                            `INSERT INTO briefs (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
+                             VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, 'kv_repair')
+                             ON CONFLICT(id) DO UPDATE SET
+                               brief_text = excluded.brief_text,
+                               word_count = excluded.word_count,
+                               quality_score = excluded.quality_score,
+                               context_hash = excluded.context_hash,
+                               source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
+                        ).bind(
+                            id, date, canonicalizeWC26Sport(cand.sport) || null, String(eventId), text,
+                            qualityScore, kvBrief.contextHash || null, text.split(/\s+/).filter(Boolean).length
+                        ).run();
+                        repairedCount++;
+                        repairResult = { id, quality_score: qualityScore };
+                    } catch (e) { repairResult = { error: e.message }; }
+                }
+                results.push({
+                    eventId, sport: cand.sport,
+                    kvContextHash: kvBrief.contextHash || null,
+                    d1Exists: !!d1Row, d1ContextHash: d1Row?.context_hash || null,
+                    repaired: repairResult,
+                });
+            }
+
+            return new Response(JSON.stringify({
+                ok: true, date, repair,
+                candidateCount: allCandidates.length, checked: candidates.length, truncated,
+                divergentCount, repairedCount, results,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /integrity/games?date=YYYY-MM-DD — Compares completed-game
         // counts per sport between ESPN scoreboard (authoritative) and D1
         // game tables. Gaps surface AmbientDO finals that didn't reach D1
