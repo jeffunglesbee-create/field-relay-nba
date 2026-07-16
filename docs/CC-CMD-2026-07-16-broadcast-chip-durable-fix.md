@@ -31,7 +31,10 @@ Thread ESPN's real `broadcasts`/`geoBroadcasts` fields into a `streams` field on
 
 ## TASK 4 — Verify (both repos)
 
-**Client:** real forced test proving today's real Mets @ Phillies game (or the real mechanism, whichever TASK 2 lands on) now produces a genuine ESPN chip. If auto-detection was built, a second real test with a real non-ESPN broadcast confirming it correctly does *not* false-positive.
+**Client, the literal, non-negotiable bar:** after the fix deploys, confirm — via a real, live check against the actual deployed data for today's real Mets @ Phillies game (event `401816143`), not a synthetic/forced-condition substitute — that this specific real game's card genuinely carries the ESPN chip. This is the concrete, real-world outcome this entire CC-CMD exists to produce; a forced-condition test proving the mechanism works in the abstract is necessary but not sufficient — state explicitly, with real evidence (the actual field/value on the actual live game object, or an actual rendered-card check), whether this specific real game shows the chip after the fix, not just whether the general mechanism now theoretically could. If today's game happens to have gone final or the broadcast data changed by verification time, re-confirm against whatever real, current state exists rather than treating that as a reason to skip this specific check.
+
+Additionally: real forced test with a real non-ESPN broadcast confirming the fix correctly does *not* false-positive.
+
 **Relay:** real forced test confirming `streams` populates correctly for at least two different real sports' adapters, plus a live check against a real current game.
 **Both:** `node smoke.js index.html` (client) / structural probes (relay) — baseline plus new assertions.
 
