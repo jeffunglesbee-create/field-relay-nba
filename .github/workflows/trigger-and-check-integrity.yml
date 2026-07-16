@@ -1,0 +1,23 @@
+name: Trigger and Check Integrity
+
+# One-shot: triggers a real journalism cycle, waits for queue processing,
+# then live-tests the new GET /integrity/game-briefs endpoint (dry run,
+# then repair=true if divergence is found) against fresh KV data before
+# it can expire (1h TTL).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Trigger cycle and check integrity endpoint
+        run: node scripts/trigger-and-check-integrity.mjs
