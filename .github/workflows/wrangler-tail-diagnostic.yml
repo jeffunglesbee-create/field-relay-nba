@@ -1,0 +1,49 @@
+name: Wrangler Tail Diagnostic (corrected POST)
+
+# One-shot, read-only diagnostic. The prior tail capture
+# (outbox/wrangler-tail-capture-20260716T121729Z.log, another session's
+# workflow) proved wrangler tail works via CI with the existing
+# CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID secrets, but its curl call
+# had no -X POST, so it silently sent a GET -- /journalism/run requires
+# POST, so the GET fell through to an unrelated route (the "Path not
+# allowed" response is actually an NBA-proxy allowlist error, not
+# anything to do with journalism/run) and never actually triggered a
+# real cycle. This corrects that one bug and re-runs the same technique.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tail worker logs while triggering a real cycle (POST)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "=== wrangler tail capture start: $(date -u) ==="
+          npx wrangler tail field-relay-nba --format pretty > tail_output.log 2>&1 &
+          TAIL_PID=$!
+          echo "tail PID: $TAIL_PID"
+
+          sleep 8
+
+          echo "=== Triggering POST /journalism/run?force=true ==="
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/run?force=true" \
+            -o /tmp/force_run.json -w "force-run HTTP %{http_code}\n"
+          cat /tmp/force_run.json || true
+          echo ""
+
+          echo "=== Waiting for log activity to stream in ==="
+          sleep 60
+
+          kill $TAIL_PID 2>/dev/null || true
+          sleep 2
+          echo "=== wrangler tail capture end: $(date -u) ==="
+
+          echo "=== Full captured log ==="
+          cat tail_output.log || echo "(no output captured)"
