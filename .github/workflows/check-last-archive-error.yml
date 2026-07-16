@@ -1,0 +1,22 @@
+name: Check Last Archive Error
+
+# One-shot: reads GET /debug/last-archive-error via CI-as-proxy (the sandbox
+# blocks direct egress to *.workers.dev, and /debug/* is on probe_relay_route's
+# forbidden-prefix list even for GETs).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check last archive error
+        run: node scripts/check-last-archive-error.mjs
