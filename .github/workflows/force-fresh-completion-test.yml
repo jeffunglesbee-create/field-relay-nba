@@ -1,0 +1,24 @@
+name: Force Fresh Completion Test
+
+# One-shot diagnostic: forces a genuinely fresh, guaranteed-not-deduped
+# synthetic completion job to test whether the D1 archive write path is
+# currently healthy, isolating the silent-D1-write-failure investigation
+# from this session's KV dedup (which was masking whether the write
+# path itself works right now).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Force fresh completion
+        run: node scripts/force-fresh-completion-test.mjs
