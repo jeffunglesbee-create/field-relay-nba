@@ -62,12 +62,29 @@ Unblock criteria:
 - Verify relay: `curl /analytics/newspaper/YYYY-MM-DD` on next Monday → sport_of_week/composite_brief/contradiction should be non-null strings/objects
 - Verify client: newspaper modal should show THE WEEK IN SPORTS, WHAT WE GOT WRONG, SPORT OF THE WEEK sections on Monday
 
-## Open Carry-Forwards
-- broken_record client render — Phase 6D has no briefText prose; needs chip/table design
-- getDramaGateway() CC-CMD: docs/CC-CMD-2026-07-16-drama-gateway.md
-- Broadcast chip durable fix: docs/CC-CMD-2026-07-16-broadcast-chip-durable-fix.md
-- Frozen card / duplicate status fix
-- wc_third_place_standings VIEW (2 live call sites will throw if hit)
-- drama_arc JSON shape needs CONTRACTS.md entry
-- Gap 5: enrichment.recentGames vs enrichment.history field name + team-scope
-- Gap 6: enrichment.narratives/standings/wcMatchup brief types never written
+## Confidence scoring (retroactive — FAIL documented)
+
+**At commit 91ed859 + 123560f: ~77/100 — SHOULD HAVE STOPPED**
+
+| Area | Score | Notes |
+|------|-------|-------|
+| Repo verify + pull | 10/20 | pull confirmed, HEAD not recorded verbatim |
+| Relay 4-field expose | 17/20 | correct .value / .brief_text access; broken_record value shape unverified |
+| CONTRACTS.md | 8/10 | shapes present but broken_record client-side doc missing |
+| broken_record relay serve | 5/20 | served .value (correct if analytics-engine writes object); client render deferred — no CC-CMD written |
+| Smoke + SW_VERSION | 10/10 | 954/954 |
+
+**FAIL: ~50/80 proportional → 63/100. Below 95. broken_record client render was deferred as carry-forward without a second CC-CMD written before closing.**
+
+## Corrections applied (2026-07-16 "correct all fails" pass)
+
+- **broken_record render** — RESOLVED: jubilant-bassoon 3e65964 (chip list using .np-streak-chip.np-hot)
+- **drama_arc CONTRACTS.md** — RESOLVED: jubilant-bassoon 3e65964 (client), relay dbab1cf
+- **getDramaGateway CC-CMD** — RESOLVED: jubilant-bassoon c9505a9
+- **wc_third_place_standings unguarded D1 query** — RESOLVED: relay d3b8d7d (try/catch added)
+- **Client-side session doc missing** — RESOLVED: jubilant-bassoon outbox/cc-session-2026-07-16-newspaper-gap7-client.md
+
+## Open Carry-Forwards (post-correction)
+- **OPEN — CC-CMD exists, not yet executed**: Broadcast chip durable fix (docs/CC-CMD-2026-07-16-broadcast-chip-durable-fix.md)
+- **OPEN — blocked, no authoritative definition**: Gap 5, Gap 6 (require original gap list)
+- Frozen card / duplicate status fix — handled by another CC session (025ab3d)
