@@ -1,0 +1,90 @@
+=== wrangler tail capture start: Thu Jul 16 12:17:29 UTC 2026 ===
+wrangler tail PID 2194 started, waiting up to 180s for real activity...
+--- forcing a real journalism cycle to trigger during the tail window ---
+force-run HTTP 403
+Path not allowed=== wrangler tail capture end: Thu Jul 16 12:20:27 UTC 2026 ===
+--- raw tail output ---
+npm warn exec The following package was not found and will be installed: wrangler@4.111.0
+
+ ⛅️ wrangler 4.111.0
+────────────────────
+Successfully created tail, expires at 2026-07-16T18:17:40Z
+Connected to field-relay-nba, waiting for logs...
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:17:57 PM
+Alarm @ 7/16/2026, 12:17:57 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:18:13 PM
+Alarm @ 7/16/2026, 12:18:13 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:18:30 PM
+Alarm @ 7/16/2026, 12:18:30 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:18:46 PM
+Alarm @ 7/16/2026, 12:18:46 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:19:03 PM
+Alarm @ 7/16/2026, 12:19:03 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:19:20 PM
+Alarm @ 7/16/2026, 12:19:20 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:19:36 PM
+Alarm @ 7/16/2026, 12:19:36 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:19:53 PM
+Alarm @ 7/16/2026, 12:19:53 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:20:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/wc/odds-probs - Ok @ 7/16/2026, 12:20:23 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/basketball/nba/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/hockey/nhl/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/wc/standings - Ok @ 7/16/2026, 12:20:23 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/baseball/mlb/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/football/nfl/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/usa.1/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/eng.1/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/basketball/wnba/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/wc/results - Ok @ 7/16/2026, 12:20:23 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/fifa.world/scoreboard - Ok @ 7/16/2026, 12:20:24 PM
+Alarm @ 7/16/2026, 12:20:09 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nba&date=2026-07-16 - Ok @ 7/16/2026, 12:20:27 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nhl&date=2026-07-16 - Ok @ 7/16/2026, 12:20:27 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wc26&date=2026-07-16 - Ok @ 7/16/2026, 12:20:23 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-07-16 - Ok @ 7/16/2026, 12:20:27 PM
