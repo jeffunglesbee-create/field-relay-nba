@@ -5030,11 +5030,13 @@ async function sweepKVBriefs(env) {
       if (!kvVal) continue; // retry-safe -- key isn't deleted, next sweep (every 15min cron or dead-hour backfill) re-attempts it
       let briefText = kvVal;
       let qualityScore = null;
+      let contextHash = null;
       if (kvVal[0] === '{') {
         try {
           const p = JSON.parse(kvVal);
           briefText = p.brief || p.brief_text || p.text || kvVal;
           qualityScore = p.quality_score || p.score || null;
+          contextHash = p.contextHash || null;
         } catch (e) { console.error("[KV-SWEEP] brief JSON parse failed:", e.message); /* fall back to raw value */ }
       }
       if (!briefText || briefText.length < 50) continue;
@@ -5073,14 +5075,73 @@ async function sweepKVBriefs(env) {
         } catch (e) { console.error("[KV-SWEEP] quality score compute failed:", e.message); }
       }
       const sweepDate = new Date().toISOString().slice(0, 10);
+      // id-construction fix (CC-CMD-2026-07-16-sweep-kv-briefs-id-mismatch):
+      // was `game_recap_${gameId}_${sweepDate}`, a scheme distinct from the
+      // real queue consumer's `game_recap_${sport}_${eventId}` (~L15277), so
+      // ON CONFLICT(id) DO NOTHING never collided with a real row -- it
+      // inserted a new parallel row for whatever sat in brief:game:* KV on
+      // every cron tick until that key's 1h TTL expired. Confirmed live,
+      // reproduced twice, ~6 minutes apart, same underlying leftover KV entry.
+      //
+      // Blind string reconstruction using `sport`/`gameId` alone is still
+      // not exactly reliable: this function's own `gameId` comes from the
+      // KV key name, which was built via stripKVIdPrefix(job.eventId) by
+      // the writer -- any source-prefixed eventId (e.g. 'espn:8880001',
+      // confirmed a real, caller-dependent format via
+      // /journalism/game-complete's unmodified `eventId: gameId` passthrough)
+      // has its prefix irrecoverably stripped before this function ever
+      // sees it, so a reconstructed id can under-match a real row whose
+      // original id/game_id retained that prefix. Look the real row up by
+      // game_id instead (matching either the bare or a prefixed form) and
+      // reuse its actual id when found -- guarantees a correct match
+      // whenever a real row exists, not just when the eventId happened to
+      // be unprefixed. Falls back to the reconstructed scheme only for a
+      // genuinely new game with no existing row (a real, disclosed residual
+      // gap: a brand-new prefixed-eventId game swept before the primary
+      // consumer ever writes could still land under a different id than
+      // that later write would use -- narrower than the original bug and
+      // not fully closable without changing the KV-key convention itself,
+      // out of this CC-CMD's scope).
+      let existingId = null;
+      try {
+        const existingRow = await env.ARCHIVE_DB.prepare(
+          `SELECT id FROM briefs WHERE game_id = ? OR game_id LIKE '%:' || ? LIMIT 1`
+        ).bind(gameId, gameId).first();
+        if (existingRow) existingId = existingRow.id;
+      } catch (e) { console.error("[KV-SWEEP] existing-row lookup failed:", e.message); }
+      const briefId = existingId || `game_recap_${String(sport || '').toLowerCase()}_${gameId}`;
+      // DO UPDATE, not DO NOTHING: now that ids genuinely collide with real
+      // rows, this turns the sweep into an active repair mechanism for the
+      // "fresh KV, stale D1" archive-write bug (KV is written before D1 by
+      // the primary consumer, so KV can never be staler than an existing
+      // D1 row for the same job -- an unconditional refresh here can only
+      // bring D1 up to date with KV, never regress it). Cadence re-verified
+      // via wrangler.toml (`*/5 * * * *` + `*/15 * * * *`, both unconditional
+      // in scheduled() -- confirmed via direct source read, not the
+      // CC-CMD's own "~15-20 seconds" claim, which does not match Cloudflare
+      // Cron Triggers' real 1-minute minimum granularity and is corrected
+      // here): roughly every 4-5 minutes around the clock, comparable to
+      // (not more aggressive than) the primary write path's own cadence --
+      // not the every-15-20-second rate that would have made an
+      // unconditional auto-repair meaningfully riskier. Only the fields
+      // this sweep can freshly and correctly recompute are touched on
+      // conflict -- source/date/brief_type/sport/game_id are deliberately
+      // left out of the UPDATE SET, preserving whatever the authoritative
+      // writer (cron/completion-trigger) already set, matching the primary
+      // consumer's own precedent of never touching fields on conflict that
+      // it can't itself refresh correctly.
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
-           (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
-         VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, 'kv_sweep')
-         ON CONFLICT(id) DO NOTHING`
+           (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
+         VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, 'kv_sweep')
+         ON CONFLICT(id) DO UPDATE SET
+           brief_text    = excluded.brief_text,
+           quality_score = excluded.quality_score,
+           context_hash  = excluded.context_hash,
+           word_count    = excluded.word_count`
       ).bind(
-        `game_recap_${gameId}_${sweepDate}`,
-        sweepDate, sport, gameId, briefText, qualityScore,
+        briefId,
+        sweepDate, sport, gameId, briefText, qualityScore, contextHash,
         briefText.split(/\s+/).length
       ).run();
       swept++;
