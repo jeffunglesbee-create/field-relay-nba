@@ -277,9 +277,10 @@ Consumer: jubilant-bassoon fetchNewspaper()
     isElimination:   boolean
     finalTimestamp:   number
   }] | null
-  sport_of_week:    object | null   // Monday only
-  composite_brief:  string | null   // Monday only
-  contradiction:    string | null   // Monday only
+  sport_of_week:    object | null   // Monday only — {winner, dramaTotal, gamesPlayed, runnerUp, runnerUpDrama, summary, allSports}
+  composite_brief:  string | null   // Monday only — AI prose blending best briefs across sports
+  contradiction:    string | null   // Monday only — one-sentence acknowledgment of weekly narrative flip (null if none)
+  broken_record:    object | null   // Monday only — {records: [{team, phrase, occurrences, dates}], lookback_days: 14}
 }
 ```
 
