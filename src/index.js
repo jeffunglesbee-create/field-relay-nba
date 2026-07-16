@@ -7334,12 +7334,28 @@ async function handleJournalismCycle(env, opts = {}) {
     // Falls back to old sync path if Queue not bound.
     const gameBriefResults = [];
     if (env.JOURNALISM_QUEUE) {
+      // Also query yesterday's UTC date alongside today's -- closes a real
+      // gap where a game previewed under yesterday's UTC calendar date (any
+      // evening tip-off in US time zones crosses UTC midnight) permanently
+      // drops out of this loop's scope once the date rolls over, even
+      // though its final result was never captured. Confirmed live
+      // 2026-07-16: espn:401857070 (WNBA, Valkyries 88 @ Fever 75, final)
+      // appears under dates=20260715 but not dates=20260716, so no future
+      // 15-min tick would ever pick up its completion. Existing per-event
+      // gameHash dedup below already prevents wasted regeneration for
+      // games whose state hasn't changed -- this only adds coverage for
+      // games whose final state was never captured the first time.
+      const prevEspnDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10).replace(/-/g, '');
       for (const {sport, league, label} of LEAGUES) {
         try {
-          const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
-          if (!r.ok) continue;
-          const d = await r.json();
-          for (const ev of (d?.events || [])) {
+          const events = [];
+          for (const queryDate of [espnDate, prevEspnDate]) {
+            const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${queryDate}`);
+            if (!r.ok) continue;
+            const d = await r.json();
+            events.push(...(d?.events || []));
+          }
+          for (const ev of events) {
             const comp = ev.competitions?.[0];
             if (!comp) continue;
             const eventId = ev.id;
