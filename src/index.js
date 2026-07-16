@@ -12735,6 +12735,12 @@ export default {
                         ...(recap.quality_alert.value || {}),
                         brief: recap.quality_alert.brief_text || null,
                     } : null,
+                    // Monday-only (Phase 6A-D) — cron fires Monday morning processing Sunday.
+                    // null on all other days; client hides null sections per contract.
+                    sport_of_week:   recap.sport_of_week?.value        || null,
+                    composite_brief: recap.composite_brief?.brief_text  || null,
+                    contradiction:   recap.contradiction?.brief_text    || null,
+                    broken_record:   recap.broken_record?.value         || null,
                     completed_games: [],
                 };
 
