@@ -6214,6 +6214,132 @@ function matchV2Game(games, { espnId, home, away } = {}) {
 // future field added to one path cannot silently go missing from the other.
 const COMPLETION_FIELDS = ['home_score', 'away_score', 'went_to_ot', 'finalized_at', 'espn_event_id'];
 
+// ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
+// Runs in the gap between the live-hours cron (UTC 10am–2am) and the
+// next live window. Queries D1 for WC group results completed in the
+// last 24h, builds a catch-up brief, and enqueues it via JOURNALISM_QUEUE
+// so it's available in the journalism tab when users wake up.
+//
+// Deduplication: KV key 'wc-morning-brief:{dateKey}' prevents re-running
+// on the same calendar date. Degrades gracefully if D1 is unbound.
+//
+// Extracted into its own function (found live, 2026-07-16, via a
+// /journalism/run?force=true diagnostic call that returned
+// {ok:false, reason:'wc morning brief already ran today'} as
+// handleJournalismCycle's OWN top-level result): every one of this
+// block's 4 outcomes (dedup-hit, no-results, success, error) previously
+// `return`ed directly out of handleJournalismCycle itself. Because the
+// call site sat ahead of the archive seed / yesterday catch-up / odds
+// snapshot / slate regeneration / per-game loop, this silently skipped
+// ALL of that work for the ENTIRE 3-hour isMorningWindow, every single
+// day, dedup-hit or not -- not just the WC-specific step it was meant
+// to gate. Now returns a plain result object; the caller logs it but
+// never lets it short-circuit the rest of the cycle.
+async function runWCMorningBrief(env, dateKey, now) {
+  if (!env.WC2026_DB || !env.JOURNALISM_QUEUE) {
+    return {ok:false, reason:'WC2026_DB or JOURNALISM_QUEUE not bound'};
+  }
+  try {
+    const morningDedupKey = `wc-morning-brief:${dateKey}`;
+    const alreadyRan = await env.FIELD_JOURNALISM.get(morningDedupKey);
+    if (alreadyRan) return {ok:false, reason:'wc morning brief already ran today'};
+
+    // Query completed WC results from last 24h
+    const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { results: recentResults } = await env.WC2026_DB.prepare(
+      `SELECT r.group_id, r.home, r.away, r.home_score, r.away_score, r.match_date
+       FROM wc_results r
+       WHERE r.match_date >= ?
+       ORDER BY r.match_date ASC, r.group_id ASC`
+    ).bind(cutoff).all();
+
+    if (!recentResults || recentResults.length === 0) {
+      return {ok:false, reason:'no recent WC results for morning brief'};
+    }
+
+    // Fetch current group standings for context
+    const { results: standings } = await env.WC2026_DB.prepare(
+      `SELECT group_id, team, played, won, drawn, lost, gf, ga, gd, points
+       FROM wc_group
+       ORDER BY group_id ASC, points DESC, gd DESC, gf DESC`
+    ).all();
+
+    // Group standings by group_id for easy lookup
+    const standingsByGroup = {};
+    for (const row of (standings || [])) {
+      if (!standingsByGroup[row.group_id]) standingsByGroup[row.group_id] = [];
+      standingsByGroup[row.group_id].push(row);
+    }
+
+    // Build result lines — one per completed match
+    const resultLines = recentResults.map(r => {
+      const winner = r.home_score > r.away_score ? r.home
+        : r.away_score > r.home_score ? r.away
+        : null;
+      const scoreStr = `${r.home} ${r.home_score}–${r.away_score} ${r.away}`;
+      return winner ? `${scoreStr} (${winner} win)` : `${scoreStr} (draw)`;
+    });
+
+    // Build per-group standings summary for affected groups
+    const affectedGroups = [...new Set(recentResults.map(r => r.group_id))];
+    const standingsLines = affectedGroups.map(grp => {
+      const rows = standingsByGroup[grp] || [];
+      if (!rows.length) return null;
+      const table = rows.map((r, i) =>
+        `${i+1}. ${r.team} ${r.points}pts (P${r.played} GD${r.gd >= 0 ? '+' : ''}${r.gd})`
+      ).join(' | ');
+      return `Group ${grp}: ${table}`;
+    }).filter(Boolean);
+
+    const morningPrompt = [
+      'Write a FIELD Morning Brief covering FIFA World Cup 2026 results from overnight.',
+      '',
+      'COMPLETED RESULTS:',
+      ...resultLines.map(l => `- ${l}`),
+      '',
+      standingsLines.length ? 'CURRENT GROUP STANDINGS:' : '',
+      ...standingsLines.map(l => `- ${l}`),
+      '',
+      'RULES:',
+      '- 80-100 words. 1-2 short paragraphs. No headers. No bullet points.',
+      '- Lead with the most significant result — biggest upset, clinching moment, or drama.',
+      '- Include final scores for all matches listed.',
+      '- Note any team that has clinched advancement or been eliminated if standings show it.',
+      '- Plain prose only. Write like a morning sports summary — crisp, factual, no hype.',
+      '- CORRECTNESS: write only from the results above. Never invent scores or facts.',
+      '- Never use: "punch their ticket", "stage is set", "must-win", "backs against the wall".',
+    ].filter(s => s !== undefined).join('\n');
+
+    // Mark dedup before enqueue (24h TTL — expires before next cycle)
+    await env.FIELD_JOURNALISM.put(morningDedupKey, '1', {expirationTtl: 86400});
+
+    // Enqueue — queue consumer picks it up and runs quality chain
+    const jobId = crypto.randomUUID();
+    await env.JOURNALISM_QUEUE.send({
+      jobId,
+      prompt: morningPrompt,
+      sport: 'soccer',
+      briefType: 'wc-morning',
+      max_tokens: 600,
+      scoreThreshold: 110,
+      enqueuedAt: now,
+    });
+
+    // Pre-seed KV so /journalism/result/:jobId returns 'queued' immediately
+    if (env.FIELD_JOURNALISM) {
+      await env.FIELD_JOURNALISM.put(
+        `jobs:${jobId}`,
+        JSON.stringify({status:'queued', enqueuedAt: now, briefType:'wc-morning'}),
+        {expirationTtl: 86400}
+      );
+    }
+
+    return {ok:true, reason:'wc morning brief enqueued', jobId, resultCount: recentResults.length};
+  } catch(e) {
+    return {ok:false, reason:'wc morning brief error: ' + e.message};
+  }
+}
+
 async function handleJournalismCycle(env, opts = {}) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
   // Load per-sport quality calibration once per cron tick. Lightweight D1
@@ -6615,117 +6741,18 @@ async function handleJournalismCycle(env, opts = {}) {
   } catch (e) { console.error("[ARCHIVE-CATCHUP] league fetch / catch-up setup failed:", e.message); /* league fetch / catch-up setup failure must never block WC morning-brief or slate-brief paths below */ }
 
   // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
-  // Runs in the gap between the live-hours cron (UTC 10am–2am) and the
-  // next live window. Queries D1 for WC group results completed in the
-  // last 24h, builds a catch-up brief, and enqueues it via JOURNALISM_QUEUE
-  // so it's available in the journalism tab when users wake up.
-  //
-  // Deduplication: KV key 'wc-morning-brief:{dateKey}' prevents re-running
-  // on the same calendar date. Degrades gracefully if D1 is unbound.
+  // Logic lives in runWCMorningBrief() (module scope, above) so its result
+  // can never short-circuit the rest of this cycle -- see that function's
+  // own comment for the real bug this fixed (every outcome used to `return`
+  // straight out of handleJournalismCycle, skipping everything below for
+  // the full 3-hour window regardless of dedup state).
   const isMorningWindow = hour >= 11 && hour <= 13;
-  if (isMorningWindow && env.WC2026_DB && env.JOURNALISM_QUEUE) {
-    try {
-      const morningDedupKey = `wc-morning-brief:${dateKey}`;
-      const alreadyRan = await env.FIELD_JOURNALISM.get(morningDedupKey);
-      if (alreadyRan) return {ok:false, reason:'wc morning brief already ran today'};
-
-      // Query completed WC results from last 24h
-      const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const { results: recentResults } = await env.WC2026_DB.prepare(
-        `SELECT r.group_id, r.home, r.away, r.home_score, r.away_score, r.match_date
-         FROM wc_results r
-         WHERE r.match_date >= ?
-         ORDER BY r.match_date ASC, r.group_id ASC`
-      ).bind(cutoff).all();
-
-      if (!recentResults || recentResults.length === 0) {
-        return {ok:false, reason:'no recent WC results for morning brief'};
-      }
-
-      // Fetch current group standings for context
-      const { results: standings } = await env.WC2026_DB.prepare(
-        `SELECT group_id, team, played, won, drawn, lost, gf, ga, gd, points
-         FROM wc_group
-         ORDER BY group_id ASC, points DESC, gd DESC, gf DESC`
-      ).all();
-
-      // Group standings by group_id for easy lookup
-      const standingsByGroup = {};
-      for (const row of (standings || [])) {
-        if (!standingsByGroup[row.group_id]) standingsByGroup[row.group_id] = [];
-        standingsByGroup[row.group_id].push(row);
-      }
-
-      // Build result lines — one per completed match
-      const resultLines = recentResults.map(r => {
-        const winner = r.home_score > r.away_score ? r.home
-          : r.away_score > r.home_score ? r.away
-          : null;
-        const scoreStr = `${r.home} ${r.home_score}–${r.away_score} ${r.away}`;
-        return winner ? `${scoreStr} (${winner} win)` : `${scoreStr} (draw)`;
-      });
-
-      // Build per-group standings summary for affected groups
-      const affectedGroups = [...new Set(recentResults.map(r => r.group_id))];
-      const standingsLines = affectedGroups.map(grp => {
-        const rows = standingsByGroup[grp] || [];
-        if (!rows.length) return null;
-        const table = rows.map((r, i) =>
-          `${i+1}. ${r.team} ${r.points}pts (P${r.played} GD${r.gd >= 0 ? '+' : ''}${r.gd})`
-        ).join(' | ');
-        return `Group ${grp}: ${table}`;
-      }).filter(Boolean);
-
-      const morningPrompt = [
-        'Write a FIELD Morning Brief covering FIFA World Cup 2026 results from overnight.',
-        '',
-        'COMPLETED RESULTS:',
-        ...resultLines.map(l => `- ${l}`),
-        '',
-        standingsLines.length ? 'CURRENT GROUP STANDINGS:' : '',
-        ...standingsLines.map(l => `- ${l}`),
-        '',
-        'RULES:',
-        '- 80-100 words. 1-2 short paragraphs. No headers. No bullet points.',
-        '- Lead with the most significant result — biggest upset, clinching moment, or drama.',
-        '- Include final scores for all matches listed.',
-        '- Note any team that has clinched advancement or been eliminated if standings show it.',
-        '- Plain prose only. Write like a morning sports summary — crisp, factual, no hype.',
-        '- CORRECTNESS: write only from the results above. Never invent scores or facts.',
-        '- Never use: "punch their ticket", "stage is set", "must-win", "backs against the wall".',
-      ].filter(s => s !== undefined).join('\n');
-
-      // Mark dedup before enqueue (24h TTL — expires before next cycle)
-      await env.FIELD_JOURNALISM.put(morningDedupKey, '1', {expirationTtl: 86400});
-
-      // Enqueue — queue consumer picks it up and runs quality chain
-      const jobId = crypto.randomUUID();
-      await env.JOURNALISM_QUEUE.send({
-        jobId,
-        prompt: morningPrompt,
-        sport: 'soccer',
-        briefType: 'wc-morning',
-        max_tokens: 600,
-        scoreThreshold: 110,
-        enqueuedAt: now,
-      });
-
-      // Pre-seed KV so /journalism/result/:jobId returns 'queued' immediately
-      if (env.FIELD_JOURNALISM) {
-        await env.FIELD_JOURNALISM.put(
-          `jobs:${jobId}`,
-          JSON.stringify({status:'queued', enqueuedAt: now, briefType:'wc-morning'}),
-          {expirationTtl: 86400}
-        );
-      }
-
-      return {ok:true, reason:'wc morning brief enqueued', jobId, resultCount: recentResults.length};
-    } catch(e) {
-      return {ok:false, reason:'wc morning brief error: ' + e.message};
+  if (isMorningWindow) {
+    const wcMorningResult = await runWCMorningBrief(env, dateKey, now);
+    if (!wcMorningResult.ok) {
+      console.log(`[WC-MORNING] ${wcMorningResult.reason}`);
     }
   }
-
-
 
   try {
     // LEAGUES/gameLines/gameMeta built above (CC-CMD-2026-07-13-p15b —
