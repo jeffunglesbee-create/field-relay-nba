@@ -1,0 +1,21 @@
+name: KV Sweep Fix Setup
+
+# One-shot: triggers two real completions to set up the sweepKVBriefs
+# id-mismatch fix's forced-condition test (repair case + fresh-insert case).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run setup
+        run: node scripts/kv-sweep-fix-setup.mjs
