@@ -1469,6 +1469,31 @@ function stripKVIdPrefix(id) {
     return m ? m[1] : s;
 }
 
+// FIELD's established "today" for journalism/schedule purposes: ET-anchored
+// with a 4am ET rolling cutoff, NOT raw UTC midnight. Ports jubilant-
+// bassoon's window.TODAY_ISO (Drive doc "FIELD App — 2026-06-06 Session
+// Documentation Part 2 — Scout's Pick + 4am Rollover") to the relay side,
+// which never got the same fix and was still using raw
+// `new Date().toISOString().slice(0,10)`. ET is correct because FIELD's
+// schedule and ESPN's own scoreboard are both ET-anchored; 4am ET is safe
+// because no major US sports league starts games after 2am ET, so the
+// 2-hour buffer covers overtime/extra innings/late TV windows. Confirmed
+// live 2026-07-16: naive UTC-midnight computation advanced "today" to
+// 07-16 at UTC 00:00 (= 8pm ET on 07-15, mid-primetime), well before any
+// of that ET evening's games — including a completed WNBA game
+// (espn:401857070) — had a chance to finish; the correct ET-anchored value
+// stays on 07-15 until 4am ET (= 8am UTC). Used everywhere `dateKey`
+// represents "today's slate", not for caller-supplied ?date= params.
+function getFieldDateKey() {
+    const etHour = parseInt(
+        new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }),
+        10
+    );
+    const etDateBase = new Date();
+    if (etHour < 4) etDateBase.setTime(etDateBase.getTime() - 24 * 60 * 60 * 1000);
+    return etDateBase.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }); // YYYY-MM-DD
+}
+
 function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
     const comp       = ev.competitions?.[0] || {};
     const teams      = comp.competitors   || [];
@@ -6195,7 +6220,7 @@ async function handleJournalismCycle(env, opts = {}) {
   // read; failure is silent (Rule 5 — never blocks journalism delivery).
   await loadQualityCalibration(env);
   const now = Date.now();
-  const dateKey = new Date().toISOString().slice(0, 10);
+  const dateKey = getFieldDateKey();
   // ESPN scoreboard endpoint accepts ?dates=YYYYMMDD to return ONLY events for
   // that calendar date. Without it, ESPN serves the most recent matchday when
   // the league has no current fixture — which for off-season leagues (EPL
@@ -7334,28 +7359,12 @@ async function handleJournalismCycle(env, opts = {}) {
     // Falls back to old sync path if Queue not bound.
     const gameBriefResults = [];
     if (env.JOURNALISM_QUEUE) {
-      // Also query yesterday's UTC date alongside today's -- closes a real
-      // gap where a game previewed under yesterday's UTC calendar date (any
-      // evening tip-off in US time zones crosses UTC midnight) permanently
-      // drops out of this loop's scope once the date rolls over, even
-      // though its final result was never captured. Confirmed live
-      // 2026-07-16: espn:401857070 (WNBA, Valkyries 88 @ Fever 75, final)
-      // appears under dates=20260715 but not dates=20260716, so no future
-      // 15-min tick would ever pick up its completion. Existing per-event
-      // gameHash dedup below already prevents wasted regeneration for
-      // games whose state hasn't changed -- this only adds coverage for
-      // games whose final state was never captured the first time.
-      const prevEspnDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10).replace(/-/g, '');
       for (const {sport, league, label} of LEAGUES) {
         try {
-          const events = [];
-          for (const queryDate of [espnDate, prevEspnDate]) {
-            const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${queryDate}`);
-            if (!r.ok) continue;
-            const d = await r.json();
-            events.push(...(d?.events || []));
-          }
-          for (const ev of events) {
+          const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+          if (!r.ok) continue;
+          const d = await r.json();
+          for (const ev of (d?.events || [])) {
             const comp = ev.competitions?.[0];
             if (!comp) continue;
             const eventId = ev.id;
@@ -12904,7 +12913,7 @@ export default {
 
   if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
             if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({error:'not configured'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
-            const dateKey = new Date().toISOString().slice(0,10);
+            const dateKey = getFieldDateKey();
             const raw = await env.FIELD_JOURNALISM.get(`journalism:${dateKey}`);
             if (!raw) return new Response(JSON.stringify({brief:null,generatedAt:null}),{status:200,headers:{...CORS,'Content-Type':'application/json','Cache-Control':'public,max-age=60'}});
             const data = JSON.parse(raw);
