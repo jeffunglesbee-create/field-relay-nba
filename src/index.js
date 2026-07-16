@@ -7740,6 +7740,19 @@ export default {
             return oauthDebugRecentRequests(request, env);
         }
 
+        // GET /debug/last-archive-error — read the queue consumer's last
+        // silently-caught briefs-table archive write failure (found live
+        // 2026-07-16 investigating a real, confirmed per-game-loop D1-write
+        // failure). Content is just {ts, id, error, jobType, jobSource} --
+        // no secrets, ungated, matching /quality/report's precedent.
+        if (pathname === '/debug/last-archive-error' && request.method === 'GET') {
+            if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
+                { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            const raw = await env.FIELD_JOURNALISM.get('journalism:last-archive-write-error');
+            return new Response(raw || JSON.stringify({ ok: true, lastError: null }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // ── /repo/archive — HMAC-signed tarball proxy for L5 ────────────────
         // Caller mints the URL via the MCP get_archive_url tool. Signature
         // and expiry verified relay-side; the relay then forwards the request
@@ -15174,7 +15187,30 @@ export default {
                   job.source ?? 'cron'
                 ).run();
               }
-            } catch (e) { console.error("[JOURNALISM-QUEUE] archive write failed:", e.message); /* archive failure must not break game-brief delivery */ }
+            } catch (e) {
+              console.error("[JOURNALISM-QUEUE] archive write failed:", e.message);
+              /* archive failure must not break game-brief delivery */
+              // Diagnostic visibility (found live 2026-07-16): this catch
+              // previously only logged via console.error, invisible without
+              // live log-tail access -- discovered while investigating a
+              // real, confirmed silent D1-write failure (KV succeeded, D1
+              // never updated, for every per-game-loop job checked, root
+              // cause still unidentified). Best-effort KV write so the next
+              // occurrence is diagnosable via GET /debug/last-archive-error
+              // without needing log access. Its own try/catch: telemetry
+              // must never itself break delivery.
+              try {
+                if (env.FIELD_JOURNALISM) {
+                  await env.FIELD_JOURNALISM.put('journalism:last-archive-write-error', JSON.stringify({
+                    ts: new Date().toISOString(),
+                    id: `game_recap_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
+                    error: e.message,
+                    jobType: job.type || null,
+                    jobSource: job.source || null,
+                  }), { expirationTtl: 7 * 86400 });
+                }
+              } catch (_) { /* telemetry write must never itself break delivery */ }
+            }
             msg.ack();
           } catch(e) {
             if (msg.attempts >= 3) {
