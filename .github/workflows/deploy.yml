@@ -353,6 +353,91 @@ jobs:
           PYEOF
 
       # ══════════════════════════════════════════════════════════════
+      # STRUCTURAL 7 — V2 adapter streams field presence/shape probe
+      # ══════════════════════════════════════════════════════════════
+      # Added 2026-07-16 (CC-CMD-2026-07-16-deploy-streams-probe, explicit
+      # user authorization for this CI/CD change) after
+      # CC-CMD-2026-07-16-broadcast-chip-durable-fix (277fdc7) threaded
+      # ESPN's real broadcasts/geoBroadcasts into a `streams` field on
+      # every V2 adapter's output. No permanent CI check existed for it --
+      # a future regression (a refactor dropping the `streams:` line from
+      # one adapter, an ESPN field-name change silently breaking
+      # buildStreamsFromESPN) would only be caught by someone manually
+      # re-running that dispatch's checks.
+      #
+      # Checks MLB first (near-daily in-season cadence -- the only real
+      # gaps are the ~3-4 day All-Star break and the Nov-Feb offseason),
+      # falls back to WNBA if MLB has zero games today (same-day fallback,
+      # Rule 76 cap respected: 2 levels). Uses the same ET-anchored "today"
+      # as getFieldDateKey() (4am ET rolling cutoff) rather than
+      # /v2/games' own raw-UTC-midnight default, so this doesn't false-skip
+      # near a UTC day boundary while a real evening ET slate is still in
+      # progress.
+      #
+      # Skip (exit 0) is reserved for the ONLY genuine case: zero games at
+      # all across both sports (a real off-day). Games existing with NONE
+      # of them carrying any streams data is treated as a FAILURE, not a
+      # skip -- real ESPN broadcast data (national OR local/regional) is
+      # present for essentially every real scheduled game, confirmed via 2
+      # real sample games in different markets while building this probe.
+      # Collapsing that into "skip" would make this check blind to the
+      # exact bug shape it exists to catch (verified locally before
+      # committing: a synthetic real-games-no-streams payload correctly
+      # fails; a synthetic zero-games payload correctly skips; a synthetic
+      # malformed-entry payload correctly fails; real current data
+      # correctly passes).
+      - name: STRUCTURAL 7 — V2 adapter streams field presence/shape
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          ET_HOUR=$(TZ="America/New_York" date +%H)
+          if [ "$ET_HOUR" -lt 4 ]; then
+            DATE=$(TZ="America/New_York" date -d "yesterday" +%Y-%m-%d)
+          else
+            DATE=$(TZ="America/New_York" date +%Y-%m-%d)
+          fi
+          echo "Checking date (ET-anchored): $DATE"
+          curl -s --max-time 15 "$RELAY/v2/games?sport=mlb&date=$DATE" -o /tmp/streams_mlb.json
+          curl -s --max-time 15 "$RELAY/v2/games?sport=wnba&date=$DATE" -o /tmp/streams_wnba.json
+          python3 << 'PYEOF'
+          import json, sys
+
+          def load(path):
+              try:
+                  with open(path) as f:
+                      return json.load(f)
+              except Exception:
+                  return {}
+
+          mlb = load('/tmp/streams_mlb.json')
+          wnba = load('/tmp/streams_wnba.json')
+          games = (mlb.get('games') or []) + (wnba.get('games') or [])
+          if not games:
+              print('⏳ No real MLB/WNBA games found for today -- genuine off-day (All-Star break/offseason/rest day). Skipping, not failing.')
+              sys.exit(0)
+
+          candidates = [g for g in games if isinstance(g.get('streams'), list) and len(g['streams']) > 0]
+          if not candidates:
+              print(f'❌ {len(games)} real game(s) found today but NONE carry any streams data -- this is the exact shape of the original bug (streams field missing/empty), not a genuine no-broadcast day.')
+              sys.exit(1)
+
+          g = candidates[0]
+          streams = g['streams']
+          errors = []
+          entry = streams[0]
+          if not isinstance(entry, dict):
+              errors.append(f'streams[0] is not an object: {entry!r}')
+          elif not entry.get('label'):
+              errors.append(f'streams[0].label missing or empty: {entry!r}')
+          if errors:
+              print('❌ STRUCTURAL 7 streams shape assertion failed:')
+              for e in errors:
+                  print(f'  - {e}')
+              print(f'  game: {g.get("id")}, streams: {streams!r}')
+              sys.exit(1)
+          print(f'✅ STRUCTURAL 7 OK -- game {g.get("id")} carries streams[0].label={entry.get("label")!r} ({len(candidates)}/{len(games)} real games had broadcast data)')
+          PYEOF
+
+      # ══════════════════════════════════════════════════════════════
       # UPSTREAM PROBES — informational only, never fail the workflow
       # These test that upstream APIs are reachable through the relay.
       # Failures are expected during CI cold starts, rate limiting, or
