@@ -1,0 +1,26 @@
+name: JQ Judge Live Probe
+
+# One-shot: proves runQualityChain's qualitative voice judge (added in
+# CC-CMD-2026-07-16-journalism-quality-gate-redesign) parses a real
+# field-claude-proxy response correctly. Interactive sandbox sessions can't
+# reach field-claude-proxy directly (egress policy); this runner can.
+# Read-only against production -- calls runQualityChain() as a function
+# against synthetic drafts, no relay route hit, nothing written to D1/KV.
+# See docs/CC-CMD-2026-07-16-jq-judge-live-verify-and-calibration-watch.md.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run judge live probe
+        run: node scripts/jq-judge-live-probe.mjs
