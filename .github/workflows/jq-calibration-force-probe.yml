@@ -1,0 +1,27 @@
+name: JQ Calibration Force Probe
+
+# One-shot: forces a synthetic game completion through the real, deployed
+# production pipeline so the journalism-quality-gate-redesign fix
+# (CC-CMD-2026-07-16) can be verified with real quality_score data written
+# by the FULL pipeline (queue consumer -> runQualityChain -> D1), not just
+# an isolated function call. Interactive sandbox sessions can't POST to
+# field-relay-nba.jeffunglesbee.workers.dev directly; this runner can.
+# Writes exactly one clearly test-labeled row to ARCHIVE_DB.briefs.
+# See docs/CC-CMD-2026-07-16-jq-judge-live-verify-and-calibration-watch.md.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Force synthetic completion
+        run: node scripts/jq-calibration-force-probe.mjs
