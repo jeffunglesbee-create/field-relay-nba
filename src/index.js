@@ -15115,6 +15115,8 @@ export default {
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
+                     quality_score = excluded.quality_score,
+                     context_hash = excluded.context_hash,
                      source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                 ).bind(
                   // id keeps the raw job.sport slug (e.g. 'wc26') -- unrelated to the
