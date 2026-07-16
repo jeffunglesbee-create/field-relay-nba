@@ -1169,6 +1169,38 @@ function adaptNbaCDN(g) {
 // Replaces adaptFootball() for the wc26 sport slot. Produces the same game
 // object shape so all downstream consumers (writeWCResult, BSD enrichment,
 // computeLiveWP, GameDO, BracketDO) work without modification.
+//
+// CC-CMD-2026-07-16-broadcast-chip-durable-fix TASK 3: every V2 adapter's
+// output was missing a `streams` field entirely -- confirmed live tonight
+// across MLB/WNBA/NFL that gameNetwork() (client-side, reads
+// streams[0].label) had nothing to read for any sport on this ESPN-sourced
+// path, unlike the separate MLB-Stats-API path (parseBroadcasts/
+// ESPN_GOTD_SCHEDULE, a jubilant-bassoon-side gap, fixed separately).
+// Shared across all adapters below rather than re-derived per site (Rule
+// 62). Real shapes confirmed via a live CI probe against site.api.espn.com
+// (2026-07-16, 3 sports):
+//   comp.broadcasts:    [{market:'national'|'home'|'away', names:['ESPN']}]
+//   comp.geoBroadcasts: [{type:{shortName:'TV'|'Streaming'}, market:{type:'National'|'Home'|'Away'},
+//                         media:{shortName:'ESPN'}, lang, region}]
+// geoBroadcasts is the richer source (adds TV-vs-Streaming via
+// type.shortName) and is preferred when present; broadcasts is the
+// fallback for events where geoBroadcasts wasn't populated (both were
+// independently confirmed present on different real events in the same
+// probe, so neither can be assumed always-populated).
+function buildStreamsFromESPN(comp) {
+    const geo = comp?.geoBroadcasts;
+    if (Array.isArray(geo) && geo.length) {
+        return geo
+            .map(g => ({ label: g.media?.shortName || null, market: g.market?.type || null, type: g.type?.shortName || null }))
+            .filter(s => s.label);
+    }
+    const bc = comp?.broadcasts;
+    if (Array.isArray(bc) && bc.length) {
+        return bc.flatMap(b => (b.names || []).map(name => ({ label: name, market: b.market || null, type: null })));
+    }
+    return [];
+}
+
 // Adapts ESPN basketball/wnba (or /nba) scoreboard event → standard V2 FieldGame shape.
 // Named generically so NBA migration reuses the same function with sportKey='nba'.
 // ESPN shape confirmed 2026-06-26 against WNBA scoreboard:
@@ -1239,6 +1271,7 @@ function adaptESPNBasketball(ev, sportKey = 'wnba') {
             away: ls(away.linescores),
         },
         round: ev.week?.number ?? null,
+        streams: buildStreamsFromESPN(comp),
     };
 }
 
@@ -1321,6 +1354,7 @@ function adaptESPNFootball(ev, sport) {
         venue:      comp.venue?.fullName || '',
         round:      ev.week?.number ?? null,
         broadcasts: (comp.broadcasts || []).map(b => (b.names || [])).flat(),
+        streams:    buildStreamsFromESPN(comp),
         situation,
     };
 }
@@ -1391,6 +1425,7 @@ function adaptESPNMLB(ev) {
             home: ls(home.linescores),
             away: ls(away.linescores),
         },
+        streams: buildStreamsFromESPN(comp),
     };
 }
 
@@ -1588,6 +1623,7 @@ function adaptESPNWCSoccer(ev, sportKey = 'wc26') {
         round:       comp.altGameNote || ev.season?.slug || comp.type?.text || comp.notes?.[0]?.headline || comp.notes?.[0]?.text || '',
         situation,
         matchEvents,
+        streams: buildStreamsFromESPN(comp),
     };
 }
 
@@ -3450,6 +3486,7 @@ async function handleV2Games(url, env, ctx) {
                     tournamentId: tournament.id,
                     round: match.notes?.[0]?.headline || match.round?.displayName,
                     broadcasts: (match.broadcasts || []).map(b => b.names || []).flat(),
+                    streams: buildStreamsFromESPN(match),
                     bsdMatchId: match.id || null,
                     espnEventId: match.id,
                     sets: (home.linescores || []).map((s, i) => ({
