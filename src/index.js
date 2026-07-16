@@ -4721,6 +4721,61 @@ async function ensureFinalizedAtColumn(env) {
   _finalizedAtReady = true;
 }
 
+let _importanceColReady = false;
+async function ensureImportanceColumn(env) {
+  if (_importanceColReady) return;
+  if (!env.ARCHIVE_DB) return;
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE regular_season_games ADD COLUMN importance TEXT DEFAULT NULL`
+    ).run();
+  } catch (e) { /* column already exists — expected on every run after the first */ }
+  _importanceColReady = true;
+}
+
+// Detect whether a just-archived MLB regular-season game clinches a series.
+// series_record is the CURRENT record AFTER this game ("X-Y" = home wins-away
+// wins in this series). Returns {outcome, winner, loser, wins, losses} when
+// this game is the clincher; null otherwise.
+function detectMLBSeriesOutcome(home, away, homeScore, awayScore, seriesRecord) {
+  if (homeScore == null || awayScore == null || !seriesRecord) return null;
+  const parts = String(seriesRecord).split('-');
+  if (parts.length !== 2) return null;
+  const hw = parseInt(parts[0], 10);
+  const aw = parseInt(parts[1], 10);
+  if (isNaN(hw) || isNaN(aw)) return null;
+  // Series wins threshold: 2 (3-game) or 3 (4-game). Either side >= 2.
+  if (hw < 2 && aw < 2) return null;
+  const winnerIsHome = hw > aw;
+  const winnerWonThisGame = winnerIsHome ? (homeScore > awayScore) : (awayScore > homeScore);
+  // Only process the clinching game itself, not a prior game in a won series.
+  if (!winnerWonThisGame) return null;
+  const wins   = Math.max(hw, aw);
+  const losses = Math.min(hw, aw);
+  const outcome = losses === 0 ? 'sweep' : 'series_win';
+  return { outcome, winner: winnerIsHome ? home : away, loser: winnerIsHome ? away : home, wins, losses };
+}
+
+// Write the series outcome: UPDATE importance on the clinching game row and
+// INSERT a brief for journalism context. Called fire-and-forget from /archive/game.
+async function writeMLBSeriesResult(env, gameId, sport, date, seriesResult) {
+  const { outcome, winner, loser, wins, losses } = seriesResult;
+  await ensureImportanceColumn(env);
+  await env.ARCHIVE_DB.prepare(
+    `UPDATE regular_season_games SET importance = ? WHERE id = ?`
+  ).bind(outcome, gameId).run();
+  await ensureBriefsTable(env);
+  const briefId = `mlb_series_result_${date}_${gameId}`;
+  const label = outcome === 'sweep' ? `sweep (${wins}-${losses})` : `series win (${wins}-${losses})`;
+  const briefText = `${winner} completed a ${label} over ${loser}.`;
+  await env.ARCHIVE_DB.prepare(
+    `INSERT INTO briefs
+       (id, date, brief_type, sport, game_id, brief_text, source, word_count)
+     VALUES (?, ?, 'mlb_series_result', ?, ?, ?, 'series_detection', ?)
+     ON CONFLICT(id) DO NOTHING`
+  ).bind(briefId, date, sport, gameId, briefText, briefText.split(/\s+/).length).run();
+}
+
 // Allowlisted target tables for POST /savant/sync. Add an entry here (schema
 // + name) each time a genuinely new Savant/lineup/weather/injury tracking
 // table is needed — this is the one place that grows, not a new endpoint.
@@ -9396,6 +9451,20 @@ export default {
                     }
                 } catch (e) { console.error("[ARCHIVE-GAME] closing-odds capture failed:", e.message); /* closing-odds capture never breaks core response */ }
 
+                // ── MLB series outcome detection ──────────────────────────────
+                // Fire-and-forget: writes importance='sweep'|'series_win' on the
+                // clinching game row and inserts a 'mlb_series_result' brief for
+                // journalism context. Only fires for scored MLB regular-season games
+                // when series_record is present. Never affects core response.
+                if (!series_key && sport === 'MLB' && home_score != null && away_score != null && series_record) {
+                    try {
+                        const seriesResult = detectMLBSeriesOutcome(home, away, home_score, away_score, series_record);
+                        if (seriesResult) {
+                            await writeMLBSeriesResult(env, id, sport, date, seriesResult);
+                        }
+                    } catch (e) { console.error("[ARCHIVE-GAME] MLB series detection failed:", e.message); /* never breaks core response */ }
+                }
+
                 return new Response(JSON.stringify({
                     ok: true,
                     id,
@@ -11914,16 +11983,16 @@ export default {
                 };
 
                 // Completed games for "What Changed" — structural facts only.
-                // Schema reality (verified): regular_season_games has no
-                // status/OT columns; postseason_games carries `importance`
-                // ('clinch' | 'elimination' | 'playoffs' | null). Upset
-                // detection runs off closing_odds (favorite lost AND
-                // underdog ML >= +150).
+                // Schema reality (verified): regular_season_games carries `importance`
+                // (NULL | 'sweep' | 'series_win') written by writeMLBSeriesResult().
+                // postseason_games carries `importance` ('clinch' | 'elimination' |
+                // 'playoffs' | null). Upset detection runs off closing_odds (favorite
+                // lost AND underdog ML >= +150).
                 try {
                     const [regGames, postGames] = await Promise.all([
                         env.ARCHIVE_DB.prepare(`
                             SELECT id, sport, home, away, home_score, away_score,
-                                   closing_odds, went_to_ot, finalized_at, NULL AS importance
+                                   closing_odds, went_to_ot, finalized_at, importance
                             FROM regular_season_games
                             WHERE date = ? AND home_score IS NOT NULL
                         `).bind(yesterday).all(),
@@ -11961,7 +12030,7 @@ export default {
                             }
                         } catch (e) { console.error("[ANALYTICS-NEWSPAPER] closing-odds parse failed:", e.message); /* odds malformed — leave wasUpset false */ }
                         const margin = Math.abs((g.home_score || 0) - (g.away_score || 0));
-                        const isSeriesClinch = g.importance === 'clinch';
+                        const isSeriesClinch = g.importance === 'clinch' || g.importance === 'sweep' || g.importance === 'series_win';
                         const isElimination  = g.importance === 'elimination';
                         return {
                             id: g.id,
