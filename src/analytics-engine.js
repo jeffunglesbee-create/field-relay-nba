@@ -1398,6 +1398,11 @@ async function runPhase6DBrokenRecord(env, date) {
 
     // teamGrams: team -> Map<gram, [dates]>
     const teamGrams = new Map();
+    // gramTeams: gram -> Set<team> — tracks how many distinct teams carry each gram.
+    // Journalism template phrases ("team to beat in this bracket") appear across many
+    // teams; genuine story phrases are concentrated on 1-2 teams. Built in the same
+    // pass so the exclusivity filter below costs nothing extra.
+    const gramTeams = new Map();
     for (const r of rows) {
         const grams = fourGrams(r.brief_text);
         for (const team of [r.home, r.away]) {
@@ -1409,6 +1414,8 @@ async function runPhase6DBrokenRecord(env, date) {
             for (const g of new Set(grams)) {
                 if (!m.has(g)) m.set(g, []);
                 m.get(g).push(r.date);
+                if (!gramTeams.has(g)) gramTeams.set(g, new Set());
+                gramTeams.get(g).add(team);
             }
         }
     }
@@ -1418,6 +1425,13 @@ async function runPhase6DBrokenRecord(env, date) {
         for (const [gram, dates] of gramMap) {
             // Filter out common sport-domain stop-grams to keep signal high.
             if (/^(the|in the|on the|at the|to the)\b/.test(gram)) continue;
+            // Exclusivity filter: journalism model templates appear for many teams
+            // ("team to beat in this bracket" → 8+ teams; "masterclass in" → 10+ teams).
+            // Real broken-record phrases are team-specific — but because grams get
+            // assigned to BOTH home and away, a team-specific phrase about a team
+            // that plays 4 games appears for that team + 4 opponents = 5 distinct teams.
+            // Threshold 5 passes genuine story phrases while cutting clear templates.
+            if ((gramTeams.get(gram)?.size || 0) > 5) continue;
             if (dates.length >= 3) {
                 records.push({ team, phrase: gram, occurrences: dates.length, dates });
             }
