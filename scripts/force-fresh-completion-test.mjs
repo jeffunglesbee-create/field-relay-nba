@@ -8,9 +8,9 @@ const RELAY_BASE = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
 const job = {
     sport: 'mlb',
-    gameId: 'espn:8880002',
-    home: 'CCCMD Test Braves',
-    away: 'CCCMD Test Marlins',
+    gameId: '8880099',
+    home: 'CCCMD Integrity Home',
+    away: 'CCCMD Integrity Away',
     homeScore: 4,
     awayScore: 2,
 };
