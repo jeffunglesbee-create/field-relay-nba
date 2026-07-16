@@ -2554,11 +2554,16 @@ async function handleWCThirdPlace(env) {
     if (!env.WC2026_DB)
         return new Response(JSON.stringify({ error: 'WC2026_DB not bound' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
-    const { results } = await env.WC2026_DB.prepare(
-        'SELECT * FROM wc_third_place_standings'
-    ).all();
-    return new Response(JSON.stringify({ third_place: results, ts: Date.now() }),
-        { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
+    try {
+        const { results } = await env.WC2026_DB.prepare(
+            'SELECT * FROM wc_third_place_standings'
+        ).all();
+        return new Response(JSON.stringify({ third_place: results, ts: Date.now() }),
+            { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=60' } });
+    } catch (err) {
+        return new Response(JSON.stringify({ error: 'third_place_standings unavailable', detail: String(err) }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
 }
 
 // GET /wc/odds-probs — no-vig match probabilities + Poisson lambdas from Odds API.
