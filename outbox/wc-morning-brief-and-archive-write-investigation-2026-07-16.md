@@ -81,3 +81,18 @@ The archive-write failure is **real, reproduced multiple times** (3 separate gam
 ## Unblock criteria (Rule 74)
 
 `GET /debug/last-archive-error` (via CI-as-proxy — `/debug/*` is on `probe_relay_route`'s forbidden-prefix list) whenever the archive-write failure is suspected to have recurred. If `lastError` is non-null, the captured `error` field is the real, previously-unavailable exception message needed to actually root-cause this. The `wrangler-tail-diagnostic.yml` workflow (real Cloudflare log access via CI, `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets) remains available for a live-tail capture during any future investigation of this repo generally, not just this bug.
+
+## Addendum (2026-07-16, ~13:32 UTC) — did the confirmed cases predate the telemetry, or is the D1 write genuinely non-throwing?
+
+A parallel session (mobile, no code access) raised a real, checkable question after independently re-deriving the same "fresh KV, stale D1" shape: `/debug/last-archive-error` still reads `null` despite the confirmed cases above — does that mean the D1 write fails without throwing at all (a D1-level durability issue, not an application bug), or do the confirmed cases simply predate the telemetry going live?
+
+Checked real deploy timestamps via `mcp__github__actions_list` rather than estimating from commit times:
+- `bfd4149` (the telemetry itself) deployed **`2026-07-16T11:44:26Z`**.
+- `354398f` (the WC-morning-brief fix, whose live-verification is what surfaced the original 3 fresh-KV/stale-D1 cases) deployed **`2026-07-16T11:25:51Z`**.
+- The confirmed cases were observed at **11:26 and 11:45 UTC** (per "What was found" above). The 11:26 case unambiguously **predates** the telemetry (18 minutes before it existed). The 11:45 case sits right at the boundary — too close to the 11:44:26 deploy to call precisely from memory-recorded timestamps alone.
+
+Re-checked `/debug/last-archive-error` live just now (new one-shot CI probe, `check-last-archive-error.mjs` / `.yml`, commit `eb91000`): **`{"ok":true,"lastError":null}`** at `2026-07-16T13:32:54Z` — just under 2 hours of real live-hours cron activity since the telemetry went live, zero captured errors.
+
+This cross-references cleanly with the two live `/integrity/game-briefs` dry runs from the `c2989f1` verification (both after `12:55 UTC`, both `divergentCount: 0`) — that detector compares KV vs. D1 state directly and does **not** depend on the queue consumer's catch block at all, so it would independently catch a silently-non-throwing D1 failure that the telemetry might miss. Two independent detection paths, ~2 hours of real cron activity, zero recurrences of either signature.
+
+**Conclusion, still not certain but now evidence-weighted rather than speculative:** leans toward "the confirmed cases predate the telemetry" over "a currently-active, non-throwing D1 failure" — if the latter were true, `/integrity/game-briefs`'s direct-comparison method (which needs no exception to fire) should plausibly have caught at least one recurrence by now. Not proof of absence, and the intermittent-not-deterministic conclusion from the main body stands unchanged; this only narrows which of the two explanations for the null telemetry is better supported by data available since.
