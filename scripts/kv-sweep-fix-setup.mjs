@@ -8,8 +8,8 @@
 const RELAY_BASE = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
 const jobs = [
-    { sport: 'mlb', gameId: '8880201', home: 'CCCMD Sweep Repair Home', away: 'CCCMD Sweep Repair Away', homeScore: 4, awayScore: 3 },
-    { sport: 'mlb', gameId: '8880202', home: 'CCCMD Sweep Insert Home', away: 'CCCMD Sweep Insert Away', homeScore: 2, awayScore: 1 },
+    { sport: 'mlb', gameId: '8880301', home: 'CCCMD Sweep Repair Home', away: 'CCCMD Sweep Repair Away', homeScore: 4, awayScore: 3 },
+    { sport: 'mlb', gameId: '8880302', home: 'CCCMD Sweep Insert Home', away: 'CCCMD Sweep Insert Away', homeScore: 2, awayScore: 1 },
 ];
 
 async function main() {
