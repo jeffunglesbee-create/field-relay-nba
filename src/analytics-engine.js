@@ -1383,12 +1383,12 @@ async function runPhase6DBrokenRecord(env, date) {
     const [regRes, psRes] = await Promise.allSettled([
         env.ARCHIVE_DB.prepare(`
             SELECT b.date, b.brief_text, g.home, g.away
-            FROM briefs b JOIN regular_season_games g ON b.game_id = g.id
+            FROM briefs b JOIN regular_season_games g ON b.game_id = g.espn_event_id
             WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
         `).bind(since, date).all(),
         env.ARCHIVE_DB.prepare(`
             SELECT b.date, b.brief_text, g.home, g.away
-            FROM briefs b JOIN postseason_games g ON b.game_id = g.id
+            FROM briefs b JOIN postseason_games g ON b.game_id = g.espn_event_id
             WHERE b.date >= ? AND b.date <= ? AND b.brief_text IS NOT NULL
         `).bind(since, date).all(),
     ]);
