@@ -291,6 +291,31 @@ Client rules:
 
 ---
 
+## drama_arc (D1 column + POST /archive/drama-arc)
+
+Producer: jubilant-bassoon (client computes via buildDramaArc / live drama tracker)
+Consumer: relay POST /archive/drama-arc → stores in regular_season_games.drama_arc (TEXT/JSON)
+Read back via: GET /archive/game → game.drama_arc_parsed (parsed object)
+
+```
+{
+  peak:             number        // 0-100 peak drama score
+  peakPeriod:       number        // period number when peak occurred
+  peakMinute:       number | null // minutes into game (future use)
+  sustainedMinutes: number        // minutes spent above drama threshold
+  trend:            "escalating" | "declining" | "steady"
+  classification:   string        // from _dramaArcClassify() — e.g. "blowout", "nailbiter"
+  samples:          [{s: number, p: number}]  // up to 10 downsampled (score, period) pairs
+}
+```
+
+POST body: `{ source_id: string, drama_peak: number, drama_arc: object | string }`
+- drama_arc accepted as JSON object or JSON string
+- Relay normalizes to string before D1 write
+- Relay reads back and parses to drama_arc_parsed in /archive/game response
+
+---
+
 ## UserDO events
 
 Producer: jubilant-bassoon POST /user/event
