@@ -1,0 +1,26 @@
+name: Journalism Run Diagnostic
+
+# One-shot, read-only diagnostic: calls the real, existing
+# POST /journalism/run?force=true route and captures its full,
+# synchronous result object, to diagnose why handleJournalismCycle's
+# live-hours branch hasn't produced fresh output since 00:00:47 UTC.
+# No code change, no bypass -- this route already exists and is
+# reachable; only the sandbox's own egress policy blocks calling it
+# directly from an interactive session.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Call /journalism/run and capture result
+        run: node scripts/journalism-run-diagnostic.mjs
