@@ -1,0 +1,21 @@
+name: Probe ESPN Broadcast Shape
+
+# One-shot: fetches real ESPN scoreboard data to confirm the real
+# broadcasts/geoBroadcasts shape before building the V2 adapter streams fix.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Probe ESPN broadcast shape
+        run: node scripts/probe-espn-broadcast-shape.mjs
