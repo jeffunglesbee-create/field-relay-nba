@@ -1,0 +1,51 @@
+name: TEMP Wrangler Tail Capture
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-wrangler-tail.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Capture real live wrangler tail output
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mkdir -p outbox
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="outbox/wrangler-tail-capture-${TS}.log"
+          echo "=== wrangler tail capture start: $(date -u) ===" | tee "$OUT"
+          npx wrangler tail field-relay-nba --format=pretty > "${OUT}.raw" 2>&1 &
+          TAIL_PID=$!
+          echo "wrangler tail PID $TAIL_PID started, waiting up to 180s for real activity..." | tee -a "$OUT"
+          # Give the tail session a moment to establish, then force a real cycle
+          sleep 8
+          echo "--- forcing a real journalism cycle to trigger during the tail window ---" | tee -a "$OUT"
+          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/run?force=true" -o /tmp/force_run.json -w "force-run HTTP %{http_code}\n" | tee -a "$OUT"
+          cat /tmp/force_run.json | tee -a "$OUT" || true
+          sleep 170
+          kill $TAIL_PID 2>/dev/null || true
+          wait $TAIL_PID 2>/dev/null || true
+          echo "=== wrangler tail capture end: $(date -u) ===" | tee -a "$OUT"
+          echo "--- raw tail output ---" | tee -a "$OUT"
+          cat "${OUT}.raw" | tee -a "$OUT" || echo "(no raw output captured)" | tee -a "$OUT"
+          rm -f "${OUT}.raw"
+
+      - name: Commit captured log
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/wrangler-tail-capture-*.log 2>/dev/null || true
+          git commit -m "temp: real wrangler tail capture, forced journalism cycle during window [skip ci]" || echo "nothing to commit"
+          git push origin main || echo "push failed, will need manual retry"
