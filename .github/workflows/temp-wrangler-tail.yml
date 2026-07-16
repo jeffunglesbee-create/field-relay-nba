@@ -31,7 +31,7 @@ jobs:
           # Give the tail session a moment to establish, then force a real cycle
           sleep 8
           echo "--- forcing a real journalism cycle to trigger during the tail window ---" | tee -a "$OUT"
-          curl -sS "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/run?force=true" -o /tmp/force_run.json -w "force-run HTTP %{http_code}\n" | tee -a "$OUT"
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/journalism/run?force=true" -o /tmp/force_run.json -w "force-run HTTP %{http_code}\n" | tee -a "$OUT"
           cat /tmp/force_run.json | tee -a "$OUT" || true
           sleep 170
           kill $TAIL_PID 2>/dev/null || true
