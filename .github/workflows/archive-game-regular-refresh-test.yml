@@ -1,0 +1,21 @@
+name: Archive Game Regular Refresh Test
+
+# One-shot: verifies the regular_season_games branch of the /archive/game
+# home/away upsert fix still upserts correctly on a same-id conflict.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run regular-season refresh test
+        run: node scripts/archive-game-regular-refresh-test.mjs
