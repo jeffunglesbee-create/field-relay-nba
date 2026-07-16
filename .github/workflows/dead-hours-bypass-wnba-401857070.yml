@@ -1,0 +1,27 @@
+name: Dead Hours Bypass — WNBA 401857070
+
+# One-time, explicitly-authorized bypass of handleJournalismCycle's
+# isLiveHours dead-hours gate (CC-CMD-2026-07-16-dead-hours-bypass).
+# The gate itself is unmodified in committed code -- this uses the
+# existing, gate-free /journalism/game-complete route with the real
+# final result for the one real WNBA game confirmed stuck on the stale
+# pre-game preview (espn:401857070, Valkyries 88 @ Fever 75, final).
+# Interactive-session sandboxes can't POST to field-relay-nba directly;
+# this runner can. See docs/CC-CMD-2026-07-16-dead-hours-bypass.md.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Trigger real completion for espn:401857070
+        run: node scripts/dead-hours-bypass-wnba-401857070.mjs
