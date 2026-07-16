@@ -5031,32 +5031,46 @@ async function sweepKVBriefs(env) {
       let briefText = kvVal;
       let qualityScore = null;
       let contextHash = null;
+      let kvSport = null;
       if (kvVal[0] === '{') {
         try {
           const p = JSON.parse(kvVal);
           briefText = p.brief || p.brief_text || p.text || kvVal;
           qualityScore = p.quality_score || p.score || null;
           contextHash = p.contextHash || null;
+          // The real queue consumer's KV payload always carries `sport`
+          // (job.sport) in the JSON value -- its own key is always the
+          // 2-part `brief:game:{id}` form (never `{sport}:{id}`), so the
+          // key-name parse below would otherwise see every real entry as
+          // sport-less. Prefer the payload's sport; the key-name segment
+          // (legacy/other writers) is only a fallback.
+          kvSport = p.sport || null;
         } catch (e) { console.error("[KV-SWEEP] brief JSON parse failed:", e.message); /* fall back to raw value */ }
       }
       if (!briefText || briefText.length < 50) continue;
       // Parse game_id + sport from key: brief:game:{sport}:{id} or brief:game:{id}
       const parts = key.name.replace('brief:game:', '').split(':');
       const gameId = parts.length >= 2 ? parts[parts.length - 1] : parts[0];
-      let sport    = parts.length >= 2 ? parts[0] : null;
-      // Rule 73 (CLAIM-CONTEXT-A): null-sport keys skip when a sport-tagged
-      // sibling already exists — the cron-tagged brief is authoritative.
+      let sport    = kvSport || (parts.length >= 2 ? parts[0] : null);
+      // Was a `continue`-based skip when a sport-tagged sibling already
+      // existed (Rule 73 / CLAIM-CONTEXT-A, comment preserved below) --
+      // that existed to prevent a REDUNDANT null-sport row under the old,
+      // mismatched id scheme, which this sweep's own separate id-mismatch
+      // fix (game_id-based existing-row lookup + ON CONFLICT DO UPDATE,
+      // below) now makes obsolete: the lookup already finds and updates
+      // the sport-tagged sibling directly, so a skip here would instead
+      // block the intended repair path for the single most common real
+      // case -- confirmed live via a forced test: an existing sport-tagged
+      // row with a stale (desynced) briefs entry was NOT repaired while
+      // this early `continue` was still in place. Adopt the sibling's
+      // sport instead of skipping, so the id-construction below matches it.
       if (!sport) {
-        let existing;
         try {
-          existing = await env.ARCHIVE_DB.prepare(
-            `SELECT 1 FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
+          const sibling = await env.ARCHIVE_DB.prepare(
+            `SELECT sport FROM briefs WHERE game_id = ? AND sport IS NOT NULL AND sport != '' LIMIT 1`
           ).bind(gameId).first();
-        } catch (e) {
-          console.error("[KV-SWEEP] sport-sibling dedup check failed:", e.message);
-          continue; // can't confirm whether a sport-tagged sibling exists -- skip rather than risk a redundant null-sport row
-        }
-        if (existing) continue;
+          if (sibling && sibling.sport) sport = sibling.sport;
+        } catch (e) { console.error("[KV-SWEEP] sport-sibling lookup failed:", e.message); /* proceed with sport still null -- game_id lookup below still finds the real row by id */ }
       }
       if (!qualityScore) {
         try {
