@@ -357,28 +357,66 @@ export async function scoreProse(text, opts = {}) {
   const nSent = Math.max(1, sentences.length);
   const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
 
-  // Dim 1: Specificity (0→30)
+  // Dim 1: Specificity (0→30) — CC-CMD-2026-07-16-journalism-quality-gate-redesign:
+  // was a flat (nouns+numbers)/words ratio, which rewards telegraphic listing
+  // (dropping connective/analytical prose) over specificity woven into real
+  // sentences. Reproduced live: the file's own labeled ANTI-exemplar ("Stanley
+  // Cup Final Game 1 begins tonight... 39-26-17 Golden Knights face the
+  // 53-22-7 Hurricanes...") scored 4x higher on this exact dimension (0.55 vs
+  // 0.13) than FIELD_VOICE_REGISTER's own real Exemplar A, because listing
+  // facts with minimal connective tissue maximizes a flat ratio. Redefined
+  // per-sentence: a sentence carrying exactly 1 name-or-number is the ideal
+  // (matches FIELD_PROSE_STYLE's own "ONE-NUMBER-PER-SENTENCE RATIO" rule —
+  // "a brief with 4 numbers in 12 sentences breathes"), 2 is acceptable, 0 or
+  // 3+ score lower — rewards prose rhythm, not raw density.
   const properNouns = words.filter(w => /^[A-Z]/.test(w) && !sentStarts.has(w) && w.length > 1);
   const numbersAll  = words.filter(w => /\d/.test(w));
-  const specificity = (properNouns.length + numbersAll.length) / words.length;
+  const factsPerSentence = sentences.map(s => {
+    const sw = s.split(/\s+/).filter(Boolean);
+    const first = sw[0];
+    const nouns = sw.filter(w => /^[A-Z]/.test(w) && w !== first && w.length > 1).length;
+    const nums  = sw.filter(w => /\d/.test(w)).length;
+    return nouns + nums;
+  });
+  const specificity = factsPerSentence.length
+    ? factsPerSentence.reduce((sum, f) => {
+        if (f === 1) return sum + 1.0;
+        if (f === 2) return sum + 0.6;
+        if (f === 0) return sum + 0.3;
+        return sum + Math.max(0, 0.3 - (f - 3) * 0.1); // 3+ facts/sentence tapers toward 0 — "a box score with verbs"
+      }, 0) / factsPerSentence.length
+    : 0;
 
-  // Dim 2: StatDepth (0→38)
-  const statPatterns = [
-    /\b\d{1,3}(?:\.\d{1,2})?\s*(?:PPG|APG|RPG|BPG|SPG|MPG|ERA|WHIP|OPS|WAR|DRTG|ORTG|PACE)\b/gi,
-    /\b\d{1,3}(?:\.\d{1,2})?%/g,
-    /\b\d{1,3}-\d{1,3}\b/g,
-    /\b\d+\s*(?:pts?|points?|rebounds?|assists?|goals?|saves?|yards?|rbi)\b/gi,
-  ];
-  const stats = new Set();
-  for (const p of statPatterns) (text.match(p)||[]).forEach(m=>stats.add(m));
-  const statDepth = Math.min(1, stats.size / 4);
+  // Dim 2: StatDepth (0→38) — was blind to FIELD's own preferred numbers-in-
+  // prose grammar (FIELD_VOICE_REGISTER's appositive/prepositional/
+  // parenthetical patterns: "Wembanyama at 23.2 and 9", "Brunson grinding out
+  // 26 a night", "SAS -2.5" carry no unit suffix and matched zero stat
+  // patterns — reproduced live, Exemplar A scored 0/1 statDepth despite being
+  // full of real stats). Now counts any numeric token — already computed
+  // above as numbersAll — scaled relative to sentence count (~1 stat per 2
+  // sentences = full credit, matching the "breathes" ratio already stated in
+  // FIELD_PROSE_STYLE) instead of a flat, length-blind ceiling of 4 raw
+  // unit-suffixed matches.
+  const statDepth = Math.min(1, numbersAll.length / Math.max(2, nSent * 0.5));
 
   // Dim 3: Variety (0→30)
   const uniqueW = new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g,'')).filter(w=>w.length>2));
   const variety = uniqueW.size / words.length;
 
-  // Dim 4: Density (0→16)
-  const density = (properNouns.length + numbersAll.length) / nSent;
+  // Dim 4: Density (0→16) — CC-CMD-2026-07-16-journalism-quality-gate-redesign:
+  // this was a raw, UNCLAMPED (properNouns+numbers)/nSent ratio multiplied
+  // directly into `base` below — silently blowing through this dimension's
+  // own documented 16-point ceiling (see file header comment) for any text
+  // averaging more than 1 fact/sentence, with NO upper bound. Reproduced
+  // live: the anti-exemplar (4.6 facts/sentence) contributed 74 raw points
+  // here — nearly 5x its stated ceiling — while Exemplar A (1.9/sentence,
+  // much closer to ideal) contributed only 30. The more wire-copy-stacked
+  // the text, the more this dimension over-rewarded it, unbounded. Now peaks
+  // at the ideal (~1 fact/sentence, per FIELD_PROSE_STYLE's own rule) and
+  // tapers for both under- and over-stacked text, clamped to [0,1] before
+  // its weight is applied.
+  const rawDensity = (properNouns.length + numbersAll.length) / nSent;
+  const density = Math.max(0, Math.min(1, 1 - Math.abs(rawDensity - 1) * 0.5));
 
   // Dim 5: Freshness via Datamuse (0→36)
   const freshness = await _datamuseFreshness(words);
@@ -610,227 +648,25 @@ export const FIELD_VOICE_REGISTER = [
   '',
 ].join('\n');
 
-// ── 3b dimension-targeting helpers ───────────────────────────────────────────
-// These do NOT change scoring (scoreProse's own computation above is
-// untouched) -- they re-derive the same sub-checks scoreProse already uses
-// internally, purely to name WHICH specific thing was weak for the 3b retry
-// prompt. Kept in sync with scoreProse's Dim 6 / Dim 9 logic by construction
-// (same regex patterns) -- if those change, these must change with them.
-
-// Mirrors scoreProse's Dim 6 (Narrative Arc) stakes/tension/resolution
-// checks, so the 3b prompt can name which specific sub-component failed
-// instead of a generic "arc is weak."
-function _arcSubComponents(text) {
-  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 3);
-  const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
-  const first = sentences[0] || '';
-  const last  = sentences[sentences.length - 1] || '';
-  const stakes = /\b\d-\d\b/.test(first) ||
-    /\b(finals|championship|eliminated|advance|clinch|series|title|cup|playoffs)\b/i.test(first) ||
-    /\b(first since|since \d{4}|\d+ years?|hasn.t.*since)\b/i.test(first);
-  const tension = sentences.some(s => {
-    const sw = s.split(/\s+/);
-    const hasPlayer = sw.some(w => /^[A-Z][a-z]{2,}/.test(w) && !sentStarts.has(w) && w.length > 3);
-    const hasStat   = /\d/.test(s) && (/\d+\.\d/.test(s) || /\d+%/.test(s) ||
-      /\b(pts?|points?|rebounds?|assists?|goals?|ppg|apg|rpg|saves?)\b/i.test(s));
-    return hasPlayer && hasStat;
-  });
-  const resolution = /\b(watch|look for|decide|determine|force|need|must|whether|tonight|expect|key|swing)\b/i.test(last) ||
-    /\bif\b/i.test(last) || /\?/.test(last) ||
-    (sentences.length >= 2 && /\b(will|could|may|might)\b/i.test(last));
-  return { stakes, tension, resolution };
-}
-
-// Mirrors scoreProse's Dim 9 (Voice Consistency) per-sport pos/neg term
-// checks, with labels attached, so the 3b prompt can name the specific
-// wrong-sport terms found (or the specific expected terms missing) instead
-// of a generic "voice is off." Deliberately separate from 2b's
-// checkSportVocab mechanism (a different violation list, different purpose)
-// -- see TASK 3's own instruction not to duplicate 2b.
-function _voiceViolationDetail(text, sport) {
-  const tl = text.toLowerCase();
-  const s = (sport || '').toLowerCase();
-  const SPORT_TERMS = {
-    nba: {
-      pos: [[/quarter/i, 'quarter'], [/\bq[1-4]\b/i, 'Q#'], [/half-court/i, 'half-court'], [/\bpace\b/i, 'pace'], [/\bspacing\b/i, 'spacing'], [/pick.and.roll/i, 'pick-and-roll']],
-      neg: [[/inning/i, 'inning'], [/\bperiod\b/i, 'period'], [/\bpower play/i, 'power play']],
-    },
-    nhl: {
-      pos: [[/\bperiod\b/i, 'period'], [/power play/i, 'power play'], [/\bpp\b/i, 'PP'], [/\bpk\b/i, 'PK'], [/\bsave/i, 'save'], [/\bgoalie/i, 'goalie']],
-      neg: [[/inning/i, 'inning'], [/quarter/i, 'quarter'], [/\byards\b/i, 'yards']],
-    },
-    mlb: {
-      pos: [[/inning/i, 'inning'], [/\bera\b/i, 'ERA'], [/\bwhip\b/i, 'WHIP'], [/bullpen/i, 'bullpen'], [/rotation/i, 'rotation']],
-      neg: [[/quarter/i, 'quarter'], [/\bperiod\b/i, 'period'], [/power play/i, 'power play']],
-    },
-    soccer: {
-      pos: [[/\bmatch\b/i, 'match'], [/possession/i, 'possession'], [/\bminute\b/i, 'minute'], [/\bhalf\b/i, 'half'], [/\bpressing\b/i, 'pressing']],
-      neg: [[/quarter/i, 'quarter'], [/inning/i, 'inning']],
-    },
-  };
-  let key = null;
-  if (s.includes('nba') || s.includes('basketball')) key = 'nba';
-  else if (s.includes('nhl') || s.includes('hockey')) key = 'nhl';
-  else if (s.includes('mlb') || s.includes('baseball')) key = 'mlb';
-  else if (s.includes('soccer') || s.includes('mls') || s.includes('wc26') || s.includes('fifa')) key = 'soccer';
-  if (!key) return null;
-  const { pos, neg } = SPORT_TERMS[key];
-  const negHits = neg.filter(([re]) => re.test(tl)).map(([, label]) => label);
-  const posHits = pos.filter(([re]) => re.test(tl)).map(([, label]) => label);
-  return { sportKey: key, negHits, posHits };
-}
-
-// One specific, concrete correction block per dimension -- "name the
-// specific violation, give a specific correction," the same pattern layers
-// 2/2b/2c/2d/2d-score/2e already use. Not generic filler for any of the 10.
-function _dimensionCorrection(dimKey, text, ctx) {
-  const { sport, game, matchupNote } = ctx;
-  switch (dimKey) {
-    case 'specificity': {
-      const words = text.split(/\s+/).filter(Boolean);
-      const sentStarts = new Set(text.split(/[.!?]+/).map(s => s.trim().split(/\s+/)[0]));
-      const properNouns = words.filter(w => /^[A-Z]/.test(w) && !sentStarts.has(w) && w.length > 1);
-      const numbersAll  = words.filter(w => /\d/.test(w));
-      const pct = words.length ? Math.round(((properNouns.length + numbersAll.length) / words.length) * 100) : 0;
-      return `LOW SPECIFICITY (${pct}% of words are names/numbers): too many sentences rely on generic description. Add a specific player name, team name, or figure to every sentence that currently has none.`;
-    }
-    case 'statDepth': {
-      const statPatterns = [
-        /\b\d{1,3}(?:\.\d{1,2})?\s*(?:PPG|APG|RPG|BPG|SPG|MPG|ERA|WHIP|OPS|WAR|DRTG|ORTG|PACE)\b/gi,
-        /\b\d{1,3}(?:\.\d{1,2})?%/g,
-        /\b\d{1,3}-\d{1,3}\b/g,
-        /\b\d+\s*(?:pts?|points?|rebounds?|assists?|goals?|saves?|yards?|rbi)\b/gi,
-      ];
-      const stats = new Set();
-      for (const p of statPatterns) (text.match(p) || []).forEach(m => stats.add(m));
-      return `LOW STAT DEPTH (only ${stats.size}/4 target statistical patterns present — rate stats like PPG/ERA/%, counting stats like points/goals/RBI, or score-lines): add at least ${Math.max(1, 4 - stats.size)} more specific figures with units, not vaguer than the ones already present.`;
-    }
-    case 'variety': {
-      const words = text.split(/\s+/).filter(Boolean);
-      const uniqueW = new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g, '')).filter(w => w.length > 2));
-      const pct = words.length ? Math.round((uniqueW.size / words.length) * 100) : 0;
-      return `LOW VOCABULARY VARIETY (${pct}% unique words): the same words/phrases repeat too often. Vary word choice and sentence structure — do not reuse the same verb or descriptor twice.`;
-    }
-    case 'density': {
-      const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 3);
-      const nSent = Math.max(1, sentences.length);
-      const words = text.split(/\s+/).filter(Boolean);
-      const sentStarts = new Set(sentences.map(s => s.split(/\s+/)[0]));
-      const properNouns = words.filter(w => /^[A-Z]/.test(w) && !sentStarts.has(w) && w.length > 1);
-      const numbersAll  = words.filter(w => /\d/.test(w));
-      const perSent = (nSent ? (properNouns.length + numbersAll.length) / nSent : 0).toFixed(1);
-      return `LOW FACT DENSITY (averaging ${perSent} names/numbers per sentence): too many sentences carry no concrete detail. Add a name or figure to every sentence that currently has neither.`;
-    }
-    case 'freshness':
-      return `GENERIC WORD CHOICE: several words in this draft are common, low-information filler rather than specific or vivid language. Replace generic descriptive words (e.g. "big," "great," "important," "solid") with concrete, precise ones tied to what actually happened in this game.`;
-    case 'arcScore': {
-      const { stakes, tension, resolution } = _arcSubComponents(text);
-      const missing = [];
-      if (!stakes) missing.push('STAKES (the opening sentence does not establish what\'s on the line — a series/title/elimination context, or a "first since"-type stat)');
-      if (!tension) missing.push('TENSION (no sentence pairs a specific player name with a specific stat to create a concrete point of drama)');
-      if (!resolution) missing.push('RESOLUTION (the closing sentence does not point toward what to watch for or what the outcome will hinge on)');
-      return `LOW NARRATIVE ARC — missing: ${missing.join('; ')}. Fix specifically what is missing, not the whole structure.`;
-    }
-    case 'contextAnchoring': {
-      if (!game) return null; // not applicable, no game data to anchor to
-      const tl = text.toLowerCase();
-      const homeTerm = (game.home || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
-      const awayTerm = (game.away || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
-      const missing = [];
-      if (homeTerm.length > 2 && !tl.includes(homeTerm)) missing.push(`"${game.home}"`);
-      if (awayTerm.length > 2 && !tl.includes(awayTerm)) missing.push(`"${game.away}"`);
-      const hs = game.homeScore != null ? String(game.homeScore) : '';
-      const as_ = game.awayScore != null ? String(game.awayScore) : '';
-      const scoreMissing = !((hs && text.includes(hs)) || (as_ && text.includes(as_)));
-      const parts = [];
-      if (missing.length) parts.push(`the team name(s) ${missing.join(' and ')} never appear`);
-      if (scoreMissing) parts.push(`the final score (${game.away} ${as_}, ${game.home} ${hs}) never appears`);
-      if (!parts.length) return null;
-      return `LOW CONTEXT ANCHORING: ${parts.join('; ')}. Name both teams explicitly and include the exact final score.`;
-    }
-    case 'temporalScore': {
-      const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
-      const STAT_RE = /\d+\.?\d*\s*(ppg|apg|rpg|pts?|points?|rebounds?|assists?|goals?|saves?|era|ops|mph|yards?|rbi|%|\+\/\-)/i;
-      const TEMPORAL_RE = /\b(this series|this season|this postseason|in game \d|game \d|in \d{4}|since \d{4}|last \d+ games?|per game|on the year|this year|career|tonight|in the playoffs?|in these playoffs?)\b/i;
-      const unanchored = sentences.filter(s => STAT_RE.test(s) && !TEMPORAL_RE.test(s));
-      if (!unanchored.length) return null;
-      return `LOW TEMPORAL PRECISION: ${unanchored.length} sentence(s) with a statistic have no time-period qualifier, e.g. "${unanchored[0].slice(0, 80)}". Every stat needs a window like "this series," "this postseason," or "tonight" in the same sentence.`;
-    }
-    case 'voiceScore': {
-      const detail = _voiceViolationDetail(text, sport);
-      if (!detail) return `LOW VOICE CONSISTENCY: sport-specific vocabulary for ${sport || 'this sport'} is largely absent. Use terminology a beat writer for this sport would use.`;
-      if (detail.negHits.length) {
-        return `LOW VOICE CONSISTENCY: wrong-sport vocabulary detected (${detail.negHits.join(', ')}) — these terms belong to a different sport than ${sport}. Remove them and use ${detail.sportKey.toUpperCase()}-specific terms instead.`;
-      }
-      return `LOW VOICE CONSISTENCY: this draft under-uses ${detail.sportKey.toUpperCase()}-specific vocabulary (e.g. ${SPORT_TERMS_LABEL(detail.sportKey)}). Use terminology specific to this sport, not generic sports language.`;
-    }
-    case 'matchupDepth': {
-      if (!matchupNote || matchupNote.length <= 10) return null; // not applicable, no editorial context provided
-      const frag = matchupNote.slice(0, 160);
-      return `LOW MATCHUP DEPTH: the provided editorial context — "${frag}${matchupNote.length > 160 ? '...' : ''}" — is not reflected in this draft. Reference at least one specific fact from it in plain prose.`;
-    }
-    default:
-      return null;
-  }
-}
-
-// Small label helper for the voiceScore branch above (avoids re-deriving
-// the SPORT_TERMS table a second time just for a display string).
-function SPORT_TERMS_LABEL(sportKey) {
-  const labels = {
-    nba: 'quarter, pace, half-court, pick-and-roll',
-    nhl: 'period, power play, save, goalie',
-    mlb: 'inning, ERA, bullpen, rotation',
-    soccer: 'match, possession, minute, pressing',
-  };
-  return labels[sportKey] || '';
-}
-
-// Picks the 1-2 weakest APPLICABLE dimensions from a scoreProse breakdown.
-// "Applicable" excludes contextAnchoring/matchupDepth when their required
-// input (game / matchupNote) wasn't provided at all -- those read as 0/25
-// and 0/30 not because the prose is weak, but because there was nothing to
-// anchor to; flagging them would produce an uncorrectable instruction
-// ("use the game data" when there is no game data).
-function _pickWeakestDims(dims, ctx) {
-  const { game, matchupNote } = ctx;
-  const candidates = Object.entries(dims).filter(([key]) => {
-    if (key === 'contextAnchoring' && !game) return false;
-    if (key === 'matchupDepth' && (!matchupNote || matchupNote.length <= 10)) return false;
-    return true;
-  });
-  candidates.sort((a, b) => a[1] - b[1]);
-  return candidates.slice(0, 2).map(([key]) => key);
-}
-
-// Builds the full 3b retry prompt addendum, targeting only the dimensions
-// that are actually weak in THIS text -- not a fixed block of generic
-// advice. Falls back to the previous generic guidance only if every
-// candidate dimension's correction turns out inapplicable (e.g. genuinely
-// nothing specific to name), so 3b never sends an empty correction.
-function _buildTargetedRetryPrompt(text, score, threshold, dims, ctx) {
-  const { sport, game, matchupNote } = ctx;
-  const gameCtx = game
-    ? `REQUIRED — USE THE GAME DATA: name "${game.away}" and "${game.home}" explicitly. Include the exact final score (${game.awayScore}–${game.homeScore}). `
-    : '';
-  const matchupCtx = matchupNote
-    ? `REQUIRED — USE MATCHUP CONTEXT: "${matchupNote.slice(0, 200)}" — reference at least one fact from this narrative in plain prose. `
-    : '';
-
-  const weakest = _pickWeakestDims(dims, ctx);
-  const corrections = weakest
-    .map(key => _dimensionCorrection(key, text, { sport, game, matchupNote }))
-    .filter(Boolean);
-
-  const body = corrections.length
-    ? corrections.join(' ')
-    : 'Add specific player names, exact statistics with units, and concrete tactical detail. ' +
-      'Every sentence must contain at least one proper noun or number. ' +
-      'Anchor all stats to a time period (this series, this postseason, tonight). ' +
-      'Name at least one non-star contributor with a specific stat.';
-
-  return `\n\nQUALITY SCORE LOW (${score}/300): this draft scored below the excellence threshold ` +
-    `(${threshold}/300). ${gameCtx}${matchupCtx}${body}`;
+// ── 3b voice judge prompt builder (CC-CMD-2026-07-16-journalism-quality-
+// gate-redesign) ─────────────────────────────────────────────────────────
+// Replaces the old dimension-targeted regex-correction helpers (removed:
+// _arcSubComponents, _voiceViolationDetail, _dimensionCorrection,
+// SPORT_TERMS_LABEL, _pickWeakestDims, _buildTargetedRetryPrompt), which
+// existed solely to build a retry prompt around scoreProse's weakest
+// dimensions -- the exact composite-score-chasing mechanism this redesign
+// removes (see CONTEXT: scoreProse's Dim4 measurably rewarded the
+// wire-copy pattern FIELD_VOICE_REGISTER's own anti-exemplar forbids).
+// Reuses FIELD_VOICE_REGISTER verbatim (already a joined string with the
+// real exemplars and the labeled anti-exemplar) -- not duplicated here.
+function _buildVoiceJudgePrompt(draftText) {
+  return FIELD_VOICE_REGISTER +
+    `\n\nJudge the following draft against the real exemplars and the anti-exemplar above.\n\n` +
+    `DRAFT:\n"""${draftText}"""\n\n` +
+    `Does this draft read like the real FIELD exemplars (connective prose, numbers subordinated ` +
+    `into claims, genuine voice) or like the anti-exemplar (wire-copy fact-stacking)? Respond with ` +
+    `EXACTLY one line: "PASS" if it matches the real exemplars, or "FAIL: <one concise sentence ` +
+    `naming the single biggest issue>" if it reads like wire copy.`;
 }
 
 // ── Orchestrator: runs all 7 quality layers with up to 7 retry calls ────────
@@ -953,24 +789,40 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2e'); }
   }
 
-  // 3b: score-triggered rewrite if below excellence threshold (240/300 = 80%).
-  // Dimension-targeted: identifies the 1-2 weakest normalized dimensions in
-  // THIS text and builds the retry prompt around specifically those, instead
-  // of one fixed block of generic advice regardless of which dimension
-  // actually caused the low score (see CC-CMD-2026-07-08-jq-3b-starvation-
-  // and-targeting).
-  const scoreBreakdown = await scoreProse(text, { sport, game, matchupNote, breakdown: true });
-  const score = scoreBreakdown.total;
-  const THRESHOLD = opts.scoreThreshold || 240; // 300-point full scale — excellence bar
-  if (score < THRESHOLD && retries < maxRetries) {
-    const retryPrompt = prompt +
-      _buildTargetedRetryPrompt(text, score, THRESHOLD, scoreBreakdown.dims, { sport, game, matchupNote });
-    const retried = await callProxy(retryPrompt);
-    if (retried && retried.length > 30) {
-      const newScore = await scoreProse(retried, { sport, game, matchupNote });
-      if (newScore >= score) { text = retried.trim(); retries++; layers_fired.push('3b'); }
+  // 3b: qualitative voice judge (CC-CMD-2026-07-16-journalism-quality-gate-
+  // redesign). Replaces the old `score < 240` numeric trigger + `newScore
+  // >= score` accept-gate -- both routed through scoreProse's composite,
+  // which was shown to reward wire-copy fact-stacking over real FIELD
+  // voice (pre-fix: the file's own labeled anti-exemplar scored 214/300,
+  // its own real Exemplar A scored 136/300 -- see outbox for the
+  // reproduced test). The judge asks the same question a human editor
+  // would: does this read like the real exemplars or the anti-exemplar?
+  // Gated behind retries < maxRetries up front (unlike the free regex
+  // checks in layers 2/2b/2c/2d/2e above, the judge call itself costs a
+  // proxy call, so it isn't worth spending when no retry slot remains).
+  if (retries < maxRetries) {
+    const judgeVerdict = await callProxy(_buildVoiceJudgePrompt(text));
+    const judgeFailed = judgeVerdict && /^\s*FAIL/i.test(judgeVerdict.trim());
+    if (judgeFailed) {
+      const reason = judgeVerdict.replace(/^\s*FAIL:?\s*/i, '').trim() ||
+        'reads like wire copy, not FIELD voice.';
+      const retryPrompt = prompt +
+        `\n\nVOICE JUDGE FAILED: ${reason} Rewrite in FIELD's real voice — connective prose, ` +
+        `numbers subordinated into claims (not listed), at most one number per sentence.`;
+      const retried = await callProxy(retryPrompt);
+      if (retried && retried.length > 30) {
+        const reverdict = await callProxy(_buildVoiceJudgePrompt(retried.trim()));
+        if (reverdict && /^\s*PASS/i.test(reverdict.trim())) {
+          text = retried.trim(); retries++; layers_fired.push('3b');
+        }
+      }
     }
   }
+
+  // scoreProse's composite is still computed and returned below (finalScore)
+  // for calibration/analytics (/quality/report reads quality_score as an
+  // opaque percentile input, confirmed -- TASK 0.2) -- descriptive only.
+  // Nothing above this comment uses it to decide retry or acceptance.
 
   const finalScore = await scoreProse(text, { sport, game, matchupNote });
   return {
