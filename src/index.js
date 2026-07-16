@@ -9699,6 +9699,8 @@ export default {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                      CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
+                               home          = COALESCE(excluded.home, home),
+                               away          = COALESCE(excluded.away, away),
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
                                note          = COALESCE(excluded.note, note),
@@ -9730,6 +9732,8 @@ export default {
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                      CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
+                               home          = COALESCE(excluded.home, home),
+                               away          = COALESCE(excluded.away, away),
                                home_score    = COALESCE(excluded.home_score, home_score),
                                away_score    = COALESCE(excluded.away_score, away_score),
                                note          = COALESCE(excluded.note, note),
