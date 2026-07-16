@@ -1,0 +1,23 @@
+name: Force Batch Completion Test
+
+# One-shot diagnostic: fires 5 synthetic completion-trigger jobs
+# back-to-back to force them into the same queue batch
+# (max_batch_size=5), testing whether batch size/concurrency -- not job
+# shape -- explains the per-game-loop D1-write failure investigation.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Force batch completion
+        run: node scripts/force-batch-completion-test.mjs
