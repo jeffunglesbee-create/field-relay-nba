@@ -1,0 +1,23 @@
+name: Read Last Archive Error
+
+# One-shot, read-only diagnostic: calls the new GET
+# /debug/last-archive-error route (sandbox-bypass tool can't reach it --
+# /debug/* is on its forbidden-prefix list) to read the queue consumer's
+# last captured silently-failing D1 archive write.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read last archive error
+        run: node scripts/read-last-archive-error.mjs
