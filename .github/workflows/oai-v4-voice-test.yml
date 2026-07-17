@@ -1,4 +1,4 @@
-name: GPT-4o mini — V4 Voice Register Test (modified)
+name: GPT-4o mini vs Haiku 4.5 — V4 Voice + Club Context
 on:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Call GPT-4o mini — system message + temp 0.3
+      - name: GPT-4o mini (system msg + temp 0.3)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -24,15 +24,12 @@ jobs:
 
           RESULT: Tunisia 0 - 4 Japan
           Group: F | Date: 2026-07-05
-          Goalscorers: Daichi Kamada 4', Ayase Ueda brace, Junya Ito 69'
+          Goalscorers: Daichi Kamada (Crystal Palace) 4', Ayase Ueda (Bournemouth) brace, Junya Ito (Reims) 69'
           Japan: 9 points in Group F, GD +8
           Netherlands: 11 points (top spot in Group F)
           Tunisia: 0 points, three matches played
 
           SPORT BOUNDARY: World Cup 2026 soccer match. Write ONLY soccer content.`;
-
-          console.log(`System prompt length: ${FIELD_VOICE_REGISTER.length} chars / ~${Math.round(FIELD_VOICE_REGISTER.length/4)} tokens`);
-          console.log(`User prompt length: ${GAME_DATA.length} chars`);
 
           const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -53,16 +50,54 @@ jobs:
 
           const data = await resp.json();
           const text = data?.choices?.[0]?.message?.content;
-          const usage = data?.usage;
+          if (!text) { console.log(JSON.stringify(data)); process.exit(1); }
 
-          if (!text) {
-            console.log('\n── API error / no output ──');
-            console.log(JSON.stringify(data));
-            process.exit(1);
-          }
-
-          console.log('\n── GPT-4o mini output (system msg + temp 0.3) ──');
+          console.log('\n── GPT-4o mini output ──');
           console.log(text);
           console.log('\n── Usage ──');
-          console.log(JSON.stringify(usage));
+          console.log(JSON.stringify(data.usage));
+          EOF
+
+      - name: Haiku 4.5 (same prompt)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { FIELD_VOICE_REGISTER } from './src/journalism-quality.js';
+
+          const GAME_DATA = `
+          Write a 2-3 sentence post-match brief for this World Cup 2026 result. Single paragraph. No headers, no bullet points.
+
+          RESULT: Tunisia 0 - 4 Japan
+          Group: F | Date: 2026-07-05
+          Goalscorers: Daichi Kamada (Crystal Palace) 4', Ayase Ueda (Bournemouth) brace, Junya Ito (Reims) 69'
+          Japan: 9 points in Group F, GD +8
+          Netherlands: 11 points (top spot in Group F)
+          Tunisia: 0 points, three matches played
+
+          SPORT BOUNDARY: World Cup 2026 soccer match. Write ONLY soccer content.`;
+
+          const resp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.ANTHROPIC_API_KEY,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 300,
+              system: FIELD_VOICE_REGISTER,
+              messages: [{ role: 'user', content: GAME_DATA }],
+            }),
+          });
+
+          const data = await resp.json();
+          const text = data?.content?.[0]?.text;
+          if (!text) { console.log(JSON.stringify(data)); process.exit(1); }
+
+          console.log('\n── Haiku 4.5 output ──');
+          console.log(text);
+          console.log('\n── Usage ──');
+          console.log(JSON.stringify(data.usage));
           EOF
