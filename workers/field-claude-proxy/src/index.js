@@ -51,14 +51,20 @@ function toGemini(body) {
   };
 }
 
-function fromGemini(data) {
+function fromGemini(data, modelUsed) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const um = data.usageMetadata || {};
   return JSON.stringify({
     id: 'gemini-proxy', type: 'message', role: 'assistant',
-    model: 'gemini-3.1-flash-lite',
+    model: modelUsed,
     content: [{ type: 'text', text }],
     stop_reason: 'end_turn',
-    usage: { input_tokens: 0, output_tokens: 0 },
+    // Real usageMetadata from Gemini's own response, not hardcoded zeros --
+    // CC-CMD-2026-07-16-gemini-model-comparison TASK 0/1 needs real token
+    // counts, which this proxy previously discarded entirely. Additive
+    // field, same envelope shape production callers already parse
+    // (content[0].text) -- no existing consumer reads usage today.
+    usage: { input_tokens: um.promptTokenCount || 0, output_tokens: um.candidatesTokenCount || 0 },
   });
 }
 
@@ -86,8 +92,21 @@ function fromGemini(data) {
 // "Create authentication token" with scope: Account / AI Gateway / Run.
 // Without CF_AIG_TOKEN, no header is sent — works for unauthenticated gateways
 // or direct (non-gateway) routing.
-function geminiUrl(env, key) {
-  const path = `/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
+// CC-CMD-2026-07-16-gemini-model-comparison TASK 0: explicit, opt-in model
+// override for a real head-to-head test -- same pattern as the existing
+// X-FIELD-Force-Claude header below (explicit override via header, default
+// untouched for every caller that doesn't send it). Allowlisted to the two
+// models this specific test compares, not an arbitrary pass-through, so
+// this can't become a way to invoke an unintended/more-expensive model
+// under FIELD's API key. Any caller not sending X-FIELD-Test-Model gets the
+// exact same 'gemini-3.1-flash-lite' default as before this change --
+// zero production behavior change.
+const ALLOWED_TEST_MODELS = new Set(['gemini-3.1-flash-lite', 'gemini-3.5-flash']);
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+
+function geminiUrl(env, key, modelOverride) {
+  const model = (modelOverride && ALLOWED_TEST_MODELS.has(modelOverride)) ? modelOverride : DEFAULT_GEMINI_MODEL;
+  const path = `/v1beta/models/${model}:generateContent?key=${key}`;
   return env.CF_AI_GATEWAY_BASE
     ? `${env.CF_AI_GATEWAY_BASE}/google-ai-studio${path}`
     : `https://generativelanguage.googleapis.com${path}`;
@@ -101,19 +120,22 @@ function aigAuthHeaders(env) {
   return env.CF_AIG_TOKEN ? { 'cf-aig-authorization': `Bearer ${env.CF_AIG_TOKEN}` } : {};
 }
 
-async function callGemini(body, key, env) {
-  const url = geminiUrl(env, key);
+async function callGemini(body, key, env, modelOverride) {
+  const modelUsed = (modelOverride && ALLOWED_TEST_MODELS.has(modelOverride)) ? modelOverride : DEFAULT_GEMINI_MODEL;
+  const url = geminiUrl(env, key, modelOverride);
+  const t0 = Date.now();
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...aigAuthHeaders(env) },
     body: JSON.stringify(toGemini(body)),
   });
+  const ms = Date.now() - t0;
   if (r.status === 429) {
     const retryAfter = r.headers.get('Retry-After') || '60';
     throw {is429: true, retryAfter, detail: (await r.text().catch(() => '')).slice(0, 200)};
   }
   if (!r.ok) throw new Error(`Gemini ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  return { text: fromGemini(await r.json()), model: 'gemini-3.1-flash-lite', status: 200 };
+  return { text: fromGemini(await r.json(), modelUsed), model: modelUsed, status: 200, ms };
 }
 
 async function callClaude(raw, key, env) {
@@ -173,12 +195,13 @@ export default {
       Array.isArray(m.content) && m.content.some(c => c.type === 'image')
     );
     const forceClaude = request.headers.get('X-FIELD-Force-Claude') === 'true';
+    const testModel = request.headers.get('X-FIELD-Test-Model') || null;
 
     let result;
 
     if (gKey && !hasVision && !forceClaude) {
       try {
-        result = await callGemini(JSON.parse(raw), gKey, env);
+        result = await callGemini(JSON.parse(raw), gKey, env, testModel);
       } catch (e) {
         if (e.is429) {
           // 429: try Claude fallback first — only send 429 to client if no Claude key
@@ -220,7 +243,11 @@ export default {
 
     return new Response(result.text, {
       status: result.status,
-      headers: { 'Content-Type': 'application/json', 'X-FIELD-Model': result.model, ...cors(origin), ...version() },
+      headers: {
+        'Content-Type': 'application/json', 'X-FIELD-Model': result.model,
+        ...(result.ms != null ? { 'X-FIELD-Latency-Ms': String(result.ms) } : {}),
+        ...cors(origin), ...version(),
+      },
     });
   },
 };
