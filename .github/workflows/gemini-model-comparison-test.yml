@@ -1,0 +1,21 @@
+name: Gemini Model Comparison Test
+
+# One-shot: CC-CMD-2026-07-16-gemini-model-comparison TASK 1. Real 5-game
+# x 2-model test via /debug/gemini-model-test.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run comparison test
+        run: node scripts/gemini-model-comparison-test.mjs
