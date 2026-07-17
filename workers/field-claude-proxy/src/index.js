@@ -34,12 +34,27 @@ const cors = (origin) => ({
 
 const version = () => ({'X-FIELD-Proxy-Version': PROXY_VERSION});
 
-function toGemini(body) {
+function toGemini(body, modelUsed) {
   const sys = body.system ? body.system + '\n\n' : '';
   const msg = body.messages
     .filter(m => m.role === 'user')
     .map(m => typeof m.content === 'string' ? m.content : m.content?.[0]?.text || '')
     .join('\n');
+  const generationConfig = { maxOutputTokens: body.max_tokens || 2500, temperature: 0.4 };
+  // CC-CMD-2026-07-16-gemini-model-comparison: gemini-3.5-flash has
+  // "thinking" enabled by default (thinking_level: medium), and thinking
+  // tokens are counted against maxOutputTokens -- confirmed real via this
+  // dispatch's own sanity check (empty text at max_tokens:50, then a full
+  // 5-min client-side HeadersTimeoutError hang at max_tokens:300, neither
+  // ever producing visible output) and independently confirmed against
+  // Google's own current docs. gemini-3.1-flash-lite (the production
+  // default) has no such default-on thinking, so leaving this unset would
+  // make the comparison mostly measure "did thinking exhaust the budget",
+  // not prose quality. Scoped ONLY to the explicit gemini-3.5-flash test
+  // override -- the production default model is never affected.
+  if (modelUsed === 'gemini-3.5-flash') {
+    generationConfig.thinkingConfig = { thinkingLevel: 'minimal' };
+  }
   return {
     systemInstruction: {
       parts: [{
@@ -47,7 +62,7 @@ function toGemini(body) {
       }]
     },
     contents: [{ parts: [{ text: sys + msg }] }],
-    generationConfig: { maxOutputTokens: body.max_tokens || 2500, temperature: 0.4 },
+    generationConfig,
   };
 }
 
@@ -64,7 +79,13 @@ function fromGemini(data, modelUsed) {
     // counts, which this proxy previously discarded entirely. Additive
     // field, same envelope shape production callers already parse
     // (content[0].text) -- no existing consumer reads usage today.
-    usage: { input_tokens: um.promptTokenCount || 0, output_tokens: um.candidatesTokenCount || 0 },
+    // thoughtsTokenCount (thinking-mode models only) is real, billed output
+    // tokens the caller can't see in `text` -- folded into output_tokens so
+    // the real cost isn't undercounted, not left as a separate untracked field.
+    usage: {
+      input_tokens: um.promptTokenCount || 0,
+      output_tokens: (um.candidatesTokenCount || 0) + (um.thoughtsTokenCount || 0),
+    },
   });
 }
 
@@ -124,10 +145,19 @@ async function callGemini(body, key, env, modelOverride) {
   const modelUsed = (modelOverride && ALLOWED_TEST_MODELS.has(modelOverride)) ? modelOverride : DEFAULT_GEMINI_MODEL;
   const url = geminiUrl(env, key, modelOverride);
   const t0 = Date.now();
+  // CC-CMD-2026-07-16-gemini-model-comparison: a real sanity-check call to
+  // gemini-3.5-flash hung with no response at all (client-side
+  // HeadersTimeoutError after 5 min) before the thinkingConfig fix above --
+  // add a real, generous timeout so a genuine upstream hang can never tie
+  // up this Worker indefinitely. 60s is well above gemini-3.1-flash-lite's
+  // real observed latency (sub-second to ~1s) so this changes nothing for
+  // production traffic; it only bounds a failure mode that was just proven
+  // real.
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...aigAuthHeaders(env) },
-    body: JSON.stringify(toGemini(body)),
+    body: JSON.stringify(toGemini(body, modelUsed)),
+    signal: AbortSignal.timeout(60000),
   });
   const ms = Date.now() - t0;
   if (r.status === 429) {
