@@ -51,6 +51,12 @@ jobs:
           const text = data?.choices?.[0]?.message?.content;
           const usage = data?.usage;
 
+          if (!text) {
+            console.log('\n── API error / no output ──');
+            console.log(JSON.stringify(data));
+            process.exit(1);
+          }
+
           console.log('\n── GPT-4o mini output ──');
           console.log(text);
           console.log('\n── Usage ──');
