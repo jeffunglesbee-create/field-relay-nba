@@ -228,6 +228,7 @@ export default {
     const testModel = request.headers.get('X-FIELD-Test-Model') || null;
 
     let result;
+    let geminiFallbackError = null;
 
     if (gKey && !hasVision && !forceClaude) {
       try {
@@ -250,6 +251,12 @@ export default {
             });
           }
         } else if (aKey) {
+          // CC-CMD-2026-07-16-gemini-model-comparison: a real gemini-3.5-flash
+          // test call fell back to Claude here with the actual Gemini error
+          // silently swallowed -- no way to tell "Gemini failed" from "why".
+          // Diagnostic-only header, real production callers already ignore
+          // unknown response headers; doesn't change status/body for anyone.
+          geminiFallbackError = e.message || String(e);
           try { result = await callClaude(raw, aKey, env); }
           catch (e2) {
             return new Response(JSON.stringify({ error: 'Both backends failed.' }), {
@@ -276,6 +283,7 @@ export default {
       headers: {
         'Content-Type': 'application/json', 'X-FIELD-Model': result.model,
         ...(result.ms != null ? { 'X-FIELD-Latency-Ms': String(result.ms) } : {}),
+        ...(geminiFallbackError ? { 'X-FIELD-Gemini-Error': geminiFallbackError.slice(0, 200) } : {}),
         ...cors(origin), ...version(),
       },
     });
