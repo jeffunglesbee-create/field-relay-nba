@@ -1,4 +1,4 @@
-name: GPT-4o mini — V4 Voice Register Test
+name: GPT-4o mini — V4 Voice Register Test (modified)
 on:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Call GPT-4o mini with full V4 FIELD_VOICE_REGISTER
+      - name: Call GPT-4o mini — system message + temp 0.3
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -31,8 +31,8 @@ jobs:
 
           SPORT BOUNDARY: World Cup 2026 soccer match. Write ONLY soccer content.`;
 
-          const prompt = FIELD_VOICE_REGISTER + GAME_DATA;
-          console.log(`Prompt length: ${prompt.length} chars / ~${Math.round(prompt.length/4)} tokens`);
+          console.log(`System prompt length: ${FIELD_VOICE_REGISTER.length} chars / ~${Math.round(FIELD_VOICE_REGISTER.length/4)} tokens`);
+          console.log(`User prompt length: ${GAME_DATA.length} chars`);
 
           const resp = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -43,7 +43,11 @@ jobs:
             body: JSON.stringify({
               model: 'gpt-4o-mini',
               max_tokens: 300,
-              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.3,
+              messages: [
+                { role: 'system', content: FIELD_VOICE_REGISTER },
+                { role: 'user', content: GAME_DATA },
+              ],
             }),
           });
 
@@ -57,7 +61,7 @@ jobs:
             process.exit(1);
           }
 
-          console.log('\n── GPT-4o mini output ──');
+          console.log('\n── GPT-4o mini output (system msg + temp 0.3) ──');
           console.log(text);
           console.log('\n── Usage ──');
           console.log(JSON.stringify(usage));
