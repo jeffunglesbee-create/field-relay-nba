@@ -1,0 +1,18 @@
+name: Set OPENAI_API_KEY (one-shot)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  secrets: write
+
+jobs:
+  set-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set OPENAI_API_KEY
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "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" | gh secret set OPENAI_API_KEY --repo "${{ github.repository }}"
+          echo "✅ OPENAI_API_KEY set"
