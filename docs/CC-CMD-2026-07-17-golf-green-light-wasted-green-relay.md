@@ -170,13 +170,21 @@ Once `RELAY UNBLOCKED` prints, execute the client CC-CMD:
 
 ## PERMANENTLY BLOCKED — ESPN does not have this data
 
-**Probe date:** 2026-07-17  
-**Probe method:** GitHub Actions runner (jubilant-bassoon workflow)  
-**Probe file:** jubilant-bassoon `outbox/golf-espn-stat-names-20260717T144415Z.txt`
+**Probe 1 date:** 2026-07-17  
+**Probe 1 method:** GitHub Actions runner — ESPN competitor-stats aggregate API  
+**Probe 1 file:** jubilant-bassoon `outbox/golf-espn-stat-names-20260717T144415Z.txt`
 
 ESPN competitor-stats full stat list confirmed. There is no per-GIR
-birdie/bogey stat — only `birdies` and `bogeys` as raw totals. The data
-required for Green Light Rate and Wasted Green does not exist in ESPN's API.
+birdie/bogey stat — only `birdies` and `bogeys` as raw totals.
+
+**Probe 2 date:** 2026-07-17  
+**Probe 2 method:** GitHub Actions runner — ESPN tourcast + hole-level endpoints  
+**Probe 2 file:** jubilant-bassoon `outbox/golf-espn-tourcast-probe-20260717T145040Z.txt`
+
+Hole-level probe checked tourcast, linescores, holeScores, and summary endpoints.
+Only `/competitors/{id}/linescores` returned data — per-hole scoreType (PAR/BOGEY/BIRDIE/EAGLE)
+but **no per-hole GIR flag**. Green Light Rate formula `birdiesOnGir / girHit * 100` requires
+a GIR boolean per hole that ESPN does not expose in any API surface.
 
 **This relay CC-CMD is closed permanently.** Do not execute it.
 
