@@ -4743,6 +4743,27 @@ function computeGameHash(promptText) {
   return String(promptText || '').split('').reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0).toString(16);
 }
 
+// CC-CMD-2026-07-16-gemini-model-comparison: extracted verbatim from
+// /journalism/game-complete's own inline prompt-construction (byte-for-byte,
+// confirmed via diff before extraction) so the model-comparison test route
+// below reuses the exact real prompt, not a hand-copied approximation that
+// could silently drift from what production actually sends.
+function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore }) {
+  const scoreStr = (homeScore != null && awayScore != null)
+      ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
+  const sportLabel = sport.toUpperCase();
+  return [
+      FIELD_VOICE_REGISTER,
+      `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
+      `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
+      `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
+      scoreStr,
+      `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
+      `Write the brief as a single paragraph. No headers, no bullet points.`,
+      JQ_STYLE,
+  ].filter(Boolean).join('\n');
+}
+
 
 // LLMs occasionally wrap output in '#' headers or '**bold**' even when not
 // asked. The bottom sheet renders plain text, so any markdown leaks through
@@ -7923,6 +7944,56 @@ export default {
             const raw = await env.FIELD_JOURNALISM.get('journalism:last-archive-write-error');
             return new Response(raw || JSON.stringify({ ok: true, lastError: null }),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // ── /debug/gemini-model-test — CC-CMD-2026-07-16-gemini-model-comparison ──
+        // Bounded, real head-to-head test route. Builds the exact real
+        // game_recap prompt (buildGameCompletePrompt, extracted verbatim from
+        // /journalism/game-complete) for a real game and sends it to both
+        // gemini-3.1-flash-lite (production default) and gemini-3.5-flash
+        // (via the explicit X-FIELD-Test-Model override on field-claude-proxy),
+        // returning both real outputs side by side. Never wired into any real
+        // enqueue/write path -- read-only comparison, no D1/KV write, no
+        // production config touched.
+        if (pathname === '/debug/gemini-model-test' && request.method === 'POST') {
+            const body = await request.json().catch(() => null);
+            const { sport, home, away, homeScore, awayScore } = body || {};
+            if (!sport || !home || !away) {
+                return new Response(JSON.stringify({ ok: false, error: 'sport, home, away required' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore });
+            const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
+
+            const callModel = async (testModel) => {
+                const headers = { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET || 'field-relay-cron-2026' };
+                if (testModel) headers['X-FIELD-Test-Model'] = testModel;
+                const r = await fetch(PROXY_URL, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, messages: [{ role: 'user', content: prompt }] }),
+                }).catch(e => ({ _fetchError: e.message }));
+                if (r._fetchError) return { error: r._fetchError };
+                const d = await r.json().catch(() => null);
+                return {
+                    status: r.status,
+                    model: r.headers.get('X-FIELD-Model'),
+                    latencyMs: r.headers.get('X-FIELD-Latency-Ms') ? Number(r.headers.get('X-FIELD-Latency-Ms')) : null,
+                    geminiError: r.headers.get('X-FIELD-Gemini-Error'),
+                    text: d?.content?.[0]?.text || null,
+                    usage: d?.usage || null,
+                };
+            };
+
+            const [defaultResult, testResult] = await Promise.all([
+                callModel(null),
+                callModel('gemini-3.5-flash'),
+            ]);
+
+            return new Response(JSON.stringify({
+                ok: true, sport, home, away, homeScore, awayScore, prompt,
+                'gemini-3.1-flash-lite': defaultResult,
+                'gemini-3.5-flash': testResult,
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // ── /repo/archive — HMAC-signed tarball proxy for L5 ────────────────
@@ -13176,19 +13247,7 @@ export default {
                     // for the same game would contain, so job.gameHash here will
                     // never coincidentally match a live-cycle-cached contextHash,
                     // and the consumer correctly falls through to regenerate.
-                    const scoreStr = (homeScore != null && awayScore != null)
-                        ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
-                    const sportLabel = sport.toUpperCase();
-                    const prompt = [
-                        FIELD_VOICE_REGISTER,
-                        `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
-                        `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
-                        `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
-                        scoreStr,
-                        `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
-                        `Write the brief as a single paragraph. No headers, no bullet points.`,
-                        JQ_STYLE,
-                    ].filter(Boolean).join('\n');
+                    const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore });
                     await env.JOURNALISM_QUEUE.send({
                         type:        'game-brief',
                         prompt,
