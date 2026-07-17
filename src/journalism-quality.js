@@ -815,11 +815,31 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     const judgeVerdict = await callProxy(_buildVoiceJudgePrompt(text));
     const judgeFailed = judgeVerdict && /^\s*FAIL/i.test(judgeVerdict.trim());
     if (judgeFailed) {
-      const reason = judgeVerdict.replace(/^\s*FAIL:?\s*/i, '').trim() ||
-        'reads like wire copy, not FIELD voice.';
-      const retryPrompt = prompt +
-        `\n\nVOICE JUDGE FAILED: ${reason} Rewrite in FIELD's real voice — connective prose, ` +
-        `numbers subordinated into claims (not listed), at most one number per sentence.`;
+      const failMatch = judgeVerdict.match(/^FAIL\s*\nSENTENCE:\s*(.+?)\s*\nFIX:\s*(.+)/s);
+      let retryPrompt;
+      if (failMatch) {
+        const parsedSentence = failMatch[1].trim();
+        const parsedFix = failMatch[2].trim();
+        retryPrompt = [
+          prompt,
+          '',
+          '── VOICE CORRECTION ──',
+          'The following sentence in your draft violates FIELD voice register:',
+          `"${parsedSentence}"`,
+          '',
+          `Fix: ${parsedFix}`,
+          '',
+          'Rewrite the full brief with this correction applied.',
+          'All other sentences may remain unchanged.',
+        ].join('\n');
+      } else {
+        // judge returned unstructured FAIL — fall back to generic voice note
+        const reason = judgeVerdict.replace(/^\s*FAIL:?\s*/i, '').trim() ||
+          'reads like wire copy, not FIELD voice.';
+        retryPrompt = prompt +
+          `\n\nVOICE JUDGE FAILED: ${reason} Rewrite in FIELD's real voice — connective prose, ` +
+          `numbers subordinated into claims (not listed), at most one number per sentence.`;
+      }
       const retried = await callProxy(retryPrompt);
       if (retried && retried.length > 30) {
         const reverdict = await callProxy(_buildVoiceJudgePrompt(retried.trim()));
