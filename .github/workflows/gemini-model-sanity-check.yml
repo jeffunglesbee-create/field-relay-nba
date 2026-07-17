@@ -1,0 +1,22 @@
+name: Gemini Model Sanity Check
+
+# One-shot: verifies the X-FIELD-Test-Model override on field-claude-proxy
+# actually routes to the requested model before running the full
+# CC-CMD-2026-07-16-gemini-model-comparison test.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run sanity check
+        run: node scripts/gemini-model-sanity-check.mjs
