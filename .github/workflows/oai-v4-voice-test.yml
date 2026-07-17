@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: GPT-4o mini (system msg + temp 0.3)
+      - name: GPT-4.1 nano (system msg + temp 0.3)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -38,7 +38,7 @@ jobs:
               'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
             },
             body: JSON.stringify({
-              model: 'gpt-4o-mini',
+              model: 'gpt-4.1-nano',
               max_tokens: 300,
               temperature: 0.3,
               messages: [
@@ -52,7 +52,7 @@ jobs:
           const text = data?.choices?.[0]?.message?.content;
           if (!text) { console.log(JSON.stringify(data)); process.exit(1); }
 
-          console.log('\n── GPT-4o mini output ──');
+          console.log('\n── GPT-4.1 nano output ──');
           console.log(text);
           console.log('\n── Usage ──');
           console.log(JSON.stringify(data.usage));
