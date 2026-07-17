@@ -710,17 +710,6 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
   const matchupNote = opts.matchupNote || null; // editorial context from game.note
   const maxRetries = opts.maxRetries || 7;
 
-  // 2: cliché
-  const cliches = hasCliche(text);
-  const overused = countSparingly(text);
-  if ((cliches.length || overused.length) && retries < maxRetries) {
-    const banNote = cliches.length ? 'BANNED PHRASES to remove: '+cliches.join(', ')+'. ' : '';
-    const sparNote = overused.length ? 'OVERUSED WORDS (used '+overused.map(r=>'"'+r.phrase+'" '+r.count+'x').join(', ')+' — use each at most once, replace extras): ' : '';
-    const retryPrompt = prompt + '\n\nIMPORTANT REWRITE: '+banNote+sparNote+'Rewrite without them. Use a specific fact instead of each generic phrase.';
-    const retried = await callProxy(retryPrompt);
-    if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2'); }
-  }
-
   // 2b: sport vocab
   if (sport) {
     const viol = checkSportVocab(text, sport);
