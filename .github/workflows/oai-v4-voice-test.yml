@@ -14,7 +14,7 @@ jobs:
 
       - name: Call GPT-4o mini with full V4 FIELD_VOICE_REGISTER
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: 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
         run: |
           node --input-type=module <<'EOF'
           import { FIELD_VOICE_REGISTER } from './src/journalism-quality.js';
