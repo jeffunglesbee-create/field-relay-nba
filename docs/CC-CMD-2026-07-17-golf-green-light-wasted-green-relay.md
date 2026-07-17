@@ -168,15 +168,21 @@ curl -s "https://field-relay-nba.jeffunglesbee.workers.dev/v2/golf/enriched" \
 Once `RELAY UNBLOCKED` prints, execute the client CC-CMD:
 `jubilant-bassoon/docs/CC-CMD-2026-07-17-golf-green-light-wasted-green.md`
 
-## STAGED Status
+## PERMANENTLY BLOCKED — ESPN does not have this data
 
-**STAGED** pending ESPN field name probe (sandbox blocks external HTTP).
+**Probe date:** 2026-07-17  
+**Probe method:** GitHub Actions runner (jubilant-bassoon workflow)  
+**Probe file:** jubilant-bassoon `outbox/golf-espn-stat-names-20260717T144415Z.txt`
 
-**Blocked by:** Unknown ESPN stat names for birdie-or-better on GIR and
-bogey-or-worse on GIR. Probe Step 2 above will resolve this.
+ESPN competitor-stats full stat list confirmed. There is no per-GIR
+birdie/bogey stat — only `birdies` and `bogeys` as raw totals. The data
+required for Green Light Rate and Wasted Green does not exist in ESPN's API.
 
-**Unblocked when:** Probe returns non-empty GIR/birdie/bogey stat names
-from ESPN competitor-stats or common/v3 endpoints.
+**This relay CC-CMD is closed permanently.** Do not execute it.
+
+**Replacement:** `jubilant-bassoon/docs/CC-CMD-2026-07-17-golf-scoring-columns.md`
+surfaces `birdies`, `bogeys`, and `doubleBogeysAndWorse` — confirmed ESPN
+stat names — as leaderboard columns.
 
 ## Outbox Manifest (last task)
 
