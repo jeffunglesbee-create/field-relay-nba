@@ -1,0 +1,58 @@
+name: GPT-4o mini — V4 Voice Register Test
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Call GPT-4o mini with full V4 FIELD_VOICE_REGISTER
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { FIELD_VOICE_REGISTER } from './src/journalism-quality.js';
+
+          const GAME_DATA = `
+          Write a 2-3 sentence post-match brief for this World Cup 2026 result. Single paragraph. No headers, no bullet points.
+
+          RESULT: Tunisia 0 - 4 Japan
+          Group: F | Date: 2026-07-05
+          Goalscorers: Daichi Kamada 4', Ayase Ueda brace, Junya Ito 69'
+          Japan: 9 points in Group F, GD +8
+          Netherlands: 11 points (top spot in Group F)
+          Tunisia: 0 points, three matches played
+
+          SPORT BOUNDARY: World Cup 2026 soccer match. Write ONLY soccer content.`;
+
+          const prompt = FIELD_VOICE_REGISTER + GAME_DATA;
+          console.log(`Prompt length: ${prompt.length} chars / ~${Math.round(prompt.length/4)} tokens`);
+
+          const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              max_tokens: 300,
+              messages: [{ role: 'user', content: prompt }],
+            }),
+          });
+
+          const data = await resp.json();
+          const text = data?.choices?.[0]?.message?.content;
+          const usage = data?.usage;
+
+          console.log('\n── GPT-4o mini output ──');
+          console.log(text);
+          console.log('\n── Usage ──');
+          console.log(JSON.stringify(usage));
+          EOF
