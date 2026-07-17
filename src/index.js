@@ -303,9 +303,11 @@ const MLS_STATS_ALLOWED_PREFIXES = [
     '/v1/matches',       // today's scores + match details
     '/v1/goals',         // goalscorer events
     '/v1/commentaries',  // full event stream
+    '/v1/players',       // player roster + bio
     '/matches/seasons/', // schedule by season
     '/competitions',     // standings + season list + registry
-    '/statistics/',      // NEW (2026-06-30) — club season-aggregate stats
+    '/statistics/',      // club + player season-aggregate stats
+    '/clubs/',           // club metadata
 ];
 function mlsStatsAllowed(path) {
     return MLS_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
