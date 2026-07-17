@@ -2,10 +2,6 @@ name: Set OPENAI_API_KEY (one-shot)
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  secrets: write
-
 jobs:
   set-secret:
     runs-on: ubuntu-latest
