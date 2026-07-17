@@ -1,0 +1,23 @@
+name: Gemini Model Comparison Score
+
+# One-shot: CC-CMD-2026-07-16-gemini-model-comparison TASK 2. Scores the
+# real TASK 1 outputs via scoreProse + the voice judge, both imported
+# directly from src/journalism-quality.js (same pattern as
+# jq-judge-live-probe.mjs).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run scoring
+        run: node scripts/gemini-model-comparison-score.mjs
