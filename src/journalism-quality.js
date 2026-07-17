@@ -683,9 +683,12 @@ export function _buildVoiceJudgePrompt(draftText) {
     `\n\nJudge the following draft against the real exemplars and the anti-exemplar above.\n\n` +
     `DRAFT:\n"""${draftText}"""\n\n` +
     `Does this draft read like the real FIELD exemplars (connective prose, numbers subordinated ` +
-    `into claims, genuine voice) or like the anti-exemplar (wire-copy fact-stacking)? Respond with ` +
-    `EXACTLY one line: "PASS" if it matches the real exemplars, or "FAIL: <one concise sentence ` +
-    `naming the single biggest issue>" if it reads like wire copy.`;
+    `into claims, genuine voice) or like the anti-exemplar (wire-copy fact-stacking)?\n\n` +
+    `If it passes, respond with exactly: PASS\n\n` +
+    `If it fails, respond with exactly this three-line format (no extra text):\n` +
+    `FAIL\n` +
+    `SENTENCE: <the exact failing sentence from the draft, quoted verbatim>\n` +
+    `FIX: <one concrete instruction for how to rewrite it in FIELD voice>`;
 }
 
 // ── Orchestrator: runs all 7 quality layers with up to 7 retry calls ────────
