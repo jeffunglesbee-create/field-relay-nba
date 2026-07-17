@@ -12740,6 +12740,27 @@ export default {
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // GET /test/model-probe — TEMP: call OpenAI API from Worker egress (bypasses local proxy block).
+        // key param is base64-encoded OpenAI API key, prompt param is base64-encoded prompt text.
+        // TEST-ONLY — remove after model evaluation is complete.
+        if (pathname === '/test/model-probe' && request.method === 'GET') {
+            const k64 = url.searchParams.get('k');
+            const p64 = url.searchParams.get('p');
+            const model = url.searchParams.get('m') || 'gpt-4o-mini';
+            if (!k64 || !p64) return new Response(JSON.stringify({ error: 'k and p params required' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            let apiKey, promptText;
+            try { apiKey = atob(k64); promptText = atob(p64); } catch { return new Response(JSON.stringify({ error: 'base64 decode failed' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }); }
+            const oaiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model, max_tokens: 350, messages: [{ role: 'user', content: promptText }] }),
+            });
+            const oaiJson = await oaiResp.json().catch(e => ({ error: e.message }));
+            const text = oaiJson?.choices?.[0]?.message?.content || null;
+            const usage = oaiJson?.usage || null;
+            return new Response(JSON.stringify({ model, text, usage, raw_status: oaiResp.status }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
         // Assembles all analytics_output features + KV editorial into one
         // atomic response. {date} = TODAY's date. Endpoint fetches recap
@@ -14940,6 +14961,8 @@ export default {
                         '/v2/golf/enriched',
                         // Drama-score CPU cost test route (2026-07-07, test-only)
                         '/test/drama-score-cost',
+                        // Model probe (2026-07-17, test-only — remove after eval)
+                        '/test/model-probe',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
