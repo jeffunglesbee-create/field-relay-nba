@@ -60,7 +60,7 @@ jobs:
 
       - name: Haiku 4.5 (same prompt)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.anthropic_key }}
         run: |
           node --input-type=module <<'EOF'
           import { FIELD_VOICE_REGISTER } from './src/journalism-quality.js';
