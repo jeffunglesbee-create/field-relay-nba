@@ -659,7 +659,7 @@ export const FIELD_VOICE_REGISTER = [
 // wire-copy pattern FIELD_VOICE_REGISTER's own anti-exemplar forbids).
 // Reuses FIELD_VOICE_REGISTER verbatim (already a joined string with the
 // real exemplars and the labeled anti-exemplar) -- not duplicated here.
-function _buildVoiceJudgePrompt(draftText) {
+export function _buildVoiceJudgePrompt(draftText) {
   return FIELD_VOICE_REGISTER +
     `\n\nJudge the following draft against the real exemplars and the anti-exemplar above.\n\n` +
     `DRAFT:\n"""${draftText}"""\n\n` +
