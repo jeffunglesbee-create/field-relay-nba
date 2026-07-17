@@ -1,16 +1,13 @@
 name: OAI Model Test
 on:
   workflow_dispatch:
-    inputs:
-      openai_key:
-        description: 'OpenAI API key'
-        required: true
-        type: string
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Call GPT-4o-mini with FIELD prompt
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           cat > /tmp/payload.json << 'JSONEOF'
           {
@@ -18,13 +15,13 @@ jobs:
             "max_tokens": 300,
             "messages": [{
               "role": "user",
-              "content": "FIELD voice register: WARM, WISE, UPLIFTING, CHEEKY, WRY.\n\nThe truth in sports is inherently fun. Your job is to let the real story through with genuine energy.\n\nExemplar (Soccer / World Cup group-stage, ~115 words):\nMexico and the USA in group play is the kind of fixture that decides which side gets to write its own knockout-round story and which one starts doing math on goal differential. Mexico has been tactically tidy through the openers, but the USA's press in the middle third is the test — if Lozano can't get on the ball under pressure, the transitions break down before they start. A center back making decisions under pressure is a center back making the wrong one, and the wrong one is the goal. Group standings sit where one result reshapes everything: a Mexico draw and the USA is into a second-place bracket nobody wants.\n\nANTI-EXEMPLAR (FAILURE MODE — DO NOT WRITE LIKE THIS):\n\"Japan's 4-0 dismantling of Tunisia was a masterclass in clinical efficiency, anchored by Ayase Ueda's brace and a 4th-minute opener from Daichi Kamada that set the tone for the entire afternoon.\"\nWhy this fails: 'masterclass in clinical efficiency' is generic (works for any 4-0 in any sport). 'Set the tone for the entire afternoon' is filler. Stats stacked without angle or observation.\n\nNUMBERS-IN-PROSE GRAMMAR: Numbers must be SUBORDINATED to a claim, never the predicate of a main clause.\nGOOD: \"Kamada's 4th-minute opener told you everything.\" / \"Japan at 9 points is the group's X-factor.\" / \"Ueda scored twice. That's the game.\"\nFORBIDDEN: SUBJECT + [has/holds/carries/enters with/sits at] + NUMBER\n\nSTYLE: specificity over metaphor. Active voice. One metaphor max. Write like a well-prepared friend who watched every game. If a sentence would work for any game in any sport, it's too generic.\nLEAD: never start with 'The [Team]...' — lead with the specific situation.\nVOICE: third person only.\nBANNED PHRASES: stunned, shocked, thriller, instant classic, for the ages, masterclass, set the tone, clinical efficiency, dangerous side.\n\nWrite a 2-3 sentence post-match brief for this World Cup 2026 result.\nFactual, warm. No manufactured drama. Include: key goalscorers with minutes, standout performances, what this means for the group. Single paragraph. No headers.\n\nRESULT: Tunisia 0 - 4 Japan\nGroup: F | Date: 2026-07-05\nGoalscorers: Daichi Kamada 4', Ayase Ueda brace, Junya Ito 69'\nJapan: 9 points in Group F, GD +8\nNetherlands: 11 points (top spot in Group F)\nTunisia: 0 points after 3 matches played\n\nSPORT BOUNDARY: World Cup 2026 soccer. Write ONLY soccer content."
+              "content": "FIELD voice register: WARM, WISE, UPLIFTING, CHEEKY, WRY.\n\nThe truth in sports is inherently fun. Your job is to let the real story through with genuine energy.\n\nExemplar (Soccer / World Cup group-stage, ~115 words):\nMexico and the USA in group play is the kind of fixture that decides which side gets to write its own knockout-round story and which one starts doing math on goal differential. Mexico has been tactically tidy through the openers, but the USA's press in the middle third is the test — if Lozano can't get on the ball under pressure, the transitions break down before they start. A center back making decisions under pressure is a center back making the wrong one, and the wrong one is the goal. Group standings sit where one result reshapes everything: a Mexico draw and the USA is into a second-place bracket nobody wants.\n\nANTI-EXEMPLAR (FAILURE MODE — DO NOT WRITE LIKE THIS):\n\"Japan's 4-0 dismantling of Tunisia was a masterclass in clinical efficiency, anchored by Ayase Ueda's brace and a 4th-minute opener from Daichi Kamada that set the tone for the entire afternoon.\"\nWhy this fails: 'masterclass in clinical efficiency' is generic. 'Set the tone for the entire afternoon' is filler. Stats stacked without angle.\n\nNUMBERS-IN-PROSE GRAMMAR: Numbers must be SUBORDINATED to a claim, never the predicate.\nGOOD: \"Kamada's 4th-minute opener told you everything.\" / \"Japan at 9 points is the group's X-factor.\" / \"Ueda scored twice. That's the game.\"\nFORBIDDEN: SUBJECT + [has/holds/carries/enters with/sits at] + NUMBER\n\nSTYLE: specificity over metaphor. Active voice. One metaphor max. Write like a well-prepared friend who watched every game. If a sentence would work for any game in any sport, it's too generic.\nLEAD: never start with 'The [Team]...' — lead with the specific situation.\nVOICE: third person only.\nBANNED PHRASES: stunned, shocked, thriller, instant classic, for the ages, masterclass, set the tone, clinical efficiency, dangerous side.\n\nWrite a 2-3 sentence post-match brief for this World Cup 2026 result.\nFactual, warm. No manufactured drama. Include: key goalscorers with minutes, standout performances, what this means for the group. Single paragraph. No headers.\n\nRESULT: Tunisia 0 - 4 Japan\nGroup: F | Date: 2026-07-05\nGoalscorers: Daichi Kamada 4', Ayase Ueda brace, Junya Ito 69'\nJapan: 9 points in Group F, GD +8\nNetherlands: 11 points (top spot in Group F)\nTunisia: 0 points after 3 matches played\n\nSPORT BOUNDARY: World Cup 2026 soccer. Write ONLY soccer content."
             }]
           }
           JSONEOF
           RESULT=$(curl -s https://api.openai.com/v1/chat/completions \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ inputs.openai_key }}" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
             -d @/tmp/payload.json)
           echo "=== GPT-4o-mini OUTPUT ==="
           echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['choices'][0]['message']['content'] if 'choices' in d else d)"
