@@ -3103,6 +3103,9 @@ async function handleGolfCompetitorStats(eventId, athleteId, env) {
         puttsGirAvg:       pickStat('puttsGirAvg'),
         sandSaves:         pickStat('sandSaves'),
         sandSavesPossible: pickStat('sandSavesPoss'),
+        birdies:           pickStat('birdies'),
+        bogeys:            pickStat('bogeys'),
+        doublesOrWorse:    pickStat('doubleBogeysAndWorse'),
     };
     // Cache 600s — fits both active rounds (600s) and post-round (longer is fine
     // but a single TTL keeps the helper simple; clients may set their own).
