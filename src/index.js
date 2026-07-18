@@ -6308,10 +6308,13 @@ async function findGame(env, id) {
         const m = /^[a-z]+:(\d+)$/.exec(id);
         if (m) {
             row = await env.ARCHIVE_DB.prepare(
-                `SELECT * FROM postseason_games WHERE espn_event_id = ?
-                 UNION ALL SELECT * FROM regular_season_games WHERE espn_event_id = ?
-                 LIMIT 1`
-            ).bind(m[1], m[1]).first();
+                `SELECT * FROM postseason_games WHERE espn_event_id = ? LIMIT 1`
+            ).bind(m[1]).first();
+            if (!row) {
+                row = await env.ARCHIVE_DB.prepare(
+                    `SELECT * FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+                ).bind(m[1]).first();
+            }
         }
     }
     if (!row) return null;
