@@ -7730,12 +7730,65 @@ async function handleJournalismCycle(env, opts = {}) {
             }
             const matchupNote = matchupNoteParts.length ? matchupNoteParts.join(', ') : null;
 
+            // Debrief context for final games — same proven pattern as completion-trigger
+            // path (L13473). Archive failure must NEVER break journalism (Rule 5).
+            let _cronDebriefBlock = null;
+            if (comp.status?.type?.completed && env.ARCHIVE_DB) {
+              try {
+                const _archRow = await env.ARCHIVE_DB.prepare(
+                  `SELECT id FROM regular_season_games WHERE espn_event_id = ?
+                   UNION ALL SELECT id FROM postseason_games WHERE espn_event_id = ?
+                   LIMIT 1`
+                ).bind(eventId, eventId).first();
+                if (_archRow?.id) {
+                  const [_gameRow, _briefs, _seriesRow] = await Promise.all([
+                    findGame(env, _archRow.id),
+                    findBriefs(env, _archRow.id),
+                    findSeries(env, _archRow.id),
+                  ]);
+                  if (_gameRow) {
+                    const _preGameBrief = _briefs?.gameBriefs?.[0]?.brief_text ?? null;
+                    let _seriesSummary = null;
+                    if (_seriesRow?.games?.length) {
+                      const _comp = _seriesRow.games.filter(g => g.home_score != null && g.away_score != null);
+                      const _hw = _comp.filter(g => g.home_score > g.away_score).length;
+                      const _aw = _comp.filter(g => g.away_score > g.home_score).length;
+                      if (_comp.length) _seriesSummary = `${_comp.length} games played, ${homeName} leads ${_hw}-${_aw}`;
+                    }
+                    const _dc = {
+                      drama_peak:          _gameRow.drama_peak  ?? null,
+                      opening_odds_parsed: _gameRow.opening_odds_parsed ?? null,
+                      closing_odds_parsed: _gameRow.closing_odds_parsed ?? null,
+                      went_to_ot:          !!_gameRow.went_to_ot,
+                      pre_game_brief:      _preGameBrief,
+                      series_summary:      _seriesSummary,
+                    };
+                    const _lines = ['DEBRIEF CONTEXT — use to enrich the recap, don\'t list mechanically:'];
+                    if (_dc.drama_peak != null) _lines.push(` Drama: ${_dc.drama_peak}/100`);
+                    if (_dc.pre_game_brief)     _lines.push(` Pre-game: ${_dc.pre_game_brief}`);
+                    if (_dc.opening_odds_parsed) {
+                      const o = _dc.opening_odds_parsed;
+                      const c = _dc.closing_odds_parsed;
+                      const oddsStr  = o.moneyline ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}` : '';
+                      const closeStr = (c && c.moneyline) ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}` : '';
+                      const otStr    = _dc.went_to_ot ? ' Went to OT.' : '';
+                      _lines.push(` Odds: opened ${oddsStr}${closeStr}.${otStr}`);
+                    }
+                    if (_dc.series_summary) _lines.push(` Series: ${_dc.series_summary}`);
+                    _lines.push(' All sealed — this is post-game editorial, not live recommendation.');
+                    _cronDebriefBlock = _lines.join('\n');
+                  }
+                }
+              } catch (e) { console.error('[GAME-BRIEF-ENQUEUE] debrief context fetch failed (non-fatal):', e.message); }
+            }
+
             const gamePrompt = [
               `Write a FIELD Game Brief for this ${label} game.`,
               `${awayName} @ ${homeName}.`,
               series ? `Series: ${series}.` : '',
               `Status: ${comp.status?.type?.description || 'Scheduled'}. Broadcast: ${broadcast}.`,
               `Game data: ${gameLine}`,
+              _cronDebriefBlock,
               '',
               isPlayoff
                 ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
