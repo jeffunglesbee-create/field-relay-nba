@@ -7823,7 +7823,7 @@ async function handleJournalismCycle(env, opts = {}) {
                          ON CONFLICT(id) DO NOTHING`
                       ).bind(
                         `pre_game_${_pgArchRow.id}`,
-                        _pgDateStr, label.toLowerCase(), _pgArchRow.id, _pgStripped,
+                        _pgDateStr, label.toLowerCase(), eventId, _pgStripped,
                         _pgStripped.split(/\s+/).length
                       ).run();
                       console.log(`[GAME-BRIEF-ENQUEUE] pre-game brief written for ${eventId} (${_pgArchRow.id})`);
@@ -9292,20 +9292,29 @@ export default {
                     } catch (e) { console.error("[CONTEXT-GAME] cache read failed:", e.message); /* fall through to query */ }
                 }
                 const _errors = [];
-                const settled = await Promise.allSettled([
-                    findGame(env, id),
-                    findBriefs(env, id),
-                    findSeries(env, id),
-                    findEnrichment(env, id),
-                    findBracketDelta(env, id),
+                // Step 1: resolve game row first to get espn_event_id for brief lookup
+                const gSettled = await findGame(env, id).then(v => ({ status: 'fulfilled', value: v }))
+                    .catch(r => ({ status: 'rejected', reason: r }));
+                const game = gSettled.status === 'fulfilled' ? gSettled.value : null;
+                if (gSettled.status === 'rejected')
+                    _errors.push({ source: 'game', reason: String(gSettled.reason?.message || gSettled.reason) });
+
+                // Step 2: parallel fan-out — use espn_event_id for briefs/bracketDelta if available
+                const briefId = game?.espn_event_id || id;
+                const [b, s, e, bd] = await Promise.all([
+                    findBriefs(env, briefId).then(v => ({ status: 'fulfilled', value: v }))
+                        .catch(r => ({ status: 'rejected', reason: r })),
+                    findSeries(env, id).then(v => ({ status: 'fulfilled', value: v }))
+                        .catch(r => ({ status: 'rejected', reason: r })),
+                    findEnrichment(env, id).then(v => ({ status: 'fulfilled', value: v }))
+                        .catch(r => ({ status: 'rejected', reason: r })),
+                    findBracketDelta(env, briefId).then(v => ({ status: 'fulfilled', value: v }))
+                        .catch(r => ({ status: 'rejected', reason: r })),
                 ]);
-                const [g, b, s, e, bd] = settled;
-                if (g.status === 'rejected')  _errors.push({ source: 'game',         reason: String(g.reason?.message  || g.reason) });
-                if (b.status === 'rejected')  _errors.push({ source: 'archive',       reason: String(b.reason?.message  || b.reason) });
-                if (s.status === 'rejected')  _errors.push({ source: 'series',        reason: String(s.reason?.message  || s.reason) });
-                if (e.status === 'rejected')  _errors.push({ source: 'enrichment',    reason: String(e.reason?.message  || e.reason) });
-                if (bd.status === 'rejected') _errors.push({ source: 'bracketDelta',  reason: String(bd.reason?.message || bd.reason) });
-                const game = g.status === 'fulfilled' ? g.value : null;
+                if (b.status === 'rejected')  _errors.push({ source: 'archive',      reason: String(b.reason?.message  || b.reason) });
+                if (s.status === 'rejected')  _errors.push({ source: 'series',       reason: String(s.reason?.message  || s.reason) });
+                if (e.status === 'rejected')  _errors.push({ source: 'enrichment',   reason: String(e.reason?.message  || e.reason) });
+                if (bd.status === 'rejected') _errors.push({ source: 'bracketDelta', reason: String(bd.reason?.message || bd.reason) });
                 const isFinal = game && game.home_score != null && game.away_score != null;
                 const payload = {
                     ok: true,
