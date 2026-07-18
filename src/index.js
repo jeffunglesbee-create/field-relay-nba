@@ -7700,6 +7700,7 @@ async function handleJournalismCycle(env, opts = {}) {
             const awayName = away?.team?.shortDisplayName || away?.team?.displayName || '';
             const series = comp.series?.summary || '';
             const broadcast = comp.broadcasts?.[0]?.names?.[0] || label.toUpperCase();
+            const nationalBroadcast = !!(comp.broadcasts?.[0]?.names?.[0] && /^(ESPN|ABC|TNT|CBS|NBC|FOX|FS1|FS2|Amazon|Netflix|Apple)/i.test(comp.broadcasts[0].names[0]));
             const isPlayoff = !!(series || /playoff|final|series/i.test(ev.name||''));
 
             // CC-CMD-2026-07-14-jq-context-and-calibration: this is the
@@ -7780,6 +7781,56 @@ async function handleJournalismCycle(env, opts = {}) {
                   }
                 }
               } catch (e) { console.error('[GAME-BRIEF-ENQUEUE] debrief context fetch failed (non-fatal):', e.message); }
+            }
+
+            // Pre-game brief for significant upcoming games — playoff or national TV only.
+            // Writes to D1 briefs (brief_type='pre_game') with game_id=internalId so
+            // findBriefs can surface it as pre_game_brief in the debrief context later.
+            // Only writes if the game row already exists in D1 (espn_event_id lookup).
+            // Archive failure must NEVER break journalism (Rule 5).
+            if (!comp.status?.type?.completed && (isPlayoff || nationalBroadcast) && env.ARCHIVE_DB) {
+              try {
+                const _pgArchRow = await env.ARCHIVE_DB.prepare(
+                  `SELECT id FROM regular_season_games WHERE espn_event_id = ?
+                   UNION ALL SELECT id FROM postseason_games WHERE espn_event_id = ?
+                   LIMIT 1`
+                ).bind(eventId, eventId).first();
+                if (_pgArchRow?.id) {
+                  await ensureBriefsTable(env);
+                  const _pgExisting = await env.ARCHIVE_DB.prepare(
+                    `SELECT id FROM briefs WHERE game_id = ? AND brief_type = 'pre_game' LIMIT 1`
+                  ).bind(_pgArchRow.id).first();
+                  if (!_pgExisting) {
+                    const _pgPrompt = [
+                      `Write a FIELD pre-game brief (2-3 sentences) for this ${label} game.`,
+                      `${awayName} @ ${homeName}.`,
+                      series ? `Series context: ${series}.` : '',
+                      `Broadcast: ${broadcast}. Status: ${comp.status?.type?.description || 'Scheduled'}.`,
+                      `Game data: ${gameLine}`,
+                      isPlayoff
+                        ? 'Focus on playoff stakes and what to watch. Factual context only. No predictions.'
+                        : 'This game is on national television. Lead with the most interesting matchup fact.',
+                      JQ_STYLE,
+                      'Write only from data above. No invented stats.',
+                    ].filter(Boolean).join('\n');
+                    const _pgProse = await callProxy(_pgPrompt);
+                    if (_pgProse && _pgProse.length >= 30) {
+                      const _pgStripped = stripMarkdown(_pgProse);
+                      const _pgDateStr = (ev.date || new Date().toISOString()).slice(0, 10);
+                      await env.ARCHIVE_DB.prepare(
+                        `INSERT INTO briefs (id, date, brief_type, sport, game_id, brief_text, model, quality_score, word_count, source)
+                         VALUES (?, ?, 'pre_game', ?, ?, ?, 'gemini-3.1-flash-lite', NULL, ?, 'cron')
+                         ON CONFLICT(id) DO NOTHING`
+                      ).bind(
+                        `pre_game_${_pgArchRow.id}`,
+                        _pgDateStr, label.toLowerCase(), _pgArchRow.id, _pgStripped,
+                        _pgStripped.split(/\s+/).length
+                      ).run();
+                      console.log(`[GAME-BRIEF-ENQUEUE] pre-game brief written for ${eventId} (${_pgArchRow.id})`);
+                    }
+                  }
+                }
+              } catch (e) { console.error('[GAME-BRIEF-ENQUEUE] pre-game brief failed (non-fatal):', e.message); }
             }
 
             const gamePrompt = [
