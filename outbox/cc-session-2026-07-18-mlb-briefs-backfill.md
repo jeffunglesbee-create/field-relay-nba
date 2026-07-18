@@ -8,7 +8,11 @@
 
 ## Summary
 
-309 broken `mlb_game` briefs with `game_id LIKE 'g%'` (from now-fixed generic ESPN path bug) were analyzed using a two-signal text matching algorithm. 151 were corrected with high-confidence matches. 158 remain unmatched honestly.
+309 broken `mlb_game` briefs with `game_id LIKE 'g%'` (from now-fixed generic ESPN path bug) were analyzed using two passes. **167 corrected total. 142 remain unmatched honestly.**
+
+**Pass 1** — exact-date two-signal matching: 151 corrected (149 HIGH + 2 MEDIUM promoted after manual text review).
+
+**Pass 2** — adjacent-date matching (novel insight: journalism cron runs at UTC midnight = prior ET evening; brief `created_at` date can be 1–2 days off from game date): 16 additional corrected, all HIGH confidence.
 
 ---
 
@@ -50,15 +54,29 @@
 ## D1 Verification
 
 Before: 309 broken (`game_id LIKE 'g%'`)
-After: 158 broken (309 − 151 = 158)
+After pass 1: 158 broken (309 − 151 = 158)
+After pass 2: **142 broken** (158 − 16 = 142)
 
 ```sql
 SELECT
   SUM(CASE WHEN game_id LIKE 'g%' THEN 1 ELSE 0 END) as still_broken,
   SUM(CASE WHEN game_id LIKE 'MLB_%' THEN 1 ELSE 0 END) as fixed
 FROM briefs WHERE brief_type = 'mlb_game'
--- Result: still_broken=158, fixed=194
+-- Final result: still_broken=142, fixed=210
 ```
+
+**Pass 2 — adjacent-date matches applied (16):**
+- `mlb_game_2026-06-26_g3` → `MLB_2026-06-28_orioles_nationals` (gap=2d, second=0)
+- `mlb_game_2026-06-29_g1/g14` → `MLB_2026-06-30_orioles_whitesox`
+- `mlb_game_2026-06-29_g3/g16` → `MLB_2026-06-30_yankees_tigers`
+- `mlb_game_2026-06-29_g4/g30` → `MLB_2026-06-30_bluejays_mets`
+- `mlb_game_2026-07-13_g16/g30` → `MLB_2026-07-12_orioles_royals`
+- `mlb_game_2026-07-13_g1/g32` → `MLB_2026-07-12_pirates_brewers`
+- `mlb_game_2026-07-13_g4` → `MLB_2026-07-12_reds_cubs` (score=7)
+- `mlb_game_2026-07-13_g5` → `MLB_2026-07-12_mets_redsox`
+- `mlb_game_2026-07-13_g15` → `MLB_2026-07-12_padres_bluejays`
+- `mlb_game_2026-07-13_g10` → `MLB_2026-07-12_whitesox_athletics`
+- `mlb_game_2026-07-15_g1` → `MLB_2026-07-14_national_american` (All-Star Game)
 
 Spot-check verified (game_id updated, brief_text preserved, created_at preserved):
 - `mlb_game_2026-06-20_g1` → `MLB_2026-06-20_tigers_whitesox` ✓
@@ -100,7 +118,13 @@ Score below threshold or ambiguous. Typically brief text lacks venue and team na
 
 ---
 
+## Remaining 142 — Why Unrecoverable
+
+- **~20 briefs (June 16–19)**: pre-archive. No game rows exist in D1 for any date in this range.
+- **~4 briefs (June 22)**: adjacent dates (June 21, June 23) have no matching team/venue combinations (e.g., Tigers@Yankees at Comerica not archived on either adjacent date).
+- **~17 other NO_CANDIDATE briefs**: adjacent archive games don't match text signals.
+- **101 LOW_CONFIDENCE briefs**: brief text uses city names ("Pittsburgh", "Detroit", "Cincinnati") rather than team nicknames ("Pirates", "Tigers", "Reds"). Algorithm scores these 1–3 pts. Next recovery path would require city→team alias expansion or W-L record matching (requires computing standings from full game history — not attempted).
+
 ## Integration Status: COMPLETE
 
-151 broken mlb_game briefs corrected. 158 honestly left unmatched with documented reason.
-No code changes. No commits required.
+167 broken mlb_game briefs corrected (151 exact-date + 16 adjacent-date). 142 honestly left unmatched. No code changes. No commits required.
