@@ -3258,6 +3258,9 @@ async function handleGolfEnriched(date, env, ctx) {
                 drivingAccuracy:  s ? (s.driveAccuracyPct ?? 0) : 0,
                 puttsPerGir:      s ? (s.puttsGirAvg ?? 0) : 0,
                 sandSaves:        s ? (s.sandSaves ?? 0) : 0,
+                birdies:          s?.birdies       ?? null,
+                bogeys:           s?.bogeys        ?? null,
+                doublesOrWorse:   s?.doublesOrWorse ?? null,
             },
         };
     });
