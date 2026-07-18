@@ -4064,6 +4064,43 @@ async function handleV2Games(url, env, ctx) {
 // composite-value threshold).
 
 
+// ── Game-Final Push Fan-out ───────────────────────────────────────────────────
+// Called from /push/game-final route (invoked by GameDO final-state hook).
+// Send trigger: game-final status only — objective event, NOT drama score.
+// ADR-002 / RUWT compliance: drama_peak never influences whether this fires.
+// Payload carries a debrief deep-link (watchUrl: '/?debrief=gameId') so the
+// SW click handler opens the right card without any additional routing logic.
+async function handleGameFinalPush(env, { sport, gameId, home, away, homeScore, awayScore }) {
+    if (!env.PUSH_SUBS) return;
+    const watchUrl = '/?debrief=' + encodeURIComponent(gameId);
+    const pushPayload = {
+        type:      'GAME_FINAL',
+        gameId,
+        sport:     sport || '',
+        home:      home  || '',
+        away:      away  || '',
+        homeScore: homeScore ?? null,
+        awayScore: awayScore ?? null,
+        watchUrl,
+    };
+    const list = await env.PUSH_SUBS.list();
+    const subRecords = await Promise.allSettled(
+        list.keys.map(async key => {
+            const raw = await env.PUSH_SUBS.get(key.name);
+            if (!raw) return null;
+            try {
+                const subData = JSON.parse(raw);
+                if (!subData.subscription?.endpoint) return null;
+                return { sub: subData.subscription };
+            } catch(_) { return null; }
+        })
+    );
+    const subs = subRecords.map(r => r.status === 'fulfilled' ? r.value : null).filter(Boolean);
+    await Promise.allSettled(subs.map(async ({ sub }) => {
+        try { await sendWebPush(sub, pushPayload, env); } catch(_) {}
+    }));
+}
+
 // ── WC Free Game (Tubi) Pre-Game Push Alert ───────────────────────────────────
 // Fires once per free WC game, 30-60 minutes before kickoff.
 // Hardcoded list — WC free games are tournament-static (only 2: MEX/RSA + USA/PAR).
@@ -8145,6 +8182,23 @@ export default {
                 return new Response(JSON.stringify({ok:true}), {headers:{...CORS,'Content-Type':'application/json'}});
             } catch(e) {
                 return new Response(JSON.stringify({ok:false}), {status:500,headers:{...CORS,'Content-Type':'application/json'}});
+            }
+        }
+
+        // /push/game-final — fan-out GAME_FINAL push on game completion
+        // Called fire-and-forget by GameDO's final-state hook (game-do.js).
+        // Send trigger: game reached final/post status — objective event, no drama gating.
+        // ADR-002: drama_peak is NOT the send condition; it never will be (patent scope).
+        if (pathname === '/push/game-final' && request.method === 'POST') {
+            if (!env.PUSH_SUBS) return new Response('KV not configured', {status:503, headers:CORS});
+            try {
+                const body = await request.json();
+                const { sport, gameId, home, away, homeScore, awayScore } = body;
+                if (!gameId) return new Response('Missing gameId', {status:400, headers:CORS});
+                await handleGameFinalPush(env, { sport, gameId, home, away, homeScore, awayScore });
+                return new Response(JSON.stringify({ok:true}), {headers:{...CORS,'Content-Type':'application/json'}});
+            } catch(e) {
+                return new Response(JSON.stringify({ok:false,error:e.message}), {status:500,headers:{...CORS,'Content-Type':'application/json'}});
             }
         }
 

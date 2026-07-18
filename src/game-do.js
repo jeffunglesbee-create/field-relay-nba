@@ -447,6 +447,20 @@ export class GameDO {
                             date,
                         }),
                     }).catch(() => { /* journalism dispatch failure cannot affect DO */ });
+                    // Gap 6: game-final push — debrief deep-link notification.
+                    // Trigger: game-final state (objective event). NOT gated on drama score.
+                    fetch(relayBase + '/push/game-final', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sport:      this.sport,
+                            gameId:     this.gameId,
+                            home:       facts.homeName,
+                            away:       facts.awayName,
+                            homeScore:  facts.homeScore,
+                            awayScore:  facts.awayScore,
+                        }),
+                    }).catch(() => { /* push dispatch failure cannot affect DO */ });
                 }
             } catch (_) { /* archive hook failure cannot affect DO */ }
         }
