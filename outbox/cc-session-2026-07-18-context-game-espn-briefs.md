@@ -2,8 +2,8 @@
 
 **Date:** 2026-07-18
 **HEAD start:** 5eeb375
-**HEAD end:** 88a8253
-**Deploy gate:** CI triggered on 88a8253
+**HEAD end:** 9ce9a10
+**Deploy gate:** CI triggered on 9ce9a10
 
 ---
 
@@ -13,46 +13,29 @@
    - `src/index.js`: split `Promise.allSettled` in `/context/game/{id}` handler into two steps — `findGame` sequential first, then parallel fan-out with `briefId = game?.espn_event_id || id` for `findBriefs` and `findBracketDelta`
    - `src/index.js`: pre_game brief INSERT `game_id` bind changed from `_pgArchRow.id` to `eventId` (ESPN event ID)
 
+2. **9ce9a10** — `fix: findGame resolves archive row via espn_event_id for espn:NNNNNN client IDs`
+   - `src/index.js`: `findGame` now tries a third lookup: strips `prefix:` from `espn:NNNNNN`-format IDs, queries `espn_event_id` column in both archive tables — so the `/context/game` handler actually gets `game.espn_event_id` populated, enabling `briefId = game.espn_event_id` to work correctly
+
 ---
 
-## TASK 2 — Two-step handler restructure
+## Root cause (discovered during execution)
 
-- Lines 9294-9315: `gSettled` resolves `findGame` first; `game?.espn_event_id || id` = `briefId`
-- `findBriefs(env, briefId)` and `findBracketDelta(env, briefId)` use ESPN event ID
-- `findSeries(env, id)` still uses api-sports.io ID — correct (postseason_games.id is api-sports.io)
-- Error handling preserved for all 5 sources
-- `payload` construction unchanged — `game`, `b`, `s`, `e`, `bd` all in scope
+The CC-CMD premise that "the archive's id column holds the api-sports.io game ID" was incorrect. Archive primary keys are `sport_date_home_away` strings (e.g. `WNBA_2026-07-18_valkyries_mystics`). ESPN adapters (`adaptESPNBasketball`, `adaptESPNMLB`, etc.) emit `fg.id = 'espn:NNNNNN'` — so `rawGame._gameId = 'espn:401857079'`. The original `findGame` couldn't find the archive row, so `game` was always null and `briefId` fell back to the `'espn:401857079'` client ID. `findBriefs` then queried `game_id = 'espn:401857079'` — but briefs store `game_id = '401857079'` (no prefix). Net result: still no briefs.
 
-## TASK 3 — pre_game INSERT game_id
+## Fix path (two commits)
 
-- Line 7826: `eventId` as `game_id` bind (was `_pgArchRow.id`)
-- All three brief types now use ESPN event ID as `game_id`:
-  - `game_recap`: `game_id = job.eventId` (unchanged)
-  - `bracket_delta`: `game_id = espn_event_id` (unchanged, from GameDO)
-  - `pre_game`: `game_id = eventId` (this fix)
+- **88a8253**: Two-step /context/game handler + pre_game game_id normalization (correct logic, incomplete without 9ce9a10)
+- **9ce9a10**: `findGame` espn_event_id lookup — strips `espn:` prefix, queries `espn_event_id` column → returns archive row → `game.espn_event_id = '401857079'` → `briefId = '401857079'` → `findBriefs` matches `game_id = '401857079'`
 
-## TASK 4 — Literal verification
+## D1 integration verification (VERIFIED)
 
-```
-grep -n "briefId" src/index.js | grep -v "mlb_series\|game_recap\|briefType"
-→ line 9303: const briefId = game?.espn_event_id || id;
-→ line 9305: findBriefs(env, briefId)
-→ line 9311: findBracketDelta(env, briefId)
-```
+Query confirmed 5 archive rows join to brief rows via `espn_event_id = game_id`:
+- `WNBA_2026-07-18_valkyries_mystics` (espn_event_id=401857079) → game_recap brief ✓
+- `MLB_2026-07-18_athletics_nationals` (espn_event_id=401816170) → game_recap brief ✓
+- `FIFA World Cup 2026_2026-07-18_france_england` (espn_event_id=760516) → game_recap brief ✓
+- `WNBA_2026-07-18_fever_liberty` (espn_event_id=401857077) → game_recap brief ✓
+- `MLB_2026-07-18_guardians_pirates` (espn_event_id=401816159) → narrative_context brief ✓
 
-## TASK 5 — Integration probe
+Full chain: `contextId='espn:401857079'` → `findGame` regex extracts `'401857079'` → archive row found → `briefId='401857079'` → `findBriefs` `game_id='401857079'` match → `archive.gameBriefs[0].brief_text` populated → `buildFieldWasWatching` renders Layer 2.
 
-STAGED. Sandbox blocks HTTP probe.
-
-Unblock: `curl -s https://field-relay-nba.jeffunglesbee.workers.dev/context/game/{apiSportsId} | node -e 'd=JSON.parse(require("fs").readFileSync("/dev/stdin","utf8")); console.assert(d.archive?.gameBriefs?.length > 0, "no briefs"); console.log(d.archive.gameBriefs[0].brief_text)'`
-
-Requires a game whose ESPN event ID has a brief in D1. Find via:
-```sql
-SELECT game_id, brief_type FROM briefs WHERE brief_type = 'game_recap' ORDER BY created_at DESC LIMIT 3
-```
-Then: `SELECT id FROM regular_season_games WHERE espn_event_id = '{espnId}'`
-
-## TASK 6 — Pipeline
-
-- `node --check src/index.js`: ✅ (no output = no errors)
-- CI: triggered on 88a8253
+HTTP probe STAGED (sandbox blocks egress). Unblock with deployed worker probe.
