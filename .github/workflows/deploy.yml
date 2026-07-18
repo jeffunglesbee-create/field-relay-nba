@@ -236,6 +236,49 @@ jobs:
       # depending on NBA CDN, FPL, or FD being reachable during CI.
       # ══════════════════════════════════════════════════════════════
 
+      - name: STRUCTURAL 8 — /archive/debrief-backfill endpoint shape probe
+        # Probes the Gap 10 debrief reconstruction endpoint from the CI runner
+        # (no sandbox egress limitation). Asserts HTTP 200 + ok:true + correct
+        # response shape. Uses 2026-05-20 (NBA Conference Finals era, pre-Phase-3a
+        # drama_peak write path) — expects either gameCount>0 with drama_peak_tracked
+        # booleans, or gameCount:0 (no data for date — endpoint still structurally OK).
+        # drama_peak_tracked:false is the honest "Not tracked" signal for historical games.
+        continue-on-error: false
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          STATUS=$(curl -s -o /tmp/dbf.json -w "%{http_code}" --max-time 30 \
+            "$RELAY/archive/debrief-backfill?date=2026-05-20")
+          echo "Status: $STATUS"
+          cat /tmp/dbf.json | head -c 500
+          [ "$STATUS" = "200" ] || { echo "❌ Expected HTTP 200, got $STATUS"; exit 1; }
+          python3 << 'PYEOF'
+          import json, sys
+          d = json.load(open('/tmp/dbf.json'))
+          if not d.get('ok'):
+              print(f"❌ Response ok=false: {d.get('error','unknown')}")
+              sys.exit(1)
+          gc = d.get('gameCount', 0)
+          results = d.get('results', [])
+          if gc == 0:
+              print(f"✅ STRUCTURAL 8 OK — endpoint live, no games on 2026-05-20 (acceptable for this date)")
+              sys.exit(0)
+          errors = []
+          for r in results:
+              if r.get('skipped'):
+                  continue
+              if 'drama_peak_tracked' not in r:
+                  errors.append(f"game {r.get('game_id')}: drama_peak_tracked field missing")
+              elif not isinstance(r['drama_peak_tracked'], bool):
+                  errors.append(f"game {r.get('game_id')}: drama_peak_tracked must be bool, got {type(r['drama_peak_tracked']).__name__}")
+          if errors:
+              print(f"❌ STRUCTURAL 8 shape assertion failed:")
+              for e in errors: print(f"  - {e}")
+              sys.exit(1)
+          tracked = sum(1 for r in results if not r.get('skipped') and r.get('drama_peak_tracked'))
+          untracked = sum(1 for r in results if not r.get('skipped') and not r.get('drama_peak_tracked'))
+          print(f"✅ STRUCTURAL 8 OK — {gc} game(s), drama_peak_tracked={tracked} untracked={untracked}")
+          PYEOF
+
       - name: STRUCTURAL 1 — Health (with retry)
         run: |
           RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"

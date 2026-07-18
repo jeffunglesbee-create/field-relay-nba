@@ -9532,6 +9532,117 @@ export default {
                 }
             }
 
+            // GET /archive/debrief-backfill?date=YYYY-MM-DD — reconstruct Debrief
+            // layers for every final game on a historical date from existing archived
+            // data. No AI generation — assembles what's genuinely derivable: odds
+            // (opening/closing/lineMovement), series context, pre-game brief, and
+            // drama_peak/drama_arc (null for pre-Phase-3a games, explicitly flagged
+            // as drama_peak_tracked:false rather than silently omitted or fabricated).
+            // Stores each game as brief_type='debrief' for /context/game/{id} reads.
+            // Idempotent: skips games that already have a debrief entry.
+            // ADR-002: drama_peak is read from the game row — relay stores only.
+            if (pathname === '/archive/debrief-backfill' && request.method === 'GET') {
+                const date = url.searchParams.get('date');
+                if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing or invalid ?date=YYYY-MM-DD' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                if (!env.ARCHIVE_DB) {
+                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                try {
+                    await ensureBriefsTable(env);
+                    const [regRes, psRes] = await Promise.all([
+                        env.ARCHIVE_DB.prepare('SELECT id FROM regular_season_games WHERE date = ?').bind(date).all(),
+                        env.ARCHIVE_DB.prepare('SELECT id FROM postseason_games WHERE date = ?').bind(date).all(),
+                    ]);
+                    const gameIds = [
+                        ...(regRes.results || []).map(r => r.id),
+                        ...(psRes.results  || []).map(r => r.id),
+                    ];
+                    if (!gameIds.length) {
+                        return new Response(
+                            JSON.stringify({ ok: true, date, skipped: true, reason: 'no archived games for date', gameCount: 0 }),
+                            { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                    }
+                    const results = [];
+                    for (const id of gameIds) {
+                        const existing = await env.ARCHIVE_DB.prepare(
+                            `SELECT id FROM briefs WHERE game_id = ? AND brief_type = 'debrief' LIMIT 1`
+                        ).bind(id).first();
+                        if (existing) {
+                            results.push({ game_id: id, skipped: true, reason: 'debrief already exists' });
+                            continue;
+                        }
+                        const [gameRes, briefsRes, seriesRes] = await Promise.allSettled([
+                            findGame(env, id),
+                            findBriefs(env, id),
+                            findSeries(env, id),
+                        ]);
+                        const game   = gameRes.status   === 'fulfilled' ? gameRes.value   : null;
+                        const briefs = briefsRes.status === 'fulfilled' ? briefsRes.value : null;
+                        const series = seriesRes.status === 'fulfilled' ? seriesRes.value : null;
+                        if (!game) {
+                            results.push({ game_id: id, skipped: true, reason: 'game not found' });
+                            continue;
+                        }
+                        // Honest partial-layer shape. drama_peak is null for pre-Phase-3a games
+                        // (drama_peak column exists but was never written for those rows).
+                        // drama_peak_tracked:false → client renders "Not tracked", never a blank.
+                        const debrief = {
+                            game_id:             id,
+                            date:                game.date || date,
+                            home:                game.home,
+                            away:                game.away,
+                            home_score:          game.home_score,
+                            away_score:          game.away_score,
+                            sport:               game.sport || null,
+                            odds: {
+                                opening:         game.opening_odds_parsed  || null,
+                                closing:         game.closing_odds_parsed  || null,
+                                lineMovement:    game.lineMovement         || null,
+                            },
+                            series:              series || null,
+                            brief:               briefs?.gameBriefs?.[0]  || null,
+                            drama_peak:          game.drama_peak           ?? null,
+                            drama_arc:           game.drama_arc_parsed     ?? null,
+                            drama_peak_tracked:  game.drama_peak !== null && game.drama_peak !== undefined,
+                            reconstructed_at:    new Date().toISOString(),
+                        };
+                        const briefText = JSON.stringify(debrief);
+                        await env.ARCHIVE_DB.prepare(
+                            `INSERT INTO briefs
+                               (id, date, brief_type, sport, game_id, brief_text, quality_score, word_count, source)
+                             VALUES (?, ?, 'debrief', ?, ?, ?, 0, ?, 'debrief_backfill')
+                             ON CONFLICT(id) DO NOTHING`
+                        ).bind(
+                            `debrief_${id}`,
+                            date,
+                            game.sport || null,
+                            id,
+                            briefText,
+                            briefText.split(/\s+/).length
+                        ).run();
+                        results.push({
+                            game_id:             id,
+                            ok:                  true,
+                            home:                game.home,
+                            away:                game.away,
+                            drama_peak_tracked:  debrief.drama_peak_tracked,
+                            has_odds:            !!(game.opening_odds_parsed || game.closing_odds_parsed),
+                            has_series:          !!series,
+                            has_brief:           !!(briefs?.gameBriefs?.length),
+                        });
+                    }
+                    return new Response(JSON.stringify({ ok: true, date, gameCount: gameIds.length, results }),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                } catch (e) {
+                    return new Response(JSON.stringify({ ok: false, error: e.message }),
+                        { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
+
             // POST /archive/drama — persists client-computed drama summary onto
             // the archived game row (ADR-002: relay stores, never computes).
             // The client computes drama_peak (0-100) and the full drama_arc
@@ -15056,6 +15167,7 @@ export default {
                         // exist relay-side without bouncing through CI.
                         '/archive/brief',
                         '/archive/backfill',
+                        '/archive/debrief-backfill',
                         // GET-friendly query endpoint (Close-the-Loop 2026-06-16).
                         // Query string filters (date/sport/team/brief_type/source/
                         // limit) all carry through the GET probe.
