@@ -6353,6 +6353,18 @@ async function findBriefs(env, id) {
     }
     return results;
 }
+async function findBracketDelta(env, id) {
+    if (!env.ARCHIVE_DB) return null;
+    try {
+        const row = await env.ARCHIVE_DB.prepare(
+            `SELECT brief_text, created_at FROM briefs
+             WHERE game_id = ? AND brief_type = 'bracket_delta'
+             ORDER BY created_at DESC LIMIT 1`
+        ).bind(id).first();
+        if (!row) return null;
+        try { return JSON.parse(row.brief_text); } catch (_) { return null; }
+    } catch (_) { return null; }
+}
 // findSeries — only fires when the id matches a postseason_games row that
 // carries a series_key. Returns the postseason_series row + every game in
 // the series + an array of completed-game margins (home_score - away_score)
@@ -9181,21 +9193,24 @@ export default {
                     findBriefs(env, id),
                     findSeries(env, id),
                     findEnrichment(env, id),
+                    findBracketDelta(env, id),
                 ]);
-                const [g, b, s, e] = settled;
-                if (g.status === 'rejected') _errors.push({ source: 'game',       reason: String(g.reason?.message || g.reason) });
-                if (b.status === 'rejected') _errors.push({ source: 'archive',    reason: String(b.reason?.message || b.reason) });
-                if (s.status === 'rejected') _errors.push({ source: 'series',     reason: String(s.reason?.message || s.reason) });
-                if (e.status === 'rejected') _errors.push({ source: 'enrichment', reason: String(e.reason?.message || e.reason) });
+                const [g, b, s, e, bd] = settled;
+                if (g.status === 'rejected')  _errors.push({ source: 'game',         reason: String(g.reason?.message  || g.reason) });
+                if (b.status === 'rejected')  _errors.push({ source: 'archive',       reason: String(b.reason?.message  || b.reason) });
+                if (s.status === 'rejected')  _errors.push({ source: 'series',        reason: String(s.reason?.message  || s.reason) });
+                if (e.status === 'rejected')  _errors.push({ source: 'enrichment',    reason: String(e.reason?.message  || e.reason) });
+                if (bd.status === 'rejected') _errors.push({ source: 'bracketDelta',  reason: String(bd.reason?.message || bd.reason) });
                 const game = g.status === 'fulfilled' ? g.value : null;
                 const isFinal = game && game.home_score != null && game.away_score != null;
                 const payload = {
                     ok: true,
                     id,
                     game,
-                    archive:    b.status === 'fulfilled' ? b.value : null,
-                    series:     s.status === 'fulfilled' ? s.value : null,
-                    enrichment: e.status === 'fulfilled' ? e.value : null,
+                    archive:      b.status  === 'fulfilled' ? b.value  : null,
+                    series:       s.status  === 'fulfilled' ? s.value  : null,
+                    enrichment:   e.status  === 'fulfilled' ? e.value  : null,
+                    bracketDelta: bd.status === 'fulfilled' ? bd.value : null,
                     _errors:    _errors.length ? _errors : undefined,
                 };
                 const body = JSON.stringify(payload);

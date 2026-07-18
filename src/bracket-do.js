@@ -381,6 +381,28 @@ export class BracketDO {
             } catch (_) {}
         }
 
+        // Gap 7: persist bracket delta to ARCHIVE_DB via relay route for /context/game/{id}
+        if (triggerResult?.gameId && delta) {
+            const _bdDate = new Date().toISOString().slice(0, 10);
+            const _bdId = `bracket_delta:${triggerResult.gameId}:${delta.computedAt || _bdDate}`;
+            this.ctx.waitUntil(
+                fetch(`${RELAY_BASE}/archive/brief`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id:            _bdId,
+                        brief_type:    'bracket_delta',
+                        date:          _bdDate,
+                        sport:         'wc',
+                        game_id:       triggerResult.gameId,
+                        brief_text:    JSON.stringify(delta),
+                        quality_score: 0,
+                        source:        'bracket_do',
+                    }),
+                }).catch(() => {})
+            );
+        }
+
         // 9. Fan out to all WebSocket clients
         const message = JSON.stringify({
             type:    'bracket:updated',
