@@ -51,54 +51,10 @@ jobs:
         # at /context/game/espn:{id} → assert archive.gameBriefs[0].brief_text non-null.
         # Fails CI (exit 1) if brief_text is null/empty for a game that has a known brief.
         # Zero game_recap briefs in D1 is a soft-skip (data-dependent, not a code bug).
+        # base64 pattern: heredoc unindented Python breaks YAML literal block parsing.
         run: |
-          python3 - <<'PYEOF'
-import json, sys, urllib.request
-
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-RELAY = "https://field-relay-nba.jeffunglesbee.workers.dev"
-
-def d1_query(sql, params=None):
-    body = json.dumps({"sql": sql, "params": params or []}).encode()
-    req = urllib.request.Request(
-        f"{RELAY}/d1/execute", data=body, method="POST",
-        headers={"Content-Type": "application/json", "X-FIELD-Relay": "field-relay-cron-2026", "User-Agent": UA},
-    )
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.load(r)
-
-def relay_get(path):
-    req = urllib.request.Request(f"{RELAY}{path}", headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.load(r)
-
-# Step A: find a recent game_recap brief with a known game_id (bare ESPN event ID)
-result = d1_query(
-    "SELECT b.game_id FROM briefs b "
-    "JOIN regular_season_games r ON r.espn_event_id = b.game_id "
-    "WHERE b.brief_type = 'game_recap' "
-    "ORDER BY b.created_at DESC LIMIT 1"
-)
-rows = result.get("results", [])
-if not rows:
-    print("SKIP: no game_recap brief in D1 joined to regular_season_games — data-dependent skip, not a code failure.")
-    sys.exit(0)
-
-espn_id = rows[0]["game_id"]
-print(f"Found game_recap brief for espn_event_id={espn_id!r} — probing /context/game/espn:{espn_id}")
-
-# Step B: hit /context/game/espn:{espnId} and assert archive.gameBriefs[0].brief_text non-null
-ctx = relay_get(f"/context/game/espn:{espn_id}")
-briefs = ctx.get("archive", {}).get("gameBriefs", [])
-brief_text = briefs[0].get("brief_text", "") if briefs else ""
-
-if not brief_text:
-    print(f"FAIL: archive.gameBriefs[0].brief_text null/empty for espn:{espn_id}")
-    print(f"Full response: {json.dumps(ctx)}")
-    sys.exit(1)
-
-print(f"PASS: brief_text populated for espn:{espn_id}: {brief_text[:120]}...")
-PYEOF
+          echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClVBID0gJ01vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYnClJFTEFZID0gJ2h0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYnCgpkZWYgZDFfcXVlcnkoc3FsLCBwYXJhbXM9Tm9uZSk6CiAgICBib2R5ID0ganNvbi5kdW1wcyh7J3NxbCc6IHNxbCwgJ3BhcmFtcyc6IHBhcmFtcyBvciBbXX0pLmVuY29kZSgpCiAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KAogICAgICAgIFJFTEFZICsgJy9kMS9leGVjdXRlJywgZGF0YT1ib2R5LCBtZXRob2Q9J1BPU1QnLAogICAgICAgIGhlYWRlcnM9eydDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsICdYLUZJRUxELVJlbGF5JzogJ2ZpZWxkLXJlbGF5LWNyb24tMjAyNicsICdVc2VyLUFnZW50JzogVUF9LAogICAgKQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpkZWYgcmVsYXlfZ2V0KHBhdGgpOgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdChSRUxBWSArIHBhdGgsIGhlYWRlcnM9eydVc2VyLUFnZW50JzogVUF9KQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpyZXN1bHQgPSBkMV9xdWVyeSgKICAgICdTRUxFQ1QgYi5nYW1lX2lkIEZST00gYnJpZWZzIGIgJwogICAgJ0pPSU4gcmVndWxhcl9zZWFzb25fZ2FtZXMgciBPTiByLmVzcG5fZXZlbnRfaWQgPSBiLmdhbWVfaWQgJwogICAgIldIRVJFIGIuYnJpZWZfdHlwZSA9ICdnYW1lX3JlY2FwJyAiCiAgICAnT1JERVIgQlkgYi5jcmVhdGVkX2F0IERFU0MgTElNSVQgMScKKQpyb3dzID0gcmVzdWx0LmdldCgncmVzdWx0cycsIFtdKQppZiBub3Qgcm93czoKICAgIHByaW50KCdTS0lQOiBubyBnYW1lX3JlY2FwIGJyaWVmIGluIEQxIGpvaW5lZCB0byByZWd1bGFyX3NlYXNvbl9nYW1lcyAtLSBkYXRhLWRlcGVuZGVudCBza2lwLCBub3QgYSBjb2RlIGZhaWx1cmUuJykKICAgIHN5cy5leGl0KDApCgplc3BuX2lkID0gcm93c1swXVsnZ2FtZV9pZCddCnByaW50KCdGb3VuZCBnYW1lX3JlY2FwIGJyaWVmIGZvciBlc3BuX2V2ZW50X2lkPScgKyByZXByKGVzcG5faWQpICsgJyAtLSBwcm9iaW5nIC9jb250ZXh0L2dhbWUvZXNwbjonICsgZXNwbl9pZCkKCmN0eCA9IHJlbGF5X2dldCgnL2NvbnRleHQvZ2FtZS9lc3BuOicgKyBlc3BuX2lkKQpicmllZnMgPSBjdHguZ2V0KCdhcmNoaXZlJywge30pLmdldCgnZ2FtZUJyaWVmcycsIFtdKQpicmllZl90ZXh0ID0gYnJpZWZzWzBdLmdldCgnYnJpZWZfdGV4dCcsICcnKSBpZiBicmllZnMgZWxzZSAnJwoKaWYgbm90IGJyaWVmX3RleHQ6CiAgICBwcmludCgnRkFJTDogYXJjaGl2ZS5nYW1lQnJpZWZzWzBdLmJyaWVmX3RleHQgbnVsbC9lbXB0eSBmb3IgZXNwbjonICsgZXNwbl9pZCkKICAgIHByaW50KCdGdWxsIHJlc3BvbnNlOiAnICsganNvbi5kdW1wcyhjdHgpKQogICAgc3lzLmV4aXQoMSkKCnByaW50KCdQQVNTOiBicmllZl90ZXh0IHBvcHVsYXRlZCBmb3IgZXNwbjonICsgZXNwbl9pZCArICc6ICcgKyBicmllZl90ZXh0WzoxMjBdICsgJy4uLicpCg==" | base64 -d > /tmp/context_game_brief_probe.py
+          python3 /tmp/context_game_brief_probe.py
 
       - name: Check for confidence-gate violations
         run: |
