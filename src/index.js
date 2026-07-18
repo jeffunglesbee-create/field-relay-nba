@@ -6300,6 +6300,20 @@ async function findGame(env, id) {
              (home || '_' || away || '_' || date) LIKE ?`
         ).bind(id, fuzzy).first();
     }
+    // Client sends 'espn:NNNNNN' format (from adaptESPNBasketball/MLB/Soccer/Football).
+    // Strip the prefix and look up by espn_event_id to get the archive row — which
+    // carries espn_event_id as a column — so the /context/game handler can derive
+    // briefId = game.espn_event_id for findBriefs/findBracketDelta lookups.
+    if (!row) {
+        const m = /^[a-z]+:(\d+)$/.exec(id);
+        if (m) {
+            row = await env.ARCHIVE_DB.prepare(
+                `SELECT * FROM postseason_games WHERE espn_event_id = ?
+                 UNION ALL SELECT * FROM regular_season_games WHERE espn_event_id = ?
+                 LIMIT 1`
+            ).bind(m[1], m[1]).first();
+        }
+    }
     if (!row) return null;
     let openingOdds = null, closingOdds = null;
     let dramaArc    = null;
