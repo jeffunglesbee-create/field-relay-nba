@@ -4756,16 +4756,43 @@ function computeGameHash(promptText) {
 // confirmed via diff before extraction) so the model-comparison test route
 // below reuses the exact real prompt, not a hand-copied approximation that
 // could silently drift from what production actually sends.
-function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore }) {
+function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx }) {
   const scoreStr = (homeScore != null && awayScore != null)
       ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
   const sportLabel = sport.toUpperCase();
+
+  let debriefBlock = null;
+  if (debriefCtx) {
+    const lines = ['DEBRIEF CONTEXT — use to enrich the recap, don\'t list mechanically:'];
+    if (debriefCtx.drama_peak != null)
+      lines.push(` Drama: ${debriefCtx.drama_peak}/100`);
+    if (debriefCtx.pre_game_brief)
+      lines.push(` Pre-game: ${debriefCtx.pre_game_brief}`);
+    if (debriefCtx.opening_odds_parsed) {
+      const o = debriefCtx.opening_odds_parsed;
+      const c = debriefCtx.closing_odds_parsed;
+      const oddsStr = o.moneyline
+        ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}`
+        : '';
+      const closeStr = (c && c.moneyline)
+        ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}`
+        : '';
+      const otStr = debriefCtx.went_to_ot ? ' Went to OT.' : '';
+      lines.push(` Odds: opened ${oddsStr}${closeStr}.${otStr}`);
+    }
+    if (debriefCtx.series_summary)
+      lines.push(` Series: ${debriefCtx.series_summary}`);
+    lines.push(' All sealed — this is post-game editorial, not live recommendation.');
+    debriefBlock = lines.join('\n');
+  }
+
   return [
       FIELD_VOICE_REGISTER,
       `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
       `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
       `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
       scoreStr,
+      debriefBlock,
       `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
       `Write the brief as a single paragraph. No headers, no bullet points.`,
       JQ_STYLE,
@@ -13256,7 +13283,46 @@ export default {
                     // for the same game would contain, so job.gameHash here will
                     // never coincidentally match a live-cycle-cached contextHash,
                     // and the consumer correctly falls through to regenerate.
-                    const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore });
+
+                    // Fetch debrief context from ARCHIVE_DB (best-effort, never blocks).
+                    // Provides drama_peak, odds, series facts to the journalism prompt
+                    // so the recap reads with full context rather than bare score data.
+                    // Patent safety: this is retrospective post-game editorial only.
+                    // drama_peak does not influence whether the recap is written or which
+                    // games are selected — only what's said once this game is already final.
+                    let debriefCtx = null;
+                    if (env.ARCHIVE_DB) {
+                        try {
+                            const [gameRow, briefs, seriesRow] = await Promise.all([
+                                findGame(env, gameId),
+                                findBriefs(env, gameId),
+                                findSeries(env, gameId),
+                            ]);
+                            if (gameRow) {
+                                const preGameBrief = briefs?.gameBriefs?.[0]?.brief_text ?? null;
+                                let series_summary = null;
+                                if (seriesRow?.games?.length) {
+                                    const completed = seriesRow.games.filter(g => g.home_score != null && g.away_score != null);
+                                    const homeWins = completed.filter(g => g.home_score > g.away_score).length;
+                                    const awayWins = completed.filter(g => g.away_score > g.home_score).length;
+                                    if (completed.length)
+                                        series_summary = `${completed.length} games played, ${home} leads ${homeWins}-${awayWins}`;
+                                }
+                                debriefCtx = {
+                                    drama_peak:          gameRow.drama_peak  ?? null,
+                                    opening_odds_parsed: gameRow.opening_odds_parsed ?? null,
+                                    closing_odds_parsed: gameRow.closing_odds_parsed ?? null,
+                                    went_to_ot:          !!gameRow.went_to_ot,
+                                    pre_game_brief:      preGameBrief,
+                                    series_summary,
+                                };
+                            }
+                        } catch (e) {
+                            console.error('[GAME-COMPLETE] debrief context fetch failed (non-fatal):', e.message);
+                        }
+                    }
+
+                    const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx });
                     await env.JOURNALISM_QUEUE.send({
                         type:        'game-brief',
                         prompt,
