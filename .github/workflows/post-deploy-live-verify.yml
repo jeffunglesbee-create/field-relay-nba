@@ -44,6 +44,62 @@ jobs:
           } > "$OUT"
           cat "$OUT"
 
+      - name: /context/game brief bridge probe -- espn_event_id lookup chain end-to-end
+        # CC-CMD-2026-07-18-context-game-espn-briefs TASK live-verify.
+        # Resolves the STAGED HTTP probe from that session (sandbox blocked egress).
+        # Chain: D1 query finds a game_recap brief → ESPN ID extracted → relay hit
+        # at /context/game/espn:{id} → assert archive.gameBriefs[0].brief_text non-null.
+        # Fails CI (exit 1) if brief_text is null/empty for a game that has a known brief.
+        # Zero game_recap briefs in D1 is a soft-skip (data-dependent, not a code bug).
+        run: |
+          python3 - <<'PYEOF'
+import json, sys, urllib.request
+
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+RELAY = "https://field-relay-nba.jeffunglesbee.workers.dev"
+
+def d1_query(sql, params=None):
+    body = json.dumps({"sql": sql, "params": params or []}).encode()
+    req = urllib.request.Request(
+        f"{RELAY}/d1/execute", data=body, method="POST",
+        headers={"Content-Type": "application/json", "X-FIELD-Relay": "field-relay-cron-2026", "User-Agent": UA},
+    )
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.load(r)
+
+def relay_get(path):
+    req = urllib.request.Request(f"{RELAY}{path}", headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.load(r)
+
+# Step A: find a recent game_recap brief with a known game_id (bare ESPN event ID)
+result = d1_query(
+    "SELECT b.game_id FROM briefs b "
+    "JOIN regular_season_games r ON r.espn_event_id = b.game_id "
+    "WHERE b.brief_type = 'game_recap' "
+    "ORDER BY b.created_at DESC LIMIT 1"
+)
+rows = result.get("results", [])
+if not rows:
+    print("SKIP: no game_recap brief in D1 joined to regular_season_games — data-dependent skip, not a code failure.")
+    sys.exit(0)
+
+espn_id = rows[0]["game_id"]
+print(f"Found game_recap brief for espn_event_id={espn_id!r} — probing /context/game/espn:{espn_id}")
+
+# Step B: hit /context/game/espn:{espnId} and assert archive.gameBriefs[0].brief_text non-null
+ctx = relay_get(f"/context/game/espn:{espn_id}")
+briefs = ctx.get("archive", {}).get("gameBriefs", [])
+brief_text = briefs[0].get("brief_text", "") if briefs else ""
+
+if not brief_text:
+    print(f"FAIL: archive.gameBriefs[0].brief_text null/empty for espn:{espn_id}")
+    print(f"Full response: {json.dumps(ctx)}")
+    sys.exit(1)
+
+print(f"PASS: brief_text populated for espn:{espn_id}: {brief_text[:120]}...")
+PYEOF
+
       - name: Check for confidence-gate violations
         run: |
           # Find outbox files modified in the last 20 commits (a pragmatic
