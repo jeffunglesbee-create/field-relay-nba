@@ -125,6 +125,68 @@ Score below threshold or ambiguous. Typically brief text lacks venue and team na
 - **~17 other NO_CANDIDATE briefs**: adjacent archive games don't match text signals.
 - **101 LOW_CONFIDENCE briefs**: brief text uses city names ("Pittsburgh", "Detroit", "Cincinnati") rather than team nicknames ("Pirates", "Tigers", "Reds"). Algorithm scores these 1–3 pts. Next recovery path would require city→team alias expansion or W-L record matching (requires computing standings from full game history — not attempted).
 
-## Integration Status: COMPLETE
+---
 
-167 broken mlb_game briefs corrected (151 exact-date + 16 adjacent-date). 142 honestly left unmatched. No code changes. No commits required.
+## Pass 3 — Re-run using `briefs.date` column (2026-07-18)
+
+### Finding
+Passes 1-2 used `created_at` for candidate-window matching. `briefs.date` is set explicitly at insert and matches the real game date precisely. Re-running exact-date matching against `date` (no window) found 40 additional recoverable briefs the `created_at`-based window had obscured.
+
+### Probe
+- `date` confirmed vs `real_game_date` for 14/15 already-corrected briefs: exact match. 1 known exception: `mlb_game_2026-06-26_g3` (date=2026-06-26, matched to 2026-06-28 game via pass 2 adjacent logic — expected).
+- `SELECT COUNT(*) FROM briefs WHERE brief_type='mlb_game' AND game_id LIKE 'g%'` → 142 ✓
+
+### Results
+
+| Status | Count |
+|--------|-------|
+| HIGH_CONFIDENCE applied | 40 |
+| MEDIUM_CONFIDENCE (promoted, 2) | included in 40 |
+| LOW_CONFIDENCE left unmatched | 62 |
+| NO_CANDIDATES (date not in archive) | 36 |
+| July 13 reverted (script data error — no archive rows exist for 2026-07-13) | 4 reverted |
+
+**MEDIUM cases reviewed and promoted:**
+1. `mlb_game_2026-07-06_g7` → `MLB_2026-07-06_royals_phillies`: text "Philadelphia"+"Kansas City"+"Phillies", score=4, 2nd=2 ✓
+2. `mlb_game_2026-07-09_g2` → `MLB_2026-07-09_whitesox_redsox`: text "Boston Red Sox"+"Chicago White Sox" explicit, score=4, 2nd=2 ✓
+
+**Data error caught and reverted:** pass3_match.py incorrectly included July 13 archive game IDs (copied from pass 2 adjacent-date matches which had matched July 13 briefs to July 12 games). `SELECT ... WHERE date='2026-07-13'` confirmed 0 rows in archive. 4 July 13 matches were applied then immediately reverted: `mlb_game_2026-07-13_g17`, `g2`, `g3`, `g31`.
+
+### TASK 3 — Itemized comparison vs passes 1-2
+
+**New findings (40 briefs where `date` found a match `created_at` drift had hidden):**
+- Briefs on June 20, 25, 27, 30; July 1-12, 17-18 where `created_at` UTC-midnight drift placed them 1+ day off their real `date`, causing misses in passes 1-2's exact-date window.
+- Key example: `mlb_game_2026-06-25_g3` (date=2026-06-25, `created_at`=2026-06-25 00:21:57) — minute-after-midnight write crossed UTC date but `date` field correctly recorded 2026-06-25.
+
+**Same diagnosis as passes 1-2 (62 LOW + 36 NO_CANDIDATES = 98 still unmatched):**
+- 36 NO_CANDIDATES: dates 2026-06-16–19, 06-22, 06-26, 06-29, 07-13 confirmed have 0 archive rows (queried). `date` vs `created_at` doesn't help when no archive row exists.
+- 62 LOW_CONFIDENCE: brief text uses city names ("Pittsburgh", "Detroit", "Cincinnati") not team nicknames. Score 1–3 pts. Same root cause as passes 1-2.
+
+### TASK 4 Verification
+
+```sql
+SELECT
+  SUM(CASE WHEN game_id LIKE 'g%' THEN 1 ELSE 0 END) as still_broken,
+  SUM(CASE WHEN game_id LIKE 'MLB_%' THEN 1 ELSE 0 END) as fixed
+FROM briefs WHERE brief_type = 'mlb_game'
+-- Result: still_broken=102, fixed=250
+```
+
+Before pass 3: 142 broken. After: 102 broken. Net: 40 recovered ✓ (142 − 40 = 102)
+
+**Spot-checks (game_id updated, brief_text + created_at + date preserved):**
+- `mlb_game_2026-06-25_g3` → `MLB_2026-06-25_giants_athletics`: text "Oakland"+"Oracle Park" ✓
+- `mlb_game_2026-07-07_g17` → `MLB_2026-07-07_cardinals_brewers`: text "Busch Stadium"+"Milwaukee"+"St. Louis" ✓
+- `mlb_game_2026-07-09_g2` → `MLB_2026-07-09_whitesox_redsox`: text "Boston Red Sox"+"Chicago White Sox" ✓
+
+---
+
+## Integration Status: COMPLETE (all 3 passes)
+
+**Total corrected: 207** (151 pass1 + 16 pass2 + 40 pass3). **102 honestly left unmatched.**
+
+- Pass 1: 151 (exact date from `created_at`, two-signal scoring)
+- Pass 2: 16 (adjacent date ±1-2 days from `created_at`)
+- Pass 3: 40 (exact date from `date` column — found what `created_at` drift had obscured)
+
+No code changes. No commits required.
