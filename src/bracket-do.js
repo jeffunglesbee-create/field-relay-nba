@@ -394,7 +394,7 @@ export class BracketDO {
                         brief_type:    'bracket_delta',
                         date:          _bdDate,
                         sport:         'wc',
-                        game_id:       triggerResult.gameId,
+                        game_id:       String(triggerResult.gameId).replace(/^[a-z]+:/, ''),
                         brief_text:    JSON.stringify(delta),
                         quality_score: 0,
                         source:        'bracket_do',
