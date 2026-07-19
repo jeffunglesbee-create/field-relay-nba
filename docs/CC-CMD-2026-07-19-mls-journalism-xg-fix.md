@@ -38,6 +38,26 @@ This CC-CMD only needs to close the xG-specific gap.
 
 ---
 
+## ⚠️ SEQUENCING NOTE — real race with a sibling CC-CMD, read before starting
+
+`docs/CC-CMD-2026-07-19-mls-novel-metrics.md` (Task 2, relay) also
+modifies this exact same `/soccer/xg` handler — adding real cross-data
+extraction (`accurateCrosses`/`totalCrosses`) alongside this CC-CMD's own
+real MLS-support work. This is a genuine, logical dependency, not just a
+mechanical file overlap: **this CC-CMD (establishing MLS support on the
+route) must land first.** `mls-novel-metrics` Task 2 builds on top of
+working MLS support here — if executed first or in parallel, it risks
+extending a route that doesn't correctly serve MLS yet, or a real,
+direct merge conflict on the same handler.
+
+Before starting: `git log --oneline -10` and check whether
+`mls-novel-metrics`' own commit has already landed. If it has, re-read its
+real, current diff to the `/soccer/xg` handler first, and build this
+CC-CMD's changes on top of that real state rather than assuming a clean,
+untouched handler.
+
+---
+
 ## PRE-BUILD PROBE BLOCK
 
 ```bash

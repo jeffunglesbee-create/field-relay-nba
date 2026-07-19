@@ -82,6 +82,16 @@ Real algorithm:
 
 ## TASK 2 (relay) — Extend the existing per-game endpoint with real cross data
 
+**⚠️ SEQUENCING NOTE — real dependency, read before starting this task
+specifically:** `docs/CC-CMD-2026-07-19-mls-journalism-xg-fix.md` also
+modifies this exact same `/soccer/xg` handler, establishing baseline MLS
+support on the route. That CC-CMD must land first — this task builds on
+top of working MLS support, not a route that may not yet correctly serve
+`usa.1`. Before starting: `git log --oneline -10` and check whether the
+XG-fix CC-CMD's commit has already landed. If not, either wait or confirm
+directly with whoever's coordinating execution — do not proceed on an
+assumption that the route is already MLS-ready.
+
 In the real, existing `/soccer/xg` handler (or a sibling route if cleaner
 — confirm the real, current structure first), add real `accurateCrosses`/
 `totalCrosses` extraction from the same summary payload already being
@@ -89,6 +99,22 @@ fetched for xG, computing `crossAccuracy = accurateCrosses/totalCrosses`.
 No new fetch — this data is already in the same real response.
 
 ## TASK 3 (client) — Wire into the existing Stats tab
+
+**⚠️ SEQUENCING NOTE — real, mechanical race with two sibling CC-CMDs,
+read before starting this task:** `docs/CC-CMD-2026-07-19-mls-sub-impact-metric.md`
+(its own Task 4) and `docs/CC-CMD-2026-07-19-bottom-sheet-stats-reconciliation.md`
+(its own Task 1) both also add real, new content to this exact same
+`renderStatsSection()` function. This is a mechanical overlap, not a
+logical dependency — none of the three sub-sections depend on each
+other's actual content — but all three editing the same function body in
+parallel risks a real merge conflict or one session's changes silently
+overwriting another's. **Execute these three sequentially, not in
+parallel — re-pull and re-read the real, current state of
+`renderStatsSection()` immediately before starting this task, even if
+this doc's own probe block was run earlier the same session.** If either
+sibling CC-CMD's commit has already landed, build on top of its real,
+current diff rather than the version of the function this doc originally
+investigated.
 
 Add an **MLS** block to `renderStatsSection()`, following the real,
 established pattern from the existing EPL block (same `row()` helper, same
