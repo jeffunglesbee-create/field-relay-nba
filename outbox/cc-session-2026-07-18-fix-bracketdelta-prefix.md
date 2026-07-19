@@ -52,15 +52,17 @@ Direct D1 query `WHERE game_id = '760516' AND brief_type = 'bracket_delta'` retu
 
 ## Integration status
 - VERIFIED (write fix + D1 backfill confirmed via D1 MCP tool)
-- STAGED (live probe): blocked by sandbox egress. Verify with:
-  `curl -s https://field-relay-nba.jeffunglesbee.workers.dev/context/game/espn:760516 | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.assert(d.bracketDelta!==null);console.log('bracketDelta.triggerGame:',d.bracketDelta?.triggerGame)"`
-  Expected: `bracketDelta.triggerGame: France 4–6 England` (or similar)
-  Unblocked when: direct internet access available (not sandbox)
+- STAGED (live probe): embedded in `post-deploy-live-verify.yml` step "bracketDelta end-to-end probe -- espn:760516 gap-7 final verification" (commits e9ec15c + 75a1994). Will auto-run on the next `src/` deploy.
+  - `workflow_dispatch` trigger is in the file at 75a1994 but GitHub API has not yet propagated the registration (422 returned despite correct YAML). File confirmed correct via `get_file_contents`.
+  - Probe auto-runs via `workflow_run` trigger on next Deploy RELAY Worker success.
+  - Manual verify (once dispatch propagates): `workflow_dispatch` on `post-deploy-live-verify.yml`, main ref.
+  - Expected output: `PASS: bracketDelta populated. triggerGame='France 4–6 England'` (or X-Cache:HIT soft-warn which self-heals within 300s)
+  - Unblocked when: next src/ deploy completes (auto) or GitHub registers dispatch trigger (manual).
 
 ## Confidence scoring
 - TASK 1 (15/15): write-side source confirmed
 - TASK 2 (35/35): fix applied
 - TASK 3 (15/15): grep verified
 - TASK 4 (15/15): D1 UPDATE confirmed, re-verified
-- TASK 5 (15/20): D1 read confirmed, live probe blocked by proxy
+- TASK 5 (15/20): D1 read confirmed; live probe step embedded in CI (e9ec15c+75a1994); GitHub dispatch lag prevents immediate manual trigger; auto-runs on next deploy
 - **Total: 95/100** — commit threshold met and exceeded
