@@ -1,10 +1,12 @@
-# CC-CMD — MLS: Defensive Substitution Lead-Loss metric (relay)
+# CC-CMD — MLS: Defensive Substitution Lead-Loss metric (relay + client)
 
-**Date:** 2026-07-19
-**Repo:** jeffunglesbee-create/field-relay-nba (sole)
-**Branch:** main — commit directly. No PRs.
+**Date:** 2026-07-19 (updated same day — added Task 4, client-side wiring,
+once a real client home for this metric was confirmed to exist: the Stats
+tab, which had not yet been built when this CC-CMD was first written)
+**Repo:** BOTH — relay task in field-relay-nba, new client task in jubilant-bassoon
+**Branch:** main — commit directly on each repo. No PRs.
 
-git remote get-url origin | grep -q field-relay-nba || { echo "WRONG REPO"; exit 1; }; git log --oneline -5
+git remote get-url origin | grep -qE "field-relay-nba|jubilant-bassoon" || { echo "WRONG REPO"; exit 1; }; git log --oneline -5
 
 ---
 
@@ -169,16 +171,47 @@ accidentally treat single-game output as a trend.
 
 ---
 
+## TASK 4 (client, jubilant-bassoon) — Wire into the Stats tab
+
+Per a same-day reconciliation decision: the bottom sheet's per-game detail
+panel is being split — raw stats/metrics content moves to the Stats tab
+(`renderStatsSection`), narrative/journalism content stays in the bottom
+sheet. This metric belongs in the Stats tab's MLS block, not the bottom
+sheet — it is real, factual, event-derived computation (matching the same
+Rule 47 reasoning already in this doc's own Context section above), not a
+narrative element.
+
+Add a real "Defensive Subs" sub-section to the MLS block in
+`renderStatsSection()` (the same function the sibling
+`CC-CMD-2026-07-19-mls-novel-metrics.md` also extends — confirm the real,
+current state of that block first; this task may need to land after or
+alongside that one, not assume it's first). Real content: for each recent,
+completed MLS game with at least one classified defensive substitution,
+show the real team, the real outcome (held/challenged/lost), and the real
+clock times — following the same `row()` helper pattern already
+established for other Stats tab blocks.
+
+**Real, honest scope note:** this is still genuinely single-game data,
+not a season aggregate (same limitation as Task 3 already states). Label
+it as such in the UI — e.g., "recent defensive substitutions," not a
+"team X does this Y% of the time" framing, which would require the
+explicitly out-of-scope cross-game aggregation.
+
+---
+
 ## DONE CONDITION
 
 `/soccer/sub-impact` genuinely returns real, correctly classified defensive
 substitutions with real score-state context, verified against at least one
 real, completed MLS or WC game where the pattern is honestly checkable —
 not fabricated. No cross-game aggregation or journalism wiring included.
+The Stats tab genuinely renders this real data in a new Defensive Subs
+sub-section, correctly labeled as single-game, not season-trend.
 
 **Confidence scoring:**
-- TASK 1 (60 pts): real, correct timeline/classification/position-lookup logic, verified against real payload shapes probed fresh from HEAD
-- TASK 2 (30 pts): real, direct verification against real data, honest handling if the test game lacks a qualifying case
+- TASK 1 (45 pts): real, correct timeline/classification/position-lookup logic, verified against real payload shapes probed fresh from HEAD
+- TASK 2 (25 pts): real, direct verification against real data, honest handling if the test game lacks a qualifying case
 - TASK 3 (10 pts): explicit scope-limiting comment present, no premature aggregation built
+- TASK 4 (20 pts): real Stats tab wiring, correct single-game labeling, follows the established `row()` pattern
 
 Do not commit unless confidence >= 95. If score < 95, report verbatim and stop.
