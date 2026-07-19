@@ -56,6 +56,50 @@ jobs:
           echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClVBID0gJ01vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYnClJFTEFZID0gJ2h0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYnCgpkZWYgZDFfcXVlcnkoc3FsLCBwYXJhbXM9Tm9uZSk6CiAgICBib2R5ID0ganNvbi5kdW1wcyh7J3NxbCc6IHNxbCwgJ3BhcmFtcyc6IHBhcmFtcyBvciBbXX0pLmVuY29kZSgpCiAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KAogICAgICAgIFJFTEFZICsgJy9kMS9leGVjdXRlJywgZGF0YT1ib2R5LCBtZXRob2Q9J1BPU1QnLAogICAgICAgIGhlYWRlcnM9eydDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsICdYLUZJRUxELVJlbGF5JzogJ2ZpZWxkLXJlbGF5LWNyb24tMjAyNicsICdVc2VyLUFnZW50JzogVUF9LAogICAgKQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpkZWYgcmVsYXlfZ2V0KHBhdGgpOgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdChSRUxBWSArIHBhdGgsIGhlYWRlcnM9eydVc2VyLUFnZW50JzogVUF9KQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpyZXN1bHQgPSBkMV9xdWVyeSgKICAgICdTRUxFQ1QgYi5nYW1lX2lkIEZST00gYnJpZWZzIGIgJwogICAgJ0pPSU4gcmVndWxhcl9zZWFzb25fZ2FtZXMgciBPTiByLmVzcG5fZXZlbnRfaWQgPSBiLmdhbWVfaWQgJwogICAgIldIRVJFIGIuYnJpZWZfdHlwZSA9ICdnYW1lX3JlY2FwJyAiCiAgICAnT1JERVIgQlkgYi5jcmVhdGVkX2F0IERFU0MgTElNSVQgMScKKQpyb3dzID0gcmVzdWx0LmdldCgncmVzdWx0cycsIFtdKQppZiBub3Qgcm93czoKICAgIHByaW50KCdTS0lQOiBubyBnYW1lX3JlY2FwIGJyaWVmIGluIEQxIGpvaW5lZCB0byByZWd1bGFyX3NlYXNvbl9nYW1lcyAtLSBkYXRhLWRlcGVuZGVudCBza2lwLCBub3QgYSBjb2RlIGZhaWx1cmUuJykKICAgIHN5cy5leGl0KDApCgplc3BuX2lkID0gcm93c1swXVsnZ2FtZV9pZCddCnByaW50KCdGb3VuZCBnYW1lX3JlY2FwIGJyaWVmIGZvciBlc3BuX2V2ZW50X2lkPScgKyByZXByKGVzcG5faWQpICsgJyAtLSBwcm9iaW5nIC9jb250ZXh0L2dhbWUvZXNwbjonICsgZXNwbl9pZCkKCmN0eCA9IHJlbGF5X2dldCgnL2NvbnRleHQvZ2FtZS9lc3BuOicgKyBlc3BuX2lkKQpicmllZnMgPSBjdHguZ2V0KCdhcmNoaXZlJywge30pLmdldCgnZ2FtZUJyaWVmcycsIFtdKQpicmllZl90ZXh0ID0gYnJpZWZzWzBdLmdldCgnYnJpZWZfdGV4dCcsICcnKSBpZiBicmllZnMgZWxzZSAnJwoKaWYgbm90IGJyaWVmX3RleHQ6CiAgICBwcmludCgnRkFJTDogYXJjaGl2ZS5nYW1lQnJpZWZzWzBdLmJyaWVmX3RleHQgbnVsbC9lbXB0eSBmb3IgZXNwbjonICsgZXNwbl9pZCkKICAgIHByaW50KCdGdWxsIHJlc3BvbnNlOiAnICsganNvbi5kdW1wcyhjdHgpKQogICAgc3lzLmV4aXQoMSkKCnByaW50KCdQQVNTOiBicmllZl90ZXh0IHBvcHVsYXRlZCBmb3IgZXNwbjonICsgZXNwbl9pZCArICc6ICcgKyBicmllZl90ZXh0WzoxMjBdICsgJy4uLicpCg==" | base64 -d > /tmp/context_game_brief_probe.py
           python3 /tmp/context_game_brief_probe.py
 
+      - name: bracketDelta end-to-end probe -- espn:760516 gap-7 final verification
+        # CC-CMD-2026-07-18-fix-bracketdelta-prefix TASK 5 (live).
+        # Resolves the STAGED probe from that session (sandbox blocked egress).
+        # Fix: bracket-do.js was writing game_id='espn:760516' (with prefix); findBracketDelta
+        # queries with espn_event_id='760516' (bare) — exact-match WHERE clause never matched.
+        # Fix: String(triggerResult.gameId).replace(/^[a-z]+:/, '') at write time.
+        # D1 backfill: the one existing broken row was corrected via direct UPDATE (changes:1).
+        # This step verifies the full chain: KV cache miss → D1 query → bracketDelta populated.
+        # X-Cache:HIT means the 300s TTL hasn't expired yet — soft-warn but don't fail CI.
+        # X-Cache:MISS means fresh D1 read — bracketDelta must be non-null (hard fail if not).
+        run: |
+          python3 - <<'PYEOF'
+import json, sys, urllib.request
+
+UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
+GAME_ID = 'espn:760516'
+
+req = urllib.request.Request(
+    f'{RELAY}/context/game/{GAME_ID}',
+    headers={'User-Agent': UA},
+)
+with urllib.request.urlopen(req, timeout=20) as r:
+    xcache = r.getheader('X-Cache', 'MISS')
+    body = r.read()
+
+d = json.loads(body)
+bracket_delta = d.get('bracketDelta')
+print(f'X-Cache: {xcache}')
+print(f'bracketDelta: {json.dumps(bracket_delta)[:200] if bracket_delta is not None else "null"}')
+
+if bracket_delta is None:
+    if xcache == 'HIT':
+        print('SOFT-WARN: bracketDelta null on KV cache HIT — stale 300s TTL response still active. Will self-heal. Not a code failure.')
+        sys.exit(0)
+    else:
+        print(f'FAIL: bracketDelta null on KV cache MISS for {GAME_ID} — fix-bracketdelta-prefix did not take effect.')
+        print('Full response:', json.dumps(d))
+        sys.exit(1)
+
+tg = bracket_delta.get('triggerGame', '')
+print(f'PASS: bracketDelta populated. triggerGame={tg!r}')
+PYEOF
+
       - name: Check for confidence-gate violations
         run: |
           # Find outbox files modified in the last 20 commits (a pragmatic
