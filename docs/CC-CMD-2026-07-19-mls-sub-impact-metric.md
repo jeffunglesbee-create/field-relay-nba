@@ -103,10 +103,19 @@ Real algorithm:
      exact moment of this substitution.
 5. For each real, classified defensive substitution made while the
    subbing team held a real, positive lead: scan the real, subsequent
-   timeline for any real goal by the OPPOSING team. If found, record a
-   real "lead challenged" (score narrowed) or "lead lost" (game tied or
-   opponent went ahead) outcome, with the real clock time of both the
-   sub and the real, subsequent goal.
+   timeline for any real goal by either team through the real end of the
+   match. Explicitly record one of three real outcomes, not just the
+   negative cases — the positive case (this is the point of "both
+   directions") must be just as real and present in the output, never
+   left as an implicit null:
+   - **"held"**: no real goal by the opponent for the remainder of the
+     match — the defensive sub genuinely worked, lead preserved.
+   - **"challenged"**: the opponent scored, real score differential
+     narrowed, but the subbing team still finished with the real lead.
+   - **"lost"**: the opponent scored enough to tie or genuinely overtake
+     — the lead did not survive.
+   Record the real clock time of the sub, and of the deciding
+   goal/full-time whistle for whichever outcome applies.
 
 Real response shape:
 ```json
@@ -119,16 +128,21 @@ Real response shape:
       "playerOff": "Miki Yamane",
       "positionOff": "RB",
       "playerOn": "Robert Taylor",
-      "positionOn": "SUB-resolved-to-real-position",
-      "scoreAtSub": {"leading": false, "differential": -3},
-      "outcome": null
+      "positionOn": "D",
+      "scoreAtSub": {"leading": true, "differential": 1},
+      "outcome": "held",
+      "outcomeClock": "Full Time",
+      "outcomeDetail": null
     }
   ],
-  "hasDefensiveSubImpact": false
+  "hasDefensiveSubImpact": true
 }
 ```
 Adapt this shape as real testing reveals what's actually useful — this is
-illustrative, not a rigid contract to force real data into.
+illustrative, not a rigid contract to force real data into. But the real,
+explicit three-way outcome field ("held"/"challenged"/"lost") is not
+optional — this is the actual mechanism that makes the metric answer
+"both directions," not just the negative one.
 
 ## TASK 2 — Real, direct verification
 
