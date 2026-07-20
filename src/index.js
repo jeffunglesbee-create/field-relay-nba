@@ -7925,6 +7925,22 @@ export default {
             return;
         }
 
+        // Game thread note cleanup — runs at :30 every hour, isolated from
+        // journalism/KV/handleCron. Deletes rows past their expires_at.
+        if (event.cron === '30 * * * *') {
+            ctx.waitUntil((async () => {
+                try {
+                    const result = await env.ARCHIVE_DB.prepare(
+                        'DELETE FROM game_thread_notes WHERE expires_at < ?'
+                    ).bind(Date.now()).run();
+                    console.log('[THREAD-CLEANUP] deleted', result.meta?.changes ?? 0, 'expired notes');
+                } catch(e) {
+                    console.error('[THREAD-CLEANUP]', e.message);
+                }
+            })());
+            return;
+        }
+
         // Analytics engine fires only on its dedicated daily 0 9 * * * trigger
         // so the */5 + */15 ticks never invoke it. The other handlers below
         // continue to run on every tick (existing behavior).

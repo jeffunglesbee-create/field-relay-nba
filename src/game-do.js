@@ -55,7 +55,11 @@ const ALLOWED_CLIENT_MSG_TYPES = new Set([
     'unpin',         // {type:'unpin', endpoint} — remove pin
     'signal-crunch', // {type:'signal-crunch', period, gameId} — browser locally detected CRUNCH TIME
     'ping',          // keepalive
+    'thread_note',   // {type:'thread_note', body, token} — game thread note (1-280 chars; token echoed verbatim, never stored)
 ]);
+
+const THREAD_RATE_CAP_MS  = 30 * 1000;  // 30s per-session rate cap — in-memory only, resets on DO hibernation
+const THREAD_NOTE_TTL_MS  = 4 * 60 * 60 * 1000; // 4h note TTL; cleanup cron deletes expired rows
 
 // Sport → V2 sport key for relay /v2/games lookup
 const SPORT_TO_V2 = {
@@ -113,6 +117,21 @@ export class GameDO {
             // Hibernation API: ctx.acceptWebSocket replaces server.accept().
             // DO can hibernate while clients stay connected.
             this.ctx.acceptWebSocket(server);
+
+            // Backfill: send last 50 thread notes to the joining session only.
+            // token is NOT included in catchup notes (per spec).
+            try {
+                const catchup = await this.env.ARCHIVE_DB.prepare(
+                    'SELECT id, game_id, body, ts FROM game_thread_notes WHERE game_id = ? ORDER BY ts DESC LIMIT 50'
+                ).bind(this.gameId || '').all();
+                if (catchup.results && catchup.results.length > 0) {
+                    const notes = catchup.results.reverse(); // oldest first
+                    server.send(JSON.stringify({ type: 'thread_catchup', notes }));
+                }
+            } catch(e) {
+                console.error('[THREAD-CATCHUP] D1 read failed:', e.message);
+                // Non-fatal — client gets no backfill but connection proceeds
+            }
 
             // Schedule first poll if this is the first connection.
             await this._ensurePolling();
@@ -315,6 +334,40 @@ export class GameDO {
             if (last && (Date.now() - last) < CRUNCH_DEDUP_TTL_MS) return;
             await this.ctx.storage.put(dedupKey, Date.now());
             this.ctx.waitUntil(this._fanoutCrunch(msg));
+            return;
+        }
+
+        if (msg.type === 'thread_note') {
+            const body = typeof msg.body === 'string' ? msg.body.trim() : '';
+            if (!body || body.length > 280) return; // silently reject empty or over-limit
+
+            // Rate cap: per-session, in-memory via Hibernation attachment (resets on hibernation — by design per spec)
+            const attachment = ws.deserializeAttachment() || {};
+            const lastNote   = attachment.lastThreadNote || 0;
+            if (Date.now() - lastNote < THREAD_RATE_CAP_MS) {
+                try { ws.send(JSON.stringify({ type: 'thread_rate_limited', retryAfter: Math.ceil((THREAD_RATE_CAP_MS - (Date.now() - lastNote)) / 1000) })); } catch(_) {}
+                return;
+            }
+            ws.serializeAttachment({ ...attachment, lastThreadNote: Date.now() });
+
+            const ts        = Date.now();
+            const id        = crypto.randomUUID();
+            const expiresAt = ts + THREAD_NOTE_TTL_MS;
+            const gameId    = this.gameId || '';
+            const sport     = this.sport  || '';
+
+            // Write to D1 — wrapped in try/catch per Rule 5 (archive failure must never break primary functions)
+            try {
+                await this.env.ARCHIVE_DB.prepare(
+                    'INSERT INTO game_thread_notes (id, game_id, sport, body, ts, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+                ).bind(id, gameId, sport, body, ts, expiresAt).run();
+            } catch(e) {
+                console.error('[THREAD-NOTE] D1 write failed:', e.message);
+                return;
+            }
+
+            // Broadcast to all sessions — token is echoed from msg verbatim, never stored
+            this._broadcast({ type: 'thread_note', id, game_id: gameId, body, ts, token: msg.token ?? null });
             return;
         }
     }

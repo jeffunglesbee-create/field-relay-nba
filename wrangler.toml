@@ -60,7 +60,7 @@ id      = "d1d6aec6be0d454a823199f184798fcd"
 # return's comment in src/index.js for why the isolation must be a return,
 # not just an added branch.
 [triggers]
-crons = ["*/5 * * * *", "*/15 * * * *", "0 9 * * *", "0 * * * *"]
+crons = ["*/5 * * * *", "*/15 * * * *", "0 9 * * *", "0 * * * *", "30 * * * *"]
 
 # ── Durable Objects (WOW 1 + WOW 2 — May 31 2026, Workers Plus) ─────────────
 # GameDO: one DO per active game. Browsers WebSocket-connect for live score
