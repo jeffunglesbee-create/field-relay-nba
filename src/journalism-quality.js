@@ -811,7 +811,13 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
   // Gated behind retries < maxRetries up front (unlike the free regex
   // checks in layers 2/2b/2c/2d/2e above, the judge call itself costs a
   // proxy call, so it isn't worth spending when no retry slot remains).
-  if (retries < maxRetries) {
+  // Circuit breaker: skip the judge if any prior layer already fired a retry.
+  // A piece that needed factual/vocab correction has already been reworked —
+  // the judge adds a mandatory extra call with marginal quality return on
+  // already-corrected text. Only clean first-pass generations are judged.
+  // Reverdict removed: the SENTENCE/FIX retry prompt is concrete enough that
+  // re-judging the output would cost a third call for minimal gain.
+  if (layers_fired.length === 0 && retries < maxRetries) {
     const judgeVerdict = await callProxy(_buildVoiceJudgePrompt(text));
     const judgeFailed = judgeVerdict && /^\s*FAIL/i.test(judgeVerdict.trim());
     if (judgeFailed) {
@@ -842,10 +848,7 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
       }
       const retried = await callProxy(retryPrompt);
       if (retried && retried.length > 30) {
-        const reverdict = await callProxy(_buildVoiceJudgePrompt(retried.trim()));
-        if (reverdict && /^\s*PASS/i.test(reverdict.trim())) {
-          text = retried.trim(); retries++; layers_fired.push('3b');
-        }
+        text = retried.trim(); retries++; layers_fired.push('3b');
       }
     }
   }
