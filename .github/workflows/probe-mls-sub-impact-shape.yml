@@ -23,3 +23,6 @@ jobs:
 
       - name: Run team-name field probe
         run: node scripts/probe-mls-sub-impact-teamnames.mjs
+
+      - name: Run core-athlete position vocabulary probe
+        run: node scripts/probe-mls-sub-impact-coreposition-vocab.mjs
