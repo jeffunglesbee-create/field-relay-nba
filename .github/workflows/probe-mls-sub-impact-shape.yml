@@ -1,0 +1,22 @@
+name: Probe MLS Sub-Impact Shape
+
+# One-shot: CC-CMD-2026-07-19-mls-sub-impact-metric PRE-BUILD PROBE.
+# Re-verifies real ESPN payload shape (keyEvents, participants ordering,
+# rosters position.abbreviation, core athlete endpoint) before building.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run probe
+        run: node scripts/probe-mls-sub-impact-shape.mjs
