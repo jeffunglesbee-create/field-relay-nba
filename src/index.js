@@ -13379,12 +13379,28 @@ export default {
                 // ?format=passfail — Phase 1 of two-phase approach: classify only (no SENTENCE/FIX).
                 // Minimises output tokens so FAIL-path latency matches PASS-path (~1 output token).
                 // Tests whether Gate D (p95<=1500ms) is achievable for 70B when output is bounded.
+                //
+                // ?format=reframe — 8B structural reframe: replaces 2900-token register with a
+                // tight wire-copy signature test. Tests whether 8B's 100% FP rate is caused by
+                // register overload (confusing prose numbers with stat-predicate wire-copy).
+                const REFRAME_PROMPT = (text) =>
+                    `You are checking whether a sports brief is wire-copy fact-stacking or genuine voice writing.\n\n` +
+                    `WIRE-COPY FAILS on this specific pattern:\n` +
+                    `  SUBJECT + [has / holds / carries / posts / averages / enters with / sits at / leads with / brings / improved to / fell to] + STAT\n` +
+                    `Examples of FAIL: "Tatum had 28 points", "Cole allowed 5 runs", "Messi has 14 goals", "Miami improved to 15-4-3"\n\n` +
+                    `WIRE-COPY also FAILS when: records are stacked without angle, stats are the main predicate of multiple sentences, no observation or point of view.\n\n` +
+                    `PASSES when: stats live inside noun phrases or appositives ("Wembanyama, a 34-point night"), ` +
+                    `numbers support a claim rather than state one, there is a genuine observation, angle, or voice.\n\n` +
+                    `BRIEF:\n"""${text}"""\n\n` +
+                    `Respond with exactly: PASS or FAIL\nNo other text.`;
                 const basePrompt = _buildVoiceJudgePrompt(brief);
                 const prompt = format === 'passfail'
                     ? basePrompt.replace(
                         /If it fails, respond with exactly this three-line format[\s\S]+$/,
                         'If it fails, respond with exactly: FAIL\nNo other text.'
                       )
+                    : format === 'reframe'
+                    ? REFRAME_PROMPT(brief)
                     : basePrompt;
                 const t0 = Date.now();
                 const aiResult = await env.AI.run(model, {
