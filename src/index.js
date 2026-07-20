@@ -12527,14 +12527,31 @@ export default {
 
             if (/^\/match\/\d+$/.test(sub)) {
                 const id = sub.slice(7);
+                const streamBase = `${PL_BASE}/football/fixtures/${id}/textstream/EN?pageSize=100`;
                 const [baseR, eventsR] = await Promise.all([
                     relayFetch(`${PL_BASE}/football/fixtures/${id}`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx),
-                    relayFetch(`${PL_BASE}/football/fixtures/${id}/textstream/EN`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx),
+                    relayFetch(streamBase, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx),
                 ]);
                 if (!baseR.ok) return baseR;
-                const base   = await baseR.json();
-                const events = eventsR.ok ? await eventsR.json() : null;
-                return new Response(JSON.stringify({ fixture: base, events }), {
+                const base = await baseR.json();
+                let allEvents = [];
+                if (eventsR.ok) {
+                    const page0 = await eventsR.json();
+                    allEvents = page0.events?.content || [];
+                    const numPages = page0.events?.pageInfo?.numPages || 1;
+                    if (numPages > 1) {
+                        const rest = await Promise.all(
+                            Array.from({ length: numPages - 1 }, (_, i) =>
+                                relayFetch(`${streamBase}&page=${i + 1}`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx)
+                                    .then(r => r.ok ? r.json() : null)
+                            )
+                        );
+                        for (const p of rest) {
+                            if (p?.events?.content) allEvents = allEvents.concat(p.events.content);
+                        }
+                    }
+                }
+                return new Response(JSON.stringify({ fixture: base, events: allEvents }), {
                     headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${PL_TTL_LIVE}`, ...CORS },
                 });
             }
