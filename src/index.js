@@ -8433,33 +8433,6 @@ export default {
         }
 
 
-        // TEMP PROBE — remove after pulselive.com reachability investigation complete
-        if (pathname.startsWith('/probe-pulse-di/')) {
-            const pulseId = pathname.split('/probe-pulse-di/')[1];
-            if (!pulseId) return new Response('Missing pulse ID', { status: 400, headers: CORS });
-            const endpoints = ['', '/textstream/EN', '/stats', '/lineups', '/matchfacts'];
-            const results = { domain: 'footballapi.pulselive.com', pulseId };
-            await Promise.all(endpoints.map(async (ep) => {
-                const url = `https://footballapi.pulselive.com/football/fixtures/${pulseId}${ep}`;
-                const key = ep || '/base';
-                try {
-                    const r = await fetch(url, {
-                        headers: {
-                            'Origin': 'https://www.premierleague.com',
-                            'Referer': 'https://www.premierleague.com/',
-                            'Accept': 'application/json, text/plain, */*',
-                        }
-                    });
-                    const body = await r.text();
-                    results[key] = { status: r.status, body: body.slice(0, 1000) };
-                } catch (e) {
-                    results[key] = { error: e.message };
-                }
-            }));
-            return new Response(JSON.stringify(results, null, 2), {
-                headers: { 'Content-Type': 'application/json', ...CORS }
-            });
-        }
 
         if (pathname === '/health') {
             // Surface the active quality calibration source. _qualityCalibrationSource
@@ -15696,7 +15669,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats', '/probe-pulse-di'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
