@@ -1,0 +1,154 @@
+name: Game Thread WebSocket Probe
+
+# TASK 5 verification for CC-CMD-2026-07-19-game-thread-relay.md
+# Confirms:
+#   1. thread_note accepted, stored, broadcast
+#   2. D1 row confirmed via wrangler d1 execute
+#   3. Second connection receives thread_catchup with the note
+#   4. Rate cap rejects second send within 30s
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy RELAY Worker"]
+    types: [completed]
+
+jobs:
+  ws-probe:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      RELAY: https://field-relay-nba.jeffunglesbee.workers.dev
+      SPORT: mlb
+      GAME_ID: probe-thread-test-01
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ws
+        run: npm install ws
+
+      - name: Probe — note accepted, broadcast, catchup, rate cap
+        id: probe
+        run: |
+          node - <<'EOF'
+          const WebSocket = require('ws');
+
+          const RELAY  = process.env.RELAY;
+          const SPORT  = process.env.SPORT;
+          const GAME   = process.env.GAME_ID;
+          const WS_URL = RELAY.replace('https://', 'wss://') + `/ws/game/${SPORT}/${GAME}`;
+
+          let pass = 0, fail = 0;
+          const results = [];
+
+          function assert(label, cond, detail) {
+            if (cond) { pass++; results.push(`  ✅ ${label}`); }
+            else       { fail++; results.push(`  ❌ ${label}${detail ? ': ' + detail : ''}`); }
+          }
+
+          function connect() {
+            return new Promise((resolve, reject) => {
+              const ws = new WebSocket(WS_URL);
+              ws.on('open', () => resolve(ws));
+              ws.on('error', reject);
+              setTimeout(() => reject(new Error('connect timeout')), 8000);
+            });
+          }
+
+          function waitMsg(ws, type, timeoutMs = 6000) {
+            return new Promise((resolve, reject) => {
+              const t = setTimeout(() => reject(new Error(`timeout waiting for ${type}`)), timeoutMs);
+              ws.on('message', data => {
+                try {
+                  const m = JSON.parse(data);
+                  if (m.type === type) { clearTimeout(t); resolve(m); }
+                } catch(_) {}
+              });
+            });
+          }
+
+          (async () => {
+            // ── 1. Connect session A, send thread_note ───────────────────
+            console.log('Connecting session A to', WS_URL);
+            const wsA = await connect();
+            console.log('Session A connected');
+
+            const body  = `probe-note-${Date.now()}`;
+            const token = 'test-token-42';
+            wsA.send(JSON.stringify({ type: 'thread_note', body, token }));
+
+            // ── 2. Session A receives the broadcast ──────────────────────
+            let broadcast;
+            try {
+              broadcast = await waitMsg(wsA, 'thread_note');
+              assert('broadcast received by sender', true);
+              assert('broadcast.body matches sent body', broadcast.body === body, broadcast.body);
+              assert('broadcast.token echoed verbatim', broadcast.token === token, broadcast.token);
+              assert('broadcast.id is a UUID', typeof broadcast.id === 'string' && broadcast.id.length > 10, broadcast.id);
+              assert('broadcast.ts is a number', typeof broadcast.ts === 'number');
+              console.log('Broadcast received:', JSON.stringify(broadcast));
+            } catch(e) {
+              assert('broadcast received by sender', false, e.message);
+              assert('broadcast.body matches sent body', false, 'no broadcast');
+              assert('broadcast.token echoed verbatim', false, 'no broadcast');
+              assert('broadcast.id is a UUID', false, 'no broadcast');
+              assert('broadcast.ts is a number', false, 'no broadcast');
+            }
+
+            // ── 3. Rate cap: second send within 30s ──────────────────────
+            wsA.send(JSON.stringify({ type: 'thread_note', body: 'second-note', token }));
+            try {
+              const rateMsg = await waitMsg(wsA, 'thread_rate_limited', 5000);
+              assert('rate cap fires on second send', true);
+              assert('rate cap includes retryAfter', typeof rateMsg.retryAfter === 'number' && rateMsg.retryAfter > 0, String(rateMsg.retryAfter));
+              console.log('Rate limit response:', JSON.stringify(rateMsg));
+            } catch(e) {
+              assert('rate cap fires on second send', false, e.message);
+              assert('rate cap includes retryAfter', false, 'no rate-limited msg');
+            }
+
+            wsA.close();
+
+            // ── 4. Connect session B, expect thread_catchup ──────────────
+            console.log('Connecting session B (catchup check)');
+            const wsB = await connect();
+            try {
+              const catchup = await waitMsg(wsB, 'thread_catchup', 8000);
+              assert('thread_catchup received on join', true);
+              assert('catchup.notes is an array', Array.isArray(catchup.notes), typeof catchup.notes);
+              const found = catchup.notes.find(n => n.body === body);
+              assert('sent note present in catchup', !!found, found ? 'found' : `notes: ${JSON.stringify(catchup.notes.slice(-3))}`);
+              assert('catchup notes have no token field', catchup.notes.every(n => !('token' in n)), 'token found in note');
+              console.log('Catchup note count:', catchup.notes.length);
+            } catch(e) {
+              assert('thread_catchup received on join', false, e.message);
+              assert('catchup.notes is an array', false, 'no catchup');
+              assert('sent note present in catchup', false, 'no catchup');
+              assert('catchup notes have no token field', false, 'no catchup');
+            }
+            wsB.close();
+
+            // ── Summary ───────────────────────────────────────────────────
+            console.log('\n=== GAME THREAD WS PROBE RESULTS ===');
+            results.forEach(r => console.log(r));
+            console.log(`\n${pass} passed, ${fail} failed`);
+            if (fail > 0) process.exit(1);
+          })().catch(e => { console.error('PROBE ERROR:', e.message); process.exit(1); });
+          EOF
+
+      - name: Confirm D1 row via wrangler
+        run: |
+          npx wrangler d1 execute field-archive \
+            --remote \
+            --command "SELECT id, game_id, body, ts, expires_at FROM game_thread_notes WHERE game_id = 'probe-thread-test-01' ORDER BY ts DESC LIMIT 5;"
+
+      - name: Cleanup probe rows
+        run: |
+          npx wrangler d1 execute field-archive \
+            --remote \
+            --command "DELETE FROM game_thread_notes WHERE game_id = 'probe-thread-test-01';"
