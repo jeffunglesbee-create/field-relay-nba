@@ -13361,19 +13361,31 @@ export default {
         if (pathname === '/test/workers-ai-judge' && (request.method === 'POST' || request.method === 'GET')) {
             try {
                 let brief, model;
+                let format;
                 if (request.method === 'POST') {
                     const body = await request.json().catch(() => ({}));
                     brief = typeof body.brief === 'string' ? body.brief.trim() : '';
                     model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : '@cf/meta/llama-3.1-8b-instruct-fast';
+                    format = typeof body.format === 'string' ? body.format.trim() : '';
                 } else {
                     brief = (url.searchParams.get('brief') || '').trim();
                     model = (url.searchParams.get('model') || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+                    format = (url.searchParams.get('format') || '').trim();
                 }
                 if (!brief) {
                     return new Response(JSON.stringify({ ok: false, error: 'brief required (POST body or ?brief= query param)' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
-                const prompt = _buildVoiceJudgePrompt(brief);
+                // ?format=passfail — Phase 1 of two-phase approach: classify only (no SENTENCE/FIX).
+                // Minimises output tokens so FAIL-path latency matches PASS-path latency.
+                // Tests whether Gate D is achievable for 70B when output is bounded to 1 token.
+                const basePrompt = _buildVoiceJudgePrompt(brief);
+                const prompt = format === 'passfail'
+                    ? basePrompt.replace(
+                        /If it fails, respond with exactly this three-line format[\s\S]+$/,
+                        'If it fails, respond with exactly: FAIL\nNo other text.'
+                      )
+                    : basePrompt;
                 const t0 = Date.now();
                 const aiResult = await env.AI.run(model, {
                     messages: [{ role: 'user', content: prompt }],
