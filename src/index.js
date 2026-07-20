@@ -362,6 +362,19 @@ function nhlCacheTtl(path) {
     return NHL_CACHE_TTL_LIVE; // scoreboard/now, gamecenter, score
 }
 
+// ── PL (Premier League via PulseLive) ────────────────────────────────────────
+const PL_BASE    = 'https://footballapi.pulselive.com';
+const PL_HEADERS = {
+    'Origin':  'https://www.premierleague.com',
+    'Referer': 'https://www.premierleague.com/',
+    'Accept':  'application/json, text/plain, */*',
+};
+const PL_TTL_LIVE   = 30;
+const PL_TTL_STATIC = 3600;
+// Season IDs change each year. Query /pl/seasons to discover the next one.
+// 2024/25 = 719, 2025/26 = 777.
+const PL_SEASON_CURRENT = '777';
+
 // ── FPL (Fantasy Premier League) ───────────────────────────────────────────
 const FPL_BASE = 'https://fantasy.premierleague.com/api';
 const FPL_HEADERS = {
@@ -12479,6 +12492,60 @@ export default {
             return relayFetch(`${FPL_BASE}${fplPath}`, FPL_HEADERS, fplCacheTtl(cleanPath), 'fpl', ctx);
         }
 
+        // /pl/* → footballapi.pulselive.com (Premier League official match data)
+        if (pathname.startsWith('/pl/')) {
+            const sub = pathname.slice(3); // '/pl/fixtures' → '/fixtures'
+
+            if (sub === '/fixtures') {
+                const season   = url.searchParams.get('season') || PL_SEASON_CURRENT;
+                const gameweek = url.searchParams.get('gameweek');
+                let upstream   = `${PL_BASE}/football/fixtures?comps=1&compSeasons=${season}&pageSize=40&sort=asc&statuses=C,L,U&altIds=true`;
+                if (gameweek) upstream += `&gameweeks=${gameweek}`;
+                const r = await relayFetch(upstream, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx);
+                if (!r.ok) return r;
+                const raw      = await r.json();
+                const fixtures = (raw.content || []).map(f => ({
+                    id:           f.id,
+                    kickoff:      f.kickoff?.millis    ?? null,
+                    kickoffLabel: f.kickoff?.label     ?? null,
+                    status:       f.status,
+                    gameweek:     f.gameweek?.gameweek ?? null,
+                    home:         f.teams?.[0]?.team?.shortName ?? null,
+                    homeId:       f.teams?.[0]?.team?.id        ?? null,
+                    homeScore:    f.teams?.[0]?.score            ?? null,
+                    away:         f.teams?.[1]?.team?.shortName ?? null,
+                    awayId:       f.teams?.[1]?.team?.id        ?? null,
+                    awayScore:    f.teams?.[1]?.score            ?? null,
+                    clock:        f.clock?.label                 ?? null,
+                    clockSecs:    f.clock?.secs                  ?? null,
+                    venue:        f.ground?.name                 ?? null,
+                }));
+                return new Response(JSON.stringify(fixtures), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${PL_TTL_LIVE}`, ...CORS },
+                });
+            }
+
+            if (/^\/match\/\d+$/.test(sub)) {
+                const id = sub.slice(7);
+                const [baseR, eventsR] = await Promise.all([
+                    relayFetch(`${PL_BASE}/football/fixtures/${id}`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx),
+                    relayFetch(`${PL_BASE}/football/fixtures/${id}/textstream/EN`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx),
+                ]);
+                if (!baseR.ok) return baseR;
+                const base   = await baseR.json();
+                const events = eventsR.ok ? await eventsR.json() : null;
+                return new Response(JSON.stringify({ fixture: base, events }), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${PL_TTL_LIVE}`, ...CORS },
+                });
+            }
+
+            if (sub === '/seasons') {
+                return relayFetch(`${PL_BASE}/football/competitions/1/compseasons?page=0&pageSize=5&sort=desc`, PL_HEADERS, PL_TTL_STATIC, 'pl', ctx);
+            }
+
+            return new Response('PL path not found', { status: 404, headers: CORS });
+        }
+
         // /atp/* → app.atptour.com/api/v2/gateway (no auth, 15s cache — CORS bypass)
         if (pathname.startsWith('/atp')) {
             const cleanPath = pathname.replace(/^\/atp/, '') || '/livematches/website';
@@ -15669,7 +15736,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats', '/pl'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
