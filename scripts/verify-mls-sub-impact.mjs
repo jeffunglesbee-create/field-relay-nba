@@ -22,8 +22,14 @@ const KNOWN_EMPTY_CASE = { league: 'usa.1', event: '761664', label: 'LAFC 3, LA 
 // not fabricated. Falls back to WC26 (fifa.world) if none of these work,
 // per the CC-CMD's own allowance ("a real WC game, given the same
 // endpoints work there too").
-async function findCandidateEvents(league, count) {
-    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?limit=50`,
+// Real finding from the first run of this script (2026-07-20): the default
+// scoreboard call (no `dates` param) only returns TODAY's games, which
+// found 0 completed MLS events -- not a route bug, just an empty scan
+// window. Widened to a real date range (a `dates=YYYYMMDD-YYYYMMDD` range,
+// same param ESPN's site.api scoreboard accepts) covering the last ~45
+// days so there's an actual population of completed games to scan.
+async function findCandidateEvents(league, count, rangeStart, rangeEnd) {
+    const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${rangeStart}-${rangeEnd}&limit=200`,
         { headers: { 'User-Agent': 'FIELD/1.0' } });
     if (!r.ok) return [];
     const d = await r.json();
@@ -47,26 +53,26 @@ async function main() {
     console.log(JSON.stringify(emptyResult, null, 2));
 
     console.log('\n--- scanning real recent MLS games for a qualifying case ---');
-    const mlsCandidates = await findCandidateEvents('usa.1', 20);
+    const mlsCandidates = await findCandidateEvents('usa.1', 40, '20260601', '20260720');
     console.log(`found ${mlsCandidates.length} real completed MLS candidate events`);
     let qualifying = null;
     const scanned = [];
     for (const eventId of mlsCandidates) {
         if (eventId === KNOWN_EMPTY_CASE.event) continue;
         const result = await probe('usa.1', eventId);
-        scanned.push({ eventId, hasDefensiveSubImpact: result.body?.hasDefensiveSubImpact, count: result.body?.defensiveSubs?.length });
+        scanned.push({ eventId, status: result.status, error: result.body?._error || null, hasDefensiveSubImpact: result.body?.hasDefensiveSubImpact, count: result.body?.defensiveSubs?.length });
         if (result.body?.hasDefensiveSubImpact) { qualifying = { league: 'usa.1', eventId, result }; break; }
     }
     console.log('scanned:', JSON.stringify(scanned));
 
     if (!qualifying) {
         console.log('\n--- no qualifying MLS case found in scanned window, trying WC26 (fifa.world) ---');
-        const wcCandidates = await findCandidateEvents('fifa.world', 20);
+        const wcCandidates = await findCandidateEvents('fifa.world', 40, '20260601', '20260720');
         console.log(`found ${wcCandidates.length} real completed WC candidate events`);
         const wcScanned = [];
         for (const eventId of wcCandidates) {
             const result = await probe('fifa.world', eventId);
-            wcScanned.push({ eventId, hasDefensiveSubImpact: result.body?.hasDefensiveSubImpact, count: result.body?.defensiveSubs?.length });
+            wcScanned.push({ eventId, status: result.status, error: result.body?._error || null, hasDefensiveSubImpact: result.body?.hasDefensiveSubImpact, count: result.body?.defensiveSubs?.length });
             if (result.body?.hasDefensiveSubImpact) { qualifying = { league: 'fifa.world', eventId, result }; break; }
         }
         console.log('scanned:', JSON.stringify(wcScanned));
