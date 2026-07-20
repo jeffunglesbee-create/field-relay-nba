@@ -13489,6 +13489,91 @@ export default {
             }
         }
 
+        // POST /test/combined-generate-judge — TEST-ONLY: Combined generation+judge probe (Step 2, plan 2026-07-20).
+        // Collapses separate generate+judge calls into one combined prompt. Model outputs only the
+        // final, passing brief text — not a PASS/FAIL verdict. This avoids the reasoning-budget
+        // problem and adds no parsing complexity. Latency and quality tested against the current
+        // two-call pipeline in Steps 3-4.
+        // Accepts: { "prompt": "...", "max_tokens": N } POST
+        // Returns: { text, latency_ms }
+        // Remove after Step 3-4 evaluation (test plan 2026-07-20).
+        if (pathname === '/test/combined-generate-judge' && request.method === 'POST') {
+            try {
+                const body = await request.json().catch(() => ({}));
+                if (!body || typeof body.prompt !== 'string' || body.prompt.length < 10) {
+                    return new Response(JSON.stringify({ ok: false, error: 'prompt required (min 10 chars)' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const max_tokens = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
+                // Combined prompt: voice register + game context + self-check instruction.
+                // Self-check appended to the generation prompt, not as a separate judge call.
+                // Model must NOT output PASS/FAIL — only the final, passing brief text.
+                const combinedPrompt = FIELD_VOICE_REGISTER + '\n' + body.prompt +
+                    '\n\nAfter writing the brief, self-check it against the voice rules above. ' +
+                    'If it violates them, revise the brief until it passes, then output only the final, ' +
+                    'passing version. Do not narrate your revision process.';
+                const t0 = Date.now();
+                const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens,
+                        messages: [{ role: 'user', content: combinedPrompt }] }),
+                });
+                const latency_ms = Date.now() - t0;
+                if (!resp.ok) {
+                    return new Response(JSON.stringify({ ok: false, error: `proxy ${resp.status}` }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const data = await resp.json().catch(() => null);
+                const text = data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() : '';
+                return new Response(JSON.stringify({ text, latency_ms }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
+        // POST /test/prefilter — TEST-ONLY: Cheap regex pre-filter probe (prefilter-heuristic plan 2026-07-20).
+        // Returns SKIP_JUDGE (confidently clean) or SEND_TO_JUDGE (uncertain, falls through to Gemini).
+        // Only ever short-circuits toward skipping obvious passes — never outputs a FAIL verdict itself.
+        // Safety invariant: SEND_TO_JUDGE is always the safe fallback (never skips a genuine fail).
+        // Accepts: { "brief": "..." } POST
+        // Returns: { skip: boolean, matchedPattern: string | null }
+        // Remove after Step 3-4 evaluation (test plan 2026-07-20).
+        if (pathname === '/test/prefilter' && request.method === 'POST') {
+            try {
+                const body = await request.json().catch(() => ({}));
+                const brief = typeof body.brief === 'string' ? body.brief.trim() : '';
+                if (!brief) {
+                    return new Response(JSON.stringify({ ok: false, error: 'brief required' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                // Pattern 1: wire-copy signature verbs directly followed by a number.
+                // Source: FIELD_VOICE_REGISTER FORBIDDEN section + 8B reframe test verb list.
+                // Confirmed NOT already in BANNED_PHRASES or SPORT_VOCAB_VIOLATIONS (different detection layer).
+                const WIRE_VERB_RE = /\b(has|holds|carries|posts|averages|enters with|sits at|improved to|fell to)\s+\d/i;
+                // Pattern 2: box-score past-tense stat verbs directly followed by a number.
+                // Catches constructions the narrow verb list misses: "scored 31", "had 28", "tallied 4".
+                const BOX_SCORE_RE = /\b(had|scored|added|tallied|recorded|netted|grabbed|totaled|finished with)\s+\d/i;
+                let matchedPattern = null;
+                const m1 = brief.match(WIRE_VERB_RE);
+                if (m1) matchedPattern = `wire_verb:${m1[0]}`;
+                if (!matchedPattern) {
+                    const m2 = brief.match(BOX_SCORE_RE);
+                    if (m2) matchedPattern = `box_score:${m2[0]}`;
+                }
+                // skip=true only when no wire-copy signals detected (SKIP_JUDGE).
+                // skip=false (SEND_TO_JUDGE) whenever a pattern fires or confidence is uncertain.
+                const skip = matchedPattern === null;
+                return new Response(JSON.stringify({ skip, matchedPattern }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
         // Assembles all analytics_output features + KV editorial into one
         // atomic response. {date} = TODAY's date. Endpoint fetches recap
@@ -15920,6 +16005,10 @@ export default {
                         '/test/workers-ai-judge',
                         // Gemini judge probe for Step 3 comparison (2026-07-20, test-only)
                         '/test/gemini-judge',
+                        // Combined generate+judge probe (2026-07-20, test-only — remove after Step 3-4 eval)
+                        '/test/combined-generate-judge',
+                        // Prefilter heuristic probe (2026-07-20, test-only — remove after Step 3-4 eval)
+                        '/test/prefilter',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
