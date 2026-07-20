@@ -12556,6 +12556,31 @@ export default {
                 });
             }
 
+            if (/^\/events\/\d+$/.test(sub)) {
+                const id = sub.slice(8);
+                const streamBase = `${PL_BASE}/football/fixtures/${id}/textstream/EN?pageSize=100`;
+                const eventsR = await relayFetch(streamBase, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx);
+                if (!eventsR.ok) return eventsR;
+                const page0 = await eventsR.json();
+                let allEvents = page0.events?.content || [];
+                const numPages = page0.events?.pageInfo?.numPages || 1;
+                if (numPages > 1) {
+                    const rest = await Promise.all(
+                        Array.from({ length: numPages - 1 }, (_, i) =>
+                            relayFetch(`${streamBase}&page=${i + 1}`, PL_HEADERS, PL_TTL_LIVE, 'pl', ctx)
+                                .then(r => r.ok ? r.json() : null)
+                        )
+                    );
+                    for (const p of rest) {
+                        if (p?.events?.content) allEvents = allEvents.concat(p.events.content);
+                    }
+                }
+                const types = [...new Set(allEvents.map(e => e.type).filter(Boolean))].sort();
+                return new Response(JSON.stringify({ count: allEvents.length, types, events: allEvents }), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${PL_TTL_LIVE}`, ...CORS },
+                });
+            }
+
             if (sub === '/seasons') {
                 return relayFetch(`${PL_BASE}/football/competitions/1/compseasons?page=0&pageSize=5&sort=desc`, PL_HEADERS, PL_TTL_STATIC, 'pl', ctx);
             }
