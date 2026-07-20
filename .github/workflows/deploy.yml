@@ -99,6 +99,8 @@ jobs:
             FIELD_MCP_CONNECTOR_TOKEN
             GITHUB_PAT
             BSD_API_TOKEN
+            DATAIMPULSE_USER
+            DATAIMPULSE_PASS
         env:
           KALI_AFL_TOKEN: ${{ secrets.KALI_AFL_TOKEN }}
           SPORTRADAR_UFL_KEY: ${{ secrets.SPORTRADAR_UFL_KEY }}
@@ -109,6 +111,8 @@ jobs:
           FIELD_MCP_CONNECTOR_TOKEN: ${{ secrets.FIELD_MCP_CONNECTOR_TOKEN }}
           GITHUB_PAT: ${{ secrets.RELAY_GH_PAT }}
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          DATAIMPULSE_USER: ${{ secrets.DATAIMPULSE_USER }}
+          DATAIMPULSE_PASS: ${{ secrets.DATAIMPULSE_PASS }}
 
       # Hard gate: even with continue-on-error above, the code MUST be live.
       # This catches genuine deploy failures (bad bundle, auth revoked) vs
