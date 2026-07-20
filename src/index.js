@@ -13403,6 +13403,59 @@ export default {
             }
         }
 
+        // POST|GET /test/gemini-judge — TEST-ONLY: Gemini voice judge probe (Step 3 comparison).
+        // Sends a brief through the same Gemini path as Layer 3b (field-claude-proxy).
+        // Accepts: { "brief": "..." } POST or ?brief=... GET
+        // Returns: { verdict, structured, parsed, model, ms }
+        // Remove after Step 3-4 evaluation (test plan 2026-07-20).
+        if (pathname === '/test/gemini-judge' && (request.method === 'POST' || request.method === 'GET')) {
+            try {
+                let brief;
+                if (request.method === 'POST') {
+                    const body = await request.json().catch(() => ({}));
+                    brief = typeof body.brief === 'string' ? body.brief.trim() : '';
+                } else {
+                    brief = (url.searchParams.get('brief') || '').trim();
+                }
+                if (!brief) {
+                    return new Response(JSON.stringify({ ok: false, error: 'brief required' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const prompt = _buildVoiceJudgePrompt(brief);
+                const t0 = Date.now();
+                const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256,
+                        messages: [{ role: 'user', content: prompt }] }),
+                });
+                const ms = Date.now() - t0;
+                if (!resp.ok) {
+                    return new Response(JSON.stringify({ ok: false, error: `proxy ${resp.status}` }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const data = await resp.json().catch(() => null);
+                const verdict = data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() : '';
+                const isPass = /^\s*PASS\s*$/i.test(verdict);
+                const isFail = /^\s*FAIL\b/i.test(verdict);
+                const structured = isPass || isFail;
+                let parsed = null;
+                if (isPass) {
+                    parsed = { result: 'PASS', sentence: null, fix: null };
+                } else if (isFail) {
+                    const m = verdict.match(/FAIL[^\n]*\n+SENTENCE:\s*(.+?)\n+FIX:\s*([\s\S]+)/i);
+                    parsed = m
+                        ? { result: 'FAIL', sentence: m[1].trim(), fix: m[2].trim() }
+                        : { result: 'FAIL', sentence: null, fix: null };
+                }
+                return new Response(JSON.stringify({ verdict, structured, parsed, model: 'gemini-via-proxy', ms }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
         // Assembles all analytics_output features + KV editorial into one
         // atomic response. {date} = TODAY's date. Endpoint fetches recap
@@ -15832,6 +15885,8 @@ export default {
                         '/test/drama-score-cost',
                         // Workers AI judge probe (2026-07-20, test-only — remove after Step 3-4 eval)
                         '/test/workers-ai-judge',
+                        // Gemini judge probe for Step 3 comparison (2026-07-20, test-only)
+                        '/test/gemini-judge',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
