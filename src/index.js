@@ -53,6 +53,7 @@ import {
   scoreProse as jqScoreProse,
   hasCliche as jqHasCliche,
   hasCrossSportHallucination as jqHasCrossSport,
+  _buildVoiceJudgePrompt,
 } from './journalism-quality.js';
 
 // ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
@@ -13347,6 +13348,61 @@ export default {
         }
 
 
+        // POST|GET /test/workers-ai-judge — TEST-ONLY: Workers AI voice judge probe.
+        // Runs one brief through env.AI.run() and returns raw + parsed verdict.
+        // Used for Step 3 corpus comparison (Gemini judge vs Workers AI candidates).
+        // Step 5 production wiring is NOT authorized by this commit.
+        // GET: ?brief=...&model=... (used by probe_relay_route)
+        // POST: { "brief": "...", "model": "..." } (used by curl corpus test)
+        // Candidates: @cf/meta/llama-3.1-8b-instruct-fast,
+        //             @cf/meta/llama-3.3-70b-instruct-fp8-fast,
+        //             @cf/google/gemma-4-26b-a4b-it
+        // Remove after Step 3–4 evaluation (test plan 2026-07-20).
+        if (pathname === '/test/workers-ai-judge' && (request.method === 'POST' || request.method === 'GET')) {
+            try {
+                let brief, model;
+                if (request.method === 'POST') {
+                    const body = await request.json().catch(() => ({}));
+                    brief = typeof body.brief === 'string' ? body.brief.trim() : '';
+                    model = typeof body.model === 'string' && body.model.trim() ? body.model.trim() : '@cf/meta/llama-3.1-8b-instruct-fast';
+                } else {
+                    brief = (url.searchParams.get('brief') || '').trim();
+                    model = (url.searchParams.get('model') || '@cf/meta/llama-3.1-8b-instruct-fast').trim();
+                }
+                if (!brief) {
+                    return new Response(JSON.stringify({ ok: false, error: 'brief required (POST body or ?brief= query param)' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const prompt = _buildVoiceJudgePrompt(brief);
+                const t0 = Date.now();
+                const aiResult = await env.AI.run(model, {
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 256,
+                });
+                const ms = Date.now() - t0;
+                const verdict = (typeof aiResult?.response === 'string' ? aiResult.response : JSON.stringify(aiResult)).trim();
+                // PASS: single line exactly "PASS"
+                // FAIL: "FAIL\nSENTENCE: ...\nFIX: ..." format
+                const isPass = /^\s*PASS\s*$/i.test(verdict);
+                const isFail = /^\s*FAIL\b/i.test(verdict);
+                const structured = isPass || isFail;
+                let parsed = null;
+                if (isPass) {
+                    parsed = { result: 'PASS', sentence: null, fix: null };
+                } else if (isFail) {
+                    const m = verdict.match(/FAIL[^\n]*\n+SENTENCE:\s*(.+?)\n+FIX:\s*([\s\S]+)/i);
+                    parsed = m
+                        ? { result: 'FAIL', sentence: m[1].trim(), fix: m[2].trim() }
+                        : { result: 'FAIL', sentence: null, fix: null };
+                }
+                return new Response(JSON.stringify({ verdict, structured, parsed, model, ms }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // GET /analytics/newspaper/{date} — O(1) Newspaper bundle.
         // Assembles all analytics_output features + KV editorial into one
         // atomic response. {date} = TODAY's date. Endpoint fetches recap
@@ -15774,6 +15830,8 @@ export default {
                         '/v2/golf/enriched',
                         // Drama-score CPU cost test route (2026-07-07, test-only)
                         '/test/drama-score-cost',
+                        // Workers AI judge probe (2026-07-20, test-only — remove after Step 3-4 eval)
+                        '/test/workers-ai-judge',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
