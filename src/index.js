@@ -13377,10 +13377,15 @@ export default {
                 const t0 = Date.now();
                 const aiResult = await env.AI.run(model, {
                     messages: [{ role: 'user', content: prompt }],
-                    max_tokens: 256,
+                    max_tokens: 2000,
                 });
                 const ms = Date.now() - t0;
-                const verdict = (typeof aiResult?.response === 'string' ? aiResult.response : JSON.stringify(aiResult)).trim();
+                // Llama models return { response: "..." }; Gemma 4 (reasoning) returns
+                // a chat.completion object where the answer is in choices[0].message.content
+                const verdict = (
+                    typeof aiResult?.response === 'string' ? aiResult.response
+                    : aiResult?.choices?.[0]?.message?.content || JSON.stringify(aiResult)
+                ).trim();
                 // PASS: single line exactly "PASS"
                 // FAIL: "FAIL\nSENTENCE: ...\nFIX: ..." format
                 const isPass = /^\s*PASS\s*$/i.test(verdict);
