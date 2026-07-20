@@ -13377,8 +13377,8 @@ export default {
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
                 // ?format=passfail — Phase 1 of two-phase approach: classify only (no SENTENCE/FIX).
-                // Minimises output tokens so FAIL-path latency matches PASS-path latency.
-                // Tests whether Gate D is achievable for 70B when output is bounded to 1 token.
+                // Minimises output tokens so FAIL-path latency matches PASS-path (~1 output token).
+                // Tests whether Gate D (p95<=1500ms) is achievable for 70B when output is bounded.
                 const basePrompt = _buildVoiceJudgePrompt(brief);
                 const prompt = format === 'passfail'
                     ? basePrompt.replace(
