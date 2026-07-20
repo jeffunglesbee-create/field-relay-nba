@@ -14069,6 +14069,184 @@ export default {
             });
         }
 
+        // ── /soccer/sub-impact → defensive substitution lead-preservation metric ──
+        // Real, event-derived computation (timeline + position lookup + score-state
+        // tracking), not a drama/interest/watch-worthiness judgment -- consistent with
+        // Rule 47 (RELAY-CPU-A), same reasoning as the xG computation above.
+        // SCOPE LIMIT (deliberate, per CC-CMD-2026-07-19-mls-sub-impact-metric TASK 3):
+        // single-game primitive only. Do NOT add cross-game aggregation or "team X does
+        // this Y% of the time" claims here -- that needs a real sample size across many
+        // games and is separate, out-of-scope follow-on work.
+        if (pathname === '/soccer/sub-impact') {
+            const league  = url.searchParams.get('league');
+            const eventId = url.searchParams.get('event');
+            if (!league || !eventId) {
+                return new Response(JSON.stringify({ error: 'league and event required' }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+
+            function clockSortKey(period, clockStr) {
+                const m = /^(\d+)'(?:\+(\d+)')?$/.exec(clockStr || '');
+                if (!m) return (period || 0) * 100000;
+                return (period || 0) * 100000 + parseInt(m[1], 10) * 100 + (m[2] ? parseInt(m[2], 10) : 0);
+            }
+
+            let data;
+            try {
+                const r = await fetch(
+                    `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/summary?event=${eventId}`,
+                    { headers: { 'User-Agent': 'FIELD/1.0' } }
+                );
+                if (!r.ok) throw new Error(`summary ${r.status}`);
+                data = await r.json();
+            } catch (e) {
+                return new Response(
+                    JSON.stringify({ event: eventId, league, defensiveSubs: [], hasDefensiveSubImpact: false, _error: e.message }),
+                    { headers: { 'Content-Type': 'application/json', 'X-Source': 'espn-site', ...CORS } }
+                );
+            }
+
+            const competitors = data?.header?.competitions?.[0]?.competitors || [];
+            let homeName, awayName;
+            for (const c of competitors) {
+                if (c.homeAway === 'home') homeName = c.team?.displayName;
+                else awayName = c.team?.displayName;
+            }
+
+            const keyEvents = (data.keyEvents || [])
+                .filter(e => ['Goal', 'Penalty - Scored', 'Substitution'].includes(e.type?.text))
+                .slice()
+                .sort((a, b) => clockSortKey(a.period?.number, a.clock?.displayValue) - clockSortKey(b.period?.number, b.clock?.displayValue));
+
+            // Real position OFF: rosters[] (granular: LB/RB/CB/DM/CM/RM/LF/RF/AM/F/D/G),
+            // reliable for the player leaving the pitch (confirmed live, event 761664).
+            const rosterPos = new Map();
+            for (const teamRoster of (data.rosters || [])) {
+                for (const entry of (teamRoster.roster || [])) {
+                    if (entry.athlete?.id) rosterPos.set(String(entry.athlete.id), entry.position?.abbreviation || null);
+                }
+            }
+
+            const ATTACKING_OFF = new Set(['F', 'LF', 'RF', 'CM', 'RM', 'AM']);
+            // Real position ON: sports.core.api.espn.com/.../athletes/{id} -- verified
+            // live (2026-07-20, event 761664, all 10 real substitutes in the test game)
+            // to return only the COARSE 4-category vocabulary (Goalkeeper/Defender/
+            // Midfielder/Forward -> G/D/M/F), never the granular roster abbreviations
+            // this CC-CMD's classify step assumed (LB/RB/CB/DM never appear here).
+            // "Defensive ON" is checked against this real, verified, coarse vocabulary.
+            const athletePosCache = new Map();
+            async function resolveIncomingPosition(athleteId) {
+                if (athletePosCache.has(athleteId)) return athletePosCache.get(athleteId);
+                let abbr = null;
+                try {
+                    const r = await fetch(
+                        `https://sports.core.api.espn.com/v2/sports/soccer/leagues/${league}/athletes/${athleteId}`,
+                        { headers: { 'User-Agent': 'FIELD/1.0' } }
+                    );
+                    if (r.ok) {
+                        const d = await r.json();
+                        abbr = d?.position?.abbreviation || null;
+                    }
+                } catch (e) { console.error('[SUB-IMPACT] athlete lookup failed:', athleteId, e.message); }
+                athletePosCache.set(athleteId, abbr);
+                return abbr;
+            }
+
+            // Real, live score-differential-by-team state, walking the timeline in
+            // order. REAL FINDING (verified 2026-07-20 against event 761664): the
+            // original plan was to parse the running score out of each Goal/Penalty
+            // event's `text` field, but `text` uses the club's full legal name (e.g.
+            // "Los Angeles Football Club") which does NOT match competitors[].team.
+            // displayName/name/shortDisplayName/abbreviation ("LAFC") anywhere in the
+            // payload -- matching parsed names back to home/away would itself be a
+            // fragile, unverifiable regex, exactly what this doc warned against. The
+            // event's own structured `team.displayName` field (confirmed to match
+            // competitors[].team.displayName exactly for all 3 real goals tested) is
+            // used instead to attribute each goal and increment that side's score.
+            let homeScore = 0, awayScore = 0;
+            const defensiveSubs = [];
+
+            for (let i = 0; i < keyEvents.length; i++) {
+                const e = keyEvents[i];
+                if (e.type?.text === 'Goal' || e.type?.text === 'Penalty - Scored') {
+                    if (e.team?.displayName === homeName) homeScore++;
+                    else if (e.team?.displayName === awayName) awayScore++;
+                    continue;
+                }
+                // Substitution -- participants[0] = player coming ON, participants[1] =
+                // player going OFF (confirmed live against all 10 real subs in the test
+                // game via the rosters[] starter flag: index 0 is always starter:false).
+                const participants = e.participants || [];
+                const onAthleteId  = participants[0]?.athlete?.id;
+                const offAthleteId = participants[1]?.athlete?.id;
+                if (!onAthleteId || !offAthleteId) continue;
+
+                const positionOff = rosterPos.get(String(offAthleteId)) || null;
+                const positionOn  = await resolveIncomingPosition(String(onAthleteId));
+                if (!ATTACKING_OFF.has(positionOff) || positionOn !== 'D') continue;
+
+                const subTeamIsHome = e.team?.displayName === homeName;
+                const teamScore = subTeamIsHome ? homeScore : awayScore;
+                const oppScore   = subTeamIsHome ? awayScore : homeScore;
+                if (teamScore <= oppScore) continue; // only subs made while holding a real, positive lead
+
+                // Scan the real, subsequent timeline for goals by either side.
+                let held = true;
+                let finalTeamScore = teamScore, finalOppScore = oppScore;
+                let decidingClock = null;
+                for (let j = i + 1; j < keyEvents.length; j++) {
+                    const fe = keyEvents[j];
+                    if (fe.type?.text !== 'Goal' && fe.type?.text !== 'Penalty - Scored') continue;
+                    const scorerIsSubTeam = (fe.team?.displayName === homeName) === subTeamIsHome;
+                    if (scorerIsSubTeam) finalTeamScore++;
+                    else {
+                        finalOppScore++;
+                        held = false;
+                        if (finalTeamScore <= finalOppScore && decidingClock === null) decidingClock = fe.clock?.displayValue || null;
+                    }
+                }
+
+                let outcome, outcomeClock, outcomeDetail = null;
+                if (held) {
+                    outcome = 'held'; outcomeClock = 'Full Time';
+                } else if (finalTeamScore > finalOppScore) {
+                    outcome = 'challenged'; outcomeClock = 'Full Time';
+                    outcomeDetail = `finished ${finalTeamScore}-${finalOppScore}`;
+                } else {
+                    outcome = 'lost'; outcomeClock = decidingClock || 'Full Time';
+                    outcomeDetail = `finished ${finalTeamScore}-${finalOppScore}`;
+                }
+
+                defensiveSubs.push({
+                    team: e.team?.displayName || null,
+                    clock: e.clock?.displayValue || null,
+                    playerOff: participants[1]?.athlete?.displayName || null,
+                    positionOff,
+                    playerOn: participants[0]?.athlete?.displayName || null,
+                    positionOn,
+                    scoreAtSub: { leading: true, differential: teamScore - oppScore },
+                    outcome,
+                    outcomeClock,
+                    outcomeDetail,
+                });
+            }
+
+            return new Response(JSON.stringify({
+                event: eventId,
+                league,
+                defensiveSubs,
+                hasDefensiveSubImpact: defensiveSubs.length > 0,
+                _source: 'espn-site',
+            }), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'public, max-age=300',
+                    'X-Source': 'espn-site',
+                    ...CORS,
+                },
+            });
+        }
+
         // ── /soccer-fbref/{file} → FBref WC squad stats (SOCCER-A hybrid) ──────────
         // FBref is CF-blocked (bot detection). GitHub Actions fetches on ubuntu-latest,
         // writes to R2 (field-relay-data/soccer/fbref/wc2026.json) via CF REST API.
