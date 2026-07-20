@@ -13377,7 +13377,7 @@ export default {
                 const t0 = Date.now();
                 const aiResult = await env.AI.run(model, {
                     messages: [{ role: 'user', content: prompt }],
-                    max_tokens: 2000,
+                    max_tokens: 4000,
                 });
                 const ms = Date.now() - t0;
                 // Llama models return { response: "..." }; Gemma 4 (reasoning) returns
