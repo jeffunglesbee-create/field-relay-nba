@@ -8433,47 +8433,29 @@ export default {
         }
 
 
-        // TEMP PROBE — remove after DataImpulse/pulse DNS investigation complete
+        // TEMP PROBE — remove after pulselive.com reachability investigation complete
         if (pathname.startsWith('/probe-pulse-di/')) {
             const pulseId = pathname.split('/probe-pulse-di/')[1];
             if (!pulseId) return new Response('Missing pulse ID', { status: 400, headers: CORS });
-            if (!env.BROWSER) return new Response(JSON.stringify({ error: 'BROWSER binding not available' }), { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
-            const diUser = env.DATAIMPULSE_USER;
-            const diPass = env.DATAIMPULSE_PASS;
             const endpoints = ['', '/textstream/EN', '/stats', '/lineups', '/matchfacts'];
-            const results = { proxy: diUser ? 'dataimpulse' : 'none (no secrets)', pulseId };
-            let browser = null;
-            try {
-                const { default: puppeteer } = await import('@cloudflare/puppeteer');
-                const launchOpts = { protocolTimeout: 30000 };
-                if (diUser && diPass) launchOpts.args = ['--proxy-server=gw.dataimpulse.com:823'];
-                browser = await puppeteer.launch(env.BROWSER, launchOpts);
-                const page = await browser.newPage();
-                if (diUser && diPass) await page.authenticate({ username: diUser, password: diPass });
-                await Promise.all(endpoints.map(async (ep) => {
-                    const url = `https://footballapi.pulse.football.co.uk/football/fixtures/${pulseId}${ep}`;
-                    const key = ep || '/base';
-                    try {
-                        const resp = await page.evaluate(async (u) => {
-                            const r = await fetch(u, {
-                                headers: {
-                                    'Origin': 'https://www.premierleague.com',
-                                    'Referer': 'https://www.premierleague.com/',
-                                    'Accept': 'application/json, text/plain, */*',
-                                }
-                            });
-                            return { status: r.status, body: (await r.text()).slice(0, 1000) };
-                        }, url);
-                        results[key] = resp;
-                    } catch (e) {
-                        results[key] = { error: e.message };
-                    }
-                }));
-            } catch (e) {
-                results.launchError = e.message;
-            } finally {
-                if (browser) try { await browser.close(); } catch {}
-            }
+            const results = { domain: 'footballapi.pulselive.com', pulseId };
+            await Promise.all(endpoints.map(async (ep) => {
+                const url = `https://footballapi.pulselive.com/football/fixtures/${pulseId}${ep}`;
+                const key = ep || '/base';
+                try {
+                    const r = await fetch(url, {
+                        headers: {
+                            'Origin': 'https://www.premierleague.com',
+                            'Referer': 'https://www.premierleague.com/',
+                            'Accept': 'application/json, text/plain, */*',
+                        }
+                    });
+                    const body = await r.text();
+                    results[key] = { status: r.status, body: body.slice(0, 1000) };
+                } catch (e) {
+                    results[key] = { error: e.message };
+                }
+            }));
             return new Response(JSON.stringify(results, null, 2), {
                 headers: { 'Content-Type': 'application/json', ...CORS }
             });
