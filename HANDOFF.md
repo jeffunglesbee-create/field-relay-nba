@@ -1,42 +1,59 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-07-20 (workers-ai-judge-test)
+## SESSION CLOSE-OUT — 2026-07-20 (workers-ai-judge-test — extended)
 
-**HEAD:** 51a7732
+**HEAD:** 0fad644
 **Branch:** main
 **Session doc:** jubilant-bassoon outbox/cc-session-2026-07-20-workers-ai-judge-results.md
 
 ### Commits this session
-- `61a4714` — feat: add Workers AI voice judge probe route (Step 2 — test plan 2026-07-20)
-- `51a7732` — feat: add Gemini judge probe route for Step 3 corpus comparison (test-only)
+- `61a4714` — feat: add Workers AI voice judge probe route (Step 2)
+- `51a7732` — feat: add Gemini judge probe route for Step 3 corpus comparison
+- `77a8913` — feat: raise max_tokens to 2000, fix Gemma 4 response parsing
+- `811e8cf` — feat: raise max_tokens to 4000 for Gemma 4 extended test
+- `8b2dd8e` — feat: add ?format=passfail (two-phase latency test)
+- `0fad644` — feat: add ?format=reframe (8B structural reframe test)
 
-### Steps 1–4 executed; Step 5 NOT authorized
+### Steps 1–4 + novel mitigations; Step 5 NOT authorized
 
 **Step 1:** Judge prompt ~2,900 tokens — below 100K gate. ✓
 
 **Step 2:** Two probe routes deployed:
-- `GET /test/workers-ai-judge?brief=...&model=...` — Workers AI judge (3 candidates)
+- `GET /test/workers-ai-judge?brief=...&model=...&format=...` — Workers AI judge
 - `GET /test/gemini-judge?brief=...` — Gemini comparison via JOURNALISM_CLAUDE_PROXY
-Both in ALLOWED_EXACT. `[ai]` binding added to wrangler.toml.
+Both in ALLOWED_EXACT. `[ai]` binding in wrangler.toml (test-only).
 
-**Step 3–4:** 10-brief corpus. Gemini ground truth: 5 FAIL, 5 PASS.
+**Step 3–4 + novel ideas — complete matrix:**
 
-| Model | Gate A FN≤10% | Gate B Struct≥80% | Gate C FP≤30% | Gate D p95≤1500ms | Verdict |
-|-------|--------------|------------------|--------------|------------------|---------|
-| Llama 3.1 8B | ✓ 0% | ✓ 100% | **✗ 100%** | ✓ ~868ms | **FAIL** |
-| Llama 3.3 70B | ✓ 0% | ✓ 100% | ✓ 20% | **✗ ~2909ms** | **FAIL** |
-| Gemma 4 26B | N/A | **✗ 0%** (reasoning model hits 256-tok cap) | N/A | N/A | **FAIL** |
+| Config | Gate A FN≤10% | Gate B Struct≥80% | Gate C FP≤30% | Gate D p95≤1500ms | Verdict |
+|--------|--------------|------------------|--------------|------------------|---------|
+| 8B full prompt | ✓ 0% | ✓ 100% | ✗ 100% FP | ✓ ~868ms | **FAIL** |
+| 8B reframe | ✗ 100% FN | ✓ 100% | ✓ 0% FP | ✓ ~423ms | **FAIL** |
+| 70B full prompt | ✓ 0% | ✓ 100% | ✓ 20% | ✗ ~2909ms | **FAIL** |
+| 70B passfail | ✓ 0% | ✓ 100% | ✓ 20% | ✗ p95 1622ms* | **FAIL** |
+| Gemma 4 256tok | N/A | ✗ 0% | N/A | N/A | **FAIL** |
+| Gemma 4 2000tok | ✓ | ✗ 70% | ✓ | ✗ ~24s | **FAIL** |
+| Gemma 4 4000tok | ✓ | ✓ 90% | ✓ | ✗ ~29s | **FAIL** |
 
-**ALL MODELS FAIL. Workers AI judge not viable as drop-in replacement.**
+*Single PASS outlier (1622ms); 9/10 cases cleared Gate D. Structurally validated but not a gate pass.
 
-Recommendation: Accept circuit breaker (`42d5629`) as permanent cost floor.
+**ALL CONFIGS FAIL. Workers AI judge not viable under current constraints.**
+
+Gemini FAIL latency confirmed: 731-816ms (Gate D baseline is valid, not miscalibrated).
+8B reframe finding: model capability limit — cannot generalize subordinated-stats concept.
+Two-phase finding: FAIL-path latency fixed by stripping SENTENCE/FIX, but Phase 2 adds
+~1500-2500ms back, making the full two-phase net latency WORSE than current Gemini.
+
+**Recommendation: Accept circuit breaker (`42d5629`) as permanent cost floor.**
+No further Workers AI pursuit unless CF releases sub-500ms non-reasoning 70B-class model.
 
 ### Open test routes (cleanup required if Step 5 ever authorized)
-- `/test/workers-ai-judge` and `/test/gemini-judge` in src/index.js + ALLOWED_EXACT
+- `/test/workers-ai-judge` (+ ?format=passfail, ?format=reframe) in src/index.js + ALLOWED_EXACT
+- `/test/gemini-judge` in src/index.js + ALLOWED_EXACT
 - `[ai]` binding in wrangler.toml (test-only per plan)
 
 ### Carry-forwards
-- None. Steps 1–4 complete. Step 5 requires explicit re-authorization in a new session.
+- None. Steps 1–4 + novel mitigations complete. Step 5 requires explicit re-authorization.
 
 ---
 
