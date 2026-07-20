@@ -14091,7 +14091,7 @@ export default {
             const MATCH_FIELDS = new Set([
                 'possessionPct', 'totalPasses', 'passPct', 'totalShots',
                 'shotsOnTarget', 'totalTackles', 'interceptions', 'foulsCommitted',
-                'yellowCards', 'redCards', 'totalCrosses', 'wonCorners',
+                'yellowCards', 'redCards', 'accurateCrosses', 'totalCrosses', 'wonCorners',
             ]);
             function extractStats(statsObj) {
                 if (!statsObj) return {};
@@ -14111,6 +14111,12 @@ export default {
             const awayXG = extractStats(awayStats);
             const hasXG  = 'expectedGoals' in homeXG;
             const hasMatchStats = 'possessionPct' in homeXG && 'possessionPct' in awayXG;
+
+            // Compute crossAccuracy from accurateCrosses/totalCrosses (both in MATCH_FIELDS)
+            if ('accurateCrosses' in homeXG && homeXG.totalCrosses > 0)
+                homeXG.crossAccuracy = parseFloat((homeXG.accurateCrosses / homeXG.totalCrosses).toFixed(3));
+            if ('accurateCrosses' in awayXG && awayXG.totalCrosses > 0)
+                awayXG.crossAccuracy = parseFloat((awayXG.accurateCrosses / awayXG.totalCrosses).toFixed(3));
 
             const payload = {
                 event: eventId,
