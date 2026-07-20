@@ -8433,6 +8433,52 @@ export default {
         }
 
 
+        // TEMP PROBE — remove after DataImpulse/pulse DNS investigation complete
+        if (pathname.startsWith('/probe-pulse-di/')) {
+            const pulseId = pathname.split('/probe-pulse-di/')[1];
+            if (!pulseId) return new Response('Missing pulse ID', { status: 400, headers: CORS });
+            if (!env.BROWSER) return new Response(JSON.stringify({ error: 'BROWSER binding not available' }), { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } });
+            const diUser = env.DATAIMPULSE_USER;
+            const diPass = env.DATAIMPULSE_PASS;
+            const endpoints = ['', '/textstream/EN', '/stats', '/lineups', '/matchfacts'];
+            const results = { proxy: diUser ? 'dataimpulse' : 'none (no secrets)', pulseId };
+            let browser = null;
+            try {
+                const { default: puppeteer } = await import('@cloudflare/puppeteer');
+                const launchOpts = { protocolTimeout: 30000 };
+                if (diUser && diPass) launchOpts.args = ['--proxy-server=gw.dataimpulse.com:823'];
+                browser = await puppeteer.launch(env.BROWSER, launchOpts);
+                const page = await browser.newPage();
+                if (diUser && diPass) await page.authenticate({ username: diUser, password: diPass });
+                await Promise.all(endpoints.map(async (ep) => {
+                    const url = `https://footballapi.pulse.football.co.uk/football/fixtures/${pulseId}${ep}`;
+                    const key = ep || '/base';
+                    try {
+                        const resp = await page.evaluate(async (u) => {
+                            const r = await fetch(u, {
+                                headers: {
+                                    'Origin': 'https://www.premierleague.com',
+                                    'Referer': 'https://www.premierleague.com/',
+                                    'Accept': 'application/json, text/plain, */*',
+                                }
+                            });
+                            return { status: r.status, body: (await r.text()).slice(0, 1000) };
+                        }, url);
+                        results[key] = resp;
+                    } catch (e) {
+                        results[key] = { error: e.message };
+                    }
+                }));
+            } catch (e) {
+                results.launchError = e.message;
+            } finally {
+                if (browser) try { await browser.close(); } catch {}
+            }
+            return new Response(JSON.stringify(results, null, 2), {
+                headers: { 'Content-Type': 'application/json', ...CORS }
+            });
+        }
+
         if (pathname === '/health') {
             // Surface the active quality calibration source. _qualityCalibrationSource
             // is module-scoped (per-isolate); a /health request usually hits a
@@ -15668,7 +15714,7 @@ export default {
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
                     // live in ALLOWED_PREFIX rather than ALLOWED_EXACT.
-                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats'];
+                    const ALLOWED_PREFIX = ['/squiggle', '/context/game', '/context/date', '/analytics', '/changelog', '/freshness', '/identity', '/budget', '/integrity', '/deploy', '/backfill', '/quality', '/briefs', '/session', '/health', '/odds-story', '/soccer', '/espn-summary', '/journalism', '/bsd', '/fifa-rankings', '/circadian', '/wiki', '/mlb-stats', '/probe-pulse-di'];
                     // Split off query string before allow-list comparison.
                     const qIdx = route.indexOf('?');
                     const routePath = qIdx === -1 ? route : route.slice(0, qIdx);
