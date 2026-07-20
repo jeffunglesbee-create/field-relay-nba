@@ -1,5 +1,45 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-20 (workers-ai-judge-test)
+
+**HEAD:** 51a7732
+**Branch:** main
+**Session doc:** jubilant-bassoon outbox/cc-session-2026-07-20-workers-ai-judge-results.md
+
+### Commits this session
+- `61a4714` — feat: add Workers AI voice judge probe route (Step 2 — test plan 2026-07-20)
+- `51a7732` — feat: add Gemini judge probe route for Step 3 corpus comparison (test-only)
+
+### Steps 1–4 executed; Step 5 NOT authorized
+
+**Step 1:** Judge prompt ~2,900 tokens — below 100K gate. ✓
+
+**Step 2:** Two probe routes deployed:
+- `GET /test/workers-ai-judge?brief=...&model=...` — Workers AI judge (3 candidates)
+- `GET /test/gemini-judge?brief=...` — Gemini comparison via JOURNALISM_CLAUDE_PROXY
+Both in ALLOWED_EXACT. `[ai]` binding added to wrangler.toml.
+
+**Step 3–4:** 10-brief corpus. Gemini ground truth: 5 FAIL, 5 PASS.
+
+| Model | Gate A FN≤10% | Gate B Struct≥80% | Gate C FP≤30% | Gate D p95≤1500ms | Verdict |
+|-------|--------------|------------------|--------------|------------------|---------|
+| Llama 3.1 8B | ✓ 0% | ✓ 100% | **✗ 100%** | ✓ ~868ms | **FAIL** |
+| Llama 3.3 70B | ✓ 0% | ✓ 100% | ✓ 20% | **✗ ~2909ms** | **FAIL** |
+| Gemma 4 26B | N/A | **✗ 0%** (reasoning model hits 256-tok cap) | N/A | N/A | **FAIL** |
+
+**ALL MODELS FAIL. Workers AI judge not viable as drop-in replacement.**
+
+Recommendation: Accept circuit breaker (`42d5629`) as permanent cost floor.
+
+### Open test routes (cleanup required if Step 5 ever authorized)
+- `/test/workers-ai-judge` and `/test/gemini-judge` in src/index.js + ALLOWED_EXACT
+- `[ai]` binding in wrangler.toml (test-only per plan)
+
+### Carry-forwards
+- None. Steps 1–4 complete. Step 5 requires explicit re-authorization in a new session.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-20 (amnesty-leaderboard-relay)
 
 **HEAD:** eb1e1bb
