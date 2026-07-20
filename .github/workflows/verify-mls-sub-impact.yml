@@ -1,0 +1,22 @@
+name: Verify MLS Sub-Impact Route
+
+# One-shot: CC-CMD-2026-07-19-mls-sub-impact-metric TASK 2. Real, direct
+# verification of the deployed /soccer/sub-impact route against the known
+# test game plus a scan for a real qualifying (leading + defensive sub) case.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run verification
+        run: node scripts/verify-mls-sub-impact.mjs
