@@ -9877,6 +9877,76 @@ export default {
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
+            // GET /archive/drama/leaderboard?sport=X&limit=N — top-N games by
+            // drama_peak for a given sport, current-season-scoped. Combines
+            // regular_season_games + postseason_games, sorted drama_peak DESC.
+            // ADR-002: CLEAN — relay reads and ranks stored facts, no computation.
+            if (pathname === '/archive/drama/leaderboard' && request.method === 'GET') {
+                const sport = url.searchParams.get('sport');
+                if (!sport) return new Response(JSON.stringify({ ok: false, error: 'missing ?sport=' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit')) || 10));
+                const currentYear = new Date().getFullYear().toString();
+                const reg = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, date, home, away, home_score, away_score, drama_peak, drama_arc, 'regular' as game_type
+                     FROM regular_season_games
+                     WHERE sport = ? AND drama_peak IS NOT NULL AND strftime('%Y', date) = ?
+                     ORDER BY drama_peak DESC LIMIT ?`
+                ).bind(sport, currentYear, limit).all().catch(() => ({ results: [] }));
+                const ps = await env.ARCHIVE_DB.prepare(
+                    `SELECT id, sport, date, home, away, home_score, away_score, drama_peak, drama_arc, 'postseason' as game_type
+                     FROM postseason_games
+                     WHERE sport = ? AND drama_peak IS NOT NULL AND strftime('%Y', date) = ?
+                     ORDER BY drama_peak DESC LIMIT ?`
+                ).bind(sport, currentYear, limit).all().catch(() => ({ results: [] }));
+                const combined = [...(reg.results || []), ...(ps.results || [])]
+                    .sort((a, b) => (b.drama_peak || 0) - (a.drama_peak || 0))
+                    .slice(0, limit);
+                return new Response(JSON.stringify({ ok: true, sport, season: currentYear, limit, games: combined }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+            }
+
+            // GET /archive/drama/percentile?sport=X&score=N — what percentile
+            // does `score` fall at within the all-time stored drama_peak
+            // distribution for the given sport? Returns sparse:true when fewer
+            // than 20 rows exist — a statistically meaningless percentile is
+            // worse than an honest "not enough data."
+            // ADR-002: CLEAN — COUNT + arithmetic on stored facts, no editorial.
+            if (pathname === '/archive/drama/percentile' && request.method === 'GET') {
+                const sport = url.searchParams.get('sport');
+                const scoreStr = url.searchParams.get('score');
+                if (!sport || scoreStr === null || scoreStr === '') {
+                    return new Response(JSON.stringify({ ok: false, error: 'missing ?sport= or ?score=' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const score = parseFloat(scoreStr);
+                if (isNaN(score)) return new Response(JSON.stringify({ ok: false, error: 'score must be a number' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                const [reg, ps] = await Promise.all([
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT COUNT(*) as total, SUM(CASE WHEN drama_peak <= ? THEN 1 ELSE 0 END) as at_or_below
+                         FROM regular_season_games WHERE sport = ? AND drama_peak IS NOT NULL`
+                    ).bind(score, sport).first().catch(() => null),
+                    env.ARCHIVE_DB.prepare(
+                        `SELECT COUNT(*) as total, SUM(CASE WHEN drama_peak <= ? THEN 1 ELSE 0 END) as at_or_below
+                         FROM postseason_games WHERE sport = ? AND drama_peak IS NOT NULL`
+                    ).bind(score, sport).first().catch(() => null),
+                ]);
+                const total = (reg?.total || 0) + (ps?.total || 0);
+                const atOrBelow = (reg?.at_or_below || 0) + (ps?.at_or_below || 0);
+                const SPARSE_THRESHOLD = 20;
+                if (total < SPARSE_THRESHOLD) {
+                    return new Response(JSON.stringify({
+                        ok: true, sport, score, percentile: null, sparse: true,
+                        sample_size: total,
+                        note: `Only ${total} scored game${total === 1 ? '' : 's'} for ${sport} — insufficient for a meaningful percentile (need ≥${SPARSE_THRESHOLD})`,
+                    }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+                }
+                const percentile = parseFloat((atOrBelow / total * 100).toFixed(1));
+                return new Response(JSON.stringify({ ok: true, sport, score, percentile, sample_size: total }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' } });
+            }
+
             // POST /archive/drama-by-id — exact-ID variant of /archive/drama.
             // Accepts { id, drama_peak, drama_arc } and writes directly via WHERE id = ?
             // with no fuzzy match. Used by the one-shot backfill job (drama-backfill.mjs)
@@ -15579,6 +15649,9 @@ export default {
                         // Drama persistence (2026-06-19). POST-only in spec;
                         // listed for inventory discovery via the MCP probe.
                         '/archive/drama',
+                        // Drama leaderboard + percentile (2026-07-20). GET endpoints.
+                        '/archive/drama/leaderboard',
+                        '/archive/drama/percentile',
                         // Bracket snapshots (Bracket Compound 2026-06-24).
                         // POST writes per-recompute snapshots from BracketDO;
                         // GET serves historical replay + per-team arcs.
