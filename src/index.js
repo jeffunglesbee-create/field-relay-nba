@@ -12535,6 +12535,71 @@ export default {
             return relayFetch(targetUrl, MLB_STATS_API_HEADERS, MLB_STATS_API_TTL, 'mlb-stats', ctx);
         }
 
+        // ── /mls/stats/team-metrics → season-aggregate novel metrics per team ──────
+        // Computes secondAssistShare, insideBoxShotShare, counterAttacksPerGame,
+        // shotBodyPartSplit from stats-api.mlssoccer.com season aggregates.
+        // Source: /statistics/clubs/competitions/{compId}/seasons/{seasonId}
+        // Verified field names: matches_played, second_assists, first_and_second_assists,
+        // shots_at_goal_inside_box, shots_at_goal_sum, counter_attacks,
+        // shots_at_goal_right_leg, shots_at_goal_left_leg, shots_at_goal_head
+        if (pathname === '/mls/stats/team-metrics') {
+            const compId   = url.searchParams.get('competition') || 'MLS-COM-000001';
+            const seasonId = url.searchParams.get('season')      || 'MLS-SEA-0001KA';
+            try {
+                const target = `${MLS_STATS_BASE}/statistics/clubs/competitions/${compId}/seasons/${seasonId}?per_page=50`;
+                const resp = await fetch(target, { headers: MLS_STATS_HEADERS });
+                if (!resp.ok) throw new Error(`stats-api ${resp.status}`);
+                const data = await resp.json();
+                const rawTeams = data.team_statistics || [];
+                const teams = rawTeams.map(t => {
+                    const fab = t.first_and_second_assists || 0;
+                    const secondAssistShare = fab > 0
+                        ? parseFloat(((t.second_assists || 0) / fab).toFixed(4))
+                        : null;
+                    const shotSum = t.shots_at_goal_sum || 0;
+                    const insideBoxShotShare = shotSum > 0
+                        ? parseFloat(((t.shots_at_goal_inside_box || 0) / shotSum).toFixed(4))
+                        : null;
+                    const mp = t.matches_played || 0;
+                    const counterAttacksPerGame = mp > 0
+                        ? parseFloat(((t.counter_attacks || 0) / mp).toFixed(3))
+                        : null;
+                    const rleg  = t.shots_at_goal_right_leg || 0;
+                    const lleg  = t.shots_at_goal_left_leg  || 0;
+                    const head  = t.shots_at_goal_head       || 0;
+                    const other = Math.max(0, shotSum - rleg - lleg - head);
+                    const shotBodyPartSplit = shotSum > 0 ? {
+                        rightLeg: parseFloat((rleg  / shotSum * 100).toFixed(1)),
+                        leftLeg:  parseFloat((lleg  / shotSum * 100).toFixed(1)),
+                        head:     parseFloat((head  / shotSum * 100).toFixed(1)),
+                        other:    parseFloat((other / shotSum * 100).toFixed(1)),
+                    } : null;
+                    return {
+                        team_id: t.team_id,
+                        team_name: t.team_name,
+                        matches_played: t.matches_played,
+                        secondAssistShare,
+                        insideBoxShotShare,
+                        counterAttacksPerGame,
+                        shotBodyPartSplit,
+                    };
+                }).sort((a, b) => (a.team_name || '').localeCompare(b.team_name || ''));
+                return new Response(JSON.stringify({ competition: compId, season: seasonId, teams }), {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': `public, max-age=${MLS_STATS_TTL_STANDINGS}`,
+                        'X-Source': 'mls-stats-api',
+                        ...CORS,
+                    },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: e.message }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json', ...CORS },
+                });
+            }
+        }
+
         if (pathname.startsWith('/mls/stats')) {
             const cleanPath = pathname.replace(/^\/mls\/stats/, '') || '/';
             if (!mlsStatsAllowed(cleanPath))
