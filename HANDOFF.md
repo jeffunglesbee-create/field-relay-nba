@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (recreate-workflow-new-filename)
+
+**HEAD:** ae981f7
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-recreate-workflow-new-filename.md
+
+### Commits this session
+- `ae981f7` — ci: recreate post-deploy-live-verify.yml as post-deploy-verify.yml to escape frozen registry entry (ID 306981489)
+
+### Result: 90/100 — sub-95, reporting verbatim per CC-CMD
+
+Tasks 1 and 2 COMPLETE: new file `.github/workflows/post-deploy-verify.yml` (ID 317109373, `created_at = updated_at = 2026-07-21T02:33:45Z`) committed atomically with deletion of old file. Git detected R100 rename. Old frozen entry (ID 306981489) is gone.
+
+Task 3 NOT CONFIRMED: dispatch returned 422 immediately after push. Diagnostic: GitHub registered new workflow path (new ID, `created_at` matches push time) but has not yet indexed YAML content (`name` shows file path, not `"Post-deploy live verification"`). This is propagation delay, not a frozen entry. Dispatch will work once GitHub indexes YAML content.
+
+Task 4 PENDING: `workflow_run` trigger (fires when "Deploy RELAY Worker" completes) can only be confirmed on next real deploy.
+
+### Next verification (for Jeff or next session)
+```bash
+gh workflow run post-deploy-verify.yml --repo jeffunglesbee-create/field-relay-nba
+```
+Success (204 no body) = rename escaped the frozen registry. If still 422 but `name` now shows "Post-deploy live verification" (not the path), that confirms a new frozen entry on ID 317109373 requiring escalation.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (test-real-commit-reindex)
 
 **HEAD:** 9ba4a82 (+ pending session doc commit)
