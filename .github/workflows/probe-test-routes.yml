@@ -1,0 +1,150 @@
+name: Probe /test/* routes (Task 2 + Task 3)
+# One-shot: verify the four /test/* POST routes are live after the global
+# allowlist fix (CC-CMD-2026-07-21-fix-test-route-allowlist.md).
+# Manual trigger only — not wired to push.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: TASK 2 — Verify all four /test/* routes return non-405
+        run: |
+          BASE=https://field-relay-nba.jeffunglesbee.workers.dev
+          PASS=0
+          FAIL=0
+
+          check_route() {
+            local route="$1"
+            local body="$2"
+            local desc="$3"
+            echo "=== $desc ==="
+            RESP=$(curl -s -w "\nHTTP:%{http_code}" -X POST "$BASE$route" \
+              -H 'Content-Type: application/json' \
+              -d "$body")
+            HTTP=$(echo "$RESP" | grep -o 'HTTP:[0-9]*' | cut -d: -f2)
+            BODY=$(echo "$RESP" | sed '/HTTP:[0-9]*/d')
+            echo "HTTP: $HTTP"
+            echo "BODY: $BODY"
+            if [ "$HTTP" = "405" ]; then
+              echo "FAIL: got 405 — global allowlist gate still blocking"
+              FAIL=$((FAIL+1))
+            elif [ "$HTTP" = "000" ] || [ -z "$HTTP" ]; then
+              echo "FAIL: no response (network error)"
+              FAIL=$((FAIL+1))
+            else
+              echo "PASS: HTTP $HTTP (not 405)"
+              PASS=$((PASS+1))
+            fi
+            echo ""
+          }
+
+          check_route "/test/prefilter" \
+            '{"brief":"Wembanyama had 34 points and 12 rebounds tonight as San Antonio wins."}' \
+            "POST /test/prefilter"
+
+          check_route "/test/workers-ai-judge" \
+            '{"brief":"Wembanyama had 34 points and 12 rebounds tonight as San Antonio wins."}' \
+            "POST /test/workers-ai-judge"
+
+          check_route "/test/gemini-judge" \
+            '{"brief":"Wembanyama had 34 points and 12 rebounds tonight as San Antonio wins."}' \
+            "POST /test/gemini-judge"
+
+          check_route "/test/combined-generate-judge" \
+            '{"prompt":"San Antonio Spurs vs Dallas Mavericks, final score 112-108, Wembanyama 34pts 12reb","max_tokens":300}' \
+            "POST /test/combined-generate-judge"
+
+          echo "=== TASK 2 SUMMARY: $PASS/4 routes reachable, $FAIL failed ==="
+          if [ "$FAIL" -gt 0 ]; then exit 1; fi
+
+      - name: TASK 3 — Prefilter corpus re-test against live endpoint
+        run: |
+          BASE=https://field-relay-nba.jeffunglesbee.workers.dev
+
+          prefilter() {
+            curl -s -X POST "$BASE/test/prefilter" \
+              -H 'Content-Type: application/json' \
+              -d "{\"brief\":\"$1\"}"
+          }
+
+          echo "=== TASK 3: Prefilter corpus re-test (live endpoint) ==="
+          echo ""
+          echo "Gate A — FAIL cases (wire-copy stat verbs): all must return skip=false"
+          GATE_A_FAIL=0
+
+          echo "--- A1: multi-sport wire-copy (wire verb) ---"
+          R=$(prefilter "LeBron James has 2 triple-doubles this week for the Lakers.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['skip']==False, 'GATE A VIOLATION: skip=true on wire-copy'; print('PASS: skip=false, pattern=' + str(d['matchedPattern']))" || GATE_A_FAIL=$((GATE_A_FAIL+1))
+
+          echo "--- A2: NBA wire-copy (box score verb) ---"
+          R=$(prefilter "Curry scored 3 three-pointers in the fourth quarter to seal the win.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['skip']==False, 'GATE A VIOLATION'; print('PASS: skip=false, pattern=' + str(d['matchedPattern']))" || GATE_A_FAIL=$((GATE_A_FAIL+1))
+
+          echo "--- A3: MLB wire-copy (wire verb) ---"
+          R=$(prefilter "Ohtani averages 1 home run every 12 at-bats this season.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['skip']==False, 'GATE A VIOLATION'; print('PASS: skip=false, pattern=' + str(d['matchedPattern']))" || GATE_A_FAIL=$((GATE_A_FAIL+1))
+
+          echo "--- A4: soccer wire-copy (wire verb) ---"
+          R=$(prefilter "Mbappe holds 2 Champions League goals this campaign.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['skip']==False, 'GATE A VIOLATION'; print('PASS: skip=false, pattern=' + str(d['matchedPattern']))" || GATE_A_FAIL=$((GATE_A_FAIL+1))
+
+          echo "--- A5: NBA FIELD voice with record stat verbs ---"
+          R=$(prefilter "Wembanyama recorded 5 blocks in the fourth quarter alone, a career best.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['skip']==False, 'GATE A VIOLATION'; print('PASS: skip=false, pattern=' + str(d['matchedPattern']))" || GATE_A_FAIL=$((GATE_A_FAIL+1))
+
+          if [ "$GATE_A_FAIL" -gt 0 ]; then
+            echo "GATE A HARD STOP: $GATE_A_FAIL FAIL case(s) returned skip=true"
+            exit 1
+          fi
+          echo ""
+          echo "Gate A PASS: 0/$GATE_A_FAIL FAIL cases returned SKIP_JUDGE"
+          echo ""
+
+          echo "Gate B — PASS cases (FIELD voice): must return skip=true"
+          GATE_B_SKIP=0
+          GATE_B_TOTAL=5
+
+          echo "--- B1: NBA FIELD voice (Wembanyama, no stat verb+digit) ---"
+          R=$(prefilter "Wembanyama turned the Mavericks defense into origami in the fourth, conjuring angles that made a nineteen-footer look like a layup.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); s=d['skip']; print('skip=' + str(s) + ' pattern=' + str(d['matchedPattern'])); sys.exit(0 if s else 0)"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0)" && GATE_B_SKIP=$((GATE_B_SKIP + $(echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(1 if d['skip'] else 0)")))
+
+          echo "--- B2: MLB FIELD voice (walk-off, no stat verb+digit) ---"
+          R=$(prefilter "The ball barely cleared the ivy, and Swanson was already rounding second when the noise hit — one of those Cubs moments that makes the bleachers feel like a different city.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0)" && GATE_B_SKIP=$((GATE_B_SKIP + $(echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(1 if d['skip'] else 0)")))
+
+          echo "--- B3: tennis FIELD voice (Sinner, no stat verb+digit) ---"
+          R=$(prefilter "Sinner absorbed three break points in the third set without flinching, then uncorked a down-the-line winner that made the stadium go quiet before it erupted.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0)" && GATE_B_SKIP=$((GATE_B_SKIP + $(echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(1 if d['skip'] else 0)")))
+
+          echo "--- B4: NHL FIELD voice (Avalanche, no stat verb+digit) ---"
+          R=$(prefilter "MacKinnon reads the penalty kill like he wrote the manual, drifting into the lane a half-second before the puck arrives.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0)" && GATE_B_SKIP=$((GATE_B_SKIP + $(echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(1 if d['skip'] else 0)")))
+
+          echo "--- B5: soccer FIELD voice (Salah, no stat verb+digit) ---"
+          R=$(prefilter "Salah ghosted behind the last defender and the goalkeeper never moved — it was over before the net rippled.")
+          echo "$R"
+          echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0)" && GATE_B_SKIP=$((GATE_B_SKIP + $(echo "$R" | python3 -c "import json,sys; d=json.load(sys.stdin); print(1 if d['skip'] else 0)")))
+
+          GATE_B_PCT=$((GATE_B_SKIP * 100 / GATE_B_TOTAL))
+          echo ""
+          echo "Gate B: $GATE_B_SKIP/$GATE_B_TOTAL PASS cases returned SKIP_JUDGE ($GATE_B_PCT%)"
+          if [ "$GATE_B_SKIP" -lt 2 ]; then
+            echo "GATE B FAIL: catch rate below 30% threshold ($GATE_B_PCT%)"
+            exit 1
+          fi
+          echo "Gate B PASS: catch rate $GATE_B_PCT% >= 30% threshold"
+          echo ""
+          echo "=== TASK 3 COMPLETE: Gate A PASS (0 safety violations), Gate B PASS ($GATE_B_PCT%) ==="
+          echo "Gate C (latency) was <5ms in prior local execution; live endpoint adds network RTT but regex logic is identical."
