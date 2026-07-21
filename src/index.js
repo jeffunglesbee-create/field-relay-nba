@@ -11031,7 +11031,11 @@ export default {
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
             && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST')
-            && !(pathname === '/wc/matchup/cache' && request.method === 'POST'))
+            && !(pathname === '/wc/matchup/cache' && request.method === 'POST')
+            && !(pathname === '/test/workers-ai-judge' && request.method === 'POST')
+            && !(pathname === '/test/gemini-judge' && request.method === 'POST')
+            && !(pathname === '/test/combined-generate-judge' && request.method === 'POST')
+            && !(pathname === '/test/prefilter' && request.method === 'POST'))
             return new Response('Method not allowed', { status: 405, headers: CORS });
 
         // GET /integrity/briefs?date=YYYY-MM-DD[&repair=true] —
