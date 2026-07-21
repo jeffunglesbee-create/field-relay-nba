@@ -1,0 +1,22 @@
+name: Verify Workers AI Judge Route Removal
+
+# One-shot: CC-CMD-2026-07-20-cleanup-workers-ai-judge-routes TASK 3. Live
+# 404 check on the two removed routes, plus a check that the untouched
+# sibling routes (combined-generate-judge, prefilter) still work.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run verification
+        run: node scripts/verify-workers-ai-judge-removal.mjs
