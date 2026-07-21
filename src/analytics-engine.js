@@ -9,7 +9,7 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
-const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12'];
+const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12', 'phase13'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
 
@@ -1076,6 +1076,121 @@ async function runPhase7StreakBoard(env, date) {
     return {};
 }
 
+// ── Phase 13: Record Streak Board (nightly) ────────────────────────────────
+// Detect consecutive win (hot) or loss (cold) streaks per team over the
+// last 14 days of FINALIZED games — real game outcomes, computed directly
+// from regular_season_games/postseason_games home_score/away_score. This
+// is DISTINCT from Phase 7 (streak_board), which tracks FIELD's own
+// journalism quality per team, not game results — see Codex incident
+// 'streak-board-metric-mismatch' (2026-07-21). No AI call; the detection
+// IS the feature. Same STREAK_MIN/lookback convention as Phase 7 and the
+// identical { hot, cold } shape (each entry { team, sport, streak, dates })
+// so the client can swap data sources with a minimal change.
+async function runPhase13RecordStreakBoard(env, date) {
+    const STREAK_LOOKBACK_DAYS = 14;
+    const STREAK_MIN = 3;
+    const since = addDays(date, -STREAK_LOOKBACK_DAYS);
+
+    const [regRes, psRes] = await Promise.allSettled([
+        env.ARCHIVE_DB.prepare(`
+            SELECT date, sport, home, away, home_score, away_score
+            FROM regular_season_games
+            WHERE date >= ? AND date <= ? AND finalized_at IS NOT NULL
+              AND home_score IS NOT NULL AND away_score IS NOT NULL
+            ORDER BY date ASC
+        `).bind(since, date).all(),
+        env.ARCHIVE_DB.prepare(`
+            SELECT date, sport, home, away, home_score, away_score
+            FROM postseason_games
+            WHERE date >= ? AND date <= ? AND finalized_at IS NOT NULL
+              AND home_score IS NOT NULL AND away_score IS NOT NULL
+            ORDER BY date ASC
+        `).bind(since, date).all(),
+    ]);
+    const rows = []
+        .concat(regRes.status === 'fulfilled' ? (regRes.value.results || []) : [])
+        .concat(psRes.status  === 'fulfilled' ? (psRes.value.results  || []) : []);
+
+    if (rows.length < 3) {
+        console.log(`[ANALYTICS] Phase 13 degraded: only ${rows.length} finalized games in window`);
+        await writeAnalyticsOutput(env, {
+            date,
+            feature: 'record_streak_board',
+            sport: null,
+            value: { hot: [], cold: [], degraded: true, games_in_window: rows.length },
+            briefText: null,
+        });
+        return {};
+    }
+
+    // Per-team chronological series of (date, result). result: 1 = win,
+    // -1 = loss, 0 = tie. A tie is a real, if rare, outcome (soccer) and
+    // breaks both streaks — same convention Phase 7 uses for its neutral
+    // (80-129) band, and the same tie-as-neutral convention already
+    // established in the pick'em feature (2026-07-05).
+    const perTeam = new Map();
+    for (const r of rows) {
+        if (r.home_score === r.away_score) {
+            for (const team of [r.home, r.away]) {
+                if (!team) continue;
+                const key = `${team}|${r.sport || ''}`;
+                if (!perTeam.has(key)) perTeam.set(key, []);
+                perTeam.get(key).push({ date: r.date, result: 0 });
+            }
+            continue;
+        }
+        const winner = r.home_score > r.away_score ? r.home : r.away;
+        const loser  = r.home_score > r.away_score ? r.away : r.home;
+        if (winner) {
+            const key = `${winner}|${r.sport || ''}`;
+            if (!perTeam.has(key)) perTeam.set(key, []);
+            perTeam.get(key).push({ date: r.date, result: 1 });
+        }
+        if (loser) {
+            const key = `${loser}|${r.sport || ''}`;
+            if (!perTeam.has(key)) perTeam.set(key, []);
+            perTeam.get(key).push({ date: r.date, result: -1 });
+        }
+    }
+
+    const hot = [], cold = [];
+    for (const [key, series] of perTeam) {
+        series.sort((a, b) => a.date.localeCompare(b.date));
+        const [team, sport] = key.split('|');
+
+        let hotRun = [], coldRun = [];
+        for (const g of series) {
+            if (g.result === 1) {
+                hotRun.push(g.date);
+                coldRun = [];
+            } else if (g.result === -1) {
+                coldRun.push(g.date);
+                hotRun = [];
+            } else {
+                hotRun = [];
+                coldRun = [];
+            }
+        }
+        if (hotRun.length >= STREAK_MIN) {
+            hot.push({ team, sport: sport || null, streak: hotRun.length, dates: hotRun });
+        }
+        if (coldRun.length >= STREAK_MIN) {
+            cold.push({ team, sport: sport || null, streak: coldRun.length, dates: coldRun });
+        }
+    }
+    hot.sort((a, b) => b.streak - a.streak);
+    cold.sort((a, b) => b.streak - a.streak);
+
+    await writeAnalyticsOutput(env, {
+        date,
+        feature: 'record_streak_board',
+        sport: null,
+        value: { hot, cold, lookback_days: STREAK_LOOKBACK_DAYS },
+        briefText: null,
+    });
+    return {};
+}
+
 // ── Phase 8: Quality Feedback (nightly) ────────────────────────────────────
 // Snapshot per-sport p25/p50/p75 of brief quality_score over the last 30
 // days into KV (field:quality_calibration) and analytics_output. Aligns
@@ -1922,6 +2037,17 @@ async function processDate(env, date, { selfHealed }) {
             errors.push(`phase7: ${e.message}`);
         }
 
+        // Phase 13: Record Streak Board — real win/loss runs over last 14
+        // days of finalized games (distinct from Phase 7's quality streaks)
+        try {
+            await runPhase13RecordStreakBoard(env, date);
+            featuresComputed++;
+            phasesCompleted.push('phase13');
+        } catch (e) {
+            phasesFailed.push('phase13');
+            errors.push(`phase13: ${e.message}`);
+        }
+
         // Phase 8: Quality Feedback — snapshot per-sport p25/p50/p75
         try {
             const r = await runPhase8QualityFeedback(env, date);
@@ -2090,8 +2216,9 @@ const PURE_PHASE_DISPATCH = {
         await runPhase4Jinx(env, date, ctx);
         void beforeRow; // before/after are read generically by recomputePhase()
     },
-    streak_board:     async (env, date) => runPhase7StreakBoard(env, date),
-    quality_feedback: async (env, date) => runPhase8QualityFeedback(env, date),
+    streak_board:        async (env, date) => runPhase7StreakBoard(env, date),
+    record_streak_board: async (env, date) => runPhase13RecordStreakBoard(env, date),
+    quality_feedback:    async (env, date) => runPhase8QualityFeedback(env, date),
     sport_of_week:    async (env, date) => runPhase6ASportOfWeek(env, date),
     broken_record:    async (env, date) => runPhase6DBrokenRecord(env, date),
     circadian_late:   async (env, date) => runPhase10BLate(env, date),

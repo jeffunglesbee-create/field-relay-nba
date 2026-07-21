@@ -11027,6 +11027,7 @@ export default {
             && !(pathname === '/analytics/jinx/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/morning-report/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/circadian-late/recompute' && request.method === 'POST')
+            && !(pathname === '/analytics/record-streak/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -12987,6 +12988,26 @@ export default {
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // POST /analytics/record-streak/recompute?date=YYYY-MM-DD — manual,
+        // single-purpose recompute for the PURE record_streak_board feature.
+        // Exists so this new phase can be verified same-session against a
+        // real date without waiting for tomorrow's 0 9 * * * cron. Same
+        // auth pattern as /analytics/jinx/recompute.
+        if (pathname === '/analytics/record-streak/recompute' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== 'field-relay-cron-2026') {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const date = url.searchParams.get('date');
+            if (!date) {
+                return new Response(JSON.stringify({ ok: false, error: 'date query param required (YYYY-MM-DD)' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const result = await recomputePhase(env, 'record_streak_board', date);
+            return new Response(JSON.stringify({ ok: true, date, ...result }),
+                { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         // POST /analytics/morning-report/recompute?date=YYYY-MM-DD — manual,
         // single-purpose recompute for the AI-costing morning_report feature.
         // CC-CMD-2026-07-15-morning-report-cross-sport-contamination: a real,
@@ -13551,6 +13572,7 @@ export default {
                     preview: preview.circadian_preview?.brief_text || null,
                     late: recap.circadian_late?.brief_text || null,
                     streak_board: recap.streak_board?.value || null,
+                    record_streak_board: recap.record_streak_board?.value || null,
                     quality_feedback: recap.quality_feedback?.value || null,
                     quality_alert: recap.quality_alert ? {
                         ...(recap.quality_alert.value || {}),
