@@ -1,5 +1,31 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (verify-job-deploy)
+
+**HEAD:** bbbe4af
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-verify-job-deploy.md
+
+### Commits this session
+- `7174db2` — ci: migrate verify job into deploy.yml; delete broken post-deploy-verify.yml
+- `bbbe4af` — ci: fix YAML syntax error in verify job -- convert heredoc steps to base64
+
+### Result: verify job wired into deploy.yml; YAML fix confirmed; run in progress
+
+All verification steps from `post-deploy-verify.yml` are now a second job (`verify`, `needs: deploy`) inside `deploy.yml`. The broken standalone workflow is deleted.
+
+**Root cause retrospective:** Prior sessions diagnosed the `post-deploy-verify.yml` failure as a "GitHub YAML indexing freeze." The actual cause was almost certainly a YAML syntax error — `python3 - <<'PYEOF'` heredoc content at column 1 breaks YAML literal block scalar parsing, producing identical symptoms (0 jobs queued, `name` field showing file path). The GitHub Support escalation (workflow ID 317109373) is likely unnecessary.
+
+**YAML lint added to workflow edit protocol:** `python3 -c "import yaml; yaml.safe_load(...)"` before every push.
+
+**Verify job status:** `workflow_dispatch` triggered at 14:52:42Z on 2026-07-21. Run in progress as of session close. Next session should confirm the run passed.
+
+### Carry-forwards
+- Confirm triggered run passed (verify job first real execution).
+- Cancel GitHub Support ticket for workflow ID 317109373 if it was opened — root cause was YAML syntax, not a GitHub-side registry freeze.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (push-trigger-fix) — FINAL
 
 **HEAD:** a46b45c
