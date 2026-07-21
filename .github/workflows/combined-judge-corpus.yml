@@ -1,0 +1,142 @@
+name: Combined-Generate-Judge — 10-brief corpus (Steps 3-4)
+# CC-CMD-2026-07-21-complete-combined-judge-test.md TASK 1
+# Runs 10 representative game situation briefs through:
+#   POST /test/combined-generate-judge -> generated text
+#   POST /test/gemini-judge (on that text) -> PASS/FAIL verdict
+# Records: generated text, Gemini verdict, combined-call latency
+# Manual trigger only.
+on:
+  workflow_dispatch:
+
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run 10-brief corpus through combined-generate-judge + gemini-judge
+        run: |
+          BASE=https://field-relay-nba.jeffunglesbee.workers.dev
+          PASS_COUNT=0
+          FAIL_COUNT=0
+          TOTAL_LATENCY=0
+
+          run_brief() {
+            local ID="$1"
+            local TYPE="$2"
+            local PROMPT="$3"
+
+            echo "=== BRIEF $ID ($TYPE) ==="
+
+            # Step 1: combined-generate-judge
+            T_START=$(date +%s%3N)
+            COMBINED=$(curl -s -X POST "$BASE/test/combined-generate-judge" \
+              -H 'Content-Type: application/json' \
+              -d "{\"prompt\":$(echo "$PROMPT" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"max_tokens\":350}")
+            T_END=$(date +%s%3N)
+            WALL_MS=$((T_END - T_START))
+
+            COMBINED_OK=$(echo "$COMBINED" | python3 -c "import json,sys; d=json.load(sys.stdin); print('ok' if 'text' in d else 'error')" 2>/dev/null || echo "error")
+            if [ "$COMBINED_OK" = "error" ]; then
+              echo "COMBINED ERROR: $COMBINED"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              echo ""
+              return
+            fi
+
+            GENERATED=$(echo "$COMBINED" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('text',''))")
+            LATENCY_MS=$(echo "$COMBINED" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('latency_ms', 0))")
+
+            echo "GENERATED TEXT:"
+            echo "$GENERATED"
+            echo "COMBINED latency_ms: $LATENCY_MS (wall: ${WALL_MS}ms)"
+
+            # Step 2: gemini-judge on the generated text
+            JUDGE=$(curl -s -X POST "$BASE/test/gemini-judge" \
+              -H 'Content-Type: application/json' \
+              -d "{\"brief\":$(echo "$GENERATED" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+
+            VERDICT=$(echo "$JUDGE" | python3 -c "import json,sys; d=json.load(sys.stdin); p=d.get('parsed') or {}; print(p.get('result','UNKNOWN'))" 2>/dev/null || echo "UNKNOWN")
+            JUDGE_MS=$(echo "$JUDGE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('ms',0))" 2>/dev/null || echo "0")
+            RAW_VERDICT=$(echo "$JUDGE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('verdict',''))" 2>/dev/null || echo "")
+
+            echo "GEMINI VERDICT: $VERDICT (judge_ms: ${JUDGE_MS}ms)"
+            if [ "$VERDICT" = "FAIL" ]; then
+              FAIL_DETAIL=$(echo "$JUDGE" | python3 -c "import json,sys; d=json.load(sys.stdin); p=d.get('parsed') or {}; print('SENTENCE: ' + str(p.get('sentence','')) + ' | FIX: ' + str(p.get('fix','')))" 2>/dev/null)
+              echo "FAIL DETAIL: $FAIL_DETAIL"
+            fi
+            echo "GATE C DATA: combined=$LATENCY_MS judge=${JUDGE_MS} sum=$((LATENCY_MS + JUDGE_MS))"
+
+            TOTAL_LATENCY=$((TOTAL_LATENCY + LATENCY_MS))
+
+            if [ "$VERDICT" = "PASS" ]; then
+              PASS_COUNT=$((PASS_COUNT+1))
+            else
+              FAIL_COUNT=$((FAIL_COUNT+1))
+            fi
+            echo ""
+          }
+
+          # B1 type: multi-sport wire-copy (wire verb format)
+          run_brief "B1" "multi-sport wire-copy" \
+            "NBA: Wembanyama had 34 points, 14 rebounds, and 6 blocks as the Spurs beat Dallas 112-108. MLB: Ohtani pitched 7 innings and hit a two-run homer as the Dodgers won 5-2."
+
+          # B2 type: NBA wire-copy
+          run_brief "B2" "NBA wire-copy" \
+            "Curry scored 41 points including 7 three-pointers as Golden State edged the Clippers 119-117 in overtime on Tuesday night."
+
+          # B3 type: MLB wire-copy
+          run_brief "B3" "MLB wire-copy" \
+            "Judge hit his 32nd home run, a three-run blast in the sixth, as New York beat Tampa Bay 7-4 to extend their lead in the AL East to three games."
+
+          # B4 type: soccer wire-copy
+          run_brief "B4" "soccer wire-copy" \
+            "Bellingham scored twice in the second half as Real Madrid defeated Barcelona 3-1 in El Clasico at the Bernabeu on Sunday."
+
+          # B5 type: NBA FIELD-voice
+          run_brief "B5" "NBA FIELD-voice" \
+            "San Antonio Spurs vs Dallas Mavericks, final: 118-105. Wembanyama was everywhere in the third quarter — swatting shots, redirecting possessions, making Dallas reconsider every drive to the paint. The Mavericks had no answer."
+
+          # B6 type: MLB FIELD-voice
+          run_brief "B6" "MLB FIELD-voice" \
+            "Boston Red Sox vs New York Yankees, final: 4-3 in extras. It came down to a full count with the bases loaded in the eleventh, and Devers got just enough of a hanging slider to send it the other way into the corner."
+
+          # B7 type: tennis FIELD-voice
+          run_brief "B7" "tennis FIELD-voice" \
+            "Alcaraz vs Djokovic, Wimbledon semifinal. The fifth set was less a tennis match than a prolonged negotiation over who would blink first. Djokovic had no answer for what Alcaraz was doing at the net in the closing games."
+
+          # B8 type: NHL FIELD-voice
+          run_brief "B8" "NHL FIELD-voice" \
+            "Colorado Avalanche vs Edmonton Oilers, Game 6. MacKinnon made it look effortless in the third period, which is exactly the problem if you're Edmonton — you can read his positioning and still not get there in time."
+
+          # B9 type: soccer FIELD-voice
+          run_brief "B9" "soccer FIELD-voice" \
+            "Liverpool vs Manchester City, Premier League. The tempo shift in the second half caught City entirely off guard. Salah found space three times in eight minutes where space shouldn't have existed, and the third time he didn't miss."
+
+          # B10 type: NBA FIELD-voice with record numbers
+          run_brief "B10" "NBA FIELD-voice with record numbers" \
+            "Oklahoma City Thunder vs Minnesota Timberwolves, final: 124-118. SGA finished with 38 points, 9 assists, 0 turnovers — the kind of line that makes advanced metrics people recalibrate their models. Minnesota had their best defensive scheme ready. It didn't matter."
+
+          echo "================================================================"
+          echo "GATE B SUMMARY: $PASS_COUNT/10 PASS, $FAIL_COUNT/10 FAIL"
+          echo "Gate B threshold: >= 9/10 PASS"
+          if [ "$PASS_COUNT" -ge 9 ]; then
+            echo "GATE B: PASS"
+          else
+            echo "GATE B: FAIL (only $PASS_COUNT/10 passed, need >= 9)"
+          fi
+          echo ""
+          echo "GATE A ANALYSIS:"
+          echo "Combined approach: 1 call per brief (combined-generate-judge)"
+          echo "Current architecture (clean brief, post-circuit-breaker): 2 calls (generate + judge)"
+          echo "Reduction: 1 vs 2 = 50% (threshold >= 40%)"
+          echo "GATE A: PASS (50% >= 40%)"
+          echo ""
+          echo "GATE C DATA (combined latency_ms across 10 briefs, sum for avg):"
+          echo "Total combined_ms across 10 briefs: $TOTAL_LATENCY"
+          AVG_COMBINED=$((TOTAL_LATENCY / 10))
+          echo "Avg combined_ms: $AVG_COMBINED"
+          echo "(Gate C: combined <= generate+judge sum — compare to 2-call baseline)"
+          echo ""
+          echo "GATE D: Qualitative spot-check — examine B5, B9, B10 outputs above for:"
+          echo "  - Subordinated-stats pattern (narrative-first, stats supporting)"
+          echo "  - FIELD sentence rhythm (no wire-copy cadence)"
+          echo "  - Banned phrase absence (stunned, shocked, thriller, instant classic, for the ages)"
