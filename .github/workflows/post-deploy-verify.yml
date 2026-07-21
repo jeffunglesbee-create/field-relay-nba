@@ -1,3 +1,4 @@
+# post-deploy-verify (2026-07-21)
 name: Post-deploy live verification
 on:
   workflow_run:
