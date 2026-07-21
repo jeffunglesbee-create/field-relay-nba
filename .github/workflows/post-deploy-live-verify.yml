@@ -5,7 +5,7 @@ on:
                                           # `grep "^name:" .github/workflows/deploy.yml`
                                           # 2026-07-04 — do not re-guess this
     types: [completed]
-  workflow_dispatch:  # allow manual trigger (e.g. to run staged probes after sandbox session)
+  workflow_dispatch:  # allow manual trigger (e.g. to run staged probes after sandbox session) [re-index 2026-07-21]
 
 permissions:
   contents: write
