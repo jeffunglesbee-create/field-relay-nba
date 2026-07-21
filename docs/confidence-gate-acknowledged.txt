@@ -43,3 +43,23 @@ outbox/cc-afl-kali-cache-audit-2026-07-08.md
 # independently re-read and confirmed live at jubilant-bassoon HEAD
 # before citing it here, not trusted from the commit message alone.
 outbox/cc-completion-field-parity-2026-07-12.md
+
+# Reviewed 2026-07-21 (chat session): 73/100 score is structural, not a
+# code-quality failure. The session made zero src/ commits — it was a
+# pure investigation of post-deploy-verify.yml's 0-job runs. The score
+# deduction was for not retrieving actual log content, which was
+# impossible because no jobs ever ran (0-jobs = no logs to retrieve).
+# The low score honestly documents a structural ceiling, not a defect.
+# The gate fires because unrelated src/ commits from other sessions fall
+# within the same 20-commit window; there is no causal relationship.
+outbox/cc-session-2026-07-21-investigate-post-deploy-verify-failures.md
+
+# Reviewed 2026-07-21 (chat session): 90/100 score is an infrastructure
+# limitation, not a code defect. The session's work was renaming
+# post-deploy-verify.yml to a new filename — a .github/workflows/ change
+# only, no src/ commits. Sub-95 because workflow_dispatch returned 422
+# after the rename (frozen trigger entry, confirmed by this session's
+# follow-up investigation). The dispatch failure was the thing being
+# investigated, not an oversight. The gate fires due to unrelated src/
+# commits in the same 20-commit window; no causal relationship.
+outbox/cc-session-2026-07-21-recreate-workflow-new-filename.md
