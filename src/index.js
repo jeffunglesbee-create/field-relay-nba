@@ -13351,6 +13351,55 @@ export default {
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // POST /test/gemini-judge — TEST-ONLY: Gemini voice judge probe (Step 3 comparison).
+        // Sends a brief through the same Gemini path as Layer 3b (field-claude-proxy).
+        // Re-added for combined-generate-judge Steps 3-4 (CC-CMD-2026-07-21-complete-combined-judge-test).
+        // Accepts: { "brief": "..." } POST
+        // Returns: { verdict, structured, parsed, model, ms }
+        // Remove after Step 3-4 evaluation.
+        if (pathname === '/test/gemini-judge' && request.method === 'POST') {
+            try {
+                const body = await request.json().catch(() => ({}));
+                const brief = typeof body.brief === 'string' ? body.brief.trim() : '';
+                if (!brief) {
+                    return new Response(JSON.stringify({ ok: false, error: 'brief required' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const prompt = _buildVoiceJudgePrompt(brief);
+                const t0 = Date.now();
+                const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256,
+                        messages: [{ role: 'user', content: prompt }] }),
+                });
+                const ms = Date.now() - t0;
+                if (!resp.ok) {
+                    return new Response(JSON.stringify({ ok: false, error: `proxy ${resp.status}` }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const data = await resp.json().catch(() => null);
+                const verdict = data ? (data.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim() : '';
+                const isPass = /^\s*PASS\s*$/i.test(verdict);
+                const isFail = /^\s*FAIL\b/i.test(verdict);
+                const structured = isPass || isFail;
+                let parsed = null;
+                if (isPass) {
+                    parsed = { result: 'PASS', sentence: null, fix: null };
+                } else if (isFail) {
+                    const m = verdict.match(/FAIL[^\n]*\n+SENTENCE:\s*(.+?)\n+FIX:\s*([\s\S]+)/i);
+                    parsed = m
+                        ? { result: 'FAIL', sentence: m[1].trim(), fix: m[2].trim() }
+                        : { result: 'FAIL', sentence: null, fix: null };
+                }
+                return new Response(JSON.stringify({ verdict, structured, parsed, model: 'gemini-via-proxy', ms }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // POST /test/combined-generate-judge — TEST-ONLY: Combined generation+judge probe (Step 2, plan 2026-07-20).
         // Collapses separate generate+judge calls into one combined prompt. Model outputs only the
         // final, passing brief text — not a PASS/FAIL verdict. This avoids the reasoning-budget
