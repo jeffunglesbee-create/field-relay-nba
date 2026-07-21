@@ -1,36 +1,35 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-07-21 (recreate-workflow-new-filename) — UPDATED
+## SESSION CLOSE-OUT — 2026-07-21 (push-trigger-fix) — FINAL
 
-**HEAD:** (see commits below)
+**HEAD:** a46b45c
 **Branch:** main
-**Session doc:** outbox/cc-session-2026-07-21-recreate-workflow-new-filename.md
+**Session doc:** outbox/cc-session-2026-07-21-push-trigger-fix.md
 
-### Commits this session
-- `ae981f7` — ci: recreate post-deploy-live-verify.yml as post-deploy-verify.yml to escape frozen registry entry (ID 306981489)
-- `a5db076` — ci: break R100 rename identity to force GitHub YAML reindex on post-deploy-verify
-- `2e509a5` — ci: one-shot poll-and-dispatch workflow to verify post-deploy-verify.yml indexing [skip ci]
-- `2b2077f` — ci: give dispatch-verify-once write perms for self-cleanup on success [skip ci]
-- (cleanup commit) — ci: confirmed both triggers broken; remove dispatch-verify-once.yml [skip ci]
+### Commits this session (continuation of recreate-workflow-new-filename)
+- `9e27752` — ci: confirmed both triggers broken on ID 317109373; remove dispatch-verify-once.yml [skip ci]
+- `220e25f` — ci: delete post-deploy-verify.yml to clear frozen workflow registry entry ID 317109373 [skip ci]
+- `a46b45c` — ci: re-add post-deploy-verify.yml with push:branches:main trigger (bypasses GitHub YAML indexing)
 
-### Result: ESCALATE — Both triggers broken on workflow ID 317109373
+### Result: ESCALATE — YAML indexing freeze is repo-wide, not trigger-specific
 
-**Tasks 1 and 2 COMPLETE:** `post-deploy-verify.yml` committed (ID 317109373), old frozen entry (ID 306981489) gone.
+**push trigger attempted:** Delete + recreate with `push: branches: [main]` trigger. Run 3 (ID 29837393001) fired at 14:04:29Z with `event: push` — the run entry appears. But `total_jobs: 0` and `conclusion: failure` confirm GitHub cannot parse job definitions from the YAML. The freeze is repo-level: GitHub registers that the file changed and creates a run record, but cannot parse YAML content to queue jobs.
 
-**Task 3 FAILED:** `workflow_dispatch` returns 422. 60 minutes of polling confirmed this is NOT propagation delay — GitHub never indexed the YAML content. `name` still shows file path, not `"Post-deploy live verification"`.
+**All three runs (IDs 29796164064, 29831699986, 29837393001) are identical:** `name` shows file path instead of YAML `name:` field, 0 jobs, `failure`. No trigger type can bypass this.
 
-**Task 4 FAILED:** `workflow_run` trigger also did not fire. Deploy run 29834902927 ("Deploy RELAY Worker") completed `success` at 2026-07-21T13:34Z. `post-deploy-verify.yml` shows only 2 runs — both `event: push` from earlier commits — no `workflow_run` run appeared. YAML content must be indexed for the trigger event subscription to be registered; it isn't.
-
-**Root cause:** GitHub's YAML indexing pipeline is frozen for all new workflow files in this repo. Both `workflow_dispatch` and `workflow_run` require YAML content parsing; `push` triggers on the file do not. Only `deploy.yml` (ID 278094868, indexed May 2026) is functional.
-
-**Not fixable via file changes.** Rename succeeded structurally but hit the same freeze on the new ID.
+**Not fixable via file changes.** Confirmed exhaustively across: filename change, content reindex attempts, `workflow_dispatch`, `workflow_run`, `push`. All hit the same YAML parsing freeze on new workflow IDs in this repo.
 
 ### Escalation required (for Jeff)
 Open a GitHub Support ticket:
 - Repo: `jeffunglesbee-create/field-relay-nba`
 - Workflow ID: 317109373 (`post-deploy-verify.yml`)
-- Issue: YAML content never indexed after creation 2026-07-21T02:33Z. `workflow_dispatch` returns 422, `workflow_run` never fires. `name` in workflow registry shows file path instead of YAML `name:` field. `push` trigger works. Only `deploy.yml` (ID 278094868) is functional.
+- Issue: YAML content never indexed. All 3 runs show file path as `name` (not YAML `name:` field). Zero jobs queue on any event type. Evidence run IDs: 29796164064, 29831699986, 29837393001.
 - Ask: Force re-index of YAML content for workflow ID 317109373.
+- Note: `deploy.yml` (ID 278094868, indexed May 2026) works fine — this is isolated to new workflow IDs.
+
+---
+
+## SESSION CLOSE-OUT — 2026-07-21 (recreate-workflow-new-filename)
 
 ---
 
