@@ -1,5 +1,42 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (complete-combined-judge-test)
+
+**HEAD:** 1f02f43
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-complete-combined-judge-test.md
+
+### Commits this session
+- `22ed3df` — fix: re-add /test/gemini-judge for combined-generate-judge Steps 3-4
+- `1f02f43` — ci: add combined-judge-corpus workflow for Steps 3-4 corpus test [skip ci]
+
+### Combined-generate-judge Steps 3-4: COMPLETE — VERDICT: FAIL
+
+10-brief corpus run live via GHA runner (run 29791989877). All 4 gates evaluated:
+
+| Gate | Threshold | Result | Verdict |
+|------|-----------|--------|---------|
+| A — call reduction | ≥40% | ~50% (1 vs 2 calls) | PASS |
+| B — quality pass rate | ≥9/10 PASS | 7/10 PASS | **FAIL** |
+| C — latency | combined ≤ gen+judge sum | 1376ms avg vs ~1950ms est. | PASS |
+| D — FIELD voice (qualitative) | no regression | ✓ B5/B9/B10 clean | PASS |
+
+Gate B failure root cause: single-pass combined prompt's self-check is less effective than a separate dedicated judge call. The model validates what it just produced rather than independently evaluating it. 2 genuine failures (B1, B3: stat numbers appearing as sentence predicates); 1 judge false positive (B7: judge hallucinated a required statistic). Even crediting B7 as PASS → 8/10, still below threshold.
+
+**Step 5: NOT authorized** (Gate B fail + governing prompt constraint).
+
+### Open test routes (cleanup required if investigation resumes)
+- `/test/combined-generate-judge` in src/index.js + ALLOWED_EXACT
+- `/test/prefilter` in src/index.js + ALLOWED_EXACT
+- `/test/gemini-judge` in src/index.js + ALLOWED_EXACT (re-added this session)
+
+### Carry-forwards
+- None from this session. Combined test Steps 3-4 now COMPLETE with a real verdict.
+- Prefilter test (Steps 1-4): previously confirmed COMPLETE (Gates A/B both PASS).
+- Step 5 for both plans: NOT authorized. Requires explicit re-authorization.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (fix-test-route-allowlist)
 
 **HEAD:** 62671d7
