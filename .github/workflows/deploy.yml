@@ -723,3 +723,183 @@ jobs:
             && echo "✅ CLOUDFLARE_API_TOKEN synced to jubilant-bassoon — deploy-proxy.yml now active" \
             || echo "⚠️  Sync skipped (Courier GITHUB_PAT not set? Run: echo '<PAT>' | wrangler secret put GITHUB_PAT --name field-deploy)"
 
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 25  # git log -20 in confidence-gate step requires ≥20 commits
+
+      - name: Live-check endpoints
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          YESTERDAY=$(date -u -d "yesterday" +%Y-%m-%d)
+          OUT="outbox/live-verify-${{ github.run_id }}.md"
+          mkdir -p outbox
+          {
+            echo "# Post-deploy live verification"
+            echo "Run: ${{ github.run_id }} · Commit: ${{ github.sha }} · $(date -u)"
+            echo
+            echo "## /circadian/preview + /circadian/late (today + yesterday)"
+            for phase in preview late; do
+              for d in "$DATE" "$YESTERDAY"; do
+                echo "### $phase / $d"
+                curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/$phase/$d" || echo "REQUEST FAILED"
+                echo
+              done
+            done
+            echo "## Validation checks"
+            echo "### bogus phase (expect 400)"
+            curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/bogus/$DATE"
+            echo "### bad date (expect 400)"
+            curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/preview/not-a-date"
+          } > "$OUT"
+          cat "$OUT"
+
+      - name: /context/game brief bridge probe -- espn_event_id lookup chain end-to-end
+        run: |
+          echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClVBID0gJ01vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYnClJFTEFZID0gJ2h0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYnCgpkZWYgZDFfcXVlcnkoc3FsLCBwYXJhbXM9Tm9uZSk6CiAgICBib2R5ID0ganNvbi5kdW1wcyh7J3NxbCc6IHNxbCwgJ3BhcmFtcyc6IHBhcmFtcyBvciBbXX0pLmVuY29kZSgpCiAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KAogICAgICAgIFJFTEFZICsgJy9kMS9leGVjdXRlJywgZGF0YT1ib2R5LCBtZXRob2Q9J1BPU1QnLAogICAgICAgIGhlYWRlcnM9eydDb250ZW50LVR5cGUnOiAnYXBwbGljYXRpb24vanNvbicsICdYLUZJRUxELVJlbGF5JzogJ2ZpZWxkLXJlbGF5LWNyb24tMjAyNicsICdVc2VyLUFnZW50JzogVUF9LAogICAgKQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpkZWYgcmVsYXlfZ2V0KHBhdGgpOgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdChSRUxBWSArIHBhdGgsIGhlYWRlcnM9eydVc2VyLUFnZW50JzogVUF9KQogICAgd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgICAgICByZXR1cm4ganNvbi5sb2FkKHIpCgpyZXN1bHQgPSBkMV9xdWVyeSgKICAgICdTRUxFQ1QgYi5nYW1lX2lkIEZST00gYnJpZWZzIGIgJwogICAgJ0pPSU4gcmVndWxhcl9zZWFzb25fZ2FtZXMgciBPTiByLmVzcG5fZXZlbnRfaWQgPSBiLmdhbWVfaWQgJwogICAgIldIRVJFIGIuYnJpZWZfdHlwZSA9ICdnYW1lX3JlY2FwJyAiCiAgICAnT1JERVIgQlkgYi5jcmVhdGVkX2F0IERFU0MgTElNSVQgMScKKQpyb3dzID0gcmVzdWx0LmdldCgncmVzdWx0cycsIFtdKQppZiBub3Qgcm93czoKICAgIHByaW50KCdTS0lQOiBubyBnYW1lX3JlY2FwIGJyaWVmIGluIEQxIGpvaW5lZCB0byByZWd1bGFyX3NlYXNvbl9nYW1lcyAtLSBkYXRhLWRlcGVuZGVudCBza2lwLCBub3QgYSBjb2RlIGZhaWx1cmUuJykKICAgIHN5cy5leGl0KDApCgplc3BuX2lkID0gcm93c1swXVsnZ2FtZV9pZCddCnByaW50KCdGb3VuZCBnYW1lX3JlY2FwIGJyaWVmIGZvciBlc3BuX2V2ZW50X2lkPScgKyByZXByKGVzcG5faWQpICsgJyAtLSBwcm9iaW5nIC9jb250ZXh0L2dhbWUvZXNwbjonICsgZXNwbl9pZCkKCmN0eCA9IHJlbGF5X2dldCgnL2NvbnRleHQvZ2FtZS9lc3BuOicgKyBlc3BuX2lkKQpicmllZnMgPSBjdHguZ2V0KCdhcmNoaXZlJywge30pLmdldCgnZ2FtZUJyaWVmcycsIFtdKQpicmllZl90ZXh0ID0gYnJpZWZzWzBdLmdldCgnYnJpZWZfdGV4dCcsICcnKSBpZiBicmllZnMgZWxzZSAnJwoKaWYgbm90IGJyaWVmX3RleHQ6CiAgICBwcmludCgnRkFJTDogYXJjaGl2ZS5nYW1lQnJpZWZzWzBdLmJyaWVmX3RleHQgbnVsbC9lbXB0eSBmb3IgZXNwbjonICsgZXNwbl9pZCkKICAgIHByaW50KCdGdWxsIHJlc3BvbnNlOiAnICsganNvbi5kdW1wcyhjdHgpKQogICAgc3lzLmV4aXQoMSkKCnByaW50KCdQQVNTOiBicmllZl90ZXh0IHBvcHVsYXRlZCBmb3IgZXNwbjonICsgZXNwbl9pZCArICc6ICcgKyBicmllZl90ZXh0WzoxMjBdICsgJy4uLicpCg==" | base64 -d > /tmp/context_game_brief_probe.py
+          python3 /tmp/context_game_brief_probe.py
+
+      - name: bracketDelta end-to-end probe -- espn:760516 gap-7 final verification
+        run: |
+          python3 - <<'PYEOF'
+import json, sys, urllib.request
+
+UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
+GAME_ID = 'espn:760516'
+
+req = urllib.request.Request(
+    f'{RELAY}/context/game/{GAME_ID}',
+    headers={'User-Agent': UA},
+)
+with urllib.request.urlopen(req, timeout=20) as r:
+    xcache = r.getheader('X-Cache', 'MISS')
+    body = r.read()
+
+d = json.loads(body)
+bracket_delta = d.get('bracketDelta')
+print(f'X-Cache: {xcache}')
+print(f'bracketDelta: {json.dumps(bracket_delta)[:200] if bracket_delta is not None else "null"}')
+
+if bracket_delta is None:
+    if xcache == 'HIT':
+        print('SOFT-WARN: bracketDelta null on KV cache HIT — stale 300s TTL response still active. Will self-heal. Not a code failure.')
+        sys.exit(0)
+    else:
+        print(f'FAIL: bracketDelta null on KV cache MISS for {GAME_ID} — fix-bracketdelta-prefix did not take effect.')
+        print('Full response:', json.dumps(d))
+        sys.exit(1)
+
+tg = bracket_delta.get('triggerGame', '')
+print(f'PASS: bracketDelta populated. triggerGame={tg!r}')
+PYEOF
+
+      - name: Check for confidence-gate violations
+        run: |
+          RECENT_OUTBOX=$(git log -20 --name-only --pretty=format: -- 'outbox/cc-*.md' | grep -v '^$' | sort -u)
+          ACKNOWLEDGED=$(grep -v '^#' docs/confidence-gate-acknowledged.txt | grep -v '^\s*$' || true)
+          VIOLATION_FOUND=0
+          for f in $RECENT_OUTBOX; do
+            [ -f "$f" ] || continue
+            if echo "$ACKNOWLEDGED" | grep -qxF "$f"; then
+              echo "SKIPPED (acknowledged): $f — see docs/confidence-gate-acknowledged.txt for reason"
+              continue
+            fi
+            SCORE=$(sed -n '/^## Confidence Score/,$p' "$f" | grep -oE '[0-9]+/100' | grep -oE '^[0-9]+' | tail -1)
+            [ -z "$SCORE" ] && continue
+            if [ "$SCORE" -lt 95 ]; then
+              SRC_TOUCHED=$(git log -20 --name-only --pretty=format: -- 'src/*.js' | grep -v '^$' | wc -l)
+              if [ "$SRC_TOUCHED" -gt 0 ]; then
+                echo "CONFIDENCE-GATE VIOLATION: $f reports $SCORE/100 (below 95) alongside real src/ changes in recent history."
+                VIOLATION_FOUND=1
+              fi
+            fi
+          done
+          if [ "$VIOLATION_FOUND" -eq 1 ]; then
+            echo "See output above for details." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "No confidence-gate violations detected in recent outbox history."
+
+      - name: Rule registry check -- no unregistered "## Rule N" (N>=89) in STANDARDS.md or CLAUDE-CODE-PROMPT-RULES.md
+        env:
+          RELAY_GH_PAT: ${{ secrets.RELAY_GH_PAT }}
+        run: |
+          echo "aW1wb3J0IGJhc2U2NCwganNvbiwgb3MsIHJlLCBzeXMsIHVybGxpYi5yZXF1ZXN0CgpHSF9UT0tFTiA9IG9zLmVudmlyb25bIlJFTEFZX0dIX1BBVCJdCkdIX0hFQURFUlMgPSB7CiAgICAiQXV0aG9yaXphdGlvbiI6IGYiQmVhcmVyIHtHSF9UT0tFTn0iLAogICAgIkFjY2VwdCI6ICJhcHBsaWNhdGlvbi92bmQuZ2l0aHViK2pzb24iLAogICAgIlVzZXItQWdlbnQiOiAicnVsZS1yZWdpc3RyeS1jaS1jaGVjayIsCn0KVUEgPSAiTW96aWxsYS81LjAgKFgxMTsgTGludXggeDg2XzY0KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvMTI0LjAgU2FmYXJpLzUzNy4zNiIKRklMRVMgPSBbIlNUQU5EQVJEUy5tZCIsICJkb2NzL0NMQVVERS1DT0RFLVBST01QVC1SVUxFUy5tZCJdCiMgUnVsZSA5MCdzIG93biBzY29wZSAoU1RBTkRBUkRTLm1kLCBSVUxFLUNPTVBMSUFOQ0UtRk9MTE9XVVAtQSk6CiMgIkFwcGxpZXMgZnJvbSBSdWxlIDg5IG9ud2FyZCAuLi4gZG9lcyBub3QgcmV0cm9hY3RpdmVseSByZWdpc3RlciBldmVyeQojIGV4aXN0aW5nIHJ1bGUgKDEtODgpLiIgUnVsZXMgYmVsb3cgdGhpcyBmbG9vciBhcmUgbGVnaXRpbWF0ZWx5IHVucmVnaXN0ZXJlZAojIGJ5IGRlc2lnbiAtLSBmbGFnZ2luZyB0aGVtIHdvdWxkIG1ha2UgdGhpcyBjaGVjayBwZXJtYW5lbnRseSByZWQuClJFR0lTVFJZX0ZMT09SID0gODkKCmRlZiBmZXRjaF9maWxlKHBhdGgpOgogICAgdXJsID0gZiJodHRwczovL2FwaS5naXRodWIuY29tL3JlcG9zL2plZmZ1bmdsZXNiZWUtY3JlYXRlL2p1YmlsYW50LWJhc3Nvb24vY29udGVudHMve3BhdGh9P3JlZj1tYWluIgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCh1cmwsIGhlYWRlcnM9R0hfSEVBREVSUykKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MjApIGFzIHI6CiAgICAgICAgZGF0YSA9IGpzb24ubG9hZChyKQogICAgcmV0dXJuIGJhc2U2NC5iNjRkZWNvZGUoZGF0YVsiY29udGVudCJdKS5kZWNvZGUoInV0Zi04IikKCmRlZiBleHRyYWN0X3J1bGVzKGNvbnRlbnQpOgogICAgcmV0dXJuIHNvcnRlZCh7aW50KG0uZ3JvdXAoMSkpIGZvciBtIGluIHJlLmZpbmRpdGVyKHIiXiMjIFJ1bGUgKFxkKykiLCBjb250ZW50LCByZS5NVUxUSUxJTkUpfSkKCmRlZiByZWdpc3RlcmVkKG4pOgogICAgYm9keSA9IGpzb24uZHVtcHMoewogICAgICAgICJzcWwiOiAiU0VMRUNUIGtleSBGUk9NIGNvZGV4IFdIRVJFIGNhdGVnb3J5ID0gJ3J1bGUtcmVnaXN0cnknIEFORCBrZXkgPSA/IiwKICAgICAgICAicGFyYW1zIjogW2YicnVsZS17bn0iXSwKICAgIH0pLmVuY29kZSgpCiAgICByZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KAogICAgICAgICJodHRwczovL2ZpZWxkLXJlbGF5LW5iYS5qZWZmdW5nbGVzYmVlLndvcmtlcnMuZGV2L2QxL2V4ZWN1dGUiLAogICAgICAgIGRhdGE9Ym9keSwgbWV0aG9kPSJQT1NUIiwKICAgICAgICBoZWFkZXJzPXsiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iLCAiWC1GSUVMRC1SZWxheSI6ICJmaWVsZC1yZWxheS1jcm9uLTIwMjYiLCAiVXNlci1BZ2VudCI6IFVBfSwKICAgICkKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MjApIGFzIHI6CiAgICAgICAgcmVzdWx0ID0ganNvbi5sb2FkKHIpCiAgICByZXR1cm4gYm9vbChyZXN1bHQuZ2V0KCJyZXN1bHRzIikpCgptaXNzaW5nID0gW10KY2hlY2tlZCA9IFtdCmZvciBmIGluIEZJTEVTOgogICAgY29udGVudCA9IGZldGNoX2ZpbGUoZikKICAgIGZvciBuIGluIGV4dHJhY3RfcnVsZXMoY29udGVudCk6CiAgICAgICAgaWYgbiA8IFJFR0lTVFJZX0ZMT09SOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIGNoZWNrZWQuYXBwZW5kKChmLCBuKSkKICAgICAgICBpZiBub3QgcmVnaXN0ZXJlZChuKToKICAgICAgICAgICAgbWlzc2luZy5hcHBlbmQoKGYsIG4pKQoKcHJpbnQoZiJDaGVja2VkIHtsZW4oY2hlY2tlZCl9IHJ1bGUgbnVtYmVyKHMpID49IHtSRUdJU1RSWV9GTE9PUn0gYWNyb3NzIHtsZW4oRklMRVMpfSBmaWxlKHMpOiB7Y2hlY2tlZH0iKQppZiBtaXNzaW5nOgogICAgcHJpbnQoIlJVTEUtUkVHSVNUUlkgVklPTEFUSU9OUyAobm8gbWF0Y2hpbmcgY29kZXggcnVsZS1yZWdpc3RyeSBlbnRyeSk6IikKICAgIGZvciBmLCBuIGluIG1pc3Npbmc6CiAgICAgICAgcHJpbnQoZiIgIHtmfTogUnVsZSB7bn0gLS0gZXhwZWN0ZWQga2V5ICdydWxlLXtufSciKQogICAgc3lzLmV4aXQoMSkKcHJpbnQoIk5vIHVucmVnaXN0ZXJlZCBydWxlIG51bWJlcnMgZm91bmQuIikK" | base64 -d > /tmp/rule_registry_check.py
+          python3 /tmp/rule_registry_check.py
+
+      - name: Rule 90 staleness check -- no UNEXERCISED rule-registry entry older than 14 days
+        run: |
+          echo "aW1wb3J0IGpzb24sIHVybGxpYi5yZXF1ZXN0CgpVQSA9ICJNb3ppbGxhLzUuMCAoWDExOyBMaW51eCB4ODZfNjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMjQuMCBTYWZhcmkvNTM3LjM2IgoKZGVmIGQxX3F1ZXJ5KHNxbCwgcGFyYW1zPU5vbmUpOgogICAgYm9keSA9IGpzb24uZHVtcHMoeyJzcWwiOiBzcWwsICJwYXJhbXMiOiBwYXJhbXMgb3IgW119KS5lbmNvZGUoKQogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCgKICAgICAgICAiaHR0cHM6Ly9maWVsZC1yZWxheS1uYmEuamVmZnVuZ2xlc2JlZS53b3JrZXJzLmRldi9kMS9leGVjdXRlIiwKICAgICAgICBkYXRhPWJvZHksIG1ldGhvZD0iUE9TVCIsCiAgICAgICAgaGVhZGVycz17IkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiwgIlgtRklFTEQtUmVsYXkiOiAiZmllbGQtcmVsYXktY3Jvbi0yMDI2IiwgIlVzZXItQWdlbnQiOiBVQX0sCiAgICApCiAgICB3aXRoIHVybGxpYi5yZXF1ZXN0LnVybG9wZW4ocmVxLCB0aW1lb3V0PTIwKSBhcyByOgogICAgICAgIHJldHVybiBqc29uLmxvYWQocikKCnJlc3VsdCA9IGQxX3F1ZXJ5KAogICAgIlNFTEVDVCBrZXksIHRpdGxlLCB1cGRhdGVkX2F0LCAiCiAgICAiKGp1bGlhbmRheSgnbm93JykgLSBqdWxpYW5kYXkodXBkYXRlZF9hdCkpIEFTIGRheXNfb2xkICIKICAgICJGUk9NIGNvZGV4IFdIRVJFIGNhdGVnb3J5ID0gJ3J1bGUtcmVnaXN0cnknIEFORCB0aXRsZSBMSUtFICdVTkVYRVJDSVNFRCUnIgopCnJvd3MgPSByZXN1bHQuZ2V0KCJyZXN1bHRzIiwgW10pCnByaW50KGYiQ2hlY2tlZCB7bGVuKHJvd3MpfSBVTkVYRVJDSVNFRCBydWxlLXJlZ2lzdHJ5IGVudHJ7J3knIGlmIGxlbihyb3dzKT09MSBlbHNlICdpZXMnfS4iKQoKc3RhbGUgPSBbciBmb3IgciBpbiByb3dzIGlmIHJbImRheXNfb2xkIl0gPiAxNF0KaWYgc3RhbGU6CiAgICBwcmludCgiUlVMRS05MCBTVEFMRU5FU1MgVklPTEFUSU9OUyAoVU5FWEVSQ0lTRUQgPiAxNCBkYXlzKToiKQogICAgZm9yIHIgaW4gc3RhbGU6CiAgICAgICAgcHJpbnQoZiIgIHtyWydrZXknXX06IHtyWyd0aXRsZSddfSAgKHVwZGF0ZWRfYXQ9e3JbJ3VwZGF0ZWRfYXQnXX0sIHtyWydkYXlzX29sZCddOi4xZn0gZGF5cyBvbGQpIikKICAgIHJhaXNlIFN5c3RlbUV4aXQoMSkKcHJpbnQoIk5vIHN0YWxlIFVORVhFUkNJU0VEIHJ1bGUtcmVnaXN0cnkgZW50cmllcyBmb3VuZC4iKQo=" | base64 -d > /tmp/rule90_staleness_check.py
+          python3 /tmp/rule90_staleness_check.py
+
+      - name: Completion field-list superset check -- every COMPLETION_FIELDS member wired into both /archive/score-by-id and /archive/game
+        env:
+          RELAY_GH_PAT: ${{ secrets.RELAY_GH_PAT }}
+        run: |
+          echo "aW1wb3J0IGJhc2U2NCwganNvbiwgb3MsIHJlLCBzeXMsIHVybGxpYi5yZXF1ZXN0CgpHSF9UT0tFTiA9IG9zLmVudmlyb25bIlJFTEFZX0dIX1BBVCJdCkdIX0hFQURFUlMgPSB7CiAgICAiQXV0aG9yaXphdGlvbiI6IGYiQmVhcmVyIHtHSF9UT0tFTn0iLAogICAgIkFjY2VwdCI6ICJhcHBsaWNhdGlvbi92bmQuZ2l0aHViK2pzb24iLAogICAgIlVzZXItQWdlbnQiOiAiY29tcGxldGlvbi1maWVsZC1wYXJpdHktY2ktY2hlY2siLAp9CgpkZWYgZmV0Y2hfZmlsZShwYXRoKToKICAgIHVybCA9IGYiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy9qZWZmdW5nbGVzYmVlLWNyZWF0ZS9maWVsZC1yZWxheS1uYmEvY29udGVudHMve3BhdGh9P3JlZj1tYWluIgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCh1cmwsIGhlYWRlcnM9R0hfSEVBREVSUykKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MjApIGFzIHI6CiAgICAgICAgZGF0YSA9IGpzb24ubG9hZChyKQogICAgcmV0dXJuIGJhc2U2NC5iNjRkZWNvZGUoZGF0YVsiY29udGVudCJdKS5kZWNvZGUoInV0Zi04IikKCmNvbnRlbnQgPSBmZXRjaF9maWxlKCJzcmMvaW5kZXguanMiKQoKbSA9IHJlLnNlYXJjaChyImNvbnN0IENPTVBMRVRJT05fRklFTERTID0gXFsoLio/KVxdOyIsIGNvbnRlbnQpCmlmIG5vdCBtOgogICAgcHJpbnQoIkNPTVBMRVRJT05fRklFTERTIGNvbnN0YW50IG5vdCBmb3VuZCBpbiBzcmMvaW5kZXguanMiKQogICAgc3lzLmV4aXQoMSkKZmllbGRzID0gW2Yuc3RyaXAoKS5zdHJpcCgiJ1wiIikgZm9yIGYgaW4gbS5ncm91cCgxKS5zcGxpdCgiLCIpIGlmIGYuc3RyaXAoKV0KcHJpbnQoZiJDT01QTEVUSU9OX0ZJRUxEUzoge2ZpZWxkc30iKQoKbWFya2VycyA9IFttbS5zdGFydCgpIGZvciBtbSBpbiByZS5maW5kaXRlcihyImlmIFwocGF0aG5hbWUgPT09ICcvYXJjaGl2ZS8iLCBjb250ZW50KV0KCmRlZiBibG9ja19mb3Iocm91dGVfcGF0aCk6CiAgICBpZHggPSBjb250ZW50LmZpbmQoZiJpZiAocGF0aG5hbWUgPT09ICd7cm91dGVfcGF0aH0nIikKICAgIGlmIGlkeCA9PSAtMToKICAgICAgICByZXR1cm4gTm9uZQogICAgbnh0ID0gbmV4dCgocCBmb3IgcCBpbiBtYXJrZXJzIGlmIHAgPiBpZHgpLCBsZW4oY29udGVudCkpCiAgICByZXR1cm4gY29udGVudFtpZHg6bnh0XQoKUk9VVEVTID0gWyIvYXJjaGl2ZS9zY29yZS1ieS1pZCIsICIvYXJjaGl2ZS9nYW1lIl0KbWlzc2luZyA9IFtdCmZvciByb3V0ZSBpbiBST1VURVM6CiAgICBibG9jayA9IGJsb2NrX2Zvcihyb3V0ZSkKICAgIGlmIGJsb2NrIGlzIE5vbmU6CiAgICAgICAgcHJpbnQoZiJST1VURSBOT1QgRk9VTkQ6IHtyb3V0ZX0iKQogICAgICAgIHN5cy5leGl0KDEpCiAgICBmb3IgZiBpbiBmaWVsZHM6CiAgICAgICAgaWYgZiBub3QgaW4gYmxvY2s6CiAgICAgICAgICAgIG1pc3NpbmcuYXBwZW5kKChyb3V0ZSwgZikpCgppZiBtaXNzaW5nOgogICAgcHJpbnQoIkNPTVBMRVRJT04gRklFTEQtTElTVCBWSU9MQVRJT05TIChmaWVsZCBtaXNzaW5nIGZyb20gcm91dGUgc291cmNlKToiKQogICAgZm9yIHJvdXRlLCBmIGluIG1pc3Npbmc6CiAgICAgICAgcHJpbnQoZiIgIHtyb3V0ZX06IG1pc3NpbmcgJ3tmfSciKQogICAgc3lzLmV4aXQoMSkKcHJpbnQoZiJBbGwge2xlbihmaWVsZHMpfSBjb21wbGV0aW9uIGZpZWxkcyBwcmVzZW50IGluIGJvdGgge1JPVVRFU30uIikK" | base64 -d > /tmp/completion_field_parity_check.py
+          python3 /tmp/completion_field_parity_check.py
+
+      - name: Went-to-OT live invariant -- every MLB/WNBA row with finalized_at set also has went_to_ot set
+        run: |
+          echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClVBID0gIk1vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYiCgpkZWYgZDFfcXVlcnkoc3FsLCBwYXJhbXMpOgogICAgYm9keSA9IGpzb24uZHVtcHMoeyJzcWwiOiBzcWwsICJwYXJhbXMiOiBwYXJhbXN9KS5lbmNvZGUoKQogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCgKICAgICAgICAiaHR0cHM6Ly9maWVsZC1yZWxheS1uYmEuamVmZnVuZ2xlc2JlZS53b3JrZXJzLmRldi9kMS9leGVjdXRlIiwKICAgICAgICBkYXRhPWJvZHksIG1ldGhvZD0iUE9TVCIsCiAgICAgICAgaGVhZGVycz17IkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiwgIlgtRklFTEQtUmVsYXkiOiAiZmllbGQtcmVsYXktY3Jvbi0yMDI2IiwgIlVzZXItQWdlbnQiOiBVQX0sCiAgICApCiAgICB3aXRoIHVybGxpYi5yZXF1ZXN0LnVybG9wZW4ocmVxLCB0aW1lb3V0PTIwKSBhcyByOgogICAgICAgIHJldHVybiBqc29uLmxvYWQocikKCnZpb2xhdGlvbnMgPSBkMV9xdWVyeSgKICAgICJTRUxFQ1QgaWQsIHNwb3J0IEZST00gcmVndWxhcl9zZWFzb25fZ2FtZXMgIgogICAgIldIRVJFIGhvbWVfc2NvcmUgSVMgTk9UIE5VTEwgQU5EIGZpbmFsaXplZF9hdCBJUyBOT1QgTlVMTCAiCiAgICAiQU5EIHNwb3J0IElOICgnTUxCJywnV05CQScpIEFORCB3ZW50X3RvX290IElTIE5VTEwiLCBbXQopCmJhY2tsb2cgPSBkMV9xdWVyeSgKICAgICJTRUxFQ1QgIgogICAgIihTRUxFQ1QgQ09VTlQoKikgRlJPTSByZWd1bGFyX3NlYXNvbl9nYW1lcyBXSEVSRSBob21lX3Njb3JlIElTIE5PVCBOVUxMIEFORCBmaW5hbGl6ZWRfYXQgSVMgTlVMTCkgQVMgcmVnX25vX2ZpbmFsaXplZCwgIgogICAgIihTRUxFQ1QgQ09VTlQoKikgRlJPTSBwb3N0c2Vhc29uX2dhbWVzIFdIRVJFIGhvbWVfc2NvcmUgSVMgTk9UIE5VTEwgQU5EIGZpbmFsaXplZF9hdCBJUyBOVUxMKSBBUyBwb3N0X25vX2ZpbmFsaXplZCIsIFtdCikKCnYgPSB2aW9sYXRpb25zLmdldCgicmVzdWx0cyIsIFtdKQpiID0gKGJhY2tsb2cuZ2V0KCJyZXN1bHRzIikgb3IgW3t9XSlbMF0KcHJpbnQoZiJLbm93biBwcmUtZXhpc3RpbmcgYmFja2xvZzogcmVndWxhcj17Yi5nZXQoJ3JlZ19ub19maW5hbGl6ZWQnKX0gcG9zdHNlYXNvbj17Yi5nZXQoJ3Bvc3Rfbm9fZmluYWxpemVkJyl9IikKCmlmIHY6CiAgICBwcmludChmIldFTlRfVE9fT1QgSU5WQVJJQU5UIFZJT0xBVElPTlMgKHtsZW4odil9KToiKQogICAgZm9yIHJvdyBpbiB2OgogICAgICAgIHByaW50KGYiICB7cm93WydpZCddfSAoe3Jvd1snc3BvcnQnXX0pIikKICAgIHN5cy5leGl0KDEpCgpwcmludCgiSW52YXJpYW50IGhvbGRzOiBldmVyeSBNTEIvV05CQSByb3cgd2l0aCBmaW5hbGl6ZWRfYXQgc2V0IGFsc28gaGFzIHdlbnRfdG9fb3Qgc2V0LiIpCg==" | base64 -d > /tmp/wenttoot_invariant_check.py
+          python3 /tmp/wenttoot_invariant_check.py
+
+      - name: Soccer league label contract check -- every espnLeague-routed sportKey returns its real league name
+        env:
+          RELAY_GH_PAT: ${{ secrets.RELAY_GH_PAT }}
+        run: |
+          echo "aW1wb3J0IGJhc2U2NCwganNvbiwgb3MsIHJlLCBzeXMsIHVybGxpYi5yZXF1ZXN0CmZyb20gZGF0ZXRpbWUgaW1wb3J0IGRhdGV0aW1lLCB0aW1lem9uZQoKR0hfVE9LRU4gPSBvcy5lbnZpcm9uWyJSRUxBWV9HSF9QQVQiXQpHSF9IRUFERVJTID0gewogICAgIkF1dGhvcml6YXRpb24iOiBmIkJlYXJlciB7R0hfVE9LRU59IiwKICAgICJBY2NlcHQiOiAiYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uIiwKICAgICJVc2VyLUFnZW50IjogInNvY2Nlci1sZWFndWUtbGFiZWwtY2ktY2hlY2siLAp9ClVBID0gIk1vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYiClJFTEFZID0gImh0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYiCkVYQ0xVREVEX0VTUE5fU1BPUlRTID0geyJiYXNlYmFsbCIsICJmb290YmFsbCIsICJiYXNrZXRiYWxsIiwgImF1c3RyYWxpYW4tZm9vdGJhbGwifQoKZGVmIGZldGNoX2ZpbGUocGF0aCk6CiAgICB1cmwgPSBmImh0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3MvamVmZnVuZ2xlc2JlZS1jcmVhdGUvZmllbGQtcmVsYXktbmJhL2NvbnRlbnRzL3twYXRofT9yZWY9bWFpbiIKICAgIHJlcSA9IHVybGxpYi5yZXF1ZXN0LlJlcXVlc3QodXJsLCBoZWFkZXJzPUdIX0hFQURFUlMpCiAgICB3aXRoIHVybGxpYi5yZXF1ZXN0LnVybG9wZW4ocmVxLCB0aW1lb3V0PTIwKSBhcyByOgogICAgICAgIGRhdGEgPSBqc29uLmxvYWQocikKICAgIHJldHVybiBiYXNlNjQuYjY0ZGVjb2RlKGRhdGFbImNvbnRlbnQiXSkuZGVjb2RlKCJ1dGYtOCIpCgpkZWYgcmVsYXlfZ2V0KHBhdGgpOgogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdChmIntSRUxBWX17cGF0aH0iLCBoZWFkZXJzPXsiVXNlci1BZ2VudCI6IFVBfSkKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9MjApIGFzIHI6CiAgICAgICAgcmV0dXJuIGpzb24ubG9hZChyKQoKY29udGVudCA9IGZldGNoX2ZpbGUoInNyYy9pbmRleC5qcyIpCgptID0gcmUuc2VhcmNoKHIiY29uc3QgU09DQ0VSX0xFQUdVRV9MQUJFTFMgPSBceyhbXnt9XSopXH07IiwgY29udGVudCkKaWYgbm90IG06CiAgICBwcmludCgiU09DQ0VSX0xFQUdVRV9MQUJFTFMgY29uc3RhbnQgbm90IGZvdW5kIGluIHNyYy9pbmRleC5qcyIpCiAgICBzeXMuZXhpdCgxKQpsYWJlbHMgPSBkaWN0KHJlLmZpbmRhbGwociIoXHcrKTpccyAnKFteJ10rKSciLCBtLmdyb3VwKDEpKSkKcHJpbnQoZiJTT0NDRVJfTEVBR1VFX0xBQkVMUzoge2xlbihsYWJlbHMpfSBlbnRyaWVzOiB7bGFiZWxzfSIpCgptID0gcmUuc2VhcmNoKHIiY29uc3QgVjJfTEVBR1VFUyA9IFx7KC4qPylcblx9OyIsIGNvbnRlbnQsIHJlLkRPVEFMTCkKaWYgbm90IG06CiAgICBwcmludCgiVjJfTEVBR1VFUyBjb25zdGFudCBub3QgZm91bmQgaW4gc3JjL2luZGV4LmpzIikKICAgIHN5cy5leGl0KDEpCnYyX2Jsb2NrID0gbS5ncm91cCgxKQoKcm91dGVkX2tleXMgPSBbXQpmb3Iga20gaW4gcmUuZmluZGl0ZXIociInKFx3KyknOlxzKlx7KFtee31dKilcfSIsIHYyX2Jsb2NrKToKICAgIGtleSwgYm9keSA9IGttLmdyb3VwKDEpLCBrbS5ncm91cCgyKQogICAgZXNwX2xlYWd1ZV9tID0gcmUuc2VhcmNoKHIiZXNwbkxlYWd1ZTpccyAnKFteJ10rKSciLCBib2R5KQogICAgaWYgbm90IGVzcF9sZWFndWVfbToKICAgICAgICBjb250aW51ZQogICAgaWYgcmUuc2VhcmNoKHIiZXNwblNvdXJjZTpccyt0cnVlIiwgYm9keSk6CiAgICAgICAgY29udGludWUKICAgIGVzcF9zcG9ydF9tID0gcmUuc2VhcmNoKHIiZXNwblNwb3J0OlxzKicoW14nXSspJyIsIGJvZHkpCiAgICBlc3Bfc3BvcnQgPSBlc3Bfc3BvcnRfbS5ncm91cCgxKSBpZiBlc3Bfc3BvcnRfbSBlbHNlIE5vbmUKICAgIGlmIGVzcF9zcG9ydCBpbiB7ImJhc2ViYWxsIiwgImZvb3RiYWxsIiwgImJhc2tldGJhbGwiLCAiYXVzdHJhbGlhbi1mb290YmFsbCJ9OgogICAgICAgIGNvbnRpbnVlCiAgICByb3V0ZWRfa2V5cy5hcHBlbmQoa2V5KQoKcHJpbnQoZiJLZXlzIHJvdXRpbmcgdGhyb3VnaCBhZGFwdEVTUE5XQ1NvY2Nlcjoge3JvdXRlZF9rZXlzfSIpCgp1bmNvdmVyZWQgPSBbayBmb3IgayBpbiByb3V0ZWRfa2V5cyBpZiBrIG5vdCBpbiBsYWJlbHNdCgp0b2RheSA9IGRhdGV0aW1lLm5vdyh0aW1lem9uZS51dGMpLnN0cmZ0aW1lKCIlWS0lbS0lZCIpCm1pc21hdGNoZXMgPSBbXQpjaGVja2VkX3dpdGhfZ2FtZXMgPSBbXQp6ZXJvX2dhbWVfa2V5cyA9IFtdCmZvciBrZXkgaW4gcm91dGVkX2tleXM6CiAgICBleHBlY3RlZCA9IGxhYmVscy5nZXQoa2V5KQogICAgdHJ5OgogICAgICAgIGRhdGEgPSByZWxheV9nZXQoZiIvdjIvZ2FtZXM/c3BvcnQ9e2tleX0mZGF0ZT17dG9kYXl9IikKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBwcmludChmIiAge2tleX06IHJlcXVlc3QgZmFpbGVkICh7ZX0pIikKICAgICAgICBjb250aW51ZQogICAgZ2FtZXMgPSBkYXRhLmdldCgiZ2FtZXMiKSBvciBbXQogICAgaWYgbm90IGdhbWVzOgogICAgICAgIHplcm9fZ2FtZV9rZXlzLmFwcGVuZChrZXkpCiAgICAgICAgY29udGludWUKICAgIGFjdHVhbCA9IGdhbWVzWzBdLmdldCgibGVhZ3VlIikKICAgIGNoZWNrZWRfd2l0aF9nYW1lcy5hcHBlbmQoKGtleSwgYWN0dWFsLCBleHBlY3RlZCkpCiAgICBpZiBleHBlY3RlZCBpcyBOb25lIG9yIGFjdHVhbCAhPSBleHBlY3RlZDoKICAgICAgICBtaXNtYXRjaGVzLmFwcGVuZCgoa2V5LCBhY3R1YWwsIGV4cGVjdGVkKSkKCnByaW50KGYiRGF0ZToge3RvZGF5fSIpCnByaW50KGYiWmVybyBnYW1lcyB0b2RheSAoc2tpcHBlZCk6IHt6ZXJvX2dhbWVfa2V5c30iKQpwcmludChmIkNoZWNrZWQgd2l0aCBnYW1lczoge2NoZWNrZWRfd2l0aF9nYW1lc30iKQoKaWYgdW5jb3ZlcmVkIG9yIG1pc21hdGNoZXM6CiAgICBwcmludCgiU09DQ0VSIExFQUdVRSBMQUJFTCBWSU9MQVRJT05TOiIpCiAgICBmb3IgayBpbiB1bmNvdmVyZWQ6CiAgICAgICAgcHJpbnQoZiIgIHtrfTogbm8gU09DQ0VSX0xFQUdVRV9MQUJFTFMgZW50cnkiKQogICAgZm9yIGtleSwgYWN0dWFsLCBleHBlY3RlZCBpbiBtaXNtYXRjaGVzOgogICAgICAgIHByaW50KGYiICB7a2V5fTogZ290IHthY3R1YWwhcn0sIGV4cGVjdGVkIHtleHBlY3RlZCFyfSIpCiAgICBzeXMuZXhpdCgxKQoKcHJpbnQoIk5vIHNvY2NlciBsZWFndWUgbGFiZWwgdmlvbGF0aW9ucy4iKQo=" | base64 -d > /tmp/soccer_league_label_check.py
+          python3 /tmp/soccer_league_label_check.py
+
+      - name: /pl/fixtures route smoke — array shape, required fields present
+        run: |
+          python3 - <<'PYEOF'
+import json, sys, urllib.request
+
+RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
+UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+
+req = urllib.request.Request(f'{RELAY}/pl/fixtures', headers={'User-Agent': UA})
+with urllib.request.urlopen(req, timeout=20) as r:
+    status = r.status
+    body = r.read()
+
+print(f'HTTP {status}')
+if status != 200:
+    print(f'FAIL: expected 200, got {status}')
+    sys.exit(1)
+
+data = json.loads(body)
+if not isinstance(data, list):
+    print(f'FAIL: expected JSON array, got {type(data).__name__}: {str(body)[:200]}')
+    sys.exit(1)
+
+print(f'Fixtures returned: {len(data)}')
+if not data:
+    print('SOFT-SKIP: zero fixtures (off-season or pre-season). Not a code failure.')
+    sys.exit(0)
+
+REQUIRED = {'id', 'status', 'home', 'away', 'kickoff'}
+missing = REQUIRED - set(data[0].keys())
+if missing:
+    print(f'FAIL: first fixture missing required fields: {missing}')
+    print(f'Got keys: {list(data[0].keys())}')
+    sys.exit(1)
+
+print(f'PASS: /pl/fixtures returned {len(data)} fixture(s), shape OK. Sample: {json.dumps(data[0])[:200]}')
+PYEOF
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add outbox/live-verify-*.md
+          git commit -m "chore: post-deploy live verification [skip ci]" || echo "nothing to commit"
+          git push
+
