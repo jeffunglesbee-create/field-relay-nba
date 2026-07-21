@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (investigate-post-deploy-verify-failures)
+
+**HEAD:** 61347c5
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-investigate-post-deploy-verify-failures.md
+
+### Commits this session
+- `fdd6f26` — ci: re-index workflow_dispatch trigger for post-deploy-live-verify [skip ci]
+- `4c740d7` — ci: one-shot investigation workflow for post-deploy-verify failures [skip ci]
+- `61347c5` — docs: add investigation session doc; remove one-shot workflow [skip ci]
+
+### Post-deploy-verify investigation: COMPLETE
+
+Runs 29791908505 (`22ed3df`) and 29791607446 (`e48c12b`) both confirm 0 jobs / no log content.
+The `conclusion: "failure"` is a workflow-level issue (job never queued) — not a probe defect.
+
+Direct probe results (via probe_relay_route, 2026-07-21):
+- `/pl/fixtures`: HTTP 200, 40 fixtures, all required fields present — PASS
+- Soccer league label: zero games today (off-season, all soccer keys) — correctly skipped
+- Circadian: HTTP 200 both phases (ok:false/text:null = no journalism yet today, expected)
+
+**Conclusion: structural workflow issue, not a data/code defect. No fix needed.**
+
+`workflow_dispatch` is blocked repo-wide (422 on all workflows). Separate issue,
+out of scope — requires GitHub admin action, not a code change.
+
+Confidence: 73/100 (sub-95 — no src/ commit made, session doc only).
+
+### Pre-existing failures (not caused by this session)
+- `post-deploy-live-verify.yml` — structural 0-job issue confirmed; pre-existing
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (complete-combined-judge-test)
 
 **HEAD:** 1f02f43
