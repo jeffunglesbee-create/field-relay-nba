@@ -1,5 +1,40 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (combined-prefilter-test)
+
+**HEAD:** b7edca1
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-combined-prefilter-test.md
+
+### Commits this session
+- `b7edca1` — feat: add combined-generate-judge and prefilter probe routes [Step 2]
+
+### Prefilter test: Steps 1–4 COMPLETE
+
+Gate A ✓ 0/5 FAIL cases return SKIP_JUDGE | Gate B ✓ 5/5 PASS cases (100%) | Gate C ✓ 0.0014ms
+
+All gates pass on representative corpus (see session doc for caveats on corpus construction).
+Step 5 NOT authorized per user prompt.
+
+### Combined test: Steps 3–4 STAGED
+
+Probe routes deployed (b7edca1). Steps 3–4 blocked by sandbox egress policy (403 to workers.dev).
+Exact verification commands in session doc. Requires relay egress access to execute.
+Step 5 requires: all four gates pass + explicit re-authorization.
+
+### Open test routes (cleanup required if Step 5 ever authorized)
+- `/test/workers-ai-judge` (+ ?format=passfail, ?format=reframe) in src/index.js + ALLOWED_EXACT — from 2026-07-20
+- `/test/gemini-judge` in src/index.js + ALLOWED_EXACT — from 2026-07-20
+- `/test/combined-generate-judge` in src/index.js + ALLOWED_EXACT — this session
+- `/test/prefilter` in src/index.js + ALLOWED_EXACT — this session
+- `[ai]` binding in wrangler.toml (test-only)
+
+### Carry-forwards
+- Combined test Steps 3–4: STAGED (egress restriction). See session doc for verification commands.
+- Both Step 5s: NOT authorized. Require explicit re-authorization after combined gates pass.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-20 (workers-ai-judge-test — extended)
 
 **HEAD:** 0fad644
