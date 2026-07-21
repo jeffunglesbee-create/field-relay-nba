@@ -1,5 +1,32 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (test-real-commit-reindex)
+
+**HEAD:** 9ba4a82 (+ pending session doc commit)
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-test-real-commit-reindex.md
+
+### Commits this session
+- `9ba4a82` — ci: force-reindex workflow_dispatch trigger on post-deploy-live-verify
+
+### Reindex hypothesis: RULED OUT
+
+Real non-skip-ci commit to `post-deploy-live-verify.yml` did not resolve the 422.
+`workflow updated_at` remains frozen at `2026-07-18T20:28:18-04:00` despite the push.
+Same token dispatches `deploy.yml` successfully — failure is workflow-ID-specific.
+
+**Root cause:** GitHub's dispatch registry has a frozen/corrupt entry for
+workflow ID 306981489. Cannot be fixed via file edits or token changes.
+
+**Escalation for Jeff:** Check GitHub UI → Actions → "Post-deploy live verification"
+— if "Run workflow" button is missing/greyed while present for Deploy RELAY Worker,
+that confirms frozen trigger entry → GitHub support or delete-and-recreate under
+a different filename.
+
+Confidence: 100/100.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (investigate-post-deploy-verify-failures)
 
 **HEAD:** 61347c5
