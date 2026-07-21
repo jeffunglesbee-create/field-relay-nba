@@ -1,27 +1,36 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-07-21 (recreate-workflow-new-filename)
+## SESSION CLOSE-OUT — 2026-07-21 (recreate-workflow-new-filename) — UPDATED
 
-**HEAD:** ae981f7
+**HEAD:** (see commits below)
 **Branch:** main
 **Session doc:** outbox/cc-session-2026-07-21-recreate-workflow-new-filename.md
 
 ### Commits this session
 - `ae981f7` — ci: recreate post-deploy-live-verify.yml as post-deploy-verify.yml to escape frozen registry entry (ID 306981489)
+- `a5db076` — ci: break R100 rename identity to force GitHub YAML reindex on post-deploy-verify
+- `2e509a5` — ci: one-shot poll-and-dispatch workflow to verify post-deploy-verify.yml indexing [skip ci]
+- `2b2077f` — ci: give dispatch-verify-once write perms for self-cleanup on success [skip ci]
+- (cleanup commit) — ci: confirmed both triggers broken; remove dispatch-verify-once.yml [skip ci]
 
-### Result: 90/100 — sub-95, reporting verbatim per CC-CMD
+### Result: ESCALATE — Both triggers broken on workflow ID 317109373
 
-Tasks 1 and 2 COMPLETE: new file `.github/workflows/post-deploy-verify.yml` (ID 317109373, `created_at = updated_at = 2026-07-21T02:33:45Z`) committed atomically with deletion of old file. Git detected R100 rename. Old frozen entry (ID 306981489) is gone.
+**Tasks 1 and 2 COMPLETE:** `post-deploy-verify.yml` committed (ID 317109373), old frozen entry (ID 306981489) gone.
 
-Task 3 NOT CONFIRMED: dispatch returned 422 immediately after push. Diagnostic: GitHub registered new workflow path (new ID, `created_at` matches push time) but has not yet indexed YAML content (`name` shows file path, not `"Post-deploy live verification"`). This is propagation delay, not a frozen entry. Dispatch will work once GitHub indexes YAML content.
+**Task 3 FAILED:** `workflow_dispatch` returns 422. 60 minutes of polling confirmed this is NOT propagation delay — GitHub never indexed the YAML content. `name` still shows file path, not `"Post-deploy live verification"`.
 
-Task 4 PENDING: `workflow_run` trigger (fires when "Deploy RELAY Worker" completes) can only be confirmed on next real deploy.
+**Task 4 FAILED:** `workflow_run` trigger also did not fire. Deploy run 29834902927 ("Deploy RELAY Worker") completed `success` at 2026-07-21T13:34Z. `post-deploy-verify.yml` shows only 2 runs — both `event: push` from earlier commits — no `workflow_run` run appeared. YAML content must be indexed for the trigger event subscription to be registered; it isn't.
 
-### Next verification (for Jeff or next session)
-```bash
-gh workflow run post-deploy-verify.yml --repo jeffunglesbee-create/field-relay-nba
-```
-Success (204 no body) = rename escaped the frozen registry. If still 422 but `name` now shows "Post-deploy live verification" (not the path), that confirms a new frozen entry on ID 317109373 requiring escalation.
+**Root cause:** GitHub's YAML indexing pipeline is frozen for all new workflow files in this repo. Both `workflow_dispatch` and `workflow_run` require YAML content parsing; `push` triggers on the file do not. Only `deploy.yml` (ID 278094868, indexed May 2026) is functional.
+
+**Not fixable via file changes.** Rename succeeded structurally but hit the same freeze on the new ID.
+
+### Escalation required (for Jeff)
+Open a GitHub Support ticket:
+- Repo: `jeffunglesbee-create/field-relay-nba`
+- Workflow ID: 317109373 (`post-deploy-verify.yml`)
+- Issue: YAML content never indexed after creation 2026-07-21T02:33Z. `workflow_dispatch` returns 422, `workflow_run` never fires. `name` in workflow registry shows file path instead of YAML `name:` field. `push` trigger works. Only `deploy.yml` (ID 278094868) is functional.
+- Ask: Force re-index of YAML content for workflow ID 317109373.
 
 ---
 
