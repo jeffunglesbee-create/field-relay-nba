@@ -1,5 +1,24 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (chat-closeout) — FINAL
+
+**HEAD:** 561ab98
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-chat-closeout.md
+
+### What happened
+Chat session close-out. Pushed the pending outbox + HANDOFF commit (`561ab98`) that
+carried over from the prior context window. No src/ changes. Research only.
+
+**Verify job:** VERIFIED and stable. Run 29843677043 (`workflow_dispatch`, HEAD
+`8379f69`): `success`. All 9 probe steps green. System is clean.
+
+### Carry-forwards
+- Cancel GitHub Support ticket for workflow ID 317109373 if opened — YAML syntax
+  error was the root cause, not a GitHub-side freeze. Ticket is unnecessary.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (verify-job-deploy)
 
 **HEAD:** bbbe4af
