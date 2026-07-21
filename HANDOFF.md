@@ -18,11 +18,10 @@ All verification steps from `post-deploy-verify.yml` are now a second job (`veri
 
 **YAML lint added to workflow edit protocol:** `python3 -c "import yaml; yaml.safe_load(...)"` before every push.
 
-**Verify job status:** `workflow_dispatch` triggered at 14:52:42Z on 2026-07-21. Run in progress as of session close. Next session should confirm the run passed.
+**Verify job status:** VERIFIED. Run 29843677043 (`workflow_dispatch`, 15:22:38Z, HEAD `8379f69`): `success`. Both deploy + verify jobs passed. All 9 probe steps green. Confidence-gate flagged two prior sub-95 docs on first run; both reviewed and acknowledged in `docs/confidence-gate-acknowledged.txt` (`8379f69`); second run clean.
 
 ### Carry-forwards
-- Confirm triggered run passed (verify job first real execution).
-- Cancel GitHub Support ticket for workflow ID 317109373 if it was opened — root cause was YAML syntax, not a GitHub-side registry freeze.
+- Cancel GitHub Support ticket for workflow ID 317109373 if it was opened — root cause was YAML syntax error in the workflow file, not a GitHub-side registry freeze.
 
 ---
 

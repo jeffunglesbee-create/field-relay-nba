@@ -38,9 +38,12 @@ The prior sessions' "GitHub YAML indexing freeze" diagnosis for `post-deploy-ver
 
 ## Integration Status
 
-STAGED — `workflow_dispatch` triggered manually at 14:52:42Z on 2026-07-21 to confirm verify job runs. Run in progress as of session doc write. Confirm via GitHub Actions that `verify` job appears with >0 jobs and passes.
+VERIFIED — Run 29843677043 (`workflow_dispatch`, 2026-07-21T15:22:38Z, HEAD `8379f69`): `success`. Both jobs queued and passed:
+- `deploy` job: completed
+- `verify` job: all 9 probe steps passed (circadian, /context/game brief bridge, bracketDelta, confidence-gate, rule registry, rule 90 staleness, completion field parity, went-to-OT invariant, /pl/fixtures smoke)
+
+**Confidence-gate step detail:** Two prior session docs (73/100 and 90/100) flagged on first run. Both reviewed and acknowledged in `docs/confidence-gate-acknowledged.txt` (commit `8379f69`) — structural ceilings, not code defects, no src/ commits in either session. Gate cleared on second run.
 
 ## Open Carry-Forwards
 
-- Confirm verify job passes on the triggered run (run in progress).
-- If `post-deploy-verify.yml` YAML syntax was indeed the root cause of the original failure: the GitHub Support escalation documented in HANDOFF.md (for workflow ID 317109373) is likely unnecessary. Jeff can close/cancel that ticket if it was opened.
+- If `post-deploy-verify.yml` YAML syntax was the root cause of the original failure: the GitHub Support escalation documented in HANDOFF.md (for workflow ID 317109373) is likely unnecessary. Jeff can close/cancel that ticket if it was opened.
