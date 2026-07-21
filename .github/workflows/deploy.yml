@@ -766,38 +766,8 @@ jobs:
 
       - name: bracketDelta end-to-end probe -- espn:760516 gap-7 final verification
         run: |
-          python3 - <<'PYEOF'
-import json, sys, urllib.request
-
-UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
-RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
-GAME_ID = 'espn:760516'
-
-req = urllib.request.Request(
-    f'{RELAY}/context/game/{GAME_ID}',
-    headers={'User-Agent': UA},
-)
-with urllib.request.urlopen(req, timeout=20) as r:
-    xcache = r.getheader('X-Cache', 'MISS')
-    body = r.read()
-
-d = json.loads(body)
-bracket_delta = d.get('bracketDelta')
-print(f'X-Cache: {xcache}')
-print(f'bracketDelta: {json.dumps(bracket_delta)[:200] if bracket_delta is not None else "null"}')
-
-if bracket_delta is None:
-    if xcache == 'HIT':
-        print('SOFT-WARN: bracketDelta null on KV cache HIT — stale 300s TTL response still active. Will self-heal. Not a code failure.')
-        sys.exit(0)
-    else:
-        print(f'FAIL: bracketDelta null on KV cache MISS for {GAME_ID} — fix-bracketdelta-prefix did not take effect.')
-        print('Full response:', json.dumps(d))
-        sys.exit(1)
-
-tg = bracket_delta.get('triggerGame', '')
-print(f'PASS: bracketDelta populated. triggerGame={tg!r}')
-PYEOF
+          echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClVBID0gJ01vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyNC4wIFNhZmFyaS81MzcuMzYnClJFTEFZID0gJ2h0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYnCkdBTUVfSUQgPSAnZXNwbjo3NjA1MTYnCgpyZXEgPSB1cmxsaWIucmVxdWVzdC5SZXF1ZXN0KAogICAgZid7UkVMQVl9L2NvbnRleHQvZ2FtZS97R0FNRV9JRH0nLAogICAgaGVhZGVycz17J1VzZXItQWdlbnQnOiBVQX0sCikKd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgIHhjYWNoZSA9IHIuZ2V0aGVhZGVyKCdYLUNhY2hlJywgJ01JU1MnKQogICAgYm9keSA9IHIucmVhZCgpCgpkID0ganNvbi5sb2Fkcyhib2R5KQpicmFja2V0X2RlbHRhID0gZC5nZXQoJ2JyYWNrZXREZWx0YScpCnByaW50KGYnWC1DYWNoZToge3hjYWNoZX0nKQpwcmludChmJ2JyYWNrZXREZWx0YToge2pzb24uZHVtcHMoYnJhY2tldF9kZWx0YSlbOjIwMF0gaWYgYnJhY2tldF9kZWx0YSBpcyBub3QgTm9uZSBlbHNlICJudWxsIn0nKQoKaWYgYnJhY2tldF9kZWx0YSBpcyBOb25lOgogICAgaWYgeGNhY2hlID09ICdISVQnOgogICAgICAgIHByaW50KCdTT0ZULVdBUk46IGJyYWNrZXREZWx0YSBudWxsIG9uIEtWIGNhY2hlIEhJVCAtLSBzdGFsZSAzMDBzIFRUTCByZXNwb25zZSBzdGlsbCBhY3RpdmUuIFdpbGwgc2VsZi1oZWFsLiBOb3QgYSBjb2RlIGZhaWx1cmUuJykKICAgICAgICBzeXMuZXhpdCgwKQogICAgZWxzZToKICAgICAgICBwcmludChmJ0ZBSUw6IGJyYWNrZXREZWx0YSBudWxsIG9uIEtWIGNhY2hlIE1JU1MgZm9yIHtHQU1FX0lEfSAtLSBmaXgtYnJhY2tldGRlbHRhLXByZWZpeCBkaWQgbm90IHRha2UgZWZmZWN0LicpCiAgICAgICAgcHJpbnQoJ0Z1bGwgcmVzcG9uc2U6JywganNvbi5kdW1wcyhkKSkKICAgICAgICBzeXMuZXhpdCgxKQoKdGcgPSBicmFja2V0X2RlbHRhLmdldCgndHJpZ2dlckdhbWUnLCAnJykKcHJpbnQoZidQQVNTOiBicmFja2V0RGVsdGEgcG9wdWxhdGVkLiB0cmlnZ2VyR2FtZT17dGchcn0nKQo=" | base64 -d > /tmp/bracket_delta_probe.py
+          python3 /tmp/bracket_delta_probe.py
 
       - name: Check for confidence-gate violations
         run: |
@@ -859,41 +829,8 @@ PYEOF
 
       - name: /pl/fixtures route smoke — array shape, required fields present
         run: |
-          python3 - <<'PYEOF'
-import json, sys, urllib.request
-
-RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
-UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
-
-req = urllib.request.Request(f'{RELAY}/pl/fixtures', headers={'User-Agent': UA})
-with urllib.request.urlopen(req, timeout=20) as r:
-    status = r.status
-    body = r.read()
-
-print(f'HTTP {status}')
-if status != 200:
-    print(f'FAIL: expected 200, got {status}')
-    sys.exit(1)
-
-data = json.loads(body)
-if not isinstance(data, list):
-    print(f'FAIL: expected JSON array, got {type(data).__name__}: {str(body)[:200]}')
-    sys.exit(1)
-
-print(f'Fixtures returned: {len(data)}')
-if not data:
-    print('SOFT-SKIP: zero fixtures (off-season or pre-season). Not a code failure.')
-    sys.exit(0)
-
-REQUIRED = {'id', 'status', 'home', 'away', 'kickoff'}
-missing = REQUIRED - set(data[0].keys())
-if missing:
-    print(f'FAIL: first fixture missing required fields: {missing}')
-    print(f'Got keys: {list(data[0].keys())}')
-    sys.exit(1)
-
-print(f'PASS: /pl/fixtures returned {len(data)} fixture(s), shape OK. Sample: {json.dumps(data[0])[:200]}')
-PYEOF
+          echo "aW1wb3J0IGpzb24sIHN5cywgdXJsbGliLnJlcXVlc3QKClJFTEFZID0gJ2h0dHBzOi8vZmllbGQtcmVsYXktbmJhLmplZmZ1bmdsZXNiZWUud29ya2Vycy5kZXYnClVBID0gJ01vemlsbGEvNS4wIChYMTE7IExpbnV4IHg4Nl82NCkgQXBwbGVXZWJLaXQvNTM3LjM2JwoKcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdChmJ3tSRUxBWX0vcGwvZml4dHVyZXMnLCBoZWFkZXJzPXsnVXNlci1BZ2VudCc6IFVBfSkKd2l0aCB1cmxsaWIucmVxdWVzdC51cmxvcGVuKHJlcSwgdGltZW91dD0yMCkgYXMgcjoKICAgIHN0YXR1cyA9IHIuc3RhdHVzCiAgICBib2R5ID0gci5yZWFkKCkKCnByaW50KGYnSFRUUCB7c3RhdHVzfScpCmlmIHN0YXR1cyAhPSAyMDA6CiAgICBwcmludChmJ0ZBSUw6IGV4cGVjdGVkIDIwMCwgZ290IHtzdGF0dXN9JykKICAgIHN5cy5leGl0KDEpCgpkYXRhID0ganNvbi5sb2Fkcyhib2R5KQppZiBub3QgaXNpbnN0YW5jZShkYXRhLCBsaXN0KToKICAgIHByaW50KGYnRkFJTDogZXhwZWN0ZWQgSlNPTiBhcnJheSwgZ290IHt0eXBlKGRhdGEpLl9fbmFtZV9ffToge3N0cihib2R5KVs6MjAwXX0nKQogICAgc3lzLmV4aXQoMSkKCnByaW50KGYnRml4dHVyZXMgcmV0dXJuZWQ6IHtsZW4oZGF0YSl9JykKaWYgbm90IGRhdGE6CiAgICBwcmludCgnU09GVC1TS0lQOiB6ZXJvIGZpeHR1cmVzIChvZmYtc2Vhc29uIG9yIHByZS1zZWFzb24pLiBOb3QgYSBjb2RlIGZhaWx1cmUuJykKICAgIHN5cy5leGl0KDApCgpSRVFVSVJFRCA9IHsiaWQiLCAic3RhdHVzIiwgImhvbWUiLCAiYXdheSIsICJraWNrb2ZmIn0KbWlzc2luZyA9IFJFUVVJUkVEIC0gc2V0KGRhdGFbMF0ua2V5cygpKQppZiBtaXNzaW5nOgogICAgcHJpbnQoZidGQUlMOiBmaXJzdCBmaXh0dXJlIG1pc3NpbmcgcmVxdWlyZWQgZmllbGRzOiB7bWlzc2luZ30nKQogICAgcHJpbnQoZidHb3Qga2V5czoge2xpc3QoZGF0YVswXS5rZXlzKCkpfScpCiAgICBzeXMuZXhpdCgxKQoKcHJpbnQoZidQQVNTOiAvcGwvZml4dHVyZXMgcmV0dXJuZWQge2xlbihkYXRhKX0gZml4dHVyZShzKSwgc2hhcGUgT0suIFNhbXBsZToge2pzb24uZHVtcHMoZGF0YVswXSlbOjIwMF19JykK" | base64 -d > /tmp/pl_fixtures_smoke.py
+          python3 /tmp/pl_fixtures_smoke.py
 
       - name: Commit results
         run: |
