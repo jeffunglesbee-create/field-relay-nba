@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-21 (record-streak-board) — FINAL
+
+**HEAD:** 8c5e1bf (after CI auto-commit live-verify outbox)
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-21-record-streak-board.md
+
+### Commits this session
+- `11e6489` — feat: Phase 13 Record Streak Board — real win/loss streaks, separate from Phase 7's quality-based streak_board (fixes streak-board-metric-mismatch)
+- `ddf9a41` — ci: add Phase 13 record-streak-board probe to verify job [skip ci]
+- `8c5e1bf` — chore: post-deploy live verification [skip ci] (CI auto-commit)
+
+### Result: Phase 13 SHIPPED — real win/loss streaks live
+
+`runPhase13RecordStreakBoard` added to `src/analytics-engine.js`, wired into `processDate` + `PURE_PHASE_DISPATCH`. New `/analytics/record-streak/recompute` endpoint in `src/index.js`. `record_streak_board` field added to newspaper bundle.
+
+**Live verification (deploy run 29864646895):** POST → HTTP 200, `ok: true`. Real teams: Red Sox (MLB) streak=10, Lynx (WNBA) streak=6. Phase 7 untouched: Brewers streak=19 (quality streaks, distinct). Newspaper null = SOFT-SKIP (cache timing; populates on next nightly cron). Confidence: 100/100.
+
+### Carry-forwards
+- Client (jubilant-bassoon) CC-CMD required: rewire STREAK BOARD card from `streak_board` (Phase 7 quality) to `record_streak_board` (Phase 13 win/loss). Codex incident `streak-board-metric-mismatch`: relay side RESOLVED, client side OPEN.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-21 (chat-closeout) — FINAL
 
 **HEAD:** 561ab98
