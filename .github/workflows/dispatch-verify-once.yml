@@ -1,0 +1,46 @@
+name: Verify post-deploy-verify dispatch (one-shot)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/dispatch-verify-once.yml
+
+jobs:
+  poll-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll until post-deploy-verify.yml is indexed, then dispatch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MAX=6
+          DELAY=300
+          for i in $(seq 1 $MAX); do
+            echo "--- Attempt $i / $MAX ---"
+            NAME=$(gh api repos/jeffunglesbee-create/field-relay-nba/actions/workflows/post-deploy-verify.yml \
+              --jq '.name')
+            echo "Workflow name field: $NAME"
+
+            if [ "$NAME" = "Post-deploy live verification" ]; then
+              echo "YAML indexed. Attempting dispatch..."
+              STATUS=$(gh api -X POST \
+                repos/jeffunglesbee-create/field-relay-nba/actions/workflows/post-deploy-verify.yml/dispatches \
+                -f ref=main \
+                -w "%{http_code}" -o /dev/null 2>&1 || true)
+              echo "Dispatch HTTP status: $STATUS"
+              if [ "$STATUS" = "204" ]; then
+                echo "RESULT: SUCCESS — dispatch returned 204. Rename escaped frozen registry."
+                exit 0
+              else
+                echo "RESULT: FAIL — dispatch returned $STATUS after indexing. New frozen entry on ID 317109373. Escalate to GitHub support."
+                exit 1
+              fi
+            else
+              if [ "$i" -lt "$MAX" ]; then
+                echo "Not yet indexed. Waiting ${DELAY}s..."
+                sleep $DELAY
+              fi
+            fi
+          done
+          echo "RESULT: TIMEOUT — workflow not indexed after $((MAX * DELAY / 60)) minutes. GitHub propagation issue or new frozen entry."
+          exit 1
