@@ -1,0 +1,16 @@
+=== field-playground MCP Live Verification [20260722T222646Z] ===
+Worker: https://field-relay-nba.jeffunglesbee.workers.dev
+
+--- STEP 1: read_file README.md from repo=field-playground ---
+HTTP status: 200
+Response body: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-playground\",\"path\":\"README.md\",\"sha\":\"a731811c6e244bbeb3d4e04b168fe1b6e7794fa7\",\"size\":18,\"content\":\"# field-playground\"}"}]}}
+PASS read_file returned content referencing field-playground
+Text excerpt: {"repo":"field-playground","path":"README.md","sha":"a731811c6e244bbeb3d4e04b168fe1b6e7794fa7","size":18,"content":"# field-playground"}
+
+--- STEP 2: commit_file docs/mcp-access-confirmed.md to repo=field-playground ---
+HTTP status: 200
+Response body: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-playground\",\"path\":\"docs/mcp-access-confirmed.md\",\"created\":true,\"commit\":\"e2f3f3e6b1bc9244823537079f1d9af78515253e\",\"message\":\"chore: confirm FIELD Handoff MCP access to field-playground [skip ci]\",\"new_sha\":\"76a4adf9238d807fcdc00686ec9b9357bfbe4a35\"}"}]}}
+PASS commit_file response references field-playground
+Text excerpt: {"repo":"field-playground","path":"docs/mcp-access-confirmed.md","created":true,"commit":"e2f3f3e6b1bc9244823537079f1d9af78515253e","message":"chore: confirm FIELD Handoff MCP access to field-playground [skip ci]","new_sha":"76a4adf9238d807fcdc00686ec9b9357bfbe4a35"}
+
+=== ALL STEPS PASSED — field-playground MCP routing verified ===
