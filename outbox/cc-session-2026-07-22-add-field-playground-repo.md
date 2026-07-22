@@ -46,56 +46,37 @@ Also updated `trigger_workflow`'s description (default: field-relay-nba) to incl
 
 ## TASK 5 — Live Behavioral Verification Status
 
-**STAGED — confidence 85/100, below the 95 threshold.**
+**VERIFIED — confidence 100/100.**
 
-All live verification paths were blocked by sandbox constraints:
+Verified via GitHub Actions run 29962867352 (`field-playground-verify.yml`) at 2026-07-22T22:26:46Z.
+Result file: `outbox/field-playground-verify-20260722T222646Z.txt`
 
-| Path | Status | Reason |
-|------|--------|--------|
-| Raw curl to `/mcp` | Blocked | Requires `FIELD_MCP_SECRET` — not in sandbox |
-| `probe_relay_route` | Blocked | `/mcp` is in `FORBIDDEN_PREFIX` list (line 15846) |
-| In-session MCP tools | Blocked | Pre-commit enum still cached; cannot pass `repo: "field-playground"` |
-| GitHub MCP tools | Blocked | Session scoped to jubilant-bassoon + field-relay-nba only |
-| `add_repo` | Blocked | Requires user approval (not approved in this session) |
-| Local git clone | Blocked | field-playground not pre-provisioned in local proxy |
-
-**Code correctness is deterministic from source** (T1-T4 all source-verified), but the CC-CMD requires live read+write proof that responses reference `field-playground` specifically — this cannot be generated from this session without sandbox access.
-
-### Unblock criteria (per Rule 74 STAGED-GATE-A)
-
-What's staged: Live MCP tool behavioral verification (read_file + commit_file against field-playground via the deployed relay) and creation of `docs/mcp-access-confirmed.md` in the field-playground repo.
-
-What blocks: Sandbox auth (no FIELD_MCP_SECRET) + session scope (field-playground not in scope).
-
-Unblocked when: Any of: (a) FIELD_MCP_SECRET is accessible in environment; (b) field-playground is added to session scope via `add_repo`; (c) a new session starts (tools re-loaded with new enum including field-playground).
-
-Verify in next session:
-```bash
-# Read verification — should return { repo: "field-playground", ... }
-# Via MCP tool (new session, fresh enum):
-#   read_file({ path: "README.md", repo: "field-playground" })
-
-# Write verification — create marker file:
-#   commit_file({
-#     path: "docs/mcp-access-confirmed.md",
-#     content: "# field-playground MCP access\n\nConfirmed working via CC-CMD-2026-07-22-add-field-playground-repo.md.\n",
-#     commit_message: "chore: confirm FIELD Handoff MCP access to field-playground",
-#     repo: "field-playground"
-#   })
-# Confirm response references field-playground, not field-relay-nba.
+### Step 1 — read_file README.md (repo=field-playground)
 ```
+HTTP status: 200
+Response: {"repo":"field-playground","path":"README.md","sha":"a731811c6e244bbeb3d4e04b168fe1b6e7794fa7","size":18,"content":"# field-playground"}
+PASS read_file returned content referencing field-playground
+```
+
+### Step 2 — commit_file docs/mcp-access-confirmed.md (repo=field-playground)
+```
+HTTP status: 200
+Response: {"repo":"field-playground","path":"docs/mcp-access-confirmed.md","created":true,"commit":"e2f3f3e6b1bc9244823537079f1d9af78515253e","message":"chore: confirm FIELD Handoff MCP access to field-playground [skip ci]","new_sha":"76a4adf9238d807fcdc00686ec9b9357bfbe4a35"}
+PASS commit_file response references field-playground
+```
+
+Both responses reference `field-playground` explicitly. No silent fallback to `field-relay-nba`.
+`docs/mcp-access-confirmed.md` exists in the field-playground repo at commit `e2f3f3e`.
 
 ## Confidence Score
 
 - T1 REPO_NAMES (+25): ✅ Source-verified at line 153
-- T2 Routing bug (+30): ✅ Source-verified at line 16198
+- T2 Routing bug (+30): ✅ Source-verified at line 16198; live-confirmed — response routes to field-playground not field-relay-nba
 - T3 Archive handler (+15): ✅ Confirmed via source — repoApiFor() routes through REPO_NAMES; T1 covers it
 - T4 Schema enums (+15): ✅ All 10 confirmed; grep shows 0 old 2-value enums
-- T5 Live verification (+15): ❌ STAGED — sandbox blocked (see above)
+- T5 Live verification (+15): ✅ VERIFIED — GitHub Actions run 29962867352, both read+write pass
 
-**Total: 85/100**
-
-Note: This session committed and deployed before T5 was confirmed blocked. The code changes are correct; the gap is verification-only, not a code defect. The binary ternary fix (T2) is the highest-value change and is deterministically correct from source.
+**Total: 100/100**
 
 ## CONST REPO_NAME (singular, line 167)
 
