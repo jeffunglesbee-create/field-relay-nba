@@ -1,0 +1,150 @@
+name: field-playground MCP Live Verification
+
+# Verifies that the deployed FIELD Handoff MCP endpoint correctly routes
+# read_file and commit_file to field-playground (not silently falling back
+# to field-relay-nba). Completes TASK 5 of CC-CMD-2026-07-22-add-field-playground-repo.
+#
+# Trigger: workflow_dispatch OR push of outbox/.trigger-field-playground-verify
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['outbox/.trigger-field-playground-verify']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read + Write verification against deployed MCP endpoint
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          WORKER_BASE: https://field-relay-nba.jeffunglesbee.workers.dev
+        run: |
+          set -e
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          OUT="outbox/field-playground-verify-${TS}.txt"
+          echo "=== field-playground MCP Live Verification [$TS] ===" > "$OUT"
+          echo "Worker: $WORKER_BASE" >> "$OUT"
+          echo "" >> "$OUT"
+
+          python3 << 'PYEOF' >> "$OUT" 2>&1
+          import os, sys, json
+          import urllib.request, urllib.error
+
+          BASE = os.environ['WORKER_BASE']
+          SECRET = os.environ['FIELD_MCP_SECRET']
+          UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+          PASS = 'PASS'
+          FAIL = 'FAIL'
+
+          def mcp_call(method, params):
+              body = json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode()
+              req = urllib.request.Request(
+                  f'{BASE}/mcp',
+                  data=body,
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'X-FIELD-MCP-Secret': SECRET,
+                      'User-Agent': UA,
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, r.read().decode('utf-8', 'replace')
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode('utf-8', 'replace')
+
+          # ── STEP 1: read_file README.md from field-playground ──────────────
+          print("--- STEP 1: read_file README.md from repo=field-playground ---")
+          status, body = mcp_call('tools/call', {
+              'name': 'read_file',
+              'arguments': {'path': 'README.md', 'repo': 'field-playground'}
+          })
+          print(f"HTTP status: {status}")
+          print(f"Response body: {body[:800]}")
+          if status != 200:
+              print(f"{FAIL} HTTP {status}")
+              sys.exit(1)
+          result = json.loads(body)
+          # Check for error in JSONRPC result
+          if result.get('error'):
+              print(f"{FAIL} JSONRPC error: {result['error']}")
+              sys.exit(1)
+          # Extract text content
+          content_items = result.get('result', {}).get('content', [])
+          text = ' '.join(c.get('text','') for c in content_items)
+          # Critical check: response must reference field-playground not field-relay-nba
+          if 'field-playground' not in text:
+              print(f"{FAIL} Response does NOT reference field-playground — silent fallback suspected")
+              print(f"Full text: {text[:500]}")
+              sys.exit(1)
+          if 'field-relay-nba' in text and 'field-playground' not in text:
+              print(f"{FAIL} Response references field-relay-nba instead of field-playground — routing bug present")
+              sys.exit(1)
+          print(f"{PASS} read_file returned content referencing field-playground")
+          print(f"Text excerpt: {text[:200]}")
+
+          # ── STEP 2: commit_file docs/mcp-access-confirmed.md to field-playground ──
+          print("")
+          print("--- STEP 2: commit_file docs/mcp-access-confirmed.md to repo=field-playground ---")
+          file_content = "# field-playground MCP access\n\nConfirmed working via CC-CMD-2026-07-22-add-field-playground-repo.md.\n"
+          status, body = mcp_call('tools/call', {
+              'name': 'commit_file',
+              'arguments': {
+                  'path': 'docs/mcp-access-confirmed.md',
+                  'content': file_content,
+                  'commit_message': 'chore: confirm FIELD Handoff MCP access to field-playground',
+                  'repo': 'field-playground'
+              }
+          })
+          print(f"HTTP status: {status}")
+          print(f"Response body: {body[:800]}")
+          if status != 200:
+              print(f"{FAIL} HTTP {status}")
+              sys.exit(1)
+          result = json.loads(body)
+          if result.get('error'):
+              print(f"{FAIL} JSONRPC error: {result['error']}")
+              sys.exit(1)
+          content_items = result.get('result', {}).get('content', [])
+          text = ' '.join(c.get('text','') for c in content_items)
+          # Critical check: commit response must reference field-playground
+          if 'field-relay-nba' in text and 'field-playground' not in text:
+              print(f"{FAIL} commit went to field-relay-nba instead of field-playground — routing bug T2 not fixed")
+              print(f"Full text: {text[:500]}")
+              sys.exit(1)
+          if 'field-playground' not in text:
+              print(f"{FAIL} Response does NOT reference field-playground — cannot confirm routing")
+              print(f"Full text: {text[:500]}")
+              sys.exit(1)
+          print(f"{PASS} commit_file response references field-playground")
+          print(f"Text excerpt: {text[:300]}")
+
+          print("")
+          print("=== ALL STEPS PASSED — field-playground MCP routing verified ===")
+          PYEOF
+
+          EXIT_CODE=$?
+          echo "OUT=$OUT" >> $GITHUB_ENV
+          exit $EXIT_CODE
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "field-playground-verify"
+          git add "$OUT" || git add outbox/
+          git commit -m "chore: field-playground MCP verification result [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 2))
+          done
+        env:
+          OUT: ${{ env.OUT }}
