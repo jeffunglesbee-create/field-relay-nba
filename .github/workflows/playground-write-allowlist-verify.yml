@@ -1,0 +1,135 @@
+name: playground-write-allowlist verification
+
+# Verifies TASK 4 of CC-CMD-2026-07-23-playground-write-allowlist:
+# 1. field-playground accepts a root-level write (WRITE_ALLOWLIST bypassed)
+# 2. jubilant-bassoon still rejects a non-allowlisted path (no regression)
+#
+# Trigger: workflow_dispatch OR push of outbox/.trigger-playground-write-allowlist-verify
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['outbox/.trigger-playground-write-allowlist-verify']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write-allowlist behavioral verification
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          WORKER_BASE: https://field-relay-nba.jeffunglesbee.workers.dev
+        run: |
+          set -e
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          OUT="outbox/playground-write-allowlist-verify-${TS}.txt"
+          echo "=== playground-write-allowlist verification [$TS] ===" > "$OUT"
+          echo "" >> "$OUT"
+
+          python3 << 'PYEOF' >> "$OUT" 2>&1
+          import os, sys, json
+          import urllib.request, urllib.error
+
+          BASE = os.environ['WORKER_BASE']
+          SECRET = os.environ['FIELD_MCP_SECRET']
+          UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+          PASS = 'PASS'
+          FAIL = 'FAIL'
+
+          def mcp_call(method, params):
+              body = json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode()
+              req = urllib.request.Request(
+                  f'{BASE}/mcp',
+                  data=body,
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'X-FIELD-MCP-Secret': SECRET,
+                      'User-Agent': UA,
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      return r.status, r.read().decode('utf-8', 'replace')
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode('utf-8', 'replace')
+
+          # ── TEST 1: field-playground accepts root-level path ────────────────
+          print("--- TEST 1: commit_file WRITE-ALLOWLIST-TEST.md to field-playground (must SUCCEED) ---")
+          status, body = mcp_call('tools/call', {
+              'name': 'commit_file',
+              'arguments': {
+                  'path': 'WRITE-ALLOWLIST-TEST.md',
+                  'content': 'verified\n',
+                  'commit_message': 'chore: confirm unrestricted write access',
+                  'repo': 'field-playground'
+              }
+          })
+          print(f"HTTP status: {status}")
+          print(f"Response: {body[:600]}")
+          if status != 200:
+              print(f"{FAIL} HTTP {status} — expected 200")
+              sys.exit(1)
+          result = json.loads(body)
+          if result.get('error'):
+              print(f"{FAIL} JSONRPC error: {result['error']}")
+              sys.exit(1)
+          content_items = result.get('result', {}).get('content', [])
+          text = ' '.join(c.get('text','') for c in content_items)
+          if 'WRITE_ALLOWLIST' in text:
+              print(f"{FAIL} Got WRITE_ALLOWLIST rejection — fix did not deploy")
+              sys.exit(1)
+          if 'field-playground' not in text:
+              print(f"{FAIL} Response does not reference field-playground")
+              sys.exit(1)
+          print(f"{PASS} field-playground accepted root-level write: {text[:200]}")
+
+          # ── TEST 2: jubilant-bassoon still rejects non-allowlisted path ─────
+          print("")
+          print("--- TEST 2: commit_file SHOULD-BE-REJECTED.md to jubilant-bassoon (must FAIL with WRITE_ALLOWLIST error) ---")
+          status, body = mcp_call('tools/call', {
+              'name': 'commit_file',
+              'arguments': {
+                  'path': 'SHOULD-BE-REJECTED.md',
+                  'content': 'x\n',
+                  'commit_message': 'test',
+                  'repo': 'jubilant-bassoon'
+              }
+          })
+          print(f"HTTP status: {status}")
+          print(f"Response: {body[:600]}")
+          result = json.loads(body)
+          content_items = result.get('result', {}).get('content', [])
+          text = ' '.join(c.get('text','') for c in content_items)
+          if 'WRITE_ALLOWLIST' not in text:
+              print(f"{FAIL} jubilant-bassoon did NOT reject the path — ALLOWLIST LEAKED INTO PRODUCTION")
+              sys.exit(1)
+          print(f"{PASS} jubilant-bassoon correctly rejected: {text[:200]}")
+
+          print("")
+          print("=== ALL TESTS PASSED — field-playground unrestricted, jubilant-bassoon restriction intact ===")
+          PYEOF
+
+          EXIT_CODE=$?
+          echo "OUT=$OUT" >> $GITHUB_ENV
+          exit $EXIT_CODE
+
+      - name: Push result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "playground-write-allowlist-verify"
+          git add "$OUT" || git add outbox/
+          git commit -m "chore: playground-write-allowlist verification result [skip ci]" || echo "(nothing to commit)"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 2))
+          done
+        env:
+          OUT: ${{ env.OUT }}
