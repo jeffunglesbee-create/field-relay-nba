@@ -193,6 +193,7 @@ function isPathAllowed(path, allowlist) {
     if (typeof path !== 'string' || path.length === 0) return false;
     if (path.includes('..')) return false;
     if (path.startsWith('/')) return false;
+    if (allowlist === null) return true;
     return allowlist.some(prefix => path === prefix || path.startsWith(prefix));
 }
 
@@ -15235,7 +15236,7 @@ export default {
                     },
                     {
                         name: 'commit_file',
-                        description: 'Create or replace one file in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json). To UPDATE an existing file, pass parent_sha (the sha returned by read_file/read_source) — a stale or missing parent_sha for an existing file is rejected to prevent blind overwrite. To CREATE a new file, omit parent_sha entirely; if the path already exists this is rejected (re-read and use parent_sha instead). Commit message is auto-prefixed with [skip ci].',
+                        description: 'Create or replace one file in a repo (jubilant-bassoon, field-relay-nba, or field-playground; default jubilant-bassoon) and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), except field-playground, which accepts any path. To UPDATE an existing file, pass parent_sha (the sha returned by read_file/read_source) — a stale or missing parent_sha for an existing file is rejected to prevent blind overwrite. To CREATE a new file, omit parent_sha entirely; if the path already exists this is rejected (re-read and use parent_sha instead). Commit message is auto-prefixed with [skip ci].',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -15250,7 +15251,7 @@ export default {
                     },
                     {
                         name: 'commit_file_patch',
-                        description: 'Update an EXISTING file in a repo (jubilant-bassoon or field-relay-nba; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html, src/index.js) where round-tripping the whole body every edit is expensive. Each edit is {old_str, new_str}; old_str must occur exactly once in the file\'s current content (after any earlier edits in the same call have already been applied in-memory) or the ENTIRE request is rejected with no commit made -- all edits succeed or none do. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), same as commit_file. parent_sha is always required (this tool never creates a new file -- use commit_file for that). Commit message is auto-prefixed with [skip ci].',
+                        description: 'Update an EXISTING file in a repo (jubilant-bassoon, field-relay-nba, or field-playground; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html, src/index.js) where round-tripping the whole body every edit is expensive. Each edit is {old_str, new_str}; old_str must occur exactly once in the file\'s current content (after any earlier edits in the same call have already been applied in-memory) or the ENTIRE request is rejected with no commit made -- all edits succeed or none do. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), same as commit_file, except field-playground, which accepts any path. parent_sha is always required (this tool never creates a new file -- use commit_file for that). Commit message is auto-prefixed with [skip ci].',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -16059,7 +16060,7 @@ export default {
                     if (typeof path !== 'string' || typeof content !== 'string' || typeof commit_message !== 'string' || (parent_sha !== undefined && typeof parent_sha !== 'string')) {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: path, content, commit_message (all strings). Optional: parent_sha (string, required only when overwriting an existing file), repo.'}], isError:true}));
                     }
-                    if (!isPathAllowed(path, WRITE_ALLOWLIST)) {
+                    if (!isPathAllowed(path, repo === 'field-playground' ? null : WRITE_ALLOWLIST)) {
                         return respond(jsonrpc2({content:[{type:'text',text:`Path not in WRITE_ALLOWLIST: ${path}`}], isError:true}));
                     }
                     const repoApi = repoApiFor(repo);
@@ -16118,7 +16119,7 @@ export default {
                             return respond(jsonrpc2({content:[{type:'text',text:`Edit index ${i} invalid: requires old_str (non-empty string) and new_str (string). No commit made.`}], isError:true}));
                         }
                     }
-                    if (!isPathAllowed(path, WRITE_ALLOWLIST)) {
+                    if (!isPathAllowed(path, repo === 'field-playground' ? null : WRITE_ALLOWLIST)) {
                         return respond(jsonrpc2({content:[{type:'text',text:`Path not in WRITE_ALLOWLIST: ${path}`}], isError:true}));
                     }
                     const repoApi = repoApiFor(repo);
