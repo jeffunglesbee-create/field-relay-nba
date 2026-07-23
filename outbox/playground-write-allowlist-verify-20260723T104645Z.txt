@@ -1,0 +1,13 @@
+=== playground-write-allowlist verification [20260723T104645Z] ===
+
+--- TEST 1: commit_file WRITE-ALLOWLIST-TEST.md to field-playground (must SUCCEED) ---
+HTTP status: 200
+Response: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-playground\",\"path\":\"WRITE-ALLOWLIST-TEST.md\",\"created\":true,\"commit\":\"9925e2b5871427532e1e7386f13da38d73306d0a\",\"message\":\"chore: confirm unrestricted write access [skip ci]\",\"new_sha\":\"c8871c5132e62a637e2afada08acd41146662bed\"}"}]}}
+PASS field-playground accepted root-level write: {"repo":"field-playground","path":"WRITE-ALLOWLIST-TEST.md","created":true,"commit":"9925e2b5871427532e1e7386f13da38d73306d0a","message":"chore: confirm unrestricted write access [skip ci]","new_sha":
+
+--- TEST 2: commit_file SHOULD-BE-REJECTED.md to jubilant-bassoon (must FAIL with WRITE_ALLOWLIST error) ---
+HTTP status: 200
+Response: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Path not in WRITE_ALLOWLIST: SHOULD-BE-REJECTED.md"}],"isError":true}}
+PASS jubilant-bassoon correctly rejected: Path not in WRITE_ALLOWLIST: SHOULD-BE-REJECTED.md
+
+=== ALL TESTS PASSED — field-playground unrestricted, jubilant-bassoon restriction intact ===
