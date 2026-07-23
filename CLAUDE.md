@@ -199,3 +199,21 @@ not guess faster. Uncertainty is not permission to shortcut.
 If quick way — stop, find the right way, then move at pace.
 
 See STANDARDS.md Rule 88 for full rationale and case study.
+
+## Rule 89 — Verification tasks specify an artifact, never a bare action (VERIFY-ARTIFACT-A)
+
+A CC-CMD task or Done Condition that says "verify," "confirm," "test," or
+"check" a behavior, without also specifying the concrete,
+externally-checkable thing that must exist afterward as proof, is
+satisfiable without actually proving the claim. Every verification
+instruction must state what artifact proves it: a specific curl response
+field whose value must NOT equal a known-bad string; an enumerated set of
+input/output pairs that must all pass; a diff showing exactly N lines
+changed in exactly these files. "Looks right" and "works" are not
+artifacts. This rule binds chat's CC-CMD authoring as much as CC's
+execution — a vague verification task is a spec failure when written, not
+a CC execution failure when satisfied loosely.
+
+See jubilant-bassoon CLAUDE.md Rule 90 (VERIFY-ARTIFACT-A) for the full
+rationale, historical citations, and the visual/rendering Playwright
+corollary (client-specific, does not apply to this relay).
