@@ -10385,8 +10385,8 @@ export default {
                             `INSERT INTO postseason_games
                                (id, sport, series_key, round, game_number, date, home, away,
                                 home_score, away_score, venue, streams, note, series_record,
-                                importance, league, crew, espn_event_id, went_to_ot, finalized_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                importance, league, crew, espn_event_id, went_to_ot, start_time, finalized_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                      CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
                                home          = COALESCE(excluded.home, home),
@@ -10401,6 +10401,7 @@ export default {
                                importance    = COALESCE(excluded.importance, importance),
                                espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
                                went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot),
+                               start_time    = COALESCE(excluded.start_time, start_time),
                                finalized_at  = COALESCE(finalized_at, excluded.finalized_at)`
                         ).bind(
                             id, sport, series_key,
@@ -10412,14 +10413,15 @@ export default {
                             importance || null, league || null, crew || null,
                             source_id ? String(source_id) : null,
                             went_to_ot ?? null,
+                            start_time || null,
                             home_score ?? null
                         ).run();
                     } else {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO regular_season_games
                                (id, sport, league, date, home, away,
-                                home_score, away_score, venue, streams, note, crew, espn_event_id, went_to_ot, finalized_at)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                home_score, away_score, venue, streams, note, crew, espn_event_id, went_to_ot, start_time, finalized_at)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                                      CASE WHEN ? IS NOT NULL THEN datetime('now') ELSE NULL END)
                              ON CONFLICT(id) DO UPDATE SET
                                home          = COALESCE(excluded.home, home),
@@ -10432,6 +10434,7 @@ export default {
                                crew          = COALESCE(excluded.crew, crew),
                                espn_event_id = COALESCE(excluded.espn_event_id, espn_event_id),
                                went_to_ot    = COALESCE(excluded.went_to_ot, went_to_ot),
+                               start_time    = COALESCE(excluded.start_time, start_time),
                                finalized_at  = COALESCE(finalized_at, excluded.finalized_at)`
                         ).bind(
                             id, sport, league || null, date,
@@ -10441,6 +10444,7 @@ export default {
                             note || null, crew || null,
                             source_id ? String(source_id) : null,
                             went_to_ot ?? null,
+                            start_time || null,
                             home_score ?? null
                         ).run();
                     }
