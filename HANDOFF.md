@@ -1,5 +1,29 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-25 (start-time-persistence) — FINAL
+
+**HEAD:** c2e667e
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-25-start-time-persistence.md
+
+### Commits this session
+- `c2e667e` — feat: add start_time to regular_season_games and postseason_games INSERT + ON CONFLICT
+
+### Result: start_time persistence COMPLETE
+
+- TASK 1: `ALTER TABLE regular_season_games ADD COLUMN start_time TEXT` + `ALTER TABLE postseason_games ADD COLUMN start_time TEXT` — both executed against field-archive D1 (cc49101c).
+- TASK 2: Both INSERT statements in `src/index.js` updated with `start_time` in column list, VALUES, bind list, and `ON CONFLICT ... COALESCE`. Deployed at c2e667e (wrangler deploy job success, run 30177665738).
+- TASK 3: Verified — `start_time` key present on `/context/date/2026-07-25` game objects; D1 direct insert confirmed value persists correctly. Pre-existing rows `null` as expected.
+
+**CI gate note:** `verify` job has been failing since pre-session (fece9027) due to stale rule-90–97 registry entries (>14 days). Pre-existing, unrelated to this change. Wrangler deploy itself succeeded.
+
+**Format:** `gm.startTime` sourced from ESPN CDN `comp.date` — UTC ISO 8601 `YYYY-MM-DDTHH:MM:SSZ`, consistent across all ESPN sports.
+
+### Carry-forwards
+- None from this session. Pre-existing rule-90/91/92/93/94/95/96 staleness gate needs a separate session.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-22 (add-field-playground-repo) — FINAL
 
 **HEAD:** 0348dfd (after GHA verify result commit)
