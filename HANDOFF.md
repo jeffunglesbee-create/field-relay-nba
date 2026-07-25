@@ -1,5 +1,31 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-25 (playground-secret-bootstrap) — FINAL
+
+**HEAD:** 48873cd
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-25-playground-secret-bootstrap.md
+
+### Commits this session
+- `175e1f6` — ci: add field-playground CLOUDFLARE_API_TOKEN bootstrap step to deploy.yml
+- `48873cd` — fix: correct Salsa20/HSalsa20 rotation -- >> to >>> (unsigned) in sealedBox
+
+### Result: playground-secret-bootstrap COMPLETE
+
+- Bootstrap step added to deploy.yml step 36. Mirrors jubilant-bassoon bootstrap pattern exactly.
+- Root cause of prior 422: `sealedBox()` used signed right shift `>>` in HSalsa20/Salsa20 rotations. Fixed to `>>>` throughout `hsalsa20()` and `salsa20Blk()` in `workers/field-deploy/src/index.js`.
+- Courier response (verbatim): `{"ok":true,"message":"Secret CLOUDFLARE_API_TOKEN created in jeffunglesbee-create/field-playground"}`
+- `deploy-playground.yml` dispatched and succeeded (GHA run `4b89406`, 2026-07-25T23:39Z). Live HTTP 200 check embedded in that workflow passed.
+- Done condition met: `https://field-playground.jeffunglesbee.workers.dev/` returns HTTP 200 with no human credential entry.
+
+**CI gate note:** `verify` job continues failing on Rule-90 staleness (rule-90 through rule-96 entries >14 days). Pre-existing, separate session required.
+
+### Carry-forwards
+- `field-playground/wrangler.jsonc` duplicate should be deleted (`git rm wrangler.jsonc`). Chat cannot delete files. Requires CC session or manual action.
+- Rule-90/91/92/93/94/95/96 staleness gate — separate session to exercise entries.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-25 (start-time-persistence) — FINAL
 
 **HEAD:** c2e667e
