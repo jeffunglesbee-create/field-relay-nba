@@ -14123,6 +14123,39 @@ export default {
     }
   }
 
+  // GET /journalism/brief/history?limit=N — past slate briefs from ARCHIVE_DB.
+  // /journalism/brief (above) only ever serves FIELD_JOURNALISM KV, which
+  // carries a 24h TTL (see handleJournalismCycle step 6, expirationTtl:86400)
+  // — KV never holds more than ~1 day of slate briefs. The durable copy is
+  // written to ARCHIVE_DB.briefs (brief_type='slate') in the same cron tick
+  // (step 6b), same table/columns findBriefs() already reads for priorBrief.
+  // Must be checked before the '/journalism/brief' exact-match below.
+  if (pathname === '/journalism/brief/history') {
+    if (!env.ARCHIVE_DB) return new Response(JSON.stringify({ ok: false, error: 'not configured' }), { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    const limit = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit'), 10) || 14));
+    try {
+      await ensureBriefsTable(env);
+      const rows = await env.ARCHIVE_DB.prepare(
+        `SELECT date, brief_text, quality_score, word_count, model, source, created_at FROM briefs
+         WHERE brief_type = 'slate'
+         ORDER BY date DESC, created_at DESC LIMIT ?`
+      ).bind(limit).all();
+      const briefs = (rows.results || []).map(r => ({
+        date: r.date,
+        brief: r.brief_text,
+        proseScore: r.quality_score,
+        wordCount: r.word_count,
+        model: r.model,
+        source: r.source,
+        generatedAt: r.created_at, // SQLite UTC string ("YYYY-MM-DD HH:MM:SS"), not epoch ms like /journalism/brief's generatedAt
+      }));
+      return new Response(JSON.stringify({ ok: true, count: briefs.length, briefs }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public,max-age=300' } });
+    } catch (e) {
+      console.error("[JOURNALISM-BRIEF-HISTORY] D1 read failed:", e.message);
+      return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+  }
+
   if (pathname === '/journalism/tonight' || pathname === '/journalism/brief') {
             if (!env.FIELD_JOURNALISM) return new Response(JSON.stringify({error:'not configured'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
             const dateKey = getFieldDateKey();
