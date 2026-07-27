@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-07-26/27 (journalism-brief-history) — FINAL
+
+**HEAD:** cff1477
+**Branch:** main
+**Session doc:** outbox/cc-session-2026-07-26-journalism-brief-history.md
+
+### Commits this session
+- `cff1477` — feat: add /journalism/brief/history endpoint -- browse past slate briefs from ARCHIVE_DB
+
+### Result: /journalism/brief/history SHIPPED (relay side VERIFIED, client side STAGED)
+
+- Root cause: `/journalism/brief` only reads FIELD_JOURNALISM KV (24h TTL) — could never show more than today's brief.
+- Fix: new route reads the durable `ARCHIVE_DB.briefs` table (`brief_type='slate'`), same table `findBriefs()` already queries for `priorBrief`. No new storage, no new write path.
+- `GET /journalism/brief/history?limit=N` (default 14, capped 1-30) → `{ok, count, briefs:[{date, brief, proseScore, wordCount, model, source, generatedAt}]}`.
+- **Field-naming flag:** `generatedAt` here is a SQLite UTC string, NOT epoch ms like `/journalism/brief`'s `generatedAt`.
+- Live verification (verbatim, `probe_relay_route`): HTTP 200, 3 real archived briefs returned across 2026-07-25 and 2026-07-26, newest first.
+
+**CI gate note:** `verify` job continues failing on pre-existing Rule-90 staleness gate. Unrelated to this change — `deploy` job (structural probes, wrangler deploy) succeeded.
+
+### Carry-forwards
+- Client-side CC-CMD (jubilant-bassoon) needed to wire the Journalism tab to this endpoint — out of scope for this relay-only session.
+- Rule-90/91/92/93/94/95/96 staleness gate — separate session, still pre-existing.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-25/27 (playground-secret-bootstrap) — FINAL
 
 **HEAD:** ea2bf38
