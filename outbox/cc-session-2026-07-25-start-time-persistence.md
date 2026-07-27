@@ -88,7 +88,39 @@ The CC-CMD warned about a possible score-only narrow insert immediately above th
 
 ## start_time format per sport
 
-`gm.startTime` is sourced from `comp?.date` (ESPN CDN competition object, line 6979). ESPN's `competition.date` field is a UTC ISO 8601 string in the format `YYYY-MM-DDTHH:MM:SSZ` (e.g., `2026-07-25T19:00:00Z`). This format is consistent across all ESPN-sourced sports (NBA, MLB, WNBA, NHL, MLS). No format inconsistency was observed. The client can parse this as a standard UTC datetime string directly — no normalization needed.
+**CORRECTED 2026-07-27 (see docs/outbox/chat-update-2026-07-27-start-time-format-correction.md):**
+the paragraph below originally reasoned from ESPN's upstream `competition.date`
+format rather than checking what actually landed in the column. It was wrong.
+
+`gm.startTime` is sourced from `comp?.date` (ESPN CDN competition object). **As
+stored, values are `YYYY-MM-DDTHH:MMZ` — UTC, minute precision, no seconds
+component** (verified by direct D1 query across all populated rows,
+2026-07-27). This parses directly as a standard UTC datetime string in JS
+with no normalization; note only that the stored string does **not**
+round-trip byte-identically through a formatter that emits seconds.
+
+**Traced 2026-07-27 — where the seconds are dropped: nowhere in this
+codebase.** Followed the full chain, verbatim at every hop:
+
+1. `comp?.date` → `gameMeta.push({ startTime: comp?.date || null, ... })` (src/index.js:6979) — raw assignment, no `.slice()`, no reformat.
+2. `gameMeta.startTime` → `JSON.stringify({ ..., start_time: gm.startTime || null, ... })` in all three `/archive/game` callers (src/index.js:7032, 7116, 7202 — live-catchup, seed, and yesterday-catchup paths respectively) — same verbatim passthrough in every caller.
+3. `/archive/game`'s POST handler destructures `start_time` from the request body (src/index.js:10315) and binds it directly: `.bind(..., start_time || null, ...)` (src/index.js:10416 and 10447, postseason and regular-season INSERTs respectively) — no truncation, no `datetime()` SQL function applied to this column.
+
+None of these five sites truncate, slice, or reformat the string. **The
+seconds were never present to begin with** — confirmed by fetching ESPN's
+live scoreboard directly (`site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard`,
+2026-07-27): `"date":"2026-07-26T16:15Z"` on a real live event, minute
+precision, zero seconds component, straight from ESPN. The original claim
+that ESPN's own field is `YYYY-MM-DDTHH:MM:SSZ` was factually wrong about
+the upstream source itself, not just about what survives to D1 — there is
+no "dropping" step to find because ESPN's CDN scoreboard API does not
+serve seconds in `competition.date` for these sports.
+
+<details>
+<summary>Original (incorrect) claim, kept for record</summary>
+
+ESPN's `competition.date` field is a UTC ISO 8601 string in the format `YYYY-MM-DDTHH:MM:SSZ` (e.g., `2026-07-25T19:00:00Z`). This format is consistent across all ESPN-sourced sports (NBA, MLB, WNBA, NHL, MLS). No format inconsistency was observed. The client can parse this as a standard UTC datetime string directly — no normalization needed.
+</details>
 
 ---
 
