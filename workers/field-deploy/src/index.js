@@ -126,6 +126,16 @@ export default {
       try{const pb={message,content,branch:BRANCH};if(sha)pb.sha=sha;const p=await fetch(base,{method:'PUT',headers:ghH,body:JSON.stringify(pb)});const res=await p.json();if(!p.ok)return jr({ok:false,error:`PUT ${p.status}: ${res.message}`},502);return jr({ok:true,sha:res.commit?.sha,url:res.content?.html_url,message:`Pushed ${file}`});}catch(e){return jr({ok:false,error:`PUT failed: ${e.message}`},502);}
     }
 
+    if (url.pathname === '/delete') {
+      const {file,message,repo,owner}=body;
+      if(!file||!message)return jr({ok:false,error:'Missing file or message'},400);
+      const ro=owner||DEFAULT_OWNER,rn=repo||DEFAULT_REPO;
+      const base=`https://api.github.com/repos/${ro}/${rn}/contents/${file}`;
+      let sha;
+      try{const g=await fetch(base,{headers:ghH});if(g.status===404)return jr({ok:true,message:`${file} already absent in ${ro}/${rn}`});if(!g.ok)return jr({ok:false,error:`GET ${g.status}: ${await g.text()}`},502);sha=(await g.json()).sha;}catch(e){return jr({ok:false,error:`GET failed: ${e.message}`},502);}
+      try{const d=await fetch(base,{method:'DELETE',headers:ghH,body:JSON.stringify({message,sha,branch:BRANCH})});const res=await d.json();if(!d.ok)return jr({ok:false,error:`DELETE ${d.status}: ${res.message}`},502);return jr({ok:true,message:`Deleted ${file} from ${ro}/${rn}`,commit:res.commit?.sha});}catch(e){return jr({ok:false,error:`DELETE failed: ${e.message}`},502);}
+    }
+
     if (url.pathname === '/secret') {
       const {name,value,repo,owner}=body;
       if(!name||!value)return jr({ok:false,error:'Missing name or value'},400);

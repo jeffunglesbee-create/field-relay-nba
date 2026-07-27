@@ -738,6 +738,20 @@ jobs:
             && echo "✅ CLOUDFLARE_API_TOKEN synced to field-playground" \
             || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
 
+      - name: ONE-OFF — delete duplicate wrangler.jsonc from field-playground
+        continue-on-error: true
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/delete \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"repo":"field-playground","file":"wrangler.jsonc","message":"chore: remove duplicate wrangler.jsonc (wrangler.toml is authoritative)"}')
+          echo "Result: $RESULT"
+          echo "$RESULT" | grep -q '"ok":true' \
+            && echo "✅ wrangler.jsonc removed (or already absent) from field-playground" \
+            || { echo "❌ Delete FAILED: $RESULT"; exit 1; }
+
   verify:
     needs: deploy
     runs-on: ubuntu-latest
