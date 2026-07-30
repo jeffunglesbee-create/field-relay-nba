@@ -1,0 +1,61 @@
+name: BSD UEFA Competitions Probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/bsd-uefa-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe BSD directly for UEFA competitions (league_id 7=UCL, 8=Europa/Conference)
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          BASE="outbox/bsd-uefa-probe-${TS}"
+          mkdir -p outbox
+          BSD_BASE="https://sports.bzzoiro.com"
+          {
+            echo "Probe time: $(date -u)"
+            echo "BSD_LEAGUE_ID_TO_SLUG (from src/index.js): ucl/uclqual=7, europa/europaqual/conference/conferencequal=8"
+            echo ""
+            echo "=== /api/v2/events/live/ (right now, unfiltered) ==="
+            curl -sS -H "Authorization: Token $BSD_API_TOKEN" -H "Accept: application/json" \
+              "$BSD_BASE/api/v2/events/live/" \
+              -w "\nHTTP_CODE=%{http_code} SIZE=%{size_download}\n"
+            echo ""
+            echo "=== by-date + league_id=7 (UCL), 2026-07-29 -- known real match date (Omonia Nicosia @ Kairat Almaty, confirmed via direct ESPN probe) ==="
+            curl -sS -H "Authorization: Token $BSD_API_TOKEN" -H "Accept: application/json" \
+              "$BSD_BASE/api/v2/events/?date=2026-07-29&league_id=7" \
+              -w "\nHTTP_CODE=%{http_code} SIZE=%{size_download}\n"
+            echo ""
+            echo "=== by-date + league_id=7 (UCL), 2026-07-30 -- today ==="
+            curl -sS -H "Authorization: Token $BSD_API_TOKEN" -H "Accept: application/json" \
+              "$BSD_BASE/api/v2/events/?date=2026-07-30&league_id=7" \
+              -w "\nHTTP_CODE=%{http_code} SIZE=%{size_download}\n"
+            echo ""
+            echo "=== by-date + league_id=8 (Europa/Conference), 2026-07-30 -- today ==="
+            curl -sS -H "Authorization: Token $BSD_API_TOKEN" -H "Accept: application/json" \
+              "$BSD_BASE/api/v2/events/?date=2026-07-30&league_id=8" \
+              -w "\nHTTP_CODE=%{http_code} SIZE=%{size_download}\n"
+          } | tee "${BASE}.txt"
+
+      - name: Commit probe result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "BSD-UEFA-Probe"
+          git add outbox/
+          git commit -m "bsd uefa competitions probe result [skip ci]" || echo "(nothing new)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
