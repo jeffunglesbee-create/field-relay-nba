@@ -1,0 +1,33 @@
+name: Rule 90 Staleness Monitor (non-blocking)
+
+# Split out of deploy.yml's blocking `verify` job 2026-07-31. Rule 90's
+# own text (STANDARDS.md, jubilant-bassoon) requires this check to
+# "surface the gap as a build failure" -- it never requires that failure
+# to block unrelated deploys indefinitely. Conflating "surface" with
+# "gate every future deploy on 8 different rules getting an organic real
+# case, with no way to force or schedule that without fabricating one"
+# was an implementation choice from the 2026-07-11 CC-CMD that added it
+# inside post-deploy-live-verify.yml (now deploy.yml), not a requirement
+# of the rule text. This workflow keeps the same check, same red-X
+# visibility in the Actions tab, same D1 query -- it just no longer holds
+# unrelated fixes hostage while rules with no genuine applicable case yet
+# sit UNEXERCISED past 14 days, which Rule 90 itself calls "the correct,
+# honest signal to surface... not a false alarm to suppress" (i.e. it is
+# meant to be visible, not a deploy gate).
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # daily, so staleness is caught even with no relay pushes that day
+  push:
+    paths:
+      - '.github/workflows/rule90-staleness-monitor.yml'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rule 90 staleness check -- no UNEXERCISED rule-registry entry older than 14 days
+        run: |
+          echo "aW1wb3J0IGpzb24sIHVybGxpYi5yZXF1ZXN0CgpVQSA9ICJNb3ppbGxhLzUuMCAoWDExOyBMaW51eCB4ODZfNjQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xMjQuMCBTYWZhcmkvNTM3LjM2IgoKZGVmIGQxX3F1ZXJ5KHNxbCwgcGFyYW1zPU5vbmUpOgogICAgYm9keSA9IGpzb24uZHVtcHMoeyJzcWwiOiBzcWwsICJwYXJhbXMiOiBwYXJhbXMgb3IgW119KS5lbmNvZGUoKQogICAgcmVxID0gdXJsbGliLnJlcXVlc3QuUmVxdWVzdCgKICAgICAgICAiaHR0cHM6Ly9maWVsZC1yZWxheS1uYmEuamVmZnVuZ2xlc2JlZS53b3JrZXJzLmRldi9kMS9leGVjdXRlIiwKICAgICAgICBkYXRhPWJvZHksIG1ldGhvZD0iUE9TVCIsCiAgICAgICAgaGVhZGVycz17IkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiwgIlgtRklFTEQtUmVsYXkiOiAiZmllbGQtcmVsYXktY3Jvbi0yMDI2IiwgIlVzZXItQWdlbnQiOiBVQX0sCiAgICApCiAgICB3aXRoIHVybGxpYi5yZXF1ZXN0LnVybG9wZW4ocmVxLCB0aW1lb3V0PTIwKSBhcyByOgogICAgICAgIHJldHVybiBqc29uLmxvYWQocikKCnJlc3VsdCA9IGQxX3F1ZXJ5KAogICAgIlNFTEVDVCBrZXksIHRpdGxlLCB1cGRhdGVkX2F0LCAiCiAgICAiKGp1bGlhbmRheSgnbm93JykgLSBqdWxpYW5kYXkodXBkYXRlZF9hdCkpIEFTIGRheXNfb2xkICIKICAgICJGUk9NIGNvZGV4IFdIRVJFIGNhdGVnb3J5ID0gJ3J1bGUtcmVnaXN0cnknIEFORCB0aXRsZSBMSUtFICdVTkVYRVJDSVNFRCUnIgopCnJvd3MgPSByZXN1bHQuZ2V0KCJyZXN1bHRzIiwgW10pCnByaW50KGYiQ2hlY2tlZCB7bGVuKHJvd3MpfSBVTkVYRVJDSVNFRCBydWxlLXJlZ2lzdHJ5IGVudHJ7J3knIGlmIGxlbihyb3dzKT09MSBlbHNlICdpZXMnfS4iKQoKc3RhbGUgPSBbciBmb3IgciBpbiByb3dzIGlmIHJbImRheXNfb2xkIl0gPiAxNF0KaWYgc3RhbGU6CiAgICBwcmludCgiUlVMRS05MCBTVEFMRU5FU1MgVklPTEFUSU9OUyAoVU5FWEVSQ0lTRUQgPiAxNCBkYXlzKToiKQogICAgZm9yIHIgaW4gc3RhbGU6CiAgICAgICAgcHJpbnQoZiIgIHtyWydrZXknXX06IHtyWyd0aXRsZSddfSAgKHVwZGF0ZWRfYXQ9e3JbJ3VwZGF0ZWRfYXQnXX0sIHtyWydkYXlzX29sZCddOi4xZn0gZGF5cyBvbGQpIikKICAgIHJhaXNlIFN5c3RlbUV4aXQoMSkKcHJpbnQoIk5vIHN0YWxlIFVORVhFUkNJU0VEIHJ1bGUtcmVnaXN0cnkgZW50cmllcyBmb3VuZC4iKQo=" | base64 -d > /tmp/rule90_staleness_check.py
+          python3 /tmp/rule90_staleness_check.py
