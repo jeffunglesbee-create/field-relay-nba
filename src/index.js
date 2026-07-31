@@ -3656,9 +3656,14 @@ async function handleV2Games(url, env, ctx) {
         // (one extra /summary per game) for the ~95% of soccer games that aren't
         // part of a multi-leg tie. False negatives mean no aggregate badge —
         // degrades silently, never blocks the card.
+        // UEFA *qual sports also match "Second Round" (their real ESPN round text,
+        // e.g. "UCL Qualifying, Second Round" -- verified live 2026-07-30, does NOT
+        // contain "leg"). Scoped to `sport` ending in "qual" so this doesn't
+        // false-positive "second round" in unrelated non-qualifying competitions.
         if (cfg.espnSport !== 'baseball' && !['basketball', 'australian-football'].includes(cfg.espnSport)) {
             const secondLegGames = games.filter(g =>
-                /2nd leg|second leg/i.test(g.round || '')
+                /2nd leg|second leg/i.test(g.round || '') ||
+                (/qual$/i.test(sport) && /second round/i.test(g.round || ''))
             );
             if (secondLegGames.length) {
                 const relayBase = env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
