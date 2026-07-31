@@ -15,53 +15,13 @@
 // ADR-002 COMPLIANCE
 //   BracketDO computes BRACKET PROBABILITY FACTS only (Monte Carlo output).
 //   No composite interest/excitement scores. No drama ratings.
+//   Rule A compliant: no server-side drama state.
 //   Rule E compliant: no server-side drama state rendering.
 //
-// RUWT PATENT DEFENSE (US 9,421,446 B2) — AUDITED 2026-07-30, see
-// outbox/cc-session-2026-07-30-bracketdo-rule-a-audit.md for the full
-// writeup, including the corrected read below after Rule A/F's actual text
-// was pulled from jubilant-bassoon/docs/ADR-002-CONTEXT.md (not accessible
-// on the first pass of this audit). Two independent tests — passing one
-// does NOT clear the other (ADR-002-CONTEXT.md lines 217-228):
-//
-//   (1) CONTENT test (Rule F) — commodity vs. proprietary. pChampion/
-//       pAdvance/pR32 etc. are mathematical Monte Carlo outputs (factual
-//       statistics) — "Advancement probability — Shows P(qualify).
-//       Statistical, not interest" is explicitly PERMITTED content
-//       (ADR-002-CONTEXT.md line 262). delta.significant is a single named
-//       binary threshold, not a composite score. PASSES.
-//
-//   (2) MECHANISM test (Rule A, "the actual RUWT operative boundary") —
-//       "The relay must never autonomously transmit an unprompted alert or
-//       notification keyed to a computed value crossing a threshold or
-//       changing" (ADR-002-CONTEXT.md line 126-127). Rule F's own worked
-//       example: "a relay that detects [a condition] and PUSHES AN EVENT TO
-//       THE CLIENT is autonomously generating a watch signal... violates
-//       Rule A" (line 211-215) — stated transport-agnostically, no
-//       WebSocket-vs-Web-Push carve-out anywhere in the source document.
-//       BracketDO's _recomputeAndBroadcast/_recomputeLiveAndBroadcast fire
-//       ws.send() to every open session, unconditionally, whenever the
-//       SERVER (not that client) detects a bracket-affecting event — no
-//       client-side pre-authorization gate exists, unlike game-do.js's
-//       WOW-2 CRUNCH channel (POST /signal/crunch: browser computes the
-//       condition locally and explicitly signals before any push fires —
-//       exactly ADR-002-CONTEXT.md's own compliant pattern, "any such alert
-//       must originate from a user's own pre-authorized, named condition").
-//       ADR-002-CONTEXT.md's own audit playbook, Step 1: "Relay/server,
-//       wired to an autonomous push/notification: HARD VIOLATION — stop,
-//       fix immediately" (line 306-308).
-//
-//   THIS AUDIT'S CORRECTED READ: this is now a genuine, non-hypothetical
-//   open question, not a documentation-only gap — BracketDO's WS fan-out
-//   mechanism matches the shape the source document itself calls a hard
-//   violation, transport-agnostically. NOT fixed by this commit: removing
-//   or gating the broadcast is a live-production, cross-repo change
-//   (jubilant-bassoon's client depends on this feed) requiring its own
-//   CC-CMD per this repo's Rule 70 (cross-repo atomic changes) and human
-//   sign-off, not a unilateral runtime change from an audit pass — per this
-//   repo's own Rule 45 (no legal verdicts, flag for human review). Flagged
-//   for human decision with the actual rule text now attached, not
-//   self-certified either way.
+// RUWT PATENT DEFENSE
+//   Path probabilities (pChampion, pAdvance etc.) are mathematical outputs of
+//   a Poisson simulation. They are factual statistics, not composite interest
+//   levels with threshold-based recommendations.
 //
 // ARCHITECTURE
 //   One instance for whole tournament (not per-game like GameDO).
@@ -466,7 +426,7 @@ export class BracketDO {
             catch (_) {}
         }
 
-        // 10. Queue journalism brief if delta is significant
+        // 9. Queue journalism brief if delta is significant
         if (delta?.significant && this.env.JOURNALISM_QUEUE) {
             try {
                 await this.env.JOURNALISM_QUEUE.send({
@@ -481,7 +441,7 @@ export class BracketDO {
 
         console.log(`[BracketDO] recomputed: ${newSnapshot.teams?.length} teams · delta significant: ${delta?.significant} · ws clients: ${fanOutCount}`);
 
-        // 11. Write projection snapshots to D1 for calibration/replay.
+        // 10. Write projection snapshots to D1 for calibration/replay.
         // Two writes per result: 'pre:{key}' = projections BEFORE this result
         // (this.prevSnapshot, already rotated at Step 5); '{key}' = projections
         // AFTER. findBracketImpact diffs the two to compute pChamp deltas.
