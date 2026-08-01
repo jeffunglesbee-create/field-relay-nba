@@ -1,0 +1,84 @@
+name: BSD Date Filter Probe (EPL)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/bsd-date-filter-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe BSD date-filter variants against EPL (league_id=1)
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          BASE="outbox/bsd-date-filter-probe-${TS}"
+          mkdir -p outbox
+          BSD_BASE="https://sports.bzzoiro.com"
+          H=(-H "Authorization: Token $BSD_API_TOKEN" -H "Accept: application/json")
+          {
+            echo "Probe time: $(date -u)"
+
+            echo ""
+            echo "=== A) date + league_id (as currently used by relay -- known broken) ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?date=2026-08-22&league_id=1" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('count=',d.get('count')); [print(r['event_date'], r['home_team'],'vs',r['away_team'],r['round_number']) for r in d.get('results',[])[:5]]"
+
+            echo ""
+            echo "=== B) date_from/date_to range ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?date_from=2026-08-22&date_to=2026-08-22&league_id=1" \
+              -w "\nHTTP_CODE=%{http_code}\n"
+
+            echo ""
+            echo "=== C) start_date/end_date ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?start_date=2026-08-22&end_date=2026-08-22&league_id=1" \
+              -w "\nHTTP_CODE=%{http_code}\n"
+
+            echo ""
+            echo "=== D) event_date exact ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?event_date=2026-08-22&league_id=1" \
+              -w "\nHTTP_CODE=%{http_code}\n"
+
+            echo ""
+            echo "=== E) season + round_number (season discovery: what season_id is 2026-27?) ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?league_id=1&season_id=1058&round_number=1" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('count=',d.get('count')); [print(r['event_date'], r['home_team'],'vs',r['away_team'],r['round_number'],r.get('status')) for r in d.get('results',[])[:10]]"
+
+            echo ""
+            echo "=== F) status=notstarted + league_id (no date at all -- what does default ordering give) ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?league_id=1&status=notstarted" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('count=',d.get('count')); [print(r['event_date'], r['home_team'],'vs',r['away_team'],r['round_number']) for r in d.get('results',[])[:10]]"
+
+            echo ""
+            echo "=== G) ordering param guess (ordering=event_date) ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?league_id=1&date=2026-08-22&ordering=event_date" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print('count=',d.get('count')); [print(r['event_date'], r['home_team'],'vs',r['away_team'],r['round_number']) for r in d.get('results',[])[:5]]"
+
+            echo ""
+            echo "=== H) OpenAPI schema discovery -- does BSD expose a schema/docs endpoint? ==="
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/events/?format=json" -w "\nHTTP_CODE=%{http_code}\n" -o /dev/null
+            curl -sS "${H[@]}" "$BSD_BASE/api/schema/" -w "\nHTTP_CODE=%{http_code}\n" | head -c 2000
+            echo ""
+            curl -sS "${H[@]}" "$BSD_BASE/api/v2/" -w "\nHTTP_CODE=%{http_code}\n" | head -c 2000
+
+          } | tee "${BASE}.txt"
+
+      - name: Commit probe result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "BSD-Date-Filter-Probe"
+          git add outbox/
+          git commit -m "bsd date-filter probe result [skip ci]" || echo "(nothing new)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
