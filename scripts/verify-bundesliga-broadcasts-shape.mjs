@@ -4,6 +4,8 @@
 // the already-live /bundesliga-bapi/resolve-dayid route, not assumed or
 // reused from an earlier session's different matchday.
 
+import { writeFileSync } from 'fs';
+
 const RELAY_BASE = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const SEASON = '2026-2027';
 const MATCHDAY = 3; // a matchday not already used by verify-bundesliga-dayid.mjs's cache-hit test
@@ -43,14 +45,16 @@ async function main() {
     const keyStillWorks = broadcastsStatus === 200;
     const realShapeKeys = broadcastsBody && typeof broadcastsBody === 'object' ? Object.keys(broadcastsBody) : [];
 
-    console.log('\n=== VERIFY_JSON_START ===');
-    console.log(JSON.stringify({
+    const out = {
         season: SEASON, matchday: MATCHDAY,
         resolveOk, dayId, comId,
         broadcastsStatus, broadcastsBody, broadcastsError,
         keyStillWorks, realShapeKeys,
-    }));
+    };
+    console.log('\n=== VERIFY_JSON_START ===');
+    console.log(JSON.stringify(out));
     console.log('=== VERIFY_JSON_END ===');
+    writeFileSync('outbox/verify-bundesliga-broadcasts-shape-result.json', JSON.stringify(out, null, 2));
 
     console.log(`\nresolveOk=${resolveOk} keyStillWorks=${keyStillWorks} realShapeKeys=${JSON.stringify(realShapeKeys)}`);
 
