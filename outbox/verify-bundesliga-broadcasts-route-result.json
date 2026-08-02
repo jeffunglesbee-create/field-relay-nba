@@ -1,0 +1,25 @@
+{
+  "season": "2026-2027",
+  "matchday": 7,
+  "resolveOk": true,
+  "dayId": "DFL-DAY-004CBZ",
+  "comId": "DFL-COM-000001",
+  "broadcastsStatus": 200,
+  "broadcastsBody": {
+    "available": true,
+    "comId": "DFL-COM-000001",
+    "dayId": "DFL-DAY-004CBZ",
+    "data": {
+      "broadcasts": []
+    }
+  },
+  "routeAvailableTrue": true,
+  "routeEchoesIds": true,
+  "routeHasDataField": true,
+  "badRequestStatus": 400,
+  "badRequestBody": {
+    "ok": false,
+    "error": "comId (DFL-COM-XXX) and dayId (DFL-DAY-XXX) required -- resolve via /bundesliga-bapi/resolve-dayid first"
+  },
+  "validationRejects400": true
+}
