@@ -14970,7 +14970,19 @@ export default {
                     };
                 }
 
-                let low = 1, high = 40, found = null;
+                // Bundesliga has been an 18-club single round-robin-doubled
+                // league since 1965-66 -- (18-1)*2 = 34 matchdays, every
+                // season, a structural fact independent of any specific
+                // season's calendar (not a guess). Real bug found via live
+                // verification (Task 3, 2026-08-02): using this route's
+                // OTHER mode's looser matchday<=40 validation ceiling as the
+                // search bound caused renders of matchday 35-40 (out of
+                // range for a real 34-matchday season) to silently return
+                // the site's unrelated generic-default view instead of an
+                // error, breaking the search's monotonicity assumption.
+                // Scoped to this date-mode search only -- the existing
+                // matchday-number mode's own <=40 validation is untouched.
+                let low = 1, high = 34, found = null;
                 let attempts = 0;
                 while (low <= high && attempts < 7) {
                     attempts++;
