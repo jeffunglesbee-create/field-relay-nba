@@ -33,6 +33,12 @@ export { AmbientDO };
 import { BrowserDO } from './browser-do.js';
 export { BrowserDO };
 
+// Raw Puppeteer, for the one route (/bundesliga-bapi/resolve-dayid) that needs
+// network-request capture (page.on('response')) rather than the higher-level
+// env.BROWSER.quickAction() API browser-quick.js uses -- same @cloudflare/puppeteer
+// package and env.BROWSER binding browser-do.js already uses, no new binding.
+import puppeteer from '@cloudflare/puppeteer';
+
 // ── WC Tournament Projections (June 11 2026) ─────────────────────────────────
 import {
   computeTournamentProjections,
@@ -14793,6 +14799,139 @@ export default {
             return relayFetch(`${sfRaw}/${sfFile}`, { 'Accept': 'application/json' }, 86400, 'soccer-fbref', ctx);
         }
 
+        // ── GET /bundesliga-bapi/resolve-dayid → Bundesliga DFL-DAY-XXX matchday ID ──
+        // CC-CMD-2026-08-02-add-browser-rendering-bundesliga-dayid. RUWT/ADR-002:
+        // this is a factual ID lookup (which broadcast-data key corresponds to which
+        // matchday), served only on pull/request -- never autonomously pushed, no
+        // drama score or value judgment of any kind. Rule F/A both clear trivially --
+        // there is no "value" here at all, just an opaque identifier.
+        //
+        // wire-bundesliga-bapi-broadcasts-v2 (jubilant-bassoon, real evidence across
+        // 3 matchdays, re-verified fresh 2026-08-02 -- see outbox doc) found the
+        // DFL-DAY-XXX id is real and matchday-specific, but only resolvable via
+        // bundesliga.com's own client-side Angular router: navigating a real browser
+        // to bundesliga.com/en/bundesliga/matchday/{season}/{N} causes the app to
+        // resolve N internally and fire a real GET wapp.bapi.bundesliga.com/broadcasts/
+        // {comId}/{dayId} request. No plain HTTP endpoint doing this resolution exists
+        // (confirmed absent across 3 separate capture sweeps, most recently 2026-08-02).
+        // `season` must be bundesliga.com's own URL format ("2026-2027", full 4-digit
+        // hyphenated) -- NOT this repo's internal "2026-27" shorthand used elsewhere
+        // (e.g. BUNDESLIGA_LEAGUE_CONFIG) -- confirmed live, these are different values
+        // for different purposes, do not conflate them.
+        //
+        // A given (season, matchday) -> dfl_day_id mapping never changes once resolved
+        // -- cached permanently in ARCHIVE_DB (ADR-002-CONTEXT-unrelated: this is just
+        // an ordinary structured fact cache, same convention as every other ARCHIVE_DB
+        // table in this file). The expensive render step (Cloudflare Browser Rendering,
+        // Workers Paid: bills per browser-minute + concurrent browser) runs at most
+        // once per matchday, ever -- checked here BEFORE ever invoking Puppeteer.
+        if (pathname === '/bundesliga-bapi/resolve-dayid' && request.method === 'GET') {
+            const season   = (url.searchParams.get('season')   || '').trim();
+            const matchday = parseInt(url.searchParams.get('matchday') || '', 10);
+            if (!/^\d{4}-\d{4}$/.test(season) || !Number.isInteger(matchday) || matchday < 1 || matchday > 40) {
+                return new Response(JSON.stringify({
+                    ok: false, error: 'season (format YYYY-YYYY, e.g. 2026-2027) and matchday (1-40) required',
+                }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            await env.ARCHIVE_DB.prepare(`
+                CREATE TABLE IF NOT EXISTS bundesliga_dayid_cache (
+                    season      TEXT NOT NULL,
+                    matchday    INTEGER NOT NULL,
+                    dfl_day_id  TEXT NOT NULL,
+                    dfl_com_id  TEXT,
+                    resolved_at TEXT DEFAULT (datetime('now')),
+                    PRIMARY KEY (season, matchday)
+                )`).run();
+
+            const cached = await env.ARCHIVE_DB.prepare(
+                `SELECT dfl_day_id, dfl_com_id, resolved_at FROM bundesliga_dayid_cache WHERE season = ? AND matchday = ?`
+            ).bind(season, matchday).first();
+
+            if (cached) {
+                console.log(`[BUNDESLIGA-DAYID] cache hit: ${season} MD${matchday} -> ${cached.dfl_day_id}`);
+                return new Response(JSON.stringify({
+                    ok: true, season, matchday,
+                    dayId: cached.dfl_day_id, comId: cached.dfl_com_id,
+                    resolvedAt: cached.resolved_at, cached: true,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            if (!env.BROWSER) {
+                return new Response(JSON.stringify({ ok: false, error: 'BROWSER binding not available on this worker' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            const t0 = Date.now();
+            let browser = null;
+            try {
+                // Reuse an idle session if one exists (same pattern as browser-do.js
+                // _ensureBrowser) -- cheap check, avoids a redundant cold launch if
+                // another request happens to be resolving a different matchday
+                // concurrently.
+                try {
+                    const sessions = await puppeteer.sessions(env.BROWSER);
+                    const idle = sessions.filter(s => !s.connectionId);
+                    if (idle.length > 0) {
+                        try { browser = await puppeteer.connect(env.BROWSER, idle[0].sessionId); } catch (_) {}
+                    }
+                } catch (_) {}
+                if (!browser) browser = await puppeteer.launch(env.BROWSER, { protocolTimeout: 60000 });
+
+                const page = await browser.newPage();
+                let dayId = null, comId = null;
+                // Listener registered BEFORE goto() -- the real broadcasts request
+                // fires during/shortly after page load, confirmed via jubilant-bassoon's
+                // tests/bundesliga-matchday-url-decisive.spec.js (the exact proven
+                // methodology this route replicates in Puppeteer instead of Playwright).
+                const onResponse = (resp) => {
+                    const respUrl = resp.url();
+                    if (!respUrl.includes('wapp.bapi.bundesliga.com') || !respUrl.includes('/broadcasts/')) return;
+                    const dm = respUrl.match(/DFL-DAY-[A-Z0-9]+/);
+                    const cm = respUrl.match(/DFL-COM-[A-Z0-9]+/);
+                    if (dm && !dayId) dayId = dm[0];
+                    if (cm && !comId) comId = cm[0];
+                };
+                page.on('response', onResponse);
+
+                const targetUrl = `https://www.bundesliga.com/en/bundesliga/matchday/${season}/${matchday}`;
+                await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+                // Real, proven wait window (matches the decisive Playwright spec) --
+                // the broadcasts request fires asynchronously after domcontentloaded,
+                // not synchronously with it.
+                await new Promise(r => setTimeout(r, 5000));
+
+                page.off('response', onResponse);
+                await browser.disconnect();
+
+                if (!dayId) {
+                    return new Response(JSON.stringify({
+                        ok: false, error: 'No DFL-DAY id captured -- site structure may have changed',
+                        season, matchday, renderMs: Date.now() - t0,
+                    }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                await env.ARCHIVE_DB.prepare(
+                    `INSERT INTO bundesliga_dayid_cache (season, matchday, dfl_day_id, dfl_com_id) VALUES (?, ?, ?, ?)
+                     ON CONFLICT(season, matchday) DO NOTHING`
+                ).bind(season, matchday, dayId, comId).run();
+
+                console.log(`[BUNDESLIGA-DAYID] rendered + cached: ${season} MD${matchday} -> ${dayId} (${Date.now() - t0}ms)`);
+                return new Response(JSON.stringify({
+                    ok: true, season, matchday, dayId, comId,
+                    cached: false, renderMs: Date.now() - t0,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                try { if (browser) await browser.disconnect(); } catch (_) {}
+                return new Response(JSON.stringify({ ok: false, error: e.message, season, matchday }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // ── /nba-clutch-update → on-demand NBA clutch → R2 update (admin) ─────────
         if (pathname === '/nba-clutch-update' && request.method === 'POST') {
             if (request.headers.get('X-FIELD-Admin') !== '1')
@@ -16046,6 +16185,12 @@ export default {
                         '/test/combined-generate-judge',
                         // Prefilter heuristic probe (2026-07-20, test-only — remove after Step 3-4 eval)
                         '/test/prefilter',
+                        // Bundesliga DFL-DAY-XXX matchday id resolver (2026-08-02).
+                        // CAUTION: a cache-miss probe (new season+matchday combo) invokes
+                        // real Cloudflare Browser Rendering (real cost, ~5s) — cache hits
+                        // are cheap. Requires ?season=YYYY-YYYY&matchday=N; probing with no
+                        // query string returns a cheap 400, does not render.
+                        '/bundesliga-bapi/resolve-dayid',
                     ]);
                     // Context Graph API (2026-06-18) — both routes carry a
                     // segment after the prefix (id or YYYY-MM-DD), so they
