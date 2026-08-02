@@ -1,0 +1,16 @@
+{
+  "season": "2026-2027",
+  "matchday": 3,
+  "resolveOk": true,
+  "dayId": "DFL-DAY-004CBV",
+  "comId": "DFL-COM-000001",
+  "broadcastsStatus": 200,
+  "broadcastsBody": {
+    "broadcasts": []
+  },
+  "broadcastsError": null,
+  "keyStillWorks": true,
+  "realShapeKeys": [
+    "broadcasts"
+  ]
+}
