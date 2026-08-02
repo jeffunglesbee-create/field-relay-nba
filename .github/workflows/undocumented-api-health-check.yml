@@ -1,0 +1,72 @@
+name: Undocumented API Health Check
+
+# CC-CMD-2026-08-02-undocumented-api-health-check TASK 2. Scheduled,
+# real health check for the two undocumented, reverse-engineered upstream
+# dependencies: apim.laliga.com (LaLiga standings, real FD fallback) and
+# wapp.bapi.bundesliga.com (Bundesliga resolve-dayid + broadcasts, zero
+# real fallback). Detection only -- never attempts remediation. Daily
+# cadence: neither endpoint is live-game-critical (per the CC-CMD's own
+# guidance), unlike jubilant-bassoon's deploy-drift-detector.yml which
+# runs every 30 min because a stuck deploy is a live-app-breaking event.
+
+on:
+  schedule:
+    - cron: '0 13 * * *'   # daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run health check
+        run: node scripts/undocumented-api-health-check.mjs
+        continue-on-error: true
+
+      - name: Commit result
+        # Unlike deploy-drift-detector.yml (which only commits real
+        # incidents to avoid 30-min-forever commit spam), this runs once
+        # a day -- a daily "healthy" record is not spam at that cadence,
+        # and having a real committed artifact from every run (not just
+        # failures) makes the routine-vs-drifted answer to "verify these
+        # are executing in the same way" checkable without digging into
+        # CI logs.
+        run: |
+          git config user.email "undocumented-api-health-check@field"
+          git config user.name "Undocumented-API-Health-Check"
+          git add outbox/undocumented-api-health-check-latest.json 2>/dev/null || true
+          git diff --cached --quiet && echo "No change to commit" && exit 0
+          git commit -m "undocumented-api health check result [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+
+      - name: Print result
+        if: always()
+        run: cat outbox/undocumented-api-health-check-latest.json 2>/dev/null || echo "No result file produced"
+
+      - name: Fail job if any dependency unhealthy
+        if: always()
+        run: |
+          node -e "
+            const fs = require('fs');
+            const out = JSON.parse(fs.readFileSync('outbox/undocumented-api-health-check-latest.json', 'utf8'));
+            const failing = out.results.filter(r => !r.healthy);
+            if (failing.length > 0) {
+              console.error('UNHEALTHY:', failing.map(f => f.name).join(', '));
+              process.exit(1);
+            }
+            console.log('All undocumented-API dependencies healthy.');
+          "
