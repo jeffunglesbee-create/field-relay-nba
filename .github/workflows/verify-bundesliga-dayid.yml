@@ -1,0 +1,23 @@
+name: Verify Bundesliga DayID Route
+
+# One-shot: CC-CMD-2026-08-02-add-browser-rendering-bundesliga-dayid
+# TASK 5. Real, live verification of /bundesliga-bapi/resolve-dayid --
+# 2 distinct matchdays resolve correctly, second call for the same
+# matchday hits cache (real timing evidence).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run verification
+        run: node scripts/verify-bundesliga-dayid.mjs
