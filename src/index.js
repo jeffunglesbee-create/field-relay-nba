@@ -393,6 +393,27 @@ function _laligaApimHeaders(env) {
 }
 const LALIGA_APIM_TTL = 300;
 
+// ── Bundesliga (wapp.bapi.bundesliga.com) ────────────────────────────────
+// CC-CMD-2026-08-02-proxy-bundesliga-broadcasts. x-api-key re-verified
+// fresh via CI (outbox/verify-bundesliga-broadcasts-shape-result.json,
+// 2026-08-02): real matchday 3 -> DFL-DAY-004CBV, HTTP 200, real shape
+// {broadcasts:[]}. env.BUNDESLIGA_BAPI_KEY overrides; fallback is the
+// real, currently-working key (same pattern as LALIGA_APIM_KEY_FALLBACK).
+const BUNDESLIGA_BAPI_BASE = 'https://wapp.bapi.bundesliga.com';
+const BUNDESLIGA_BAPI_KEY_FALLBACK = '60ETUJ4j5YagIHdu-PROD';
+function _bundesligaBapiKey(env) { return (env && env.BUNDESLIGA_BAPI_KEY) || BUNDESLIGA_BAPI_KEY_FALLBACK; }
+function _bundesligaBapiHeaders(env) {
+    return {
+        'x-api-key': _bundesligaBapiKey(env),
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-EN',
+    };
+}
+// Broadcast assignments change far less often than live scores/standings --
+// 30min TTL, same order of magnitude as LALIGA_APIM_TTL's 5min but looser
+// since this is schedule metadata, not a live table.
+const BUNDESLIGA_BAPI_TTL = 1800;
+
 // ── PL (Premier League via PulseLive) ────────────────────────────────────────
 const PL_BASE    = 'https://footballapi.pulselive.com';
 const PL_HEADERS = {
@@ -14929,6 +14950,45 @@ export default {
                 try { if (browser) await browser.disconnect(); } catch (_) {}
                 return new Response(JSON.stringify({ ok: false, error: e.message, season, matchday }),
                     { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
+        // ── GET /bundesliga-bapi/broadcasts → real broadcast data for a
+        // resolved (comId, dayId) pair. CC-CMD-2026-08-02-proxy-bundesliga-
+        // broadcasts. RUWT/ADR-002: this proxies a neutral vendor's factual
+        // broadcaster-assignment data (e.g. "ESPN+") on pull only, matching
+        // resolve-dayid's own analysis -- no drama score, no value judgment,
+        // no autonomous push. Real, graceful failure handling matching the
+        // LaLiga apim route's pattern: any non-200/exception returns
+        // {available:false} with HTTP 200, not a raw 5xx or malformed data.
+        if (pathname === '/bundesliga-bapi/broadcasts' && request.method === 'GET') {
+            const comId = (url.searchParams.get('comId') || '').trim();
+            const dayId = (url.searchParams.get('dayId') || '').trim();
+            if (!/^DFL-COM-[A-Z0-9]+$/.test(comId) || !/^DFL-DAY-[A-Z0-9]+$/.test(dayId)) {
+                return new Response(JSON.stringify({
+                    ok: false, error: 'comId (DFL-COM-XXX) and dayId (DFL-DAY-XXX) required -- resolve via /bundesliga-bapi/resolve-dayid first',
+                }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const r = await relayFetch(
+                    `${BUNDESLIGA_BAPI_BASE}/broadcasts/${comId}/${dayId}`,
+                    _bundesligaBapiHeaders(env), BUNDESLIGA_BAPI_TTL, 'bundesliga-bapi-broadcasts', ctx
+                );
+                if (!r.ok) {
+                    return new Response(JSON.stringify({ available: false, upstreamStatus: r.status, comId, dayId }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json', 'X-RELAY-Error': 'bundesliga-bapi-broadcasts-upstream-failed', ...CORS },
+                    });
+                }
+                const body = await r.json();
+                return new Response(JSON.stringify({ available: true, comId, dayId, data: body }), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${BUNDESLIGA_BAPI_TTL}`, ...CORS },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ available: false, error: String(e).slice(0, 200), comId, dayId }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json', 'X-RELAY-Error': 'bundesliga-bapi-broadcasts-fetch-exception', ...CORS },
+                });
             }
         }
 
