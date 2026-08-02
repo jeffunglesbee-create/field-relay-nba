@@ -14846,6 +14846,177 @@ export default {
         // table in this file). The expensive render step (Cloudflare Browser Rendering,
         // Workers Paid: bills per browser-minute + concurrent browser) runs at most
         // once per matchday, ever -- checked here BEFORE ever invoking Puppeteer.
+        // ── date-mode: GET /bundesliga-bapi/resolve-dayid?season=X&date=YYYY-MM-DD ──
+        // CC-CMD-2026-08-02-resolve-dayid-date-mode. Additive alternative to the
+        // matchday-number mode below -- that mode is left byte-for-byte
+        // unchanged (routed to only when `date` is present and `matchday` is
+        // not). Real problem this solves: jubilant-bassoon confirmed ESPN's
+        // Bundesliga scoreboard has no matchday/week field on any event, so a
+        // client with only a game's real date has no safe way to pick a
+        // matchday number for the mode below.
+        //
+        // Real, evidence-based resolution (Task 1 pre-build probes, both
+        // 2026-08-02): (1) the unparametrized /matchday URL does NOT give a
+        // usable "current matchday" -- it stays pinned to whatever comId the
+        // site currently defaults to (confirmed live: DFL-COM-000003, the
+        // Supercup, not the real league matchday). (2) a rendered matchday
+        // page's visible text DOES contain each fixture's real date (e.g.
+        // "FRIDAY\n8 May", confirmed against a real 2025-26 matchday page) --
+        // enough to bound-search for the matchday whose real date range
+        // contains the requested date, without ever trusting an unverified
+        // guess. Binary search over matchday 1-40 (same real range this
+        // route's own matchday-mode already validates against), max ~6
+        // renders, each render's real extracted date range narrows the
+        // search -- no hardcoded season-start-date assumption anywhere.
+        if (pathname === '/bundesliga-bapi/resolve-dayid' && request.method === 'GET'
+            && url.searchParams.has('date') && !url.searchParams.has('matchday')) {
+            const season = (url.searchParams.get('season') || '').trim();
+            const dateStr = (url.searchParams.get('date') || '').trim();
+            if (!/^\d{4}-\d{4}$/.test(season) || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return new Response(JSON.stringify({
+                    ok: false, error: 'season (format YYYY-YYYY) and date (format YYYY-MM-DD) required',
+                }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            await env.ARCHIVE_DB.prepare(`
+                CREATE TABLE IF NOT EXISTS bundesliga_date_cache (
+                    season      TEXT NOT NULL,
+                    date        TEXT NOT NULL,
+                    matchday    INTEGER NOT NULL,
+                    dfl_day_id  TEXT NOT NULL,
+                    dfl_com_id  TEXT,
+                    resolved_at TEXT DEFAULT (datetime('now')),
+                    PRIMARY KEY (season, date)
+                )`).run();
+            const dateCached = await env.ARCHIVE_DB.prepare(
+                `SELECT matchday, dfl_day_id, dfl_com_id, resolved_at FROM bundesliga_date_cache WHERE season = ? AND date = ?`
+            ).bind(season, dateStr).first();
+            if (dateCached) {
+                console.log(`[BUNDESLIGA-DAYID] date cache hit: ${season} ${dateStr} -> MD${dateCached.matchday} ${dateCached.dfl_day_id}`);
+                return new Response(JSON.stringify({
+                    ok: true, season, date: dateStr, matchday: dateCached.matchday,
+                    dayId: dateCached.dfl_day_id, comId: dateCached.dfl_com_id,
+                    resolvedAt: dateCached.resolved_at, cached: true,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.BROWSER) {
+                return new Response(JSON.stringify({ ok: false, error: 'BROWSER binding not available on this worker' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            const t0 = Date.now();
+            let browser = null;
+            const renders = [];
+            try {
+                try {
+                    const sessions = await puppeteer.sessions(env.BROWSER);
+                    const idle = sessions.filter(s => !s.connectionId);
+                    if (idle.length > 0) {
+                        try { browser = await puppeteer.connect(env.BROWSER, idle[0].sessionId); } catch (_) {}
+                    }
+                } catch (_) {}
+                if (!browser) browser = await puppeteer.launch(env.BROWSER, { protocolTimeout: 60000 });
+
+                const seasonYears = season.split('-').map(Number); // e.g. [2026, 2027]
+                const MONTHS = ['january','february','march','april','may','june','july',
+                    'august','september','october','november','december'];
+                const dateRegex = /\b(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/gi;
+
+                // Renders one matchday page and returns its real captured
+                // {dayId, comId, minISO, maxISO} from actual page content --
+                // never assumed, always extracted fresh.
+                async function renderMatchday(md) {
+                    const page = await browser.newPage();
+                    let dayId = null, comId = null;
+                    const onResponse = (resp) => {
+                        const respUrl = resp.url();
+                        if (!respUrl.includes('wapp.bapi.bundesliga.com') || !respUrl.includes('/broadcasts/')) return;
+                        const dm = respUrl.match(/DFL-DAY-[A-Z0-9]+/);
+                        const cm = respUrl.match(/DFL-COM-[A-Z0-9]+/);
+                        if (dm && !dayId) dayId = dm[0];
+                        if (cm && !comId) comId = cm[0];
+                    };
+                    page.on('response', onResponse);
+                    await page.goto(`https://www.bundesliga.com/en/bundesliga/matchday/${season}/${md}`,
+                        { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+                    await new Promise(r => setTimeout(r, 5000));
+                    page.off('response', onResponse);
+
+                    const bodyText = await page.evaluate(() => document.body.innerText).catch(() => '');
+                    await page.close().catch(() => {});
+
+                    const isoDates = [];
+                    let m;
+                    dateRegex.lastIndex = 0;
+                    while ((m = dateRegex.exec(bodyText)) !== null) {
+                        const day = parseInt(m[1], 10);
+                        const monthIdx = MONTHS.indexOf(m[2].toLowerCase());
+                        // Real domain convention: Bundesliga season "2026-2027"
+                        // runs Aug(2026)-Dec(2026) then Jan(2027)-Jun(2027).
+                        // Months Jul-Dec use the season's first year, Jan-Jun
+                        // use its second year.
+                        const year = monthIdx >= 6 ? seasonYears[0] : seasonYears[1];
+                        const iso = `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        isoDates.push(iso);
+                    }
+                    isoDates.sort();
+                    return {
+                        md, dayId, comId,
+                        minISO: isoDates[0] || null,
+                        maxISO: isoDates[isoDates.length - 1] || null,
+                    };
+                }
+
+                let low = 1, high = 40, found = null;
+                let attempts = 0;
+                while (low <= high && attempts < 7) {
+                    attempts++;
+                    const mid = Math.floor((low + high) / 2);
+                    const r = await renderMatchday(mid);
+                    renders.push({ matchday: r.md, minISO: r.minISO, maxISO: r.maxISO, dayId: r.dayId });
+                    if (!r.minISO || !r.maxISO) {
+                        // No real dates extracted -- can't safely narrow the
+                        // search from this render. Stop rather than guess.
+                        break;
+                    }
+                    if (dateStr >= r.minISO && dateStr <= r.maxISO) {
+                        found = r;
+                        break;
+                    }
+                    if (dateStr < r.minISO) high = mid - 1;
+                    else low = mid + 1;
+                }
+
+                await browser.disconnect();
+
+                if (!found || !found.dayId) {
+                    return new Response(JSON.stringify({
+                        ok: false, error: 'Could not resolve a matchday whose real date range contains the requested date',
+                        season, date: dateStr, renders, renderMs: Date.now() - t0,
+                    }), { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+
+                await env.ARCHIVE_DB.prepare(
+                    `INSERT INTO bundesliga_date_cache (season, date, matchday, dfl_day_id, dfl_com_id) VALUES (?, ?, ?, ?, ?)
+                     ON CONFLICT(season, date) DO NOTHING`
+                ).bind(season, dateStr, found.md, found.dayId, found.comId).run();
+
+                console.log(`[BUNDESLIGA-DAYID] date-mode rendered + cached: ${season} ${dateStr} -> MD${found.md} ${found.dayId} (${attempts} renders, ${Date.now() - t0}ms)`);
+                return new Response(JSON.stringify({
+                    ok: true, season, date: dateStr, matchday: found.md,
+                    dayId: found.dayId, comId: found.comId,
+                    cached: false, renderAttempts: attempts, renderMs: Date.now() - t0,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                try { if (browser) await browser.disconnect(); } catch (_) {}
+                return new Response(JSON.stringify({ ok: false, error: e.message, season, date: dateStr, renders }),
+                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         if (pathname === '/bundesliga-bapi/resolve-dayid' && request.method === 'GET') {
             const season   = (url.searchParams.get('season')   || '').trim();
             const matchday = parseInt(url.searchParams.get('matchday') || '', 10);
