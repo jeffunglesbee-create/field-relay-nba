@@ -3,108 +3,41 @@
   "knownDate": "2026-05-09",
   "expectedMatchday": 33,
   "dateModeFirst": {
-    "ok": false,
-    "error": "Could not resolve a matchday whose real date range contains the requested date",
+    "ok": true,
     "season": "2025-2026",
     "date": "2026-05-09",
-    "renders": [
-      {
-        "matchday": 20,
-        "minISO": "2026-01-30",
-        "maxISO": "2026-02-01",
-        "dayId": "DFL-DAY-004C9K"
-      },
-      {
-        "matchday": 30,
-        "minISO": "2026-04-17",
-        "maxISO": "2026-04-19",
-        "dayId": "DFL-DAY-004C9U"
-      },
-      {
-        "matchday": 35,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 38,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 39,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 40,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      }
-    ],
-    "renderMs": 52756
+    "matchday": 33,
+    "dayId": "DFL-DAY-004C9X",
+    "comId": "DFL-COM-000001",
+    "cached": false,
+    "renderAttempts": 5,
+    "renderMs": 31750
   },
-  "dateModeFirstMs": 53939,
+  "dateModeFirstMs": 32173,
   "matchdayModeCrossCheck": {
     "ok": true,
     "season": "2025-2026",
     "matchday": 33,
     "dayId": "DFL-DAY-004C9X",
     "comId": "DFL-COM-000001",
-    "cached": false,
-    "renderMs": 8485
+    "resolvedAt": "2026-08-02 13:13:18",
+    "cached": true
   },
   "dateModeSecond": {
-    "ok": false,
-    "error": "Could not resolve a matchday whose real date range contains the requested date",
+    "ok": true,
     "season": "2025-2026",
     "date": "2026-05-09",
-    "renders": [
-      {
-        "matchday": 20,
-        "minISO": "2026-01-30",
-        "maxISO": "2026-02-01",
-        "dayId": "DFL-DAY-004C9K"
-      },
-      {
-        "matchday": 30,
-        "minISO": "2026-04-17",
-        "maxISO": "2026-04-19",
-        "dayId": "DFL-DAY-004C9U"
-      },
-      {
-        "matchday": 35,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 38,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 39,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      },
-      {
-        "matchday": 40,
-        "minISO": "2025-08-28",
-        "maxISO": "2025-08-30",
-        "dayId": "DFL-DAY-004CBT"
-      }
-    ],
-    "renderMs": 47242
+    "matchday": 33,
+    "dayId": "DFL-DAY-004C9X",
+    "comId": "DFL-COM-000001",
+    "resolvedAt": "2026-08-02 13:18:37",
+    "cached": true
   },
-  "dateModeSecondMs": 47355,
-  "resolvedCorrectMatchday": false,
-  "dateModeCacheHitConfirmed": false,
+  "dateModeSecondMs": 127,
+  "resolvedCorrectMatchday": true,
+  "dayIdMatchesCrossCheck": true,
+  "comIdMatchesCrossCheck": true,
+  "dateModeCacheHitConfirmed": true,
   "dateModeCacheFaster": true,
   "matchdayModeUntouchedShape": true
 }
