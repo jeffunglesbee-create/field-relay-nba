@@ -1,0 +1,110 @@
+{
+  "season": "2025-2026",
+  "knownDate": "2026-05-09",
+  "expectedMatchday": 33,
+  "dateModeFirst": {
+    "ok": false,
+    "error": "Could not resolve a matchday whose real date range contains the requested date",
+    "season": "2025-2026",
+    "date": "2026-05-09",
+    "renders": [
+      {
+        "matchday": 20,
+        "minISO": "2026-01-30",
+        "maxISO": "2026-02-01",
+        "dayId": "DFL-DAY-004C9K"
+      },
+      {
+        "matchday": 30,
+        "minISO": "2026-04-17",
+        "maxISO": "2026-04-19",
+        "dayId": "DFL-DAY-004C9U"
+      },
+      {
+        "matchday": 35,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 38,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 39,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 40,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      }
+    ],
+    "renderMs": 52756
+  },
+  "dateModeFirstMs": 53939,
+  "matchdayModeCrossCheck": {
+    "ok": true,
+    "season": "2025-2026",
+    "matchday": 33,
+    "dayId": "DFL-DAY-004C9X",
+    "comId": "DFL-COM-000001",
+    "cached": false,
+    "renderMs": 8485
+  },
+  "dateModeSecond": {
+    "ok": false,
+    "error": "Could not resolve a matchday whose real date range contains the requested date",
+    "season": "2025-2026",
+    "date": "2026-05-09",
+    "renders": [
+      {
+        "matchday": 20,
+        "minISO": "2026-01-30",
+        "maxISO": "2026-02-01",
+        "dayId": "DFL-DAY-004C9K"
+      },
+      {
+        "matchday": 30,
+        "minISO": "2026-04-17",
+        "maxISO": "2026-04-19",
+        "dayId": "DFL-DAY-004C9U"
+      },
+      {
+        "matchday": 35,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 38,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 39,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      },
+      {
+        "matchday": 40,
+        "minISO": "2025-08-28",
+        "maxISO": "2025-08-30",
+        "dayId": "DFL-DAY-004CBT"
+      }
+    ],
+    "renderMs": 47242
+  },
+  "dateModeSecondMs": 47355,
+  "resolvedCorrectMatchday": false,
+  "dateModeCacheHitConfirmed": false,
+  "dateModeCacheFaster": true,
+  "matchdayModeUntouchedShape": true
+}
