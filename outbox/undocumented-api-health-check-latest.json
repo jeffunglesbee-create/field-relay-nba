@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-08-02T22:15:26.537Z",
+  "results": [
+    {
+      "name": "laliga-apim",
+      "route": "/laliga-apim/clasificacion",
+      "hasFallback": true,
+      "fallbackDescription": "client falls back to FD-sourced standings on {available:false}",
+      "httpStatus": 200,
+      "available": true,
+      "upstreamStatus": null,
+      "hasExpectedShape": true,
+      "healthy": true
+    },
+    {
+      "name": "bundesliga-bapi",
+      "route": "/bundesliga-bapi/resolve-dayid + /bundesliga-bapi/broadcasts",
+      "hasFallback": false,
+      "fallbackDescription": "NO real fallback exists -- if this breaks, Bundesliga broadcast enrichment silently disables itself (jubilant-bassoon _fetchBundesligaRealBroadcastStreams returns null on any failure and the client falls back to the static BUNDESLIGA bundle, which is real content but not live broadcast data)",
+      "resolveDayId": {
+        "httpStatus": 200,
+        "ok": true,
+        "cached": true,
+        "comId": "DFL-COM-000001",
+        "dayId": "DFL-DAY-004C9X",
+        "matchesKnownGoodValue": true
+      },
+      "broadcasts": {
+        "httpStatus": 200,
+        "available": true,
+        "upstreamStatus": null
+      },
+      "healthy": true
+    }
+  ],
+  "incident": {
+    "incidentWritten": false
+  }
+}
