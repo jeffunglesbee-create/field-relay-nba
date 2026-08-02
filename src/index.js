@@ -3587,10 +3587,15 @@ async function handleV2Games(url, env, ctx) {
         //   game.round    — "Group I" → extractWCGroup() uses regex path, not fallback
         //   game.weather  — {description, wind_speed, temperature_c} for journalism context
         // Non-blocking — failure leaves round='' and weather undefined; both degrade gracefully.
+        // Uses date_from/date_to, not date= -- confirmed live 2026-08-01 that BSD's
+        // /api/v2/events/ silently ignores a bare date= param (returns an unfiltered,
+        // non-date-ordered page instead), which would have matched teams' games from
+        // the wrong date via the team-name-only lookup below. date_from/date_to is the
+        // real working filter, per BSD's own /api/schema/ OpenAPI spec.
         if (env.BSD_API_TOKEN && sport === 'wc26') {
             try {
                 const _bsdByDate = await fetch(
-                    `https://sports.bzzoiro.com/api/v2/events/?date=${date}&league_id=27`,
+                    `https://sports.bzzoiro.com/api/v2/events/?date_from=${date}&date_to=${date}&league_id=27`,
                     {
                         headers: {
                             'Authorization': `Token ${env.BSD_API_TOKEN}`,
@@ -8710,15 +8715,20 @@ export default {
                                'Cache-Control': 'public, max-age=30', ...CORS } });
             }
 
-            // /bsd/events/by-date?date=YYYY-MM-DD → BSD /api/v2/events/?date=...
+            // /bsd/events/by-date?date=YYYY-MM-DD → BSD /api/v2/events/?date_from=X&date_to=X...
             // Used for: backfilling wc_results.bsd_event_id, historical shotmap lookup
+            // Public param stays `date` (single day) for callers -- translated internally
+            // to date_from=date_to=dateParam, the real working BSD filter. A bare date=
+            // is silently ignored by BSD (confirmed live 2026-08-01, EPL league_id=1:
+            // returned unfiltered round-38 fixtures for a date=2026-08-22 request);
+            // season= is likewise ignored -- BSD's real param is season_id.
             if (pathname === '/bsd/events/by-date') {
                 const dateParam = url.searchParams.get('date') || new Date().toISOString().slice(0,10);
                 const leagueId  = url.searchParams.get('league_id') || '';
                 const season    = url.searchParams.get('season') || '';
-                let bsdQs = `?date=${dateParam}`;
+                let bsdQs = `?date_from=${dateParam}&date_to=${dateParam}`;
                 if (leagueId)  bsdQs += `&league_id=${leagueId}`;
-                if (season)    bsdQs += `&season=${season}`;
+                if (season)    bsdQs += `&season_id=${season}`;
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${bsdQs}`,
                     { headers: bsdHeaders });
                 return new Response(await r.text(), { status: r.status,
@@ -8727,11 +8737,13 @@ export default {
             }
 
             // /bsd/events/season?league_id=X&season=Y → BSD all events for a competition
+            // Public param stays `season` for callers -- translated to season_id, the
+            // real working BSD param (season= is silently ignored, confirmed live).
             if (pathname === '/bsd/events/season') {
                 const leagueId = url.searchParams.get('league_id') || '1';
                 const season   = url.searchParams.get('season') || '2026';
                 const r = await fetch(
-                    `${BSD_BASE}/api/v2/events/?league_id=${leagueId}&season=${season}`,
+                    `${BSD_BASE}/api/v2/events/?league_id=${leagueId}&season_id=${season}`,
                     { headers: bsdHeaders });
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
