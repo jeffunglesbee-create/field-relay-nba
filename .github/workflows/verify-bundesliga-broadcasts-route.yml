@@ -1,0 +1,44 @@
+name: Verify Bundesliga Broadcasts Route
+
+# One-shot: CC-CMD-2026-08-02-proxy-bundesliga-broadcasts TASK 3. Real,
+# live verification of the new /bundesliga-bapi/broadcasts relay route --
+# resolves a real, current (comId, dayId) pair via resolve-dayid, then
+# confirms the new route returns real, correctly-shaped data for it and
+# correctly rejects an invalid comId with 400.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run verification
+        run: node scripts/verify-bundesliga-broadcasts-route.mjs
+        continue-on-error: true
+
+      - name: Push result
+        run: |
+          git config user.email "verify-bundesliga-broadcasts-route@field"
+          git config user.name "Verify-Bundesliga-Broadcasts-Route"
+          git add outbox/verify-bundesliga-broadcasts-route-result.json 2>/dev/null || true
+          git diff --cached --quiet && echo "No result to commit" && exit 0
+          git commit -m "verify-bundesliga-broadcasts-route result [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+
+      - name: Print result
+        if: always()
+        run: cat outbox/verify-bundesliga-broadcasts-route-result.json 2>/dev/null || echo "No result file produced"
