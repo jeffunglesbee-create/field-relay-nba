@@ -1,0 +1,43 @@
+name: Probe Bundesliga Matchday Date Text
+
+# One-shot: CC-CMD-2026-08-02-resolve-dayid-date-mode pre-build probe
+# (Rule 68). Checks whether a rendered matchday page's visible text
+# contains a real date range usable to verify a guessed matchday covers a
+# requested date, against a real past-season matchday.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install playwright (CI-only, not saved to package.json)
+        run: npm install --no-save playwright
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run probe
+        run: node scripts/probe-bundesliga-matchday-date-text.mjs
+        continue-on-error: true
+      - name: Push result
+        run: |
+          git config user.email "probe-bundesliga-matchday-date-text@field"
+          git config user.name "Probe-Bundesliga-Matchday-Date-Text"
+          git add outbox/probe-bundesliga-matchday-date-text-result.json 2>/dev/null || true
+          git diff --cached --quiet && echo "No result to commit" && exit 0
+          git commit -m "probe-bundesliga-matchday-date-text result [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+      - name: Print result
+        if: always()
+        run: cat outbox/probe-bundesliga-matchday-date-text-result.json 2>/dev/null || echo "No result file produced"
