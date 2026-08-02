@@ -364,6 +364,29 @@ function nhlCacheTtl(path) {
     return NHL_CACHE_TTL_LIVE; // scoreboard/now, gamecenter, score
 }
 
+// ── LaLiga (apim.laliga.com) ──────────────────────────────────────────────
+// CC-CMD-2026-08-02-wire-laliga-apim-standings-v2. Genuinely new discovery
+// (found by passive observation, not a documented public API) -- treat
+// with more caution than FD/FPL/ESPN. Key ships in plaintext to every
+// laliga.com visitor via SSR __NEXT_DATA__ (confirmed live, real header
+// capture, 2026-08-02) -- still handled server-side per Rule 80 discipline,
+// same as any other credential, even though its "secrecy" is nominal.
+// env.LALIGA_APIM_KEY overrides; fallback is the real, currently-working
+// key (same pattern as ODDS_API_KEY_FALLBACK above).
+const LALIGA_APIM_BASE = 'https://apim.laliga.com';
+const LALIGA_APIM_KEY_FALLBACK = 'c13c3a8e2f6b46da9c5c425cf61fab3e';
+function _laligaApimKey(env) { return (env && env.LALIGA_APIM_KEY) || LALIGA_APIM_KEY_FALLBACK; }
+function _laligaApimHeaders(env) {
+    return {
+        'ocp-apim-subscription-key': _laligaApimKey(env),
+        'Referer': 'https://www.laliga.com/',
+        'Accept': 'application/json, text/plain, */*',
+        'content-language': 'en',
+        'country-code': 'US',
+    };
+}
+const LALIGA_APIM_TTL = 300;
+
 // ── PL (Premier League via PulseLive) ────────────────────────────────────────
 const PL_BASE    = 'https://footballapi.pulselive.com';
 const PL_HEADERS = {
@@ -12510,6 +12533,36 @@ export default {
             const fdPath    = cleanPath + (url.search || '');
             if (!fdAllowed(cleanPath)) return new Response('FD path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'fd-path-not-whitelisted', ...CORS } });
             return relayFetch(`${FD_BASE}${fdPath}`, FD_HEADERS, fdCacheTtl(cleanPath), 'fd', ctx);
+        }
+
+        // /laliga-apim/clasificacion → apim.laliga.com La Liga standings.
+        // CC-CMD-2026-08-02-wire-laliga-apim-standings-v2. Real, graceful
+        // failure handling per Task 2: on any non-200 from the upstream,
+        // return a structured "unavailable" response the client can detect
+        // and fall back to its existing FD-sourced standings, rather than
+        // surfacing an opaque 5xx.
+        if (pathname === '/laliga-apim/clasificacion') {
+            try {
+                const r = await relayFetch(
+                    `${LALIGA_APIM_BASE}/public-service/api/v1/digitalassets/clasificacion?contentLanguage=en&countryCode=US`,
+                    _laligaApimHeaders(env), LALIGA_APIM_TTL, 'laliga-apim', ctx
+                );
+                if (!r.ok) {
+                    return new Response(JSON.stringify({ available: false, upstreamStatus: r.status }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json', 'X-RELAY-Error': 'laliga-apim-upstream-failed', ...CORS },
+                    });
+                }
+                const body = await r.json();
+                return new Response(JSON.stringify({ available: true, data: body }), {
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${LALIGA_APIM_TTL}`, ...CORS },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ available: false, error: String(e).slice(0, 200) }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json', 'X-RELAY-Error': 'laliga-apim-fetch-exception', ...CORS },
+                });
+            }
         }
 
         // /fpl/* → fantasy.premierleague.com/api
