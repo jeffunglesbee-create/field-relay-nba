@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-08-02T13:03:26.442Z",
+  "unparametrizedUrl": "https://www.bundesliga.com/en/bundesliga/matchday",
+  "capturedComId": "DFL-COM-000003",
+  "capturedDayId": "DFL-DAY-004CBT",
+  "capturedBroadcastsUrl": "https://wapp.bapi.bundesliga.com/broadcasts/DFL-COM-000003/DFL-DAY-004CBT",
+  "allCapturedUrls": [
+    "https://wapp.bapi.bundesliga.com/broadcasts/DFL-COM-000003/DFL-DAY-004CBT"
+  ],
+  "error": null
+}
