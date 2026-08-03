@@ -1,0 +1,184 @@
+HTTP 200
+plays.length = 514
+
+Union of ALL top-level keys across all 514 plays: [
+  'alternativePlay', 'alternativeType',
+  'atBatId',         'atBatPitchNumber',
+  'awayScore',       'batOrder',
+  'bats',            'hitCoordinate',
+  'homeScore',       'id',
+  'onFirst',         'onSecond',
+  'onThird',         'outs',
+  'participants',    'period',
+  'pitchCoordinate', 'pitchCount',
+  'pitchType',       'pitchVelocity',
+  'resultCount',     'scoreValue',
+  'scoringPlay',     'sequenceNumber',
+  'summaryType',     'team',
+  'text',            'trajectory',
+  'type',            'wallclock'
+]
+
+FOUND base-runner-ish key path: onFirst
+Play containing it: {
+  "id": "4016966390003990057",
+  "sequenceNumber": "7",
+  "type": {
+    "id": "57",
+    "text": "Play Result",
+    "type": "play-result"
+  },
+  "alternativeType": {
+    "id": "2",
+    "text": "Single",
+    "abbreviation": "1B",
+    "alternativeText": "Single",
+    "type": "single"
+  },
+  "alternativePlay": "4016966390003060002",
+  "text": "De La Cruz reached on infield single to shortstop.",
+  "awayScore": 0,
+  "homeScore": 0,
+  "period": {
+    "type": "Top",
+    "number": 1,
+    "displayValue": "1st Inning"
+  },
+  "scoringPlay": false,
+  "scoreValue": 0,
+  "team": {
+    "id": "17"
+  },
+  "participants": [
+    {
+      "athlete": {
+        "id": "33722"
+      },
+      "type": "pitcher"
+    },
+    {
+      "athlete": {
+        "id": "4917694"
+      },
+      "type": "batter"
+    },
+    {
+      "athlete": {
+        "id": "4917694"
+      },
+      "type": "onFirst"
+    }
+  ],
+  "wallclock": "2025-08-08T22:45:35Z",
+  "atBatId": "4016966390003",
+  "batOrder": 3,
+  "bats": {
+    "type": "LEFT",
+    "abbreviation": "L",
+    "displayValue": "Left"
+  },
+  "atBatPitchNumber": 5,
+  "pitchCoordinate": {
+    "x": 98,
+    "y": 150
+  },
+  "hitCoordinate": {
+    "x": 85,
+    "y": 131
+  },
+  "summaryType": "N",
+  "pitchCount": {
+    "balls": 2,
+    "strikes": 2
+  },
+  "resultCount": {
+    "balls": 2,
+    "strikes": 2
+  },
+  "trajectory": "P",
+  "outs": 2,
+  "onFirst": {
+    "athlete": {
+      "id": "4917694"
+    }
+  }
+}
+
+Sample "on-base-triggering" play ( Single ):
+{
+  "id": "4016966390003060002",
+  "sequenceNumber": "6",
+  "type": {
+    "id": "2",
+    "text": "Single",
+    "abbreviation": "1B",
+    "alternativeText": "Single",
+    "type": "single"
+  },
+  "text": "Pitch 5 : Ball In Play",
+  "awayScore": 0,
+  "homeScore": 0,
+  "period": {
+    "type": "Top",
+    "number": 1,
+    "displayValue": "1st Inning"
+  },
+  "scoringPlay": false,
+  "scoreValue": 0,
+  "team": {
+    "id": "23"
+  },
+  "participants": [
+    {
+      "athlete": {
+        "id": "33722"
+      },
+      "type": "pitcher"
+    },
+    {
+      "athlete": {
+        "id": "4917694"
+      },
+      "type": "batter"
+    }
+  ],
+  "wallclock": "2025-08-08T22:45:35Z",
+  "atBatId": "4016966390003",
+  "batOrder": 3,
+  "bats": {
+    "type": "LEFT",
+    "abbreviation": "L",
+    "displayValue": "Left"
+  },
+  "atBatPitchNumber": 5,
+  "pitchCoordinate": {
+    "x": 98,
+    "y": 150
+  },
+  "pitchType": {
+    "id": "2",
+    "text": "Sinker",
+    "abbreviation": "SI"
+  },
+  "pitchVelocity": 92,
+  "hitCoordinate": {
+    "x": 85,
+    "y": 131
+  },
+  "summaryType": "P",
+  "pitchCount": {
+    "balls": 2,
+    "strikes": 2
+  },
+  "resultCount": {
+    "balls": 2,
+    "strikes": 2
+  },
+  "trajectory": "P",
+  "outs": 2
+}
+
+Sample play with count-ish fields:
+pitchCount: {"balls":0,"strikes":0}
+resultCount: {"balls":0,"strikes":0}
+count (if any): undefined

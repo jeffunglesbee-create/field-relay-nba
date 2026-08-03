@@ -1,0 +1,90 @@
+=== MLB play-by-play shape probe (event 401696639) ===
+HTTP 200
+plays.length = 514
+sample play top-level keys: [
+  'atBatId',        'awayScore',
+  'homeScore',      'id',
+  'outs',           'period',
+  'pitchCount',     'resultCount',
+  'scoreValue',     'scoringPlay',
+  'sequenceNumber', 'summaryType',
+  'team',           'text',
+  'type',           'wallclock'
+]
+sample.situation: "<<undefined>>"
+sample.outs (top-level): 0
+sample.balls (top-level): undefined
+sample.strikes (top-level): undefined
+sample.onFirst (top-level): undefined
+sample.onSecond (top-level): undefined
+sample.onThird (top-level): undefined
+full sample play JSON: {
+  "id": "4016966390000000059",
+  "sequenceNumber": "1",
+  "type": {
+    "id": "59",
+    "text": "Start Inning",
+    "type": "start-inning"
+  },
+  "text": "Top of the 1st inning",
+  "awayScore": 0,
+  "homeScore": 0,
+  "period": {
+    "type": "Top",
+    "number": 1,
+    "displayValue": "1st Inning"
+  },
+  "scoringPlay": false,
+  "scoreValue": 0,
+  "team": {
+    "id": "17"
+  },
+  "wallclock": "2025-08-08T22:41:20Z",
+  "atBatId": "4016966390001",
+  "summaryType": "I",
+  "pitchCount": {
+    "balls": 0,
+    "strikes": 0
+  },
+  "resultCount": {
+    "balls": 0,
+    "strikes": 0
+  },
+  "outs": 0
+}
+
+=== WNBA play-by-play shape probe ===
+No real WNBA_EVENT_ID provided -- skipping live probe. Code-inspection finding: fetchWNBAHistoricalStates only reads homeScore/awayScore/period/clock, no situational fields at all, so there is no situation-path bug class to probe for regardless of ESPN shape.
+
+=== D1 real row-count query (drama_arc shape signal) ===
+HTTP 200
+{
+  "success": true,
+  "results": [
+    {
+      "reg_mlb_total": 564,
+      "post_mlb_total": 0,
+      "reg_mlb_array_shape": 537,
+      "post_mlb_array_shape": 0,
+      "reg_mlb_object_shape": 0,
+      "post_mlb_object_shape": 0
+    }
+  ],
+  "meta": {
+    "served_by": "v3-prod",
+    "served_by_region": "ENAM",
+    "served_by_colo": "ATL",
+    "served_by_primary": true,
+    "timings": {
+      "sql_duration_ms": 6.2265
+    },
+    "duration": 6.2265,
+    "changes": 0,
+    "last_row_id": 0,
+    "changed_db": false,
+    "size_after": 12136448,
+    "rows_read": 1740,
+    "rows_written": 0,
+    "total_attempts": 1
+  }
+}
