@@ -31,13 +31,14 @@ jobs:
           TS=$(date -u +%Y%m%dT%H%M%SZ)
           mkdir -p outbox
           node scripts/probe-drama-backfill-fields.mjs 2>&1 | tee "outbox/drama-backfill-probe-${TS}.log"
+          node scripts/probe-drama-backfill-fields-2.mjs 2>&1 | tee "outbox/drama-backfill-probe2-${TS}.log"
 
       - name: Commit probe result
         if: always()
         run: |
           git config user.email "probe@field"
           git config user.name "Drama-Backfill-Fields-Probe"
-          git add outbox/drama-backfill-probe-*.log
+          git add outbox/drama-backfill-probe-*.log outbox/drama-backfill-probe2-*.log
           git commit -m "drama-backfill fields probe result [skip ci]" || echo "(nothing new)"
           for i in 1 2 3; do
             git pull --rebase --autostash origin main && git push origin main && break
