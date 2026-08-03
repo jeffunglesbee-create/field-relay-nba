@@ -12661,6 +12661,121 @@ export default {
             return relayFetch(`${FD_BASE}${fdPath}`, FD_HEADERS, fdCacheTtl(cleanPath), 'fd', ctx);
         }
 
+        // GET /schedule/ai-fallback?date=YYYY-MM-DD — globally-shared cache
+        // for jubilant-bassoon's fetchDateSchedule() AI fallback path (tennis,
+        // rugby, cricket, and any date the free ESPN sweep doesn't cover).
+        // CC-CMD-2026-08-02-shared-schedule-ai-cache-relay. Real gap this
+        // closes: the client's own cache is sessionStorage-keyed (confirmed
+        // via direct read of jubilant-bassoon src/legacy/field.js
+        // getCached/setCached, per-browser-tab only) -- every different
+        // visitor to the same date paid for a fresh, full-price AI call even
+        // seconds after another visitor already generated the identical
+        // result. Same real shared-cache shape already proven by
+        // handleESPNGolfScoreboard's v2:golf:scoreboard:{date} pattern above
+        // (same FIELD_JOURNALISM KV namespace, same read-cache-first
+        // convention) -- reused, not reinvented.
+        //
+        // Prompt/model/max_tokens copied VERBATIM from jubilant-bassoon
+        // fetchDateSchedule (re-verified fresh at HEAD, Task 1) -- a
+        // re-derived approximation could produce a differently-shaped or
+        // worse result than what the client gets today. Server-to-server
+        // proxy call auth reuses the exact existing pattern (X-FIELD-Relay:
+        // field-relay-cron-2026 to JOURNALISM_CLAUDE_PROXY), same as every
+        // other cron-side proxy call in this file -- not a new auth path.
+        //
+        // Response shape: {ok:true, rows:[[home,away,league,time,streamKey],...]}
+        // on success -- the same parsed-but-not-yet-sport-expanded "s" array
+        // shape the AI itself returns (fence-stripped, JSON-extracted), NOT
+        // pre-expanded into jubilant-bassoon's client-only sport-section
+        // shape (inferSport()/expandStreams() are client-side utilities that
+        // don't exist relay-side, and duplicating them here would be a real,
+        // ongoing double-maintenance risk if either drifts). The paired,
+        // separate client CC-CMD (shared-schedule-ai-cache-client) consumes
+        // `rows` and does its existing expansion locally, unchanged. Failure
+        // shape matches the client's existing {ok:false, reason} contract
+        // exactly, re-verified at Task 1: 'budget-exhausted' has no relay
+        // equivalent (this route has no per-session budget concept) so on
+        // any real failure this returns {ok:false, reason:'error', message}.
+        //
+        // TTL: modeled on handleESPNGolfScoreboard's live-vs-stable split,
+        // not a single arbitrary number. A date within the next 48h is real-
+        // world unlikely to still be provisional (broadcast schedules are
+        // set by then) -> long TTL (7 days). A date further out may still be
+        // provisional -> shorter TTL (24h) so it gets re-asked as real
+        // schedule info firms up.
+        if (pathname === '/schedule/ai-fallback' && request.method === 'GET') {
+            const dateParam = (url.searchParams.get('date') || '').trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+                return new Response(JSON.stringify({ ok: false, reason: 'error', message: 'date (format YYYY-MM-DD) required' }),
+                    { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, reason: 'error', message: 'FIELD_JOURNALISM not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const cacheKey = `schedule:ai:v1:${dateParam}`;
+            try {
+                const cached = await env.FIELD_JOURNALISM.get(cacheKey);
+                if (cached) {
+                    return new Response(cached, { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+                }
+            } catch (e) {
+                console.error('[SCHEDULE-AI-FALLBACK] KV read failed:', e.message);
+            }
+
+            const d = new Date(dateParam + 'T12:00:00Z');
+            const dow = d.toLocaleDateString('en-US', { weekday: 'long' });
+            const mon = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const prompt = `${dateParam} (${dow}, ${mon}). Sports schedule for this date. Respond with JSON only — no prose, no markdown fences.
+Schema: {"s":[["HomeTeam","AwayTeam","League","${dateParam}THH:MM:00Z","streamkey"],...]} or {"s":[]}.
+Replace HH:MM with actual UTC kick-off time. Use 24-hour UTC (GMT+0). A 7pm ET game = 23:00 UTC. A 7pm PT game = 02:00 UTC next day. Do not use local timezone. If unsure of the exact time, omit the game entirely rather than guessing.
+Include if games exist: NBA playoffs, NHL playoffs, MLB, NFL, UCL/UEL/UECL, EPL, IPL, AFL, Grand Slam tennis, Top14/URC rugby.
+Stream keys (pick best fit): espn,abc,nbc,tnt,tbs,fox,fs1,peacock,paramount,apple,prime,netflix,max,mlbtv,tc,willow,bein,sky,watchafl,mlbn.
+Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highly confident a specific game is scheduled on this exact date, omit it. An empty {"s":[]} is preferable to inventing a game that is not happening.`;
+
+            try {
+                const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    signal: AbortSignal.timeout(15000),
+                    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] }),
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    return new Response(JSON.stringify({ ok: false, reason: 'error', message: `HTTP ${resp.status}: ${errText.slice(0, 120)}` }),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const data = await resp.json();
+                if (data.type === 'error' || data.error) {
+                    return new Response(JSON.stringify({ ok: false, reason: 'error', message: data.error?.message || 'proxy error' }),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const rawTxt = (data.content || []).map(b => b.text || '').join('').trim();
+                const cleaned = rawTxt.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+                const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    return new Response(JSON.stringify({ ok: false, reason: 'error', message: 'No JSON object in response' }),
+                        { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const parsed = JSON.parse(jsonMatch[0]);
+                const rows = Array.isArray(parsed.s) ? parsed.s : [];
+
+                const now = new Date();
+                const isNearTerm = (d.getTime() - now.getTime()) <= 48 * 3600 * 1000;
+                const ttlSeconds = isNearTerm ? 7 * 86400 : 86400;
+                const body = JSON.stringify({ ok: true, rows });
+                try {
+                    await env.FIELD_JOURNALISM.put(cacheKey, body, { expirationTtl: ttlSeconds });
+                } catch (e) {
+                    console.error('[SCHEDULE-AI-FALLBACK] KV write failed:', e.message);
+                }
+                return new Response(body, { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, reason: 'error', message: e.message }),
+                    { status: 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /laliga-apim/clasificacion → apim.laliga.com La Liga standings.
         // CC-CMD-2026-08-02-wire-laliga-apim-standings-v2. Real, graceful
         // failure handling per Task 2: on any non-200 from the upstream,
