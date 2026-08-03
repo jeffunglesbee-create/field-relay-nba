@@ -8036,7 +8036,28 @@ export default {
                 console.error('[SIGNATURE-EVENT-CALENDAR]', e.message)));
         }
         ctx.waitUntil(handleCron(env));
-        ctx.waitUntil(handleJournalismCycle(env));
+        // CC-CMD-2026-08-02-gate-journalism-cycle-cron: handleJournalismCycle's
+        // own intended cadence is */15, confirmed via its own internal
+        // assumptions (JOURNALISM_TTL_SECS=900 "matches cron frequency";
+        // runDeadHourBackfill's "15-min cron => up to 4 dates/hour" comment).
+        // */5 exists only for BSD WC/club-league endgame capture (line ~1930,
+        // ~2091) and was never meant to also drive journalism -- it reached
+        // this call only because no event.cron gate existed here, same root
+        // pattern as the June 16 Odds API P0 (handleJournalismCycle firing
+        // ungated on every matching cron). handleCron (live-game push
+        // polling) and sweepKVBriefs (KV->D1 repair) are deliberately NOT
+        // gated here -- both are confirmed-intentional every-tick behavior
+        // (sweepKVBriefs' cadence is separately re-verified in the comment
+        // at its own call site below; handleCron's live-alert freshness
+        // genuinely wants the more frequent */5 tick too).
+        // Real, checkable log line (CC-CMD-2026-08-02-gate-journalism-cycle-cron
+        // TASK 3) — lets a live wrangler-tail capture directly confirm the
+        // gate holds on real cron ticks, not just by code inspection.
+        const _journalismShouldFire = event.cron === '*/15 * * * *';
+        console.log(`[JOURNALISM-GATE] cron=${event.cron} fired=${_journalismShouldFire}`);
+        if (_journalismShouldFire) {
+            ctx.waitUntil(handleJournalismCycle(env));
+        }
         // Per-tick KV → D1 brief sweep. Runs in parallel with the
         // journalism cycle so briefs the cycle just wrote to KV land in
         // D1 before their 1 h TTL expires. Dead-hour path also calls
