@@ -1,0 +1,39 @@
+name: Reset MLB Drama Array-Shape Rows
+
+# CC-CMD-2026-08-03-fix-drama-backfill-situational-fields TASK 3: one-shot
+# reset of the real, confirmed buggy-script-written MLB drama rows
+# (drama_arc is a bare JSON array -- only ever produced by the Node
+# backfill script, never by the client's own write paths). Captures full
+# before-state, resets, reports real before/after counts.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run reset
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          mkdir -p outbox
+          node scripts/reset-mlb-drama-array-shape.mjs 2>&1 | tee "outbox/reset-mlb-drama-${TS}.log"
+
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.email "probe@field"
+          git config user.name "Reset-MLB-Drama-Array-Shape"
+          git add outbox/reset-mlb-drama-*.log
+          git commit -m "reset MLB drama array-shape rows result [skip ci]" || echo "(nothing new)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done

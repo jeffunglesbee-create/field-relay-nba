@@ -94,17 +94,26 @@ async function fetchMLBHistoricalStates(espnEventId) {
   const data = await res.json();
   const plays = data.plays || [];
   if (plays.length === 0) return [];
+  // Real ESPN play shape confirmed 2026-08-03 (CC-CMD-2026-08-03-fix-drama-
+  // backfill-situational-fields TASK 1, live event 401696639): there is no
+  // `situation` sub-object at all. onFirst/onSecond/onThird/outs are
+  // top-level keys on the play object -- onFirst/onSecond/onThird are
+  // present (as an object, e.g. {athlete:{id}}) only when that base is
+  // occupied, and absent (undefined) otherwise, so Boolean(p.onFirst) is
+  // the correct occupied/empty test. balls/strikes are NOT top-level --
+  // they live nested under `pitchCount` (confirmed identical to the
+  // sibling `resultCount` in every sampled play).
   return plays.map(p => ({
     homeScore: p.homeScore ?? 0,
     awayScore: p.awayScore ?? 0,
     period:    p.period?.number ?? 1,
     clock:     p.clock?.displayValue || '',
-    onFirst:   p.situation?.onFirst  ?? false,
-    onSecond:  p.situation?.onSecond ?? false,
-    onThird:   p.situation?.onThird  ?? false,
-    outs:      p.situation?.outs    ?? 0,
-    balls:     p.situation?.balls   ?? 0,
-    strikes:   p.situation?.strikes ?? 0,
+    onFirst:   Boolean(p.onFirst),
+    onSecond:  Boolean(p.onSecond),
+    onThird:   Boolean(p.onThird),
+    outs:      p.outs ?? 0,
+    balls:     p.pitchCount?.balls   ?? 0,
+    strikes:   p.pitchCount?.strikes ?? 0,
   }));
 }
 
