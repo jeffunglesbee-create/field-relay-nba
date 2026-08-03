@@ -8402,6 +8402,63 @@ export default {
                 { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
+        // POST /jq/retry-telemetry — client-safe (no secret required, matching
+        // /user/event's model) fire-and-forget write for
+        // CC-CMD-2026-08-02-retry-chain-telemetry (jubilant-bassoon). Purely
+        // additive observation of jubilant-bassoon's client-side journalism
+        // quality-gate retry chain (retryWithoutCliches, retryWithoutWireCopy,
+        // retryWithoutNarrativeHallucination, retryWithRecordAttribution,
+        // checkLeadSentence, checkStatVerification, checkCrossSport,
+        // maybeScoreRetry) -- records which gate fired, an optional
+        // journalism-type label, and a per-generation correlation id + fire
+        // order so a later analysis can tell how often multiple gates fire on
+        // the same piece of content. No secret/table-allowlist gate (unlike
+        // /d1/execute, which is CI-only) since this is called directly from
+        // the browser; validates the gate name against a fixed allowlist and
+        // caps string lengths so a malformed/hostile client can't write
+        // arbitrary data.
+        if (pathname === '/jq/retry-telemetry' && request.method === 'POST') {
+            const ALLOWED_GATES = new Set([
+                'cliches', 'wire-copy', 'narrative-hallucination', 'record-attribution',
+                'lead-sentence', 'stat-verification', 'cross-sport', 'score-retry',
+            ]);
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                const body = await request.json();
+                const gate  = String(body.gate || '').slice(0, 40);
+                const label = String(body.label || '').slice(0, 60);
+                const genId = String(body.genId || '').slice(0, 40);
+                const order = Number.isInteger(body.order) ? Math.min(body.order, 99) : null;
+                if (!ALLOWED_GATES.has(gate) || !genId || !order) {
+                    return new Response(JSON.stringify({ ok: false, error: 'invalid gate/genId/order' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                await env.ARCHIVE_DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS jq_retry_telemetry (
+                        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                        gate       TEXT NOT NULL,
+                        label      TEXT,
+                        gen_id     TEXT NOT NULL,
+                        fire_order INTEGER NOT NULL,
+                        created_at TEXT DEFAULT (datetime('now'))
+                    )`).run();
+                await env.ARCHIVE_DB.prepare(
+                    `INSERT INTO jq_retry_telemetry (gate, label, gen_id, fire_order) VALUES (?, ?, ?, ?)`
+                ).bind(gate, label, genId, order).run();
+                return new Response(JSON.stringify({ ok: true }),
+                    { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            } catch (e) {
+                // Fire-and-forget from the client's perspective -- but still
+                // return a real error status so a CI verification probe (Task 3)
+                // can tell a genuine failure from success, matching Rule 90.
+                return new Response(JSON.stringify({ ok: false, error: e.message }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         // /push/subscribe — store push subscription in KV
         if (pathname === '/push/subscribe' && request.method === 'POST') {
             if (!env.PUSH_SUBS) return new Response('KV not configured', {status:503, headers:CORS});
