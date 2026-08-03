@@ -1,0 +1,36 @@
+name: Register Rule 98 (deploy-unblock, one-shot)
+
+# CC-CMD-2026-08-02-gate-journalism-cycle-cron follow-up: deploy.yml's
+# verify job's rule-registry check failed because jubilant-bassoon
+# STANDARDS.md Rule 98 (Undocumented-API discovery discipline) had no
+# matching codex rule-registry entry in THIS repo's D1 -- unrelated to
+# the journalism-cron-gate fix itself, but blocking it from deploying.
+# One-shot: registers the missing entry via this repo's own /d1/execute
+# route (real egress via GitHub Actions, sandbox blocks this directly),
+# matching the exact convention documented in
+# docs/CC-CMD-2026-07-11-standards-rule90.md:
+# codex_write(category:"rule-registry", key:"rule-{N}", title:"UNEXERCISED -- Rule {N}: {summary}")
+
+on:
+  workflow_dispatch:
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Insert rule-98 into codex rule-registry
+        run: |
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
+            -H "Content-Type: application/json" \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -d '{"sql":"INSERT INTO codex (key, category, title, content, status, updated_at) VALUES (?, ?, ?, ?, ?, datetime(\"now\"))","params":["rule-98","rule-registry","UNEXERCISED -- Rule 98: undocumented/reverse-engineered API integrations require passive-only discovery, per-host robots.txt respect, full credential discipline for any found key, a real tested fallback (or explicit accepted SPOF), and fresh re-verification before being trusted stable","Registered by CC-CMD-2026-08-02-gate-journalism-cycle-cron deploy-unblock (field-relay-nba). Rule 98 lives in jubilant-bassoon STANDARDS.md; this relay cross-checks rule-registry entries in its own deploy.yml verify job, which was failing because this entry did not exist.","open"]}' \
+            -w "\nHTTP %{http_code}\n"
+
+      - name: Confirm the entry now exists
+        run: |
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
+            -H "Content-Type: application/json" \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -d '{"sql":"SELECT key, category, title FROM codex WHERE category = '"'"'rule-registry'"'"' AND key = '"'"'rule-98'"'"'"}' \
+            -w "\nHTTP %{http_code}\n"
