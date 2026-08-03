@@ -1,0 +1,549 @@
+=== Task 3: identify + capture + reset buggy-script-written MLB rows ===
+
+--- regular_season_games ---
+Matched rows (array-shape drama_arc, sport=MLB): 537
+  [before] id=MLB_2026-08-02_orioles_phillies date=2026-08-02 Orioles vs Phillies (0-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_braves_nationals date=2026-08-02 Braves vs Nationals (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_bluejays_cardinals date=2026-08-02 Blue Jays vs Cardinals (1-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_guardians_diamondbacks date=2026-08-02 Guardians vs Diamondbacks (5-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_rays_whitesox date=2026-08-02 Rays vs White Sox (1-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_mets_marlins date=2026-08-02 Mets vs Marlins (0-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_reds_pirates date=2026-08-02 Reds vs Pirates (10-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_astros_rangers date=2026-08-02 Astros vs Rangers (7-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_cubs_yankees date=2026-08-02 Cubs vs Yankees (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_rockies_royals date=2026-08-02 Rockies vs Royals (8-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_angels_brewers date=2026-08-02 Angels vs Brewers (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_athletics_tigers date=2026-08-02 Athletics vs Tigers (0-11) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_mariners_twins date=2026-08-02 Mariners vs Twins (7-6) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_padres_giants date=2026-08-02 Padres vs Giants (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-02_dodgers_redsox date=2026-08-02 Dodgers vs Red Sox (4-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_bluejays_cardinals date=2026-08-01 Blue Jays vs Cardinals (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_rays_whitesox date=2026-08-01 Rays vs White Sox (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_mets_marlins date=2026-08-01 Mets vs Marlins (2-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_mariners_twins date=2026-08-01 Mariners vs Twins (4-3) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_reds_pirates date=2026-08-01 Reds vs Pirates (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_orioles_phillies date=2026-08-01 Orioles vs Phillies (0-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_astros_rangers date=2026-08-01 Astros vs Rangers (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_guardians_diamondbacks date=2026-08-01 Guardians vs Diamondbacks (8-12) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_braves_nationals date=2026-08-01 Braves vs Nationals (8-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_cubs_yankees date=2026-08-01 Cubs vs Yankees (5-2) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_rockies_royals date=2026-08-01 Rockies vs Royals (12-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_padres_giants date=2026-08-01 Padres vs Giants (6-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_dodgers_redsox date=2026-08-01 Dodgers vs Red Sox (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-08-01_angels_brewers date=2026-08-01 Angels vs Brewers (1-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-08-01_athletics_tigers date=2026-08-01 Athletics vs Tigers (6-8) drama_peak=52 arc_head=[52,44,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-31_cubs_yankees date=2026-07-31 Cubs vs Yankees (0-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_reds_pirates date=2026-07-31 Reds vs Pirates (8-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_orioles_phillies date=2026-07-31 Orioles vs Phillies (6-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,52,44
+  [before] id=MLB_2026-07-31_bluejays_cardinals date=2026-07-31 Blue Jays vs Cardinals (3-1) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_guardians_diamondbacks date=2026-07-31 Guardians vs Diamondbacks (1-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_rays_whitesox date=2026-07-31 Rays vs White Sox (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-31_mets_marlins date=2026-07-31 Mets vs Marlins (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_braves_nationals date=2026-07-31 Braves vs Nationals (6-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_astros_rangers date=2026-07-31 Astros vs Rangers (11-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_rockies_royals date=2026-07-31 Rockies vs Royals (3-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_angels_brewers date=2026-07-31 Angels vs Brewers (2-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_athletics_tigers date=2026-07-31 Athletics vs Tigers (1-13) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_padres_giants date=2026-07-31 Padres vs Giants (7-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_dodgers_redsox date=2026-07-31 Dodgers vs Red Sox (4-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-31_mariners_twins date=2026-07-31 Mariners vs Twins (3-5) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_rays_rangers date=2026-07-30 Rays vs Rangers (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_twins_royals date=2026-07-30 Twins vs Royals (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_whitesox_yankees date=2026-07-30 White Sox vs Yankees (2-1) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_cardinals_cubs date=2026-07-30 Cardinals vs Cubs (2-4) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_braves_nationals date=2026-07-30 Braves vs Nationals (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_mets_marlins date=2026-07-30 Mets vs Marlins (4-2) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_reds_pirates date=2026-07-30 Reds vs Pirates (3-2) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_athletics_redsox date=2026-07-30 Athletics vs Red Sox (4-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-30_padres_giants date=2026-07-30 Padres vs Giants (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44
+  [before] id=MLB_2026-07-30_dodgers_mariners date=2026-07-30 Dodgers vs Mariners (6-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_marlins_phillies date=2026-07-29 Marlins vs Phillies (8-6) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_pirates_diamondbacks date=2026-07-29 Pirates vs Diamondbacks (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_nationals_bluejays date=2026-07-29 Nationals vs Blue Jays (2-5) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_tigers_orioles date=2026-07-29 Tigers vs Orioles (9-10) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_giants_brewers date=2026-07-29 Giants vs Brewers (16-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_padres_rockies date=2026-07-29 Padres vs Rockies (3-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_rays_rangers date=2026-07-29 Rays vs Rangers (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_reds_guardians date=2026-07-29 Reds vs Guardians (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_twins_royals date=2026-07-29 Twins vs Royals (0-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_whitesox_yankees date=2026-07-29 White Sox vs Yankees (6-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_cardinals_cubs date=2026-07-29 Cardinals vs Cubs (3-2) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_angels_astros date=2026-07-29 Angels vs Astros (4-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_athletics_redsox date=2026-07-29 Athletics vs Red Sox (2-4) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-29_dodgers_mariners date=2026-07-29 Dodgers vs Mariners (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_pirates_diamondbacks date=2026-07-28 Pirates vs Diamondbacks (7-8) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,44,52,52,52,44,44,44,44,44
+  [before] id=MLB_2026-07-28_tigers_orioles date=2026-07-28 Tigers vs Orioles (14-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_marlins_phillies date=2026-07-28 Marlins vs Phillies (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_rays_rangers date=2026-07-28 Rays vs Rangers (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_nationals_bluejays date=2026-07-28 Nationals vs Blue Jays (8-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_twins_royals date=2026-07-28 Twins vs Royals (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_whitesox_yankees date=2026-07-28 White Sox vs Yankees (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_cardinals_cubs date=2026-07-28 Cardinals vs Cubs (2-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_angels_astros date=2026-07-28 Angels vs Astros (2-3) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-28_athletics_redsox date=2026-07-28 Athletics vs Red Sox (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_padres_rockies date=2026-07-28 Padres vs Rockies (8-7) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_giants_brewers date=2026-07-28 Giants vs Brewers (2-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-28_dodgers_mariners date=2026-07-28 Dodgers vs Mariners (6-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_rangers_mariners date=2026-07-27 Rangers vs Mariners (7-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_pirates_diamondbacks date=2026-07-27 Pirates vs Diamondbacks (3-2) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_tigers_orioles date=2026-07-27 Tigers vs Orioles (5-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,52
+  [before] id=MLB_2026-07-27_marlins_phillies date=2026-07-27 Marlins vs Phillies (8-7) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29,52,52
+  [before] id=MLB_2026-07-27_nationals_bluejays date=2026-07-27 Nationals vs Blue Jays (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_mets_braves date=2026-07-27 Mets vs Braves (14-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_whitesox_yankees date=2026-07-27 White Sox vs Yankees (5-9) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_cardinals_cubs date=2026-07-27 Cardinals vs Cubs (3-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_angels_astros date=2026-07-27 Angels vs Astros (4-6) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_athletics_redsox date=2026-07-27 Athletics vs Red Sox (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-27_giants_brewers date=2026-07-27 Giants vs Brewers (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_rays_guardians date=2026-07-26 Rays vs Guardians (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_nationals_diamondbacks date=2026-07-26 Nationals vs Diamondbacks (10-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52
+  [before] id=MLB_2026-07-26_orioles_braves date=2026-07-26 Orioles vs Braves (2-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_pirates_cubs date=2026-07-26 Pirates vs Cubs (8-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_redsox_bluejays date=2026-07-26 Red Sox vs Blue Jays (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_tigers_royals date=2026-07-26 Tigers vs Royals (4-5) drama_peak=60 arc_head=[52,44,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-26_mets_dodgers date=2026-07-26 Mets vs Dodgers (8-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_marlins_padres date=2026-07-26 Marlins vs Padres (3-5) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_twins_athletics date=2026-07-26 Twins vs Athletics (11-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_brewers_rockies date=2026-07-26 Brewers vs Rockies (11-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_whitesox_astros date=2026-07-26 White Sox vs Astros (12-3) drama_peak=52 arc_head=[52,44,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-26_cardinals_reds date=2026-07-26 Cardinals vs Reds (3-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_rangers_mariners date=2026-07-26 Rangers vs Mariners (4-6) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_giants_angels date=2026-07-26 Giants vs Angels (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-26_phillies_yankees date=2026-07-26 Phillies vs Yankees (11-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_tigers_royals date=2026-07-25 Tigers vs Royals (2-3) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_nationals_diamondbacks date=2026-07-25 Nationals vs Diamondbacks (5-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_giants_angels date=2026-07-25 Giants vs Angels (9-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_marlins_padres date=2026-07-25 Marlins vs Padres (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_redsox_bluejays date=2026-07-25 Red Sox vs Blue Jays (0-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_phillies_yankees date=2026-07-25 Phillies vs Yankees (1-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_rays_guardians date=2026-07-25 Rays vs Guardians (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_pirates_cubs date=2026-07-25 Pirates vs Cubs (0-11) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_orioles_braves date=2026-07-25 Orioles vs Braves (3-2) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_twins_athletics date=2026-07-25 Twins vs Athletics (2-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_brewers_rockies date=2026-07-25 Brewers vs Rockies (8-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_whitesox_astros date=2026-07-25 White Sox vs Astros (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_mets_dodgers date=2026-07-25 Mets vs Dodgers (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_cardinals_reds date=2026-07-25 Cardinals vs Reds (7-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-25_rangers_mariners date=2026-07-25 Rangers vs Mariners (7-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_brewers_rockies date=2026-07-24 Brewers vs Rockies (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44
+  [before] id=MLB_2026-07-24_pirates_cubs date=2026-07-24 Pirates vs Cubs (2-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_tigers_royals date=2026-07-24 Tigers vs Royals (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_nationals_diamondbacks date=2026-07-24 Nationals vs Diamondbacks (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_phillies_yankees date=2026-07-24 Phillies vs Yankees (0-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_orioles_braves date=2026-07-24 Orioles vs Braves (6-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_rays_guardians date=2026-07-24 Rays vs Guardians (11-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_mets_dodgers date=2026-07-24 Mets vs Dodgers (2-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_marlins_padres date=2026-07-24 Marlins vs Padres (2-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_redsox_bluejays date=2026-07-24 Red Sox vs Blue Jays (6-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_whitesox_astros date=2026-07-24 White Sox vs Astros (5-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_rangers_mariners date=2026-07-24 Rangers vs Mariners (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_twins_athletics date=2026-07-24 Twins vs Athletics (0-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_cardinals_reds date=2026-07-24 Cardinals vs Reds (2-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-24_giants_angels date=2026-07-24 Giants vs Angels (7-6) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52
+  [before] id=MLB_2026-07-23_braves_padres date=2026-07-23 Braves vs Padres (6-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-23_guardians_twins date=2026-07-23 Guardians vs Twins (1-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-23_bluejays_rays date=2026-07-23 Blue Jays vs Rays (3-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-23_cardinals_diamondbacks date=2026-07-23 Cardinals vs Diamondbacks (6-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-23_tigers_royals date=2026-07-23 Tigers vs Royals (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_yankees_pirates date=2026-07-22 Yankees vs Pirates (2-0) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_brewers_mets date=2026-07-22 Brewers vs Mets (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_royals_giants date=2026-07-22 Royals vs Giants (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_rockies_nationals date=2026-07-22 Rockies vs Nationals (0-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_diamondbacks_athletics date=2026-07-22 Diamondbacks vs Athletics (15-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_mariners_reds date=2026-07-22 Mariners vs Reds (3-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_angels_cardinals date=2026-07-22 Angels vs Cardinals (0-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_phillies_dodgers date=2026-07-22 Phillies vs Dodgers (5-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_guardians_twins date=2026-07-22 Guardians vs Twins (6-10) drama_peak=52 arc_head=[52,44,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-22_bluejays_rays date=2026-07-22 Blue Jays vs Rays (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_braves_padres date=2026-07-22 Braves vs Padres (7-6) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_cubs_tigers date=2026-07-22 Cubs vs Tigers (1-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_rangers_whitesox date=2026-07-22 Rangers vs White Sox (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-22_astros_marlins date=2026-07-22 Astros vs Marlins (5-2) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_phillies_dodgers date=2026-07-21 Phillies vs Dodgers (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_guardians_twins date=2026-07-21 Guardians vs Twins (5-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44
+  [before] id=MLB_2026-07-21_bluejays_rays date=2026-07-21 Blue Jays vs Rays (2-12) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_braves_padres date=2026-07-21 Braves vs Padres (3-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_brewers_mets date=2026-07-21 Brewers vs Mets (0-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_royals_giants date=2026-07-21 Royals vs Giants (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_rangers_whitesox date=2026-07-21 Rangers vs White Sox (10-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_cubs_tigers date=2026-07-21 Cubs vs Tigers (11-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_astros_marlins date=2026-07-21 Astros vs Marlins (5-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_rockies_nationals date=2026-07-21 Rockies vs Nationals (8-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_angels_cardinals date=2026-07-21 Angels vs Cardinals (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_diamondbacks_athletics date=2026-07-21 Diamondbacks vs Athletics (6-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-21_mariners_reds date=2026-07-21 Mariners vs Reds (2-4) drama_peak=60 arc_head=[52,44,52,52,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-20_guardians_twins date=2026-07-20 Guardians vs Twins (13-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_phillies_dodgers date=2026-07-20 Phillies vs Dodgers (10-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_yankees_pirates date=2026-07-20 Yankees vs Pirates (8-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_bluejays_rays date=2026-07-20 Blue Jays vs Rays (1-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_redsox_orioles date=2026-07-20 Red Sox vs Orioles (6-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44
+  [before] id=MLB_2026-07-20_braves_padres date=2026-07-20 Braves vs Padres (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_brewers_mets date=2026-07-20 Brewers vs Mets (8-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_royals_giants date=2026-07-20 Royals vs Giants (4-3) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_rangers_whitesox date=2026-07-20 Rangers vs White Sox (3-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_cubs_tigers date=2026-07-20 Cubs vs Tigers (6-8) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,15,52,15,15,15
+  [before] id=MLB_2026-07-20_astros_marlins date=2026-07-20 Astros vs Marlins (8-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_rockies_nationals date=2026-07-20 Rockies vs Nationals (3-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,15,15,15,15
+  [before] id=MLB_2026-07-20_diamondbacks_athletics date=2026-07-20 Diamondbacks vs Athletics (2-5) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_mariners_reds date=2026-07-20 Mariners vs Reds (8-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-20_angels_cardinals date=2026-07-20 Angels vs Cardinals (3-2) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_bluejays_whitesox date=2026-07-19 Blue Jays vs White Sox (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_phillies_mets date=2026-07-19 Phillies vs Mets (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_redsox_rays date=2026-07-19 Red Sox vs Rays (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_braves_rangers date=2026-07-19 Braves vs Rangers (8-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_guardians_pirates date=2026-07-19 Guardians vs Pirates (1-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_astros_orioles date=2026-07-19 Astros vs Orioles (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_brewers_marlins date=2026-07-19 Brewers vs Marlins (3-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_royals_padres date=2026-07-19 Royals vs Padres (2-19) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_cubs_twins date=2026-07-19 Cubs vs Twins (10-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_rockies_reds date=2026-07-19 Rockies vs Reds (6-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_athletics_nationals date=2026-07-19 Athletics vs Nationals (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-19_angels_tigers date=2026-07-19 Angels vs Tigers (3-2) drama_peak=60 arc_head=[52,44,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-19_mariners_giants date=2026-07-19 Mariners vs Giants (6-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-19_diamondbacks_cardinals date=2026-07-19 Diamondbacks vs Cardinals (8-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_cubs_twins date=2026-07-18 Cubs vs Twins (6-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_bluejays_whitesox date=2026-07-18 Blue Jays vs White Sox (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_rockies_reds date=2026-07-18 Rockies vs Reds (10-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_phillies_mets date=2026-07-18 Phillies vs Mets (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_redsox_rays date=2026-07-18 Red Sox vs Rays (7-6) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_braves_rangers date=2026-07-18 Braves vs Rangers (6-7) drama_peak=60 arc_head=[52,44,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-18_astros_orioles date=2026-07-18 Astros vs Orioles (2-4) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_brewers_marlins date=2026-07-18 Brewers vs Marlins (8-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_royals_padres date=2026-07-18 Royals vs Padres (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_diamondbacks_cardinals date=2026-07-18 Diamondbacks vs Cardinals (5-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_mariners_giants date=2026-07-18 Mariners vs Giants (4-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_athletics_nationals date=2026-07-18 Athletics vs Nationals (15-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-18_angels_tigers date=2026-07-18 Angels vs Tigers (0-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52
+  [before] id=MLB_2026-07-17_yankees_dodgers date=2026-07-17 Yankees vs Dodgers (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_bluejays_whitesox date=2026-07-17 Blue Jays vs White Sox (4-12) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_braves_rangers date=2026-07-17 Braves vs Rangers (15-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_brewers_marlins date=2026-07-17 Brewers vs Marlins (2-1) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_cubs_twins date=2026-07-17 Cubs vs Twins (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_astros_orioles date=2026-07-17 Astros vs Orioles (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_royals_padres date=2026-07-17 Royals vs Padres (7-6) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_rockies_reds date=2026-07-17 Rockies vs Reds (2-7) drama_peak=52 arc_head=[52,52,52,52,52,44,52,52,52,52,52,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-17_angels_tigers date=2026-07-17 Angels vs Tigers (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_diamondbacks_cardinals date=2026-07-17 Diamondbacks vs Cardinals (4-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_athletics_nationals date=2026-07-17 Athletics vs Nationals (4-23) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-17_mariners_giants date=2026-07-17 Mariners vs Giants (0-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-16_phillies_mets date=2026-07-16 Phillies vs Mets (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-14_national_american date=2026-07-14 National vs American (0-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_pirates_brewers date=2026-07-12 Pirates vs Brewers (14-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_orioles_royals date=2026-07-12 Orioles vs Royals (8-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_nationals_yankees date=2026-07-12 Nationals vs Yankees (3-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_mets_redsox date=2026-07-12 Mets vs Red Sox (2-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_reds_cubs date=2026-07-12 Reds vs Cubs (4-8) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_marlins_guardians date=2026-07-12 Marlins vs Guardians (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,44,52,52,52,52,52,52,52,44,44,44,44
+  [before] id=MLB_2026-07-12_tigers_phillies date=2026-07-12 Tigers vs Phillies (0-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_rays_mariners date=2026-07-12 Rays vs Mariners (2-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_twins_angels date=2026-07-12 Twins vs Angels (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_whitesox_athletics date=2026-07-12 White Sox vs Athletics (9-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,44
+  [before] id=MLB_2026-07-12_cardinals_braves date=2026-07-12 Cardinals vs Braves (3-4) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_rangers_astros date=2026-07-12 Rangers vs Astros (6-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_giants_rockies date=2026-07-12 Giants vs Rockies (3-1) drama_peak=59 arc_head=[52,44,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-12_dodgers_diamondbacks date=2026-07-12 Dodgers vs Diamondbacks (3-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-12_padres_bluejays date=2026-07-12 Padres vs Blue Jays (5-4) drama_peak=60 arc_head=[52,52,52,52,52,52,44,52,52,52,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-11_twins_angels date=2026-07-11 Twins vs Angels (5-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_whitesox_athletics date=2026-07-11 White Sox vs Athletics (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_pirates_brewers date=2026-07-11 Pirates vs Brewers (3-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_nationals_yankees date=2026-07-11 Nationals vs Yankees (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_giants_rockies date=2026-07-11 Giants vs Rockies (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_mets_redsox date=2026-07-11 Mets vs Red Sox (0-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_marlins_guardians date=2026-07-11 Marlins vs Guardians (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_rays_mariners date=2026-07-11 Rays vs Mariners (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_tigers_phillies date=2026-07-11 Tigers vs Phillies (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_orioles_royals date=2026-07-11 Orioles vs Royals (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_rangers_astros date=2026-07-11 Rangers vs Astros (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,29,52,29,29,29,29,29,29,29,29,29,29,29
+  [before] id=MLB_2026-07-11_reds_cubs date=2026-07-11 Reds vs Cubs (3-5) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_cardinals_braves date=2026-07-11 Cardinals vs Braves (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_padres_bluejays date=2026-07-11 Padres vs Blue Jays (8-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-11_dodgers_diamondbacks date=2026-07-11 Dodgers vs Diamondbacks (2-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_tigers_phillies date=2026-07-10 Tigers vs Phillies (10-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_nationals_yankees date=2026-07-10 Nationals vs Yankees (3-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,44,52,52,52,52,52,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-10_orioles_royals date=2026-07-10 Orioles vs Royals (5-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_reds_cubs date=2026-07-10 Reds vs Cubs (4-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_marlins_guardians date=2026-07-10 Marlins vs Guardians (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_rays_mariners date=2026-07-10 Rays vs Mariners (7-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_mets_redsox date=2026-07-10 Mets vs Red Sox (2-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_whitesox_athletics date=2026-07-10 White Sox vs Athletics (14-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_rangers_astros date=2026-07-10 Rangers vs Astros (7-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_twins_angels date=2026-07-10 Twins vs Angels (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_cardinals_braves date=2026-07-10 Cardinals vs Braves (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_padres_bluejays date=2026-07-10 Padres vs Blue Jays (3-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_dodgers_diamondbacks date=2026-07-10 Dodgers vs Diamondbacks (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-10_giants_rockies date=2026-07-10 Giants vs Rockies (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_pirates_braves date=2026-07-09 Pirates vs Braves (5-10) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52
+  [before] id=MLB_2026-07-09_mets_royals date=2026-07-09 Mets vs Royals (7-3) drama_peak=52 arc_head=[52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-09_rays_yankees date=2026-07-09 Rays vs Yankees (4-12) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_twins_guardians date=2026-07-09 Twins vs Guardians (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_whitesox_redsox date=2026-07-09 White Sox vs Red Sox (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_orioles_cubs date=2026-07-09 Orioles vs Cubs (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_tigers_athletics date=2026-07-09 Tigers vs Athletics (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_marlins_mariners date=2026-07-09 Marlins vs Mariners (8-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_reds_phillies date=2026-07-09 Reds vs Phillies (0-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_cardinals_brewers date=2026-07-09 Cardinals vs Brewers (4-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_rangers_angels date=2026-07-09 Rangers vs Angels (7-6) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_padres_diamondbacks date=2026-07-09 Padres vs Diamondbacks (1-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-09_giants_rockies date=2026-07-09 Giants vs Rockies (8-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_giants_bluejays date=2026-07-08 Giants vs Blue Jays (0-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_orioles_cubs date=2026-07-08 Orioles vs Cubs (7-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_tigers_athletics date=2026-07-08 Tigers vs Athletics (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_pirates_braves date=2026-07-08 Pirates vs Braves (0-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_rays_yankees date=2026-07-08 Rays vs Yankees (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_marlins_mariners date=2026-07-08 Marlins vs Mariners (2-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_nationals_astros date=2026-07-08 Nationals vs Astros (8-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_reds_phillies date=2026-07-08 Reds vs Phillies (11-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_mets_royals date=2026-07-08 Mets vs Royals (6-2) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_whitesox_redsox date=2026-07-08 White Sox vs Red Sox (0-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_twins_guardians date=2026-07-08 Twins vs Guardians (6-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_cardinals_brewers date=2026-07-08 Cardinals vs Brewers (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_rangers_angels date=2026-07-08 Rangers vs Angels (1-13) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,44,44,44
+  [before] id=MLB_2026-07-08_padres_diamondbacks date=2026-07-08 Padres vs Diamondbacks (10-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-08_dodgers_rockies date=2026-07-08 Dodgers vs Rockies (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_orioles_cubs date=2026-07-07 Orioles vs Cubs (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_tigers_athletics date=2026-07-07 Tigers vs Athletics (6-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_pirates_braves date=2026-07-07 Pirates vs Braves (12-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_rays_yankees date=2026-07-07 Rays vs Yankees (6-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_marlins_mariners date=2026-07-07 Marlins vs Mariners (6-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_nationals_astros date=2026-07-07 Nationals vs Astros (3-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_mets_royals date=2026-07-07 Mets vs Royals (12-16) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_reds_phillies date=2026-07-07 Reds vs Phillies (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_whitesox_redsox date=2026-07-07 White Sox vs Red Sox (1-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_twins_guardians date=2026-07-07 Twins vs Guardians (3-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_rangers_angels date=2026-07-07 Rangers vs Angels (8-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_padres_diamondbacks date=2026-07-07 Padres vs Diamondbacks (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_giants_bluejays date=2026-07-07 Giants vs Blue Jays (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-07_dodgers_rockies date=2026-07-07 Dodgers vs Rockies (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_royals_phillies date=2026-07-06 Royals vs Phillies (15-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_rays_yankees date=2026-07-06 Rays vs Yankees (1-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_nationals_astros date=2026-07-06 Nationals vs Astros (12-11) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_braves_mets date=2026-07-06 Braves vs Mets (6-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_cardinals_brewers date=2026-07-06 Cardinals vs Brewers (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_padres_diamondbacks date=2026-07-06 Padres vs Diamondbacks (0-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-06_giants_bluejays date=2026-07-06 Giants vs Blue Jays (10-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-06_dodgers_rockies date=2026-07-06 Dodgers vs Rockies (8-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_braves_mets date=2026-07-05 Braves vs Mets (9-10) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,44,44,44,44
+  [before] id=MLB_2026-07-05_nationals_pirates date=2026-07-05 Nationals vs Pirates (5-11) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_reds_orioles date=2026-07-05 Reds vs Orioles (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_yankees_twins date=2026-07-05 Yankees vs Twins (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_guardians_whitesox date=2026-07-05 Guardians vs White Sox (6-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_cubs_cardinals date=2026-07-05 Cubs vs Cardinals (6-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_royals_phillies date=2026-07-05 Royals vs Phillies (5-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_rangers_tigers date=2026-07-05 Rangers vs Tigers (3-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_astros_rays date=2026-07-05 Astros vs Rays (2-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_rockies_giants date=2026-07-05 Rockies vs Giants (7-6) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_diamondbacks_brewers date=2026-07-05 Diamondbacks vs Brewers (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_athletics_marlins date=2026-07-05 Athletics vs Marlins (8-9) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,44,52,52,52,52,44,44,44,44
+  [before] id=MLB_2026-07-05_mariners_bluejays date=2026-07-05 Mariners vs Blue Jays (4-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_dodgers_padres date=2026-07-05 Dodgers vs Padres (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-05_angels_redsox date=2026-07-05 Angels vs Red Sox (5-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_nationals_pirates date=2026-07-04 Nationals vs Pirates (1-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_yankees_twins date=2026-07-04 Yankees vs Twins (4-11) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,44,52,52,52,52,44,44,44,15,44
+  [before] id=MLB_2026-07-04_rangers_tigers date=2026-07-04 Rangers vs Tigers (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29
+  [before] id=MLB_2026-07-04_mariners_bluejays date=2026-07-04 Mariners vs Blue Jays (11-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_reds_orioles date=2026-07-04 Reds vs Orioles (5-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_guardians_whitesox date=2026-07-04 Guardians vs White Sox (1-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_astros_rays date=2026-07-04 Astros vs Rays (10-8) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,44,52,52,52,52,52,44,44,44,44
+  [before] id=MLB_2026-07-04_braves_mets date=2026-07-04 Braves vs Mets (14-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_cubs_cardinals date=2026-07-04 Cubs vs Cardinals (0-3) drama_peak=52 arc_head=[52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-04_royals_phillies date=2026-07-04 Royals vs Phillies (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_rockies_giants date=2026-07-04 Rockies vs Giants (4-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_angels_redsox date=2026-07-04 Angels vs Red Sox (1-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_athletics_marlins date=2026-07-04 Athletics vs Marlins (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_diamondbacks_brewers date=2026-07-04 Diamondbacks vs Brewers (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-04_dodgers_padres date=2026-07-04 Dodgers vs Padres (3-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_cubs_cardinals date=2026-07-03 Cubs vs Cardinals (1-17) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_nationals_pirates date=2026-07-03 Nationals vs Pirates (9-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_yankees_twins date=2026-07-03 Yankees vs Twins (5-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,52
+  [before] id=MLB_2026-07-03_reds_orioles date=2026-07-03 Reds vs Orioles (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_guardians_whitesox date=2026-07-03 Guardians vs White Sox (4-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_braves_mets date=2026-07-03 Braves vs Mets (5-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_rockies_giants date=2026-07-03 Rockies vs Giants (15-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_astros_rays date=2026-07-03 Astros vs Rays (1-3) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_angels_redsox date=2026-07-03 Angels vs Red Sox (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_athletics_marlins date=2026-07-03 Athletics vs Marlins (5-12) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,52,52
+  [before] id=MLB_2026-07-03_diamondbacks_brewers date=2026-07-03 Diamondbacks vs Brewers (4-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_dodgers_padres date=2026-07-03 Dodgers vs Padres (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-03_mariners_bluejays date=2026-07-03 Mariners vs Blue Jays (0-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_phillies_pirates date=2026-07-02 Phillies vs Pirates (1-6) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_brewers_reds date=2026-07-02 Brewers vs Reds (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,44,52,52,52,52,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-02_rockies_marlins date=2026-07-02 Rockies vs Marlins (14-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_guardians_whitesox date=2026-07-02 Guardians vs White Sox (6-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_braves_cardinals date=2026-07-02 Braves vs Cardinals (5-11) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,15
+  [before] id=MLB_2026-07-02_royals_rays date=2026-07-02 Royals vs Rays (2-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_rangers_tigers date=2026-07-02 Rangers vs Tigers (10-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_mariners_angels date=2026-07-02 Mariners vs Angels (1-0) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-02_dodgers_padres date=2026-07-02 Dodgers vs Padres (12-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29,52,29,29,29
+  [before] id=MLB_2026-07-01_orioles_whitesox date=2026-07-01 Orioles vs White Sox (6-1) drama_peak=52 arc_head=[52,44,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-07-01_guardians_rangers date=2026-07-01 Guardians vs Rangers (9-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_yankees_tigers date=2026-07-01 Yankees vs Tigers (2-6) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_redsox_nationals date=2026-07-01 Red Sox vs Nationals (2-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29,52,52
+  [before] id=MLB_2026-07-01_cubs_padres date=2026-07-01 Cubs vs Padres (23-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_bluejays_mets date=2026-07-01 Blue Jays vs Mets (9-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_phillies_pirates date=2026-07-01 Phillies vs Pirates (10-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_braves_cardinals date=2026-07-01 Braves vs Cardinals (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_royals_rays date=2026-07-01 Royals vs Rays (0-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_brewers_reds date=2026-07-01 Brewers vs Reds (4-2) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_astros_twins date=2026-07-01 Astros vs Twins (3-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29
+  [before] id=MLB_2026-07-01_rockies_marlins date=2026-07-01 Rockies vs Marlins (6-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_athletics_dodgers date=2026-07-01 Athletics vs Dodgers (7-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-07-01_diamondbacks_giants date=2026-07-01 Diamondbacks vs Giants (4-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_orioles_whitesox date=2026-06-30 Orioles vs White Sox (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44
+  [before] id=MLB_2026-06-30_phillies_pirates date=2026-06-30 Phillies vs Pirates (8-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_guardians_rangers date=2026-06-30 Guardians vs Rangers (2-4) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_bluejays_mets date=2026-06-30 Blue Jays vs Mets (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_yankees_tigers date=2026-06-30 Yankees vs Tigers (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,29
+  [before] id=MLB_2026-06-30_braves_cardinals date=2026-06-30 Braves vs Cardinals (3-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_redsox_nationals date=2026-06-30 Red Sox vs Nationals (1-8) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_brewers_reds date=2026-06-30 Brewers vs Reds (7-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-06-30_royals_rays date=2026-06-30 Royals vs Rays (4-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_astros_twins date=2026-06-30 Astros vs Twins (6-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_cubs_padres date=2026-06-30 Cubs vs Padres (9-7) drama_peak=52 arc_head=[52,44,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-06-30_rockies_marlins date=2026-06-30 Rockies vs Marlins (3-14) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44
+  [before] id=MLB_2026-06-30_mariners_angels date=2026-06-30 Mariners vs Angels (8-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_athletics_dodgers date=2026-06-30 Athletics vs Dodgers (3-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-30_diamondbacks_giants date=2026-06-30 Diamondbacks vs Giants (8-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_rays_diamondbacks date=2026-06-28 Rays vs Diamondbacks (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_bluejays_rangers date=2026-06-28 Blue Jays vs Rangers (2-3) drama_peak=68 arc_head=[52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-06-28_orioles_nationals date=2026-06-28 Orioles vs Nationals (4-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_cardinals_marlins date=2026-06-28 Cardinals vs Marlins (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_twins_rockies date=2026-06-28 Twins vs Rockies (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52
+  [before] id=MLB_2026-06-28_mets_phillies date=2026-06-28 Mets vs Phillies (4-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_guardians_mariners date=2026-06-28 Guardians vs Mariners (6-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_whitesox_royals date=2026-06-28 White Sox vs Royals (4-5) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44
+  [before] id=MLB_2026-06-28_tigers_astros date=2026-06-28 Tigers vs Astros (5-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_brewers_cubs date=2026-06-28 Brewers vs Cubs (3-4) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_pirates_reds date=2026-06-28 Pirates vs Reds (9-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_angels_athletics date=2026-06-28 Angels vs Athletics (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_giants_braves date=2026-06-28 Giants vs Braves (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-28_padres_dodgers date=2026-06-28 Padres vs Dodgers (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-27_redsox_yankees date=2026-06-27 Red Sox vs Yankees (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-27_tigers_astros date=2026-06-27 Tigers vs Astros (6-8) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-27_bluejays_rangers date=2026-06-27 Blue Jays vs Rangers (4-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-27_whitesox_royals date=2026-06-27 White Sox vs Royals (2-1) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-27_pirates_reds date=2026-06-27 Pirates vs Reds (7-9) drama_peak=60 arc_head=[52,52,52,52,52,52,44,52,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=MLB_2026-06-25_rays_royals date=2026-06-25 Rays vs Royals (13-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-25_pirates_mariners date=2026-06-25 Pirates vs Mariners (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-25_giants_athletics date=2026-06-25 Giants vs Athletics (6-9) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-24_marlins_rangers date=2026-06-24 Marlins vs Rangers (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-24_mets_cubs date=2026-06-24 Mets vs Cubs (3-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-24_rockies_redsox date=2026-06-24 Rockies vs Red Sox (8-6) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44
+  [before] id=MLB_2026-06-24_angels_orioles date=2026-06-24 Angels vs Orioles (7-6) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=MLB_2026-06-23_bluejays_astros date=2026-06-23 Blue Jays vs Astros (7-9) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-10_coloradoro_chicagocub date=2026-06-10 Colorado Rockies vs Chicago Cubs (3-2) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_baltimoreo_seattlemar date=2026-06-09 Baltimore Orioles vs Seattle Mariners (5-6) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_miamimarli_arizonadia date=2026-06-09 Miami Marlins vs Arizona Diamondbacks (10-6) drama_peak=59 arc_head=[52,52,52,52,52,52,52,44,52,52,44,44,44,44,44,44,44,44,44,44
+  [before] id=mlb_2026-06-09_tampabayra_bostonreds date=2026-06-09 Tampa Bay Rays vs Boston Red Sox (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_clevelandg_newyorkyan date=2026-06-09 Cleveland Guardians vs New York Yankees (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_detroittig_minnesotat date=2026-06-09 Detroit Tigers vs Minnesota Twins (10-4) drama_peak=52 arc_head=[52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=mlb_2026-06-09_pittsburgh_losangeles date=2026-06-09 Pittsburgh Pirates vs Los Angeles Dodgers (3-12) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_torontoblu_philadelph date=2026-06-09 Toronto Blue Jays vs Philadelphia Phillies (3-2) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_newyorkmet_st.louisca date=2026-06-09 New York Mets vs St. Louis Cardinals (0-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_chicagowhi_atlantabra date=2026-06-09 Chicago White Sox vs Atlanta Braves (6-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29,52,52,29,29
+  [before] id=mlb_2026-06-09_kansascity_texasrange date=2026-06-09 Kansas City Royals vs Texas Rangers (5-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_losangeles_houstonast date=2026-06-09 Los Angeles Angels vs Houston Astros (10-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_sandiegopa_cincinnati date=2026-06-09 San Diego Padres vs Cincinnati Reds (3-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-09_sanfrancis_washington date=2026-06-09 San Francisco Giants vs Washington Nationals (3-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,29,52,52,52,29,29,29,29,29
+  [before] id=mlb_2026-06-09_athletics_milwaukeeb date=2026-06-09 Athletics vs Milwaukee Brewers (7-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,29,29,52,29,52,29,29,29,29,29,29,29
+  [before] id=mlb_2026-06-08_baltimoreo_seattlemar date=2026-06-08 Baltimore Orioles vs Seattle Mariners (3-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-08_tampabayra_bostonreds date=2026-06-08 Tampa Bay Rays vs Boston Red Sox (3-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-08_clevelandg_newyorkyan date=2026-06-08 Cleveland Guardians vs New York Yankees (5-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,29,29,29,29,29
+  [before] id=mlb_2026-06-07_chicagocub_sanfrancis date=2026-06-07 Chicago Cubs vs San Francisco Giants (1-2) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-06_texasrange_clevelandg date=2026-06-06 Texas Rangers vs Cleveland Guardians (0-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-06_minnesotat_kansascity date=2026-06-06 Minnesota Twins vs Kansas City Royals (2-3) drama_peak=68 arc_head=[52,44,52,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=mlb_2026-06-06_houstonast_athletics date=2026-06-06 Houston Astros vs Athletics (13-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-06_st.louisca_cincinnati date=2026-06-06 St. Louis Cardinals vs Cincinnati Reds (6-5) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-06_chicagocub_sanfrancis date=2026-06-06 Chicago Cubs vs San Francisco Giants (3-2) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-06_milwaukeeb_coloradoro date=2026-06-06 Milwaukee Brewers vs Colorado Rockies (7-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,44
+  [before] id=mlb_2026-06-06_arizonadia_washington date=2026-06-06 Arizona Diamondbacks vs Washington Nationals (1-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,29,52,52,52,29,29,29,29,29,29,29,29
+  [before] id=mlb_2026-06-06_sandiegopa_newyorkmet date=2026-06-06 San Diego Padres vs New York Mets (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-05_philadelph_chicagowhi date=2026-06-05 Philadelphia Phillies vs Chicago White Sox (8-6) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-05_newyorkyan_bostonreds date=2026-06-05 New York Yankees vs Boston Red Sox (3-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-05_torontoblu_baltimoreo date=2026-06-05 Toronto Blue Jays vs Baltimore Orioles (3-13) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,44,52,52,52,52,44,44,44
+  [before] id=mlb_2026-06-05_miamimarli_tampabayra date=2026-06-05 Miami Marlins vs Tampa Bay Rays (0-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-05_atlantabra_pittsburgh date=2026-06-05 Atlanta Braves vs Pittsburgh Pirates (6-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-05_detroittig_seattlemar date=2026-06-05 Detroit Tigers vs Seattle Mariners (7-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-03_chicagocub_athletics date=2026-06-03 Chicago Cubs vs Athletics (4-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-03_houstonast_pittsburgh date=2026-06-03 Houston Astros vs Pittsburgh Pirates (11-9) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-03_losangeles_coloradoro date=2026-06-03 Los Angeles Angels vs Colorado Rockies (11-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-03_arizonadia_losangeles date=2026-06-03 Arizona Diamondbacks vs Los Angeles Dodgers (0-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-03_seattlemar_newyorkmet date=2026-06-03 Seattle Mariners vs New York Mets (1-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_tampabayra_detroittig date=2026-06-02 Tampa Bay Rays vs Detroit Tigers (0-8) drama_peak=52 arc_head=[52,44,52,52,52,52,44,44,44,44,44,44,44,44,44,44,29,44,29,29
+  [before] id=mlb_2026-06-02_philadelph_sandiegopa date=2026-06-02 Philadelphia Phillies vs San Diego Padres (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_bostonreds_baltimoreo date=2026-06-02 Boston Red Sox vs Baltimore Orioles (2-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_washington_miamimarli date=2026-06-02 Washington Nationals vs Miami Marlins (3-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_newyorkyan_clevelandg date=2026-06-02 New York Yankees vs Cleveland Guardians (4-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_cincinnati_kansascity date=2026-06-02 Cincinnati Reds vs Kansas City Royals (4-3) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_atlantabra_torontoblu date=2026-06-02 Atlanta Braves vs Toronto Blue Jays (4-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_minnesotat_chicagowhi date=2026-06-02 Minnesota Twins vs Chicago White Sox (6-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_milwaukeeb_sanfrancis date=2026-06-02 Milwaukee Brewers vs San Francisco Giants (8-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=mlb_2026-06-02_st.louisca_texasrange date=2026-06-02 St. Louis Cardinals vs Texas Rangers (4-7) drama_peak=68 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-baltim-toront date=2026-05-31 Baltimore Orioles vs Toronto Blue Jays (9-5) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-washin-sandi date=2026-05-31 Washington Nationals vs San Diego Padres (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-pittsb-minnes date=2026-05-31 Pittsburgh Pirates vs Minnesota Twins (9-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-clevel-boston date=2026-05-31 Cleveland Guardians vs Boston Red Sox (4-9) drama_peak=59 arc_head=[52,44,52,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=2026-05-31-mlb-tampa-losan date=2026-05-31 Tampa Bay Rays vs Los Angeles Angels (5-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-cincin-atlant date=2026-05-31 Cincinnati Reds vs Atlanta Braves (6-4) drama_peak=52 arc_head=[52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=2026-05-31-mlb-newyo-miami date=2026-05-31 New York Mets vs Miami Marlins (10-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-chicag-detroi date=2026-05-31 Chicago White Sox vs Detroit Tigers (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,44,52,52,52,52,52,44,44,44,44
+  [before] id=2026-05-31-mlb-housto-milwau date=2026-05-31 Houston Astros vs Milwaukee Brewers (0-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-texas-kansas date=2026-05-31 Texas Rangers vs Kansas City Royals (6-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-colora-sanfr date=2026-05-31 Colorado Rockies vs San Francisco Giants (6-19) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-athlet-newyo date=2026-05-31 Athletics vs New York Yankees (8-13) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-seattl-arizon date=2026-05-31 Seattle Mariners vs Arizona Diamondbacks (3-2) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-losan-philad date=2026-05-31 Los Angeles Dodgers vs Philadelphia Phillies (9-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-31-mlb-stlo-chicag date=2026-05-31 St. Louis Cardinals vs Chicago Cubs (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-29-mlb-texas-housto date=2026-05-29 Texas Rangers vs Houston Astros (1-5) drama_peak=52 arc_head=[52,44,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,15
+  [before] id=2026-05-28-mlb-texas-housto date=2026-05-28 Texas Rangers vs Houston Astros (1-5) drama_peak=52 arc_head=[52,44,52,52,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,15
+  [before] id=2026-05-28-mlb-losan-colora date=2026-05-28 Los Angeles Dodgers vs Colorado Rockies (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-28-mlb-detroi-losan date=2026-05-28 Detroit Tigers vs Los Angeles Angels (1-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-28-mlb-chicag-minnes date=2026-05-28 Chicago White Sox vs Minnesota Twins (6-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-28-mlb-boston-atlant date=2026-05-28 Boston Red Sox vs Atlanta Braves (2-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-28-mlb-baltim-toront date=2026-05-28 Baltimore Orioles vs Toronto Blue Jays (1-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-28-mlb-pittsb-chicag date=2026-05-28 Pittsburgh Pirates vs Chicago Cubs (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-texas-housto date=2026-05-27 Texas Rangers vs Houston Astros (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-losan-colora date=2026-05-27 Los Angeles Dodgers vs Colorado Rockies (4-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-toront-miami date=2026-05-27 Toronto Blue Jays vs Miami Marlins (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-clevel-washin date=2026-05-27 Cleveland Guardians vs Washington Nationals (3-2) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-milwau-stlo date=2026-05-27 Milwaukee Brewers vs St. Louis Cardinals (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-athlet-seattl date=2026-05-27 Athletics vs Seattle Mariners (1-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-sanfr-arizon date=2026-05-27 San Francisco Giants vs Arizona Diamondbacks (2-3) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-sandi-philad date=2026-05-27 San Diego Padres vs Philadelphia Phillies (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-baltim-tampa date=2026-05-27 Baltimore Orioles vs Tampa Bay Rays (11-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-detroi-losan date=2026-05-27 Detroit Tigers vs Los Angeles Angels (4-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-pittsb-chicag date=2026-05-27 Pittsburgh Pirates vs Chicago Cubs (4-10) drama_peak=59 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-boston-atlant date=2026-05-27 Boston Red Sox vs Atlanta Braves (8-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-newyo-cincin date=2026-05-27 New York Mets vs Cincinnati Reds (4-2) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-kansas-newyo date=2026-05-27 Kansas City Royals vs New York Yankees (0-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-27-mlb-chicag-minnes date=2026-05-27 Chicago White Sox vs Minnesota Twins (15-2) drama_peak=52 arc_head=[52,44,52,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=2026-05-26-mlb-losan-colora date=2026-05-26 Los Angeles Dodgers vs Colorado Rockies (15-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-athlet-seattl date=2026-05-26 Athletics vs Seattle Mariners (1-4) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-clevel-washin date=2026-05-26 Cleveland Guardians vs Washington Nationals (3-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-baltim-tampa date=2026-05-26 Baltimore Orioles vs Tampa Bay Rays (6-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44
+  [before] id=2026-05-26-mlb-detroi-losan date=2026-05-26 Detroit Tigers vs Los Angeles Angels (6-10) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-pittsb-chicag date=2026-05-26 Pittsburgh Pirates vs Chicago Cubs (12-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-boston-atlant date=2026-05-26 Boston Red Sox vs Atlanta Braves (6-7) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-toront-miami date=2026-05-26 Toronto Blue Jays vs Miami Marlins (8-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-newyo-cincin date=2026-05-26 New York Mets vs Cincinnati Reds (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-chicag-minnes date=2026-05-26 Chicago White Sox vs Minnesota Twins (3-5) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-26-mlb-kansas-newyo date=2026-05-26 Kansas City Royals vs New York Yankees (1-15) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44,44,44,44,44
+  [before] id=2026-05-26-mlb-milwau-stlo date=2026-05-26 Milwaukee Brewers vs St. Louis Cardinals (6-0) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-pittsb-chicag date=2026-05-25 Pittsburgh Pirates vs Chicago Cubs (2-1) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-baltim-tampa date=2026-05-25 Baltimore Orioles vs Tampa Bay Rays (9-7) drama_peak=74 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-milwau-stlo date=2026-05-25 Milwaukee Brewers vs St. Louis Cardinals (5-1) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-chicag-minnes date=2026-05-25 Chicago White Sox vs Minnesota Twins (3-1) drama_peak=52 arc_head=[52,52,52,52,52,44,52,52,44,44,44,44,44,44,44,44,44,44,44,44
+  [before] id=2026-05-25-mlb-kansas-newyo date=2026-05-25 Kansas City Royals vs New York Yankees (3-4) drama_peak=60 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-newyo-cincin date=2026-05-25 New York Mets vs Cincinnati Reds (2-7) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-sanfr-arizon date=2026-05-25 San Francisco Giants vs Arizona Diamondbacks (2-6) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52
+  [before] id=2026-05-25-mlb-clevel-washin date=2026-05-25 Cleveland Guardians vs Washington Nationals (2-10) drama_peak=52 arc_head=[52,44,52,52,52,52,52,44,44,44,44,44,44,44,15,44,44,44,44,44
+  [before] id=2026-05-25-mlb-sandi-philad date=2026-05-25 San Diego Padres vs Philadelphia Phillies (0-3) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,44,52,52,52,52,52,52,52,44,44,44
+  [before] id=2026-05-25-mlb-texas-housto date=2026-05-25 Texas Rangers vs Houston Astros (0-9) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,52,44,52
+  [before] id=2026-05-25-mlb-toront-miami date=2026-05-25 Toronto Blue Jays vs Miami Marlins (2-8) drama_peak=52 arc_head=[52,52,52,52,52,52,52,52,52,52,52,52,52,44,52,44,44,44,44,44
+  RESET executed. changes=537
+  After reset, matching rows remaining: 0 (expected 0)
+
+--- postseason_games ---
+Matched rows (array-shape drama_arc, sport=MLB): 0
+  (nothing to reset in this table)
+
+=== Done ===

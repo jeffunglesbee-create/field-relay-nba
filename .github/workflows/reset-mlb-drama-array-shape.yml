@@ -9,6 +9,9 @@ name: Reset MLB Drama Array-Shape Rows
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   reset:
     runs-on: ubuntu-latest
