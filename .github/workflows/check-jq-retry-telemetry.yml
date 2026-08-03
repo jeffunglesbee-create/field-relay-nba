@@ -1,0 +1,34 @@
+name: Check JQ Retry Telemetry Table (one-shot diagnostic)
+
+# CC-CMD-2026-08-02-retry-chain-telemetry (jubilant-bassoon) TASK 3
+# diagnostic: retry-telemetry-probe.yml observed 3 real, successful
+# POSTs to /jq/retry-telemetry during a real live page load, but its
+# own before/after D1 count came back null/null (realRowConfirmed:
+# false) -- investigating whether that's a real gap (rows didn't land)
+# or a probe-script bug (e.g. the "before" query erroring because the
+# table didn't exist yet, un-handled by the probe's d1Query helper),
+# per Rule 77 (investigate, don't assume).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Query jq_retry_telemetry directly
+        run: |
+          echo "=== COUNT ==="
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
+            -H "Content-Type: application/json" \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -d '{"sql":"SELECT COUNT(*) as n FROM jq_retry_telemetry"}' \
+            -w "\nHTTP %{http_code}\n"
+          echo ""
+          echo "=== ROWS ==="
+          curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
+            -H "Content-Type: application/json" \
+            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -d '{"sql":"SELECT * FROM jq_retry_telemetry ORDER BY id DESC LIMIT 10"}' \
+            -w "\nHTTP %{http_code}\n"
