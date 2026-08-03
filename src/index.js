@@ -8064,25 +8064,51 @@ export default {
         // sweepKVBriefs from inside runDeadHourBackfill — same function.
         ctx.waitUntil(sweepKVBriefs(env).catch(e =>
             console.error('[KV-SWEEP]', e.message)));
-        // R2 weekly updates — run alongside journalism cron, non-blocking
+        // R2 weekly updates — run alongside journalism cron, non-blocking.
+        // CC-CMD-2026-08-02-gate-weekly-r2-update-windows: all five below now
+        // additionally gated on event.cron -- previously each fired on EVERY
+        // real tick landing inside its date/hour window, and since both */5
+        // and */15 are live cron patterns, that meant up to 48 real
+        // invocations (MLB/NFL) or 16 (GSAX/Clutch) for functions whose real
+        // intended cadence is "once per window." Gated to */15 for the four
+        // hour-scoped functions below (none has a real freshness need for
+        // 5-min sampling -- confirmed per-function in Task 1: MLB/NFL are
+        // weekly stat drops, GSAX is weekly, Clutch's own comment already
+        // says "clutch stats update daily at most" -- unlike
+        // runBSDClubLeagueEndgameCapture's genuine 5-min sampling need, this
+        // is the journalism pattern: */5 coverage here was purely
+        // incidental, not needed).
+        const _r2ShouldFire = event.cron === '*/15 * * * *';
+        console.log(`[R2-WINDOW-GATE] cron=${event.cron} r2ShouldFire=${_r2ShouldFire} nhlSeriesShouldFire=${event.cron === '0 9 * * *'}`);
         const _now = new Date();
         const _utcDay  = _now.getUTCDay();
         const _utcHour = _now.getUTCHours();
         // MLB Savant → R2: Monday 6AM ET (UTC 10-13)
-        if (_utcDay === 1 && _utcHour >= 10 && _utcHour <= 13 && env.FIELD_DATA) {
+        if (_r2ShouldFire && _utcDay === 1 && _utcHour >= 10 && _utcHour <= 13 && env.FIELD_DATA) {
             ctx.waitUntil(runMLBSavantUpdate(env).catch(e => console.error('[MLB-R2]', e.message)));
         }
         // nflverse → R2: Wednesday 8AM ET (UTC 12-15) — nflverse releases after Tuesday games
-        if (_utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
+        if (_r2ShouldFire && _utcDay === 3 && _utcHour >= 12 && _utcHour <= 15 && env.FIELD_DATA) {
             ctx.waitUntil(runNFLR2Update(env).catch(e => console.error('[NFL-R2]', e.message)));
         }
-        // NHL SCF series-adjusted PP/PK: every 15-min journalism tick, April-July.
-        // Genuinely playoffs-only by nature (CC-CMD-2026-07-11-nhl-nba-regular-
-        // season-continuation TASK 1) -- hardcoded to a single specific best-of-7
-        // series (SCF_2026_SERIES), a concept that doesn't exist in the 82-game
-        // regular season. Not extended; confirmed correct as-is.
+        // NHL SCF series-adjusted PP/PK, April-July. Genuinely playoffs-only
+        // by nature (CC-CMD-2026-07-11-nhl-nba-regular-season-continuation
+        // TASK 1) -- hardcoded to a single specific best-of-7 series
+        // (SCF_2026_SERIES), a concept that doesn't exist in the 82-game
+        // regular season. Window itself not extended; confirmed correct as-is.
+        //
+        // CC-CMD-2026-08-02-gate-weekly-r2-update-windows: this one is the
+        // most exposed of the five (no hour restriction at all -- fired on
+        // literally every real tick for 4 months, ~2.5 min average, before
+        // this fix). Gated to the existing daily 0-9 cron (the same real,
+        // already-established once/day trigger that already drives
+        // analyticsEngine/runDegradedPhaseSweep/checkSignatureEventCalendar
+        // above) rather than inventing a new cadence or cron pattern -- NHL
+        // playoff boxscores complete once per game, not continuously, so a
+        // daily check is real enough to catch newly-completed games; no
+        // change to wrangler.toml's cron list was needed.
         const _month = _now.getUTCMonth() + 1;
-        if ((_month >= 4 && _month <= 7) && env.FIELD_DATA) {
+        if (event.cron === '0 9 * * *' && (_month >= 4 && _month <= 7) && env.FIELD_DATA) {
             ctx.waitUntil(runNHLSeriesUpdate(env).catch(e => console.error('[NHL-SERIES]', e.message)));
         }
         // NHL GSAX (goalie season stats, MoneyPuck) -- weekly, both windows.
@@ -8098,7 +8124,7 @@ export default {
         // other seasonal pipeline in this file already uses.
         const _isNHLPlayoffsWindow = _month >= 4 && _month <= 7;
         const _isNHLRegularWindow  = _month >= 10 || _month <= 3;
-        if (_utcDay === 4 && _utcHour === 11 && env.FIELD_DATA) {
+        if (_r2ShouldFire && _utcDay === 4 && _utcHour === 11 && env.FIELD_DATA) {
             if (_isNHLPlayoffsWindow) {
                 ctx.waitUntil(runNHLGSAXUpdate(env, 'playoffs').catch(e => console.error('[NHL-GSAX]', e.message)));
             } else if (_isNHLRegularWindow) {
@@ -8117,9 +8143,9 @@ export default {
         // (skip the R2 write on a zero-row result) rather than here.
         const _isFinalsWindow = _month === 6 || _month === 7;
         const _isMWF = _utcDay === 1 || _utcDay === 3 || _utcDay === 5;
-        if (_isFinalsWindow && _isMWF && _utcHour === 12 && env.FIELD_DATA) {
+        if (_r2ShouldFire && _isFinalsWindow && _isMWF && _utcHour === 12 && env.FIELD_DATA) {
             ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
-        } else if (!_isFinalsWindow && _utcDay === 3 && _utcHour === 12 && env.FIELD_DATA) {
+        } else if (_r2ShouldFire && !_isFinalsWindow && _utcDay === 3 && _utcHour === 12 && env.FIELD_DATA) {
             ctx.waitUntil(runNBACluichUpdate(env).catch(e => console.error('[NBA-CLUTCH]', e.message)));
         }
         // WC Tournament Projections — run every 15 min during group stage (June 11–26),
