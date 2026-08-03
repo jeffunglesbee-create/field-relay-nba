@@ -8137,10 +8137,31 @@ export default {
             ctx.waitUntil(runBSDEndgameCapture(env).catch(e =>
                 console.error('[BSD-ENDGAME]', e.message)));
         }
-        // BSD club-league endgame capture — every cron tick, year-round. NOT
-        // gated by _isWCWindow: club leagues run outside the WC calendar.
-        // CC-CMD-2026-07-14-bsd-endgame-capture-generalize TASK 1.
-        if (env.FIELD_DATA && env.BSD_API_TOKEN) {
+        // BSD club-league endgame capture — NOT gated by _isWCWindow: club
+        // leagues run outside the WC calendar (CC-CMD-2026-07-14-bsd-
+        // endgame-capture-generalize TASK 1, unchanged).
+        //
+        // CC-CMD-2026-08-02-gate-bsd-club-league-capture: DOES need
+        // event.cron gating, unlike handleJournalismCycle -- but to */5, not
+        // */15. Real reasoning (Task 1): this function targets a genuinely
+        // narrow, real-time endgame window (80-120 min elapsed since
+        // kickoff, ~40 real minutes per match) across every BSD-covered
+        // club league simultaneously -- unlike journalism, where */5
+        // coverage was purely incidental, here 5-min sampling density is
+        // the actual point (gating to */15 would cut real endgame-window
+        // sampling from up to 8 real chances down to under 3, a genuine
+        // capture-completeness regression, not just a cadence preference).
+        // No documented BSD_API_TOKEN rate limit exists anywhere in this
+        // repo (grepped docs/, STANDARDS.md, src/index.js -- none found;
+        // not inventing a number). Since every */15 tick time (:00/:15/
+        // :30/:45) is already a subset of */5 tick times, gating to */5
+        // alone removes only the exact-duplicate invocation that happened
+        // when both cron patterns fired at the same real minute -- real
+        // volume drops from up to 16/hour to 12/hour (-25%) while keeping
+        // 100% of the real 5-min sampling density the endgame window needs.
+        const _bsdClubShouldFire = event.cron === '*/5 * * * *';
+        console.log(`[BSD-CLUB-GATE] cron=${event.cron} fired=${_bsdClubShouldFire}`);
+        if (_bsdClubShouldFire && env.FIELD_DATA && env.BSD_API_TOKEN) {
             ctx.waitUntil(runBSDClubLeagueEndgameCapture(env).catch(e =>
                 console.error('[BSD-CLUB-ENDGAME]', e.message)));
         }
