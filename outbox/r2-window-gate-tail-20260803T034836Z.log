@@ -1,0 +1,2 @@
+  (log) [R2-WINDOW-GATE] cron=*/5 * * * * r2ShouldFire=false nhlSeriesShouldFire=false
+  (log) [R2-WINDOW-GATE] cron=*/15 * * * * r2ShouldFire=true nhlSeriesShouldFire=false
