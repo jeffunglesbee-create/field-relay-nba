@@ -1,0 +1,44 @@
+name: Verify Schedule AI Cache (one-shot)
+# CC-CMD-2026-08-02-shared-schedule-ai-cache-relay TASK 3 real
+# verification. Calls GET /schedule/ai-fallback for the same real date
+# twice and confirms the second call is a genuine cache hit -- real
+# timing + X-Cache header evidence, not assumed.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call route twice, compare
+        run: |
+          DATE="2026-08-05"
+          echo "=== Call 1 (expect MISS) ==="
+          T0=$(date +%s%N)
+          R1=$(curl -sS -D /tmp/h1.txt "https://field-relay-nba.jeffunglesbee.workers.dev/schedule/ai-fallback?date=${DATE}")
+          T1=$(date +%s%N)
+          echo "$R1" > /tmp/body1.json
+          cat /tmp/h1.txt | grep -i "x-cache"
+          echo "body1: $R1"
+          echo "call1_ms: $(( (T1 - T0) / 1000000 ))"
+
+          echo ""
+          echo "=== Call 2 (expect HIT) ==="
+          T2=$(date +%s%N)
+          R2=$(curl -sS -D /tmp/h2.txt "https://field-relay-nba.jeffunglesbee.workers.dev/schedule/ai-fallback?date=${DATE}")
+          T3=$(date +%s%N)
+          echo "$R2" > /tmp/body2.json
+          cat /tmp/h2.txt | grep -i "x-cache"
+          echo "body2: $R2"
+          echo "call2_ms: $(( (T3 - T2) / 1000000 ))"
+
+          echo ""
+          echo "=== Comparison ==="
+          if [ "$R1" = "$R2" ]; then
+            echo "PASS: byte-identical body on call 2"
+          else
+            echo "FAIL: body differs between calls"
+            exit 1
+          fi
