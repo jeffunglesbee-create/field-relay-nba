@@ -9,6 +9,9 @@ name: BSD Club Gate Tail Verify
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   tail:
     runs-on: ubuntu-latest
