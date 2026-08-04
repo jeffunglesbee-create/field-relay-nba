@@ -8647,10 +8647,61 @@ export default {
                 } catch (e) { console.error("[QUALITY] health-check calibration source lookup failed:", e.message); /* leave 'unloaded' */ }
             }
 
-            return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron, quality-source=${qSource}`, {
+            return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron + tts, quality-source=${qSource}`, {
                 status: 200,
                 headers: { 'Content-Type': 'text/plain', ...CORS, 'X-FIELD-Proxy': 'relay-multi' }
             });
+        }
+
+        // ── Text-to-Speech via Workers AI (2026-08-04) ───────────────────────────
+        // Pure text→audio transformation — no editorial judgment, no interest-
+        // level or drama-score computation. ADR-002/Rule 47 clean on both tests:
+        // not a commodity-or-proprietary VALUE at all (it's a media format
+        // conversion of text the CLIENT already composed), and pull-only (fires
+        // only on an explicit POST from a real user action, never an autonomous
+        // push). Same clean class as the FPL/BSD proxy routes above.
+        //
+        // @cf/deepgram/aura-2-en is Workers AI's own hosted Deepgram Aura-2 model
+        // (real, enterprise-grade neural voice) — billed from Workers AI's free
+        // 10,000-neurons/day allocation, no separate Deepgram account or API key.
+        // Verified request/response shape before writing this (not assumed):
+        // input {text, encoding}, output a ReadableStream of the requested audio
+        // encoding, piped straight through as the Response body.
+        //
+        // 800-char cap: real cost guard, not arbitrary. aura-2-en runs
+        // ~2,727 neurons/1,000 input chars — 800 chars ≈ 2,182 neurons, leaving
+        // headroom for several calls within the free daily budget even at the
+        // cap. Real Broadcast Call scripts (field-playground) run well under
+        // this (~200-400 chars typical).
+        if (pathname === '/audio/tts' && request.method === 'POST') {
+            if (!env.AI) {
+                return new Response(JSON.stringify({ ok: false, error: 'AI binding not configured' }), {
+                    status: 503, headers: { ...CORS, 'Content-Type': 'application/json' }
+                });
+            }
+            let body;
+            try { body = await request.json(); }
+            catch { return new Response(JSON.stringify({ ok: false, error: 'invalid JSON body' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }); }
+
+            const text = typeof body?.text === 'string' ? body.text.trim() : '';
+            if (!text) {
+                return new Response(JSON.stringify({ ok: false, error: 'missing text' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (text.length > 800) {
+                return new Response(JSON.stringify({ ok: false, error: 'text too long (max 800 chars)' }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+
+            try {
+                const audioStream = await env.AI.run('@cf/deepgram/aura-2-en', { text, encoding: 'mp3' });
+                return new Response(audioStream, {
+                    status: 200,
+                    headers: { ...CORS, 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: 'TTS generation failed: ' + e.message }), {
+                    status: 502, headers: { ...CORS, 'Content-Type': 'application/json' }
+                });
+            }
         }
 
 
