@@ -1,5 +1,77 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-06 (soccer-label-fix + CI honesty) — FINAL
+
+**HEAD:** d0b9139 (+ this commit)
+**Branch:** main
+**Session docs:** `outbox/cc-session-2026-08-06-apply-soccer-league-label-fix-v2.md`,
+`outbox/cc-session-2026-08-06-deploy-verify-commit-push-race.md`,
+`outbox/cc-session-2026-08-06-close-rule-registry-carryforward.md`
+
+### ⚠️ SUPERSEDES a carry-forward the last two close-outs both repeated
+
+The 2026-07-25/27 and 2026-07-26/27 entries below both carry forward:
+
+> `verify` job continues failing on pre-existing Rule-90 staleness gate
+> — Rule-90/91/…/96 staleness gate — separate session, still pre-existing.
+
+**That was accurate when written and became false on 2026-07-31.** Commit
+`c2d2327` moved the staleness check out of `deploy.yml`'s blocking
+`verify` job into the standalone, non-blocking
+`rule90-staleness-monitor.yml` (daily). Those historical entries are left
+intact above/below as the honest record of what those sessions saw — this
+entry supersedes them. **Do not re-inherit "deploys are blocked by Rule
+90"; they are not, and have not been since 2026-07-31.**
+
+But do not read that as "nothing outstanding" either:
+
+- The **staleness condition is still real and still red daily** —
+  `rule90-staleness-monitor.yml` has failed every run since at least
+  2026-08-02. It no longer gates deploys; it is still an honest signal.
+- As of this session: `rule-92` (Watch Engine WC tier selection),
+  `rule-93` (OTW momentum), `rule-94` (`_fieldDataReady` sentinel) remain
+  UNEXERCISED at 25.7 days. **This is correct, not a gap to close** — no
+  session has had a genuine applicable case, and Rule 90's own text calls
+  an honest UNEXERCISED "the correct signal to surface… not a false alarm
+  to suppress." Flipping them without a real case is fabrication (Rule 2).
+- `rule-90` itself was flipped to EXERCISED this session with a real case
+  (run `31117941940`): the carry-forward above is *itself* an instance of
+  RULE-COMPLIANCE-FOLLOWUP-A — the mechanical artifact held the true state
+  while the human-propagated HANDOFF channel went stale and wrong.
+- `rule-98` (added 2026-08-03) is UNEXERCISED but only ~3 days old — not
+  yet stale, no action needed.
+
+### Commits this session
+- `3235749` — fix: archived soccer games labeled by real competition, not always the World Cup
+- `7f51bdd` — fix: verify job's lost push race no longer reports healthy deploys as failures
+- `9078d8a`, `fa3e37c` — soccer-league mislabel scope probe (slate/scope/apply/verify) + weekly regression guard (`504b0e5`)
+- `b2baf5f`, `d0b9139` — one-shot rule-registry exercise (rule-90 only)
+
+### Result
+- **Soccer label bug fixed; 52 rows mislabeled as the World Cup corrected
+  to their real competition (all MLS)**, 103 genuine World Cup rows
+  untouched, 0 mismatches remaining. Weekly regression detector added
+  (`soccer-league-mislabel-scope-probe.yml`, Mondays).
+- **Deploy runs can report `success` again.** Run `31114735011` is the
+  first fully-green run; `verify`'s `Commit results` step no longer fails
+  the whole run on a lost push race, while a genuine *permission* failure
+  still fails loudly.
+
+### Known-noisy, not a defect
+GitHub Actions had a real platform incident during this session —
+`Failed to resolve action download info. Error: Service Unavailable`
+killed three runs in `Set up job` before any repo code ran
+(`31115370947`, `31116882733`, `31117153055`). Unrelated to any change
+here. The one-shot exercise workflow was rewritten to drop its
+unnecessary `actions/checkout` dependency as a result.
+
+### Carry-forwards
+- None from this session. The Rule-90 item above is **not** a
+  carry-forward — it is a standing, correct signal with no action
+  available until a genuine case for rules 92/93/94 arises.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-07-26/27 (journalism-brief-history) — FINAL
 
 **HEAD:** cff1477

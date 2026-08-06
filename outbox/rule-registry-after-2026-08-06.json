@@ -1,0 +1,15 @@
+{"note":"Captured from the job log of run 31117941940 (rule-registry-exercise-2026-08-06), the durable artifact. The workflow deliberately has no actions/checkout -- see that file's header -- so snapshots are committed from the session rather than by the runner.",
+ "captured_utc":"2026-08-06T15:58:28Z",
+ "results":[
+  {"key":"rule-80","title":"RESOLVED -- FIELD_MCP_SECRET leak fully closed (rotation + history scrub + root-cause redaction fix), previous entry never updated after landing","updated_at":"2026-07-14 21:44:14"},
+  {"key":"rule-89","title":"VIOLATED (2nd instance, same session, after the lesson) -- Rule 89: direct implementation of handleJournalismCycle fix with no stated exception, despite own reasoning having concluded dispatch was correct","updated_at":"2026-07-14 12:23:39"},
+  {"key":"rule-90","title":"EXERCISED -- Rule 90: 2026-08-06, RULE-COMPLIANCE-FOLLOWUP-A applied for real. Two consecutive HANDOFF close-outs (2026-07-25/27, 2026-07-26/27) carried Rule-90 staleness forward as a live deploy blocker by memory; that claim was already false, resolved 2026-07-31 by c2d2327 which moved the check into the non-blocking rule90-staleness-monitor.yml. The mechanical artifact (daily monitor + codex query) held the true state while the human-propagated channel had gone stale and wrong -- exactly the failure mode this rule exists to prevent. Session verified against real monitor runs rather than the inherited claim (Rule 72).","updated_at":"2026-08-06 15:58:27"},
+  {"key":"rule-91","title":"EXERCISED -- Rule 91: 2026-07-31, UEFA-qual cross-repo session ran radius-3 Contract Cross-Check explicitly","updated_at":"2026-07-31 00:32:24"},
+  {"key":"rule-92","title":"UNEXERCISED -- Rule 92: Watch Engine WC selection -- strict categorical tier hierarchy only, no composite numerical score","updated_at":"2026-07-11 20:35:30"},
+  {"key":"rule-93","title":"UNEXERCISED -- Rule 93: OTW momentum -- score-event detector only, no drama score reads","updated_at":"2026-07-11 20:35:35"},
+  {"key":"rule-94","title":"UNEXERCISED -- Rule 94: _fieldDataReady sentinel is a permanent contract with CI test infrastructure","updated_at":"2026-07-11 20:35:41"},
+  {"key":"rule-95","title":"EXERCISED -- Rule 95: 2026-07-31","updated_at":"2026-07-31 00:32:24"},
+  {"key":"rule-96","title":"EXERCISED -- Rule 96: 2026-07-31","updated_at":"2026-07-31 00:32:24"},
+  {"key":"rule-97","title":"EXERCISED -- Rule 97: 2026-07-31","updated_at":"2026-07-31 00:32:24"},
+  {"key":"rule-98","title":"UNEXERCISED -- Rule 98: undocumented/reverse-engineered API integrations ...","updated_at":"2026-08-03 02:29:35"}
+ ]}
