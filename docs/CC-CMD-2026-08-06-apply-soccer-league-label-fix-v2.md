@@ -41,11 +41,17 @@ correctly.
 
 ## Task 1 — Re-verify from HEAD before applying anything (Rule 87)
 
-- Find the real, current three call sites of this exact ternary inside
-  `handleJournalismCycle` (approximate prior locations: catch-up
-  ~line 7084, pre-game seed ~line 7170, yesterday-finals ~line 7254 —
-  re-locate fresh by searching for the literal string
-  `'FIFA World Cup 2026' : gm.league`, don't trust these line numbers).
+- The three call sites were directly, independently confirmed —
+  not inherited from the original diagnosis, which was written against
+  a since-moved HEAD (`7de2729`) — via a real grep of this repo's
+  actual current file, at the time this doc was last updated: HEAD
+  `e536205`, lines **7084, 7170, 7254**, exact literal
+  `'FIFA World Cup 2026' : gm.league`, 3 occurrences, matching
+  precisely. **Still re-confirm fresh before editing** — this repo
+  auto-deploys on every push to `src/**`, so real time may have passed
+  and HEAD may have moved again since that check. If the line numbers
+  no longer match, re-locate by searching for the same literal string
+  rather than assuming the fix no longer applies.
 - At each site, replace:
   ```diff
   -sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
