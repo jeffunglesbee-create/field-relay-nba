@@ -1,0 +1,8 @@
+=== TASK 4: post-correction verification ===
+  regular_season_games: 0 mislabeled row(s) remaining
+  regular_season_games sport-label distribution for soccer rows: [{"sport":"FIFA World Cup","n":103},{"sport":"MLS","n":52}]
+  postseason_games: 0 mislabeled row(s) remaining
+  postseason_games sport-label distribution for soccer rows: []
+
+TOTAL REMAINING MISLABELED: 0
+PASS: zero mismatches.
