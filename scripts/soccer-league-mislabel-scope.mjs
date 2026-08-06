@@ -154,21 +154,35 @@ async function verify() {
 // Uses the identical MISLABELED predicate the scope step measured and the
 // emitted .sql encodes -- same rule, one source of truth, no drift between
 // what was measured, what was reviewed, and what actually runs.
+// Per the CC-CMD's explicit instruction: scope the UPDATE by the real,
+// measured espn_event_id list -- never a bare LIKE that could sweep in a
+// genuine World Cup fixture. The predicate is retained as a second,
+// belt-and-braces guard, but the id list is what bounds the write.
 async function apply() {
   console.log('=== TASK 3: applying label correction (sport = league) ===');
   let total = 0;
   for (const table of ['regular_season_games', 'postseason_games']) {
-    const before = await d1(`SELECT COUNT(*) AS n FROM ${table} WHERE ${MISLABELED}`);
-    const n = before.results?.[0]?.n ?? 0;
-    console.log(`\n--- ${table}: ${n} row(s) to correct ---`);
-    if (n === 0) { console.log('  nothing to do'); continue; }
+    const mis = await d1(
+      `SELECT id, sport, league, date, home, away, espn_event_id
+         FROM ${table} WHERE ${MISLABELED} ORDER BY date DESC`);
+    const rows = (mis.results || []).filter(r => r.espn_event_id);
+    const skipped = (mis.results || []).length - rows.length;
+    console.log(`\n--- ${table}: ${rows.length} row(s) to correct` +
+      (skipped ? ` (${skipped} skipped: no espn_event_id to scope by)` : '') + ' ---');
+    if (rows.length === 0) { console.log('  nothing to do'); continue; }
 
-    const res = await d1(`UPDATE ${table} SET sport = league WHERE ${MISLABELED}`);
+    rows.forEach(r => console.log(`  ${r.date} ${r.home} vs ${r.away} | '${r.sport}' -> '${r.league}' | event=${r.espn_event_id}`));
+
+    const ids = rows.map(r => String(r.espn_event_id));
+    const placeholders = ids.map(() => '?').join(', ');
+    const res = await d1(
+      `UPDATE ${table} SET sport = league
+        WHERE espn_event_id IN (${placeholders}) AND ${MISLABELED}`, ids);
     const changed = res.meta?.changes ?? 0;
-    console.log(`  UPDATE changes=${changed}`);
+    console.log(`  UPDATE changes=${changed} (expected ${rows.length})`);
 
     const after = await d1(`SELECT COUNT(*) AS n FROM ${table} WHERE ${MISLABELED}`);
-    console.log(`  remaining after: ${after.results?.[0]?.n ?? '?'} (expected 0)`);
+    console.log(`  remaining mislabeled after: ${after.results?.[0]?.n ?? '?'} (expected ${skipped})`);
     total += changed;
   }
   console.log(`\n=== TOTAL rows corrected: ${total} ===`);
