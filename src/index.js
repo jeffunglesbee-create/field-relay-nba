@@ -7072,16 +7072,33 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
-            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
-            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
-            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
-            // the id this exact literal produces. Changing it would change the id on
-            // this game's next write, missing ON CONFLICT and orphaning the row.
-            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
-            // built) already normalizes the persisted `sport` COLUMN for this and every
-            // other caller regardless of the literal sent here -- no change needed.
-            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            // CC-CMD-2026-08-06-apply-soccer-league-label-fix: was
+            //   gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league
+            // `gm.sport` is ESPN's TOP-LEVEL sport (the literal 'soccer'), not the
+            // competition -- so that ternary relabeled EVERY soccer league as the
+            // World Cup. Measured 2026-08-06: 52 of 60 checkable archived rows
+            // (86.7%) mislabeled, all really MLS. `gm.league` already carries the
+            // correct per-competition label from this file's own LEAGUES table, and
+            // the non-soccer branch of that same ternary was already using it.
+            //
+            // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
+            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // normalizes the persisted `sport` COLUMN. That reasoning solved label
+            // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
+            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
+            // mislabel rather than fixing it. It also predates MLS sharing this
+            // branch.
+            //
+            // Its one still-valid point is preserved: this literal feeds
+            // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
+            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
+            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
+            // changes. Safe to land only when no soccer row is seeded-but-unfinal;
+            // verified zero exposed rows before this deployed.
+            sport: gm.league,
             league: gm.league,
             date: dateKey,
             home: gm.home,
@@ -7158,16 +7175,33 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
-            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
-            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
-            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
-            // the id this exact literal produces. Changing it would change the id on
-            // this game's next write, missing ON CONFLICT and orphaning the row.
-            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
-            // built) already normalizes the persisted `sport` COLUMN for this and every
-            // other caller regardless of the literal sent here -- no change needed.
-            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            // CC-CMD-2026-08-06-apply-soccer-league-label-fix: was
+            //   gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league
+            // `gm.sport` is ESPN's TOP-LEVEL sport (the literal 'soccer'), not the
+            // competition -- so that ternary relabeled EVERY soccer league as the
+            // World Cup. Measured 2026-08-06: 52 of 60 checkable archived rows
+            // (86.7%) mislabeled, all really MLS. `gm.league` already carries the
+            // correct per-competition label from this file's own LEAGUES table, and
+            // the non-soccer branch of that same ternary was already using it.
+            //
+            // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
+            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // normalizes the persisted `sport` COLUMN. That reasoning solved label
+            // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
+            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
+            // mislabel rather than fixing it. It also predates MLS sharing this
+            // branch.
+            //
+            // Its one still-valid point is preserved: this literal feeds
+            // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
+            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
+            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
+            // changes. Safe to land only when no soccer row is seeded-but-unfinal;
+            // verified zero exposed rows before this deployed.
+            sport: gm.league,
             league: gm.league,
             date: dateKey,
             home: gm.home,
@@ -7242,16 +7276,33 @@ async function handleJournalismCycle(env, opts = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // CC-CMD-2026-07-15-wc-label-fragmentation: deliberately NOT switched to
-            // SOCCER_LEAGUE_LABELS.wc26 here -- this literal feeds /archive/game's
-            // `id` construction (id = `${sport}_${date}_...`), and a live, in-progress
-            // WC26 game (England vs Argentina, 2026-07-15) is seeded right now under
-            // the id this exact literal produces. Changing it would change the id on
-            // this game's next write, missing ON CONFLICT and orphaning the row.
-            // /archive/game's own canonicalizeWC26Sport() call (applied AFTER id is
-            // built) already normalizes the persisted `sport` COLUMN for this and every
-            // other caller regardless of the literal sent here -- no change needed.
-            sport: gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league,
+            // CC-CMD-2026-08-06-apply-soccer-league-label-fix: was
+            //   gm.sport === 'soccer' ? 'FIFA World Cup 2026' : gm.league
+            // `gm.sport` is ESPN's TOP-LEVEL sport (the literal 'soccer'), not the
+            // competition -- so that ternary relabeled EVERY soccer league as the
+            // World Cup. Measured 2026-08-06: 52 of 60 checkable archived rows
+            // (86.7%) mislabeled, all really MLS. `gm.league` already carries the
+            // correct per-competition label from this file's own LEAGUES table, and
+            // the non-soccer branch of that same ternary was already using it.
+            //
+            // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
+            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // normalizes the persisted `sport` COLUMN. That reasoning solved label
+            // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
+            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
+            // mislabel rather than fixing it. It also predates MLS sharing this
+            // branch.
+            //
+            // Its one still-valid point is preserved: this literal feeds
+            // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
+            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
+            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
+            // changes. Safe to land only when no soccer row is seeded-but-unfinal;
+            // verified zero exposed rows before this deployed.
+            sport: gm.league,
             league: gm.league,
             date: yesterdayKey,
             home: gm.home,

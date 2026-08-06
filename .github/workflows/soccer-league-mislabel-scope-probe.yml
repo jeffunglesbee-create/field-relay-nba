@@ -48,7 +48,12 @@ jobs:
         run: |
           git config user.email "probe@field"
           git config user.name "Soccer-League-Mislabel-Scope-Probe"
-          git add outbox/soccer-league-mislabel-*.log outbox/soccer-league-mislabel-scope-*.sql 2>/dev/null || true
+          # Separate adds: `git add` is atomic across pathspecs -- a glob that
+          # matches nothing aborts the WHOLE command, so combining these meant
+          # the .log never staged on any run that produced no .sql. Errors are
+          # no longer sent to /dev/null; that is what hid this the first time.
+          git add outbox/soccer-league-mislabel-*.log || echo "(no log to add)"
+          git add outbox/soccer-league-mislabel-scope-*.sql || echo "(no sql to add)"
           git commit -m "soccer-league-mislabel ${{ inputs.mode }} result [skip ci]" || echo "(nothing new)"
           for i in 1 2 3; do
             git pull --rebase --autostash origin main && git push origin main && break
