@@ -19,6 +19,13 @@ on:
         default: 'slate'
         type: choice
         options: [slate, scope, apply, verify]
+  # Standing regression detector. CC-CMD Task 4 requires the corrected set
+  # stay at zero "for anything newly archived since" -- that's a continuing
+  # property, not a one-time check, so it gets a continuing test. `verify`
+  # exits non-zero when any mislabeled row reappears, which surfaces a
+  # regression as a real failed run rather than silently re-accumulating.
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays 06:17 UTC
 
 permissions:
   contents: write
@@ -27,6 +34,12 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # `inputs.mode` is empty on a schedule trigger (inputs only exist for
+    # workflow_dispatch), so it defaults to verify -- the mode the cron is
+    # for. Resolved once here so the run step, log filename and commit
+    # message can never disagree about which mode actually ran.
+    env:
+      MODE: ${{ inputs.mode || 'verify' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,14 +47,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run probe (${{ inputs.mode }})
+      - name: Run probe
         env:
-          PROBE_MODE: ${{ inputs.mode }}
+          PROBE_MODE: ${{ inputs.mode || 'verify' }}
         run: |
           TS=$(date -u +%Y%m%dT%H%M%SZ)
           mkdir -p outbox
           node scripts/soccer-league-mislabel-scope.mjs 2>&1 \
-            | tee "outbox/soccer-league-mislabel-${{ inputs.mode }}-${TS}.log"
+            | tee "outbox/soccer-league-mislabel-${MODE}-${TS}.log"
 
       - name: Commit result
         if: always()
@@ -54,7 +67,7 @@ jobs:
           # no longer sent to /dev/null; that is what hid this the first time.
           git add outbox/soccer-league-mislabel-*.log || echo "(no log to add)"
           git add outbox/soccer-league-mislabel-scope-*.sql || echo "(no sql to add)"
-          git commit -m "soccer-league-mislabel ${{ inputs.mode }} result [skip ci]" || echo "(nothing new)"
+          git commit -m "soccer-league-mislabel ${MODE} result [skip ci]" || echo "(nothing new)"
           for i in 1 2 3; do
             git pull --rebase --autostash origin main && git push origin main && break
             sleep $((i * 5))
