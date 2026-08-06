@@ -852,7 +852,50 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add outbox/live-verify-*.md
-          git commit -m "chore: post-deploy live verification [skip ci]" || echo "nothing to commit"
-          git push
+
+          # `git add` is atomic across pathspecs and this step runs under
+          # `bash -e`, so an unmatched glob returns non-zero and would abort the
+          # whole step before the push ever runs. Same defect class really hit
+          # in soccer-league-mislabel-scope-probe.yml on 2026-08-06.
+          git add outbox/live-verify-*.md || echo "(no live-verify artifact to stage)"
+
+          if ! git commit -m "chore: post-deploy live verification [skip ci]"; then
+            echo "Nothing to commit — no push needed."
+            exit 0
+          fi
+
+          # CC-CMD-2026-08-06-deploy-verify-commit-push-race: this was a bare
+          # `git push`. This repo has many concurrent writers (probe workflows
+          # that commit to outbox/, crons, sessions), so any push landing
+          # between this job's checkout and its push rejected it, failed this
+          # step, failed the `verify` job, and made the whole run report
+          # `failure` even though `deploy` and every structural probe had
+          # succeeded. Three false alarms in the 2026-08-06 session alone
+          # (runs 31112262449, 30781954383).
+          #
+          # A lost race is expected and must NOT fail the run -- the deploy
+          # already succeeded and this commit is only a verification note. A
+          # PERMISSION failure is a real defect and must still fail loudly.
+          # These are deliberately distinguished instead of being blanket-
+          # swallowed with `|| true`, which would trade a noisy false failure
+          # for a silent real one.
+          PUSH_LOG=/tmp/verify-push.log
+          : > "$PUSH_LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$PUSH_LOG" 2>&1 \
+               && git push origin main >>"$PUSH_LOG" 2>&1; then
+              echo "Pushed verification note on attempt $i."
+              exit 0
+            fi
+            echo "Attempt $i lost the race or failed; retrying."
+            sleep $((i * 5))
+          done
+
+          echo "::group::push log"; cat "$PUSH_LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$PUSH_LOG"; then
+            echo "::error::Verification-note push failed for a PERMISSION reason, not a race — this is a real defect, not concurrency."
+            exit 1
+          fi
+          echo "::warning::Verification-note push lost every retry to concurrent writes. The deploy itself is unaffected; only the note was not committed."
+          exit 0
 
