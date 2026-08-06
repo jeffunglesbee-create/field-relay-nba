@@ -1,0 +1,62 @@
+=== TASK 3: applying label correction (sport = league) ===
+
+--- regular_season_games: 52 row(s) to correct ---
+  2026-08-01 Portland vs Seattle | 'FIFA World Cup' -> 'MLS' | event=761708
+  2026-08-01 LA Galaxy vs Dallas | 'FIFA World Cup' -> 'MLS' | event=761709
+  2026-08-01 Colorado vs Austin | 'FIFA World Cup' -> 'MLS' | event=761707
+  2026-08-01 St. Louis vs Salt Lake | 'FIFA World Cup' -> 'MLS' | event=761705
+  2026-08-01 Kansas City vs Houston | 'FIFA World Cup' -> 'MLS' | event=761706
+  2026-08-01 Minnesota vs San Diego | 'FIFA World Cup' -> 'MLS' | event=761703
+  2026-08-01 Chicago vs Charlotte | 'FIFA World Cup' -> 'MLS' | event=761704
+  2026-08-01 Vancouver vs LAFC | 'FIFA World Cup' -> 'MLS' | event=761698
+  2026-08-01 Red Bull NY vs Orlando | 'FIFA World Cup' -> 'MLS' | event=761696
+  2026-08-01 Philadelphia vs Atlanta | 'FIFA World Cup' -> 'MLS' | event=761702
+  2026-08-01 Miami vs Columbus | 'FIFA World Cup' -> 'MLS' | event=761701
+  2026-08-01 Cincinnati vs San Jose | 'FIFA World Cup' -> 'MLS' | event=761700
+  2026-08-01 D.C. United vs Nashville | 'FIFA World Cup' -> 'MLS' | event=761699
+  2026-08-01 CF Montréal vs New England | 'FIFA World Cup' -> 'MLS' | event=761697
+  2026-07-31 NYCFC vs Toronto | 'FIFA World Cup' -> 'MLS' | event=761695
+  2026-07-29 MLS All-Stars vs Liga MX All-Stars | 'FIFA World Cup' -> 'MLS' | event=401864004
+  2026-07-25 San Jose vs LA Galaxy | 'FIFA World Cup' -> 'MLS' | event=761693
+  2026-07-25 Portland vs Salt Lake | 'FIFA World Cup' -> 'MLS' | event=761692
+  2026-07-25 LAFC vs Kansas City | 'FIFA World Cup' -> 'MLS' | event=761694
+  2026-07-25 San Diego vs Dallas | 'FIFA World Cup' -> 'MLS' | event=761691
+  2026-07-25 St. Louis vs Colorado | 'FIFA World Cup' -> 'MLS' | event=761688
+  2026-07-25 Minnesota vs Vancouver | 'FIFA World Cup' -> 'MLS' | event=761690
+  2026-07-25 Houston vs Austin | 'FIFA World Cup' -> 'MLS' | event=761689
+  2026-07-25 Philadelphia vs Seattle | 'FIFA World Cup' -> 'MLS' | event=761686
+  2026-07-25 Orlando vs Nashville | 'FIFA World Cup' -> 'MLS' | event=761684
+  2026-07-25 NYCFC vs Chicago | 'FIFA World Cup' -> 'MLS' | event=761683
+  2026-07-25 New England vs Atlanta | 'FIFA World Cup' -> 'MLS' | event=761682
+  2026-07-25 D.C. United vs Toronto | 'FIFA World Cup' -> 'MLS' | event=761681
+  2026-07-25 CF Montréal vs Miami | 'FIFA World Cup' -> 'MLS' | event=761687
+  2026-07-25 Columbus vs Cincinnati | 'FIFA World Cup' -> 'MLS' | event=761680
+  2026-07-25 Red Bull NY vs Charlotte | 'FIFA World Cup' -> 'MLS' | event=761685
+  2026-07-22 San Jose vs Orlando | 'FIFA World Cup' -> 'MLS' | event=761676
+  2026-07-22 Portland vs Dallas | 'FIFA World Cup' -> 'MLS' | event=761677
+  2026-07-22 LAFC vs Salt Lake | 'FIFA World Cup' -> 'MLS' | event=761679
+  2026-07-22 LA Galaxy vs St. Louis | 'FIFA World Cup' -> 'MLS' | event=761678
+  2026-07-22 Colorado vs San Diego | 'FIFA World Cup' -> 'MLS' | event=761675
+  2026-07-22 Austin vs Seattle | 'FIFA World Cup' -> 'MLS' | event=761674
+  2026-07-22 Kansas City vs Minnesota | 'FIFA World Cup' -> 'MLS' | event=761672
+  2026-07-22 Nashville vs CF Montréal | 'FIFA World Cup' -> 'MLS' | event=761673
+  2026-07-22 Houston vs D.C. United | 'FIFA World Cup' -> 'MLS' | event=761671
+  2026-07-22 Charlotte vs Atlanta | 'FIFA World Cup' -> 'MLS' | event=761670
+  2026-07-22 Philadelphia vs Red Bull NY | 'FIFA World Cup' -> 'MLS' | event=761665
+  2026-07-22 New England vs Toronto | 'FIFA World Cup' -> 'MLS' | event=761666
+  2026-07-22 Miami vs Chicago | 'FIFA World Cup' -> 'MLS' | event=761667
+  2026-07-22 Cincinnati vs Vancouver | 'FIFA World Cup' -> 'MLS' | event=761669
+  2026-07-22 Columbus vs NYCFC | 'FIFA World Cup' -> 'MLS' | event=761668
+  2026-07-17 LA Galaxy vs LAFC | 'FIFA World Cup' -> 'MLS' | event=761664
+  2026-07-17 Nashville vs Atlanta | 'FIFA World Cup' -> 'MLS' | event=761663
+  2026-07-16 Seattle vs Portland | 'FIFA World Cup' -> 'MLS' | event=761662
+  2026-07-16 St. Louis vs Kansas City | 'FIFA World Cup' -> 'MLS' | event=761661
+  2026-07-16 Chicago vs Vancouver | 'FIFA World Cup' -> 'MLS' | event=761660
+  2026-07-16 CF Montréal vs Toronto | 'FIFA World Cup' -> 'MLS' | event=761659
+  UPDATE changes=52 (expected 52)
+  remaining mislabeled after: 0 (expected 0)
+
+--- postseason_games: 0 row(s) to correct ---
+  nothing to do
+
+=== TOTAL rows corrected: 52 ===
