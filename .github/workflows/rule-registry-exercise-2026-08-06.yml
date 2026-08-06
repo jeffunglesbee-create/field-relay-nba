@@ -13,45 +13,45 @@ name: Rule Registry Exercise (one-shot, 2026-08-06)
 # text an honest UNEXERCISED signal is "the correct, honest signal to
 # surface ... not a false alarm to suppress." Flipping them to make the
 # monitor go green would be fabrication (Rule 2, DO NOT INVENT). The
-# monitor therefore REMAINS RED after this workflow, by design -- that is
-# the intended outcome, not an unfinished one.
+# monitor therefore REMAINS RED after this workflow, by design.
 #
-# Same one-shot pattern as rule-registry-exercise-2026-07-31.yml, which
-# was removed after use (commit d4c77be); this file should be removed the
-# same way once run.
+# NO actions/checkout, deliberately: this job is pure curl against the
+# relay's /d1/execute and needs no working tree. Three consecutive runs
+# on 2026-08-06 (31116882733, 31117153055, and deploy run 31115370947)
+# died in "Set up job" with GitHub's own
+# "Failed to resolve action download info. Error: Service Unavailable"
+# during a platform incident -- an avoidable dependency for a job that
+# never needed the repo. Snapshots print to the job log, which is the
+# durable artifact; they are committed to outbox/ from the session
+# instead of by this workflow.
 
 on:
-  push:
-    paths:
-      - '.github/workflows/rule-registry-exercise-2026-08-06.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   exercise:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
       - name: Snapshot BEFORE
         run: |
-          mkdir -p outbox
+          echo "=== BEFORE ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
             -H "Content-Type: application/json" \
             -H "X-FIELD-Relay: field-relay-cron-2026" \
-            -d '{"sql":"SELECT key, title, updated_at FROM codex WHERE category = '"'"'rule-registry'"'"' ORDER BY key"}' \
-            | tee outbox/rule-registry-before-2026-08-06.json
+            -d '{"sql":"SELECT key, title, updated_at FROM codex WHERE category = '"'"'rule-registry'"'"' ORDER BY key"}'
           echo
 
       - name: Mark rule-90 EXERCISED -- real case from this session only
         run: |
+          echo "=== UPDATE rule-90 ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
             -H "Content-Type: application/json" \
             -H "X-FIELD-Relay: field-relay-cron-2026" \
-            -d '{"sql":"UPDATE codex SET title = ?, updated_at = datetime(\"now\") WHERE key = ?","params":["EXERCISED -- Rule 90: 2026-08-06, RULE-COMPLIANCE-FOLLOWUP-A applied for real. Two consecutive HANDOFF close-outs (2026-07-25/27, 2026-07-26/27) carried forward Rule-90 staleness as a live deploy blocker by memory; that claim was already false, resolved 2026-07-31 by c2d2327 which moved the check into the non-blocking rule90-staleness-monitor.yml. The mechanical artifact (the daily monitor + codex query) held the true state while the remembered, human-propagated channel had gone stale and wrong -- exactly the failure mode this rule exists to prevent. Session verified against the real monitor runs rather than the inherited claim (Rule 72).","rule-90"]}'
+            -d '{"sql":"UPDATE codex SET title = ?, updated_at = datetime(\"now\") WHERE key = ?","params":["EXERCISED -- Rule 90: 2026-08-06, RULE-COMPLIANCE-FOLLOWUP-A applied for real. Two consecutive HANDOFF close-outs (2026-07-25/27, 2026-07-26/27) carried Rule-90 staleness forward as a live deploy blocker by memory; that claim was already false, resolved 2026-07-31 by c2d2327 which moved the check into the non-blocking rule90-staleness-monitor.yml. The mechanical artifact (daily monitor + codex query) held the true state while the human-propagated channel had gone stale and wrong -- exactly the failure mode this rule exists to prevent. Session verified against real monitor runs rather than the inherited claim (Rule 72).","rule-90"]}'
           echo
 
       - name: Deliberately NOT touched
@@ -62,22 +62,9 @@ jobs:
 
       - name: Snapshot AFTER
         run: |
+          echo "=== AFTER ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
             -H "Content-Type: application/json" \
             -H "X-FIELD-Relay: field-relay-cron-2026" \
-            -d '{"sql":"SELECT key, title, updated_at FROM codex WHERE category = '"'"'rule-registry'"'"' ORDER BY key"}' \
-            | tee outbox/rule-registry-after-2026-08-06.json
+            -d '{"sql":"SELECT key, title, updated_at FROM codex WHERE category = '"'"'rule-registry'"'"' ORDER BY key"}'
           echo
-
-      - name: Commit snapshots
-        if: always()
-        run: |
-          git config user.email "probe@field"
-          git config user.name "Rule-Registry-Exercise"
-          git add outbox/rule-registry-before-2026-08-06.json || echo "(no before snapshot)"
-          git add outbox/rule-registry-after-2026-08-06.json  || echo "(no after snapshot)"
-          git commit -m "rule-registry exercise snapshot (rule-90) [skip ci]" || echo "(nothing new)"
-          for i in 1 2 3; do
-            git pull --rebase --autostash origin main && git push origin main && break
-            sleep $((i * 5))
-          done
