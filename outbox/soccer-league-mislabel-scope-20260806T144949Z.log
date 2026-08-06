@@ -1,0 +1,45 @@
+=== TASK 3: real mislabel scope measurement ===
+
+--- regular_season_games ---
+  rows with a WC-family sport label : 155
+  of those, definitively MISLABELED : 52 (33.5%)
+  true competition breakdown       : {"MLS":52}
+    2026-08-01 Portland vs Seattle | sport='FIFA World Cup' -> 'MLS' | event=761708
+    2026-08-01 LA Galaxy vs Dallas | sport='FIFA World Cup' -> 'MLS' | event=761709
+    2026-08-01 Colorado vs Austin | sport='FIFA World Cup' -> 'MLS' | event=761707
+    2026-08-01 St. Louis vs Salt Lake | sport='FIFA World Cup' -> 'MLS' | event=761705
+    2026-08-01 Kansas City vs Houston | sport='FIFA World Cup' -> 'MLS' | event=761706
+    2026-08-01 Minnesota vs San Diego | sport='FIFA World Cup' -> 'MLS' | event=761703
+    2026-08-01 Chicago vs Charlotte | sport='FIFA World Cup' -> 'MLS' | event=761704
+    2026-08-01 Vancouver vs LAFC | sport='FIFA World Cup' -> 'MLS' | event=761698
+    2026-08-01 Red Bull NY vs Orlando | sport='FIFA World Cup' -> 'MLS' | event=761696
+    2026-08-01 Philadelphia vs Atlanta | sport='FIFA World Cup' -> 'MLS' | event=761702
+    2026-08-01 Miami vs Columbus | sport='FIFA World Cup' -> 'MLS' | event=761701
+    2026-08-01 Cincinnati vs San Jose | sport='FIFA World Cup' -> 'MLS' | event=761700
+    2026-08-01 D.C. United vs Nashville | sport='FIFA World Cup' -> 'MLS' | event=761699
+    2026-08-01 CF Montréal vs New England | sport='FIFA World Cup' -> 'MLS' | event=761697
+    2026-07-31 NYCFC vs Toronto | sport='FIFA World Cup' -> 'MLS' | event=761695
+    ... and 37 more
+
+--- postseason_games ---
+  rows with a WC-family sport label : 0
+  of those, definitively MISLABELED : 0
+  true competition breakdown       : {}
+
+=== TOTAL mislabeled rows: 52 ===
+Correction SQL written: outbox/soccer-league-mislabel-scope-2026-08-06T14-49-49-767Z.sql
+
+-- CC-CMD-2026-08-06-apply-soccer-league-label-fix
+-- Regenerated fresh in field-relay-nba from a real measured run.
+-- Generated: 2026-08-06T14:49:49.117Z
+-- Corrects the `sport` column ONLY, scoped by espn_event_id, using each
+-- row's own already-correct `league` value. `id` deliberately untouched
+-- (analytics-engine.js JOINs briefs.game_id against g.id).
+
+-- regular_season_games: 52 row(s)
+UPDATE regular_season_games SET sport = league
+  WHERE espn_event_id IN ('761708', '761709', '761707', '761705', '761706', '761703', '761704', '761698', '761696', '761702', '761701', '761700', '761699', '761697', '761695', '401864004', '761693', '761692', '761694', '761691', '761688', '761690', '761689', '761686', '761684', '761683', '761682', '761681', '761687', '761680', '761685', '761676', '761677', '761679', '761678', '761675', '761674', '761672', '761673', '761671', '761670', '761665', '761666', '761667', '761669', '761668', '761664', '761663', '761662', '761661', '761660', '761659')
+    AND (LOWER(sport) = 'wc26' OR LOWER(sport) LIKE 'fifa world cup%') AND league IS NOT NULL AND league != '' AND LOWER(league) NOT LIKE 'fifa world cup%' AND LOWER(league) != 'wc26';
+
+-- postseason_games: 0 rows, nothing to correct
+
