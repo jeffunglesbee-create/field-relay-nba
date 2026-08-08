@@ -64,7 +64,15 @@ console.log('\n--- 3. key parity vs adaptESPNBasketball output (live ESPN game) 
   if (!espnGame) { console.log('   SKIP: no live ESPN game to compare against — proves nothing.'); }
   else {
     const missing = paths(espnGame).filter(k => !new Set(paths(sample)).has(k))
-      .filter(k => !k.startsWith('situation.') && !k.startsWith('streams['));
+      // Exclude BOTH sub-object families, and note why each is legitimate:
+      //   situation.* — null unless live, on BOTH adapters
+      //   streams.*   — the WNBA CDN carries no broadcast data at all, so the
+      //                 array is empty BY DESIGN and its element keys cannot
+      //                 appear. That is the documented consequence, not a gap.
+      // The first version of this filter used the prefix 'streams[', which does
+      // not match the real path format this keyPaths() emits ('streams.[]label'),
+      // so it failed the run on keys that were never expected to be present.
+      .filter(k => !k.startsWith('situation.') && !k.startsWith('streams.'));
     console.log(`   missing from KV adapter: ${JSON.stringify(missing)}`);
     ok(missing.length === 0, 'KV adapter emits the primary\'s full key set');
   }
