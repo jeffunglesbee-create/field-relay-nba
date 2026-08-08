@@ -34,6 +34,18 @@ jobs:
         with:
           node-version: '20'
 
+      # Any probe that imports src/index.js needs the dependency tree, because
+      # that file imports @cloudflare/puppeteer at module scope. The pure-fetch
+      # probes do not, but installing unconditionally is cheaper than a
+      # per-script conditional and removes a footgun.
+      #
+      # SECOND occurrence of this exact failure: I fixed it in
+      # mlb-failover-verify.yml and did not generalise it here, so
+      # wnba-failover-verify.mjs died the same way with ERR_MODULE_NOT_FOUND
+      # before running a single assertion.
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run the probe
         # SCRIPT arrives via env, not `${{ }}` interpolated straight into the
         # shell line: a workflow_dispatch input is attacker-controllable by
