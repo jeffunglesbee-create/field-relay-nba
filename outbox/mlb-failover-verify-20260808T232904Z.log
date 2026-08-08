@@ -1,0 +1,27 @@
+=== mlb-failover-verify  date=2026-08-08 ===
+ESPN HTTP 200
+statsapi HTTP 200
+ESPN events: 15   statsapi games: 15
+
+--- 1. key parity ---
+   missing from secondary: []
+   extra on secondary    : ["mlbGamePk"]
+
+--- 2. streams ---
+   secondary games with >=1 TV stream: 15/15
+   sample: [{"label":"YES","market":"Local","type":null},{"label":"BravesVision","market":"Local","type":null}]
+
+--- 3. sample values ---
+   espn   ATL @ NYY  4-5  state=post periodLabel=F venue="Yankee Stadium" innings=8 streams=3
+   mlbam  ATL @ NYY  4-5  state=post periodLabel=F venue="Yankee Stadium" innings=9 streams=2
+
+PASS: secondary emits the primary's full key set, real values, and populated streams.
+
+=== 2. forced-failure proof (deployed relay) ===
+normal  : {"sport":"mlb","date":"2026-08-08","games":[{"id":"espn:401816441","espnEventId":"401816441","sport":"mlb","league":"MLB","state":"post","start":"2026-08-08T19:05Z","home":{"name":"New York Yankees","
+forced  : {"sport":"mlb","date":"2026-08-08","games":[{"id":"mlbam:823514","espnEventId":null,"mlbGamePk":823514,"sport":"mlb","league":"MLB","state":"post","start":"2026-08-08T19:05:00Z","home":{"name":"New Yo
+unauth  : {"sport":"mlb","date":"2026-08-08","games":[{"id":"espn:401816441","espnEventId":"401816441","sport":"mlb","league":"MLB","state":"post","start":"2026-08-08T19:05Z","home":{"name":"New York Yankees","
+normal : source=espn-wc count=15
+forced : source=mlbam-statsapi count=15 sample=ATL@NYY 4-5 state=post streams=2
+unauth : source=espn-wc — switch correctly ignored
+PASS: failover engages only under forced failure, only when authenticated, and serves real games.
