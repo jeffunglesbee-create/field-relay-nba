@@ -493,7 +493,36 @@ jobs:
               print('   docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md.)')
               sys.exit(1)
 
-          games = (mlb.get('games') or []) + (wnba.get('games') or [])
+          # CC-CMD-2026-08-09-wnba-failover-via-kv: partition by SOURCE before
+          # asserting anything about streams.
+          #
+          # The WNBA secondary reads a slate written by a GitHub runner into KV,
+          # because wnba.com blocks this relay's Worker egress. The WNBA CDN
+          # carries no broadcast data at all, so a KV-sourced slate legitimately
+          # has zero streams on every game. Pooling those in with ESPN-sourced
+          # games would hard-fail this check on any WNBA-only day while the
+          # failover is active -- turning an outage into a red deploy gate.
+          #
+          # This EXCLUDES known-degraded sources from the streams requirement and
+          # says so out loud. It does NOT relax the requirement for ESPN-sourced
+          # games: real ESPN games with zero streams remain a hard failure, which
+          # is the bug shape this check was written for.
+          DEGRADED_SOURCES = {'wnba-kv'}
+          degraded_games, live_games = [], []
+          for payload in (mlb, wnba):
+              src = payload.get('source')
+              bucket = degraded_games if src in DEGRADED_SOURCES else live_games
+              bucket.extend(payload.get('games') or [])
+          if degraded_games:
+              print(f'::warning::STRUCTURAL 7 — {len(degraded_games)} game(s) came from a known-degraded source '
+                    f'({", ".join(sorted(DEGRADED_SOURCES))}) which carries no broadcast data. Excluded from the '
+                    f'streams assertion. The primary is failing over — check why.')
+
+          games = live_games
+          if not games and degraded_games:
+              print('⏳ Every game today came from a degraded (streamless-by-design) source, so there is')
+              print('   nothing this check can assert. Passing WITHOUT verification — not a green light.')
+              sys.exit(0)
           if not games:
               print('⏳ No real MLB/WNBA games found for today -- genuine off-day (All-Star break/offseason/rest day). Skipping, not failing.')
               print(f'   (Both sports answered HTTP 200 with no error field -- mlb={mlb_code} wnba={wnba_code} -- so this is a real empty slate, not an outage.)')

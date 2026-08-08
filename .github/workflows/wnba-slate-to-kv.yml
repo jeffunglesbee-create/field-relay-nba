@@ -1,0 +1,43 @@
+# .github/workflows/wnba-slate-to-kv.yml
+#
+# CC-CMD-2026-08-09-wnba-failover-via-kv — the PRODUCER half.
+#
+# Exists because wnba.com blocks this relay's Cloudflare Worker egress, so the
+# WNBA failover cannot fetch its own source the way the MLB one does. A runner
+# can reach it, so the runner fetches and KV carries the result.
+#
+# Cadence sets the staleness bound: */5 means a slate served during an ESPN
+# outage can be up to ~5 minutes old. That is worse than the MLB failover,
+# which reads live, and better than the nothing-at-all it replaces. The
+# response carries staleSeconds so a consumer can decide for itself.
+
+name: WNBA slate to KV
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# No `contents: write` — this workflow writes to KV via an authenticated relay
+# route and commits nothing. It should not hold a repo-write token it never uses.
+permissions:
+  contents: read
+
+concurrency:
+  # Skip a queued run rather than pile up: a slate 5 minutes newer supersedes
+  # one that has not started yet, so queueing would only add latency.
+  group: wnba-slate-to-kv
+  cancel-in-progress: false
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # src/index.js imports @cloudflare/puppeteer at module scope, so importing
+      # the real adapter from it needs the dependency tree present.
+      - run: npm ci
+      - run: node scripts/wnba-slate-to-kv.mjs

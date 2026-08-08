@@ -1668,6 +1668,114 @@ async function fetchMlbStatsApiGames(date) {
     }
 }
 
+// ── WNBA SECONDARY: KV-backed, because the Worker cannot reach the source ──
+// CC-CMD-2026-08-09-wnba-failover-via-kv.
+//
+// Unlike MLB, this does NOT fetch its upstream. wnba.com blocks this relay's
+// Cloudflare Worker egress -- measured through /web-fetch on the deployed
+// relay, not inferred: HTTP 200 carrying a 3839-byte HTML error page
+// ("We are unable to process your request"), byte-identical from two
+// different Workers, while the same URL serves a GitHub runner real JSON with
+// no headers at all (outbox/web-fetch-verify-20260808T234841Z.log). No
+// adapter can make a Worker reach a host that refuses it, so the transport
+// moves to a runner and KV carries the result.
+//
+// The adapter is exported and lives HERE, next to the other adapters, rather
+// than in the workflow script, so there is exactly one definition of the V2
+// shape for WNBA. The producer imports this same function.
+//
+// Input shape probed live 2026-08-08 from a runner (3 real games):
+//   gameId, gameStatus (1=pre, 2=live, 3=final), gameStatusText, period,
+//   gameClock ("PT04M15.00S"), gameTimeUTC, arenaName,
+//   homeTeam/awayTeam: { teamCity, teamName, teamTricode, score, periods }
+//
+// Target shape is adaptESPNBasketball's output, NOT adaptNbaCDN's. They differ
+// in three ways that would silently break consumers if the NBA one were copied:
+// adaptNbaCDN emits state 'final' where the ESPN adapters emit 'post', it has
+// no `streams` field at all, and it has no `round`.
+export function adaptWnbaCDN(g) {
+    const status = g?.gameStatus;
+    const state  = status === 3 ? 'post' : status === 2 ? 'live' : 'pre';
+
+    const periodNum = g?.period || 0;
+    const periodLabel = state === 'post' ? 'F'
+        : state === 'live'
+            ? (periodNum >= 1 && periodNum <= 4 ? `Q${periodNum}` : periodNum > 4 ? `OT${periodNum - 4}` : '')
+            : 'NS';
+
+    const cm = String(g?.gameClock || '').match(/PT(\d+)M([\d.]+)S/);
+    const clock = cm ? `${cm[1]}:${String(Math.floor(parseFloat(cm[2]))).padStart(2, '0')}` : '';
+
+    const ls = (periods) => {
+        if (!Array.isArray(periods)) return [];
+        return periods.map(p => (typeof p === 'object' ? p?.score : p) ?? null);
+    };
+
+    return {
+        id:          `wnba:${g.gameId}`,
+        espnEventId: null,   // not an ESPN game — inventing an id would be Rule 2
+        wnbaGameId:  g.gameId,
+        sport:       'wnba',
+        league:      'WNBA',
+        state,
+        start:       g?.gameTimeUTC || '',
+        home: {
+            name:  `${g?.homeTeam?.teamCity || ''} ${g?.homeTeam?.teamName || ''}`.trim(),
+            abbr:  g?.homeTeam?.teamTricode || '',
+            score: g?.homeTeam?.score ?? 0,
+        },
+        away: {
+            name:  `${g?.awayTeam?.teamCity || ''} ${g?.awayTeam?.teamName || ''}`.trim(),
+            abbr:  g?.awayTeam?.teamTricode || '',
+            score: g?.awayTeam?.score ?? 0,
+        },
+        periodNum,
+        periodLabel,
+        clock,
+        venue:       g?.arenaName || '',
+        // ESPN's WNBA situation is minimal and null unless live; the CDN carries
+        // no equivalent at all, so this is null rather than a fabricated object.
+        situation:   null,
+        linescores: {
+            home: ls(g?.homeTeam?.periods),
+            away: ls(g?.awayTeam?.periods),
+        },
+        round: null,
+        // EMPTY, and this is the STRUCTURAL 7 consequence: the WNBA CDN carries
+        // no broadcast data. Unlike the MLB secondary (statsapi does carry it),
+        // this failover really does produce games with zero streams, which is
+        // why STRUCTURAL 7 needs the source-aware carve-out MLB did not.
+        streams: [],
+    };
+}
+
+// Reads the slate the runner-side producer wrote. Returns an array (possibly
+// empty, which is a real off-day) or null so the caller can tell "no slate
+// stored" from "no games today" -- the same distinction fetchMlbStatsApiGames
+// makes, for the same reason.
+//
+// Attaches _fetchedAt as a non-index property on the returned array so the
+// caller can compute and surface staleness without changing the array's shape
+// for every downstream consumer that iterates it.
+async function fetchWnbaSlateFromKV(date, env) {
+    if (!env?.FIELD_JOURNALISM) return null;
+    try {
+        const raw = await env.FIELD_JOURNALISM.get(`wnba:slate:${date}`);
+        if (!raw) {
+            console.error(`[V2GAMES] WNBA secondary: no KV slate for ${date}`);
+            return null;
+        }
+        const parsed = JSON.parse(raw);
+        const games = Array.isArray(parsed?.games) ? parsed.games : null;
+        if (!games) return null;
+        if (parsed.fetchedAt) Object.defineProperty(games, '_fetchedAt', { value: parsed.fetchedAt, enumerable: false });
+        return games;
+    } catch (e) {
+        console.error('[V2GAMES] WNBA secondary KV read failed:', e.message);
+        return null;
+    }
+}
+
 // CC-CMD-2026-07-14-soccer-league-label: adaptESPNWCSoccer was built solely
 // for wc26 -- its hardcoded `league: 'FIFA World Cup'` silently mislabeled
 // all 12 club competitions the June 26 2026 migration routed through this
@@ -3810,11 +3918,20 @@ async function handleV2Games(url, env, ctx, request = null) {
         // are already native on cdn.nba.com and api-web.nhle.com). The sports
         // with NO secondary are named in this CC-CMD's outbox as accepted,
         // written-down single-source risk rather than left implied.
-        const _secondaryFetch = sport === 'mlb' ? fetchMlbStatsApiGames : null;
+        // Same binding the MLB failover introduced -- deliberately NOT a second
+        // mechanism. MLB fetches its secondary directly because the Worker can
+        // reach statsapi.mlb.com; WNBA reads from KV because it cannot reach
+        // wnba.com at all (measured, see fetchWnbaSlateFromKV). Different
+        // transports, one dispatch point, still two levels (Rule 76).
+        const _secondaryFetch = sport === 'mlb'  ? fetchMlbStatsApiGames
+                              : sport === 'wnba' ? ((d) => fetchWnbaSlateFromKV(d, env))
+                              : null;
         // Distinct value so a failover is OBSERVABLE in the response. A silent
         // failover would rebuild exactly the invisibility that made the
         // 2026-08-06/08 outages cost three days before anyone noticed.
         let _v2Source = 'espn-wc';
+        let _v2FetchedAt = null;
+        let _v2StaleSeconds = null;
 
         // Shared by both failure paths below (non-OK response and thrown fetch)
         // -- an outage presents as either, and treating them differently would
@@ -3824,8 +3941,17 @@ async function handleV2Games(url, env, ctx, request = null) {
             console.error(`[V2GAMES] ESPN primary failed for ${sport} (${why}) -- trying secondary`);
             const fb = await _secondaryFetch(date);
             if (fb === null) return false;   // null = secondary ALSO failed; [] = real off-day
+            // The WNBA path carries staleness metadata the MLB path cannot have,
+            // because KV holds whatever the producer last wrote rather than a
+            // live read. Surfaced on the response so a consumer can decide
+            // whether a slate is too old to show as live -- rendering a
+            // 20-minute-old score as current is worse than showing the outage.
+            if (Array.isArray(fb) && fb._fetchedAt) {
+                _v2FetchedAt = fb._fetchedAt;
+                _v2StaleSeconds = Math.round((Date.now() - Date.parse(fb._fetchedAt)) / 1000);
+            }
             espnGames = fb;
-            _v2Source = 'mlbam-statsapi';
+            _v2Source = sport === 'wnba' ? 'wnba-kv' : 'mlbam-statsapi';
             return true;
         };
 
@@ -4113,7 +4239,9 @@ async function handleV2Games(url, env, ctx, request = null) {
         }
 
         return new Response(
-            JSON.stringify({ sport, date, games, count: games.length, source: _v2Source, ts: Date.now() }),
+            JSON.stringify({ sport, date, games, count: games.length, source: _v2Source,
+                ...(_v2FetchedAt ? { fetchedAt: _v2FetchedAt, staleSeconds: _v2StaleSeconds } : {}),
+                ts: Date.now() }),
             { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } }
         );
     }
@@ -11605,6 +11733,7 @@ export default {
             && !(pathname === '/analytics/circadian-late/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/record-streak/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
+            && !(pathname === '/wnba/slate' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
             && !(pathname === '/soccer/fbref/fetch' && request.method === 'POST')
@@ -13929,6 +14058,69 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             }
             return new Response(payload,
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+        }
+
+        // ── POST /wnba/slate — authenticated, NARROW KV write ─────────────────
+        // CC-CMD-2026-08-09-wnba-failover-via-kv, Task 2.
+        //
+        // Deliberately NOT a general "write any KV key" route. A generic KV-write
+        // endpoint on a public hostname is a foothold: every cache this relay
+        // trusts becomes attacker-writable if the token ever leaks. This one
+        // writes exactly one key namespace, with a shape it validates first.
+        //
+        // Why a route at all: wnba.com blocks this relay's Cloudflare Worker
+        // egress -- measured through /web-fetch, not inferred
+        // (outbox/web-fetch-verify-20260808T234841Z.log: HTTP 200 with a 3839-byte
+        // HTML error page, byte-identical from two different Workers, while the
+        // same URL serves a GitHub runner real JSON with no headers at all). So
+        // the fetch must happen on a runner, and this is how the result reaches
+        // the Worker.
+        if (pathname === '/wnba/slate' && request.method === 'POST') {
+            const J = (body, status = 200) => new Response(JSON.stringify(body),
+                { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+            if (request.headers.get('X-FIELD-Relay') !== 'field-relay-cron-2026') {
+                return J({ ok: false, error: 'unauthorized' }, 401);
+            }
+            if (!env.FIELD_JOURNALISM) return J({ ok: false, error: 'FIELD_JOURNALISM not bound' }, 503);
+
+            let body;
+            try { body = await request.json(); }
+            catch (e) { return J({ ok: false, error: `invalid JSON: ${e.message}` }, 400); }
+
+            const { date, games, fetchedAt } = body || {};
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return J({ ok: false, error: 'missing or invalid date' }, 400);
+            if (!Array.isArray(games)) return J({ ok: false, error: 'games must be an array' }, 400);
+            if (!fetchedAt) return J({ ok: false, error: 'missing fetchedAt' }, 400);
+
+            const key = `wnba:slate:${date}`;
+
+            // An upstream blip must not erase good data. If the incoming slate is
+            // empty but a non-empty one is already stored for this date, keep the
+            // stored one. A real off-day writes empty over empty, which is fine.
+            if (games.length === 0) {
+                try {
+                    const existing = await env.FIELD_JOURNALISM.get(key);
+                    const prior = existing ? JSON.parse(existing) : null;
+                    if (prior?.games?.length) {
+                        console.log(`[WNBA-SLATE] refusing to overwrite ${prior.games.length} stored games for ${date} with an empty slate`);
+                        return J({ ok: true, skipped: 'empty slate would overwrite non-empty stored slate', date, stored: prior.games.length });
+                    }
+                } catch (e) { console.error('[WNBA-SLATE] prior-slate read failed:', e.message); }
+            }
+
+            // 30 min TTL: comfortably longer than the 5-minute producer cadence, so
+            // a couple of consecutive workflow failures do not silently empty the
+            // cache, but short enough that a genuinely dead producer stops serving
+            // stale games rather than serving them forever.
+            const payload = JSON.stringify({ date, fetchedAt, games });
+            try {
+                await env.FIELD_JOURNALISM.put(key, payload, { expirationTtl: 1800 });
+            } catch (e) {
+                return J({ ok: false, error: `KV write failed: ${e.message}` }, 502);
+            }
+            console.log(`[WNBA-SLATE] stored ${games.length} games for ${date} (fetchedAt=${fetchedAt})`);
+            return J({ ok: true, key, date, count: games.length, fetchedAt });
         }
 
         // ── GET /web-fetch?url=<encoded> ──────────────────────────────────────
