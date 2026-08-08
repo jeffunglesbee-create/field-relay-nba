@@ -1,0 +1,37 @@
+=== wnba-secondary-probe  date=2026-08-08  utc=2026-08-08T23:36:26.258Z ===
+Each candidate probed twice: WITHOUT then WITH the real NBA_HEADERS.
+
+--- wnba-cdn-live
+    https://cdn.wnba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json
+    bare: HTTP 200 text/plain -> no (content-type text/plain — not JSON)
+    hdrs: HTTP 200 text/plain -> no (content-type text/plain — not JSON)
+
+--- nba-cdn-league10
+    https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json
+    bare: HTTP 403 text/html -> no (HTTP 403)
+    hdrs: HTTP 200 application/octet-stream -> no (content-type application/octet-stream — not JSON)
+
+--- wnba-data-legacy
+    https://data.wnba.com/data/10s/prod/v1/20260808/scoreboard.json
+    bare: HTTP 403 application/xml -> no (HTTP 403)
+    hdrs: HTTP 403 application/xml -> no (HTTP 403)
+
+--- wnba-stats-sbv2
+    https://stats.wnba.com/stats/scoreboardv2?GameDate=08%2F08%2F2026&LeagueID=10&DayOffset=0
+    bare: threw — The operation was aborted due to timeout
+    hdrs: threw — The operation was aborted due to timeout
+
+--- wnba-cdn-sched
+    https://cdn.wnba.com/static/json/staticData/scheduleLeagueV2_10.json
+    bare: HTTP 200 text/plain -> no (content-type text/plain — not JSON)
+    hdrs: HTTP 200 text/plain -> no (content-type text/plain — not JSON)
+
+--- CONTROL-nba-cdn
+    https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json
+    bare: HTTP 403 text/html -> no (HTTP 403)
+    hdrs: HTTP 200 text/plain -> no (content-type text/plain — not JSON)
+
+=== VERDICT ===
+NO viable WNBA secondary among the probed candidates.
+Per that CC-CMD Task 1, this is a COMPLETE outcome: stop, do not
+build a partial adapter against a source that cannot serve.
