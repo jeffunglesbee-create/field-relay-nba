@@ -630,7 +630,25 @@ function espnGambitAllowed(path) {
 // Cache: 25s — aligns with FIELD's 30s poll; winprobability[] array is live-updated
 // Route: /espn-summary/* → site.web.api.espn.com/apis/site/v2/*
 // Usage: /espn-summary/sports/basketball/nba/summary?event={gameId}
-const ESPN_SUMMARY_BASE    = 'https://site.web.api.espn.com/apis/site/v2';
+// CC-CMD-2026-08-08-espn-site-api-403-p0: single source of truth for every
+// ESPN site/v2 read in this file. Was 14 separate hardcoded
+// 'https://site.api.espn.com/apis/site/v2' literals until 2026-08-08, when
+// Akamai began returning 403 to Cloudflare Worker egress IPs on site.api --
+// measured against the LIVE relay, every sport (/v2/games?sport=epl and
+// =mlb both returned {"error":"ESPN upstream 403"}).
+//
+// It is NOT slugs and NOT headers: a host x header matrix showed browser
+// headers make site.api strictly WORSE (403) while a bare fetch from a
+// GitHub runner succeeds -- i.e. the discriminator is the egress IP. From
+// the Worker IP itself, site.web.api returns 200 with full data (verified
+// via html_probe: 308402 bytes of real MLB scoreboard).
+//
+// This is MITIGATION, not a cure -- same Akamai edge, and nothing stops
+// site.web.api being blocked next. espn-reachability-monitor.yml (hourly)
+// is what makes a recurrence visible; the resilience work is Task 3 of the
+// same CC-CMD.
+const ESPN_API_BASE        = 'https://site.web.api.espn.com/apis/site/v2';
+const ESPN_SUMMARY_BASE    = ESPN_API_BASE;
 const ESPN_SUMMARY_TTL     = 25;
 const ESPN_SUMMARY_HEADERS = {
     'Origin':  'https://www.espn.com',
@@ -2421,7 +2439,7 @@ async function writeWCResult(db, game, env, ctx) {
                 const espnId = game.espnEventId || String(game.id).replace(/^(?:football|espn):/, '');
                 if (espnId && !/\D/.test(espnId)) {
                     const summaryResp = await fetch(
-                        `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${espnId}`,
+                        `${ESPN_API_BASE}/sports/soccer/fifa.world/summary?event=${espnId}`,
                         { signal: AbortSignal.timeout(4000) }
                     );
                     if (summaryResp.ok) {
@@ -2911,7 +2929,7 @@ async function handleESPNGolfScoreboard(date, env, ctx) {
             /* falls through to fetch */
         }
     }
-    const url = `https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates=${date}`;
+    const url = `${ESPN_API_BASE}/sports/golf/pga/scoreboard?dates=${date}`;
     let data;
     try {
         const resp = await fetch(url, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -3533,7 +3551,7 @@ async function handleV2Games(url, env, ctx) {
     // event.competitions[] = individual matches. Flatten to FIELD game objects.
     if (cfg.espnSource && cfg.sport === 'tennis') {
         const espnLeague = cfg.espnLeague;
-        const espnUrl = `https://site.api.espn.com/apis/site/v2/sports/tennis/${espnLeague}/scoreboard`;
+        const espnUrl = `${ESPN_API_BASE}/sports/tennis/${espnLeague}/scoreboard`;
         const r = await fetch(espnUrl, { headers: { 'User-Agent': 'FIELD/1.0' } });
         if (!r.ok) return new Response(JSON.stringify({ sport, date, games: [], error: `ESPN tennis ${r.status}` }),
             { headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -3587,7 +3605,7 @@ async function handleV2Games(url, env, ctx) {
     if (cfg.espnLeague) {
         const espnDate = date.replace(/-/g, '');
         const _espnSportPath = cfg.espnSport || 'soccer';
-        const espnUrl  = `https://site.api.espn.com/apis/site/v2/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
+        const espnUrl  = `${ESPN_API_BASE}/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
         let espnGames  = [];
         try {
             const espnResp = await fetch(espnUrl, {
@@ -6996,7 +7014,7 @@ async function handleJournalismCycle(env, opts = {}) {
   try {
     for (const {sport,league,label} of LEAGUES) {
       try {
-        const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+        const r = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
         if (!r.ok) continue;
         const d = await r.json();
         const events = d?.events || [];
@@ -7232,7 +7250,7 @@ async function handleJournalismCycle(env, opts = {}) {
       const yesterdayFinals = [];
       for (const {sport, league, label} of LEAGUES) {
         try {
-          const yr = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${yesterdayEspnDate}`);
+          const yr = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${yesterdayEspnDate}`);
           if (!yr.ok) continue;
           const yd = await yr.json();
           for (const ev of (yd?.events || [])) {
@@ -7809,7 +7827,7 @@ async function handleJournalismCycle(env, opts = {}) {
     if (env.JOURNALISM_QUEUE) {
       for (const {sport, league, label} of LEAGUES) {
         try {
-          const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+          const r = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
           if (!r.ok) continue;
           const d = await r.json();
           for (const ev of (d?.events || [])) {
@@ -11538,7 +11556,7 @@ export default {
             await Promise.all(LEAGUES_LOCAL.map(async ({ sport, league, label }) => {
                 try {
                     const r = await fetch(
-                        `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`,
+                        `${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`,
                         { cf: { cacheTtl: 60, cacheEverything: true } }
                     );
                     if (!r.ok) { espn[label] = { error: `HTTP ${r.status}` }; return; }
@@ -13319,7 +13337,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
           const results = [];
           for (const {sport,league,label} of LEAGUES) {
             try {
-              const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
+              const r = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
               if (!r.ok) continue;
               const d = await r.json();
               for (const ev of (d.events||[]).slice(0, 3)) { // cap at 3 per league for speed
@@ -14846,7 +14864,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 // alongside competitor IDs. The core API /competitors endpoint returns
                 // team as {$ref} only — no inline name — so we use summary for step 1.
                 const summaryRes = await fetch(
-                    `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/summary?event=${eventId}`,
+                    `${ESPN_API_BASE}/sports/soccer/${league}/summary?event=${eventId}`,
                     { headers: { 'User-Agent': 'FIELD/1.0' } }
                 );
                 if (!summaryRes.ok) throw new Error(`summary ${summaryRes.status}`);
@@ -14981,7 +14999,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             let data;
             try {
                 const r = await fetch(
-                    `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/summary?event=${eventId}`,
+                    `${ESPN_API_BASE}/sports/soccer/${league}/summary?event=${eventId}`,
                     { headers: { 'User-Agent': 'FIELD/1.0' } }
                 );
                 if (!r.ok) throw new Error(`summary ${r.status}`);
@@ -16246,7 +16264,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                     if (!sport || !league || !game_id) {
                         return respond(jsonrpc2({content:[{type:'text',text:'Required: sport, league, game_id'}]}));
                     }
-                    const espnUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${game_id}`;
+                    const espnUrl = `${ESPN_API_BASE}/sports/${sport}/${league}/summary?event=${game_id}`;
                     const r = await fetch(espnUrl, { headers:{ 'User-Agent':'FIELD-Sports-Intelligence/1.0' }});
                     if (!r.ok) return respond(jsonrpc2({content:[{type:'text',text:`ESPN error: ${r.status}`}]}));
                     const data = await r.json();
