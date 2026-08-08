@@ -1,0 +1,111 @@
+# .github/workflows/mlb-failover-verify.yml
+#
+# CC-CMD-2026-08-08-espn-secondary-source-failover, Task 4.
+#
+# Produces the two artifacts that CC-CMD's Rule-89 verification requires, on a
+# runner because this sandbox's proxy 403s ESPN hosts and *.workers.dev.
+#
+#   1. Shape parity  — runs BOTH real adapters, imported from src/index.js,
+#      over real responses from BOTH real upstreams, and compares key sets.
+#   2. Forced failure — drives the DEPLOYED relay with _forcePrimaryFail=1,
+#      which points the ESPN primary at a dead host, and asserts the response
+#      is HTTP 200 with real games and source="mlbam-statsapi".
+#      "The code has a fallback" is not an artifact; this is.
+#
+# Also asserts the NORMAL path is unchanged in the same run, because a failover
+# that quietly became the default would pass check 2 and still be a regression.
+
+name: MLB failover verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date to verify (YYYY-MM-DD). Defaults to today UTC.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 1 + 3 — adapter shape parity and value sanity
+        env:
+          PROBE_DATE: ${{ inputs.date }}
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          mkdir -p outbox
+          node scripts/mlb-failover-verify.mjs 2>&1 | tee "outbox/mlb-failover-verify-${TS}.log"
+          exit "${PIPESTATUS[0]}"
+
+      - name: 2 — forced-failure proof against the DEPLOYED relay
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          DATE="${{ inputs.date }}"
+          [ -n "$DATE" ] || DATE=$(date -u +%Y-%m-%d)
+          OUT="outbox/mlb-failover-verify-${TS}.log"
+
+          echo "" >> "$OUT"
+          echo "=== 2. forced-failure proof (deployed relay) ===" >> "$OUT"
+
+          # Normal path first, so "unchanged" is measured in the same run.
+          NORMAL=$(curl -s --max-time 30 "${RELAY}/v2/games?sport=mlb&date=${DATE}")
+          echo "normal  : $(echo "$NORMAL" | head -c 200)" >> "$OUT"
+
+          # Forced failure. The switch is gated on this exact header.
+          FORCED=$(curl -s --max-time 30 -H "X-FIELD-Relay: field-relay-cron-2026" \
+            "${RELAY}/v2/games?sport=mlb&date=${DATE}&_forcePrimaryFail=1")
+          echo "forced  : $(echo "$FORCED" | head -c 200)" >> "$OUT"
+
+          # And unauthenticated, to prove the switch is not publicly reachable.
+          UNAUTH=$(curl -s --max-time 30 \
+            "${RELAY}/v2/games?sport=mlb&date=${DATE}&_forcePrimaryFail=1")
+          echo "unauth  : $(echo "$UNAUTH" | head -c 200)" >> "$OUT"
+
+          node -e '
+            const [normal, forced, unauth] = process.argv.slice(1).map(s => { try { return JSON.parse(s); } catch { return null; } });
+            const fail = [];
+            if (!normal) fail.push("normal path returned unparseable JSON");
+            else {
+              if (normal.source !== "espn-wc") fail.push(`normal source is ${normal.source}, expected espn-wc — the failover must NOT be the default`);
+              console.log(`normal : source=${normal.source} count=${normal.count}`);
+            }
+            if (!forced) fail.push("forced path returned unparseable JSON");
+            else {
+              if (forced.source !== "mlbam-statsapi") fail.push(`forced source is ${forced.source}, expected mlbam-statsapi — the failover did not engage`);
+              if (!(forced.count > 0)) fail.push("forced path returned zero games — cannot prove the secondary served real data");
+              const g = (forced.games || [])[0] || {};
+              if (!String(g.id || "").startsWith("mlbam:")) fail.push(`forced game id is ${g.id}, expected an mlbam: prefix`);
+              if (!g.home?.abbr || !g.away?.abbr) fail.push("forced game missing team abbreviations");
+              console.log(`forced : source=${forced.source} count=${forced.count} sample=${g.away?.abbr}@${g.home?.abbr} ${g.away?.score}-${g.home?.score} state=${g.state} streams=${(g.streams||[]).length}`);
+            }
+            if (unauth && unauth.source === "mlbam-statsapi") fail.push("UNAUTHENTICATED request engaged the failover — the switch is not gated");
+            else console.log(`unauth : source=${unauth ? unauth.source : "(error)"} — switch correctly ignored`);
+            if (fail.length) { fail.forEach(f => console.error("FAIL: " + f)); process.exit(1); }
+            console.log("PASS: failover engages only under forced failure, only when authenticated, and serves real games.");
+          ' "$NORMAL" "$FORCED" "$UNAUTH" 2>&1 | tee -a "$OUT"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "mlb-failover-verify@field"
+          git config user.name "MLB-Failover-Verify"
+          git add "outbox/mlb-failover-verify-${TS}.log" || echo "(no log to stage)"
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "chore: mlb-failover-verify artifact [skip ci]"
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q && git rebase origin/main -q && git push origin main && exit 0
+            sleep $((i * 3))
+          done
+          echo "::error::artifact could not be pushed after 5 attempts"
+          exit 1
