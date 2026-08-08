@@ -1110,6 +1110,14 @@ const V2_LEAGUES = {
     'eflchamp':   { sport: 'soccer', espnLeague: 'eng.2',            bsdLeagueId: 12,   season: '2026-27' },
     'eflone':     { sport: 'soccer', espnLeague: 'eng.3',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'efltwo':     { sport: 'soccer', espnLeague: 'eng.4',            bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    // EFL Cup (Carabao) — CC-CMD-2026-08-08-efl-carabao-cup-coverage.
+    // bsdLeagueId null: no BSD id for this competition was verified, and
+    // inventing one would be a Rule 2 violation. ESPN only, same as eng.3/4.
+    // Cup caveat: ties for round N+1 do not exist in ESPN until round N
+    // resolves (probed 2026-08-08 -- the Aug 26-Sep 2 window returned
+    // events:[] while Round 1 was still being played), so an empty result
+    // here is often correct rather than a fault.
+    'eflcup':     { sport: 'soccer', espnLeague: 'eng.league_cup',    bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'laliga':     { sport: 'soccer', espnLeague: 'esp.1',            bsdLeagueId: 3,    season: '2026-27' },
     'seriea':     { sport: 'soccer', espnLeague: 'ita.1',            bsdLeagueId: 4,    season: '2026-27' },
     'bundesliga': { sport: 'soccer', espnLeague: 'ger.1',            bsdLeagueId: 5,    season: '2026-27' },
@@ -1549,6 +1557,17 @@ const SOCCER_LEAGUE_LABELS = {
     eflchamp:   'EFL Championship',
     eflone:     'EFL League One',
     efltwo:     'EFL League Two',
+    // CC-CMD-2026-08-08-efl-carabao-cup-coverage. ESPN slug eng.league_cup
+    // (id 3920); eng.efl_cup and eng.carabao both return HTTP 400 -- they do
+    // not exist. ESPN's own name is 'English Carabao Cup' / abbreviation
+    // 'Carabao Cup', but the SPONSOR-NEUTRAL 'EFL Cup' is used deliberately:
+    // this competition has been the Milk/Rumbelows/Coca-Cola/Worthington/
+    // Carling/Capital One/Carabao Cup, and this label is persisted into the
+    // archive `sport` column AND builds the archive id prefix
+    // (id = `${sport}_${date}_...`), so a sponsor rename would fragment ids
+    // exactly the way CC-CMD-2026-07-15-wc-label-fragmentation had to clean
+    // up for WC26. Also matches the existing EFL family above.
+    eflcup:     'EFL Cup',
     laliga:     'La Liga',
     seriea:     'Serie A',
     bundesliga: 'Bundesliga',
@@ -6994,6 +7013,13 @@ async function handleJournalismCycle(env, opts = {}) {
     {sport:'soccer',    league:'ita.1',      label:'Serie A'},
     {sport:'soccer',    league:'ger.1',      label:'Bundesliga'},
     {sport:'soccer',    league:'fra.1',      label:'Ligue 1'},
+    // EFL Cup (Carabao) — CC-CMD-2026-08-08-efl-carabao-cup-coverage.
+    // label MUST stay identical to SOCCER_LEAGUE_LABELS.eflcup: the three
+    // archive-write sites below send `sport: gm.league`, and that value both
+    // persists into the archive `sport` column and builds the archive id
+    // prefix. A mismatch between the two tables would split one competition
+    // across two id namespaces.
+    {sport:'soccer',    league:'eng.league_cup', label:'EFL Cup'},
     {sport:'football',  league:'nfl',        label:'NFL'},
     // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
     // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
