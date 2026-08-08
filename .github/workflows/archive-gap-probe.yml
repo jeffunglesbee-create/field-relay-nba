@@ -11,10 +11,15 @@
 # Read-only by construction: the script issues SELECTs only, and the CC-CMD
 # forbids applying a fix.
 
-name: Archive gap probe (MLB/WNBA)
+name: Archive D1 probe
 
 on:
   workflow_dispatch:
+    inputs:
+      script:
+        description: 'Probe script under scripts/ to run'
+        required: false
+        default: 'archive-gap-probe.mjs'
 
 permissions:
   contents: write
@@ -30,11 +35,28 @@ jobs:
           node-version: '20'
 
       - name: Run the probe
+        # SCRIPT arrives via env, not `${{ }}` interpolated straight into the
+        # shell line: a workflow_dispatch input is attacker-controllable by
+        # anyone who can dispatch, and inline interpolation would let the
+        # value close the quote and run arbitrary commands on a runner holding
+        # `contents: write`. env passes it as data.
+        env:
+          SCRIPT_INPUT: ${{ inputs.script }}
         run: |
           TS=$(date -u +%Y%m%dT%H%M%SZ)
+          SCRIPT="${SCRIPT_INPUT:-archive-gap-probe.mjs}"
+          # Reject anything but a bare .mjs filename -- no slashes, no ..
+          case "$SCRIPT" in
+            */*|*..*|"") echo "::error::invalid script input: $SCRIPT"; exit 1 ;;
+            *.mjs) ;;
+            *) echo "::error::script must end in .mjs: $SCRIPT"; exit 1 ;;
+          esac
+          test -f "scripts/$SCRIPT" || { echo "::error::scripts/$SCRIPT does not exist"; exit 1; }
+          NAME="${SCRIPT%.mjs}"
           echo "TS=$TS" >> "$GITHUB_ENV"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
           mkdir -p outbox
-          node scripts/archive-gap-probe.mjs 2>&1 | tee "outbox/archive-gap-probe-${TS}.log"
+          node "scripts/${SCRIPT}" 2>&1 | tee "outbox/${NAME}-${TS}.log"
           # tee returns the exit status of tee, so ask the pipeline explicitly.
           exit "${PIPESTATUS[0]}"
 
@@ -47,9 +69,9 @@ jobs:
           # pathspecs under `bash -e`, so one unmatched glob would abort the
           # step before the push -- the defect that really hit
           # soccer-league-mislabel-scope-probe.yml on 2026-08-06.
-          git add "outbox/archive-gap-probe-${TS}.log" || echo "(no log to stage)"
+          git add "outbox/${NAME}-${TS}.log" || echo "(no log to stage)"
           git diff --cached --quiet && echo "Nothing to commit" && exit 0
-          git commit -m "chore: archive gap probe output [skip ci]"
+          git commit -m "chore: ${NAME} output [skip ci]"
           for i in 1 2 3 4 5; do
             git fetch origin main -q && git rebase origin/main -q && git push origin main && exit 0
             echo "push attempt $i failed, retrying"

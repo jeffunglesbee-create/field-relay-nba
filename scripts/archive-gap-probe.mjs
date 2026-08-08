@@ -161,12 +161,18 @@ function rows(r) {
   // ── F. change_log around the gap ────────────────────────────────────────
   // Independent record of write activity, in case briefs and games share a
   // failure mode and both go quiet together.
+  //
+  // Column is `ts`, not `created_at`: the real CREATE TABLE lives in
+  // src/sync-reconciler.js and names it `ts TEXT NOT NULL DEFAULT
+  // (datetime('now'))`. The first version of this query assumed `created_at`
+  // by analogy with the games and briefs tables and returned
+  // `D1_ERROR: no such column: created_at` -- read the schema, don't infer it.
   console.log('\n--- F. change_log entries per day, 2026-08-03 .. 2026-08-09 ---');
   {
     const r = rows(await d1(
-      `SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n
+      `SELECT substr(ts, 1, 10) AS day, COUNT(*) AS n
          FROM change_log
-        WHERE substr(created_at, 1, 10) BETWEEN '2026-08-03' AND '2026-08-09'
+        WHERE substr(ts, 1, 10) BETWEEN '2026-08-03' AND '2026-08-09'
         GROUP BY day
         ORDER BY day`,
       [],
