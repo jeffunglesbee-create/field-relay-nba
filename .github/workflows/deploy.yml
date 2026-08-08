@@ -443,8 +443,19 @@ jobs:
             DATE=$(TZ="America/New_York" date +%Y-%m-%d)
           fi
           echo "Checking date (ET-anchored): $DATE"
-          curl -s --max-time 15 "$RELAY/v2/games?sport=mlb&date=$DATE" -o /tmp/streams_mlb.json
-          curl -s --max-time 15 "$RELAY/v2/games?sport=wnba&date=$DATE" -o /tmp/streams_wnba.json
+          # CC-CMD-2026-08-08-espn-site-api-403-p0 (detection half): capture the
+          # HTTP status, not just the body. Previously both were discarded, and
+          # /v2/games answers an ESPN 403 with VALID JSON
+          # ({"error":"ESPN upstream 403"}) under HTTP 502 -- so load() parsed it
+          # fine, .get('games') was None, and an all-sports upstream outage was
+          # reported as "genuine off-day" and exited 0. This gate was the only
+          # ESPN-touching check in the whole deploy, which is why a real
+          # every-sport outage stayed invisible in green CI.
+          MLB_CODE=$(curl -s --max-time 15 -w "%{http_code}" "$RELAY/v2/games?sport=mlb&date=$DATE" -o /tmp/streams_mlb.json)
+          WNBA_CODE=$(curl -s --max-time 15 -w "%{http_code}" "$RELAY/v2/games?sport=wnba&date=$DATE" -o /tmp/streams_wnba.json)
+          echo "$MLB_CODE"  > /tmp/streams_mlb.code
+          echo "$WNBA_CODE" > /tmp/streams_wnba.code
+          echo "HTTP: mlb=$MLB_CODE wnba=$WNBA_CODE"
           python3 << 'PYEOF'
           import json, sys
 
@@ -455,11 +466,37 @@ jobs:
               except Exception:
                   return {}
 
-          mlb = load('/tmp/streams_mlb.json')
-          wnba = load('/tmp/streams_wnba.json')
+          def code(path):
+              try:
+                  with open(path) as f:
+                      return f.read().strip()
+              except Exception:
+                  return '000'
+
+          mlb,  mlb_code  = load('/tmp/streams_mlb.json'),  code('/tmp/streams_mlb.code')
+          wnba, wnba_code = load('/tmp/streams_wnba.json'), code('/tmp/streams_wnba.code')
+
+          # An upstream/relay ERROR is not an off-day. Fail loudly and separately
+          # from both the real-skip path and the streams-shape path below, so the
+          # message says which of the three actually happened.
+          upstream_errors = []
+          for label, payload, status in (('mlb', mlb, mlb_code), ('wnba', wnba, wnba_code)):
+              if status != '200':
+                  upstream_errors.append(f'{label}: HTTP {status} body={json.dumps(payload)[:200]}')
+              elif isinstance(payload, dict) and payload.get('error'):
+                  upstream_errors.append(f'{label}: HTTP 200 but error field -> {payload.get("error")!r}')
+          if upstream_errors:
+              print('❌ STRUCTURAL 7 — /v2/games did not answer cleanly. This is an UPSTREAM/RELAY FAILURE, not a no-games day:')
+              for e in upstream_errors:
+                  print(f'  - {e}')
+              print('  (ESPN 403s to Cloudflare Worker IPs present exactly like this. See')
+              print('   docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md.)')
+              sys.exit(1)
+
           games = (mlb.get('games') or []) + (wnba.get('games') or [])
           if not games:
               print('⏳ No real MLB/WNBA games found for today -- genuine off-day (All-Star break/offseason/rest day). Skipping, not failing.')
+              print(f'   (Both sports answered HTTP 200 with no error field -- mlb={mlb_code} wnba={wnba_code} -- so this is a real empty slate, not an outage.)')
               sys.exit(0)
 
           candidates = [g for g in games if isinstance(g.get('streams'), list) and len(g['streams']) > 0]
