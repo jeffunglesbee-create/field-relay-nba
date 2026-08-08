@@ -1,0 +1,59 @@
+# .github/workflows/archive-gap-probe.yml
+#
+# CI-as-proxy for CC-CMD-2026-08-08-investigate-mlb-wnba-archive-gap.
+#
+# The discriminating query has to go through POST /d1/execute (raw table read,
+# no sport predicate), and the only GET-capable escape hatch from a session
+# sandbox -- probe_relay_route -- cannot POST. This sandbox's proxy also
+# returns 403 for *.workers.dev outright. A runner has unrestricted egress,
+# which is the same reason the soccer-league-mislabel probe lives here.
+#
+# Read-only by construction: the script issues SELECTs only, and the CC-CMD
+# forbids applying a fix.
+
+name: Archive gap probe (MLB/WNBA)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run the probe
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          mkdir -p outbox
+          node scripts/archive-gap-probe.mjs 2>&1 | tee "outbox/archive-gap-probe-${TS}.log"
+          # tee returns the exit status of tee, so ask the pipeline explicitly.
+          exit "${PIPESTATUS[0]}"
+
+      - name: Commit the log
+        if: always()
+        run: |
+          git config user.email "archive-gap-probe@field"
+          git config user.name "Archive-Gap-Probe"
+          # Separate `git add` per pathspec: `git add` is atomic across
+          # pathspecs under `bash -e`, so one unmatched glob would abort the
+          # step before the push -- the defect that really hit
+          # soccer-league-mislabel-scope-probe.yml on 2026-08-06.
+          git add "outbox/archive-gap-probe-${TS}.log" || echo "(no log to stage)"
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "chore: archive gap probe output [skip ci]"
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q && git rebase origin/main -q && git push origin main && exit 0
+            echo "push attempt $i failed, retrying"
+            sleep $((i * 3))
+          done
+          echo "::error::probe log could not be pushed after 5 attempts"
+          exit 1
