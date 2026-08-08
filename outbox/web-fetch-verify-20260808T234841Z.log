@@ -1,0 +1,45 @@
+=== web-fetch-verify  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-08T23:48:41.535Z ===
+
+--- 1. positive: real public URL ---
+   HTTP 200 upstream=200 bytes=559 ct=text/html
+   text: "Example Domain Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more"
+   PASS: public URL fetched
+   PASS: extracted text contains real page content, not tags
+   PASS: HTML tags were stripped, not passed through raw
+
+--- 2. negative cases ---
+   private IP 10/8      -> HTTP 400 "blocked address: 10.0.0.1"
+   PASS: private IP 10/8 rejected with 400
+   loopback             -> HTTP 400 "blocked address: 127.0.0.1"
+   PASS: loopback rejected with 400
+   cloud metadata       -> HTTP 400 "blocked address: 169.254.169.254"
+   PASS: cloud metadata rejected with 400
+   IPv6 loopback        -> HTTP 400 "blocked address: ::1"
+   PASS: IPv6 loopback rejected with 400
+   file scheme          -> HTTP 400 "scheme not allowed: file:"
+   PASS: file scheme rejected with 400
+   data scheme          -> HTTP 400 "scheme not allowed: data:"
+   PASS: data scheme rejected with 400
+   this relay itself    -> HTTP 400 "self/internal host not allowed: field-relay-nba.jeffunglesbee.workers.dev"
+   PASS: this relay itself rejected with 400
+
+--- 2b. public hostname that resolves to a private IP ---
+   localtest.me -> HTTP 400 "host resolves to a blocked address: localtest.me -> 127.0.0.1"
+   PASS: hostname resolving to 127.0.0.1 rejected by the DNS guard
+
+--- 3. auth gate ---
+   unauthenticated -> HTTP 401 "unauthorized"
+   PASS: unauthenticated caller rejected — not an open proxy
+
+--- 4. WNBA sources, from THIS relay's Worker egress ---
+   cdn.wnba.com scoreboard    HTTP 200 upstream=200 bytes=3839 parsedGames=null <- BLOCKED (error page)
+      starts: "WNBA.com - Official Site of the WNBA > We are unable to process your request at the moment If the problem persists, kind"
+   cdn.wnba.com schedule      HTTP 200 upstream=200 bytes=3839 parsedGames=null <- BLOCKED (error page)
+      starts: "WNBA.com - Official Site of the WNBA > We are unable to process your request at the moment If the problem persists, kind"
+   stats.wnba.com sbv2        HTTP 502 upstream=undefined bytes=undefined parsedGames=null 
+
+   Reading this: parsedGames>0 means THIS relay can reach the source and
+   a WNBA secondary is buildable in-Worker. An error page means Worker
+   egress really is blocked and the failover cannot live in the Worker.
+
+PASS: all positive, negative, DNS-guard and auth assertions held.
