@@ -133,5 +133,47 @@ function rows(r) {
     }
   }
 
+  // ── E. Did the cycle run at all on the gap dates? ───────────────────────
+  // Pass A/B established that ZERO MLB/WNBA rows exist on the gap dates under
+  // any label, which refutes candidate 3 (mislabel) and leaves candidates 1
+  // (cron didn't run) and 2 (the baseball/basketball fetch specifically
+  // failed) still undistinguished. `briefs` separates them: the same cron
+  // that archives games also writes briefs, so briefs present + games absent
+  // means the cycle ran and the sport-specific fetch failed, while both
+  // absent means the cycle itself did not produce anything.
+  console.log('\n--- E. briefs written per date/sport, 2026-08-03 .. 2026-08-09 ---');
+  {
+    const r = rows(await d1(
+      `SELECT date, sport, brief_type, COUNT(*) AS n,
+              MIN(created_at) AS first_created, MAX(created_at) AS last_created
+         FROM briefs
+        WHERE date BETWEEN '2026-08-03' AND '2026-08-09'
+        GROUP BY date, sport, brief_type
+        ORDER BY date, sport, brief_type`,
+      [],
+    ));
+    if (!r.length) console.log('   (no briefs in the window)');
+    for (const x of r) {
+      console.log(`   ${x.date}  ${String(x.sport).padEnd(10)} ${String(x.brief_type).padEnd(18)} n=${String(x.n).padStart(3)}  created ${x.first_created} .. ${x.last_created}`);
+    }
+  }
+
+  // ── F. change_log around the gap ────────────────────────────────────────
+  // Independent record of write activity, in case briefs and games share a
+  // failure mode and both go quiet together.
+  console.log('\n--- F. change_log entries per day, 2026-08-03 .. 2026-08-09 ---');
+  {
+    const r = rows(await d1(
+      `SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n
+         FROM change_log
+        WHERE substr(created_at, 1, 10) BETWEEN '2026-08-03' AND '2026-08-09'
+        GROUP BY day
+        ORDER BY day`,
+      [],
+    ));
+    if (!r.length) console.log('   (no change_log entries in the window)');
+    for (const x of r) console.log(`   ${x.day}  n=${x.n}`);
+  }
+
   console.log('\n=== probe complete (read-only; no rows were modified) ===');
 })().catch((e) => { console.error('PROBE FAILED:', e.message); process.exit(1); });
