@@ -1,0 +1,78 @@
+name: ESPN Reachability Monitor (non-blocking)
+
+# Detection half of CC-CMD-2026-08-08-espn-site-api-403-p0.
+#
+# On 2026-08-08 site.api.espn.com began returning 403 to Cloudflare Worker
+# egress IPs, so the deployed relay answered {"error":"ESPN upstream 403"}
+# for /v2/games on EVERY sport. It went unnoticed because the only
+# ESPN-touching CI gate (STRUCTURAL 7) collapsed upstream failure into
+# "genuine off-day" -- fixed in 47fc080 -- and because deploy.yml only runs
+# on pushes to src/**, so a quiet weekend means no signal at all.
+#
+# This runs hourly and independently of deploys. It is deliberately
+# NON-BLOCKING of anything: it exists to make an outage visible as a red X
+# in the Actions tab, the same pattern as rule90-staleness-monitor.yml.
+#
+# It checks BOTH ESPN hosts on purpose. The failure mode is IP-reputation
+# based, not slug or header based (a host x header matrix on 2026-08-08
+# showed browser headers make site.api strictly worse, while site.web.api
+# served the identical payload). Recording both each hour is what will
+# reveal whether the block is transient, permanent, or spreading -- which
+# is the actual open question blocking the host-swap decision.
+#
+# No actions/checkout: pure HTTP, and a platform incident on 2026-08-06
+# killed three runs that failed only on resolving actions they didn't need.
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Relay-side ESPN reachability (the one that actually matters)
+        run: |
+          RELAY="https://field-relay-nba.jeffunglesbee.workers.dev"
+          DATE=$(TZ="America/New_York" date +%Y-%m-%d)
+          FAIL=0
+          echo "=== /v2/games through the LIVE relay (Cloudflare Worker egress) ==="
+          for SPORT in mlb epl; do
+            CODE=$(curl -s --max-time 20 -w "%{http_code}" "$RELAY/v2/games?sport=$SPORT&date=$DATE" -o /tmp/$SPORT.json)
+            BODY=$(head -c 200 /tmp/$SPORT.json)
+            if [ "$CODE" != "200" ]; then
+              echo "  ❌ $SPORT: HTTP $CODE  $BODY"
+              FAIL=1
+            elif grep -q '"error"' /tmp/$SPORT.json; then
+              echo "  ❌ $SPORT: HTTP 200 but error field  $BODY"
+              FAIL=1
+            else
+              echo "  ✅ $SPORT: HTTP 200"
+            fi
+          done
+          echo "RELAY_FAIL=$FAIL" >> "$GITHUB_ENV"
+
+      - name: Host comparison (is the block spreading?)
+        run: |
+          echo "=== both ESPN hosts, from this runner (NOT a Worker IP) ==="
+          for HOST in site.api site.web.api; do
+            CODE=$(curl -s --max-time 20 -w "%{http_code}" \
+              "https://$HOST.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard" -o /dev/null)
+            echo "  $HOST : HTTP $CODE"
+          done
+          echo
+          echo "NOTE: a runner IP is not a Worker IP -- these two lines are context,"
+          echo "not a verdict. The relay check in the previous step is the real signal."
+
+      - name: Verdict
+        run: |
+          if [ "${RELAY_FAIL:-0}" != "0" ]; then
+            echo "::error::ESPN is unreachable through the deployed relay. See docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md"
+            exit 1
+          fi
+          echo "ESPN reachable through the relay."
