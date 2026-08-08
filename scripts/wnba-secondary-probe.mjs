@@ -64,14 +64,23 @@ const CANDIDATES = [
 // with an HTML error page, which is precisely the "populated 200 that is not
 // what you asked for" trap CC-CMD-2026-08-08-cfl-archive-collection warns
 // about for ESPN's football/cfl route.
+//
+// Content-type is CONTEXT, NOT A GATE. The first version of this function
+// rejected on content-type before ever looking at the body, and threw away a
+// real result: cdn.nba.com league-10 WITH headers returned HTTP 200
+// application/octet-stream, which this reported as "not JSON" without
+// attempting to parse it. Whether the bytes parse as JSON containing games is
+// the only question that matters; the header the CDN happens to stamp on them
+// is not. Parse first, report the content-type alongside.
 function assess(status, contentType, body) {
     if (status !== 200) return { viable: false, why: `HTTP ${status}` };
-    if (!/json/i.test(contentType || '')) return { viable: false, why: `content-type ${contentType || '(none)'} — not JSON` };
     let j;
-    try { j = JSON.parse(body); } catch (e) { return { viable: false, why: `unparseable JSON (${e.message})` }; }
+    try { j = JSON.parse(body); } catch (e) {
+        return { viable: false, why: `not JSON (ct=${contentType || 'none'}): ${e.message} | body starts: ${body.slice(0, 120).replace(/\s+/g, ' ')}` };
+    }
     const games = j?.scoreboard?.games || j?.games || j?.resultSets?.[0]?.rowSet || j?.leagueSchedule?.gameDates;
-    if (!Array.isArray(games)) return { viable: false, why: `parsed JSON but no recognisable games array (top keys: ${Object.keys(j).slice(0, 8).join(',')})` };
-    return { viable: true, why: `${games.length} game-shaped entries`, sample: JSON.stringify(games[0] || null).slice(0, 300) };
+    if (!Array.isArray(games)) return { viable: false, why: `parsed JSON but no recognisable games array (ct=${contentType || 'none'}, top keys: ${Object.keys(j).slice(0, 8).join(',')})` };
+    return { viable: true, why: `${games.length} game-shaped entries (ct=${contentType || 'none'})`, sample: JSON.stringify(games[0] || null).slice(0, 300) };
 }
 
 console.log(`=== wnba-secondary-probe  date=${DATE}  utc=${new Date().toISOString()} ===`);
