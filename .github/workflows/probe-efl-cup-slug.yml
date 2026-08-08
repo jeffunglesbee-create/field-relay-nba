@@ -1,14 +1,24 @@
 name: Probe EFL Cup (Carabao) ESPN slug
 
-# Pre-build probe (Rule 68 PROBE-FIRST-A) for adding the EFL Cup to FIELD.
-# Neither repo has any eng.league_cup / Carabao entry today -- confirmed by
-# grep 2026-08-06. Before writing ANY code we need the real ESPN slug, the
-# real `leagues[].name`/`abbreviation` ESPN returns for it, and whether the
-# competition is actually live right now.
+# Two questions in one probe:
 #
-# Deliberately no actions/checkout: this is pure HTTP and needs no working
-# tree, and today's GitHub Actions incident killed three runs that only
-# failed because they resolved an action they didn't need.
+# 1. LIVE P0: as of 2026-08-08 the deployed relay returns
+#    {"error":"ESPN upstream 403"} for /v2/games on EVERY sport (epl and
+#    mlb both confirmed via probe_relay_route). Production scoreboard
+#    fetches use a bare fetch(url) with no headers, while /espn-summary --
+#    which sends Origin + Referer + Accept + browser UA to
+#    site.web.api.espn.com -- still returns 200 with full data. So either
+#    the HOST or the HEADERS is the discriminator. This probe isolates
+#    which, because the answer determines the production fix.
+#
+# 2. The original question: the real ESPN slug for the EFL (Carabao) Cup.
+#    Neither repo has any eng.league_cup entry (grepped both, 2026-08-06).
+#    An earlier run of this probe 403'd on every candidate INCLUDING the
+#    unquestionably-real eng.fa, so those 403s said nothing about the
+#    slugs -- they were the same block as (1).
+#
+# No actions/checkout: pure HTTP, and a platform incident on 2026-08-06
+# killed three runs that failed only on resolving actions they didn't need.
 
 on:
   workflow_dispatch:
@@ -19,64 +29,91 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
-      - name: Probe candidate English cup slugs
+      - name: Isolate the 403 and resolve the EFL Cup slug
         run: |
           cat > /tmp/probe.py <<'PY'
-          import json, urllib.request, datetime
-          UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer"
+          import json, urllib.request, urllib.error, datetime
 
-          # Candidates -- do NOT assume which is right; report what each really returns.
-          CANDIDATES = ["eng.league_cup", "eng.fa", "eng.trophy", "eng.efl_cup", "eng.carabao"]
+          # Verbatim from src/index.js ESPN_SUMMARY_HEADERS (the combination
+          # that is demonstrably still working in production today).
+          BROWSER = {
+              "Origin":  "https://www.espn.com",
+              "Referer": "https://www.espn.com/",
+              "Accept":  "application/json",
+              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          }
+          BARE = {}   # what production scoreboard fetches actually send today
 
-          def get(url):
-              req = urllib.request.Request(url, headers={"User-Agent": UA})
+          HOSTS = {
+              "site.api":     "https://site.api.espn.com/apis/site/v2",
+              "site.web.api": "https://site.web.api.espn.com/apis/site/v2",
+          }
+
+          def get(url, headers):
+              req = urllib.request.Request(url, headers=headers)
               with urllib.request.urlopen(req, timeout=25) as r:
                   return r.status, json.load(r)
 
-          print("=== CANDIDATE SLUG RESOLUTION ===")
-          good = []
-          for slug in CANDIDATES:
+          def probe(label, url, headers):
               try:
-                  st, d = get(f"{BASE}/{slug}/scoreboard")
+                  st, d = get(url, headers)
                   lg = (d.get("leagues") or [{}])[0]
-                  print(f"  {slug:18s} HTTP {st}  name={lg.get('name')!r} abbr={lg.get('abbreviation')!r} "
-                        f"id={lg.get('id')!r} season={(lg.get('season') or {}).get('year')} events_today={len(d.get('events') or [])}")
-                  good.append(slug)
+                  n = len(d.get("events") or [])
+                  print(f"    {label:34s} HTTP {st}  name={lg.get('name')!r} events={n}")
+                  return d
+              except urllib.error.HTTPError as e:
+                  print(f"    {label:34s} HTTP {e.code}")
               except Exception as e:
-                  print(f"  {slug:18s} FAILED -> {e}")
+                  print(f"    {label:34s} ERR {e}")
+              return None
+
+          print("=== Q1: HOST vs HEADERS -- isolate the production 403 ===")
+          print("  (eng.1 = EPL, a slug that is unquestionably valid and in production use)")
+          for hname, base in HOSTS.items():
+              for hlabel, hdrs in (("bare(prod scoreboard)", BARE), ("browser(prod summary)", BROWSER)):
+                  probe(f"{hname} + {hlabel}", f"{base}/sports/soccer/eng.1/scoreboard", hdrs)
 
           print()
-          print("=== FIXTURE SWEEP (next 45 days) for each resolving slug ===")
+          print("=== Q2: EFL Cup slug resolution (using whichever combo worked above) ===")
+          CANDIDATES = ["eng.league_cup", "eng.fa", "eng.trophy", "eng.efl_cup", "eng.carabao"]
+          working = []
+          for hname, base in HOSTS.items():
+              for hlabel, hdrs in (("bare", BARE), ("browser", BROWSER)):
+                  print(f"\n  --- via {hname} + {hlabel} ---")
+                  for slug in CANDIDATES:
+                      d = probe(slug, f"{base}/sports/soccer/{slug}/scoreboard", hdrs)
+                      if d is not None:
+                          working.append((hname, base, hlabel, hdrs, slug))
+
+          print()
+          print("=== Q3: fixture sweep for any slug that resolved ===")
           today = datetime.date.today()
-          end = today + datetime.timedelta(days=45)
-          rng = f"{today:%Y%m%d}-{end:%Y%m%d}"
-          for slug in good:
+          rng = f"{today:%Y%m%d}-{(today + datetime.timedelta(days=60)):%Y%m%d}"
+          seen = set()
+          for hname, base, hlabel, hdrs, slug in working:
+              if slug in seen:
+                  continue
+              seen.add(slug)
               try:
-                  st, d = get(f"{BASE}/{slug}/scoreboard?dates={rng}&limit=200")
+                  st, d = get(f"{base}/sports/soccer/{slug}/scoreboard?dates={rng}&limit=200", hdrs)
                   evs = d.get("events") or []
                   lg = (d.get("leagues") or [{}])[0]
-                  print(f"\n--- {slug}: {len(evs)} event(s) in {rng}  (league name={lg.get('name')!r}) ---")
-                  for ev in evs[:12]:
+                  print(f"\n--- {slug} via {hname}+{hlabel}: {len(evs)} event(s) in {rng} ---")
+                  print(f"    leagues[0].name={lg.get('name')!r} abbreviation={lg.get('abbreviation')!r} id={lg.get('id')!r}")
+                  for ev in evs[:15]:
                       comp = (ev.get("competitions") or [{}])[0]
                       cs = comp.get("competitors") or []
-                      home = next((c for c in cs if c.get("homeAway")=="home"), {})
-                      away = next((c for c in cs if c.get("homeAway")=="away"), {})
+                      home = next((c for c in cs if c.get("homeAway") == "home"), {})
+                      away = next((c for c in cs if c.get("homeAway") == "away"), {})
                       bcs = [n for b in (comp.get("broadcasts") or []) for n in (b.get("names") or [])]
                       print(f"    {ev.get('date')}  {(home.get('team') or {}).get('displayName')} vs "
-                            f"{(away.get('team') or {}).get('displayName')}  status={((comp.get('status') or {}).get('type') or {}).get('name')}  "
-                            f"broadcasts={bcs}")
-                  if len(evs) > 12:
-                      print(f"    ... and {len(evs)-12} more")
-                  # Real shape of one event, for the client/relay adapters
-                  if evs:
-                      print(f"\n  --- sample event top-level keys ({slug}) ---")
-                      print("   ", sorted(evs[0].keys()))
-                      c0 = (evs[0].get("competitions") or [{}])[0]
-                      print("    competition keys:", sorted(c0.keys()))
+                            f"{(away.get('team') or {}).get('displayName')}  "
+                            f"status={((comp.get('status') or {}).get('type') or {}).get('name')}  bc={bcs}")
+                  if len(evs) > 15:
+                      print(f"    ... and {len(evs)-15} more")
               except Exception as e:
-                  print(f"  {slug}: sweep FAILED -> {e}")
+                  print(f"  {slug} sweep FAILED -> {e}")
           PY
           python3 /tmp/probe.py
