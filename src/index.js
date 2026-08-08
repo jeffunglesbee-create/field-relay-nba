@@ -1563,10 +1563,18 @@ const SOCCER_LEAGUE_LABELS = {
     // 'Carabao Cup', but the SPONSOR-NEUTRAL 'EFL Cup' is used deliberately:
     // this competition has been the Milk/Rumbelows/Coca-Cola/Worthington/
     // Carling/Capital One/Carabao Cup, and this label is persisted into the
-    // archive `sport` column AND builds the archive id prefix
-    // (id = `${sport}_${date}_...`), so a sponsor rename would fragment ids
-    // exactly the way CC-CMD-2026-07-15-wc-label-fragmentation had to clean
-    // up for WC26. Also matches the existing EFL family above.
+    // archive `sport` column AND is the leading segment of the archive id
+    // (sport, then date, then the id tail), so a sponsor rename would
+    // fragment ids exactly the way CC-CMD-2026-07-15-wc-label-fragmentation
+    // had to clean up for WC26. Also matches the existing EFL family above.
+    //
+    // NOTE: do not write curly-brace characters in comments inside this
+    // object. The deploy's "Soccer league label contract check" parses this
+    // literal with a regex whose body class excludes both brace characters,
+    // so a single one anywhere in here truncates the match and the step
+    // fails with "SOCCER_LEAGUE_LABELS constant not found". That is exactly
+    // what happened on run 31276384066, when this comment first spelled the
+    // archive id format as a template literal.
     eflcup:     'EFL Cup',
     laliga:     'La Liga',
     seriea:     'Serie A',
