@@ -10714,6 +10714,30 @@ export default {
                 // resolution (old id -> new id, unavoidable without that riskier
                 // rename), then self-heals -- every subsequent write to that same
                 // series_key+round+date correctly upserts via the new id from then on.
+                //
+                // CORRECTION (CC-CMD-2026-08-08-confirm-duplicate-fixture-mechanism,
+                // measured 2026-08-08): "then self-heals" is true of the ID and false
+                // of the ROW, and the real cost is much larger than "exactly once"
+                // suggests. Measured: 55 duplicate groups across 2026-07-25..08-15,
+                // all MLS, all n=2. In every one of the 110 rows the name-scheme
+                // sibling carries a POPULATED series_key (name-scheme rows with no
+                // series_key: ZERO), so both were written by series_key-bearing
+                // callers -- created_at clusters at 2026-06-30 19:27 for the
+                // name-scheme rows and 2026-07-16 12:23 for the key-scheme ones. Two
+                // bulk schedule imports either side of this change, not a per-game
+                // seed racing a per-game resolution.
+                //
+                // Because those imports carried FUTURE-dated fixtures, the old-scheme
+                // row was never the thing that got resolved: resolution wrote the new
+                // id and the old row was never touched again. It stays permanently
+                // unscored. "Exactly once" is per fixture, and the import held the
+                // whole forward schedule -- hence 55, not a handful.
+                //
+                // Logic deliberately unchanged: that same CC-CMD forbids applying a
+                // fix, and the id-rename hazard described above is still real
+                // (briefs.game_id joins games.id in src/analytics-engine.js). The
+                // stale rows are identifiable and a bounded cleanup is written up in
+                // outbox/cc-session-2026-08-08-confirm-duplicate-fixture-mechanism.md.
                 const id = series_key
                     ? `${sport}_${series_key}_${shortify(round) || 'r'}_${date}`
                     : `${sport}_${date}_${idTail}`;
