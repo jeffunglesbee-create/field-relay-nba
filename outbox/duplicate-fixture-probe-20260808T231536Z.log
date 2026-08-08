@@ -1,0 +1,186 @@
+=== duplicate-fixture-probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-08T23:15:36.646Z ===
+
+--- 1. duplicate groups by (sport, date, home, away), postseason_games ---
+   duplicate groups: 55
+   2026-08-04  MLS  Columbus Crew v Atlas FC  n=2
+   2026-08-04  MLS  FC Cincinnati v Club de Fútbol Pachuca  n=2
+   2026-08-05  MLS  Charlotte FC v Pumas  n=2
+   2026-08-05  MLS  Club Tigres v Real Salt Lake  n=2
+   2026-08-05  MLS  Club de Fútbol Monterrey Rayados, A.C. v Orlando City  n=2
+   2026-08-05  MLS  Inter Miami CF v Atlético de San Luis  n=2
+   2026-08-05  MLS  Minnesota United FC v FC Juárez  n=2
+   2026-08-05  MLS  Vancouver Whitecaps FC v Atlante FC  n=2
+   2026-08-06  MLS  FC Dallas v Club Querétaro  n=2
+   2026-08-06  MLS  Los Angeles Football Club v Chivas de Guadalajara  n=2
+   2026-08-06  MLS  Nashville SC v Club León  n=2
+   2026-08-06  MLS  New York City Football Club v Club Santos Laguna  n=2
+   2026-08-06  MLS  Toluca FC v Seattle Sounders FC  n=2
+   2026-08-07  MLS  Austin FC v Club Tijuana  n=2
+   2026-08-07  MLS  Charlotte FC v Atlas FC  n=2
+   2026-08-07  MLS  Chicago Fire FC v Club Necaxa  n=2
+   2026-08-07  MLS  Club América v San Diego FC  n=2
+   2026-08-07  MLS  Columbus Crew v Club de Fútbol Pachuca  n=2
+   2026-08-07  MLS  Cruz Azul v Philadelphia Union  n=2
+   2026-08-07  MLS  Portland Timbers v Club Puebla  n=2
+   2026-08-08  MLS  Club Tigres v Minnesota United FC  n=2
+   2026-08-08  MLS  FC Cincinnati v Pumas  n=2
+   2026-08-08  MLS  Orlando City v Club León  n=2
+   2026-08-08  MLS  Vancouver Whitecaps FC v FC Juárez  n=2
+   2026-08-09  MLS  Chivas de Guadalajara v FC Dallas  n=2
+   2026-08-09  MLS  Cruz Azul v New York City Football Club  n=2
+   2026-08-09  MLS  Inter Miami CF v Club de Fútbol Monterrey Rayados, A.C.  n=2
+   2026-08-09  MLS  Philadelphia Union v Club Necaxa  n=2
+   2026-08-09  MLS  Real Salt Lake v Atlante FC  n=2
+   2026-08-09  MLS  Seattle Sounders FC v Club Querétaro  n=2
+   2026-08-09  MLS  Toluca FC v Los Angeles Football Club  n=2
+   2026-08-10  MLS  Austin FC v Club Puebla  n=2
+   2026-08-10  MLS  Chicago Fire FC v Club Santos Laguna  n=2
+   2026-08-10  MLS  Club América v Portland Timbers  n=2
+   2026-08-10  MLS  Nashville SC v Atlético de San Luis  n=2
+   2026-08-10  MLS  San Diego FC v Club Tijuana  n=2
+   2026-08-11  MLS  Charlotte FC v Club de Fútbol Pachuca  n=2
+   2026-08-11  MLS  Columbus Crew v Pumas  n=2
+   2026-08-12  MLS  Atlético Ottawa v FC Supra du Québec  n=2
+   2026-08-12  MLS  Club Tigres v Vancouver Whitecaps FC  n=2
+   2026-08-12  MLS  FC Cincinnati v Atlas FC  n=2
+   2026-08-12  MLS  Inter Miami CF v Club León  n=2
+   2026-08-12  MLS  Minnesota United FC v Atlante FC  n=2
+   2026-08-12  MLS  Orlando City v Atlético de San Luis  n=2
+   2026-08-12  MLS  Real Salt Lake v FC Juárez  n=2
+   2026-08-13  MLS  Club de Fútbol Monterrey Rayados, A.C. v Nashville SC  n=2
+   2026-08-13  MLS  Los Angeles Football Club v Club Querétaro  n=2
+   2026-08-13  MLS  New York City Football Club v Club Necaxa  n=2
+   2026-08-13  MLS  Philadelphia Union v Club Santos Laguna  n=2
+   2026-08-13  MLS  San Diego FC v Club Puebla  n=2
+   2026-08-13  MLS  Seattle Sounders FC v Chivas de Guadalajara  n=2
+   2026-08-13  MLS  Toluca FC v FC Dallas  n=2
+   2026-08-14  MLS  Club América v Austin FC  n=2
+   2026-08-14  MLS  Cruz Azul v Chicago Fire FC  n=2
+   2026-08-14  MLS  Portland Timbers v Club Tijuana  n=2
+
+--- 2. id scheme vs series_key presence, within duplicate groups ---
+   2026-08-04 Columbus Crew          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:09
+   2026-08-04 Columbus Crew          KEY-ID  series_key=present espn_event_id=NULL score=3-1 created=2026-07-16 12:23:46
+   2026-08-04 FC Cincinnati          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:09
+   2026-08-04 FC Cincinnati          KEY-ID  series_key=present espn_event_id=NULL score=3-1 created=2026-07-16 12:23:46
+   2026-08-05 Charlotte FC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:09
+   2026-08-05 Charlotte FC           KEY-ID  series_key=present espn_event_id=NULL score=3-0 created=2026-07-16 12:23:46
+   2026-08-05 Club Tigres            NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:09
+   2026-08-05 Club Tigres            KEY-ID  series_key=present espn_event_id=NULL score=1-1 created=2026-07-16 12:23:46
+   2026-08-05 Club de Fútbol Monterr NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-05 Club de Fútbol Monterr KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:46
+   2026-08-05 Inter Miami CF         NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-05 Inter Miami CF         KEY-ID  series_key=present espn_event_id=NULL score=4-2 created=2026-07-16 12:23:46
+   2026-08-05 Minnesota United FC    NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:09
+   2026-08-05 Minnesota United FC    KEY-ID  series_key=present espn_event_id=NULL score=1-2 created=2026-07-16 12:23:46
+   2026-08-05 Vancouver Whitecaps FC NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-05 Vancouver Whitecaps FC KEY-ID  series_key=present espn_event_id=NULL score=0-1 created=2026-07-16 12:23:46
+   2026-08-06 FC Dallas              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-06 FC Dallas              KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:45
+   2026-08-06 Los Angeles Football C NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-06 Los Angeles Football C KEY-ID  series_key=present espn_event_id=NULL score=1-1 created=2026-07-16 12:23:45
+   2026-08-06 Nashville SC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-06 Nashville SC           KEY-ID  series_key=present espn_event_id=NULL score=0-1 created=2026-07-16 12:23:45
+   2026-08-06 New York City Football NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-06 New York City Football KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:45
+   2026-08-06 Toluca FC              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-06 Toluca FC              KEY-ID  series_key=present espn_event_id=NULL score=3-0 created=2026-07-16 12:23:45
+   2026-08-07 Austin FC              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-07 Austin FC              KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:44
+   2026-08-07 Charlotte FC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-07 Charlotte FC           KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:44
+   2026-08-07 Chicago Fire FC        NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-07 Chicago Fire FC        KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:45
+   2026-08-07 Club América           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-07 Club América           KEY-ID  series_key=present espn_event_id=NULL score=3-1 created=2026-07-16 12:23:44
+   2026-08-07 Columbus Crew          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-07 Columbus Crew          KEY-ID  series_key=present espn_event_id=NULL score=2-1 created=2026-07-16 12:23:44
+   2026-08-07 Cruz Azul              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:08
+   2026-08-07 Cruz Azul              KEY-ID  series_key=present espn_event_id=NULL score=1-0 created=2026-07-16 12:23:44
+   2026-08-07 Portland Timbers       NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-07 Portland Timbers       KEY-ID  series_key=present espn_event_id=NULL score=5-2 created=2026-07-16 12:23:44
+   2026-08-08 Club Tigres            NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-08 Club Tigres            KEY-ID  series_key=present espn_event_id=NULL score=0-0 created=2026-07-16 12:23:43
+   2026-08-08 FC Cincinnati          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-08 FC Cincinnati          KEY-ID  series_key=present espn_event_id=NULL score=2-0 created=2026-07-16 12:23:44
+   2026-08-08 Orlando City           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-08 Orlando City           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:43
+   2026-08-08 Vancouver Whitecaps FC NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-08 Vancouver Whitecaps FC KEY-ID  series_key=present espn_event_id=NULL score=1-3 created=2026-07-16 12:23:43
+   2026-08-09 Chivas de Guadalajara  NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Chivas de Guadalajara  KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:43
+   2026-08-09 Cruz Azul              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Cruz Azul              KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:42
+   2026-08-09 Inter Miami CF         NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Inter Miami CF         KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:43
+   2026-08-09 Philadelphia Union     NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Philadelphia Union     KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:42
+   2026-08-09 Real Salt Lake         NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:07
+   2026-08-09 Real Salt Lake         KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:43
+   2026-08-09 Seattle Sounders FC    NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Seattle Sounders FC    KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:42
+   2026-08-09 Toluca FC              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-09 Toluca FC              KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:43
+   2026-08-10 Austin FC              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-10 Austin FC              KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:41
+   2026-08-10 Chicago Fire FC        NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-10 Chicago Fire FC        KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:42
+   2026-08-10 Club América           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-10 Club América           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:41
+   2026-08-10 Nashville SC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:06
+   2026-08-10 Nashville SC           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:42
+   2026-08-10 San Diego FC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-10 San Diego FC           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:41
+   2026-08-11 Charlotte FC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-11 Charlotte FC           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:40
+   2026-08-11 Columbus Crew          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-11 Columbus Crew          KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:41
+   2026-08-12 Atlético Ottawa        NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-07-15 02:58:18
+   2026-08-12 Atlético Ottawa        KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:58
+   2026-08-12 Club Tigres            NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-12 Club Tigres            KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:40
+   2026-08-12 FC Cincinnati          NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-12 FC Cincinnati          KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:40
+   2026-08-12 Inter Miami CF         NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-12 Inter Miami CF         KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:39
+   2026-08-12 Minnesota United FC    NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-12 Minnesota United FC    KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:40
+   2026-08-12 Orlando City           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-12 Orlando City           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:39
+   2026-08-12 Real Salt Lake         NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:05
+   2026-08-12 Real Salt Lake         KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:40
+   2026-08-13 Club de Fútbol Monterr NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 Club de Fútbol Monterr KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:39
+   2026-08-13 Los Angeles Football C NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 Los Angeles Football C KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:39
+   2026-08-13 New York City Football NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 New York City Football KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:38
+   2026-08-13 Philadelphia Union     NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 Philadelphia Union     KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:38
+   2026-08-13 San Diego FC           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 San Diego FC           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:38
+   2026-08-13 Seattle Sounders FC    NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 Seattle Sounders FC    KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:38
+   2026-08-13 Toluca FC              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-13 Toluca FC              KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:39
+   2026-08-14 Club América           NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:03
+   2026-08-14 Club América           KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:37
+   2026-08-14 Cruz Azul              NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:04
+   2026-08-14 Cruz Azul              KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:37
+   2026-08-14 Portland Timbers       NAME-ID series_key=present espn_event_id=NULL score=—-— created=2026-06-30 19:27:03
+   2026-08-14 Portland Timbers       KEY-ID  series_key=present espn_event_id=NULL score=—-— created=2026-07-16 12:23:37
+
+   TALLY:
+     key-scheme ids                      : 55
+     name-scheme ids WITH a series_key   : 55   <- migration shape
+     name-scheme ids with NO series_key  : 0   <- seed-path shape
+   If nameNoKey is 0, the seed path is NOT producing these duplicates
+   and the CC-CMD hypothesis is refuted by the data, not by argument.
+
+--- 3. would (sport, date, home, away) dedupe ever merge two REAL games? ---
+   regular_season_games: 2 tuple(s) with 2+ scored rows carrying DIFFERENT scores
+      2026-07-16 PGA Tour null v null n=2 distinct_scores=2
+      2026-07-09 PGA Tour null v null n=2 distinct_scores=2
+   postseason_games: 0 tuple(s) with 2+ scored rows carrying DIFFERENT scores
+
+=== probe complete (read-only; no rows were modified) ===
