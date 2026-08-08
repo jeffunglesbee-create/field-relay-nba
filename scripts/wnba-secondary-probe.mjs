@@ -84,7 +84,12 @@ for (const [name, url] of CANDIDATES) {
     console.log(`    ${url}`);
     for (const [mode, headers] of [['bare', {}], ['hdrs', HEADERS]]) {
         try {
-            const r = await fetch(url, { headers });
+            // AbortSignal.timeout is not optional here: the first run of this
+            // probe (31284308722) hung with no output. stats.wnba.com is known
+            // to stall rather than refuse when it dislikes a request, and a
+            // bare fetch has no default timeout, so one unresponsive candidate
+            // silently blocks the whole probe.
+            const r = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
             const ct = r.headers.get('content-type');
             const body = await r.text();
             const a = assess(r.status, ct, body);
