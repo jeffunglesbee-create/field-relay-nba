@@ -33,6 +33,14 @@ export { AmbientDO };
 import { BrowserDO } from './browser-do.js';
 export { BrowserDO };
 
+// Named exports for CI verification only -- these two are the ESPN-primary and
+// statsapi-secondary MLB adapters, exported so scripts/mlb-failover-verify.mjs
+// can adapt a real game through EACH and compare the emitted key sets directly.
+// The alternative was duplicating the adapters in the test, which would drift
+// from the real ones and prove nothing. Adding named exports alongside the
+// default export does not change the worker's entrypoint.
+export { adaptESPNMLB, adaptMlbStatsApi };
+
 // Raw Puppeteer, for the one route (/bundesliga-bapi/resolve-dayid) that needs
 // network-request capture (page.on('response')) rather than the higher-level
 // env.BROWSER.quickAction() API browser-quick.js uses -- same @cloudflare/puppeteer
@@ -1525,6 +1533,139 @@ function adaptESPNMLB(ev) {
         },
         streams: buildStreamsFromESPN(comp),
     };
+}
+
+// ── MLB SECONDARY SOURCE ──────────────────────────────────────────────────
+// CC-CMD-2026-08-08-espn-secondary-source-failover.
+//
+// Emits the IDENTICAL V2 shape as adaptESPNMLB above -- every field a client
+// consumer reads. Built as the third instance of a pattern already proven
+// twice in this file (adaptNbaCDN for cdn.nba.com, adaptNhle for
+// api-web.nhle.com), not as a new one.
+//
+// Why this exists: 2026-08-06 site.api.espn.com began 403ing Cloudflare
+// Worker egress. The mitigation re-pointed reads at site.web.api.espn.com --
+// the same Akamai edge, so nothing prevents a repeat. The cost of having no
+// secondary was measured, not hypothesised: CC-CMD-2026-08-08-investigate-
+// mlb-wnba-archive-gap found the outage silently cost THREE days of MLB and
+// WNBA archival (2026-08-05 through 08-07), while NBA and NHL -- already on
+// non-ESPN sources -- were untouched.
+//
+// Shape probed live 2026-08-08 against date=2026-08-08 (15 games, 9 live)
+// via CF-Worker egress. Field names below are copied from that response, not
+// written from memory (Rule 68):
+//   status.abstractGameState  'Final' | 'Live' | 'Preview'
+//   teams.home|away .team.name, .team.abbreviation, .score
+//   linescore.currentInning, .isTopInning, .balls, .strikes, .outs
+//   linescore.innings[] .num, .home.runs, .away.runs
+//   linescore.offense.first|second|third   present ONLY when occupied
+//   venue.name
+//   broadcasts[] .name, .type, .isNational      type: 'TV' | 'AM' | 'FM'
+function adaptMlbStatsApi(g) {
+    const ls    = g.linescore || {};
+    const abs   = g.status?.abstractGameState || '';
+    const home  = g.teams?.home || {};
+    const away  = g.teams?.away || {};
+
+    const state = abs === 'Final' ? 'post'
+                : abs === 'Live'  ? 'live'
+                : 'pre';
+
+    const inningNum = ls.currentInning || 1;
+    const isTop     = ls.isTopInning !== false;
+    const periodLabel = state === 'post' ? 'F'
+                      : state === 'live' ? `${isTop ? 'T' : 'B'}${inningNum}`
+                      : 'NS';
+
+    // balls/strikes/outs persist on a FINAL game -- they hold the game's last
+    // pitch, verified in the probe where every Final row carried outs=3. Gated
+    // on state === 'live' exactly as adaptESPNMLB gates its own situation, so a
+    // completed game never renders a live count.
+    const situation = state === 'live' ? {
+        inning:   inningNum,
+        isTop,
+        outs:     ls.outs    ?? null,
+        balls:    ls.balls   ?? null,
+        strikes:  ls.strikes ?? null,
+        onFirst:  !!ls.offense?.first,
+        onSecond: !!ls.offense?.second,
+        onThird:  !!ls.offense?.third,
+    } : null;
+
+    const innings = ls.innings || [];
+
+    return {
+        // NOT `espn:`-prefixed, and espnEventId is null: this game did not come
+        // from ESPN and has no ESPN event id. Claiming one would be inventing an
+        // identifier (Rule 2). Disclosed consequence: while the secondary is
+        // serving, archive dedup keyed on espn_event_id cannot match these rows
+        // against ESPN-sourced ones. That is a real, bounded cost of a degraded
+        // path, written up in this CC-CMD's outbox rather than hidden behind a
+        // fabricated id.
+        id:          `mlbam:${g.gamePk}`,
+        espnEventId: null,
+        mlbGamePk:   g.gamePk,
+        sport:       'mlb',
+        league:      'MLB',
+        state,
+        start:       g.gameDate || '',
+        home: {
+            name:  home.team?.name         || '',
+            abbr:  home.team?.abbreviation || '',
+            score: home.score ?? 0,
+        },
+        away: {
+            name:  away.team?.name         || '',
+            abbr:  away.team?.abbreviation || '',
+            score: away.score ?? 0,
+        },
+        periodNum:   inningNum,
+        periodLabel,
+        // statsapi publishes no game clock. ESPN's own value is '0.0' for pre
+        // and final games anyway, and baseball has no clock to display.
+        clock:       '',
+        venue:       g.venue?.name || '',
+        situation,
+        linescores: {
+            home: innings.map(i => i.home?.runs ?? null),
+            away: innings.map(i => i.away?.runs ?? null),
+        },
+        // TV only, matching what buildStreamsFromESPN surfaces. statsapi also
+        // returns AM/FM radio affiliates, which the ESPN path never produced --
+        // including them would be a behaviour change, not a failover.
+        // `market` mirrors ESPN's 'National'/'Local' vocabulary via isNational.
+        streams: (g.broadcasts || [])
+            .filter(b => b.type === 'TV' && b.name)
+            .map(b => ({ label: b.name, market: b.isNational ? 'National' : 'Local', type: null })),
+    };
+}
+
+// Fetches and adapts the MLB secondary. Returns an array on success, or null
+// so the caller can distinguish "the secondary also failed" from "the
+// secondary returned an empty slate" -- an off-day genuinely has zero games
+// and must not be reported as a failure.
+//
+// Rule 78: the cf cache options replicate the ESPN primary's own pattern in
+// this same handler (cacheTtl 15, cacheEverything, explicit cacheKey). A
+// failover firing per-request during an outage must not turn into an
+// unthrottled hammer on the secondary.
+async function fetchMlbStatsApiGames(date) {
+    const url = `${MLB_STATS_API_BASE}/schedule?sportId=1&date=${date}`
+              + '&hydrate=linescore,team,venue,broadcasts(all)';
+    try {
+        const r = await fetch(url, {
+            cf: { cacheTtl: 15, cacheEverything: true, cacheKey: url },
+        });
+        if (!r.ok) {
+            console.error(`[V2GAMES] MLB secondary statsapi returned ${r.status}`);
+            return null;
+        }
+        const d = await r.json();
+        return (d.dates || []).flatMap(day => day.games || []).map(adaptMlbStatsApi);
+    } catch (e) {
+        console.error('[V2GAMES] MLB secondary statsapi threw:', e.message);
+        return null;
+    }
 }
 
 // CC-CMD-2026-07-14-soccer-league-label: adaptESPNWCSoccer was built solely
@@ -3561,7 +3702,12 @@ async function buildAFLJournalismContext(games, round, year, env) {
     return ctx;
 }
 
-async function handleV2Games(url, env, ctx) {
+// `request` is optional and defaults to null: the internal fan-out caller at
+// /debug/recent-requests synthesises a URL and has no Request to pass. It is
+// used only to read the X-FIELD-Relay header that gates _forcePrimaryFail, so
+// a null request simply means that switch can never fire -- which is the
+// correct behaviour for an internal caller.
+async function handleV2Games(url, env, ctx, request = null) {
     const sport = (url.searchParams.get('sport') || '').toLowerCase();
     const date  = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
     const cfg   = V2_LEAGUES[sport];
@@ -3637,30 +3783,79 @@ async function handleV2Games(url, env, ctx) {
     if (cfg.espnLeague) {
         const espnDate = date.replace(/-/g, '');
         const _espnSportPath = cfg.espnSport || 'soccer';
-        const espnUrl  = `${ESPN_API_BASE}/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
+        // _forcePrimaryFail exists ONLY so the failover can be PROVEN rather than
+        // asserted (Rule 89 / this CC-CMD's Task 4.1): pointing the primary at a
+        // dead host is the only way to produce a real artifact showing the
+        // secondary actually serving. "The code has a fallback" is not an
+        // artifact.
+        //
+        // Implemented as an AUTHENTICATED request switch rather than a config
+        // var so the proof can be re-run at any time without a deploy, and so
+        // the failover stays continuously provable instead of being verified
+        // once and then trusted. Auth reuses the exact header /d1/execute
+        // already gates on -- an unauthenticated caller cannot reach it, so it
+        // is not a way to force load onto the secondary.
+        const _forceFail = url.searchParams.get('_forcePrimaryFail') === '1'
+            && request?.headers.get('X-FIELD-Relay') === 'field-relay-cron-2026';
+        const espnUrl  = _forceFail
+            ? 'https://espn-primary-forced-failure.invalid/scoreboard'
+            : `${ESPN_API_BASE}/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
         let espnGames  = [];
+        // ── Two-level source chain, declared in ONE place (Rule 76) ──────────
+        // Level 1: ESPN (every sport).  Level 2: a per-sport secondary, below.
+        // If a third level ever looks necessary, that means the data contract is
+        // wrong -- do not add another `||`.
+        //
+        // MLB is the only entry today. NBA and NHL never reach this branch (they
+        // are already native on cdn.nba.com and api-web.nhle.com). The sports
+        // with NO secondary are named in this CC-CMD's outbox as accepted,
+        // written-down single-source risk rather than left implied.
+        const _secondaryFetch = sport === 'mlb' ? fetchMlbStatsApiGames : null;
+        // Distinct value so a failover is OBSERVABLE in the response. A silent
+        // failover would rebuild exactly the invisibility that made the
+        // 2026-08-06/08 outages cost three days before anyone noticed.
+        let _v2Source = 'espn-wc';
+
+        // Shared by both failure paths below (non-OK response and thrown fetch)
+        // -- an outage presents as either, and treating them differently would
+        // mean the failover works for one shape of the same incident.
+        const _trySecondary = async (why) => {
+            if (!_secondaryFetch) return false;
+            console.error(`[V2GAMES] ESPN primary failed for ${sport} (${why}) -- trying secondary`);
+            const fb = await _secondaryFetch(date);
+            if (fb === null) return false;   // null = secondary ALSO failed; [] = real off-day
+            espnGames = fb;
+            _v2Source = 'mlbam-statsapi';
+            return true;
+        };
+
         try {
             const espnResp = await fetch(espnUrl, {
                 cf: { cacheTtl: 15, cacheEverything: true, cacheKey: espnUrl },
             });
             if (!espnResp.ok) {
-                return new Response(
-                    JSON.stringify({ error: `ESPN upstream ${espnResp.status}`, sport, date }),
-                    { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                if (!await _trySecondary(`HTTP ${espnResp.status}`)) {
+                    return new Response(
+                        JSON.stringify({ error: `ESPN upstream ${espnResp.status}`, sport, date }),
+                        { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                    );
+                }
+            } else {
+                const espnData = await espnResp.json();
+                espnGames = (espnData.events || []).map(ev =>
+                    cfg.espnSport === 'baseball'                                          ? adaptESPNMLB(ev)
+                    : cfg.espnSport === 'football'                                        ? adaptESPNFootball(ev, sport)
+                    : ['basketball', 'australian-football'].includes(cfg.espnSport)       ? adaptESPNBasketball(ev, sport)
+                    : adaptESPNWCSoccer(ev, sport)
                 );
             }
-            const espnData = await espnResp.json();
-            espnGames = (espnData.events || []).map(ev =>
-                cfg.espnSport === 'baseball'                                          ? adaptESPNMLB(ev)
-                : cfg.espnSport === 'football'                                        ? adaptESPNFootball(ev, sport)
-                : ['basketball', 'australian-football'].includes(cfg.espnSport)       ? adaptESPNBasketball(ev, sport)
-                : adaptESPNWCSoccer(ev, sport)
-            );
         } catch (e) {
-            return new Response(
-                JSON.stringify({ error: e.message, sport, date }),
-                { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
-            );
+            if (!await _trySecondary(e.message)) {
+                return new Response(
+                    JSON.stringify({ error: e.message, sport, date }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } }
+                );
+            }
         }
         const games = espnGames;
 
@@ -3918,7 +4113,7 @@ async function handleV2Games(url, env, ctx) {
         }
 
         return new Response(
-            JSON.stringify({ sport, date, games, count: games.length, source: 'espn-wc', ts: Date.now() }),
+            JSON.stringify({ sport, date, games, count: games.length, source: _v2Source, ts: Date.now() }),
             { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' } }
         );
     }
@@ -11323,7 +11518,7 @@ export default {
 
         // /v2/* — FieldGame normalized routes (Phase 0, ESPN parallel — additive only)
         if (pathname.startsWith('/v2/')) {
-            if (pathname === '/v2/games')     return handleV2Games(url, env, ctx);
+            if (pathname === '/v2/games')     return handleV2Games(url, env, ctx, request);
             if (pathname === '/v2/golf/player-stats') {
                 const athleteId = url.searchParams.get('athleteId') || '';
                 const season    = url.searchParams.get('season') || '2026';
