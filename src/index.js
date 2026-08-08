@@ -13931,6 +13931,204 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
         }
 
+        // ── GET /web-fetch?url=<encoded> ──────────────────────────────────────
+        // CC-CMD-2026-08-06-relay-web-fetch-proxy. Generalises the two bespoke
+        // proxies already here (ESPN summary, /datamuse/words) into one scoped,
+        // reusable route, so a new domain does not mean a new bespoke proxy.
+        //
+        // RUWT/Rule 47: transports bytes, computes nothing. Structurally identical
+        // to the existing proxies. Rule 47 restricts relay-side INTELLIGENCE
+        // (drama scoring, watch verdicts); it does not restrict data transport.
+        //
+        // AUTHENTICATED, which the CC-CMD did not require and which I am adding
+        // deliberately. An unauthenticated fetch proxy on a public hostname is an
+        // open proxy: anyone could launder traffic through this relay's IP and
+        // this account's bandwidth. The header is the same one /d1/execute
+        // already gates on, so this introduces no new secret. The motivating use
+        // case -- a sandboxed caller that cannot reach a domain directly -- can
+        // supply the header, so nothing real is lost.
+        if (pathname === '/web-fetch' && request.method === 'GET') {
+            const J = (body, status = 200) => new Response(JSON.stringify(body),
+                { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
+            if (request.headers.get('X-FIELD-Relay') !== 'field-relay-cron-2026') {
+                return J({ ok: false, error: 'unauthorized' }, 401);
+            }
+
+            const raw = url.searchParams.get('url');
+            if (!raw) return J({ ok: false, error: 'missing ?url=' }, 400);
+
+            let target;
+            try { target = new URL(raw); }
+            catch (e) { return J({ ok: false, error: `unparseable url: ${e.message}` }, 400); }
+
+            // Scheme allow-list, not a deny-list: file:, data:, ftp:, gopher: and
+            // anything else are rejected by not being on it.
+            if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+                return J({ ok: false, error: `scheme not allowed: ${target.protocol}` }, 400);
+            }
+
+            const host = target.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+            // This relay's own hostnames. Proxying to self would let a caller reach
+            // internal/admin routes (/d1/execute among them) with this Worker as the
+            // origin, and could recurse.
+            if (host.endsWith('workers.dev') || host === 'localhost' || host.endsWith('.localhost')) {
+                return J({ ok: false, error: `self/internal host not allowed: ${host}` }, 400);
+            }
+
+            // Literal-IP checks, applied to BOTH the URL's own host and to every
+            // address the hostname really resolves to (below).
+            const isBlockedIp = (ip) => {
+                const v4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+                if (v4) {
+                    const [a, b] = [parseInt(v4[1]), parseInt(v4[2])];
+                    return a === 10                                  // 10.0.0.0/8
+                        || a === 127                                 // 127.0.0.0/8
+                        || a === 0                                   // 0.0.0.0/8
+                        || (a === 172 && b >= 16 && b <= 31)          // 172.16.0.0/12
+                        || (a === 192 && b === 168)                   // 192.168.0.0/16
+                        || (a === 169 && b === 254)                   // 169.254.0.0/16 incl. 169.254.169.254 cloud metadata
+                        || (a === 100 && b >= 64 && b <= 127)         // 100.64.0.0/10 CGNAT
+                        || a >= 224;                                  // multicast + reserved
+                }
+                const v6 = ip.toLowerCase();
+                if (v6.includes(':')) {
+                    return v6 === '::1' || v6 === '::'                // loopback / unspecified
+                        || /^f[cd]/.test(v6)                          // fc00::/7 unique-local
+                        || /^fe[89ab]/.test(v6)                       // fe80::/10 link-local
+                        || v6.startsWith('::ffff:');                  // IPv4-mapped — re-check as v4 below
+                }
+                return false;
+            };
+            if (isBlockedIp(host)) {
+                return J({ ok: false, error: `blocked address: ${host}` }, 400);
+            }
+
+            // REAL DNS RESOLUTION, not a string check. The CC-CMD is explicit that a
+            // hostname can resolve to a private IP while looking perfectly public --
+            // that is the whole SSRF trick. Workers expose no DNS API, so this uses
+            // Cloudflare's own DNS-over-HTTPS resolver. A resolver failure is treated
+            // as FAIL-CLOSED: if the address cannot be checked, the fetch does not
+            // happen. Failing open here would defeat the guard entirely.
+            try {
+                const dohRes = await fetch(
+                    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`,
+                    { headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(4000) }
+                );
+                if (!dohRes.ok) return J({ ok: false, error: `dns check failed: HTTP ${dohRes.status}` }, 502);
+                const doh = await dohRes.json();
+                const answers = (doh.Answer || []).filter(a => a.type === 1 || a.type === 28).map(a => a.data);
+                if (!answers.length) return J({ ok: false, error: `dns check failed: no A/AAAA record for ${host}` }, 400);
+                const bad = answers.find(a => isBlockedIp(String(a).replace(/^::ffff:/i, '')));
+                if (bad) return J({ ok: false, error: `host resolves to a blocked address: ${host} -> ${bad}` }, 400);
+            } catch (e) {
+                return J({ ok: false, error: `dns check failed: ${e.message}` }, 502);
+            }
+
+            // Rate limit. No rate-limiting mechanism exists anywhere in this repo
+            // (checked -- the only matches are notes about THIRD-PARTY limits), so
+            // this is a new minimal one rather than a duplicate of an existing
+            // pattern. 30/min: high enough that a probe loop over a page list is not
+            // throttled, low enough that a runaway caller cannot generate meaningful
+            // egress cost before it is noticed. Keyed per authenticated caller-minute.
+            const RL_MAX = 30;
+            const rlKey = `webfetch:rl:${new Date().toISOString().slice(0, 16)}`;
+            if (env.FIELD_JOURNALISM) {
+                try {
+                    const n = parseInt(await env.FIELD_JOURNALISM.get(rlKey) || '0', 10);
+                    if (n >= RL_MAX) return J({ ok: false, error: `rate limit: ${RL_MAX}/min exceeded` }, 429);
+                    await env.FIELD_JOURNALISM.put(rlKey, String(n + 1), { expirationTtl: 120 });
+                } catch (e) { console.error('[WEB-FETCH] rate-limit bookkeeping failed:', e.message); }
+            }
+
+            // 10 minutes: long enough that re-reading the same page while working is
+            // free, short enough that a page which really changed is not masked for
+            // an appreciable time. Mid-range of the CC-CMD's suggested 5-15.
+            const CACHE_TTL = 600;
+            const cacheKey = `webfetch:${target.toString()}`;
+            if (env.FIELD_JOURNALISM) {
+                try {
+                    const hit = await env.FIELD_JOURNALISM.get(cacheKey);
+                    if (hit) return new Response(hit,
+                        { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } });
+                } catch (e) { console.error('[WEB-FETCH] cache read failed:', e.message); }
+            }
+
+            // 2 MB. Comfortably covers any HTML page or JSON API response this is for,
+            // while staying far under the Worker memory limit and bounding the cost of
+            // a single call. Enforced by READING IN CHUNKS and aborting past the cap --
+            // not by checking content-length, which an upstream can omit or lie about.
+            const MAX_BYTES = 2_000_000;
+            // 6000ms matches this file's dominant fetch-timeout convention (6 uses).
+            const TIMEOUT_MS = 6000;
+
+            try {
+                const res = await fetch(target.toString(), {
+                    headers: { 'User-Agent': 'FIELD-relay/1.0 (field.dev; sports-context-app)' },
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(TIMEOUT_MS),
+                });
+
+                const reader = res.body?.getReader();
+                let received = 0, chunks = [], truncated = false;
+                if (reader) {
+                    for (;;) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        received += value.length;
+                        if (received > MAX_BYTES) { truncated = true; await reader.cancel(); break; }
+                        chunks.push(value);
+                    }
+                }
+                const buf = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+                let off = 0; for (const c of chunks) { buf.set(c, off); off += c.length; }
+                const body = new TextDecoder().decode(buf);
+
+                const ctype = res.headers.get('content-type') || '';
+                // Structured, not a raw dump -- matching the existing proxies. JSON is
+                // passed through verbatim because it is already structured; HTML is
+                // reduced to text. No new dependency: this repo carries no HTML-to-text
+                // library (only @cloudflare/puppeteer, which is a browser and wildly
+                // disproportionate here), and script/style removal plus tag-stripping
+                // covers the real use case, which is reading a page's content.
+                let text = body;
+                if (/html/i.test(ctype)) {
+                    text = body
+                        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+                        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+                        .replace(/<!--[\s\S]*?-->/g, ' ')
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                }
+
+                // Usage log, so abuse or runaway cost is visible after the fact.
+                console.log(`[WEB-FETCH] ${target.hostname} -> HTTP ${res.status} ${received}B${truncated ? ' TRUNCATED' : ''} ct=${ctype}`);
+
+                const payload = JSON.stringify({
+                    ok: res.ok,
+                    url: target.toString(),
+                    status: res.status,
+                    contentType: ctype,
+                    bytes: received,
+                    truncated,
+                    text: text.slice(0, 200_000),
+                });
+                if (env.FIELD_JOURNALISM && res.ok) {
+                    try { await env.FIELD_JOURNALISM.put(cacheKey, payload, { expirationTtl: CACHE_TTL }); }
+                    catch (e) { console.error('[WEB-FETCH] cache write failed:', e.message); }
+                }
+                return new Response(payload,
+                    { headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } });
+            } catch (e) {
+                console.error(`[WEB-FETCH] ${target.hostname} threw:`, e.message);
+                return J({ ok: false, url: target.toString(), error: e.message }, 502);
+            }
+        }
+
         // GET /datamuse/words — proxy for api.datamuse.com/words (word-frequency lookups).
         // CC-CMD-2026-07-12-datamuse-relay-proxy TASK 1: the relay has unrestricted
         // egress, so a caller that can't reach api.datamuse.com directly (e.g. a
