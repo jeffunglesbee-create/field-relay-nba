@@ -1118,6 +1118,10 @@ const V2_LEAGUES = {
     // events:[] while Round 1 was still being played), so an empty result
     // here is often correct rather than a fault.
     'eflcup':     { sport: 'soccer', espnLeague: 'eng.league_cup',    bsdLeagueId: null, season: '2026-27' }, // ESPN only
+    // EFL Trophy -- ESPN slug eng.trophy, id 18481, probed 2026-08-08 via
+    // CF-Worker egress: season object reports 2026-27 Group Stage with live
+    // fixtures from Aug 18. Same ESPN-only, null-BSD shape as eflcup.
+    'efltrophy':  { sport: 'soccer', espnLeague: 'eng.trophy',       bsdLeagueId: null, season: '2026-27' }, // ESPN only
     'laliga':     { sport: 'soccer', espnLeague: 'esp.1',            bsdLeagueId: 3,    season: '2026-27' },
     'seriea':     { sport: 'soccer', espnLeague: 'ita.1',            bsdLeagueId: 4,    season: '2026-27' },
     'bundesliga': { sport: 'soccer', espnLeague: 'ger.1',            bsdLeagueId: 5,    season: '2026-27' },
@@ -1576,6 +1580,7 @@ const SOCCER_LEAGUE_LABELS = {
     // what happened on run 31276384066, when this comment first spelled the
     // archive id format as a template literal.
     eflcup:     'EFL Cup',
+    efltrophy:  'EFL Trophy',
     laliga:     'La Liga',
     seriea:     'Serie A',
     bundesliga: 'Bundesliga',
@@ -7028,6 +7033,7 @@ async function handleJournalismCycle(env, opts = {}) {
     // prefix. A mismatch between the two tables would split one competition
     // across two id namespaces.
     {sport:'soccer',    league:'eng.league_cup', label:'EFL Cup'},
+    {sport:'soccer',    league:'eng.trophy',   label:'EFL Trophy'},
     {sport:'football',  league:'nfl',        label:'NFL'},
     // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
     // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
