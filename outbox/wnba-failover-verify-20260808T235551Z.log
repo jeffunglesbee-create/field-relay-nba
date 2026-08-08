@@ -1,0 +1,33 @@
+=== wnba-failover-verify  date=2026-08-08  utc=2026-08-08T23:55:51.575Z ===
+
+--- 5. producer -> KV ---
+=== wnba-slate-to-kv  utc=2026-08-08T23:55:51.674Z ===
+source: HTTP 200 text/plain
+adapted 3 game(s) for 2026-08-08
+   LVA @ MIN  87-98  post/F  
+   IND @ CHI  90-86  post/F  
+   SEA @ PDX  0-0  pre/NS  
+KV write: HTTP 200 {"ok":true,"key":"wnba:slate:2026-08-08","date":"2026-08-08","count":3,"fetchedAt":"2026-08-08T23:55:51.877Z"}
+PASS: slate stored.
+
+
+--- 1. forced failure ---
+   HTTP 200 source=wnba-kv count=3 fetchedAt=2026-08-08T23:55:51.877Z staleSeconds=1
+   sample: wnba:1022600236 LVA@MIN 87-98 post/F streams=0
+   PASS: forced failure returns HTTP 200
+   PASS: source is wnba-kv (got wnba-kv)
+   PASS: staleSeconds present — staleness is surfaced, not hidden
+   PASS: staleSeconds 1 under the 5-min cron bound (+slack)
+   PASS: game id carries the wnba: prefix
+
+--- 2. normal path ---
+   HTTP 200 source=espn-wc count=3
+   PASS: normal source still espn-wc (got espn-wc) — the failover must NOT be the default
+   PASS: no staleness fields on the live path
+
+--- 3. key parity vs adaptESPNBasketball output (live ESPN game) ---
+   missing from KV adapter: []
+   PASS: KV adapter emits the primary's full key set
+   PASS: streams is an empty ARRAY, not undefined — the shape holds even with no broadcast data
+
+PASS: all assertions held.
