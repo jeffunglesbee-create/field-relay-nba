@@ -1,0 +1,43 @@
+=== wnba-secondary-probe  date=2026-08-08  utc=2026-08-08T23:37:35.665Z ===
+Each candidate probed twice: WITHOUT then WITH the real NBA_HEADERS.
+
+--- wnba-cdn-live
+    https://cdn.wnba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json
+    bare: HTTP 200 text/plain -> VIABLE (3 game-shaped entries (ct=text/plain))
+          sample: {"gameId":"1022600236","gameCode":"20260808/LVAMIN","gameStatus":3,"gameStatusText":"Final","period":4,"gameClock":"","gameTimeUTC":"2026-08-08T17:00:00Z","gameEt":"2026-08-08T13:00:00Z","regulationPeriods":4,"ifNecessary":false,"seriesGameNumber":"","gameLabel":"","gameSubLabel":"","seriesText":"",
+    hdrs: HTTP 200 text/plain -> VIABLE (3 game-shaped entries (ct=text/plain))
+          sample: {"gameId":"1022600236","gameCode":"20260808/LVAMIN","gameStatus":3,"gameStatusText":"Final","period":4,"gameClock":"","gameTimeUTC":"2026-08-08T17:00:00Z","gameEt":"2026-08-08T13:00:00Z","regulationPeriods":4,"ifNecessary":false,"seriesGameNumber":"","gameLabel":"","gameSubLabel":"","seriesText":"",
+
+--- nba-cdn-league10
+    https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json
+    bare: HTTP 403 text/html -> no (HTTP 403)
+    hdrs: HTTP 200 application/octet-stream -> VIABLE (1 game-shaped entries (ct=application/octet-stream))
+          sample: {"gameId":"1042000403","gameCode":"20201006/LVASEA","gameStatus":2,"gameStatusText":"inprogress","period":1,"gameClock":"PT04M15.00S","gameTimeUTC":"2020-10-06T23:00:00Z","gameEt":"2020-10-06T19:00:00-04:00","regulationPeriods":4,"seriesGameNumber":null,"seriesText":null,"homeTeam":{"teamId":1611661
+
+--- wnba-data-legacy
+    https://data.wnba.com/data/10s/prod/v1/20260808/scoreboard.json
+    bare: HTTP 403 application/xml -> no (HTTP 403)
+    hdrs: HTTP 403 application/xml -> no (HTTP 403)
+
+--- wnba-stats-sbv2
+    https://stats.wnba.com/stats/scoreboardv2?GameDate=08%2F08%2F2026&LeagueID=10&DayOffset=0
+    bare: threw — The operation was aborted due to timeout
+    hdrs: HTTP 200 application/json; charset=utf-8 -> VIABLE (3 game-shaped entries (ct=application/json; charset=utf-8))
+          sample: ["2026-08-08T00:00:00",1,"1022600236",3,"Final","20260808/LVAMIN",1611661324,1611661319,"2026",4,"     ","Paramount+",null,null,"Q4       - Paramount+","Target Center",1,0]
+
+--- wnba-cdn-sched
+    https://cdn.wnba.com/static/json/staticData/scheduleLeagueV2_10.json
+    bare: HTTP 200 text/plain -> VIABLE (121 game-shaped entries (ct=text/plain))
+          sample: {"gameDate":"04/25/2026 00:00:00","games":[{"gameId":"1012600001","gameCode":"20260425/INDNYL","gameStatus":3,"gameStatusText":"Final","gameSequence":1,"gameDateEst":"2026-04-25T00:00:00Z","gameTimeEst":"1900-01-01T15:00:00Z","gameDateTimeEst":"2026-04-25T15:00:00Z","gameDateUTC":"2026-04-25T04:00:0
+    hdrs: HTTP 200 text/plain -> VIABLE (121 game-shaped entries (ct=text/plain))
+          sample: {"gameDate":"04/25/2026 00:00:00","games":[{"gameId":"1012600001","gameCode":"20260425/INDNYL","gameStatus":3,"gameStatusText":"Final","gameSequence":1,"gameDateEst":"2026-04-25T00:00:00Z","gameTimeEst":"1900-01-01T15:00:00Z","gameDateTimeEst":"2026-04-25T15:00:00Z","gameDateUTC":"2026-04-25T04:00:0
+
+--- CONTROL-nba-cdn
+    https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json
+    bare: HTTP 403 text/html -> no (HTTP 403)
+    hdrs: HTTP 200 text/plain -> VIABLE (0 game-shaped entries (ct=text/plain))
+          sample: null
+
+=== VERDICT ===
+Viable candidates: wnba-cdn-live [bare], wnba-cdn-live [hdrs], nba-cdn-league10 [hdrs], wnba-stats-sbv2 [hdrs], wnba-cdn-sched [bare], wnba-cdn-sched [hdrs]
+Next: Task 2 of CC-CMD-2026-08-09-wnba-secondary-source.
