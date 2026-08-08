@@ -14031,7 +14031,13 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             // this is a new minimal one rather than a duplicate of an existing
             // pattern. 30/min: high enough that a probe loop over a page list is not
             // throttled, low enough that a runaway caller cannot generate meaningful
-            // egress cost before it is noticed. Keyed per authenticated caller-minute.
+            // egress cost before it is noticed.
+            //
+            // GLOBAL per minute, not per caller -- the key carries no caller identity.
+            // That is honest rather than ideal: auth is a single shared token, so
+            // there is exactly one caller and the distinction is currently moot. If a
+            // second credential is ever issued, this key MUST gain a caller component
+            // first, or one caller will throttle the other.
             const RL_MAX = 30;
             const rlKey = `webfetch:rl:${new Date().toISOString().slice(0, 16)}`;
             if (env.FIELD_JOURNALISM) {

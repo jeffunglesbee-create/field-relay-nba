@@ -36,7 +36,10 @@ deliberately so.
   `localhost`, so it cannot reach this relay's own internal routes.
 - **2 MB cap**, enforced by reading in chunks and aborting past it — not
   by trusting `content-length`, which an upstream can omit or lie about.
-- **30 req/min**: high enough not to throttle a real probe loop, low
+- **30 req/min, GLOBAL not per-caller** (the key carries no caller identity;
+  auth is a single shared token, so there is one caller and the distinction
+  is moot today — but a second credential would require adding one first).
+  High enough not to throttle a real probe loop, low
   enough to bound runaway egress cost.
 - **10 min cache TTL**: re-reading a page while working is free; a page
   that really changed is not masked for long.
