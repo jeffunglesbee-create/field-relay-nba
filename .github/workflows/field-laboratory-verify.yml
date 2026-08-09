@@ -93,7 +93,13 @@ jobs:
               'path':'docs/mcp-access-confirmed.md',
               'repo':'field-laboratory',
               'content':'# field-laboratory\n\nFIELD Handoff MCP write access confirmed by\nCC-CMD-2026-08-09-create-field-laboratory-repo Task 5.\n',
-              'message':'chore: confirm FIELD Handoff MCP access to field-laboratory',
+              # commit_message, NOT message. The first run of this probe sent
+              # `message` and got "Required: path, content, commit_message" back
+              # for steps 2 and 5 -- argument validation, before any routing or
+              # allowlist logic ran. Step 5's FAIL therefore did NOT show the
+              # write succeeding; it showed the call never reached the check.
+              # Schema read from src/index.js: required ['path','content','commit_message'].
+              'commit_message':'chore: confirm FIELD Handoff MCP access to field-laboratory',
           }})
           print(f"HTTP {st}\n{body[:600]}\n")
           record('step2_commit_file', st == 200 and 'field-laboratory' in body and 'field-relay-nba' not in body,
@@ -144,7 +150,7 @@ jobs:
               'path':'GOVERNANCE-PROBE.md',
               'repo':'field-laboratory',
               'content':'this write must be rejected',
-              'message':'chore: governance probe (expected to fail)',
+              'commit_message':'chore: governance probe (expected to fail)',
           }})
           print(f"HTTP {st}\n{body[:500]}\n")
           record('step5_allowlist_enforced', 'WRITE_ALLOWLIST' in body,
