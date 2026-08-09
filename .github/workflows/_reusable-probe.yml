@@ -1,0 +1,107 @@
+name: Reusable Probe Runner
+
+# PORTED from field-playground/.github/workflows/_reusable-probe.yml
+# (CC-CMD-2026-08-09-create-field-laboratory-repo, Task 6), fetched from that
+# repo at 2026-08-09T20:08:33Z rather than reconstructed -- the CC-CMD is
+# explicit that the upstream file is the source of truth, not a summary of it.
+# Mechanism is unchanged: checkout, tolerant execution, race-safe commit.
+#
+# One difference from this repo's own convention is deliberate and left alone:
+# the retry loop below does `git push` first and rebases only on failure,
+# whereas field-relay-nba's other probes fetch+rebase before every attempt.
+# Porting "unchanged in mechanism" means not quietly improving it here; a
+# change to the retry shape belongs in its own commit against both copies.
+#
+# CALLER REQUIREMENT (verified, not assumed): a calling workflow must declare
+# its own `permissions: contents: write`. A reusable workflow can only NARROW
+# what its caller grants, never widen it, so the block below is insufficient
+# on its own. probe-template-selftest.yml in this repo is the worked example.
+#
+# Called by any future one-off diagnostic workflow via `workflow_call`,
+# instead of being hand-copied and re-authored each time. Built directly
+# in response to a real failure: the field-laboratory repo-creation probe
+# cost four separate dispatch-wait-diagnose cycles, and both root causes
+# were mistakes every OTHER probe workflow in this repo already avoids --
+# missing `actions/checkout` (so there was no git repo to commit into) and
+# missing `continue-on-error` (so a step failing before writing output
+# silently produced nothing to inspect). Neither was a new problem; both
+# were solved problems this specific workflow didn't reuse the solution for.
+#
+# USAGE from a calling workflow:
+#
+#   jobs:
+#     my-probe:
+#       uses: ./.github/workflows/_reusable-probe.yml
+#       with:
+#         script: scripts/my-new-probe.mjs
+#         commit_message: "chore: my probe result"
+#
+# The called script is expected to write its own output under outbox/,
+# using its own timestamped filename -- this template does not assume
+# anything about the probe's own logic, only that checkout, tolerant
+# execution, and a race-safe commit are correctly wired around it.
+
+on:
+  workflow_call:
+    inputs:
+      script:
+        required: true
+        type: string
+        description: "Path to the probe script to run, e.g. scripts/foo.mjs"
+      commit_message:
+        required: false
+        type: string
+        default: "chore: probe result [skip ci]"
+      node_version:
+        required: false
+        type: string
+        default: "22"
+
+permissions:
+  contents: write
+
+jobs:
+  run-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Mistake #1 from the field-laboratory diagnostic: this step was
+      # entirely missing on the first three attempts. Without it the
+      # runner's working directory is never a real git repo, so every
+      # later `git` command fails regardless of anything else -- and
+      # the failure looks identical to a real script bug from the
+      # outside, costing real diagnostic time to tell apart.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      # Mistake #2: without this, a script that fails before writing
+      # any output leaves the commit step with nothing real to stage --
+      # which reads identically to "the script ran and found nothing,"
+      # not "the script never got the chance to write anything." Every
+      # other probe in this repo already sets this; this template makes
+      # it structural instead of something to remember per-script.
+      - name: Run probe
+        continue-on-error: true
+        run: node "${{ inputs.script }}"
+
+      # The proven commit-with-retry shape, identical to the one already
+      # fixed for deploy.yml's own verify job on 2026-08-06 -- a lost
+      # race against a concurrent writer must not fail the run; a real
+      # permission failure must still fail loudly, not be swallowed.
+      - name: Commit result
+        if: always()
+        run: |
+          git config user.name "reusable-probe-bot"
+          git config user.email "actions@github.com"
+          git add outbox/
+          git diff --cached --quiet && exit 0
+          git commit -m "${{ inputs.commit_message }}"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
