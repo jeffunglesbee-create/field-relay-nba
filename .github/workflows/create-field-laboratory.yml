@@ -1,0 +1,137 @@
+name: Create field-laboratory repo
+# CC-CMD-2026-08-09-create-field-laboratory-repo, Task 2.
+#
+# The one empirical question: does RELAY_GH_PAT carry repo-CREATION scope?
+# It is proven to authenticate for reads (deploy.yml's verify job) and to push
+# to another repo (deploy-health-protocol.yml pushes to health-protocol.git),
+# but neither of those implies `POST /user/repos`. The default GITHUB_TOKEN was
+# already proven insufficient: HTTP 403, "Resource not accessible by
+# integration".
+#
+# This has to run in CI because the secret is not readable from a session
+# sandbox. It is dispatch-only -- creating a repo is not something that should
+# ever fire on a push.
+#
+# The response is COMMITTED whatever it is. A 403 is the answer to the
+# question, not a failure to be swallowed: the CC-CMD says to report the exact
+# response and stop, which is impossible if the step dies without writing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type CREATE to actually call POST /user/repos. Anything else does a scope check only.'
+        required: true
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      # checkout first: the diagnostic this CC-CMD came from burned two
+      # dispatch cycles on a workflow that had no checkout and so could not
+      # commit its own output.
+      - uses: actions/checkout@v4
+
+      - name: Probe scope, then create
+        id: create
+        continue-on-error: true
+        env:
+          PAT: ${{ secrets.RELAY_GH_PAT }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error, datetime
+
+          PAT     = os.environ["PAT"]
+          CONFIRM = (os.environ.get("CONFIRM") or "").strip()
+          TS      = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+          out     = {"ts": TS, "confirm": CONFIRM}
+
+          def call(method, url, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(url, data=data, method=method, headers={
+                  "Authorization": f"Bearer {PAT}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "field-relay-nba-cc",
+                  **({"Content-Type": "application/json"} if data else {}),
+              })
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return r.status, dict(r.headers), r.read().decode()
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers), e.read().decode()
+
+          # 1. Who is this token, and what scopes does GitHub say it carries?
+          #    x-oauth-scopes is authoritative for a classic PAT and empty for a
+          #    fine-grained one -- which is itself informative, so it is
+          #    recorded either way rather than interpreted here.
+          st, hdrs, body = call("GET", "https://api.github.com/user")
+          who = json.loads(body) if st == 200 else {}
+          out["identity"] = {
+              "status": st,
+              "login": who.get("login"),
+              "x_oauth_scopes": hdrs.get("x-oauth-scopes"),
+              "x_accepted_oauth_scopes": hdrs.get("x-accepted-oauth-scopes"),
+          }
+
+          # 2. Does the name already exist? A 422 on create is ambiguous, so ask
+          #    first and record the answer separately (CC-CMD Task 2's third case).
+          st2, _, body2 = call("GET", "https://api.github.com/repos/jeffunglesbee-create/field-laboratory")
+          out["preexisting"] = {"status": st2, "exists": st2 == 200}
+
+          if CONFIRM != "CREATE":
+              out["created"] = {"skipped": "confirm input was not CREATE"}
+          elif st2 == 200:
+              out["created"] = {"skipped": "repo already exists; not calling POST /user/repos"}
+          else:
+              st3, _, body3 = call("POST", "https://api.github.com/user/repos", {
+                  "name": "field-laboratory",
+                  "private": True,
+                  "auto_init": True,
+              })
+              try:
+                  parsed = json.loads(body3)
+              except Exception:
+                  parsed = {"raw": body3[:400]}
+              out["created"] = {
+                  "status": st3,
+                  "message": parsed.get("message"),
+                  "full_name": parsed.get("full_name"),
+                  "private": parsed.get("private"),
+                  "html_url": parsed.get("html_url"),
+                  "default_branch": parsed.get("default_branch"),
+                  "errors": parsed.get("errors"),
+              }
+
+          os.makedirs("outbox", exist_ok=True)
+          path = f"outbox/create-field-laboratory-{TS}.json"
+          with open(path, "w") as f:
+              json.dump(out, f, indent=2)
+          print(json.dumps(out, indent=2))
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"RESULT_PATH={path}\n")
+          PY
+
+      - name: Commit the result
+        # always(): the 403 case is the answer this dispatch exists to obtain.
+        # Committing only on success would discard exactly the evidence the
+        # CC-CMD asks to be reported verbatim.
+        if: always()
+        run: |
+          git config user.email "create-field-laboratory@field"
+          git config user.name "FIELD CI"
+          git add outbox/create-field-laboratory-*.json || echo "(nothing to stage)"
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "chore: field-laboratory creation attempt result [skip ci]"
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q && git rebase origin/main -q && git push origin main && exit 0
+            echo "push attempt $i failed, retrying"
+            sleep $((i * 3))
+          done
+          echo "::error::result could not be pushed after 5 attempts"
+          exit 1
