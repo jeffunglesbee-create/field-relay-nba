@@ -1,0 +1,7 @@
+=== cfl-archive-verify  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-09T12:31:28.488Z ===
+source: 93 games  complete=47  not-complete=46
+cron window: 2026-08-08, 2026-08-09  completed games in window: 3
+probe failed: Error: d1 exec failed: HTTP 500 {"ok":false,"error":"D1_ERROR: no such column: source_id at offset 60: SQLITE_ERROR"}
+    at d1 (file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/cfl-archive-verify.mjs:41:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/cfl-archive-verify.mjs:89:20
