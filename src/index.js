@@ -7704,6 +7704,81 @@ async function handleJournalismCycle(env, opts = {}) {
         console.log(`[ARCHIVE-YDAY] ${_ydayFilled} yesterday finals gap-filled`);
       }
     } catch (e) { console.error("[ARCHIVE-YDAY] yesterday catch-up failed:", e.message); /* yesterday catch-up failure never breaks journalism */ }
+    // ── CFL ARCHIVE COLLECTION ───────────────────────────────────────────
+    // CC-CMD-2026-08-08-cfl-archive-collection.
+    //
+    // Deliberately NOT a LEAGUES row. LEAGUES drives an ESPN scoreboard fetch,
+    // and ESPN's football/cfl route returns STALE 2022 season data as a real,
+    // fully-populated HTTP 200. Adding CFL there would archive four-year-old
+    // games as current -- worse than the present absence, not a partial fix.
+    // The live source this relay already proxies is used instead.
+    //
+    // Shape re-probed at execution time (2026-08-09, CF-Worker egress) rather
+    // than trusted from the CC-CMD: root is a BARE ARRAY of rounds, games nest
+    // under rounds[].tournaments[]. Not a `games` or `fixtures` key.
+    //
+    // THE TRAP, and the reason this gates on status rather than on score:
+    // homeSquad.score is non-null on 100% of records INCLUDING unplayed
+    // fixtures, which carry 0 rather than null. A writer gating on "is a score
+    // present" would archive every scheduled game as a phantom 0-0 final --
+    // structurally the same failure class as ESPN's stale data, just disguised.
+    // Gate is `status === 'complete'`, which agreed with `winner != null` on
+    // every measured record.
+    try {
+      const cflResp = await fetch('https://cflscoreboard.cfl.ca/json/scoreboard/rounds.json', {
+        cf: { cacheTtl: 300, cacheEverything: true,
+              cacheKey: 'https://cflscoreboard.cfl.ca/json/scoreboard/rounds.json' },
+      });
+      if (!cflResp.ok) throw new Error(`cflscoreboard HTTP ${cflResp.status}`);
+      const rounds = await cflResp.json();
+      if (!Array.isArray(rounds)) throw new Error('cflscoreboard root was not an array');
+
+      const cflRelayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
+      // Only yesterday and today: this runs every 15 minutes, and re-POSTing the
+      // entire season (93 games) on every cycle would be a pointless write
+      // amplification. /archive/game upserts, so a repeat within the window is
+      // harmless; the whole back-catalogue is not this cron's job.
+      const _cflToday = new Date().toISOString().slice(0, 10);
+      const _cflYday  = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      let _cflWritten = 0;
+
+      for (const round of rounds) {
+        for (const t of (round?.tournaments || [])) {
+          if (t?.status !== 'complete') continue;          // THE GATE
+          const gameDate = String(t.date || '').slice(0, 10);
+          if (gameDate !== _cflToday && gameDate !== _cflYday) continue;
+
+          await fetch(cflRelayBase + '/archive/game', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              // 'CFL' matches this project's sponsor-neutral, stable label
+              // convention (the same reasoning that chose 'EFL Cup' over
+              // 'Carabao Cup' this week). It persists into the archive sport
+              // column and leads the archive id, so it must not churn.
+              sport: 'CFL',
+              league: 'CFL',
+              date: gameDate,
+              home: t.homeSquad?.name || '',
+              away: t.awaySquad?.name || '',
+              home_score: t.homeSquad?.score ?? null,
+              away_score: t.awaySquad?.score ?? null,
+              // NULL, explicitly. A full key search at every depth of this
+              // payload found no venue anywhere. Writing a placeholder or
+              // guessing a stadium would be a Rule 2 violation.
+              venue: null,
+              start_time: t.date || null,
+              source_id: t.id ? String(t.id) : null,
+            }),
+          }).catch((e) => { console.error('[ARCHIVE-CFL] write failed, will retry next cycle:', e.message); });
+          _cflWritten++;
+        }
+      }
+      if (_cflWritten > 0) console.log(`[ARCHIVE-CFL] ${_cflWritten} completed CFL game(s) archived`);
+    } catch (e) {
+      // Rule 5: archive failure must never break journalism.
+      console.error('[ARCHIVE-CFL] CFL collection failed:', e.message);
+    }
 
     // 2. Context hash — skip if unchanged
     const contextHash = gameLines.join('|').split('').reduce((h,c)=>(Math.imul(31,h)+c.charCodeAt(0))|0,0).toString(16);
