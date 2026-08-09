@@ -165,3 +165,9 @@ The first run of the verify workflow (31284035345) died with
 It passed locally only because `node_modules` already existed in the
 working copy, so my local check proved less than it appeared to. Fixed by
 adding the install step and re-running, not by working around the import.
+
+## Confidence gate
+
+**96.** Forced-failure proven against the DEPLOYED relay, not asserted from code: `source=mlbam-statsapi`, count 15, with the normal path still `espn-wc` and the unauthenticated switch correctly ignored, all in one run. Held below 98 for two reasons stated in the body: shape parity was measured on one date and one sample game, and the `espnEventId: null` archive-dedup cost is disclosed but unmitigated.
+
+*(Backfilled 2026-08-09. The score was stated in session at execution time but never written into this doc. Chat is ephemeral; this file is the record, and a gate that exists only in scrollback is not a gate.)*

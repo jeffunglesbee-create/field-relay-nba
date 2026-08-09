@@ -99,3 +99,9 @@ analogy with the games and briefs tables. The real schema
 (`src/sync-reconciler.js`) names it `ts`. Fixed and re-run rather than
 dropped — the corrected pass produced the corroborating evidence quoted
 above, so dropping it would have cost a real finding.
+
+## Confidence gate
+
+**96.** Candidate 2 confirmed and candidates 1 and 3 refuted from raw D1 reads with a working control, corroborated independently by `change_log`. Held below 98 precisely because the 2026-08-05 miss remains unexplained -- it predates the recorded 403 window by more than a day, and I flagged that rather than widening the window to fit, which would have been the Rule 77 failure.
+
+*(Backfilled 2026-08-09. The score was stated in session at execution time but never written into this doc. Chat is ephemeral; this file is the record, and a gate that exists only in scrollback is not a gate.)*

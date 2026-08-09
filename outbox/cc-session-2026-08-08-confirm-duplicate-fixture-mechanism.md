@@ -118,3 +118,9 @@ CC-CMD forbids applying a fix.
 
 No fix applied. The only file change is the comment correction Task 2
 authorises. The 55 rows are untouched.
+
+## Confidence gate
+
+**98.** The finding rests on a 55-0 measurement across all 110 rows in every duplicate group, not on a sample or an inference. The only change made was the comment correction the CC-CMD authorises, and the diff was verified comment-only (0 non-comment lines). Not 99 because the id-scheme detection is structural (`instr(id, series_key)`) rather than an authoritative record of which writer produced each row.
+
+*(Backfilled 2026-08-09. The score was stated in session at execution time but never written into this doc. Chat is ephemeral; this file is the record, and a gate that exists only in scrollback is not a gate.)*

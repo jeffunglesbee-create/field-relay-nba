@@ -116,3 +116,9 @@ that exact unminified spacing cannot survive minification. The
 
 ## Outbox
 This file.
+
+## Confidence gate
+
+**97.** Both halves shipped and verified live end to end: relay returning `"league":"EFL Cup"` with real match data, and `eng.league_cup` present in the deployed client bundle. Held below 98 by one disclosed flaw of my own -- the companion `section: 'EFL Cup'` assertion was written against unminified spacing and reported NOT FOUND for a feature that had shipped correctly.
+
+*(Backfilled 2026-08-09. The score was stated in session at execution time but never written into this doc. Chat is ephemeral; this file is the record, and a gate that exists only in scrollback is not a gate.)*
