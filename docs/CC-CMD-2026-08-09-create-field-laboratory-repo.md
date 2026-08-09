@@ -118,6 +118,36 @@ for `field-laboratory` as a fourth valid value.
 - A real `get_archive_url` + fetch against `field-laboratory` returns
   the actual repo contents.
 
+## Task 6 — Port the reusable probe workflow template
+
+The repo-creation diagnostic that led to this CC-CMD cost four real
+dispatch-wait-diagnose cycles in field-playground before it worked, on
+two mistakes every other probe workflow in that repo already avoids —
+a missing `actions/checkout` step and a missing `continue-on-error`.
+A reusable template closing both was built and verified there
+(`field-playground/.github/workflows/_reusable-probe.yml`, confirmed
+working end to end via a real dispatch producing a real committed
+file, not just a green status).
+
+- Re-read that file directly — it is the real, current source of
+  truth, not this doc's summary of it.
+- Port it into `field-relay-nba/.github/workflows/_reusable-probe.yml`
+  unchanged in mechanism. Note one real difference to account for:
+  this repo's own `deploy.yml` verify job already established that a
+  caller workflow needs its own explicit `permissions: contents:
+  write` block (a reusable workflow can only narrow what its caller
+  grants, never widen it) — confirm this repo's own callers of the
+  template follow that same requirement, since it was the one real
+  bug found while building the original.
+- Verify with the same discipline the original used: a real, minimal
+  self-test script and caller workflow, dispatched for real, with the
+  actual committed output file read back — not assumed from a passing
+  CI status alone.
+- This repo's own `.github/workflows/` sits outside chat's write-
+  allowlist (by design), which is the real reason this had to be
+  written as a CC-CMD task rather than committed directly the way the
+  field-playground original was.
+
 ---
 
 ## Explicitly NOT in scope
@@ -136,5 +166,7 @@ for `field-laboratory` as a fourth valid value.
 
 `outbox/cc-session-2026-08-09-create-field-laboratory-repo.md`: the
 real Task 2 result (success or the exact failure reason), the real
-governance decision made in Task 3, and real, live confirmation the
-extended MCP tools can read and write `field-laboratory` end to end.
+governance decision made in Task 3, real, live confirmation the
+extended MCP tools can read and write `field-laboratory` end to end,
+and real confirmation the ported probe template produced a genuine
+committed file on dispatch.
