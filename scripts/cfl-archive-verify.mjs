@@ -87,7 +87,14 @@ const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().s
 
   // ── D1: every CFL row, no date predicate ────────────────────────────────
   const all = rows(await d1(
-    `SELECT id, date, sport, home, away, home_score, away_score, source_id, created_at
+    // NOTE the column: the /archive/game handler binds the POST body's
+    // `source_id` into `espn_event_id` (src/index.js, the regular_season_games
+    // INSERT). There is no `source_id` column -- the first run of this probe
+    // asked for one and got `D1_ERROR: no such column: source_id`. Same
+    // assumed-column-name mistake as `change_log.created_at` earlier in this
+    // sweep, so it is named here rather than silently corrected.
+    `SELECT id, date, sport, home, away, home_score, away_score,
+            espn_event_id AS source_id, created_at
        FROM regular_season_games WHERE sport = 'CFL' ORDER BY date`,
   ));
   console.log(`\nD1: ${all.length} CFL rows in regular_season_games`);
