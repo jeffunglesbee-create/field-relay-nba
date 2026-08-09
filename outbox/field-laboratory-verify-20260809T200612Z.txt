@@ -1,0 +1,44 @@
+=== field-laboratory MCP Live Verification [20260809T200612Z] ===
+Worker: https://field-relay-nba.jeffunglesbee.workers.dev
+
+--- STEP 1: read_file README.md repo=field-laboratory ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-laboratory\",\"path\":\"README.md\",\"sha\":\"fffcc62fe1871b33b9cfdc89285e43f42d86fffb\",\"size\":18,\"content\":\"# field-laboratory\"}"}]}}
+
+PASS step1_read_file: status=200, response references field-laboratory=True
+--- STEP 2: commit_file docs/mcp-access-confirmed.md ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Required: path, content, commit_message (all strings). Optional: parent_sha (string, required only when overwriting an existing file), repo."}],"isError":true}}
+
+FAIL step2_commit_file: status=200, references field-laboratory and NOT field-relay-nba
+--- STEP 3: get_archive_url + real fetch ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-laboratory\",\"url\":\"https://field-relay-nba.jeffunglesbee.workers.dev/repo/archive?exp=1786306272&sig=a4fca13977752730b6d0cf4aaa7c6da1e43dda67bf9ae6b1a492135f1665dfea&repo=field-laboratory\",\"expires_at\":1786306272,\"ttl_seconds\":300}"}]}}
+
+PASS step3_archive_fetch: url_present=True, bytes=280, gzip_magic=True
+--- STEP 4: invalid repo value must not silently route ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"GitHub read failed: 404 {\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/repos/contents#get-repository-content\",\"status\":\"404\"}"}],"isError":true}}
+
+PASS step4_invalid_repo_no_leak: status=200, leaked_other_repo=False
+--- STEP 5: root-level write must be REJECTED (no exemption) ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Required: path, content, commit_message (all strings). Optional: parent_sha (string, required only when overwriting an existing file), repo."}],"isError":true}}
+
+FAIL step5_allowlist_enforced: status=200, rejected_with_allowlist_error=False
+--- STEP 6: control, field-playground exemption intact ---
+HTTP 200
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"repo\":\"field-playground\",\"path\":\"README.md\",\"sha\":\"1cd04b9a05eecd79e4b064003409fda8890ef9d5\",\"size\":1930,\"content\":\"# field-playground\\n\\nFIELD's sandbox — **part of FIELD, and permanently separate from\\nproduc
+
+PASS step6_playground_control: status=200
+
+=== SUMMARY ===
+PASS  step1_read_file  -- status=200, response references field-laboratory=True
+FAIL  step2_commit_file  -- status=200, references field-laboratory and NOT field-relay-nba
+PASS  step3_archive_fetch  -- url_present=True, bytes=280, gzip_magic=True
+PASS  step4_invalid_repo_no_leak  -- status=200, leaked_other_repo=False
+FAIL  step5_allowlist_enforced  -- status=200, rejected_with_allowlist_error=False
+PASS  step6_playground_control  -- status=200
+
+RESULT: 4/6 passed
+FAILED: step2_commit_file, step5_allowlist_enforced
