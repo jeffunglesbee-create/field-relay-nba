@@ -164,7 +164,7 @@ async function relayOperation({ subsystem, operation, retryable = false, context
 // are simply inert there; docs/, src/, scripts/, .github/, CLAUDE.md exist
 // identically in both).
 const REPO_OWNER = 'jeffunglesbee-create';
-const REPO_NAMES = { 'jubilant-bassoon': 'jubilant-bassoon', 'field-relay-nba': 'field-relay-nba', 'field-playground': 'field-playground' };
+const REPO_NAMES = { 'jubilant-bassoon': 'jubilant-bassoon', 'field-relay-nba': 'field-relay-nba', 'field-playground': 'field-playground', 'field-laboratory': 'field-laboratory' };
 function repoApiFor(repoKey) {
     const name = REPO_NAMES[repoKey] || REPO_NAMES['jubilant-bassoon']; // default preserves all pre-existing callers' behavior
     return `https://api.github.com/repos/${REPO_OWNER}/${name}`;
@@ -16602,7 +16602,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         inputSchema: {
                             type: 'object',
                             properties: {
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: [],
                         },
@@ -16613,7 +16613,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         inputSchema: {
                             type: 'object',
                             properties: {
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: [],
                         },
@@ -16625,7 +16625,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             type: 'object',
                             properties: {
                                 limit: { type: 'number', description: 'Number of runs to return (default 3, max 5)' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: [],
                         },
@@ -16781,7 +16781,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             type: 'object',
                             properties: {
                                 path: { type: 'string', description: 'Repo-relative path, e.g. "src/index.js" or "index.html"' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path'],
                         },
@@ -16794,7 +16794,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             properties: {
                                 query: { type: 'string', description: 'Literal substring to search for, e.g. "function renderAll"' },
                                 max_results: { type: 'number', description: 'Max results to return (default 10, max 25)' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['query'],
                         },
@@ -16808,14 +16808,14 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                                 path:  { type: 'string', description: 'Repo-relative path' },
                                 start: { type: 'number', description: '1-indexed first line' },
                                 end:   { type: 'number', description: '1-indexed last line (inclusive)' },
-                                repo:  { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo:  { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path', 'start', 'end'],
                         },
                     },
                     {
                         name: 'commit_file',
-                        description: 'Create or replace one file in a repo (jubilant-bassoon, field-relay-nba, or field-playground; default jubilant-bassoon) and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), except field-playground, which accepts any path. To UPDATE an existing file, pass parent_sha (the sha returned by read_file/read_source) — a stale or missing parent_sha for an existing file is rejected to prevent blind overwrite. To CREATE a new file, omit parent_sha entirely; if the path already exists this is rejected (re-read and use parent_sha instead). Commit message is auto-prefixed with [skip ci].',
+                        description: 'Create or replace one file in a repo (jubilant-bassoon, field-relay-nba, field-playground, or field-laboratory; default jubilant-bassoon) and commit on main. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), except field-playground, which accepts any path (field-laboratory follows the standard allowlist -- see CC-CMD-2026-08-09-create-field-laboratory-repo Task 3). To UPDATE an existing file, pass parent_sha (the sha returned by read_file/read_source) — a stale or missing parent_sha for an existing file is rejected to prevent blind overwrite. To CREATE a new file, omit parent_sha entirely; if the path already exists this is rejected (re-read and use parent_sha instead). Commit message is auto-prefixed with [skip ci].',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -16823,14 +16823,14 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                                 content: { type: 'string', description: 'Full new file content (UTF-8)' },
                                 commit_message: { type: 'string', description: 'Commit message body; [skip ci] is added automatically' },
                                 parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path. Required to update an existing file; omit to create a new one.' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path', 'content', 'commit_message'],
                         },
                     },
                     {
                         name: 'commit_file_patch',
-                        description: 'Update an EXISTING file in a repo (jubilant-bassoon, field-relay-nba, or field-playground; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html, src/index.js) where round-tripping the whole body every edit is expensive. Each edit is {old_str, new_str}; old_str must occur exactly once in the file\'s current content (after any earlier edits in the same call have already been applied in-memory) or the ENTIRE request is rejected with no commit made -- all edits succeed or none do. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), same as commit_file, except field-playground, which accepts any path. parent_sha is always required (this tool never creates a new file -- use commit_file for that). Commit message is auto-prefixed with [skip ci].',
+                        description: 'Update an EXISTING file in a repo (jubilant-bassoon, field-relay-nba, field-playground, or field-laboratory; default jubilant-bassoon) via a list of find/replace edits, without sending the full file content -- for large files (index.html, src/index.js) where round-tripping the whole body every edit is expensive. Each edit is {old_str, new_str}; old_str must occur exactly once in the file\'s current content (after any earlier edits in the same call have already been applied in-memory) or the ENTIRE request is rejected with no commit made -- all edits succeed or none do. Path must be in WRITE_ALLOWLIST (docs/, HANDOFF.md, CODE_MAP.json), same as commit_file, except field-playground, which accepts any path (field-laboratory follows the standard allowlist -- see CC-CMD-2026-08-09-create-field-laboratory-repo Task 3). parent_sha is always required (this tool never creates a new file -- use commit_file for that). Commit message is auto-prefixed with [skip ci].',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -16849,7 +16849,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                                 },
                                 commit_message: { type: 'string', description: 'Commit message body; [skip ci] is added automatically' },
                                 parent_sha: { type: 'string', description: 'sha returned by the most recent read_file/read_source for this path. Always required.' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: ['path', 'edits', 'commit_message', 'parent_sha'],
                         },
@@ -16861,7 +16861,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             type: 'object',
                             properties: {
                                 ttl_seconds: { type: 'number', description: 'URL lifetime in seconds (default 300, max 900)' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default jubilant-bassoon (omit for pre-existing behavior).' },
                             },
                             required: [],
                         },
@@ -16874,7 +16874,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             properties: {
                                 workflow_file: { type: 'string', description: 'Workflow filename, e.g. "deploy.yml"' },
                                 ref: { type: 'string', description: 'Git ref to run against (default "main")' },
-                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground'], description: 'Target repo. Default field-relay-nba (the primary use case for this tool).' },
+                                repo: { type: 'string', enum: ['jubilant-bassoon', 'field-relay-nba', 'field-playground', 'field-laboratory'], description: 'Target repo. Default field-relay-nba (the primary use case for this tool).' },
                             },
                             required: ['workflow_file'],
                         },
