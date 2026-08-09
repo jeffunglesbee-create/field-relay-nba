@@ -135,8 +135,15 @@ const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().s
   }
 
   // Named separately because it is the specific trap the gate exists for.
-  const zeroZero = all.filter((r) => Number(r.home_score) === 0 && Number(r.away_score) === 0);
-  console.log(`0-0 rows: ${zeroZero.length}${zeroZero.length ? ' <- inspect, a real 0-0 CFL final is impossible' : ''}`);
+  // `r.home_score === 0`, NOT `Number(r.home_score) === 0`: Number(null) is 0,
+  // and the first run of this probe reported "0-0 rows: 2" for two rows whose
+  // scores are actually NULL. A null score is an unscored seed row, which is a
+  // different thing entirely from a phantom 0-0 final, and conflating them
+  // would have put a false alarm in the artifact this rule exists to produce.
+  const zeroZero = all.filter((r) => r.home_score === 0 && r.away_score === 0);
+  const nullScore = all.filter((r) => r.home_score == null && r.away_score == null);
+  console.log(`0-0 rows (phantom-final trap): ${zeroZero.length}${zeroZero.length ? ' <- inspect, a real 0-0 CFL final is impossible' : ''}`);
+  console.log(`null-score rows (unscored seeds, not phantoms): ${nullScore.length}`);
 
   console.log(`\n=== RESULT A1=${a1} A2=${a2} ===`);
   process.exit(a1 === 'PASS' && a2 === 'PASS' ? 0 : 1);
