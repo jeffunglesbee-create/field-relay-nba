@@ -1,0 +1,17 @@
+=== cfl-archive-verify  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-09T12:33:06.573Z ===
+source: 93 games  complete=47  not-complete=46
+cron window: 2026-08-08, 2026-08-09  completed games in window: 3
+
+D1: 5 CFL rows in regular_season_games
+  2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  null-null  src=null  created=2026-06-15 20:32:50
+  2026-06-06  Edmonton Elks @ Ottawa Redblacks  null-null  src=null  created=2026-06-15 20:32:50
+  2026-08-08  Ottawa RedBlacks @ Saskatchewan Roughriders  20-42  src=13419709  created=2026-08-09 00:16:12
+  2026-08-08  Edmonton Elks @ Montreal Alouettes  30-48  src=13419710  created=2026-08-09 00:16:13
+  2026-08-08  Hamilton Tiger-Cats @ BC Lions  24-27  src=13419711  created=2026-08-09 02:01:16
+
+A1 PASS: 3 CFL row(s) present for the window, against 3 completed source game(s).
+A2 PASS: all 5 CFL row(s) correspond to a source game with status='complete'. Zero phantom rows.
+0-0 rows (phantom-final trap): 0
+null-score rows (unscored seeds, not phantoms): 2
+
+=== RESULT A1=PASS A2=PASS ===
