@@ -1,0 +1,31 @@
+=== CFL seed-row backfill  utc=2026-08-10T02:53:07.323Z ===
+
+--- BEFORE ---
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  null-null  src=null
+   2026-06-06  Edmonton Elks @ Ottawa Redblacks  null-null  src=null
+   2026-08-08  Ottawa RedBlacks @ Saskatchewan Roughriders  20-42  src=13419709
+   2026-08-08  Edmonton Elks @ Montreal Alouettes  30-48  src=13419710
+   2026-08-08  Hamilton Tiger-Cats @ BC Lions  24-27  src=13419711
+
+--- SOURCE: 2 completed games on 2026-06-06 ---
+   Winnipeg Blue Bombers @ Calgary Stampeders  30-28  id=13419675
+   Edmonton Elks @ Ottawa RedBlacks  29-21  id=13419676
+
+--- WRITE ---
+   Winnipeg Blue Bombers @ Calgary Stampeders: HTTP 200 {"ok":true,"id":"CFL_2026-06-06_calgarystampeders_winnipegbluebombers","table":"regular_season_games","brief_captured":null}
+   Edmonton Elks @ Ottawa RedBlacks: HTTP 200 {"ok":true,"id":"CFL_2026-06-06_ottawaredblacks_edmontonelks","table":"regular_season_games","brief_captured":null}
+
+--- AFTER (done condition) ---
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  null-null  src=null
+   2026-06-06  Edmonton Elks @ Ottawa Redblacks  null-null  src=null
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  30-28  src=13419675
+   2026-06-06  Edmonton Elks @ Ottawa RedBlacks  29-21  src=13419676
+   2026-08-08  Ottawa RedBlacks @ Saskatchewan Roughriders  20-42  src=13419709
+   2026-08-08  Edmonton Elks @ Montreal Alouettes  30-48  src=13419710
+   2026-08-08  Hamilton Tiger-Cats @ BC Lions  24-27  src=13419711
+
+   null-score rows: 2  (must be 0)
+   0-0 phantom rows: 0  (must stay 0)
+   row count before/after: 5/7  (must be equal)
+
+=== RESULT: FAIL ===
