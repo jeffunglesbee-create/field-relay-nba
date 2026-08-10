@@ -1,0 +1,103 @@
+=== verify-duplicate-cleanup  utc=2026-08-10T02:58:04.501Z ===
+
+1. name-scheme + series_key + unscored, REPO-WIDE : 2   (must be 0)
+2. duplicate groups, REPO-WIDE                    : 82
+     2026-02-04  MLS  San Diego FC v Pumas  n=2
+     2026-02-11  MLS  Pumas v San Diego FC  n=2
+     2026-02-18  MLS  Atlético Ottawa v Nashville SC  n=2
+     2026-02-18  MLS  Defence Force Football Club v Philadelphia Union  n=2
+     2026-02-18  MLS  Real Club Deportivo España v Los Angeles Football Club  n=2
+     2026-02-19  MLS  Club Sport Cartaginés Deportiva S.A. v Vancouver Whitecaps FC  n=2
+     2026-02-19  MLS  O&M Fútbol Club v FC Cincinnati  n=2
+     2026-02-20  MLS  Academia de Futbol Sporting San Miguelito v LA Galaxy  n=2
+     2026-02-25  MLS  Los Angeles Football Club v Real Club Deportivo España  n=2
+     2026-02-25  MLS  Nashville SC v Atlético Ottawa  n=2
+     2026-02-26  MLS  FC Cincinnati v O&M Fútbol Club  n=2
+     2026-02-26  MLS  LA Galaxy v Academia de Futbol Sporting San Miguelito  n=2
+     2026-02-26  MLS  Vancouver Whitecaps FC v Club Sport Cartaginés Deportiva S.A.  n=2
+     2026-02-27  MLS  Philadelphia Union v Defence Force Football Club  n=2
+     2026-03-10  MLS  Philadelphia Union v Club América  n=2
+     2026-03-11  MLS  Los Angeles Football Club v Liga Deportiva Alajuelense  n=2
+     2026-03-11  MLS  Nashville SC v Inter Miami CF  n=2
+     2026-03-12  MLS  LA Galaxy v Mount Pleasant Football Academy  n=2
+     2026-03-12  MLS  San Diego FC v Toluca FC  n=2
+     2026-03-13  MLS  FC Cincinnati v Club Tigres  n=2
+     2026-03-13  MLS  Vancouver Whitecaps FC v Seattle Sounders FC  n=2
+     2026-03-18  MLS  Inter Miami CF v Nashville SC  n=2
+     2026-03-18  MLS  Liga Deportiva Alajuelense v Los Angeles Football Club  n=2
+     2026-03-19  MLS  Club América v Philadelphia Union  n=2
+     2026-03-19  MLS  Mount Pleasant Football Academy v LA Galaxy  n=2
+     2026-03-19  MLS  Seattle Sounders FC v Vancouver Whitecaps FC  n=2
+     2026-03-19  MLS  Toluca FC v San Diego FC  n=2
+     2026-03-20  MLS  Club Tigres v FC Cincinnati  n=2
+     2026-04-08  MLS  Los Angeles Football Club v Cruz Azul  n=2
+     2026-04-08  MLS  Nashville SC v Club América  n=2
+     2026-04-09  MLS  Club Tigres v Seattle Sounders FC  n=2
+     2026-04-09  MLS  Toluca FC v LA Galaxy  n=2
+     2026-04-14  MLS  Detroit City FC v Chicago Fire FC  n=2
+     2026-04-14  MLS  Louisville City FC v Austin FC  n=2
+     2026-04-14  MLS  New England Revolution v Rhode Island FC  n=2
+     2026-04-14  MLS  Westchester SC v New York City Football Club  n=2
+     2026-04-15  MLS  Charlotte FC v Charlotte Independence  n=2
+     2026-04-15  MLS  Chattanooga FC v Atlanta United  n=2
+     2026-04-15  MLS  Club América v Nashville SC  n=2
+     2026-04-15  MLS  Colorado Rapids v Union Omaha  n=2
+     2026-04-15  MLS  Colorado Springs Switchbacks v Sporting Kansas City  n=2
+     2026-04-15  MLS  Cruz Azul v Los Angeles Football Club  n=2
+     2026-04-15  MLS  D.C. United v One Knoxville SC  n=2
+     2026-04-15  MLS  FC Naples v Orlando City  n=2
+     2026-04-15  MLS  Red Bull New York v Pittsburgh Riverhounds SC  n=2
+     2026-04-15  MLS  Richmond Kickers v Columbus Crew  n=2
+     2026-04-15  MLS  Sacramento Republic FC v Minnesota United FC  n=2
+     2026-04-16  MLS  Houston Dynamo FC v El Paso Locomotive  n=2
+     2026-04-16  MLS  LA Galaxy v Toluca FC  n=2
+     2026-04-16  MLS  San Jose Earthquakes v Phoenix Rising FC  n=2
+     2026-04-16  MLS  Seattle Sounders FC v Club Tigres  n=2
+     2026-04-16  MLS  St. Louis CITY SC v FC Tulsa  n=2
+     2026-04-28  MLS  Charlotte FC v Atlanta United  n=2
+     2026-04-29  MLS  Columbus Crew v One Knoxville SC  n=2
+     2026-04-29  MLS  Nashville SC v Club Tigres  n=2
+     2026-04-29  MLS  New England Revolution v Orlando City  n=2
+     2026-04-29  MLS  Red Bull New York v New York City Football Club  n=2
+     2026-04-29  MLS  San Jose Earthquakes v Minnesota United FC  n=2
+     2026-04-30  MLS  Chicago Fire FC v St. Louis CITY SC  n=2
+     2026-04-30  MLS  Colorado Rapids v Colorado Springs Switchbacks  n=2
+     2026-04-30  MLS  Houston Dynamo FC v Louisville City FC  n=2
+     2026-04-30  MLS  Los Angeles Football Club v Toluca FC  n=2
+     2026-05-05  MLS  Toronto FC v Atlético Ottawa  n=2
+     2026-05-06  MLS  CF Montréal v Calgary Blizzard Soccer Club  n=2
+     2026-05-06  MLS  Club Tigres v Nashville SC  n=2
+     2026-05-07  MLS  Toluca FC v Los Angeles Football Club  n=2
+     2026-05-08  MLS  FC Supra du Québec v Woodbridge Strikers Soccer Club  n=2
+     2026-05-09  MLS  Forge FC v HFX Wanderers FC  n=2
+     2026-05-09  MLS  Pacific FC v Cavalry FC  n=2
+     2026-05-10  MLS  Inter Toronto FC v CS Saint-Laurent  n=2
+     2026-05-10  MLS  Vancouver FC v Langley United  n=2
+     2026-05-19  MLS  Orlando City v Atlanta United  n=2
+     2026-05-20  MLS  Columbus Crew v New York City Football Club  n=2
+     2026-05-20  MLS  St. Louis CITY SC v Houston Dynamo FC  n=2
+     2026-05-21  MLS  Colorado Rapids v San Jose Earthquakes  n=2
+     2026-07-08  MLS  CS Saint-Laurent v Forge FC  n=2
+     2026-07-08  MLS  FC Supra du Québec v Atlético Ottawa  n=2
+     2026-07-09  MLS  Vancouver FC v CF Montréal  n=2
+     2026-07-09  MLS  Vancouver Whitecaps FC v Cavalry FC  n=2
+     2026-07-12  MLS  CF Montréal v Vancouver FC  n=2
+     2026-07-12  MLS  Forge FC v CS Saint-Laurent  n=2
+     2026-07-14  MLS  Cavalry FC v Vancouver Whitecaps FC  n=2
+3. key-scheme rows repo-wide                      : 182
+   key-scheme rows in 2026-07-25..08-15           : 57   (was 57 before AND after the delete)
+
+4. the out-of-window dates the delete touched:
+   2026-09-01  NAME-ID  score=—  MLS_2026-09-01_forgefc_tbcaway
+   2026-09-01  KEY-ID   score=—  MLS_MLS-COM-00002V_SF-02_semifinals_2026-09-01
+   2026-09-01  KEY-ID   score=—  MLS_MLS-COM-00002V_SF-01_semifinals_2026-09-01
+   2026-09-15  NAME-ID  score=—  MLS_2026-09-15_tbchome_forgefc
+   2026-09-15  KEY-ID   score=—  MLS_MLS-COM-00002V_SF-02_semifinals_2026-09-15
+   2026-09-15  KEY-ID   score=—  MLS_MLS-COM-00002V_SF-01_semifinals_2026-09-15
+   2026-09-16  KEY-ID   score=—  MLS_MLS-COM-00002U_SF-01_semifinal_2026-09-16
+   2026-09-16  KEY-ID   score=—  MLS_MLS-COM-000007_MLS-MAT-000AFN_final_2026-09-16
+   2026-09-16  KEY-ID   score=—  MLS_MLS-COM-00002V_SF-01_semifinals_2026-09-16
+   2026-09-17  KEY-ID   score=—  MLS_MLS-COM-00002U_SF-02_semifinal_2026-09-17
+   2026-10-21  KEY-ID   score=—  MLS_MLS-COM-00002V_F-01_finals_2026-10-21
+
+=== RESULT: FAIL ===
