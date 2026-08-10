@@ -1,0 +1,107 @@
+{
+  "ts": "20260810T023504Z",
+  "jobs_status": 200,
+  "jobs": [
+    {
+      "name": "deploy",
+      "conclusion": "success",
+      "steps": [
+        {
+          "n": "Set up job",
+          "c": "success"
+        },
+        {
+          "n": "Run actions/checkout@v4",
+          "c": "success"
+        },
+        {
+          "n": "Is deployment configured?",
+          "c": "success"
+        },
+        {
+          "n": "Is the live site already on this commit?",
+          "c": "success"
+        },
+        {
+          "n": "Run actions/setup-dotnet@v4",
+          "c": "success"
+        },
+        {
+          "n": "Run actions/setup-node@v4",
+          "c": "success"
+        },
+        {
+          "n": "Build",
+          "c": "success"
+        },
+        {
+          "n": "Verify the built site before publishing it",
+          "c": "success"
+        },
+        {
+          "n": "Deploy",
+          "c": "success"
+        },
+        {
+          "n": "Confirm the deployed page actually serves",
+          "c": "success"
+        },
+        {
+          "n": "Post Run actions/setup-node@v4",
+          "c": "success"
+        },
+        {
+          "n": "Post Run actions/setup-dotnet@v4",
+          "c": "success"
+        },
+        {
+          "n": "Post Run actions/checkout@v4",
+          "c": "success"
+        },
+        {
+          "n": "Complete job",
+          "c": "success"
+        }
+      ]
+    }
+  ],
+  "log_tail_deploy": "(status 401)",
+  "paths": {
+    "/": {
+      "status": 200,
+      "bytes": 2424,
+      "server": "cloudflare",
+      "cf_ray": "a28b9aee0a6c69dc-DFW",
+      "content_type": "text/html"
+    },
+    "/index.html": {
+      "status": 200,
+      "bytes": 2424,
+      "server": "cloudflare",
+      "cf_ray": "a28b9af0ac44aefe-DFW",
+      "content_type": "text/html"
+    },
+    "/version.txt": {
+      "status": 200,
+      "bytes": 41,
+      "server": "cloudflare",
+      "cf_ray": "a28b9af2d85af06c-DFW",
+      "content_type": "text/plain"
+    },
+    "/STATUS.md": {
+      "status": 404,
+      "body": "",
+      "server": "cloudflare",
+      "cf_ray": "a28b9af4da826b2c-DFW",
+      "content_type": null
+    },
+    "/nope-404-check": {
+      "status": 404,
+      "body": "",
+      "server": "cloudflare",
+      "cf_ray": "a28b9af77ddf462f-DFW",
+      "content_type": null
+    }
+  },
+  "wrangler_toml": "# Cloudflare Worker serving the laboratory page as static assets.\n#\n# No `main` script: this is an assets-only Worker, which is all the page needs \u2014\n# the F# is compiled to JavaScript ahead of time and runs in the browser.\n#\n# public/ is assembled by scripts/build-site.mjs and is gitignored. Deploying\n# without running `npm run build` first would publish an empty directory, so the\n# deploy workflow always builds.\n\nname = \"field-laboratory\"\ncompatibility_date = \"2026-08-09\"\n\n[assets]\ndirectory = \"./public\"\n\n# Serves /index.html for a bare \"/\" and returns a real 404 for anything missing,\n# rather than silently rewriting unknown paths to the index \u2014 the page fetches\n# ./data/*.json, and a 404 masked as an HTML page would surface as a confusing\n# JSON parse error instead of a missing file.\nnot_found_handling = \"none\"\n"
+}
