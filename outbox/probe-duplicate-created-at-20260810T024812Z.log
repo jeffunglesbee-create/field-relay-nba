@@ -1,0 +1,10 @@
+=== duplicate created_at distribution  utc=2026-08-10T02:48:12.331Z ===
+
+--- created_at, to the minute ---
+   2026-06-30 19:27  n=56
+   2026-07-15 02:58  n=4
+
+   oldest=2026-06-30 19:27:03  newest=2026-07-15 02:58:18  total=60
+   created in the last 14 days: 0
+
+=== VERDICT: PROCEED -- every row predates the last 14 days; this is a historical import, so a one-time DELETE is a real cleanup ===
