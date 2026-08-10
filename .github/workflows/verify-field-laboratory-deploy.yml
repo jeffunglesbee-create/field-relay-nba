@@ -92,8 +92,21 @@ jobs:
               except Exception as e:
                   return None, f"ERROR {e}"
 
-          time.sleep(10)   # brief settle after deploy before hitting the edge
-          st, body = fetch(SITE + "/")
+          # POLL, don't sleep-and-hope. The first run of this probe slept 10s
+          # and got 404 with body "error code: 1042" -- a Cloudflare edge error
+          # during propagation, not a broken site: a later diagnostic found /
+          # serving 200 with 2424 bytes of text/html. A fixed sleep turned a
+          # transient into a reported failure, which is exactly the noise that
+          # gets a check distrusted. Retries until the edge settles, and records
+          # how many attempts it took so a slow deploy is visible rather than
+          # hidden.
+          attempts = 0
+          for attempts in range(1, 31):
+              st, body = fetch(SITE + "/")
+              if st == 200 and "FIELD Laboratory" in body:
+                  break
+              time.sleep(10)
+          out["site_attempts"] = attempts
           out["site"] = {
               "status": st,
               "bytes": len(body),
