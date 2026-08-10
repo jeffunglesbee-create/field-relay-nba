@@ -1,0 +1,21 @@
+=== duplicate-fixture-probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-10T02:58:46.922Z ===
+
+--- 1. duplicate groups by (sport, date, home, away), postseason_games ---
+   duplicate groups: 0
+
+--- 2. id scheme vs series_key presence, within duplicate groups ---
+
+   TALLY:
+     key-scheme ids                      : 0
+     name-scheme ids WITH a series_key   : 0   <- migration shape
+     name-scheme ids with NO series_key  : 0   <- seed-path shape
+   If nameNoKey is 0, the seed path is NOT producing these duplicates
+   and the CC-CMD hypothesis is refuted by the data, not by argument.
+
+--- 3. would (sport, date, home, away) dedupe ever merge two REAL games? ---
+   regular_season_games: 2 tuple(s) with 2+ scored rows carrying DIFFERENT scores
+      2026-07-16 PGA Tour null v null n=2 distinct_scores=2
+      2026-07-09 PGA Tour null v null n=2 distinct_scores=2
+   postseason_games: 0 tuple(s) with 2+ scored rows carrying DIFFERENT scores
+
+=== probe complete (read-only; no rows were modified) ===
