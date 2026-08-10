@@ -1,0 +1,81 @@
+{
+  "ts": "20260810T022407Z",
+  "tree_status": 200,
+  "paths": [
+    ".claude/settings.json",
+    ".config/dotnet-tools.json",
+    ".github/workflows/deploy.yml",
+    ".github/workflows/drift-sentinel.yml",
+    ".github/workflows/probe-url.yml",
+    ".github/workflows/status.yml",
+    ".github/workflows/verify.yml",
+    ".gitignore",
+    "README.md",
+    "STATUS.md",
+    "data/PROVENANCE.md",
+    "data/context-2026-05-15.json",
+    "data/games-2026-08-09.json",
+    "docs/CC-CMD-2026-08-09-dotnet-sdk-and-desk-scoreboard.md",
+    "docs/CC-CMD-2026-08-09-drift-sentinel-and-reactive-staleness.md",
+    "docs/CC-CMD-2026-08-09-fix-cloud-setup-and-scaffold-fable.md",
+    "docs/DEPLOY.md",
+    "docs/SETUP-SCRIPT.md",
+    "docs/UNITS-PROOF.md",
+    "docs/mcp-access-confirmed.md",
+    "index.html",
+    "outbox/cc-session-2026-08-09-dotnet-sdk-and-desk-scoreboard.md",
+    "outbox/cc-session-2026-08-09-drift-sentinel-and-reactive-staleness.md",
+    "outbox/cc-session-2026-08-09-fix-cloud-setup-and-scaffold-fable.md",
+    "outbox/drift-log.md",
+    "package-lock.json",
+    "package.json",
+    "scripts/build-site.mjs",
+    "scripts/checks.mjs",
+    "scripts/drift-check.mjs",
+    "scripts/install_dotnet.sh",
+    "scripts/install_pkgs.sh",
+    "scripts/render-check.mjs",
+    "scripts/serve.mjs",
+    "scripts/set-deploy-secret.sh",
+    "scripts/status.mjs",
+    "src/Desk.fs",
+    "src/Laboratory.fsproj",
+    "src/Program.fs",
+    "src/Scoreboard.fs",
+    "src/Units.fs",
+    "test/README.md",
+    "test/malformed-nested.json",
+    "wrangler.toml"
+  ],
+  "truncated": false,
+  "workflows_status": 200,
+  "workflows": [
+    {
+      "name": "deploy",
+      "path": ".github/workflows/deploy.yml",
+      "state": "active"
+    },
+    {
+      "name": "drift-sentinel",
+      "path": ".github/workflows/drift-sentinel.yml",
+      "state": "active"
+    },
+    {
+      "name": "probe-url",
+      "path": ".github/workflows/probe-url.yml",
+      "state": "active"
+    },
+    {
+      "name": "status",
+      "path": ".github/workflows/status.yml",
+      "state": "active"
+    },
+    {
+      "name": "verify",
+      "path": ".github/workflows/verify.yml",
+      "state": "active"
+    }
+  ],
+  "secrets_status": 200,
+  "secret_names": []
+}
