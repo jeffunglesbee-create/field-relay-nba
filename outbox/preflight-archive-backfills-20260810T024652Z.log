@@ -1,0 +1,109 @@
+=== preflight-archive-backfills  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-10T02:46:52.587Z ===
+
+--- A. archive gap: MLB/WNBA rows per date, 2026-07-30..2026-08-09 ---
+   2026-07-30  MLB  n=10
+   2026-07-30  WNBA  n=3
+   2026-07-31  MLB  n=15
+   2026-07-31  WNBA  n=3
+   2026-08-01  MLB  n=15
+   2026-08-01  WNBA  n=2
+   2026-08-02  MLB  n=15
+   2026-08-02  WNBA  n=4
+   2026-08-03  MLB  n=8
+   2026-08-03  WNBA  n=3
+   2026-08-04  MLB  n=15
+   2026-08-04  WNBA  n=1
+   2026-08-07  MLB  n=15
+   2026-08-07  WNBA  n=3
+   2026-08-08  MLB  n=15
+   2026-08-08  WNBA  n=3
+   2026-08-09  MLB  n=15
+   2026-08-09  WNBA  n=4
+   still-empty gap dates: ["2026-08-05","2026-08-06"]
+   all zero-days in window: ["2026-08-05","2026-08-06"]
+
+--- B. ESPN retention for the gap dates ---
+   20260805: HTTP 200, events=15
+   20260806: HTTP 200, events=11
+
+--- C. CFL rows (null-score seeds are the backfill target) ---
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  null-null  src=null
+   2026-06-06  Edmonton Elks @ Ottawa Redblacks  null-null  src=null
+   2026-08-08  Ottawa RedBlacks @ Saskatchewan Roughriders  20-42  src=13419709
+   2026-08-08  Edmonton Elks @ Montreal Alouettes  30-48  src=13419710
+   2026-08-08  Hamilton Tiger-Cats @ BC Lions  24-27  src=13419711
+   null-score rows (unscored seeds, not phantoms): 2
+
+--- D1. join safety: briefs referencing a stale name-scheme id ---
+   referenced stale rows: 0
+
+--- D2. the delete set, enumerated before anything is deleted ---
+   2026-08-04  MLS  Club de Fútbol Pachuca @ FC Cincinnati  id=MLS_2026-08-04_fccincinnati_clubdeftbolpachuca
+   2026-08-04  MLS  Atlas FC @ Columbus Crew  id=MLS_2026-08-04_columbuscrew_atlasfc
+   2026-08-05  MLS  Orlando City @ Club de Fútbol Monterrey Rayados, A.C.  id=MLS_2026-08-05_clubdeftbolmonterreyrayadosac_orlandocity
+   2026-08-05  MLS  Atlético de San Luis @ Inter Miami CF  id=MLS_2026-08-05_intermiamicf_atlticodesanluis
+   2026-08-05  MLS  Atlante FC @ Vancouver Whitecaps FC  id=MLS_2026-08-05_vancouverwhitecapsfc_atlantefc
+   2026-08-05  MLS  Real Salt Lake @ Club Tigres  id=MLS_2026-08-05_clubtigres_realsaltlake
+   2026-08-05  MLS  FC Juárez @ Minnesota United FC  id=MLS_2026-08-05_minnesotaunitedfc_fcjurez
+   2026-08-05  MLS  Pumas @ Charlotte FC  id=MLS_2026-08-05_charlottefc_pumas
+   2026-08-06  MLS  Club Santos Laguna @ New York City Football Club  id=MLS_2026-08-06_newyorkcityfootballclub_clubsantoslaguna
+   2026-08-06  MLS  Chivas de Guadalajara @ Los Angeles Football Club  id=MLS_2026-08-06_losangelesfootballclub_chivasdeguadalajara
+   2026-08-06  MLS  Seattle Sounders FC @ Toluca FC  id=MLS_2026-08-06_tolucafc_seattlesoundersfc
+   2026-08-06  MLS  Club Querétaro @ FC Dallas  id=MLS_2026-08-06_fcdallas_clubquertaro
+   2026-08-06  MLS  Club León @ Nashville SC  id=MLS_2026-08-06_nashvillesc_clublen
+   2026-08-07  MLS  Club de Fútbol Pachuca @ Columbus Crew  id=MLS_2026-08-07_columbuscrew_clubdeftbolpachuca
+   2026-08-07  MLS  Atlas FC @ Charlotte FC  id=MLS_2026-08-07_charlottefc_atlasfc
+   2026-08-07  MLS  Club Puebla @ Portland Timbers  id=MLS_2026-08-07_portlandtimbers_clubpuebla
+   2026-08-07  MLS  San Diego FC @ Club América  id=MLS_2026-08-07_clubamrica_sandiegofc
+   2026-08-07  MLS  Club Tijuana @ Austin FC  id=MLS_2026-08-07_austinfc_clubtijuana
+   2026-08-07  MLS  Philadelphia Union @ Cruz Azul  id=MLS_2026-08-07_cruzazul_philadelphiaunion
+   2026-08-07  MLS  Club Necaxa @ Chicago Fire FC  id=MLS_2026-08-07_chicagofirefc_clubnecaxa
+   2026-08-08  MLS  Club León @ Orlando City  id=MLS_2026-08-08_orlandocity_clublen
+   2026-08-08  MLS  FC Juárez @ Vancouver Whitecaps FC  id=MLS_2026-08-08_vancouverwhitecapsfc_fcjurez
+   2026-08-08  MLS  Minnesota United FC @ Club Tigres  id=MLS_2026-08-08_clubtigres_minnesotaunitedfc
+   2026-08-08  MLS  Pumas @ FC Cincinnati  id=MLS_2026-08-08_fccincinnati_pumas
+   2026-08-09  MLS  Club Querétaro @ Seattle Sounders FC  id=MLS_2026-08-09_seattlesoundersfc_clubquertaro
+   2026-08-09  MLS  New York City Football Club @ Cruz Azul  id=MLS_2026-08-09_cruzazul_newyorkcityfootballclub
+   2026-08-09  MLS  Club Necaxa @ Philadelphia Union  id=MLS_2026-08-09_philadelphiaunion_clubnecaxa
+   2026-08-09  MLS  Los Angeles Football Club @ Toluca FC  id=MLS_2026-08-09_tolucafc_losangelesfootballclub
+   2026-08-09  MLS  FC Dallas @ Chivas de Guadalajara  id=MLS_2026-08-09_chivasdeguadalajara_fcdallas
+   2026-08-09  MLS  Club de Fútbol Monterrey Rayados, A.C. @ Inter Miami CF  id=MLS_2026-08-09_intermiamicf_clubdeftbolmonterreyrayadosac
+   2026-08-09  MLS  Atlante FC @ Real Salt Lake  id=MLS_2026-08-09_realsaltlake_atlantefc
+   2026-08-10  MLS  Club Tijuana @ San Diego FC  id=MLS_2026-08-10_sandiegofc_clubtijuana
+   2026-08-10  MLS  Portland Timbers @ Club América  id=MLS_2026-08-10_clubamrica_portlandtimbers
+   2026-08-10  MLS  Club Puebla @ Austin FC  id=MLS_2026-08-10_austinfc_clubpuebla
+   2026-08-10  MLS  Atlético de San Luis @ Nashville SC  id=MLS_2026-08-10_nashvillesc_atlticodesanluis
+   2026-08-10  MLS  Club Santos Laguna @ Chicago Fire FC  id=MLS_2026-08-10_chicagofirefc_clubsantoslaguna
+   2026-08-11  MLS  Club de Fútbol Pachuca @ Charlotte FC  id=MLS_2026-08-11_charlottefc_clubdeftbolpachuca
+   2026-08-11  MLS  Pumas @ Columbus Crew  id=MLS_2026-08-11_columbuscrew_pumas
+   2026-08-12  MLS  Club León @ Inter Miami CF  id=MLS_2026-08-12_intermiamicf_clublen
+   2026-08-12  MLS  Atlético de San Luis @ Orlando City  id=MLS_2026-08-12_orlandocity_atlticodesanluis
+   2026-08-12  MLS  Vancouver Whitecaps FC @ Club Tigres  id=MLS_2026-08-12_clubtigres_vancouverwhitecapsfc
+   2026-08-12  MLS  FC Juárez @ Real Salt Lake  id=MLS_2026-08-12_realsaltlake_fcjurez
+   2026-08-12  MLS  Atlante FC @ Minnesota United FC  id=MLS_2026-08-12_minnesotaunitedfc_atlantefc
+   2026-08-12  MLS  Atlas FC @ FC Cincinnati  id=MLS_2026-08-12_fccincinnati_atlasfc
+   2026-08-12  MLS  FC Supra du Québec @ Atlético Ottawa  id=MLS_2026-08-12_atlticoottawa_fcsupraduqubec
+   2026-08-13  MLS  Chivas de Guadalajara @ Seattle Sounders FC  id=MLS_2026-08-13_seattlesoundersfc_chivasdeguadalajara
+   2026-08-13  MLS  Club Puebla @ San Diego FC  id=MLS_2026-08-13_sandiegofc_clubpuebla
+   2026-08-13  MLS  Club Necaxa @ New York City Football Club  id=MLS_2026-08-13_newyorkcityfootballclub_clubnecaxa
+   2026-08-13  MLS  Club Santos Laguna @ Philadelphia Union  id=MLS_2026-08-13_philadelphiaunion_clubsantoslaguna
+   2026-08-13  MLS  Club Querétaro @ Los Angeles Football Club  id=MLS_2026-08-13_losangelesfootballclub_clubquertaro
+   2026-08-13  MLS  FC Dallas @ Toluca FC  id=MLS_2026-08-13_tolucafc_fcdallas
+   2026-08-13  MLS  Nashville SC @ Club de Fútbol Monterrey Rayados, A.C.  id=MLS_2026-08-13_clubdeftbolmonterreyrayadosac_nashvillesc
+   2026-08-14  MLS  Club Tijuana @ Portland Timbers  id=MLS_2026-08-14_portlandtimbers_clubtijuana
+   2026-08-14  MLS  Austin FC @ Club América  id=MLS_2026-08-14_clubamrica_austinfc
+   2026-08-14  MLS  Chicago Fire FC @ Cruz Azul  id=MLS_2026-08-14_cruzazul_chicagofirefc
+   2026-09-01  MLS  CF Montréal @ Vancouver Whitecaps FC  id=MLS_2026-09-01_vancouverwhitecapsfc_cfmontral
+   2026-09-15  MLS  Vancouver Whitecaps FC @ CF Montréal  id=MLS_2026-09-15_cfmontral_vancouverwhitecapsfc
+   2026-09-16  MLS  Orlando City @ Columbus Crew  id=MLS_2026-09-16_columbuscrew_orlandocity
+   2026-09-17  MLS  St. Louis CITY SC @ Colorado Rapids  id=MLS_2026-09-17_coloradorapids_stlouiscitysc
+   2026-10-21  MLS  TBC Away @ TBC Home  id=MLS_2026-10-21_tbchome_tbcaway
+   delete-set count: 60
+
+=== VERDICTS ===
+  gapStillEmpty: "PROCEED"
+  espn: {"20260805":{"status":200,"events":15},"20260806":{"status":200,"events":11}}
+  espnServesGapDates: "PROCEED"
+  cflSeedRows: "PROCEED"
+  duplicateJoinSafety: "PROCEED"
+  duplicateDeleteSet: "PROCEED -- 60 rows"
