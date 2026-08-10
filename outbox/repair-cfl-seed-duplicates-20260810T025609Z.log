@@ -1,0 +1,47 @@
+=== repair-cfl-seed-duplicates  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-10T02:56:09.136Z ===
+
+--- 1. every CFL row, with its stored id and the id /archive/game WOULD build ---
+   2026-06-06  Winnipeg Blue Bombers    @ Calgary Stampeders       30-28  src=13419675
+        stored id : CFL_2026-06-06_calgarystampeders_winnipegbluebombers
+        route id  : CFL_2026-06-06_calgarystampeders_winnipegbluebombers   <- MATCH
+   2026-06-06  Edmonton Elks            @ Ottawa RedBlacks         29-21  src=13419676
+        stored id : CFL_2026-06-06_ottawaredblacks_edmontonelks
+        route id  : CFL_2026-06-06_ottawaredblacks_edmontonelks   <- MATCH
+   2026-06-06  Winnipeg Blue Bombers    @ Calgary Stampeders       —-—  src=NULL
+        stored id : cfl_2026-06-06_calgarysta_winnipegbl
+        route id  : CFL_2026-06-06_calgarystampeders_winnipegbluebombers   <- MISMATCH (this is why the upsert missed)
+   2026-06-06  Edmonton Elks            @ Ottawa Redblacks         —-—  src=NULL
+        stored id : cfl_2026-06-06_ottawaredb_edmontonel
+        route id  : CFL_2026-06-06_ottawaredblacks_edmontonelks   <- MISMATCH (this is why the upsert missed)
+   2026-08-08  Hamilton Tiger-Cats      @ BC Lions                 24-27  src=13419711
+        stored id : CFL_2026-08-08_bclions_hamiltontigercats
+        route id  : CFL_2026-08-08_bclions_hamiltontigercats   <- MATCH
+   2026-08-08  Edmonton Elks            @ Montreal Alouettes       30-48  src=13419710
+        stored id : CFL_2026-08-08_montrealalouettes_edmontonelks
+        route id  : CFL_2026-08-08_montrealalouettes_edmontonelks   <- MATCH
+   2026-08-08  Ottawa RedBlacks         @ Saskatchewan Roughriders 20-42  src=13419709
+        stored id : CFL_2026-08-08_saskatchewanroughriders_ottawaredblacks
+        route id  : CFL_2026-08-08_saskatchewanroughriders_ottawaredblacks   <- MATCH
+
+--- 2. briefs referencing a row in the delete set ---
+   referenced rows: 0
+
+--- 3. delete set ---
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  id=cfl_2026-06-06_calgarysta_winnipegbl  created=2026-06-15 20:32:50
+   2026-06-06  Edmonton Elks @ Ottawa Redblacks  id=cfl_2026-06-06_ottawaredb_edmontonel  created=2026-06-15 20:32:50
+   count: 2  (must be exactly 2)
+   meta.changes: 2
+
+--- DONE CONDITION ---
+   2026-06-06  Winnipeg Blue Bombers @ Calgary Stampeders  30-28  src=13419675
+   2026-06-06  Edmonton Elks @ Ottawa RedBlacks  29-21  src=13419676
+   2026-08-08  Hamilton Tiger-Cats @ BC Lions  24-27  src=13419711
+   2026-08-08  Edmonton Elks @ Montreal Alouettes  30-48  src=13419710
+   2026-08-08  Ottawa RedBlacks @ Saskatchewan Roughriders  20-42  src=13419709
+
+   null-score CFL rows: 0   (must be 0)
+   0-0 phantom rows:    0   (must be 0)
+   rows on 2026-06-06:  2   (must be 2 -- one per real fixture)
+   total CFL rows: 7 -> 5   (must be 5, i.e. the 2 rows this session added are gone)
+
+=== RESULT: PASS ===
