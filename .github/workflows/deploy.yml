@@ -804,6 +804,35 @@ jobs:
             && echo "✅ CLOUDFLARE_API_TOKEN synced to field-playground" \
             || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
 
+      # field-laboratory: verified 2026-08-10 to have a complete Fable->JS
+      # worker deploy (wrangler.toml + deploy.yml + src/*.fs) and an EMPTY
+      # Actions secret list -- so its deploy has been skipping for want of this
+      # one value, exactly as CC-CMD-2026-08-10-laboratory-secret-bootstrap says.
+      #
+      # Fails the step rather than warning, matching field-playground above and
+      # deliberately NOT jubilant-bassoon's warn-only shape: a silent failure
+      # here recreates precisely the state this fixes -- a deploy that looks
+      # configured and is not.
+      #
+      # Reuses steps.oidc.outputs.token. No second OIDC step, no second job:
+      # the job already declares permissions: id-token: write, and the Courier
+      # gates on the CALLER's repository claim (field-relay-nba is in
+      # ALLOWED_REPOS); the target repo is just a body parameter.
+      - name: BOOTSTRAP — Sync CLOUDFLARE_API_TOKEN to field-laboratory
+        continue-on-error: true
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\":\"field-laboratory\",\"name\":\"CLOUDFLARE_API_TOKEN\",\"value\":\"$CF_TOKEN\"}")
+          echo "Result: $RESULT"
+          echo "$RESULT" | grep -q '"ok":true' \
+            && echo "✅ CLOUDFLARE_API_TOKEN synced to field-laboratory" \
+            || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
+
 
   verify:
     needs: deploy
