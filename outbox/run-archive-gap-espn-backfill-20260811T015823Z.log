@@ -1,0 +1,60 @@
+=== archive-gap ESPN backfill  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-11T01:58:23.851Z ===
+
+--- GATE 0: current rows on the gap dates ---
+   (no rows -- the gap is intact)
+
+--- TASK 2: ESPN events per (date, league) ---
+   2026-08-05  MLB: events=15, completed=15
+   2026-08-05  WNBA: events=4, completed=4
+   2026-08-06  MLB: events=11, completed=11
+   2026-08-06  WNBA: events=3, completed=3
+
+--- TASK 3: POST /archive/game ---
+   2026-08-05 MLB  Blue Jays @ Astros  5-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_astros_bluejays","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Dodgers @ Cubs  6-7  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_cubs_dodgers","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Giants @ Rangers  0-6  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_rangers_giants","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Rays @ Rockies  4-0  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_rockies_rays","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Angels @ Orioles  2-5  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_orioles_angels","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Athletics @ Reds  2-3  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_reds_athletics","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Mets @ Guardians  6-5  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_guardians_mets","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Cardinals @ Yankees  3-1  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_yankees_cardinals","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Nationals @ Phillies  10-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_phillies_nationals","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  White Sox @ Red Sox  0-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_redsox_whitesox","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Marlins @ Braves  1-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_braves_marlins","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Pirates @ Brewers  2-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_brewers_pirates","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Twins @ Royals  1-2  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_royals_twins","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Tigers @ Mariners  2-4  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_mariners_tigers","table":"regular_season_games","brief_captured":null}
+   2026-08-05 MLB  Padres @ Diamondbacks  4-10  HTTP 200 {"ok":true,"id":"MLB_2026-08-05_diamondbacks_padres","table":"regular_season_games","brief_captured":null}
+   2026-08-05 WNBA  Mercury @ Dream  82-96  HTTP 200 {"ok":true,"id":"WNBA_2026-08-05_dream_mercury","table":"regular_season_games","brief_captured":null}
+   2026-08-05 WNBA  Storm @ Liberty  86-92  HTTP 200 {"ok":true,"id":"WNBA_2026-08-05_liberty_storm","table":"regular_season_games","brief_captured":null}
+   2026-08-05 WNBA  Wings @ Mystics  92-96  HTTP 200 {"ok":true,"id":"WNBA_2026-08-05_mystics_wings","table":"regular_season_games","brief_captured":null}
+   2026-08-05 WNBA  Sparks @ Sky  88-95  HTTP 200 {"ok":true,"id":"WNBA_2026-08-05_sky_sparks","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Angels @ Orioles  4-1  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_orioles_angels","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Athletics @ Reds  5-6  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_reds_athletics","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Mets @ Guardians  13-6  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_guardians_mets","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Pirates @ Brewers  2-5  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_brewers_pirates","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Blue Jays @ Cubs  2-3  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_cubs_bluejays","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Tigers @ Mariners  11-0  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_mariners_tigers","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Nationals @ Phillies  3-7  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_phillies_nationals","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  White Sox @ Red Sox  11-12  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_redsox_whitesox","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Marlins @ Braves  3-11  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_braves_marlins","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Twins @ Royals  4-3  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_royals_twins","table":"regular_season_games","brief_captured":null}
+   2026-08-06 MLB  Padres @ Diamondbacks  5-1  HTTP 200 {"ok":true,"id":"MLB_2026-08-06_diamondbacks_padres","table":"regular_season_games","brief_captured":null}
+   2026-08-06 WNBA  Aces @ Fever  86-84  HTTP 200 {"ok":true,"id":"WNBA_2026-08-06_fever_aces","table":"regular_season_games","brief_captured":null}
+   2026-08-06 WNBA  Sparks @ Lynx  89-82  HTTP 200 {"ok":true,"id":"WNBA_2026-08-06_lynx_sparks","table":"regular_season_games","brief_captured":null}
+   2026-08-06 WNBA  Tempo @ Fire  83-97  HTTP 200 {"ok":true,"id":"WNBA_2026-08-06_fire_tempo","table":"regular_season_games","brief_captured":null}
+
+   written=33  skipped=0
+
+--- DONE CONDITION ---
+   2026-08-05  MLB  n=15  scored=15
+   2026-08-05  WNBA  n=4  scored=4
+   2026-08-06  MLB  n=11  scored=11
+   2026-08-06  WNBA  n=3  scored=3
+   0-0 phantom rows: 0   (must be 0)
+   expect 2026-08-05 MLB: source had 15 completed -> archived n=15 scored=15  OK
+   expect 2026-08-05 WNBA: source had 4 completed -> archived n=4 scored=4  OK
+   expect 2026-08-06 MLB: source had 11 completed -> archived n=11 scored=11  OK
+   expect 2026-08-06 WNBA: source had 3 completed -> archived n=3 scored=3  OK
+
+=== RESULT: PASS ===
