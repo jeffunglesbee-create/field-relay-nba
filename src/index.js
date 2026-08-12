@@ -13625,14 +13625,43 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         const r2obj = await env.FIELD_DATA.get(`mlb/2026/${analyticsFile}`);
                         if (r2obj) {
                             const body = await r2obj.text();
-                            return new Response(body, {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Cache-Control': 'public, max-age=43200',
-                                    'X-Source': 'r2',
-                                    ...CORS
-                                }
-                            });
+                            // An object holding ZERO rows is not a usable
+                            // answer, so it must not count as a hit. Measured
+                            // 2026-08-12: R2 held pitch_arsenals.json with an
+                            // empty `data` while the GitHub fallback below had
+                            // 194 entries -- and because `if (r2obj)` tests
+                            // only for existence, the fallback could never
+                            // fire and the client's whole pitch-arsenal line
+                            // was missing for weeks.
+                            //
+                            // The writer no longer creates these (see
+                            // src/mlb-savant-r2.js, same session), but that
+                            // fix cannot un-poison an object already in the
+                            // bucket. This is what makes the endpoint
+                            // self-heal rather than requiring a manual R2
+                            // delete -- and it is a correctness fix, not a
+                            // band-aid across layers: the read and the write
+                            // are both this relay honouring one contract, and
+                            // "no usable data" is the right miss predicate,
+                            // not "no object".
+                            let _rowCount = null;
+                            try {
+                                const parsed = JSON.parse(body);
+                                const d = parsed?.data ?? parsed;
+                                _rowCount = (d && typeof d === 'object') ? Object.keys(d).length : null;
+                            } catch (_) { _rowCount = null; /* unparseable — treat as a miss too */ }
+                            if (_rowCount === 0 || _rowCount === null) {
+                                console.error(`[MLB-STATS-R2] ${analyticsFile} in R2 has ${_rowCount === null ? 'unparseable' : 'zero'} rows — falling through to GitHub raw`);
+                            } else {
+                                return new Response(body, {
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Cache-Control': 'public, max-age=43200',
+                                        'X-Source': 'r2',
+                                        ...CORS
+                                    }
+                                });
+                            }
                         }
                     } catch (e) { console.error("[MLB-STATS-R2] R2 read failed:", e.message); /* R2 miss — fall through to GitHub raw */ }
                 }
