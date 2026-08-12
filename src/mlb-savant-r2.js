@@ -215,6 +215,27 @@ export async function runMLBSavantUpdate(env) {
     try {
       const payload = await fn();
       const count = Object.keys(payload.data || {}).length;
+      // NEVER overwrite good data with nothing.
+      //
+      // This loop previously put unconditionally and reported ok:true even at
+      // count 0, so a parse that returned nothing silently replaced a
+      // populated table with an empty one. Measured 2026-08-12: the relay
+      // served /mlb-stats/pitch_arsenals.json with X-Source: r2 and 0 entries
+      // while its own GitHub fallback held 194 -- and because an empty object
+      // is a HIT, not a miss, the fallback could never fire. Client-side, the
+      // whole pitch-arsenal line went missing from every scouting report
+      // (gamesWithArsenal 0/15) while pitch_tempo, written by this same loop
+      // from the same source, was fine at 341.
+      //
+      // A zero-row Savant parse is a FAILURE, not a legitimate empty result:
+      // these leaderboards are never empty mid-season. Treating it as one is
+      // what made a transient fetch problem permanent. Savant blocking
+      // Cloudflare Worker IPs is documented in this repo for the umpire
+      // scrape and is the most likely cause here too.
+      if (count === 0) {
+        results[name] = { ok: false, error: 'empty payload — refusing to overwrite R2', count: 0 };
+        return;
+      }
       const json = JSON.stringify(payload);
       await env.FIELD_DATA.put(`mlb/${YEAR}/${name}.json`, json, {
         httpMetadata: { contentType: 'application/json' },
