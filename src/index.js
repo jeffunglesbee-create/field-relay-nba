@@ -69,6 +69,8 @@ import {
   hasCrossSportHallucination as jqHasCrossSport,
   _buildVoiceJudgePrompt,
   SCORING_ERAS,
+  eraForDate,
+  CURRENT_SCORING_ERA,
 } from './journalism-quality.js';
 
 // ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
@@ -12636,17 +12638,45 @@ export default {
             // same >=5-sample floor before trusting it over the flat 240
             // fallback used everywhere else in this file.
             const typeRows = await env.ARCHIVE_DB.prepare(
-                `SELECT brief_type, quality_score FROM briefs
+                `SELECT brief_type, date, quality_score FROM briefs
                  WHERE quality_score IS NOT NULL AND date >= date('now', '-30 days')
                  ORDER BY brief_type, quality_score`
             ).all();
+            // Calibrate WITHIN the current scoring era, not across a mixture.
+            //
+            // A percentile over a window spanning an era boundary is a
+            // percentile over two different instruments. That is not
+            // hypothetical: the 6aed3bb boundary moved mlb_game's mean 203.2 ->
+            // 135.4 with the prose unchanged (rescored delta +0.9), and two
+            // calibration rechecks burned themselves out asking whether the
+            // decline was real.
+            //
+            // The 2026-08-13 unit fix created a third era and the accepted
+            // answer was "wait ~30 days for the window to flush". That treats a
+            // stale cache as a fact of nature. SCORING_ERAS is now data, so the
+            // rows can simply be bucketed and the mixture stops mattering
+            // today.
+            //
+            // Falls back to the full window when the current era has fewer than
+            // the same >=5 samples the calibration already required — a p25
+            // over 2 briefs is worse than a p25 over a mixture. `era_scoped`
+            // says which happened, per type, so no reader has to infer it.
             const scoresByType = {};
+            const scoresByTypeCurrentEra = {};
             for (const row of (typeRows.results || [])) {
-                if (!scoresByType[row.brief_type]) scoresByType[row.brief_type] = [];
-                scoresByType[row.brief_type].push(row.quality_score);
+                (scoresByType[row.brief_type] ||= []).push(row.quality_score);
+                const { era, ambiguous } = eraForDate(row.date);
+                // Boundary-date rows are excluded rather than guessed: `date`
+                // has no time of day and era `from` does.
+                if (era === CURRENT_SCORING_ERA && !ambiguous) {
+                    (scoresByTypeCurrentEra[row.brief_type] ||= []).push(row.quality_score);
+                }
             }
             const briefTypeCalibration = {};
-            for (const [briefType, scores] of Object.entries(scoresByType)) {
+            for (const [briefType, allScores] of Object.entries(scoresByType)) {
+                const eraScores = scoresByTypeCurrentEra[briefType] || [];
+                const eraScoped = eraScores.length >= 5;
+                const scores = (eraScoped ? eraScores : allScores).slice();
                 if (scores.length < 5) continue; // not enough real data -- flat 240 fallback applies
                 scores.sort((a, b) => a - b);
                 briefTypeCalibration[briefType] = {
@@ -12654,6 +12684,9 @@ export default {
                     p50: scores[Math.floor(scores.length * 0.50)],
                     p75: scores[Math.floor(scores.length * 0.75)],
                     count: scores.length,
+                    era_scoped: eraScoped,
+                    era: eraScoped ? CURRENT_SCORING_ERA : null,
+                    window_count: allScores.length,
                 };
             }
             // Excellence threshold: 80% of 300 = 240 -- stays the fallback
@@ -12718,7 +12751,9 @@ export default {
                         brief_type: r.brief_type, sport: r.sport || 'all',
                         alert: r.avg_score < threshold ? 'avg_below_calibrated_p25' : 'high_failure_rate',
                         threshold,
-                        threshold_source: cal ? `brief_type_p25(n=${cal.count})` : 'flat_240_fallback',
+                        threshold_source: cal
+                            ? `brief_type_p25(n=${cal.count}${cal.era_scoped ? `,era${cal.era}` : ',mixed_eras'})`
+                            : 'flat_240_fallback',
                         avg_score: r.avg_score,
                         // Against `threshold`, so the three numbers in this
                         // object can no longer contradict each other.

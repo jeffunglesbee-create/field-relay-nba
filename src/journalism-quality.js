@@ -50,6 +50,37 @@ export const SCORING_ERAS = [
   },
 ];
 
+// Which scoring era a brief's stored score belongs to, from its `date`.
+//
+// Exists so `/quality/report` can calibrate WITHIN an era instead of across a
+// mixture of them. Without it, a 30-day percentile window spanning a boundary
+// is a percentile over two different instruments — the condition that made a
+// pure formula change read as a 68-point collapse in prose quality.
+//
+// `ambiguous` is set when the brief's date IS the boundary date: era `from`
+// timestamps carry a time of day but `briefs.date` does not, so same-day rows
+// cannot be attributed. They are excluded from era-scoped calibration rather
+// than guessed — a handful of rows is not worth a wrong bucket.
+//
+// This derives the era from a DATE, which is correct only while scores are
+// written at generation time. A backfill that rescores old text under a new
+// formula would break that assumption, which is why `briefs.scoring_version`
+// exists as the authoritative record; this function is the fallback for rows
+// written before that column did.
+export function eraForDate(dateStr) {
+  const d = String(dateStr || '').slice(0, 10);
+  if (!d) return { era: null, ambiguous: false };
+  let era = 1, ambiguous = false;
+  for (const e of SCORING_ERAS) {
+    const from = e.from.slice(0, 10);
+    if (d > from) era = e.era;
+    else if (d === from) { era = e.era; ambiguous = true; }
+  }
+  return { era, ambiguous };
+}
+
+export const CURRENT_SCORING_ERA = SCORING_ERAS[SCORING_ERAS.length - 1].era;
+
 export const BANNED_PHRASES = [
   'punch their ticket','the stage is set','make a statement',
   'facing a must-win','looking to bounce back','all eyes on',
