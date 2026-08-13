@@ -20,6 +20,10 @@ on:
         description: 'Probe script under scripts/ to run'
         required: false
         default: 'archive-gap-probe.mjs'
+      apply:
+        description: "Set to 'true' to let a write-capable script actually write. Anything else = dry run."
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -54,6 +58,11 @@ jobs:
         # `contents: write`. env passes it as data.
         env:
           SCRIPT_INPUT: ${{ inputs.script }}
+          # Scripts that can mutate D1 read APPLY and default to a dry run.
+          # Passed via env, never interpolated into the command line: a
+          # dispatch input is attacker-controllable by anyone who can dispatch,
+          # and this job holds `contents: write`.
+          APPLY_INPUT: ${{ inputs.apply }}
         run: |
           TS=$(date -u +%Y%m%dT%H%M%SZ)
           SCRIPT="${SCRIPT_INPUT:-archive-gap-probe.mjs}"
@@ -68,6 +77,8 @@ jobs:
           echo "TS=$TS" >> "$GITHUB_ENV"
           echo "NAME=$NAME" >> "$GITHUB_ENV"
           mkdir -p outbox
+          export APPLY="${APPLY_INPUT:-false}"
+          echo "apply=$APPLY"
           node "scripts/${SCRIPT}" 2>&1 | tee "outbox/${NAME}-${TS}.log"
           # tee returns the exit status of tee, so ask the pipeline explicitly.
           exit "${PIPESTATUS[0]}"
