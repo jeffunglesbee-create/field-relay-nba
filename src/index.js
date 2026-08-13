@@ -12660,24 +12660,73 @@ export default {
             // for any brief_type without enough real data to calibrate.
             // Enrichment types and golf (no context builder) stay excluded —
             // structural floor, not a tuning problem.
+            // CC-CMD-2026-08-13-jq-density-unit-fix TASK 2 — count failures
+            // against the SAME threshold the alert reports.
+            //
+            // `below_240` is SQL `quality_score < 240` (the summary query
+            // above), a hardcoded constant, while `threshold` is the
+            // calibrated p25. Using one to decide and the other to report
+            // produced 13 permanently-firing alerts whose own numbers
+            // contradict them — measured 2026-08-13, e.g. game_recap MLB with
+            // `threshold: 156, avg_score: 164.2, failure_pct: 100`: it clears
+            // its calibrated threshold on average and still reports total
+            // failure, because every score is under 240.
+            //
+            // 240 is not reachable on this path. Ceiling arithmetic from
+            // src/journalism-quality.js: 150 base + 45 arc + 25 context + 20
+            // temporal + 30 voice + 30 matchup = 300, but the relay path has
+            // no `opts.game` or `opts.matchupNote`, so Dims 7 and 10 are
+            // structurally N/A and the real ceiling is 245. Measured over
+            // n=592 mlb_game briefs: max stored score in the current scoring
+            // era is 179, and `above_240` is ZERO for every brief written
+            // since 6aed3bb. A threshold no brief can reach is not a quality
+            // gate, it is a stuck alarm.
+            //
+            // Scores are re-queried over the SUMMARY window rather than reusing
+            // `typeRows` (fixed 30 days) so the failure count and the average
+            // it sits beside describe the same set of briefs. `below_240` stays
+            // in `summary` untouched — it is a true statement about the data
+            // and other consumers may read it; it just no longer decides.
+            const failRows = await env.ARCHIVE_DB.prepare(
+                `SELECT brief_type, sport, quality_score FROM briefs
+                  WHERE quality_score IS NOT NULL AND date >= ?`
+            ).bind(since).all();
+            const scoresByTypeSport = {};
+            for (const row of (failRows.results || [])) {
+                const k = `${row.brief_type} ${row.sport || ''}`;
+                (scoresByTypeSport[k] ||= []).push(row.quality_score);
+            }
+            const failureCount = (briefType, sport, threshold) => {
+                const arr = scoresByTypeSport[`${briefType} ${sport || ''}`] || [];
+                return { below: arr.filter(s => s < threshold).length, n: arr.length };
+            };
+
             const alerts = summary
                 .filter(r => r.scored >= 3)
                 .filter(r => {
                     if (ENRICHMENT_TYPES.has(r.brief_type)) return false;
                     if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
                     const threshold = briefTypeCalibration[r.brief_type]?.p25 ?? 240;
-                    return r.avg_score < threshold || (r.below_240 / r.scored) > 0.2;
+                    const f = failureCount(r.brief_type, r.sport, threshold);
+                    return r.avg_score < threshold || (f.n > 0 && (f.below / f.n) > 0.2);
                 })
                 .map(r => {
                     const cal = briefTypeCalibration[r.brief_type];
                     const threshold = cal?.p25 ?? 240;
+                    const f = failureCount(r.brief_type, r.sport, threshold);
                     return {
                         brief_type: r.brief_type, sport: r.sport || 'all',
                         alert: r.avg_score < threshold ? 'avg_below_calibrated_p25' : 'high_failure_rate',
                         threshold,
                         threshold_source: cal ? `brief_type_p25(n=${cal.count})` : 'flat_240_fallback',
                         avg_score: r.avg_score,
-                        failure_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
+                        // Against `threshold`, so the three numbers in this
+                        // object can no longer contradict each other.
+                        failure_pct: f.n ? Math.round((f.below / f.n) * 100) : 0,
+                        // The old figure, kept and RENAMED so the distinction
+                        // is explicit rather than a silent change of meaning
+                        // for anyone reading this endpoint.
+                        below_flat_240_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
                     };
                 });
             const unscored = summary
