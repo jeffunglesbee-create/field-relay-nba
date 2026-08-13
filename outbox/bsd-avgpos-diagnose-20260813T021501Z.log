@@ -1,0 +1,41 @@
+  2026-08-13: 48 events, 1 played
+  2026-08-12: 31 events, 28 played
+  2026-08-11: 25 events, 21 played
+  2026-08-10: 16 events, 15 played
+
+candidates=65; probing 6
+
+event 207955 (2nd_half)  avgPos=404 statsHasAvgPositions=true (object{}, n=0)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+event 223324 (finished)  avgPos=404 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+event 207987 (finished)  avgPos=404 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+event 207962 (finished)  avgPos=404 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+event 207956 (finished)  avgPos=404 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+event 587659 (finished)  avgPos=404 statsHasAvgPositions=true (object{}, n=0)
+   body: {"error": true, "status": 404, "detail": "Not found"}
+
+=== SUMMARY ===
+{
+  "probed": 6,
+  "avgPosStatuses": [
+    404
+  ],
+  "allAvgPosFailed": true,
+  "anyAvgPosOk": false,
+  "distinctBodies": [
+    "{\"error\": true, \"status\": 404, \"detail\": \"Not found\"}"
+  ],
+  "statsCarriesAvgPositions": 6,
+  "statsAvgPosCounts": [
+    0,
+    2,
+    2,
+    2,
+    2,
+    0
+  ]
+}
