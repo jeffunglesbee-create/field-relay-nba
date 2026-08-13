@@ -591,11 +591,20 @@ Consequences:
   `parsed.average_positions` from `/stats/`, same shape as the R2 object.
   Returns `{}` during play, `{away, home}` after final, 404 only when the
   key is absent entirely.
-- `_bsdCaptureStatsWithAvgPositions`'s 2-level fallback still tries the
-  dedicated endpoint first. That first level is now known-dead — one wasted
-  request per capture per cron tick. **Not changed here** (Rule 69); it
-  needs its own commit and its own verification that removing it does not
-  alter capture behaviour.
+- `_bsdCaptureStatsWithAvgPositions`'s dead level-1 call was **removed**
+  (commit `1e6b449`), so `/stats/` is the only source rather than a
+  fallback, and `customMetadata.source` is now `stats-embedded` (was
+  `stats-fallback` — that name described a fallback that no longer exists).
+  Covers both `runBSDEndgameCapture` (WC26) and
+  `runBSDClubLeagueEndgameCapture`, which share the helper.
+- The capture now refuses to write an EMPTY `average_positions` (commit
+  `1f08656`). `{}` is truthy and is what a match in progress returns, and
+  this cron fires across an 80-120 minute window — mostly pre-final — so the
+  unguarded write would overwrite populated positions with nothing. Same
+  failure class as `src/mlb-savant-r2.js` `7588b24` the same day.
+  **Not yet observed firing:** verify on the next club match crossing the
+  window via `GET /bsd/r2/read?key=bsd/{slug}/{id}/average-positions.json`
+  — pass is a populated `{away, home}` with source `stats-embedded`.
 
 **BSD source-endpoint note, revised (2026-07-15) — superseded by the above,
 retained for provenance:** `/api/v2/events/{id}/average-positions/`
