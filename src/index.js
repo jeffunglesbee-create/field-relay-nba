@@ -5383,6 +5383,37 @@ async function ensureBriefsTable(env) {
   _briefsReady = true;
 }
 
+// CC-CMD-2026-08-13 follow-up (novel-thinking pass): store the provenance of
+// a derived value instead of deriving it later.
+//
+// `quality_score` is a cached output of scoreProse(brief_text) persisted with
+// no record of WHICH scoreProse produced it. That single omission is the
+// common cause behind: the 68-point mlb_game "collapse" that was entirely a
+// formula change; two calibration rechecks that could not tell instrument
+// drift from prose drift; and a 30-day window that mixes incomparable scores.
+//
+// It is the same defect this session fixed twice elsewhere in stored derived
+// artifacts — an empty pitch_arsenals R2 object indistinguishable from
+// "never fetched" until X-Source made the layer visible, and BSD
+// average-positions, where customMetadata.source ('stats-fallback' vs
+// 'stats-embedded') was the provenance that made the paths tellable apart.
+// `briefs` had no equivalent.
+//
+// NULL is the honest default for existing rows: unknown, not assumed. The
+// read path falls back to eraForDate() for them, which is correct while
+// scores are written at generation time.
+let _scoringVersionReady = false;
+async function ensureScoringVersionColumn(env) {
+  if (_scoringVersionReady) return;
+  if (!env.ARCHIVE_DB) return;
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE briefs ADD COLUMN scoring_version INTEGER DEFAULT NULL`
+    ).run();
+  } catch (e) { console.error("[SCORING-VERSION] briefs migration failed:", e.message); /* column already exists — expected on every run after the first */ }
+  _scoringVersionReady = true;
+}
+
 let _codexStatusReady = false;
 async function ensureCodexStatusColumn(env) {
   if (_codexStatusReady) return;
@@ -12637,8 +12668,9 @@ export default {
             // just keyed by brief_type instead of sport, and requiring the
             // same >=5-sample floor before trusting it over the flat 240
             // fallback used everywhere else in this file.
+            await ensureScoringVersionColumn(env);
             const typeRows = await env.ARCHIVE_DB.prepare(
-                `SELECT brief_type, date, quality_score FROM briefs
+                `SELECT brief_type, date, quality_score, scoring_version FROM briefs
                  WHERE quality_score IS NOT NULL AND date >= date('now', '-30 days')
                  ORDER BY brief_type, quality_score`
             ).all();
@@ -12665,7 +12697,13 @@ export default {
             const scoresByTypeCurrentEra = {};
             for (const row of (typeRows.results || [])) {
                 (scoresByType[row.brief_type] ||= []).push(row.quality_score);
-                const { era, ambiguous } = eraForDate(row.date);
+                // Stored version wins; eraForDate is the fallback for rows
+                // written before the column existed. A backfill that rescores
+                // old text under a new formula would break the date
+                // derivation, which is exactly why the column is authoritative.
+                const derived = eraForDate(row.date);
+                const era = row.scoring_version ?? derived.era;
+                const ambiguous = row.scoring_version == null && derived.ambiguous;
                 // Boundary-date rows are excluded rather than guessed: `date`
                 // has no time of day and era `from` does.
                 if (era === CURRENT_SCORING_ERA && !ambiguous) {
