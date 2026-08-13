@@ -61,9 +61,25 @@ async function hit(label, path) {
       rec.shape = shapeOf(j);
       rec.json = j;
       // The discriminator that matters: a 200 carrying nothing usable.
-      const payload = j?.results ?? j?.data ?? j;
+      // FIRST RUN DEFECT, fixed: this counted WRAPPER KEYS when the payload
+      // was an object, so /bsd/events/{id}/momentum returning 35 bytes of
+      // `{event_id, momentum: []}` reported items=2 and sailed past the
+      // emptyButOk check -- the exact 200-with-nothing class this probe was
+      // written to catch. Now every array found anywhere in the top level is
+      // counted, and the wrapper-key count is kept separately as topLevelKeys.
+      const payload = j?.results ?? j?.data ?? j?.events ?? j;
       rec.itemCount = Array.isArray(payload) ? payload.length
         : (payload && typeof payload === 'object' ? Object.keys(payload).length : null);
+      if (j && typeof j === 'object' && !Array.isArray(j)) {
+        rec.topLevelKeys = Object.keys(j).length;
+        rec.arrayFields = Object.fromEntries(
+          Object.entries(j).filter(([, v]) => Array.isArray(v)).map(([k, v]) => [k, v.length]));
+        const arrLens = Object.values(rec.arrayFields);
+        // payloadCount is the honest "how much data came back": total elements
+        // across every top-level array. A 200 whose arrays are all empty is a
+        // failure to serve, whatever the key count says.
+        rec.payloadCount = arrLens.length ? arrLens.reduce((a, b) => a + b, 0) : null;
+      }
       if (j && typeof j === 'object' && (j.error || j.detail)) rec.upstreamError = j.error || j.detail;
     } catch (_) {
       rec.shape = 'non-JSON';
@@ -82,7 +98,8 @@ async function hit(label, path) {
     out.routes.push(r);
     console.log(
       `${String(r.status ?? 'ERR').padEnd(4)} ${String(r.ms ?? '-').padStart(5)}ms ` +
-      `${String(r.bytes ?? 0).padStart(7)}B items=${String(r.itemCount ?? '-').padStart(4)}  ` +
+      `${String(r.bytes ?? 0).padStart(7)}B items=${String(r.itemCount ?? '-').padStart(4)} ` +
+      `payload=${String(r.payloadCount ?? '-').padStart(4)}  ` +
       `${label.padEnd(24)} ${r.upstreamError || r.error || r.shape || ''}`.slice(0, 190));
     return r;
   };
@@ -103,14 +120,32 @@ async function hit(label, path) {
   // 3. Per-event routes need a REAL event id. Taken from whatever discovery
   //    returned rather than hardcoded -- a hardcoded id that has aged out
   //    would produce 404s that look like route failures.
-  const pickIds = (rec) => {
-    const p = rec?.json?.results ?? rec?.json?.data ?? rec?.json;
-    if (!Array.isArray(p)) return [];
-    return p.map((e) => e?.id ?? e?.event_id).filter((x) => x != null);
+  // FIRST RUN DEFECT, fixed: /bsd/events/live returns `{count, events}` and
+  // this only unwrapped `results`/`data`, so live's ids were invisible and the
+  // run reported eventIdSource "events/by-date" as though live had none.
+  const pickEvents = (rec) => {
+    const j = rec?.json;
+    const p = j?.results ?? j?.data ?? j?.events ?? j;
+    return Array.isArray(p) ? p : [];
   };
-  const ids = [...new Set([...pickIds(live), ...pickIds(byDate)])];
+  const pickIds = (rec) => pickEvents(rec).map((e) => e?.id ?? e?.event_id).filter((x) => x != null);
+  // Prefer an event that has actually been PLAYED. by-date returns the whole
+  // day including not-yet-kicked-off fixtures, and the first run probed
+  // 223325 -- whose shotmap/momentum/incidents all came back 200 with empty
+  // arrays. That is not a broken route, it is a fixture with no events yet,
+  // and probing it cannot distinguish the two.
+  const statusOf = (e) => String(e?.status?.type ?? e?.status ?? e?.state ?? '').toLowerCase();
+  const played = [...pickEvents(live), ...pickEvents(byDate)]
+    .filter((e) => /finish|ft|ended|complete|inprogress|live|1st|2nd|half/.test(statusOf(e)));
+  out.playedCandidateCount = played.length;
+  out.statusValuesSeen = [...new Set(pickEvents(byDate).map(statusOf))].slice(0, 12);
+  const ids = [...new Set([
+    ...played.map((e) => e?.id ?? e?.event_id).filter((x) => x != null),
+    ...pickIds(live), ...pickIds(byDate),
+  ])];
   out.discoveredEventIds = ids.slice(0, 10);
-  out.eventIdSource = pickIds(live).length ? 'events/live' : (pickIds(byDate).length ? 'events/by-date' : 'none');
+  out.eventIdSource = played.length ? 'played-filter'
+    : (pickIds(live).length ? 'events/live' : (pickIds(byDate).length ? 'events/by-date' : 'none'));
   console.log(`\n-- discovered ${ids.length} event id(s) via ${out.eventIdSource}; probing per-event routes on ${ids[0] ?? 'N/A'}\n`);
 
   if (ids.length) {
@@ -148,10 +183,15 @@ async function hit(label, path) {
     http200: out.routes.filter(ok).length,
     // 200-with-nothing is tracked separately from non-200: they are different
     // failures and this repo has been bitten by conflating them.
-    emptyButOk: out.routes.filter((r) => ok(r) && (r.itemCount === 0)).map((r) => r.label),
+    // Now keyed on payloadCount (elements across top-level arrays), not on
+    // wrapper key count -- see the itemCount comment above.
+    emptyButOk: out.routes.filter((r) => ok(r) && (r.payloadCount === 0 || r.itemCount === 0))
+      .map((r) => ({ label: r.label, bytes: r.bytes, arrayFields: r.arrayFields })),
     nonOk: out.routes.filter((r) => !ok(r)).map((r) => ({ label: r.label, status: r.status, err: r.upstreamError || r.error })),
     discoveredEventIds: out.discoveredEventIds,
     eventIdSource: out.eventIdSource,
+    playedCandidateCount: out.playedCandidateCount,
+    statusValuesSeen: out.statusValuesSeen,
     guardBadKey: out.routes.find((r) => r.label === 'r2/read (bad key)')?.status,
     guardMissingKey: out.routes.find((r) => r.label === 'r2/read (missing)')?.status,
     unknownRouteStatus: out.routes.find((r) => r.label === 'unknown route')?.status,
