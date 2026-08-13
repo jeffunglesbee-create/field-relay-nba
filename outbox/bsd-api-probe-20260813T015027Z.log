@@ -1,0 +1,72 @@
+=== bsd-api-probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  date=2026-08-13  utc=2026-08-13T01:50:27.636Z ===
+
+200    279ms    1895B items=   6 payload=   -  contract                 object{ok,coordinateSystem,frameShapes,transformReference,revision,status}
+200    197ms     463B items=   1 payload=   1  events/live              object{count,events}
+200    143ms   55254B items=  48 payload=  48  events/by-date           object{count,next,previous,results}
+
+-- discovered 48 event id(s) via played-filter; probing per-event routes on 207955
+
+200    166ms   11776B items=   6 payload=  93  shotmap                  object{event_id,stats,shotmap,momentum,average_positions,xg_per_minute}
+200    147ms    1009B items=   2 payload=  60  momentum                 object{event_id,momentum}
+200    152ms    1379B items=   2 payload=   6  incidents                object{event_id,incidents}
+200    146ms   52149B items=  11 payload=   -  odds                     object{event_id,event_date,league_id,league_name,home_team_id,home_team,away_team_id,away_team,bookmakers_count,total_odds,markets}
+404    141ms      53B items=   3 payload=   -  average-positions        true
+200    161ms   24094B items=  12 payload=   -  tennis/live              array[12] of object[59 keys]
+400      9ms      23B items=   1 payload=   -  r2/read (bad key)        invalid key
+404    294ms      56B items=   2 payload=   -  r2/read (missing)        not found
+404      9ms      70B items=   2 payload=   -  unknown route            Unknown BSD route
+
+=== SUMMARY ===
+{
+  "contractOk": true,
+  "routesProbed": 12,
+  "http200": 8,
+  "emptyButOk": [],
+  "nonOk": [
+    {
+      "label": "average-positions",
+      "status": 404,
+      "err": true
+    },
+    {
+      "label": "r2/read (bad key)",
+      "status": 400,
+      "err": "invalid key"
+    },
+    {
+      "label": "r2/read (missing)",
+      "status": 404,
+      "err": "not found"
+    },
+    {
+      "label": "unknown route",
+      "status": 404,
+      "err": "Unknown BSD route"
+    }
+  ],
+  "discoveredEventIds": [
+    207955,
+    223325,
+    223241,
+    207959,
+    223983,
+    223422,
+    223317,
+    223238,
+    223299,
+    221200
+  ],
+  "eventIdSource": "played-filter",
+  "playedCandidateCount": 2,
+  "statusValuesSeen": [
+    "notstarted",
+    "postponed",
+    "cancelled",
+    "2nd_half"
+  ],
+  "guardBadKey": 400,
+  "guardMissingKey": 404,
+  "unknownRouteStatus": 404
+}
+
+wrote outbox/bsd-api-probe-2026-08-13T01-50-27-636Z.json
