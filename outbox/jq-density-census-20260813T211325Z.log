@@ -1,0 +1,63 @@
+{
+  "corpusSize": 592,
+  "scoredCount": 592,
+  "all": {
+    "name": "all",
+    "n": 592,
+    "flooredShippedPct": 91.2,
+    "flooredNumbersPct": 7.9,
+    "meanPtsShipped": 0.35,
+    "meanPtsNumbers": 9.89,
+    "meanRawShipped": 4.43,
+    "meanNumbersPerSent": 1.76,
+    "minRawShipped": 1.75,
+    "overThreeNumbersPerSentPct": 7.9,
+    "storedMean": 172.7,
+    "storedMax": 300
+  },
+  "pre": {
+    "name": "pre-6aed3bb",
+    "n": 325,
+    "flooredShippedPct": 91.4,
+    "flooredNumbersPct": 8.9,
+    "meanPtsShipped": 0.37,
+    "meanPtsNumbers": 9.24,
+    "meanRawShipped": 4.45,
+    "meanNumbersPerSent": 1.86,
+    "minRawShipped": 1.75,
+    "overThreeNumbersPerSentPct": 8.9,
+    "storedMean": 203.2,
+    "storedMax": 300
+  },
+  "post": {
+    "name": "post-6aed3bb",
+    "n": 267,
+    "flooredShippedPct": 91,
+    "flooredNumbersPct": 6.7,
+    "meanPtsShipped": 0.33,
+    "meanPtsNumbers": 10.69,
+    "meanRawShipped": 4.4,
+    "meanNumbersPerSent": 1.64,
+    "minRawShipped": 1.8,
+    "overThreeNumbersPerSentPct": 6.7,
+    "storedMean": 135.4,
+    "storedMax": 179
+  },
+  "ceiling": {
+    "full": 300,
+    "relayPath": 245,
+    "note": "relay path excludes Dim 7 (25, needs opts.game) and Dim 10 (30, needs opts.matchupNote)",
+    "relayPathWithDensityFloored": 229
+  },
+  "above240": {
+    "n": 592,
+    "storedAbove240": 40,
+    "storedMax": 300,
+    "postEraAbove240": 0,
+    "postEraMax": 179
+  },
+  "delta": {
+    "meanPointsReturned": 9.54,
+    "flooredPctDrop": 83.3
+  }
+}
