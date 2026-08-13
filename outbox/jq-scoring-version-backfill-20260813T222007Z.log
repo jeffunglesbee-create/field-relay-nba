@@ -1,0 +1,9 @@
+before: [{"scoring_version":null,"n":3156}]
+plan: {"era1":1941,"era2":1158,"era3":1,"boundary_excluded":56}
+  era 1: changes=1941
+  era 2: changes=1158
+  era 3: changes=1
+after: [{"scoring_version":null,"n":56},{"scoring_version":1,"n":1941},{"scoring_version":2,"n":1158},{"scoring_version":3,"n":1}]
+
+still NULL: 56  expected (boundary dates): 56
+=== RESULT: PASS ===
