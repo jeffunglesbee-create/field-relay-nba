@@ -2387,12 +2387,31 @@ async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
             customMetadata: { ...meta, type: 'stats' },
         });
         const parsed = JSON.parse(new TextDecoder().decode(buf));
-        if (parsed?.average_positions) {
+        // Truthiness is not enough: `{}` is truthy, and `{}` is exactly what
+        // /stats/ returns for a match still in progress — measured 2026-08-13,
+        // event 207955 (2nd_half) came back `average_positions: {}` while five
+        // finished events returned populated `{away, home}`.
+        //
+        // This capture fires on a 5-minute cron across an 80-120 minute
+        // window, i.e. mostly BEFORE full time, so the unguarded write would
+        // put an empty object over a populated one whenever a later tick
+        // landed pre-final — and if the window closed before the whistle, the
+        // empty object would be the last word.
+        //
+        // Same failure class as the MLB Savant R2 writer fixed earlier today
+        // (src/mlb-savant-r2.js, commit 7588b24): never overwrite good data
+        // with nothing. There it cost the client's entire pitch-arsenal line
+        // for weeks, because an empty object is a cache HIT, not a miss.
+        const _avgPos = parsed?.average_positions;
+        const _avgPosCount = _avgPos && typeof _avgPos === 'object' ? Object.keys(_avgPos).length : 0;
+        if (_avgPosCount > 0) {
             await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
-                JSON.stringify(parsed.average_positions), {
+                JSON.stringify(_avgPos), {
                     httpMetadata: { contentType: 'application/json' },
                     customMetadata: { ...meta, type: 'average-positions', source: 'stats-embedded' },
                 });
+        } else if (_avgPos) {
+            console.log(`[BSD-ENDGAME] ${prefix} average_positions empty (match in progress) — not overwriting`);
         }
     } catch (e) {
         console.error('[BSD-CLUB-ENDGAME] stats/average-positions capture failed:', e.message);
