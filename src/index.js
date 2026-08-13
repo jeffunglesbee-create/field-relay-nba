@@ -9413,13 +9413,70 @@ export default {
             }
 
             // /bsd/events/:id/average-positions → BSD /api/v2/events/:id/average-positions/
+            // Served from /stats/'s embedded `average_positions`, NOT from
+            // BSD's /api/v2/events/{id}/average-positions/ — that URL returns
+            // 404 unconditionally.
+            //
+            // CONTRACTS.md and the comment above _bsdCaptureStatsWithAvgPositions
+            // both recorded this as an OPEN question on 2026-07-15: every test
+            // to that point had used a finished event, so a 404 could not
+            // distinguish "the route does not exist" from "it is a live-only
+            // real-time feed that stops serving after full time". That
+            // distinction is now settled — measured 2026-08-13 across 6 events
+            // via scripts/bsd-avgpos-diagnose.mjs:
+            //
+            //   207955  2nd_half (LIVE)  -> 404 {"error":true,"status":404,"detail":"Not found"}
+            //   223324  finished         -> 404, byte-identical body
+            //   207987  finished         -> 404, byte-identical body
+            //   207962  finished         -> 404, byte-identical body
+            //   207956  finished         -> 404, byte-identical body
+            //   587659  finished         -> 404, byte-identical body
+            //
+            // A LIVE match 404s exactly like a finished one, so the live-only
+            // theory is falsified and this route could never have returned
+            // data. "Not found" rather than a subscription error also argues
+            // against a plan gate, though that is inference, not proof.
+            //
+            // The same run measured the replacement source: /stats/ carried
+            // `average_positions` for all 6, populated {away, home} for the 4
+            // FINISHED events and {} for the live one. So post-final data is
+            // real and live data does not exist in either source — this route
+            // now returns the honest empty object during play instead of a
+            // guaranteed 404, and real positions once the match ends.
+            //
+            // Shape matches what the R2 capture path already stores at
+            // src/index.js:2378 (`parsed.average_positions`, customMetadata
+            // source 'stats-fallback'), so the live route and the archived
+            // object are the same shape rather than two variants (Rule 62).
             const avgPosM = pathname.match(/^\/bsd\/events\/(\d+)\/average-positions$/);
             if (avgPosM) {
-                const r = await fetch(`${BSD_BASE}/api/v2/events/${avgPosM[1]}/average-positions/`,
+                const r = await fetch(`${BSD_BASE}/api/v2/events/${avgPosM[1]}/stats/`,
                     { headers: bsdHeaders });
-                return new Response(await r.text(), { status: r.status,
+                if (!r.ok) {
+                    return new Response(await r.text(), { status: r.status,
+                        headers: { 'Content-Type': 'application/json',
+                                   'Cache-Control': 'public, max-age=120', ...CORS } });
+                }
+                let avgPos;
+                try {
+                    avgPos = (await r.json())?.average_positions;
+                } catch (e) {
+                    return new Response(JSON.stringify({ error: 'stats parse failed', detail: e.message }),
+                        { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                // Absent key is a genuine 404 — the event has no such data at
+                // all. An EMPTY object is not: that is the real answer for a
+                // match still in progress, and returning it lets a caller tell
+                // "not yet" apart from "never".
+                if (avgPos == null) {
+                    return new Response(JSON.stringify({ error: true, status: 404,
+                        detail: 'no average_positions in stats', event_id: Number(avgPosM[1]) }),
+                        { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                return new Response(JSON.stringify(avgPos), { status: 200,
                     headers: { 'Content-Type': 'application/json',
-                               'Cache-Control': 'public, max-age=120', ...CORS } });
+                               'Cache-Control': 'public, max-age=120',
+                               'X-Source': 'stats-embedded', ...CORS } });
             }
 
             // /bsd/tennis/matches/live → BSD tennis /api/v2/matches/live/ (Sports Pack)

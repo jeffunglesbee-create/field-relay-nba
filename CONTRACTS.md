@@ -559,7 +559,46 @@ R2 key: bsd/{slug}/{bsdEventId}/{momentum,stats,incidents,average-positions}.jso
          write under 'europa'; this is a disclosed, accepted ambiguity.
 ```
 
-**BSD source-endpoint note, revised (2026-07-15):** `/api/v2/events/{id}/average-positions/`
+**RESOLVED (2026-08-13) — the open question below is now answered.** The
+2026-07-15 note could not distinguish "the route does not exist" from "it is
+a live-only feed that stops serving after full time", because every test to
+that point used a finished event. Measured across 6 events via
+`scripts/bsd-avgpos-diagnose.mjs`
+(`outbox/bsd-avgpos-diagnose-2026-08-13T*.log`):
+
+| event | status | `/average-positions/` | `/stats/`.average_positions |
+|---|---|---|---|
+| 207955 | **2nd_half (LIVE)** | 404 | `{}` (empty) |
+| 223324 | finished | 404 | `{away, home}` |
+| 207987 | finished | 404 | `{away, home}` |
+| 207962 | finished | 404 | `{away, home}` |
+| 207956 | finished | 404 | `{away, home}` |
+| 587659 | finished | 404 | `{}` (empty) |
+
+All six returned the byte-identical body
+`{"error": true, "status": 404, "detail": "Not found"}`. **A live match 404s
+exactly like a finished one, so the live-only theory is falsified** — the
+dedicated endpoint never serves. ("Not found" rather than a subscription
+error also argues against a plan gate, but that is inference, not proof.)
+
+The same run confirms the other half: `/stats/`'s embedded
+`average_positions` is populated **post-final only** — the live event's was
+`{}`. So during play the data does not exist in *either* source, which the
+prior note correctly suspected but could not show.
+
+Consequences:
+- `GET /bsd/events/{id}/average-positions` (relay) now serves
+  `parsed.average_positions` from `/stats/`, same shape as the R2 object.
+  Returns `{}` during play, `{away, home}` after final, 404 only when the
+  key is absent entirely.
+- `_bsdCaptureStatsWithAvgPositions`'s 2-level fallback still tries the
+  dedicated endpoint first. That first level is now known-dead — one wasted
+  request per capture per cron tick. **Not changed here** (Rule 69); it
+  needs its own commit and its own verification that removing it does not
+  alter capture behaviour.
+
+**BSD source-endpoint note, revised (2026-07-15) — superseded by the above,
+retained for provenance:** `/api/v2/events/{id}/average-positions/`
 404s when tested against a finished event — but that's consistent with two
 different explanations that weren't distinguished by testing against a
 weeks-old finished game: either the route doesn't exist, or it's a
