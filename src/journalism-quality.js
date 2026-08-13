@@ -15,6 +15,41 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── Layer 1: BANNED_PHRASES (mirrors browser FIELD_PROSE_STYLE) ─────────────
+// ── Scoring eras ────────────────────────────────────────────────────────────
+// CC-CMD-2026-08-13-jq-density-unit-fix TASK 3.
+//
+// Every entry here marks a change to `scoreProse` that makes scores on either
+// side of it NON-COMPARABLE. This table exists because the previous such
+// change did not record one, and the cost was measurable: two calibration
+// rechecks (2026-07-16, 2026-07-17) burned themselves out asking "is the
+// quality trend real" when the mlb_game mean fell 203.2 → 135.4 across the
+// 6aed3bb boundary. Rescoring the corpus under one rubric later showed the
+// two eras differ by 0.9 points on a 300-point scale — the entire 68-point
+// drop was the formula. A rolling window that spans a boundary is comparing
+// two different instruments and cannot tell you about the prose.
+//
+// Consumed by /quality/report, so anyone reading an alert sees the boundaries
+// their window may straddle. Add an entry BEFORE deploying any scoreProse
+// change that moves scores.
+export const SCORING_ERAS = [
+  {
+    era: 2,
+    from: '2026-07-16T01:36:49Z',
+    deploy: '6aed3bb',
+    change: 'Dim 1 redefined per-sentence; Dim 4 clamped to [0,1] (was unbounded)',
+    measuredEffect: 'mlb_game stored mean 203.2 -> 135.4 (n=325 pre / 267 post); rescored delta +0.9',
+    recordedRetroactively: true,
+  },
+  {
+    era: 3,
+    from: '2026-08-13T03:20:00Z',
+    deploy: 'CC-CMD-2026-08-13-jq-density-unit-fix',
+    change: "Dim 4 ratio unit: (properNouns+numbers)/sent -> numbers/sent, matching the FIELD_PROSE_STYLE rule it cites",
+    measuredEffect: 'Dim 4 floored 91.2% -> 7.9% of briefs; mean contribution 0.35 -> 9.89 of 16 pts (n=592)',
+    recordedRetroactively: false,
+  },
+];
+
 export const BANNED_PHRASES = [
   'punch their ticket','the stage is set','make a statement',
   'facing a must-win','looking to bounce back','all eyes on',
@@ -369,7 +404,11 @@ export async function scoreProse(text, opts = {}) {
   // (matches FIELD_PROSE_STYLE's own "ONE-NUMBER-PER-SENTENCE RATIO" rule —
   // "a brief with 4 numbers in 12 sentences breathes"), 2 is acceptable, 0 or
   // 3+ score lower — rewards prose rhythm, not raw density.
-  const properNouns = words.filter(w => /^[A-Z]/.test(w) && !sentStarts.has(w) && w.length > 1);
+  // `properNouns` was declared here and used ONLY by Dim 4's ratio. That ratio
+  // now uses numbers alone (see Dim 4 below, 2026-08-13), leaving this dead,
+  // so it is removed rather than left to read as though something still
+  // consumes it (Rule 63). Dim 1 is unaffected — its `factsPerSentence` counts
+  // nouns per sentence with its own inline filter, not this array.
   const numbersAll  = words.filter(w => /\d/.test(w));
   const factsPerSentence = sentences.map(s => {
     const sw = s.split(/\s+/).filter(Boolean);
@@ -415,7 +454,42 @@ export async function scoreProse(text, opts = {}) {
   // at the ideal (~1 fact/sentence, per FIELD_PROSE_STYLE's own rule) and
   // tapers for both under- and over-stacked text, clamped to [0,1] before
   // its weight is applied.
-  const rawDensity = (properNouns.length + numbersAll.length) / nSent;
+  //
+  // UNIT CORRECTED 2026-08-13 (CC-CMD-2026-08-13-jq-density-unit-fix). This
+  // ratio was `(properNouns.length + numbersAll.length) / nSent`, but the rule
+  // it cites — FIELD_PROSE_STYLE's ONE-NUMBER-PER-SENTENCE — governs NUMBERS:
+  //   "Each sentence gets AT MOST ONE number. If a sentence has three, you
+  //    have written a box score with verbs."
+  // Sports prose is obligately proper-noun-dense. "Baltimore Orioles pitcher
+  // Brandon Young faces a lineup" carries three proper nouns and ZERO numbers
+  // — perfect compliance with the rule — and the old ratio scored it 3.0,
+  // which this taper maps to 0.
+  //
+  // Measured over the real mlb_game corpus, n=592 pulled from D1
+  // (scripts/jq-density-census.mjs, outbox/jq-density-census-2026-08-13*.json):
+  //
+  //   mean (PN+NUM)/sent   4.43   corpus MINIMUM 1.75 — no brief is near the
+  //                               curve's peak of 1.0, and it hits 0 at 3.0
+  //   mean numbers/sent    1.76   the quantity the rule actually governs
+  //   Dim 4 as shipped     0.35 pts of 16, FLOORED for 91.2% of briefs
+  //   Dim 4 numbers-only   9.89 pts of 16, floored for 7.9%
+  //
+  // So the dimension was not measuring the corpus: it returned the same value
+  // for nine briefs in ten, because the quantity the rule governs is the
+  // MINORITY term (numbers ≈ 40% of PN+NUM). The 7.9% that still floor under
+  // the corrected unit are exactly the briefs at >=3 numbers/sentence — the
+  // ones the rule names as "a box score with verbs".
+  //
+  // Taper shape deliberately unchanged this pass, per the CC-CMD. The known
+  // internal contradiction — 6aed3bb's own comment calls Exemplar A "1.9/
+  // sentence, much closer to ideal" while shipping a curve peaking at 1.0 that
+  // docks it 45% — is real, independent of this unit bug, and left for its own
+  // change so the two effects stay separable.
+  //
+  // Proper-noun crowding is deliberately NOT folded back in as a compensating
+  // term. It is a real readability property but a DIFFERENT one, and a
+  // combined metric is precisely what produced this bug.
+  const rawDensity = numbersAll.length / nSent;
   const density = Math.max(0, Math.min(1, 1 - Math.abs(rawDensity - 1) * 0.5));
 
   // Dim 5: Freshness via Datamuse (0→36)

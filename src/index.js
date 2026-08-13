@@ -68,6 +68,7 @@ import {
   hasCliche as jqHasCliche,
   hasCrossSportHallucination as jqHasCrossSport,
   _buildVoiceJudgePrompt,
+  SCORING_ERAS,
 } from './journalism-quality.js';
 
 // ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
@@ -12688,6 +12689,14 @@ export default {
                 unscored_types: unscored,
                 unscored_count: unscored.length,
                 brief_type_calibration: briefTypeCalibration,
+                // CC-CMD-2026-08-13-jq-density-unit-fix TASK 3. Surfaced here
+                // because this endpoint is where the previous unrecorded
+                // boundary caused the damage: a rolling window that straddles
+                // an era is comparing two instruments, and nothing said so.
+                scoring_eras: SCORING_ERAS,
+                window_straddles_era: SCORING_ERAS
+                    .filter(e => e.from.slice(0, 10) > since)
+                    .map(e => ({ era: e.era, from: e.from, deploy: e.deploy })),
             }), { headers: { ...CORS, 'Content-Type': 'application/json',
                              'Cache-Control': 'public, max-age=300' } });
         }
