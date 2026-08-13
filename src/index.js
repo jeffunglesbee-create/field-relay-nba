@@ -12729,12 +12729,42 @@ export default {
                         below_flat_240_pct: Math.round(((r.below_240 || 0) / r.scored) * 100),
                     };
                 });
+            // The SAME alert set under the PREVIOUS predicate, computed from
+            // this same response.
+            //
+            // Written because the 2026-08-13 threshold fix could not produce a
+            // clean before/after: the "13 alerts" it was justified against had
+            // been measured days earlier, and by deploy time the eligible
+            // (brief_type, sport) set had moved, so the two numbers described
+            // different epochs and neither could be compared to the other.
+            //
+            // That is avoidable, and the census that drove the same CC-CMD
+            // already showed how: it computed BOTH density units over ONE
+            // corpus in one run, so its before/after was exact and repeatable
+            // forever. This applies that to the predicate itself. Any future
+            // change to how failures are counted now has its own baseline in
+            // the same payload, rather than depending on someone having
+            // remembered to snapshot the endpoint first.
+            const alertsLegacyPredicate = summary
+                .filter(r => r.scored >= 3)
+                .filter(r => {
+                    if (ENRICHMENT_TYPES.has(r.brief_type)) return false;
+                    if (r.sport && r.sport.toLowerCase().includes('golf')) return false;
+                    const threshold = briefTypeCalibration[r.brief_type]?.p25 ?? 240;
+                    // The pre-2026-08-13 rule: hardcoded 240, not `threshold`.
+                    return r.avg_score < threshold || (r.below_240 / r.scored) > 0.2;
+                })
+                .map(r => ({ brief_type: r.brief_type, sport: r.sport || 'all' }));
+
             const unscored = summary
                 .filter(r => r.total > 5 && r.scored === 0)
                 .map(r => ({ brief_type: r.brief_type, sport: r.sport, total: r.total }));
             return new Response(JSON.stringify({
                 ok: true, days, since, summary, alerts,
                 alert_count: alerts.length,
+                // Same-response baseline — see alertsLegacyPredicate above.
+                alert_count_legacy_predicate: alertsLegacyPredicate.length,
+                alerts_legacy_predicate: alertsLegacyPredicate,
                 unscored_types: unscored,
                 unscored_count: unscored.length,
                 brief_type_calibration: briefTypeCalibration,
