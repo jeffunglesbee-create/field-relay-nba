@@ -1,0 +1,65 @@
+=== bsd-api-probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  date=2026-08-13  utc=2026-08-13T01:48:50.541Z ===
+
+200    199ms    1895B items=   6  contract                 object{ok,coordinateSystem,frameShapes,transformReference,revision,status}
+200    236ms     463B items=   2  events/live              object{count,events}
+200    487ms   55254B items=  48  events/by-date           object{count,next,previous,results}
+
+-- discovered 48 event id(s) via events/by-date; probing per-event routes on 223325
+
+200    197ms     158B items=   6  shotmap                  object{event_id,stats,shotmap,momentum,average_positions,xg_per_minute}
+200    179ms      35B items=   2  momentum                 object{event_id,momentum}
+200    435ms      34B items=   2  incidents                object{event_id,incidents}
+200    176ms   47998B items=  11  odds                     object{event_id,event_date,league_id,league_name,home_team_id,home_team,away_team_id,away_team,bookmakers_count,total_odds,markets}
+404    182ms      53B items=   3  average-positions        true
+200    209ms   22315B items=  11  tennis/live              array[11] of object[59 keys]
+400      9ms      23B items=   1  r2/read (bad key)        invalid key
+404    203ms      56B items=   2  r2/read (missing)        not found
+404      7ms      70B items=   2  unknown route            Unknown BSD route
+
+=== SUMMARY ===
+{
+  "contractOk": true,
+  "routesProbed": 12,
+  "http200": 8,
+  "emptyButOk": [],
+  "nonOk": [
+    {
+      "label": "average-positions",
+      "status": 404,
+      "err": true
+    },
+    {
+      "label": "r2/read (bad key)",
+      "status": 400,
+      "err": "invalid key"
+    },
+    {
+      "label": "r2/read (missing)",
+      "status": 404,
+      "err": "not found"
+    },
+    {
+      "label": "unknown route",
+      "status": 404,
+      "err": "Unknown BSD route"
+    }
+  ],
+  "discoveredEventIds": [
+    223325,
+    223241,
+    207959,
+    223983,
+    223422,
+    223317,
+    223238,
+    223299,
+    221200,
+    223420
+  ],
+  "eventIdSource": "events/by-date",
+  "guardBadKey": 400,
+  "guardMissingKey": 404,
+  "unknownRouteStatus": 404
+}
+
+wrote outbox/bsd-api-probe-2026-08-13T01-48-50-541Z.json
