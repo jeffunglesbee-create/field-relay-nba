@@ -38,6 +38,32 @@ const TS = new Date().toISOString();
     out.stillUsingFlat240 = out.alerts.filter(
       a => a.below_flat_240_pct === 100 && a.failure_pct !== 100).length;
 
+    // Novel-thinking pass (2026-08-13): the same-response baseline, so a
+    // future predicate change cannot lose its own before/after to elapsed time
+    // the way the threshold fix did.
+    out.alertCountLegacyPredicate = j.alert_count_legacy_predicate ?? null;
+    out.legacyBaselinePresent = typeof j.alert_count_legacy_predicate === 'number';
+
+    // Era-scoped calibration: which types are calibrating within era 3 vs
+    // still falling back to the mixed window, and how many samples each has.
+    const cal = j.brief_type_calibration || {};
+    out.calibration = Object.entries(cal).map(([t, c]) => ({
+      brief_type: t, p25: c.p25, count: c.count,
+      era_scoped: c.era_scoped ?? null, era: c.era ?? null,
+      window_count: c.window_count ?? null,
+    }));
+    out.eraScopedCount = out.calibration.filter(c => c.era_scoped === true).length;
+    out.mixedEraCount = out.calibration.filter(c => c.era_scoped === false).length;
+    out.thresholdSources = [...new Set((j.alerts || []).map(a => String(a.threshold_source)))];
+
+    console.log(`alert_count (new predicate):    ${j.alert_count}`);
+    console.log(`alert_count (legacy predicate): ${out.alertCountLegacyPredicate}`);
+    console.log(`calibration era-scoped: ${out.eraScopedCount}  mixed-era: ${out.mixedEraCount}`);
+    for (const c of out.calibration) {
+      console.log(`  ${String(c.brief_type).padEnd(22)} p25=${String(c.p25).padStart(4)} ` +
+        `n=${String(c.count).padStart(4)} era_scoped=${String(c.era_scoped).padEnd(5)} window_n=${c.window_count}`);
+    }
+
     // DONE CONDITION 5 — the era table, served.
     out.scoringEras = j.scoring_eras || null;
     out.windowStraddlesEra = j.window_straddles_era || null;
