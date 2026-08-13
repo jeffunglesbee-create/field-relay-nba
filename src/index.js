@@ -2354,15 +2354,29 @@ async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
     };
     const bsdBase = 'https://sports.bzzoiro.com';
 
-    const gotAvgPositions = await captureWithRetry(
-        `${bsdBase}/api/v2/events/${bsdId}/average-positions/`,
-        `${prefix}/average-positions.json`,
-        env,
-        { ...meta, type: 'average-positions' },
-        1,   // single attempt per tick — cron fires every 5 min
-        0
-    );
-
+    // The dedicated `/api/v2/events/{id}/average-positions/` call that used to
+    // run here was REMOVED 2026-08-13. It was level 1 of a 2-level fallback
+    // whose justification depended on an open question, and that question is
+    // now closed.
+    //
+    // The 2026-07-15 CC-CMD that built this fallback said so explicitly: "No
+    // new evidence closes the live-only-vs-dead-route question definitively —
+    // that remains genuinely unresolved until a real live game is available to
+    // test against directly." Its own probe found `/bsd/events/live` empty for
+    // the third time running, so it could not run that test, and the fallback
+    // was the correct design under that uncertainty.
+    //
+    // A live game was finally available on 2026-08-13
+    // (scripts/bsd-avgpos-diagnose.mjs, 6 events across 4 days):
+    //   207955  2nd_half (LIVE)  -> 404 {"error":true,"status":404,"detail":"Not found"}
+    //   plus 5 finished events   -> 404, byte-identical body
+    // A LIVE match 404s exactly like a finished one, so the live-only theory
+    // is falsified and this call could never have succeeded. Keeping it would
+    // be one guaranteed-failing request per capture, per game, per 5-minute
+    // cron tick.
+    //
+    // The `/stats/`-embedded field below is therefore the only source, not a
+    // fallback — which is why the `if (!gotAvgPositions)` guard is gone too.
     try {
         const r = await fetch(`${bsdBase}/api/v2/events/${bsdId}/stats/`,
             { headers: bsdHdrs, signal: AbortSignal.timeout(6000) });
@@ -2372,15 +2386,13 @@ async function _bsdCaptureStatsWithAvgPositions(bsdId, prefix, env, meta) {
             httpMetadata: { contentType: 'application/json' },
             customMetadata: { ...meta, type: 'stats' },
         });
-        if (!gotAvgPositions) {
-            const parsed = JSON.parse(new TextDecoder().decode(buf));
-            if (parsed?.average_positions) {
-                await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
-                    JSON.stringify(parsed.average_positions), {
-                        httpMetadata: { contentType: 'application/json' },
-                        customMetadata: { ...meta, type: 'average-positions', source: 'stats-fallback' },
-                    });
-            }
+        const parsed = JSON.parse(new TextDecoder().decode(buf));
+        if (parsed?.average_positions) {
+            await env.FIELD_DATA.put(`${prefix}/average-positions.json`,
+                JSON.stringify(parsed.average_positions), {
+                    httpMetadata: { contentType: 'application/json' },
+                    customMetadata: { ...meta, type: 'average-positions', source: 'stats-embedded' },
+                });
         }
     } catch (e) {
         console.error('[BSD-CLUB-ENDGAME] stats/average-positions capture failed:', e.message);
