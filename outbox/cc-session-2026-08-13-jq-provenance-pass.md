@@ -146,8 +146,32 @@ endpoint itself* (`era_scoped: false`, `mixed_eras`) rather than silent.
 None carried. Deferred work has a spec:
 `docs/CC-CMD-2026-08-13-stamp-scoring-version-on-write.md`.
 
-**Watch, not deferred:** era-scoped calibration activating. Expected within
-hours; verify with `scripts/jq-report-verify.mjs` per the unblock criteria
-above. If it has *not* flipped after a day of journalism crons, that means era
-3 briefs are not being scored at all — a different and more serious problem
-than the one this pass fixed.
+**Watch — now automated, and the estimate corrected.**
+
+`.github/workflows/jq-health-watch.yml` runs both checks daily at 09:00 UTC
+and commits the artifact, so this no longer depends on anyone remembering.
+
+**My "within hours" estimate was wrong.** It reasoned from total volume; the
+`>= 5` floor is *per brief_type*. Measured from real 7-day volume
+(`outbox/jq-scoring-coverage-*.json`):
+
+| brief_type | /day | days to 5 era-3 briefs |
+|---|---|---|
+| game_recap | 19.7 | ~0.3 |
+| mlb_game | 8.6 | ~0.6 |
+| night_owl | 6.9 | ~0.7 |
+| game_brief / pre_game | 3.0 | ~1.7 |
+| slate | 2.6 | ~1.9 |
+| epl_match | 0.7 | ~7 |
+| compound | 0.1 | ~35 |
+
+So the high-volume types flip within a day, the tail takes a week, and
+`compound` may never reach the floor on its own — it will keep falling back to
+the mixed window, correctly and visibly (`era_scoped: false`).
+
+**And the alarm condition I attached to it was wrong too.** I wrote that a
+failure to flip after a day would mean era-3 briefs "are not being scored at
+all". That is now measured false: **312/312 briefs scored over 7 days, zero
+unscored, `unscored_types: []`**. Scoring is healthy; the floor is simply
+per-type. The watch's real failure signal is `scoring healthy: false` in the
+coverage check, not the absence of era-scoping.
