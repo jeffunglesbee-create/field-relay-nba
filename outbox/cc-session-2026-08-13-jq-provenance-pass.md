@@ -13,6 +13,9 @@ ends that document left open.
 | `430dfdf` | `briefs.scoring_version` + read prefers it |
 | `c6bb0b1` | `apply` input on the probe harness |
 | `049fead` | verifier extended; follow-up spec filed |
+| `7b17582` | scoring-coverage probe — is the watch item's premise even sound? |
+| `a7c3469` | daily health watch; harness stops discarding JSON manifests |
+| `47ba213` | two corrections to this document's own claims |
 
 ## The diagnosis that tied them together
 
@@ -127,9 +130,51 @@ New rows land NULL until then and the date fallback covers them correctly —
 so the system is right either way, and the column becomes authoritative
 incrementally rather than in one risky sweep.
 
+## Follow-up automation (same thread, added after the first gate)
+
+Three commits after the initial write-up, prompted by asking whether a
+GitHub Actions runner could help and whether briefs are actually being
+scored.
+
+**Scoring coverage — measured, not assumed.** `scripts/jq-scoring-coverage.mjs`:
+
+```
+last 7d: 312/312 scored (100%), 0 unscored
+/quality/report unscored_types: []
+=== scoring healthy (>=95% scored): true ===
+```
+
+Clean across all eight days present, no brief_type with a single unscored
+row. Nothing to correct.
+
+**The watch is automated.** `.github/workflows/jq-health-watch.yml` runs both
+checks daily at 09:00 UTC and commits the log plus manifests. Verified by
+dispatch rather than trusted to the schedule — run `f2220a5` committed a
+59-line log and two JSON manifests.
+
+Deliberately NOT done: forcing `/journalism/run` to fill the era-3 bucket
+faster. Generating briefs to trip a calibration threshold is manufacturing
+data to satisfy a metric.
+
+**A gap live all session, fixed.** The probe harness staged only the `.log`,
+so every structured JSON manifest these scripts write was discarded. Now
+matched by untracked-ness, not timestamp — the harness stamps
+`20260813T224407Z` while the scripts derive `2026-08-13T22-44-07-123Z`, so a
+`${TS}` glob would have matched neither and failed *silently*.
+
+**Two corrections to this document** (`47ba213`): the "within hours" estimate
+and the alarm condition attached to it. Both are wrong as originally written;
+the corrected versions are in the Residual section below.
+
 ## Confidence gate
 
-**95.** Loose end 1 is proven outright by a same-response 23 → 14. Loose end 3
+**95** for the original three loose ends. **96** for the follow-up automation
+above — scoring coverage is a direct measurement at n=312 with a clean
+per-type breakdown, and the watch workflow was verified end-to-end by
+dispatch with its artifacts committed, not left to a cron nobody has seen
+fire.
+
+Loose end 1 is proven outright by a same-response 23 → 14. Loose end 3
 is proven by a complete 3,156-row partition with the expected 56 exclusions
 and a PASS on its own done condition. Loose end 2's mechanism is deployed and
 its *fallback* behaviour verified with the correct reason reported.

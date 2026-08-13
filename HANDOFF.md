@@ -1,5 +1,78 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-13 (BSD average-positions + JQ scoring instrument)
+
+**HEAD:** 47ba213 (+ this commit)
+**Branch:** main throughout
+**Session docs (Rule 67):**
+- `outbox/cc-session-2026-08-13-bsd-avgpos.md` — DONE, confidence 95
+- `outbox/cc-session-2026-08-13-jq-density-unit-fix.md` — DONE, confidence 95
+- `outbox/cc-session-2026-08-13-jq-provenance-pass.md` — DONE, confidence 95 / 96
+- `outbox/cc-session-2026-08-11-archive-gap-real-write-path.md` — DONE, confidence 96
+
+### What changed, all verified against the live worker
+
+1. **BSD average-positions served from `/stats/`** (`f6a1fd5`, `1e6b449`,
+   `1f08656`). The dedicated endpoint 404s unconditionally — settled by
+   probing a LIVE match (event 207955, `2nd_half`), which every prior
+   investigation lacked and which CONTRACTS.md had recorded as an open
+   question since 2026-07-15. Route now 200s with real player coordinates.
+   The capture path's dead level-1 fallback removed, and an empty-write guard
+   added: `{}` is what a match in progress returns and would otherwise
+   overwrite populated positions.
+
+2. **JQ Dim 4 measured the wrong unit** (`940e06b`). It counted
+   `properNouns + numbers` while citing a rule that governs numbers, and was
+   FLOORED for 91.2% of a 592-brief corpus. Now `numbers/sentence`: floored
+   7.9%, mean contribution 0.35 → 9.89 of 16 points.
+
+3. **`/quality/report` counted failures against a different number than it
+   reported** (`88adb01`). Hardcoded 240 in SQL vs the calibrated p25 in the
+   alert. 13 permanently-firing alerts, several reporting `failure_pct: 100`
+   while exceeding their own threshold. Self-contradictory alerts now 0, and
+   the same response carries the old predicate's count for comparison:
+   **23 → 14**.
+
+4. **Scoring provenance stored** (`430dfdf`, `496ea93`). `briefs.scoring_version`
+   plus `SCORING_ERAS`, so calibration runs within a scoring era instead of
+   across a mixture of two instruments. 3,156 historical briefs labelled
+   (1941/1158/1, with 56 boundary-date rows correctly NULL).
+
+### Method worth reusing
+
+For a value that is a pure function of its inputs, **measure the inputs, not
+the rendered output**, and compute every candidate variant over ONE dataset in
+ONE run. The density census did this and its before/after is exact and
+repeatable; the alert predicate did not, and its baseline was lost to elapsed
+time until `alert_count_legacy_predicate` recovered it.
+
+The session's unifying diagnosis: **a stored derived value with no stored
+provenance**. Three independent instances — `pitch_arsenals` (empty R2 object
+indistinguishable from never-fetched), BSD `average-positions`, and
+`quality_score`.
+
+### Open, with specs
+
+- `docs/CC-CMD-2026-08-13-jq-dim1-unit-and-taper.md` — Dim 1's identical
+  conflation (deliberately NOT changed: unlike Dim 4 it is not saturated) and
+  the taper peak that docks its own exemplar 45%.
+- `docs/CC-CMD-2026-08-13-stamp-scoring-version-on-write.md` — 13
+  `INSERT INTO briefs` sites need enumerating before being stamped.
+- `docs/CC-CMD-2026-08-10-pre-window-mls-duplicates.md` — 82 pre-window MLS
+  duplicate groups, mechanism unmeasured.
+- `docs/CC-CMD-2026-08-08-fa-cup-coverage.md` — blocked on ESPN rolling
+  `eng.fa`; that claim is now ~5 days old and needs re-probing (Rule 72).
+
+### Automated, not carried
+
+`.github/workflows/jq-health-watch.yml` — daily 09:00 UTC, runs scoring
+coverage + report verification and commits the artifact. Scoring measured
+healthy at **312/312 over 7 days**. Era-scoped calibration is deployed but not
+yet active: era 3 needs ≥5 briefs *per brief_type* (~0.3 days for
+`game_recap`, ~7 for `epl_match`, possibly never for `compound`).
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-06 (soccer-label-fix + CI honesty) — FINAL
 
 **HEAD:** d0b9139 (+ this commit)
