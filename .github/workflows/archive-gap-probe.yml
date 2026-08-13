@@ -93,6 +93,19 @@ jobs:
           # step before the push -- the defect that really hit
           # soccer-league-mislabel-scope-probe.yml on 2026-08-06.
           git add "outbox/${NAME}-${TS}.log" || echo "(no log to stage)"
+          # Structured manifests too, not just stdout. Several scripts here
+          # write a richer JSON artifact beside their log -- per-row detail the
+          # console summary deliberately truncates -- and every one was being
+          # discarded, because this step only ever staged the .log. Rule 90
+          # wants the artifact and half of it was landing on the floor.
+          #
+          # Matched by UNTRACKED-ness rather than by timestamp: the harness
+          # stamps TS as 20260813T224407Z while the scripts derive theirs from
+          # toISOString(), giving 2026-08-13T22-44-07-123Z. A glob on ${TS}
+          # would match neither, and would have failed silently -- the exact
+          # vacuous-check shape this repo keeps getting caught by.
+          git ls-files --others --exclude-standard -- 'outbox/*.json' \
+            | while read -r f; do git add "$f"; done
           git diff --cached --quiet && echo "Nothing to commit" && exit 0
           git commit -m "chore: ${NAME} output [skip ci]"
           for i in 1 2 3 4 5; do

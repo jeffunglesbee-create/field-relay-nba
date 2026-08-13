@@ -1,0 +1,87 @@
+name: JQ health watch
+
+# Automates the watch item left by the 2026-08-13 provenance pass instead of
+# leaving it to someone remembering.
+#
+# Two questions, daily:
+#   1. Are briefs still being scored? (jq-scoring-coverage.mjs)
+#      100% of 312 over 7 days when last measured. If that slips, era-3 stops
+#      filling, era-scoped calibration never activates, and the stall would
+#      otherwise look like patience.
+#   2. Has era-scoped calibration activated? (jq-report-verify.mjs)
+#      Flips once era 3 holds >=5 scored briefs per brief_type.
+#
+# THE POINT IS THE COMMITTED ARTIFACT, not the green tick. Both scripts exit 0
+# whatever they find — a red run invites re-running until green, which is the
+# habit Rule 77 exists to break — so the verdict lives in the log and manifest
+# that land in outbox/, and the run status says only that the check executed.
+#
+# Deliberately NOT doing: forcing /journalism/run to fill the era-3 bucket
+# faster. Generating briefs to make a calibration threshold trip is
+# manufacturing data to satisfy a metric, which is the opposite of measuring
+# one. The bucket fills from real traffic or it does not fill.
+
+on:
+  schedule:
+    # 09:00 UTC daily — after the overnight journalism crons have run, so a
+    # day's briefs are in before coverage is judged.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run both checks
+        run: |
+          TS=$(date -u +%Y%m%dT%H%M%SZ)
+          echo "TS=$TS" >> "$GITHUB_ENV"
+          mkdir -p outbox
+          {
+            echo "=== JQ health watch $TS ==="
+            echo
+            echo "--- 1. scoring coverage ---"
+            node scripts/jq-scoring-coverage.mjs
+            echo
+            echo "--- 2. report + era-scoped calibration ---"
+            node scripts/jq-report-verify.mjs
+          } 2>&1 | tee "outbox/jq-health-watch-${TS}.log"
+
+      - name: Surface the two verdicts in the run summary
+        if: always()
+        run: |
+          LOG="outbox/jq-health-watch-${TS}.log"
+          {
+            echo "### JQ health watch"
+            echo '```'
+            grep -E "scoring healthy|last [0-9]+d:|calibration era-scoped|alert_count \(|self-contradictory" "$LOG" || echo "(no verdict lines found — check the log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "jq-health-watch@field"
+          git config user.name "JQ Health Watch"
+          git add "outbox/jq-health-watch-${TS}.log" || echo "(no log)"
+          git ls-files --others --exclude-standard -- 'outbox/*.json' \
+            | while read -r f; do git add "$f"; done
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "chore: JQ health watch ${TS} [skip ci]"
+          for i in 1 2 3 4 5; do
+            git fetch origin main -q && git rebase origin/main -q && git push origin main && exit 0
+            echo "push attempt $i failed, retrying"
+            sleep $((i * 3))
+          done
+          echo "::error::watch result could not be pushed after 5 attempts"
+          exit 1
