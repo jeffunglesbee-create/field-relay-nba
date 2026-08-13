@@ -1,0 +1,45 @@
+  2026-08-13: 48 events, 1 played
+  2026-08-12: 31 events, 28 played
+  2026-08-11: 25 events, 21 played
+  2026-08-10: 16 events, 15 played
+
+candidates=65; probing 6
+
+event 207955 (2nd_half)  avgPos=200 statsHasAvgPositions=true (object{}, n=0)
+   body: {}
+event 223324 (finished)  avgPos=200 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"away":[{"n":20,"x":26.4,"y":71,"pos":"D","name":"Lyanco","player_id":4493},{"n":30,"x":56.8,"y":55.8,"pos":"M","name":"Reinier","player_id":22},{"n":8,"x":62.6,"y":53.3,"pos":"F","name":"M. Cassierra","player_id":12201},{"n":40,"x":54.3,"y":34.4,"pos":"M","name":"V. Hugo","player_id":226},{"n":17,
+event 207987 (finished)  avgPos=200 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"away":[{"n":42,"x":55.7,"y":23.1,"pos":"M","name":"F. Pizzichillo","player_id":19950},{"n":38,"x":58.2,"y":80.8,"pos":"F","name":"E. Obregón","player_id":19955},{"n":37,"x":55.9,"y":40.8,"pos":"F","name":"S. Rodríguez","player_id":19954},{"n":9,"x":40,"y":77.9,"pos":"F","name":"L. Andrade","player
+event 207962 (finished)  avgPos=200 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"away":[{"n":44,"x":49.5,"y":44.2,"pos":"M","name":"A. Camargo","player_id":22208},{"n":42,"x":50.9,"y":79.6,"pos":"F","name":"L. Riveros","player_id":22199},{"n":25,"x":62.1,"y":49.2,"pos":"M","name":"G. Vadalá","player_id":22203},{"n":37,"x":63.6,"y":51.3,"pos":"F","name":"L. Pratto","player_id":
+event 207956 (finished)  avgPos=200 statsHasAvgPositions=true (object{away,home}, n=2)
+   body: {"away":[{"n":40,"x":49.5,"y":56.7,"pos":"F","name":"P. Vegetti","player_id":667},{"n":28,"x":68.9,"y":43.8,"pos":"M","name":"C. Domínguez","player_id":22128},{"n":46,"x":10.4,"y":49.3,"pos":"G","name":"M. Roffo","player_id":94742},{"n":38,"x":51.4,"y":55.4,"pos":"M","name":"C. Bobadilla","player_id
+event 587659 (finished)  avgPos=200 statsHasAvgPositions=true (object{}, n=0)
+   body: {}
+
+=== SUMMARY ===
+{
+  "probed": 6,
+  "avgPosStatuses": [
+    200
+  ],
+  "allAvgPosFailed": false,
+  "anyAvgPosOk": true,
+  "distinctBodies": [
+    "{}",
+    "{\"away\":[{\"n\":20,\"x\":26.4,\"y\":71,\"pos\":\"D\",\"name\":\"Lyanco\",\"player_id\":4493},{\"n\":30,\"x\":56.8,\"y\":55.8,\"pos\":\"M\",\"name\":\"Reinier\",\"player_id\":22},{\"n\":8,\"x\":62.6,\"y\":53.3,\"pos\":\"F\",\"name\":\"M. Cassierra\",\"player_id\":12201},{\"n\":40,\"x\":54.3,\"y\":34.4,\"pos\":\"M\",\"name\":\"V. Hugo\",\"player_id\":226},{\"n\":17,",
+    "{\"away\":[{\"n\":42,\"x\":55.7,\"y\":23.1,\"pos\":\"M\",\"name\":\"F. Pizzichillo\",\"player_id\":19950},{\"n\":38,\"x\":58.2,\"y\":80.8,\"pos\":\"F\",\"name\":\"E. Obregón\",\"player_id\":19955},{\"n\":37,\"x\":55.9,\"y\":40.8,\"pos\":\"F\",\"name\":\"S. Rodríguez\",\"player_id\":19954},{\"n\":9,\"x\":40,\"y\":77.9,\"pos\":\"F\",\"name\":\"L. Andrade\",\"player",
+    "{\"away\":[{\"n\":44,\"x\":49.5,\"y\":44.2,\"pos\":\"M\",\"name\":\"A. Camargo\",\"player_id\":22208},{\"n\":42,\"x\":50.9,\"y\":79.6,\"pos\":\"F\",\"name\":\"L. Riveros\",\"player_id\":22199},{\"n\":25,\"x\":62.1,\"y\":49.2,\"pos\":\"M\",\"name\":\"G. Vadalá\",\"player_id\":22203},{\"n\":37,\"x\":63.6,\"y\":51.3,\"pos\":\"F\",\"name\":\"L. Pratto\",\"player_id\":",
+    "{\"away\":[{\"n\":40,\"x\":49.5,\"y\":56.7,\"pos\":\"F\",\"name\":\"P. Vegetti\",\"player_id\":667},{\"n\":28,\"x\":68.9,\"y\":43.8,\"pos\":\"M\",\"name\":\"C. Domínguez\",\"player_id\":22128},{\"n\":46,\"x\":10.4,\"y\":49.3,\"pos\":\"G\",\"name\":\"M. Roffo\",\"player_id\":94742},{\"n\":38,\"x\":51.4,\"y\":55.4,\"pos\":\"M\",\"name\":\"C. Bobadilla\",\"player_id"
+  ],
+  "statsCarriesAvgPositions": 6,
+  "statsAvgPosCounts": [
+    0,
+    2,
+    2,
+    2,
+    2,
+    0
+  ]
+}
