@@ -143,6 +143,25 @@ Claude's governance obligations are independent of user pace. If the user asks f
 ## Journalism Model
 The relay calls field-claude-proxy (separate worker) which routes to Gemini 3.1 Flash-Lite (primary, Paid Tier 1) with Claude Haiku 4.5 fallback. The proxy handles model routing — this relay sends prompts and receives prose.
 
+**Verified 2026-08-14** (Rule 73 context: direct POSTs to the proxy from a GH Actions
+runner, unique prompt per call so cache is excluded; `scripts/jlayer-model-probe.mjs`,
+artifacts in `outbox/jlayer-model-probe-20260814T09*.log`):
+
+- **Default routing:** `gemini-3.1-flash-lite` answered 9/9 unforced calls,
+  `X-FIELD-Model` present every time, `X-FIELD-Gemini-Error` empty every time. The
+  Haiku fallback did not fire; behavior under Gemini quota pressure is UNVERIFIED.
+- **Do not read the request body to learn the model.** Every J-layer call site sends
+  `model: 'claude-haiku-4-5-20251001'` and lets the proxy decide. The answering model
+  is only in the `X-FIELD-Model` RESPONSE header.
+- **`X-FIELD-Test-Model` steers routing but `gemini-3.5-flash` is currently BROKEN:**
+  3/3 forced calls returned HTTP 500 (Cloudflare error page) while 3/3 interleaved
+  unforced controls returned 200. An out-of-allow-list value (a Claude model name)
+  falls through to the default with a normal 200. Production is unaffected — it never
+  sets this header — but `/debug/gemini-model-test` (src/index.js ~8926) and
+  `scripts/gemini-model-sanity-check.mjs` both force `gemini-3.5-flash` and are
+  therefore broken today. Gated by
+  `docs/CC-CMD-2026-08-14-gemini-35-flash-route-500.md`.
+
 ## What NOT to do
 - Do NOT modify wrangler.toml bindings without explicit approval
 - Do NOT add new Durable Object classes (requires migration entries)

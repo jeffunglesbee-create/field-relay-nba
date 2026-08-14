@@ -26,6 +26,11 @@ async function callProxy(prompt, testModel, maxTokens) {
     };
 }
 
+// BROKEN AS OF 2026-08-14: forcing gemini-3.5-flash returns HTTP 500 from the proxy
+// (3/3, against 3/3 interleaved unforced controls at 200 — measured by
+// scripts/jlayer-model-probe.mjs). This script will report that 500, not a model
+// comparison. Cause is in the proxy worker, another repo. Gated by
+// docs/CC-CMD-2026-08-14-gemini-35-flash-route-500.md.
 async function main() {
     console.log('=== gemini-model-sanity-check round 3 ===');
     const r = await callProxy('Say the word banana and nothing else.', 'gemini-3.5-flash', 300);

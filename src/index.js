@@ -8921,6 +8921,15 @@ export default {
                 };
             };
 
+            // BROKEN AS OF 2026-08-14: the gemini-3.5-flash arm below returns HTTP 500
+            // from field-claude-proxy — 3/3 forced calls, against 3/3 interleaved
+            // unforced controls at 200 (deterministic, not flakiness; measured by
+            // scripts/jlayer-model-probe.mjs, artifact
+            // outbox/jlayer-model-probe-2026-08-14T09-15-28-239Z.json). The fault is in
+            // the proxy worker, which lives in another repo — deliberately NOT worked
+            // around here (Rule 64). Gated by
+            // docs/CC-CMD-2026-08-14-gemini-35-flash-route-500.md. The default arm is
+            // unaffected and production never sets X-FIELD-Test-Model at all.
             const [defaultResult, testResult] = await Promise.all([
                 callModel(null),
                 callModel('gemini-3.5-flash'),
