@@ -59,10 +59,32 @@ call sets the override. Two real deltas vs the 08-13 baseline, neither caused by
    the 4 unscored rows the same run showed in-window, which were in flight and scored
    within ~3h.
 
-**Open, gated:** `docs/CC-CMD-2026-08-14-unscored-pre-game-backlog.md` — all 11
-unscored briefs are `brief_type=pre_game`, while ~101 other pre_game briefs ARE
-scored, so the type is not globally exempt. Find what separates them (`source`/`model`
-discriminator query included), fix the write path, backfill in-session.
+**RESOLVED same day** — `docs/CC-CMD-2026-08-14-unscored-pre-game-backlog.md` executed.
+Session doc: `outbox/cc-session-2026-08-14-unscored-pre-game.md` — DONE, confidence 96.
+Done condition artifact: `unscored rows (repo-wide, not window-scoped): 0`
+(`outbox/jq-unscored-triage-2026-08-14T13-25-32-902Z.log`, post-deploy). Deploy 31804447440.
+
+**Root cause was NOT the literal-NULL insert** the CC-CMD suspected. 105 of 116
+pre_game rows come from that same writer and ARE scored. `context_hash` identified the
+real mechanism: **105/105 scored rows were scored by a CLIENT round-trip** through
+`/archive/brief`, whose upsert does
+`quality_score = COALESCE(excluded.quality_score, briefs.quality_score)`. Where the
+client never re-posted, the row stayed NULL forever — hence 4 days holding both scored
+and unscored rows, which reads as intermittent because it tracks client behavior.
+
+**Fix (`93ce859`):** bounded score-fill in the existing dead-hours block — max 5/tick,
+all brief_types, Rule 5 guarded, `ORDER BY created_at ASC`. The ASC is load-bearing:
+`/backfill/brief-scores` orders DESC, so any backlog past its LIMIT starves its own
+tail permanently. Server-side completeness no longer depends on a client action.
+
+**Not yet observed firing** — dead hours only (UTC 02:00–10:00) and there is currently
+nothing to score. First real exercise needs a future NULL row.
+
+**Disclosed side effect:** the 11 rows were scored under era-3 code but carry no
+`scoring_version` (stamp-on-write still unbuilt), so the date-derived era will
+attribute them to **era 2**. Small (11 rows, none `game_recap`) but it is this
+session's recurring defect — a derived value with no stored provenance — resurfacing.
+Strengthens `docs/CC-CMD-2026-08-13-stamp-scoring-version-on-write.md`; no new CC-CMD.
 
 **Open, gated:** `docs/CC-CMD-2026-08-14-gemini-35-flash-route-500.md` — the fault is
 in `workers/field-claude-proxy`, outside this repo's scope. Deliberately no relay-side
