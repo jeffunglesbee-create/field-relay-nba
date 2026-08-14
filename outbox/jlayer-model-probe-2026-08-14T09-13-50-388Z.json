@@ -1,0 +1,132 @@
+{
+  "ts": "2026-08-14T09:13:50.388Z",
+  "proxy": "https://field-claude-proxy.jeffunglesbee.workers.dev",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "calls": [
+    {
+      "label": "baseline-1",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:13:50.388Z call baseline-1. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 2440,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "2312",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "baseline-2",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:13:50.388Z call baseline-2. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 880,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "869",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-claude",
+      "testModel": "claude-haiku-4-5-20251001",
+      "prompt": "Run 2026-08-14T09:13:50.388Z call forced-claude. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 581,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "571",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 88,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "unforced-twin",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:13:50.388Z call unforced-twin. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 567,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "557",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 88,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-gemini-3.5",
+      "testModel": "gemini-3.5-flash",
+      "prompt": "Run 2026-08-14T09:13:50.388Z call forced-gemini-3.5. Reply with exactly the word: OK",
+      "status": 500,
+      "wallMs": 1005,
+      "xFieldModel": null,
+      "xFieldLatencyMs": null,
+      "xFieldGeminiError": null,
+      "bytes": 4707,
+      "parseFailed": true,
+      "head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi"
+    }
+  ],
+  "judgeRoute": {
+    "status": 200,
+    "reportedModel": "gemini-3.1-flash-lite",
+    "geminiError": null,
+    "ms": 1226
+  },
+  "summary": {
+    "baselineModel": "gemini-3.1-flash-lite",
+    "baselineStable": true,
+    "sentOutOfAllowlist": "claude-haiku-4-5-20251001",
+    "gotForOutOfAllowlist": "gemini-3.1-flash-lite",
+    "sentInAllowlist": "gemini-3.5-flash",
+    "gotForInAllowlist": null,
+    "claudeOverrideHonored": false,
+    "geminiOverrideHonored": false,
+    "wallMsByCall": [
+      {
+        "label": "baseline-1",
+        "wallMs": 2440
+      },
+      {
+        "label": "baseline-2",
+        "wallMs": 880
+      },
+      {
+        "label": "forced-claude",
+        "wallMs": 581
+      },
+      {
+        "label": "unforced-twin",
+        "wallMs": 567
+      },
+      {
+        "label": "forced-gemini-3.5",
+        "wallMs": 1005
+      }
+    ],
+    "minUnforcedWallMs": 567,
+    "suspiciouslyFast": [],
+    "cacheExcluded": true,
+    "judgeRouteReports": "gemini-3.1-flash-lite",
+    "verdict": "B",
+    "verdictText": "OVERRIDE IGNORED — both claude-haiku-4-5-20251001 and gemini-3.5-flash returned null, with latencies in the same range as the unforced calls. The header is dead weight in this repo."
+  }
+}

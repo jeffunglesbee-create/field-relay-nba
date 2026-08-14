@@ -1,0 +1,52 @@
+=== jlayer-model-probe round 2  proxy=https://field-claude-proxy.jeffunglesbee.workers.dev  utc=2026-08-14T09:13:50.388Z ===
+every call sends a unique prompt; latency is therefore real inference, not cache
+
+200    2440ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  baseline-1
+200     880ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  baseline-2
+200     581ms  sent=claude-haiku-4-5-20251001    X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  forced-claude
+200     567ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  unforced-twin
+500    1005ms  sent=gemini-3.5-flash             X-FIELD-Model=null                   geminiError=-  forced-gemini-3.5
+
+/test/gemini-judge reports model=gemini-3.1-flash-lite (status 200)
+
+=== SUMMARY ===
+{
+  "baselineModel": "gemini-3.1-flash-lite",
+  "baselineStable": true,
+  "sentOutOfAllowlist": "claude-haiku-4-5-20251001",
+  "gotForOutOfAllowlist": "gemini-3.1-flash-lite",
+  "sentInAllowlist": "gemini-3.5-flash",
+  "gotForInAllowlist": null,
+  "claudeOverrideHonored": false,
+  "geminiOverrideHonored": false,
+  "wallMsByCall": [
+    {
+      "label": "baseline-1",
+      "wallMs": 2440
+    },
+    {
+      "label": "baseline-2",
+      "wallMs": 880
+    },
+    {
+      "label": "forced-claude",
+      "wallMs": 581
+    },
+    {
+      "label": "unforced-twin",
+      "wallMs": 567
+    },
+    {
+      "label": "forced-gemini-3.5",
+      "wallMs": 1005
+    }
+  ],
+  "minUnforcedWallMs": 567,
+  "suspiciouslyFast": [],
+  "cacheExcluded": true,
+  "judgeRouteReports": "gemini-3.1-flash-lite",
+  "verdict": "B",
+  "verdictText": "OVERRIDE IGNORED — both claude-haiku-4-5-20251001 and gemini-3.5-flash returned null, with latencies in the same range as the unforced calls. The header is dead weight in this repo."
+}
+
+=== VERDICT B — OVERRIDE IGNORED — both claude-haiku-4-5-20251001 and gemini-3.5-flash returned null, with latencies in the same range as the unforced calls. The header is dead weight in this repo. ===
