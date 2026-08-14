@@ -1,0 +1,16 @@
+=== jq-pre-game-discriminator  utc=2026-08-14T13:14:52.986Z ===
+
+pre_game briefs by (source, model):
+  source                model                      n   unscored
+  cron                 gemini-3.1-flash-lite     116         11
+
+sources holding unscored rows : cron
+source='cron'                 : 11/116 unscored
+every other source            : 0 unscored
+
+EVERY (brief_type, source) pair holding unscored rows, repo-wide:
+  pre_game         cron                   11/116   (9%)
+
+pre_game + source='cron' rows WITH a score: 105
+
+=> NOT A CLEAN CLUSTER — the reading from code does not fully explain the data. Investigate before fixing.
