@@ -1,0 +1,79 @@
+{
+  "ts": "2026-08-14T01:35:04.937Z",
+  "proxy": "https://field-claude-proxy.jeffunglesbee.workers.dev",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "calls": [
+    {
+      "label": "routing-1",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "extraHeaders": {},
+      "status": 200,
+      "wallMs": 874,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "760",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "stopReason": "end_turn",
+      "usage": {
+        "input_tokens": 54,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "routing-2",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "extraHeaders": {},
+      "status": 200,
+      "wallMs": 495,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "485",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "stopReason": "end_turn",
+      "usage": {
+        "input_tokens": 54,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-haiku",
+      "requestedModel": "claude-haiku-4-5-20251001",
+      "extraHeaders": {
+        "X-FIELD-Test-Model": "claude-haiku-4-5-20251001"
+      },
+      "status": 200,
+      "wallMs": 45,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "33",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "stopReason": "end_turn",
+      "usage": {
+        "input_tokens": 54,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    }
+  ],
+  "judgeRoute": {
+    "status": 200,
+    "reportedModel": "gemini-3.1-flash-lite",
+    "verdict": "FAIL\nSENTENCE: The Orioles won 5-4.\nFIX: Subordinate the score into a descriptive claim about the nature of the victory rather than using it as the predicate.",
+    "ms": 881
+  },
+  "summary": {
+    "distinctModelsSeen": [
+      "gemini-3.1-flash-lite"
+    ],
+    "routingStable": true,
+    "anyGeminiError": [],
+    "headerPresent": true,
+    "judgeRouteReports": "gemini-3.1-flash-lite",
+    "judgeRouteMatchesReality": true
+  }
+}
