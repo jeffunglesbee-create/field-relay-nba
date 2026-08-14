@@ -1,0 +1,19 @@
+=== nfl-season-param-probe  utc=2026-08-14T23:53:19.478Z ===
+
+── Q1: does the season path actually parameterize? ──
+  default     status=200 bytes=193218  Bengals row=Bengals Bengals | 640 | 412 | 64.4 | 6.6 | 4244 | 36
+  path 2025   status=200 bytes=193556  Bengals row=Bengals Bengals | 640 | 412 | 64.4 | 6.6 | 4244 | 36
+  path 2015   status=200 bytes=193929  Bengals row=Bengals Bengals | 505 | 334 | 66.1 | 8.1 | 4104 | 31
+  path 2015 post  status=200 bytes=193999  Bengals row=Bengals Bengals | 505 | 334 | 66.1 | 8.1 | 4104 | 31
+
+  Bengals Pass Yds — default=4244  2025=4244  2015=4104
+  => PARAMETERIZED — different seasons return different values. The path is a real season selector.
+
+── Q2: is there an unauthenticated JSON endpoint? ──
+   (gated APIs are not probed — nextgenstats /api/prod/* is OAuth-walled and stays that way)
+
+  ESPN nfl scoreboard          status=200 application/json;charset=UTF-8   254874 bytes  leagues,season,week,events,provider
+  ESPN nfl teams               status=200 application/json                 148848 bytes  sports
+  ESPN core team season stats  status=200 application/json;charset=utf-8   78956 bytes  $ref,season,team,splits,seasonType
+  NFL Shield football/v2       status=401 text/html; charset=utf-8         434 bytes  
+  nflverse release index       status=200 application/json; charset=utf-   136800 bytes  url,assets_url,upload_url,html_url,id,author
