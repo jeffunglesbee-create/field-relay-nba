@@ -1,0 +1,33 @@
+=== jq-unscored-triage  utc=2026-08-14T12:57:57.123Z ===
+
+briefs columns: id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, created_at, source, scoring_version 
+
+timestamp column in use: created_at
+
+unscored rows (repo-wide, not window-scoped): 11
+  2026-08-01 10:00:41  2026-08-01  pre_game       mls     age=18897.3min  pre_game_FIFA World Cup 2026_2026-08-01_dcunited
+  2026-08-01 10:00:40  2026-08-01  pre_game       mls     age=18897.3min  pre_game_FIFA World Cup 2026_2026-08-01_cfmontra
+  2026-07-31 10:00:47  2026-07-31  pre_game       mls     age=20337.2min  pre_game_FIFA World Cup 2026_2026-07-31_nycfc_to
+  2026-07-25 10:01:22  2026-07-25  pre_game       mls     age=28976.6min  pre_game_FIFA World Cup 2026_2026-07-25_columbus
+  2026-07-25 10:01:21  2026-07-25  pre_game       mls     age=28976.6min  pre_game_FIFA World Cup 2026_2026-07-25_redbulln
+  2026-07-22 10:02:33  2026-07-22  pre_game       mls     age=33295.4min  pre_game_FIFA World Cup 2026_2026-07-22_cincinna
+  2026-07-22 10:02:31  2026-07-22  pre_game       mls     age=33295.4min  pre_game_FIFA World Cup 2026_2026-07-22_columbus
+  2026-07-18 15:46:37  2026-07-18  pre_game       fifa world cup  age=38711.3min  pre_game_FIFA World Cup 2026_2026-07-18_france_e
+  2026-07-18 15:46:33  2026-07-19  pre_game       wnba    age=38711.4min  pre_game_WNBA_2026-07-18_fever_liberty
+  2026-07-18 15:46:27  2026-07-18  pre_game       mlb     age=38711.5min  pre_game_MLB_2026-07-18_redsox_rays
+  2026-07-18 15:21:27  2026-07-16  pre_game       pga tour  age=38736.5min  pre_game_PGA Tour_2026-07-16_src401811957
+
+most recent SCORED briefs (for comparison):
+  2026-08-14 10:04:55  game_recap     NFL    score=165 v=—  age=173.0min
+  2026-08-14 10:04:42  game_recap     NFL    score=157 v=—  age=173.3min
+  2026-08-14 10:04:38  game_recap     NFL    score=157 v=—  age=173.3min
+  2026-08-14 10:04:18  game_recap     WNBA   score=166 v=—  age=173.7min
+  2026-08-14 10:04:13  game_recap     WNBA   score=176 v=—  age=173.7min
+  2026-08-14 10:03:59  game_recap     MLB    score=162 v=—  age=174.0min
+  2026-08-14 10:03:56  game_recap     MLB    score=179 v=—  age=174.0min
+  2026-08-14 10:03:45  game_recap     MLB    score=191 v=—  age=174.2min
+  2026-08-14 10:03:42  game_recap     MLB    score=193 v=—  age=174.3min
+  2026-08-14 10:03:30  game_recap     MLB    score=166 v=—  age=174.5min
+
+oldest unscored row: 38736.5 min
+=> READING (b) STALLED — older than two cron cycles; the scoring path is not reaching these.
