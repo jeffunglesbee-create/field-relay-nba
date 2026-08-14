@@ -1,0 +1,19 @@
+=== jq-unscored-triage  utc=2026-08-14T13:25:32.902Z ===
+
+briefs columns: id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, created_at, source, scoring_version 
+
+timestamp column in use: created_at
+
+unscored rows (repo-wide, not window-scoped): 0
+
+most recent SCORED briefs (for comparison):
+  2026-08-14 10:04:55  game_recap     NFL    score=165 v=—  age=200.6min
+  2026-08-14 10:04:42  game_recap     NFL    score=157 v=—  age=200.9min
+  2026-08-14 10:04:38  game_recap     NFL    score=157 v=—  age=200.9min
+  2026-08-14 10:04:18  game_recap     WNBA   score=166 v=—  age=201.3min
+  2026-08-14 10:04:13  game_recap     WNBA   score=176 v=—  age=201.3min
+  2026-08-14 10:03:59  game_recap     MLB    score=162 v=—  age=201.6min
+  2026-08-14 10:03:56  game_recap     MLB    score=179 v=—  age=201.6min
+  2026-08-14 10:03:45  game_recap     MLB    score=191 v=—  age=201.8min
+  2026-08-14 10:03:42  game_recap     MLB    score=193 v=—  age=201.9min
+  2026-08-14 10:03:30  game_recap     MLB    score=166 v=—  age=202.1min
