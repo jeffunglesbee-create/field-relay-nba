@@ -83,7 +83,15 @@ async function callProxy(label, testModel) {
       rec.bodyModel = j?.model ?? null;
       rec.usage = j?.usage ?? null;
       rec.textHead = (j?.content?.[0]?.text || '').slice(0, 60);
-    } catch { rec.parseFailed = true; rec.head = txt.slice(0, 160); }
+    } catch {
+      // A non-JSON body here is a Cloudflare error page, not a model response.
+      // Round 2 lost the diagnosis by truncating at 160 chars and keeping only
+      // the DOCTYPE; the CF error code is the whole content of the message.
+      rec.parseFailed = true;
+      rec.head = txt.slice(0, 160);
+      rec.cfErrorCode = (txt.match(/error code:\s*(\d+)/i) || [])[1] || null;
+      rec.cfRayOrTitle = (txt.match(/<title>([^<]{0,120})<\/title>/i) || [])[1] || null;
+    }
   } catch (e) { rec.error = String(e.message || e); }
   return rec;
 }
@@ -113,10 +121,17 @@ async function callProxy(label, testModel) {
   const unforcedTwin = await add('unforced-twin', null);
 
   // ── The discriminating arm: an override value the proxy is claimed to ACCEPT ──
-  // If this returns gemini-3.5-flash, the override mechanism works and round 1
-  // simply asked for a model outside the allow-list. If it ALSO returns the
-  // default, the header is inert for every value tested.
-  const forcedGemini = await add('forced-gemini-3.5', IN_ALLOWLIST);
+  // Repeated, and interleaved with unforced controls, because round 2 got a single
+  // HTTP 500 here and one sample cannot separate "this VALUE breaks the proxy" from
+  // "the proxy was flaky in that moment" — a 1101 from this same worker was already
+  // observed once tonight on an unrelated call.
+  const forcedGeminiRuns = [];
+  const interleavedControls = [];
+  for (let i = 1; i <= 3; i++) {
+    forcedGeminiRuns.push(await add(`forced-gemini-3.5-${i}`, IN_ALLOWLIST));
+    interleavedControls.push(await add(`control-${i}`, null));
+  }
+  const forcedGemini = forcedGeminiRuns[0];
 
   // ── The route that reports a model, for comparison (fixed in 12e4018) ──
   try {
@@ -143,14 +158,36 @@ async function callProxy(label, testModel) {
   const suspiciouslyFast = out.calls.filter(c => Number.isFinite(c.wallMs) && c.wallMs < minReal / 3)
     .map(c => ({ label: c.label, wallMs: c.wallMs }));
 
-  const geminiOverrideHonored = forcedGemini.xFieldModel === IN_ALLOWLIST;
+  const geminiOverrideHonored = forcedGeminiRuns.some(c => c.xFieldModel === IN_ALLOWLIST);
   const claudeOverrideHonored = forcedClaude.xFieldModel === OUT_OF_ALLOWLIST;
+
+  // Round 2's verdict logic was wrong and stamped "OVERRIDE IGNORED" on a run whose
+  // discriminating call returned HTTP 500. It tested `xFieldModel === IN_ALLOWLIST`
+  // and treated every other outcome as "ignored", conflating "the proxy answered
+  // with a different model" (ignored) with "the proxy did not answer at all"
+  // (errored). Those are opposite conclusions: an IGNORED header returns 200 plus
+  // the default; a header that ERRORS the worker demonstrably reached its routing
+  // logic. Non-200 is now its own class and can never be read as "ignored".
+  const forcedGeminiErrored = forcedGeminiRuns.filter(c => c.status !== 200);
+  const controlsAllOk = interleavedControls.every(c => c.status === 200);
 
   let verdict, verdictText;
   if (suspiciouslyFast.length) {
     verdict = 'C';
     verdictText = 'AMBIGUOUS — at least one call returned implausibly fast despite a unique prompt; ' +
-      'cache cannot be excluded. Do not conclude A or B from this run.';
+      'cache cannot be excluded. Do not conclude anything about the override from this run.';
+  } else if (forcedGeminiErrored.length && controlsAllOk) {
+    verdict = 'A-ERROR';
+    verdictText = `OVERRIDE REACHES THE PROXY, AND ${IN_ALLOWLIST} IS BROKEN — ` +
+      `${forcedGeminiErrored.length}/${forcedGeminiRuns.length} forced calls returned non-200 ` +
+      `(${forcedGeminiErrored.map(c => `${c.status}${c.cfErrorCode ? `/cf-${c.cfErrorCode}` : ''}`).join(', ')}) ` +
+      `while ${interleavedControls.length}/${interleavedControls.length} interleaved unforced controls returned 200. ` +
+      'The header is NOT inert — an ignored header would return 200 with the default model, as the ' +
+      `${OUT_OF_ALLOWLIST} arm does. It steers routing, and the ${IN_ALLOWLIST} route currently throws.`;
+  } else if (forcedGeminiErrored.length && !controlsAllOk) {
+    verdict = 'C';
+    verdictText = 'AMBIGUOUS — the forced calls errored, but so did at least one unforced control, ' +
+      'so the proxy was unhealthy during this run. Re-run; do not attribute the errors to the header.';
   } else if (geminiOverrideHonored || claudeOverrideHonored) {
     verdict = 'A';
     verdictText = 'OVERRIDE WORKS — X-FIELD-Test-Model changed the answering model. ' +
@@ -160,9 +197,9 @@ async function callProxy(label, testModel) {
         : 'Honored for every value tested.');
   } else {
     verdict = 'B';
-    verdictText = `OVERRIDE IGNORED — both ${OUT_OF_ALLOWLIST} and ${IN_ALLOWLIST} returned ` +
-      `${forcedGemini.xFieldModel}, with latencies in the same range as the unforced calls. ` +
-      'The header is dead weight in this repo.';
+    verdictText = `OVERRIDE IGNORED — every forced call returned HTTP 200 with ` +
+      `${forcedGemini.xFieldModel}, the same model and latency range as the unforced calls, for both ` +
+      `${OUT_OF_ALLOWLIST} and ${IN_ALLOWLIST}. The header is dead weight in this repo.`;
   }
 
   out.summary = {
@@ -170,7 +207,14 @@ async function callProxy(label, testModel) {
     baselineModel, baselineStable,
     // The question this round exists to answer.
     sentOutOfAllowlist: OUT_OF_ALLOWLIST, gotForOutOfAllowlist: forcedClaude.xFieldModel,
-    sentInAllowlist: IN_ALLOWLIST, gotForInAllowlist: forcedGemini.xFieldModel,
+    sentInAllowlist: IN_ALLOWLIST,
+    inAllowlistResults: forcedGeminiRuns.map(c => ({
+      label: c.label, status: c.status, model: c.xFieldModel,
+      cfErrorCode: c.cfErrorCode ?? null, wallMs: c.wallMs,
+    })),
+    interleavedControlResults: interleavedControls.map(c => ({
+      label: c.label, status: c.status, model: c.xFieldModel, wallMs: c.wallMs,
+    })),
     claudeOverrideHonored, geminiOverrideHonored,
     // Cache exclusion, measured rather than asserted.
     wallMsByCall: out.calls.map(c => ({ label: c.label, wallMs: c.wallMs })),
