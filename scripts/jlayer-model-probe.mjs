@@ -1,33 +1,57 @@
-// What model actually answers a J-layer call?
+// What model actually answers a J-layer call, and does X-FIELD-Test-Model
+// actually steer it?
 //
-// CLAUDE.md states the proxy routes to Gemini 3.1 Flash-Lite primary with
-// Claude Haiku 4.5 fallback. That is an inherited claim (Rule 72) and the
-// relay itself cannot corroborate it: every J-layer call sends
-// `model: 'claude-haiku-4-5-20251001'` in the body and lets the proxy decide,
-// and the one route that reports a model —— /test/gemini-judge, src/index.js:14886
-// —— HARDCODES `model: 'gemini-via-proxy'` in its response. It asserts what the
-// proxy did rather than reading it.
+// ROUND 1 (2026-08-14, outbox/jlayer-model-probe-20260814T0126*.log) established
+// the routing: 6/6 calls answered by gemini-3.1-flash-lite, X-FIELD-Model present
+// every time, X-FIELD-Gemini-Error empty every time. That part is settled and the
+// calls below re-confirm it as a control rather than re-litigate it.
 //
-// The mechanism to read it already exists. src/index.js:8915 shows the proxy
-// returns provenance in RESPONSE HEADERS:
+// ROUND 1 also produced one observation it could NOT interpret: forcing
+// `X-FIELD-Test-Model: claude-haiku-4-5-20251001` still returned
+// gemini-3.1-flash-lite. Two explanations fit equally well, because every round-1
+// call sent an IDENTICAL body and the forced call came back in 29ms/45ms against
+// 874-3908ms for the others:
+//   (a) the proxy ignores the header
+//   (b) the response was a cache hit and the header never reached a real inference
 //
-//   X-FIELD-Model         which model actually answered
-//   X-FIELD-Latency-Ms
-//   X-FIELD-Gemini-Error  why it fell back, when it did
-//   X-FIELD-Test-Model    (request) force a specific model
+// A third explanation surfaced from this repo's own history and beats both. The
+// 2026-07-16 comparison session (outbox/gemini-model-comparison-2026-07-16.md)
+// recorded that the proxy validates the header against
+//   ALLOWED_TEST_MODELS = new Set(['gemini-3.1-flash-lite','gemini-3.5-flash'])
+// and falls back to DEFAULT_GEMINI_MODEL when the value is absent OR not in that
+// set. Under that claim the override works fine and round 1 simply asked it for a
+// model it does not accept — a Claude model name. That is an inherited claim
+// (Rule 72) about a file in a DIFFERENT repo (workers/field-claude-proxy), 4 weeks
+// old, so it is a hypothesis to test over the wire, not a fact to write up.
 //
-// So this measures the routing rather than trusting either the doc or the
-// hardcoded label, and does it from a runner because the sandbox proxy 403s
-// *.workers.dev.
+// This round therefore fixes the measurement in two ways:
 //
-// Rule 78: each call is one real inference. Deliberately 3 calls at
-// max_tokens 32 with a trivial prompt — enough to see routing and whether it
-// is stable, not enough to matter.
+//   1. EVERY call sends a UNIQUE prompt (label + run timestamp embedded in the
+//      message text). This is the whole reason round 1 was uninterpretable —
+//      identical bodies make a cache hit indistinguishable from an ignored header.
+//
+//   2. The override is tested with BOTH an out-of-allow-list value (a Claude model,
+//      what round 1 tried) and an in-allow-list value (gemini-3.5-flash). Only the
+//      second arm can distinguish "override ignored entirely" from "override
+//      honored, but scoped to the Gemini models the proxy accepts". A probe that
+//      tests only the Claude value cannot tell those apart no matter how many
+//      times it runs.
+//
+// Rule 78: every call is one real inference. max_tokens 32, trivial prompts.
 
 const PROXY = process.env.PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const SECRET = process.env.RELAY_SHARED_SECRET || 'field-relay-cron-2026';
 const TS = new Date().toISOString();
+
+// The allow-list the 2026-07-16 session recorded. Under test, not assumed.
+const IN_ALLOWLIST = 'gemini-3.5-flash';
+const OUT_OF_ALLOWLIST = 'claude-haiku-4-5-20251001';
+const DEFAULT_MODEL = 'gemini-3.1-flash-lite';
+
+// Unique per call. Without this the whole probe is uninterpretable.
+const uniquePrompt = (label) =>
+  `Run ${TS} call ${label}. Reply with exactly the word: OK`;
 
 // Body shape copied verbatim from the relay's own call sites.
 const body = (prompt, maxTokens = 32) => JSON.stringify({
@@ -36,15 +60,19 @@ const body = (prompt, maxTokens = 32) => JSON.stringify({
   messages: [{ role: 'user', content: prompt }],
 });
 
-async function callProxy(label, prompt, extraHeaders = {}) {
-  const headers = { 'Content-Type': 'application/json', 'X-FIELD-Relay': SECRET, ...extraHeaders };
+async function callProxy(label, testModel) {
+  const headers = { 'Content-Type': 'application/json', 'X-FIELD-Relay': SECRET };
+  if (testModel) headers['X-FIELD-Test-Model'] = testModel;
   const t0 = Date.now();
-  const rec = { label, requestedModel: 'claude-haiku-4-5-20251001', extraHeaders };
+  const rec = { label, testModel: testModel || null, prompt: uniquePrompt(label) };
   try {
-    const r = await fetch(PROXY, { method: 'POST', headers, body: body(prompt), signal: AbortSignal.timeout(45000) });
+    const r = await fetch(PROXY, {
+      method: 'POST', headers, body: body(rec.prompt),
+      signal: AbortSignal.timeout(45000),
+    });
     rec.status = r.status;
     rec.wallMs = Date.now() - t0;
-    // The provenance the relay already knows how to read at src/index.js:8915.
+    // The provenance the relay already reads at src/index.js:8915.
     rec.xFieldModel = r.headers.get('X-FIELD-Model');
     rec.xFieldLatencyMs = r.headers.get('X-FIELD-Latency-Ms');
     rec.xFieldGeminiError = r.headers.get('X-FIELD-Gemini-Error');
@@ -52,14 +80,9 @@ async function callProxy(label, prompt, extraHeaders = {}) {
     rec.bytes = txt.length;
     try {
       const j = JSON.parse(txt);
-      // An Anthropic-shaped reply carries its own `model`. Whether the proxy
-      // preserves it, rewrites it, or echoes the request is exactly the
-      // question — so record it beside the header rather than assuming they
-      // agree.
       rec.bodyModel = j?.model ?? null;
-      rec.stopReason = j?.stop_reason ?? null;
       rec.usage = j?.usage ?? null;
-      rec.textHead = (j?.content?.[0]?.text || '').slice(0, 80);
+      rec.textHead = (j?.content?.[0]?.text || '').slice(0, 60);
     } catch { rec.parseFailed = true; rec.head = txt.slice(0, 160); }
   } catch (e) { rec.error = String(e.message || e); }
   return rec;
@@ -67,50 +90,100 @@ async function callProxy(label, prompt, extraHeaders = {}) {
 
 (async () => {
   const out = { ts: TS, proxy: PROXY, relay: RELAY, calls: [] };
-  const add = async (...args) => {
-    const r = await callProxy(...args);
+  const add = async (label, testModel) => {
+    const r = await callProxy(label, testModel);
     out.calls.push(r);
-    console.log(`${String(r.status ?? 'ERR').padEnd(4)} ${String(r.wallMs ?? '-').padStart(6)}ms  ` +
-      `X-FIELD-Model=${String(r.xFieldModel).padEnd(28)} bodyModel=${String(r.bodyModel).padEnd(28)} ` +
+    console.log(
+      `${String(r.status ?? 'ERR').padEnd(4)} ${String(r.wallMs ?? '-').padStart(6)}ms  ` +
+      `sent=${String(r.testModel || '(none)').padEnd(28)} ` +
+      `X-FIELD-Model=${String(r.xFieldModel).padEnd(22)} ` +
       `geminiError=${r.xFieldGeminiError || '-'}  ${r.label}`);
     return r;
   };
 
-  console.log(`=== jlayer-model-probe  proxy=${PROXY}  utc=${TS} ===\n`);
+  console.log(`=== jlayer-model-probe round 2  proxy=${PROXY}  utc=${TS} ===`);
+  console.log(`every call sends a unique prompt; latency is therefore real inference, not cache\n`);
 
-  // Three identical-shape calls: routing could be per-request (load balanced,
-  // quota-driven), so one sample cannot establish "primary".
-  await add('routing-1', 'Reply with exactly: OK');
-  await add('routing-2', 'Reply with exactly: OK');
-  // Does X-FIELD-Test-Model actually override? If it does, the relay has a
-  // supported way to pin a model, which matters for any future A/B.
-  await add('forced-haiku', 'Reply with exactly: OK', { 'X-FIELD-Test-Model': 'claude-haiku-4-5-20251001' });
+  // ── Control: routing with no override at all (round 1's finding, re-checked) ──
+  const base1 = await add('baseline-1', null);
+  const base2 = await add('baseline-2', null);
 
-  // And the route that reports a model today, for comparison.
+  // ── The pair the CC-CMD specifies: same unique prompt shape, +/- Claude override ──
+  const forcedClaude = await add('forced-claude', OUT_OF_ALLOWLIST);
+  const unforcedTwin = await add('unforced-twin', null);
+
+  // ── The discriminating arm: an override value the proxy is claimed to ACCEPT ──
+  // If this returns gemini-3.5-flash, the override mechanism works and round 1
+  // simply asked for a model outside the allow-list. If it ALSO returns the
+  // default, the header is inert for every value tested.
+  const forcedGemini = await add('forced-gemini-3.5', IN_ALLOWLIST);
+
+  // ── The route that reports a model, for comparison (fixed in 12e4018) ──
   try {
     const r = await fetch(`${RELAY}/test/gemini-judge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': SECRET },
-      body: JSON.stringify({ brief: 'The Orioles won 5-4. Baltimore needed every inning of it.' }),
+      body: JSON.stringify({ brief: `Run ${TS}. The Orioles won 5-4. Baltimore needed every inning of it.` }),
       signal: AbortSignal.timeout(45000),
     });
     const j = await r.json().catch(() => null);
-    out.judgeRoute = { status: r.status, reportedModel: j?.model ?? null, verdict: j?.verdict ?? null, ms: j?.ms ?? null };
+    out.judgeRoute = { status: r.status, reportedModel: j?.model ?? null, geminiError: j?.geminiError ?? null, ms: j?.ms ?? null };
     console.log(`\n/test/gemini-judge reports model=${out.judgeRoute.reportedModel} (status ${out.judgeRoute.status})`);
   } catch (e) { out.judgeRoute = { error: String(e.message || e) }; }
 
-  const models = [...new Set(out.calls.map(c => c.xFieldModel).filter(Boolean))];
+  // ── Verdict: A / B / C, decided by the measurements, not by preference ────────
+  const baselineModels = [base1, base2, unforcedTwin].map(c => c.xFieldModel);
+  const baselineStable = new Set(baselineModels.filter(Boolean)).size === 1;
+  const baselineModel = baselineModels[0];
+
+  // A cache hit would show up as a wall time far below the real-inference range.
+  // With unique prompts this should no longer be possible; measured, not assumed.
+  const realTimes = [base1, base2, unforcedTwin].map(c => c.wallMs).filter(Number.isFinite);
+  const minReal = Math.min(...realTimes);
+  const suspiciouslyFast = out.calls.filter(c => Number.isFinite(c.wallMs) && c.wallMs < minReal / 3)
+    .map(c => ({ label: c.label, wallMs: c.wallMs }));
+
+  const geminiOverrideHonored = forcedGemini.xFieldModel === IN_ALLOWLIST;
+  const claudeOverrideHonored = forcedClaude.xFieldModel === OUT_OF_ALLOWLIST;
+
+  let verdict, verdictText;
+  if (suspiciouslyFast.length) {
+    verdict = 'C';
+    verdictText = 'AMBIGUOUS — at least one call returned implausibly fast despite a unique prompt; ' +
+      'cache cannot be excluded. Do not conclude A or B from this run.';
+  } else if (geminiOverrideHonored || claudeOverrideHonored) {
+    verdict = 'A';
+    verdictText = 'OVERRIDE WORKS — X-FIELD-Test-Model changed the answering model. ' +
+      (geminiOverrideHonored && !claudeOverrideHonored
+        ? `Scoped: honored for ${IN_ALLOWLIST}, NOT for ${OUT_OF_ALLOWLIST} (which fell through to the default ` +
+          `${forcedClaude.xFieldModel}) — consistent with a proxy-side allow-list of Gemini models.`
+        : 'Honored for every value tested.');
+  } else {
+    verdict = 'B';
+    verdictText = `OVERRIDE IGNORED — both ${OUT_OF_ALLOWLIST} and ${IN_ALLOWLIST} returned ` +
+      `${forcedGemini.xFieldModel}, with latencies in the same range as the unforced calls. ` +
+      'The header is dead weight in this repo.';
+  }
+
   out.summary = {
-    distinctModelsSeen: models,
-    routingStable: models.length <= 1,
-    anyGeminiError: out.calls.map(c => c.xFieldGeminiError).filter(Boolean),
-    headerPresent: out.calls.every(c => c.xFieldModel != null),
-    // The claim under test.
+    // Round 1's finding, re-confirmed as a control.
+    baselineModel, baselineStable,
+    // The question this round exists to answer.
+    sentOutOfAllowlist: OUT_OF_ALLOWLIST, gotForOutOfAllowlist: forcedClaude.xFieldModel,
+    sentInAllowlist: IN_ALLOWLIST, gotForInAllowlist: forcedGemini.xFieldModel,
+    claudeOverrideHonored, geminiOverrideHonored,
+    // Cache exclusion, measured rather than asserted.
+    wallMsByCall: out.calls.map(c => ({ label: c.label, wallMs: c.wallMs })),
+    minUnforcedWallMs: minReal,
+    suspiciouslyFast,
+    cacheExcluded: suspiciouslyFast.length === 0,
     judgeRouteReports: out.judgeRoute?.reportedModel ?? null,
-    judgeRouteMatchesReality: models.length === 1 && out.judgeRoute?.reportedModel === models[0],
+    verdict, verdictText,
   };
+
   console.log('\n=== SUMMARY ===');
   console.log(JSON.stringify(out.summary, null, 2));
+  console.log(`\n=== VERDICT ${verdict} — ${verdictText} ===`);
 
   const fs = await import('node:fs');
   fs.mkdirSync('outbox', { recursive: true });
