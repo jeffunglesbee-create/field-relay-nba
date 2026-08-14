@@ -1,5 +1,40 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-14 (J-layer model provenance)
+
+**HEAD:** `12e4018` (+ this commit)
+**Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-14-jlayer-model-provenance.md`
+— DONE, confidence 97
+
+**What changed:** `/test/gemini-judge` reported a hardcoded
+`model: 'gemini-via-proxy'` — an assertion, never a reading. It now returns the
+`X-FIELD-Model` the proxy actually sent, plus `X-FIELD-Gemini-Error`, using the same
+provenance headers `src/index.js:8915` already reads at the journalism call site.
+
+**Measured before changing (Rule 72):** CLAUDE.md's "Gemini 3.1 Flash-Lite primary,
+Haiku 4.5 fallback" claim is **confirmed** — 6/6 calls across two runs answered by
+`gemini-3.1-flash-lite`, header present every time, `X-FIELD-Gemini-Error` empty
+every time (2026-08-14, direct POST from a GH Actions runner; fallback-under-quota
+behavior NOT exercised). Artifacts:
+`outbox/jlayer-model-probe-20260814T0126*.log` (before) and `...T0135*.log` (after,
+live, `judgeRouteMatchesReality: true`).
+
+**Deploy run 31760675673 attempt 1 failed and attempt 2 passed on identical code** —
+a CF 1101 from field-claude-proxy in the post-deploy WOW 6 probe, not from this diff;
+re-run rather than reasoned away.
+
+**Open, gated:** `docs/CC-CMD-2026-08-14-verify-test-model-override.md` — whether
+`X-FIELD-Test-Model` actually overrides routing is currently **unmeasurable** by the
+existing probe (identical bodies across calls make a cache hit indistinguishable from
+an ignored header). Not a finding either way.
+
+**Trap for the next session:** this working clone was shallow (52 commits, back to
+2026-08-11 only). `git log -S` silently returns nothing for earlier history — run
+`git fetch --unshallow` before any archaeology.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-13 (BSD average-positions + JQ scoring instrument)
 
 **HEAD:** 47ba213 (+ this commit)
