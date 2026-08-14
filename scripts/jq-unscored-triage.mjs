@@ -84,9 +84,32 @@ async function d1(sql) {
       console.log(`\noldest unscored row: ${maxAgeMin.toFixed(1)} min`);
       // The journalism cron is */15. Anything much past a couple of cycles is
       // not "in flight" by any reading.
-      console.log(maxAgeMin <= 30
-        ? '=> READING (a) IN-FLIGHT — younger than two 15-min cron cycles.'
-        : '=> READING (b) STALLED — older than two cron cycles; the scoring path is not reaching these.');
+      // First run of this script printed a single verdict off the OLDEST row and
+      // called the whole set STALLED. That was wrong in the same way the model
+      // probe's verdict was wrong: one predicate over a set that turned out to
+      // hold two populations. The 2026-08-14 run had 4 genuinely in-flight rows
+      // (all scored within ~3h) sitting alongside 11 rows up to 27 days old.
+      // Split them; a mixed set gets both labels, not the worse one.
+      const CYCLE_MIN = 30; // two 15-minute journalism cron cycles
+      const ages = oldest.map(ms => ms / 60000);
+      const inflight = ages.filter(a => a <= CYCLE_MIN).length;
+      const stalled = ages.length - inflight;
+      console.log(`\nin-flight (<= ${CYCLE_MIN}min): ${inflight}    stalled (> ${CYCLE_MIN}min): ${stalled}`);
+      if (stalled === 0) console.log('=> ALL IN-FLIGHT — nothing is stuck; this number decays on its own.');
+      else if (inflight === 0) console.log(`=> ALL STALLED — ${stalled} rows the scoring path is not reaching.`);
+      else console.log(`=> MIXED — ${inflight} in flight AND ${stalled} stalled. Do not report either number alone.`);
+      const byType = {};
+      for (const r of rows) {
+        if (!r.ts) continue;
+        if ((Date.now() - new Date(r.ts).getTime()) / 60000 <= CYCLE_MIN) continue;
+        const k = `${r.brief_type}/${r.sport}`;
+        byType[k] = (byType[k] || 0) + 1;
+      }
+      const stalledTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]);
+      if (stalledTypes.length) {
+        console.log('stalled by type/sport:');
+        for (const [k, n] of stalledTypes) console.log(`   ${k.padEnd(28)} ${n}`);
+      }
     }
   }
   process.exit(0);

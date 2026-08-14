@@ -44,6 +44,26 @@ into the same bucket as "answered with a different model" — opposite conclusio
 Accepting the summary line would have concluded the mechanism was dead weight while
 missing the regression. Fixed at the root; non-200 is now its own class.
 
+**J-layer impact check (asked and measured, not inferred):** a fresh `jq-health-watch`
+run (`outbox/jq-health-watch-20260814T100504Z.log`) confirms the model work changed
+nothing in the production journalism path — routing is unchanged and no production
+call sets the override. Two real deltas vs the 08-13 baseline, neither caused by it:
+
+1. **Era-scoped calibration ACTIVATED for `game_recap`** — the watch item from the
+   08-13 provenance pass. `era_scoped=true`, era-3 n=19, and the threshold moved
+   `157 → 184`. This raised `alert_count` `14 → 18`: the Dim 4 fix lifted scores, the
+   era-3 p25 followed, and sports that cleared the old bar no longer clear the new
+   one. Working as designed — the alert rise is the instrument re-zeroing, not a
+   quality regression. `alert_count (legacy predicate)` held flat at 23 throughout.
+2. **11 `pre_game` briefs never scored**, oldest 27 days — gated below. Distinct from
+   the 4 unscored rows the same run showed in-window, which were in flight and scored
+   within ~3h.
+
+**Open, gated:** `docs/CC-CMD-2026-08-14-unscored-pre-game-backlog.md` — all 11
+unscored briefs are `brief_type=pre_game`, while ~101 other pre_game briefs ARE
+scored, so the type is not globally exempt. Find what separates them (`source`/`model`
+discriminator query included), fix the write path, backfill in-session.
+
 **Open, gated:** `docs/CC-CMD-2026-08-14-gemini-35-flash-route-500.md` — the fault is
 in `workers/field-claude-proxy`, outside this repo's scope. Deliberately no relay-side
 workaround (Rule 64/76). Cause unknown: the 500 body is a CF error page with no
