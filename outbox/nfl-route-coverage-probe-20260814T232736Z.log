@@ -1,0 +1,30 @@
+=== nfl-route-coverage-probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-08-14T23:27:36.169Z ===
+
+  status  source        bytes    file
+  200     r2              17169  ngs-passing.json
+  200     r2              57561  ngs-receiving.json
+  200     r2              19958  ngs-rushing.json
+  200     r2                114  nfl-injuries.json
+  200     -               16565  epa_table.json
+  200     r2             283732  player-stats.json
+  403     nflverse-not-whitelisted       25  pfr-rec.json
+  404     nflverse-404       21  team_epa.json
+  404     nflverse-404       21  qb_metrics.json
+  404     nflverse-404       21  receiver_metrics.json
+  404     nflverse-404       21  defense_metrics.json
+  404     nflverse-404       21  schedule_refs.json
+  404     nflverse-404       21  team_tendencies.json
+  404     nflverse-404       21  bdb_route_entropy.json
+  404     nflverse-404       21  bdb_xblock_pass_rush.json
+  404     nflverse-404       21  bdb_tendency_fingerprint.json
+  404     nflverse-404       21  bdb_separation.json
+
+served (200): 6/17
+403 not-whitelisted: pfr-rec.json
+
+ngs-passing status=200 source=r2
+ngs-receiving/rushing both 200: true
+=> R2 IS populated, so passing is served today — but it has NO GitHub-raw fallback the way its siblings do. An R2 miss or a failed weekly update takes it to 403 alone. Adding it to NFLVERSE_OUT_ALLOWED is a one-line change.
+
+nflverse Stage-1 tables served: 0/6
+  missing: team_epa.json, qb_metrics.json, receiver_metrics.json, defense_metrics.json, schedule_refs.json, team_tendencies.json
