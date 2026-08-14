@@ -70,6 +70,32 @@ const getJson = async (path) => {
   console.log(`\neligible for /backfill/brief-scores : ${rows.length - ineligible}`);
   console.log(`permanently excluded (len <= 50)   : ${ineligible}`);
 
+  // ── 1b. WHICH mechanism scored the other 105? ────────────────────────────
+  // Not idle curiosity — the CC-CMD's TASK 2 says "fix the write path", and the
+  // timeline probe falsified the premise that there is one broken write path:
+  // scored and unscored pre_game rows interleave across 4 mixed days, so this is
+  // intermittent, not a one-time regression. Fixing a path I have not identified
+  // would be a guess (Rule 48 class D).
+  //
+  // The discriminator: the cron writer at src/index.js ~8486 never sets
+  // context_hash. The /archive/brief path (~11639) does, and it scores
+  // server-side then upserts with
+  // `quality_score = COALESCE(excluded.quality_score, briefs.quality_score)`.
+  // An in-place backfill UPDATE (~12530 / ~12613) sets quality_score and leaves
+  // context_hash NULL. So context_hash separates "scored by the archive path"
+  // from "scored later in place".
+  const mech = await d1(
+    `SELECT CASE WHEN quality_score IS NULL THEN 'unscored'
+                 WHEN context_hash IS NULL THEN 'scored, no context_hash (in-place UPDATE)'
+                 ELSE 'scored, has context_hash (archive/brief upsert)' END mechanism,
+            COUNT(*) n, MIN(created_at) first, MAX(created_at) last
+       FROM briefs WHERE brief_type = 'pre_game'
+      GROUP BY mechanism ORDER BY n DESC`);
+  console.log('\nhow pre_game rows got their score:');
+  for (const r of mech) {
+    console.log(`  ${String(r.mechanism).padEnd(46)} n=${String(r.n).padStart(4)}  ${r.first} .. ${r.last}`);
+  }
+
   // ── 2. Confirm against the endpoint's own dry run, not just my SQL ────────
   const dry = await getJson('/backfill/brief-scores?dry=true&type=pre_game&limit=50');
   console.log(`\ndry run: status=${dry.status} ${JSON.stringify(dry.body || dry.raw)}`);
