@@ -1,0 +1,277 @@
+{
+  "ts": "2026-08-14T09:15:28.239Z",
+  "proxy": "https://field-claude-proxy.jeffunglesbee.workers.dev",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "calls": [
+    {
+      "label": "baseline-1",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call baseline-1. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 4022,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "3910",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "baseline-2",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call baseline-2. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 14140,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "14130",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-claude",
+      "testModel": "claude-haiku-4-5-20251001",
+      "prompt": "Run 2026-08-14T09:15:28.239Z call forced-claude. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 4455,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "4446",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 88,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "unforced-twin",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call unforced-twin. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 792,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "783",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 88,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-gemini-3.5-1",
+      "testModel": "gemini-3.5-flash",
+      "prompt": "Run 2026-08-14T09:15:28.239Z call forced-gemini-3.5-1. Reply with exactly the word: OK",
+      "status": 500,
+      "wallMs": 978,
+      "xFieldModel": null,
+      "xFieldLatencyMs": null,
+      "xFieldGeminiError": null,
+      "bytes": 4707,
+      "parseFailed": true,
+      "head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi",
+      "cfErrorCode": null,
+      "cfRayOrTitle": "Worker threw exception | field-claude-proxy.jeffunglesbee.workers.dev | Cloudflare"
+    },
+    {
+      "label": "control-1",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call control-1. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 6671,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "6635",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-gemini-3.5-2",
+      "testModel": "gemini-3.5-flash",
+      "prompt": "Run 2026-08-14T09:15:28.239Z call forced-gemini-3.5-2. Reply with exactly the word: OK",
+      "status": 500,
+      "wallMs": 1875,
+      "xFieldModel": null,
+      "xFieldLatencyMs": null,
+      "xFieldGeminiError": null,
+      "bytes": 4707,
+      "parseFailed": true,
+      "head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi",
+      "cfErrorCode": null,
+      "cfRayOrTitle": "Worker threw exception | field-claude-proxy.jeffunglesbee.workers.dev | Cloudflare"
+    },
+    {
+      "label": "control-2",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call control-2. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 839,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "830",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    },
+    {
+      "label": "forced-gemini-3.5-3",
+      "testModel": "gemini-3.5-flash",
+      "prompt": "Run 2026-08-14T09:15:28.239Z call forced-gemini-3.5-3. Reply with exactly the word: OK",
+      "status": 500,
+      "wallMs": 1013,
+      "xFieldModel": null,
+      "xFieldLatencyMs": null,
+      "xFieldGeminiError": null,
+      "bytes": 4707,
+      "parseFailed": true,
+      "head": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi",
+      "cfErrorCode": null,
+      "cfRayOrTitle": "Worker threw exception | field-claude-proxy.jeffunglesbee.workers.dev | Cloudflare"
+    },
+    {
+      "label": "control-3",
+      "testModel": null,
+      "prompt": "Run 2026-08-14T09:15:28.239Z call control-3. Reply with exactly the word: OK",
+      "status": 200,
+      "wallMs": 5910,
+      "xFieldModel": "gemini-3.1-flash-lite",
+      "xFieldLatencyMs": "5899",
+      "xFieldGeminiError": null,
+      "bytes": 200,
+      "bodyModel": "gemini-3.1-flash-lite",
+      "usage": {
+        "input_tokens": 87,
+        "output_tokens": 1
+      },
+      "textHead": "OK"
+    }
+  ],
+  "judgeRoute": {
+    "status": 200,
+    "reportedModel": "gemini-3.1-flash-lite",
+    "geminiError": null,
+    "ms": 1221
+  },
+  "summary": {
+    "baselineModel": "gemini-3.1-flash-lite",
+    "baselineStable": true,
+    "sentOutOfAllowlist": "claude-haiku-4-5-20251001",
+    "gotForOutOfAllowlist": "gemini-3.1-flash-lite",
+    "sentInAllowlist": "gemini-3.5-flash",
+    "inAllowlistResults": [
+      {
+        "label": "forced-gemini-3.5-1",
+        "status": 500,
+        "model": null,
+        "cfErrorCode": null,
+        "wallMs": 978
+      },
+      {
+        "label": "forced-gemini-3.5-2",
+        "status": 500,
+        "model": null,
+        "cfErrorCode": null,
+        "wallMs": 1875
+      },
+      {
+        "label": "forced-gemini-3.5-3",
+        "status": 500,
+        "model": null,
+        "cfErrorCode": null,
+        "wallMs": 1013
+      }
+    ],
+    "interleavedControlResults": [
+      {
+        "label": "control-1",
+        "status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "wallMs": 6671
+      },
+      {
+        "label": "control-2",
+        "status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "wallMs": 839
+      },
+      {
+        "label": "control-3",
+        "status": 200,
+        "model": "gemini-3.1-flash-lite",
+        "wallMs": 5910
+      }
+    ],
+    "claudeOverrideHonored": false,
+    "geminiOverrideHonored": false,
+    "wallMsByCall": [
+      {
+        "label": "baseline-1",
+        "wallMs": 4022
+      },
+      {
+        "label": "baseline-2",
+        "wallMs": 14140
+      },
+      {
+        "label": "forced-claude",
+        "wallMs": 4455
+      },
+      {
+        "label": "unforced-twin",
+        "wallMs": 792
+      },
+      {
+        "label": "forced-gemini-3.5-1",
+        "wallMs": 978
+      },
+      {
+        "label": "control-1",
+        "wallMs": 6671
+      },
+      {
+        "label": "forced-gemini-3.5-2",
+        "wallMs": 1875
+      },
+      {
+        "label": "control-2",
+        "wallMs": 839
+      },
+      {
+        "label": "forced-gemini-3.5-3",
+        "wallMs": 1013
+      },
+      {
+        "label": "control-3",
+        "wallMs": 5910
+      }
+    ],
+    "minUnforcedWallMs": 792,
+    "suspiciouslyFast": [],
+    "cacheExcluded": true,
+    "judgeRouteReports": "gemini-3.1-flash-lite",
+    "verdict": "A-ERROR",
+    "verdictText": "OVERRIDE REACHES THE PROXY, AND gemini-3.5-flash IS BROKEN — 3/3 forced calls returned non-200 (500, 500, 500) while 3/3 interleaved unforced controls returned 200. The header is NOT inert — an ignored header would return 200 with the default model, as the claude-haiku-4-5-20251001 arm does. It steers routing, and the gemini-3.5-flash route currently throws."
+  }
+}

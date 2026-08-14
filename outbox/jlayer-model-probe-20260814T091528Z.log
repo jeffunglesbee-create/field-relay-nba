@@ -1,0 +1,119 @@
+=== jlayer-model-probe round 2  proxy=https://field-claude-proxy.jeffunglesbee.workers.dev  utc=2026-08-14T09:15:28.239Z ===
+every call sends a unique prompt; latency is therefore real inference, not cache
+
+200    4022ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  baseline-1
+200   14140ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  baseline-2
+200    4455ms  sent=claude-haiku-4-5-20251001    X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  forced-claude
+200     792ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  unforced-twin
+500     978ms  sent=gemini-3.5-flash             X-FIELD-Model=null                   geminiError=-  forced-gemini-3.5-1
+200    6671ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  control-1
+500    1875ms  sent=gemini-3.5-flash             X-FIELD-Model=null                   geminiError=-  forced-gemini-3.5-2
+200     839ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  control-2
+500    1013ms  sent=gemini-3.5-flash             X-FIELD-Model=null                   geminiError=-  forced-gemini-3.5-3
+200    5910ms  sent=(none)                       X-FIELD-Model=gemini-3.1-flash-lite  geminiError=-  control-3
+
+/test/gemini-judge reports model=gemini-3.1-flash-lite (status 200)
+
+=== SUMMARY ===
+{
+  "baselineModel": "gemini-3.1-flash-lite",
+  "baselineStable": true,
+  "sentOutOfAllowlist": "claude-haiku-4-5-20251001",
+  "gotForOutOfAllowlist": "gemini-3.1-flash-lite",
+  "sentInAllowlist": "gemini-3.5-flash",
+  "inAllowlistResults": [
+    {
+      "label": "forced-gemini-3.5-1",
+      "status": 500,
+      "model": null,
+      "cfErrorCode": null,
+      "wallMs": 978
+    },
+    {
+      "label": "forced-gemini-3.5-2",
+      "status": 500,
+      "model": null,
+      "cfErrorCode": null,
+      "wallMs": 1875
+    },
+    {
+      "label": "forced-gemini-3.5-3",
+      "status": 500,
+      "model": null,
+      "cfErrorCode": null,
+      "wallMs": 1013
+    }
+  ],
+  "interleavedControlResults": [
+    {
+      "label": "control-1",
+      "status": 200,
+      "model": "gemini-3.1-flash-lite",
+      "wallMs": 6671
+    },
+    {
+      "label": "control-2",
+      "status": 200,
+      "model": "gemini-3.1-flash-lite",
+      "wallMs": 839
+    },
+    {
+      "label": "control-3",
+      "status": 200,
+      "model": "gemini-3.1-flash-lite",
+      "wallMs": 5910
+    }
+  ],
+  "claudeOverrideHonored": false,
+  "geminiOverrideHonored": false,
+  "wallMsByCall": [
+    {
+      "label": "baseline-1",
+      "wallMs": 4022
+    },
+    {
+      "label": "baseline-2",
+      "wallMs": 14140
+    },
+    {
+      "label": "forced-claude",
+      "wallMs": 4455
+    },
+    {
+      "label": "unforced-twin",
+      "wallMs": 792
+    },
+    {
+      "label": "forced-gemini-3.5-1",
+      "wallMs": 978
+    },
+    {
+      "label": "control-1",
+      "wallMs": 6671
+    },
+    {
+      "label": "forced-gemini-3.5-2",
+      "wallMs": 1875
+    },
+    {
+      "label": "control-2",
+      "wallMs": 839
+    },
+    {
+      "label": "forced-gemini-3.5-3",
+      "wallMs": 1013
+    },
+    {
+      "label": "control-3",
+      "wallMs": 5910
+    }
+  ],
+  "minUnforcedWallMs": 792,
+  "suspiciouslyFast": [],
+  "cacheExcluded": true,
+  "judgeRouteReports": "gemini-3.1-flash-lite",
+  "verdict": "A-ERROR",
+  "verdictText": "OVERRIDE REACHES THE PROXY, AND gemini-3.5-flash IS BROKEN — 3/3 forced calls returned non-200 (500, 500, 500) while 3/3 interleaved unforced controls returned 200. The header is NOT inert — an ignored header would return 200 with the default model, as the claude-haiku-4-5-20251001 arm does. It steers routing, and the gemini-3.5-flash route currently throws."
+}
+
+=== VERDICT A-ERROR — OVERRIDE REACHES THE PROXY, AND gemini-3.5-flash IS BROKEN — 3/3 forced calls returned non-200 (500, 500, 500) while 3/3 interleaved unforced controls returned 200. The header is NOT inert — an ignored header would return 200 with the default model, as the claude-haiku-4-5-20251001 arm does. It steers routing, and the gemini-3.5-flash route currently throws. ===
