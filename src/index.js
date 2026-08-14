@@ -7308,6 +7308,66 @@ async function handleJournalismCycle(env, opts = {}) {
           }
         } catch (e) { console.error("[BACKFILL] series preview backfill failed:", e.message); /* series preview backfill failure never breaks cron */ }
 
+        // Unscored-brief score-fill — safety net for briefs that are written
+        // WITHOUT a quality_score and depend on something else to fill it in
+        // later. Max 5 per tick, OLDEST FIRST. Unconditional — dead-hour ticks only.
+        //
+        // Why this exists (CC-CMD-2026-08-14-unscored-pre-game-backlog, measured):
+        // the pre_game cron writer (~L8486) inserts `quality_score` as a literal
+        // NULL by design. Nothing server-side scores it. In practice 105 of 116
+        // pre_game briefs DID end up scored — every one of them carrying a
+        // context_hash, which only the /archive/brief upsert (~L11639) sets. So
+        // the score was arriving via a CLIENT round-trip: the client re-posts the
+        // brief, the relay scores it server-side, and the upsert's
+        // `COALESCE(excluded.quality_score, briefs.quality_score)` fills the row.
+        // When that round-trip didn't happen, the row stayed NULL forever — 11
+        // rows, up to 27 days old, across 4 days that also contained scored rows
+        // (which is why this reads as intermittent rather than a broken path).
+        //
+        // Server-side completeness must not depend on a client action. This closes
+        // that gap for every brief_type, not just pre_game.
+        //
+        // ORDER BY created_at ASC is deliberate and load-bearing: the existing
+        // /backfill/brief-scores endpoint orders DESC, so with any backlog larger
+        // than its LIMIT the oldest rows can never be reached. Oldest-first cannot
+        // starve its own tail.
+        //
+        // Cost (Rule 78): bounded at 5 scoring calls per dead-hour tick, and only
+        // when unscored rows actually exist — steady state is 0 rows and 1 cheap
+        // indexed SELECT. It does not run during live hours at all.
+        let scoreFillResult = null;
+        try {
+          if (env.ARCHIVE_DB) {
+            const unscored = await env.ARCHIVE_DB.prepare(
+              `SELECT id, brief_type, sport, game_id, brief_text FROM briefs
+                WHERE quality_score IS NULL
+                  AND brief_text IS NOT NULL AND LENGTH(brief_text) > 50
+                ORDER BY created_at ASC LIMIT 5`
+            ).all().catch((e) => { console.error("[SCORE-FILL] select failed:", e.message); return { results: [] }; });
+            const _sfRows = unscored.results || [];
+            let _sfScored = 0, _sfFailed = 0;
+            for (const _sfRow of _sfRows) {
+              try {
+                let _sfGameCtx = null;
+                if (_sfRow.game_id) {
+                  const _sfGame = await env.ARCHIVE_DB.prepare(
+                    `SELECT home, away, home_score, away_score FROM regular_season_games WHERE espn_event_id = ? LIMIT 1`
+                  ).bind(_sfRow.game_id).first().catch(() => null);
+                  if (_sfGame) _sfGameCtx = { home: _sfGame.home, away: _sfGame.away, homeScore: _sfGame.home_score, awayScore: _sfGame.away_score };
+                }
+                const _sfScore = await jqScoreProse(_sfRow.brief_text, { sport: _sfRow.sport, game: _sfGameCtx });
+                if (_sfScore != null) {
+                  await env.ARCHIVE_DB.prepare(`UPDATE briefs SET quality_score = ? WHERE id = ?`)
+                    .bind(_sfScore, _sfRow.id).run();
+                  _sfScored++;
+                } else { _sfFailed++; }
+              } catch (e) { _sfFailed++; console.error(`[SCORE-FILL] ${_sfRow.id} failed:`, e.message); }
+            }
+            scoreFillResult = { found: _sfRows.length, scored: _sfScored, failed: _sfFailed };
+            if (_sfRows.length) console.log(`[SCORE-FILL] ${_sfScored}/${_sfRows.length} scored, ${_sfFailed} failed`);
+          }
+        } catch (e) { console.error("[SCORE-FILL] score-fill failed:", e.message); /* score-fill failure never breaks cron -- Rule 5 */ }
+
         // WC26 game-brief coverage sweep — safety net for writeWCResult's
         // request-triggered enqueue (see pickWC26BriefGaps above). Capped at
         // 3 games/tick (Rule 76/78 — bounded, cost-conscious fallback #2;
@@ -7358,13 +7418,15 @@ async function handleJournalismCycle(env, opts = {}) {
         } catch (e) { console.error("[BACKFILL] WC26 brief coverage sweep failed:", e.message); /* sweep failure never breaks cron -- Rule 5 */ }
 
         if (!nextDate && !oddsResult && !sweepResult && !gameBriefResult
-            && !(seriesPreviewResult && seriesPreviewResult.ok) && !(wc26SweepResult && wc26SweepResult.ok)) {
+            && !(seriesPreviewResult && seriesPreviewResult.ok) && !(wc26SweepResult && wc26SweepResult.ok)
+            && !(scoreFillResult && scoreFillResult.scored > 0)) {
           return {ok:false, reason:`dead hours (UTC ${hour}); backfill complete`};
         }
         return {
           ok: !!(briefResult && briefResult.ok) || !!(oddsResult && oddsResult.ok)
               || !!sweepResult || !!(gameBriefResult && gameBriefResult.ok)
-              || !!(seriesPreviewResult && seriesPreviewResult.ok) || !!(wc26SweepResult && wc26SweepResult.ok),
+              || !!(seriesPreviewResult && seriesPreviewResult.ok) || !!(wc26SweepResult && wc26SweepResult.ok)
+              || !!(scoreFillResult && scoreFillResult.scored > 0),
           reason: nextDate
             ? `backfill ${nextDate}: ${briefResult.reason || (briefResult.ok ? 'wrote brief' : 'no result')}`
             : sweepResult ? `kv_sweep: ${sweepResult.swept} briefs captured`
@@ -7375,6 +7437,7 @@ async function handleJournalismCycle(env, opts = {}) {
           gameBriefBackfill: gameBriefResult,
           seriesPreviewBackfill: seriesPreviewResult,
           wc26Sweep: wc26SweepResult,
+          scoreFill: scoreFillResult,
         };
       } catch (e) {
         console.error("[BACKFILL] dead-hour block failed:", e.message);
