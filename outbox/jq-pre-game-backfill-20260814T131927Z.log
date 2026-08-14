@@ -1,0 +1,96 @@
+=== jq-pre-game-backfill  apply=true  utc=2026-08-14T13:19:27.486Z ===
+
+unscored pre_game rows: 11
+  len  date        sport            created_at            eligible(>50)  id
+   351  2026-08-01  mls              2026-08-01 10:00:41   yes   pre_game_FIFA World Cup 2026_2026-08-01_dcun
+   303  2026-08-01  mls              2026-08-01 10:00:40   yes   pre_game_FIFA World Cup 2026_2026-08-01_cfmo
+   338  2026-07-31  mls              2026-07-31 10:00:47   yes   pre_game_FIFA World Cup 2026_2026-07-31_nycf
+   209  2026-07-25  mls              2026-07-25 10:01:22   yes   pre_game_FIFA World Cup 2026_2026-07-25_colu
+   239  2026-07-25  mls              2026-07-25 10:01:21   yes   pre_game_FIFA World Cup 2026_2026-07-25_redb
+   286  2026-07-22  mls              2026-07-22 10:02:33   yes   pre_game_FIFA World Cup 2026_2026-07-22_cinc
+   281  2026-07-22  mls              2026-07-22 10:02:31   yes   pre_game_FIFA World Cup 2026_2026-07-22_colu
+   168  2026-07-18  fifa world cup   2026-07-18 15:46:37   yes   pre_game_FIFA World Cup 2026_2026-07-18_fran
+   275  2026-07-19  wnba             2026-07-18 15:46:33   yes   pre_game_WNBA_2026-07-18_fever_liberty
+   328  2026-07-18  mlb              2026-07-18 15:46:27   yes   pre_game_MLB_2026-07-18_redsox_rays
+   217  2026-07-16  pga tour         2026-07-18 15:21:27   yes   pre_game_PGA Tour_2026-07-16_src401811957
+
+eligible for /backfill/brief-scores : 11
+permanently excluded (len <= 50)   : 0
+
+how pre_game rows got their score:
+  scored, has context_hash (archive/brief upsert) n= 105  2026-07-19 10:01:18 .. 2026-08-14 10:01:24
+  unscored                                       n=  11  2026-07-18 15:21:27 .. 2026-08-01 10:00:41
+
+dry run: status=200 {"ok":true,"dry_run":true,"found":11,"by_type":{"pre_game":11}}
+
+--- APPLY: POSTing to the existing backfill endpoint ---
+status=200
+{
+  "ok": true,
+  "processed": 11,
+  "scored": 11,
+  "failed": 0,
+  "results": [
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-08-01_dcunited_nashville",
+      "brief_type": "pre_game",
+      "score": 168
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-08-01_cfmontral_newengland",
+      "brief_type": "pre_game",
+      "score": 148
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-31_nycfc_toronto",
+      "brief_type": "pre_game",
+      "score": 146
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-25_columbus_cincinnati",
+      "brief_type": "pre_game",
+      "score": 152
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-25_redbullny_charlotte",
+      "brief_type": "pre_game",
+      "score": 135
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-22_cincinnati_vancouver",
+      "brief_type": "pre_game",
+      "score": 136
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-22_columbus_nycfc",
+      "brief_type": "pre_game",
+      "score": 125
+    },
+    {
+      "id": "pre_game_FIFA World Cup 2026_2026-07-18_france_england",
+      "brief_type": "pre_game",
+      "score": 104
+    },
+    {
+      "id": "pre_game_WNBA_2026-07-18_fever_liberty",
+      "brief_type": "pre_game",
+      "score": 160
+    },
+    {
+      "id": "pre_game_MLB_2026-07-18_redsox_rays",
+      "brief_type": "pre_game",
+      "score": 141
+    },
+    {
+      "id": "pre_game_PGA Tour_2026-07-16_src401811957",
+      "brief_type": "pre_game",
+      "score": 112
+    }
+  ],
+  "errors": []
+}
+
+unscored pre_game AFTER : 0
+unscored repo-wide AFTER: 0
+
+=== RESULT: PASS — every unscored pre_game brief now carries a score. ===
