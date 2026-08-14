@@ -14865,6 +14865,16 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         messages: [{ role: 'user', content: prompt }] }),
                 });
                 const ms = Date.now() - t0;
+                // Report the model the proxy actually used, not an assertion about
+                // which one it should have used. The proxy returns this provenance in
+                // response headers (same headers already read at the /journalism call
+                // site); `model` used to be the hardcoded string 'gemini-via-proxy',
+                // which stayed accurate only by luck. Measured 2026-08-14 via
+                // scripts/jlayer-model-probe.mjs: 3/3 calls answered by
+                // gemini-3.1-flash-lite, header present on every one. null means the
+                // proxy did not say — not a guess at what it probably was.
+                const proxyModel = resp.headers.get('X-FIELD-Model');
+                const geminiError = resp.headers.get('X-FIELD-Gemini-Error');
                 if (!resp.ok) {
                     return new Response(JSON.stringify({ ok: false, error: `proxy ${resp.status}` }),
                         { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -14883,7 +14893,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         ? { result: 'FAIL', sentence: m[1].trim(), fix: m[2].trim() }
                         : { result: 'FAIL', sentence: null, fix: null };
                 }
-                return new Response(JSON.stringify({ verdict, structured, parsed, model: 'gemini-via-proxy', ms }),
+                return new Response(JSON.stringify({ verdict, structured, parsed, model: proxyModel, geminiError, ms }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             } catch (e) {
                 return new Response(JSON.stringify({ ok: false, error: e.message }),
