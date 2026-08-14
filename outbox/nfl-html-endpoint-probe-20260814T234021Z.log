@@ -1,0 +1,23 @@
+=== nfl-html-endpoint-probe  utc=2026-08-14T23:40:21.547Z ===
+
+ngs-top-plays (Vue SPA — expect shell)
+  https://nextgenstats.nfl.com/stats/top-plays/fastest-ball-carriers
+  status=200  bytes=31496  <tr> count=0
+  expected names present: 0/2 
+  data-payload markers in RAW response: window.__
+  => SHELL — no table in the raw response. The saved file captured client-rendered DOM.
+
+nfl.com team-stats (expect server-rendered)
+  https://www.nfl.com/stats/team-stats/
+  status=200  bytes=193720  <tr> count=33
+  expected names present: 2/2 (Bengals, Cardinals)
+  data-payload markers in RAW response: none
+  => SERVER-RENDERED — a plain GET returns the table. Usable as a data source (subject to terms).
+
+nfl.com team-stats explicit season path
+  https://www.nfl.com/stats/team-stats/offense/passing/2025/reg/all
+  status=200  bytes=193910  <tr> count=33
+  expected names present: 2/2 (Bengals, Cardinals)
+  data-payload markers in RAW response: none
+  => SERVER-RENDERED — a plain GET returns the table. Usable as a data source (subject to terms).
+
