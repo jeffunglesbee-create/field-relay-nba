@@ -1,0 +1,19 @@
+=== jlayer-model-probe  proxy=https://field-claude-proxy.jeffunglesbee.workers.dev  utc=2026-08-14T01:26:01.950Z ===
+
+200    3908ms  X-FIELD-Model=gemini-3.1-flash-lite        bodyModel=gemini-3.1-flash-lite        geminiError=-  routing-1
+200    1222ms  X-FIELD-Model=gemini-3.1-flash-lite        bodyModel=gemini-3.1-flash-lite        geminiError=-  routing-2
+200      29ms  X-FIELD-Model=gemini-3.1-flash-lite        bodyModel=gemini-3.1-flash-lite        geminiError=-  forced-haiku
+
+/test/gemini-judge reports model=gemini-via-proxy (status 200)
+
+=== SUMMARY ===
+{
+  "distinctModelsSeen": [
+    "gemini-3.1-flash-lite"
+  ],
+  "routingStable": true,
+  "anyGeminiError": [],
+  "headerPresent": true,
+  "judgeRouteReports": "gemini-via-proxy",
+  "judgeRouteMatchesReality": false
+}
