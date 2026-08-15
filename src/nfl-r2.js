@@ -181,11 +181,34 @@ export async function runNFLR2Update(env) {
     try {
       const payload = await fn();
       const count = Object.keys(payload.data || {}).length;
+      // Never publish an empty table. `count` was already computed here and then
+      // ignored, so a source returning nothing silently destroyed the good copy.
+      // Same defect as the MLB Savant R2 writer (7588b24) and as the NFL-B
+      // pipeline's injuries table, which shipped `data: {}` over a populated
+      // file on 2026-08-10 and reported success.
+      if (count === 0) {
+        results[name] = { ok: false, error: 'empty payload — refusing to overwrite R2', count: 0 };
+        return;
+      }
+      // Stamp the season the ROWS carry, not the year in the key.
+      //
+      // This object is co-written by jubilant-bassoon's build-ngs-data.py, which
+      // writes the SAME R2 key from the nflverse parquet on Mondays while this
+      // cron writes it from the CSV on Wednesdays. That pipeline now emits
+      // `season` (the data's real season) and `targetYear` (the season
+      // requested). Without matching fields here, the Wednesday write would strip
+      // them back off every week and reintroduce the mislabel. The two writers
+      // still need reconciling — gated in
+      // docs/CC-CMD-2026-08-15-ngs-passing-two-writers.md.
+      const seasons = Object.values(payload.data || {})
+        .map(r => r && r.season).filter(Boolean);
+      if (seasons.length) payload.season = Math.max(...seasons);
+      payload.targetYear = 2026;
       await env.FIELD_DATA.put(`nfl/2026/${name}.json`, JSON.stringify(payload), {
         httpMetadata: { contentType: 'application/json' },
         customMetadata: { updatedAt: now, rowCount: String(count) },
       });
-      results[name] = { ok: true, count };
+      results[name] = { ok: true, count, season: payload.season ?? null };
     } catch(e) {
       results[name] = { ok: false, error: e.message };
     }
