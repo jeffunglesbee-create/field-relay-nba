@@ -4149,6 +4149,20 @@ async function handleV2Games(url, env, ctx, request = null) {
 
         for (const g of games) {
             if (g.state !== 'live' || !g.situation) continue;
+            // This whole loop is WC26/soccer live win-probability enrichment:
+            // computeLiveWP is a soccer Poisson/Dixon-Coles model and
+            // computeAdvancementProb is WC-only. It must run ONLY for the
+            // soccer/else-branch adapter. Running it for other sports both
+            // (a) threw CF 1101 — extractWCGroup(g.round,...) below does
+            // (round||'').match(...) and football/CFB's g.round is the numeric
+            // ESPN week (e.g. 2), so (2).match(...) is a TypeError that crashed
+            // /v2/games?sport=nfl the moment a game went live (verified 2026-08-15,
+            // date=2026-08-14 → HTTP 500 "error code: 1101" while 08-13/08-15 were
+            // 200), and (b) would invent a bogus soccer-model winProb on non-soccer
+            // games (Rule 1). Gate by excluding the non-soccer adapters — soccer's
+            // own cfg.espnSport is undefined (defaults to 'soccer' at _espnSportPath),
+            // so an exclude-list is the robust test, mirroring the dispatch at ~4008.
+            if (['baseball', 'football', 'basketball', 'australian-football'].includes(cfg.espnSport)) continue;
             const { situation: sit } = g;
             const hGoals = g.home.score ?? 0;
             const aGoals = g.away.score ?? 0;
