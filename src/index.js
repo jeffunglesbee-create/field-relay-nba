@@ -15833,7 +15833,13 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // cached (same discipline as the empty-write guards added this session).
         if (pathname === '/fantasy/ownership' && request.method === 'GET') {
             const season = (new Date().getUTCMonth() >= 7) ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
-            const limit = Math.min(parseInt(url.searchParams.get('limit') || '600', 10) || 600, 1500);
+            // `limit` is a POST-FETCH cap on the returned table, sorted by
+            // percentOwned. Measured 2026-08-15 (scripts/ownership-limit-check.mjs):
+            // ESPN ignores the x-fantasy-filter limit for this view — it returns the
+            // full drafted pool (~2615) no matter what — and ~2000 of those carry
+            // near-zero ownership (deep bench, no signal). So the cap is applied here,
+            // to the transformed rows, not passed to ESPN as a knob it discards.
+            const limit = Math.min(parseInt(url.searchParams.get('limit') || '600', 10) || 600, 2600);
             // URL-only cache key so this route is edge-cached like every other proxy.
             const cacheKey = new Request(`https://field-relay-nba.internal/fantasy/ownership?season=${season}&limit=${limit}`, { method: 'GET' });
             const cache = caches.default;
@@ -15841,8 +15847,11 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             if (cached) return cached;
 
             const espnUrl = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=kona_player_info`;
+            // sortPercOwned is kept (harmless, and correct if ESPN ever honors it);
+            // the limit is NOT sent — ESPN discards it (see above), so sending it
+            // would only imply a bound that does not exist.
             const fantasyFilter = JSON.stringify({
-                players: { limit, sortPercOwned: { sortAsc: false, sortPriority: 1 } },
+                players: { sortPercOwned: { sortAsc: false, sortPriority: 1 } },
             });
             let upstream;
             try {
@@ -15866,21 +15875,27 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                     { status: 502, headers: { 'X-RELAY-Error': 'fantasy-ownership-parse', ...CORS, 'Content-Type': 'application/json' } });
             }
             const arr = Array.isArray(raw) ? raw : (raw.players || []);
-            const players = {};
+            const pct = (v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : null);
+            const rows = [];
             for (const entry of arr) {
                 const p = entry.player || entry;
                 const own = p.ownership || entry.ownership;
                 if (!p || p.id == null || !own) continue;
-                const pct = (v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : null);
-                players[p.id] = {
+                const percentOwned = pct(own.percentOwned);
+                // Drop zero-signal rows: a player owned in no leagues carries nothing.
+                if (!percentOwned) continue;
+                rows.push([p.id, {
                     name: p.fullName || null,
                     proTeamId: p.proTeamId ?? null,          // ESPN numeric team id — client maps it
-                    percentOwned: pct(own.percentOwned),
+                    percentOwned,
                     percentStarted: pct(own.percentStarted),
                     adp: (typeof own.averageDraftPosition === 'number')
                         ? Math.round(own.averageDraftPosition * 10) / 10 : null,
-                };
+                }]);
             }
+            // Most-owned first, then cap. The param is a real bound now (ESPN's wasn't).
+            rows.sort((a, b) => b[1].percentOwned - a[1].percentOwned);
+            const players = Object.fromEntries(rows.slice(0, limit));
             const count = Object.keys(players).length;
             // Never cache/serve an empty table over a transient upstream hiccup.
             if (count === 0) {
