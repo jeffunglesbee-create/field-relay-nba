@@ -15798,7 +15798,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 // P3 (no-Kaggle): pbp_participation formation/pressure tendencies
                 'team-participation.json',
                 // P3 BDB tracking-derived (Kaggle dataset)
-                'bdb_speed.json',
+                'bdb_speed.json', 'bdb_separation.json', 'bdb_route_entropy.json',
             ];
             // Dynamic year: use current NFL season year
             const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
