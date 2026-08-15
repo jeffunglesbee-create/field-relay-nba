@@ -1,0 +1,12 @@
+  PASS  /v2/games?sport=nfl returns 200 :: HTTP 200
+  PASS  /v2/games?sport=nfl returned games :: count=7
+
+  first game keys: id, espnEventId, sport, league, state, start, home, away, periodNum, periodLabel, clock, venue, round, broadcasts, streams, situation
+  first game id=espn:401873282 home=Buffalo Bills away=Carolina Panthers start=2026-08-15T17:00Z
+
+  PASS  game has an id field :: espn:401873282
+  FAIL  relay /espn-summary?event=<v2 id> returns 200 :: HTTP 400
+  FAIL  ...and that summary has a drives object (id is the ESPN event id) :: NO drives — id is NOT an ESPN event id
+  FAIL  v2 game id matches an ESPN scoreboard event id :: id=espn:401873282 NOT in scoreboard dates 20260815,20260814,20260813,20260806
+
+== RESULT: 3 passed, 3 failed ==
