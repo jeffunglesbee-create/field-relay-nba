@@ -1,0 +1,44 @@
+=== espn-vs-ngs-field-map v2  utc=2026-08-15T00:22:43.779Z ===
+
+A. athlete statistics: status=200, 164 fields
+   passing: avgGain, completionPct, completions, ESPNQBRating, interceptionPct, interceptions, longPassing, netPassingYards, netPassingYardsPerGame, netTotalYards, netYardsPerGame, passingAttempts, passingBigPlays, passingFirstDowns, passingFumbles, passingFumblesLost, passingTouchdownPct, passingTouchdowns, passingYards, passingYardsAfterCatch, passingYardsAtCatch, passingYardsPerGame, QBRating, sacks, sackYardsLost, netPassingAttempts, teamGamesPlayed, totalOffensivePlays, totalPointsPerGame, totalTouchdowns, totalYards, totalYardsFromScrimmage, twoPointPassConvs, twoPtPass, twoPtPassAttempts, yardsFromScrimmagePerGame, yardsPerCompletion, yardsPerGame, yardsPerPassAttempt, netYardsPerPassAttempt, QBR, adjQBR, quarterbackRating, offensiveSnapPct, targetSharePct, yardsPerRouteRun, avgDepthOfTarget
+   receiving: avgGain, ESPNWRRating, longReception, netTotalYards, netYardsPerGame, receivingBigPlays, receivingFirstDowns, receivingFumbles, receivingFumblesLost, receivingTargets, receivingTouchdowns, receivingYards, receivingYardsAfterCatch, receivingYardsAtCatch, receivingYardsPerGame, receptions, teamGamesPlayed, totalOffensivePlays, totalPointsPerGame, totalTouchdowns, totalYards, totalYardsFromScrimmage, twoPointRecConvs, twoPtReception, twoPtReceptionAttempts, yardsFromScrimmagePerGame, yardsPerGame, yardsPerReception
+   rushing: avgGain, ESPNRBRating, longRushing, netTotalYards, netYardsPerGame, rushingAttempts, rushingBigPlays, rushingFirstDowns, rushingFumbles, rushingFumblesLost, rushingTouchdowns, rushingYards, rushingYardsPerGame, stuffs, stuffYardsLost, teamGamesPlayed, totalOffensivePlays, totalPointsPerGame, totalTouchdowns, totalYards, totalYardsFromScrimmage, twoPointRushConvs, twoPtRush, twoPtRushAttempts, yardsFromScrimmagePerGame, yardsPerGame, yardsPerRushAttempt
+
+   air-yards primitive present: true   YAC primitive present: true
+
+── passing ──
+  ABSENT      cpoe                     needs the NGS expectation model
+  ABSENT      aggressiveness           needs the NGS expectation model
+  ABSENT      avgTimeToThrow           needs 10Hz tracking (x/y)
+  DERIVABLE   avgCompletedAirYards     ESPN season air yards (passingYardsAtCatch) / attempts
+  DERIVABLE   avgAirYardsDiff          ESPN season air yards (passingYardsAtCatch) / attempts
+  DERIVABLE   avgAirYardsToSticks      ESPN season air yards (passingYardsAtCatch) / attempts
+  EQUIVALENT  attempts                 ESPN box stat
+  ABSENT      xCompPct                 needs the NGS expectation model
+── receiving ──
+  ABSENT      avgSeparation            needs 10Hz tracking (x/y)
+  ABSENT      avgCushion               needs 10Hz tracking (x/y)
+  DERIVABLE   avgYAC                   ESPN season YAC / receptions
+  ABSENT      avgExpectedYAC           needs the NGS expectation model
+  ABSENT      avgYACAboveExp           needs the NGS expectation model
+  DERIVABLE   pctShareIntendedAirYards ESPN season air yards (passingYardsAtCatch) / attempts
+  EQUIVALENT  targets                  ESPN box stat
+  EQUIVALENT  receptions               ESPN box stat
+  EQUIVALENT  catchPct                 receptions/targets
+── rushing ──
+  ABSENT      efficiency               needs 10Hz tracking (x/y)
+  ABSENT      pctVsStacked             needs 10Hz tracking (x/y)
+  ABSENT      avgTimeToLOS             needs 10Hz tracking (x/y)
+  ABSENT      rushYdsOverExp           needs the NGS expectation model
+  ABSENT      rushYdsOverExpPerAtt     needs the NGS expectation model
+  ABSENT      expectedRushYds          needs the NGS expectation model
+  EQUIVALENT  rushAttempts             ESPN box stat
+
+TOTALS: EQUIVALENT=5  DERIVABLE=5  ABSENT=14  (of 24)
+free-from-ESPN = EQUIVALENT+DERIVABLE = 10; only-via-nflverse = 14
+
+=== ESPN fantasy player-universe endpoint (anonymous) ===
+  status=200 bytes=666912
+  players: 2887
+  sample keys: defaultPositionId, droppable, eligibleSlots, firstName, fullName, id, lastName, ownership, proTeamId, universeId
