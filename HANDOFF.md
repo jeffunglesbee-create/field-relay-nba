@@ -1,5 +1,45 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-15 (NFL data integrity, paired with jubilant-bassoon)
+
+**HEAD:** `2e5f4d8` (+ this commit) · **Branch:** main throughout
+**Session doc (Rule 67):** `jubilant-bassoon/outbox/cc-session-2026-08-15-nfl-b-pipeline-fixes.md`
+— DONE, confidence 97 (the work is mostly client-side; both repos' commits are covered there)
+
+Two relay commits, both paired with `jubilant-bassoon 317f9cb`:
+
+1. **`680ac26`** — `ngs-passing.json` added to `NFLVERSE_OUT_ALLOWED`. It was in
+   `NFL_R2_FILES` (R2-first) but not the fallback allow-list, so unlike
+   `ngs-receiving`/`ngs-rushing` an R2 miss fell through to the allow-list check
+   and 403'd, despite a fresh copy existing in the client's `outbox/nfl/`.
+   Measured latent, not live: `outbox/nfl-route-coverage-probe-*.log` shows all
+   three serving 200 from R2 today. `pfr-rec.json` / `player-stats.json`
+   deliberately NOT added — they are R2-only (written by this relay's own cron)
+   and would 404 rather than serve.
+
+2. **`2e5f4d8`** — `runNFLR2Update` (`src/nfl-r2.js`): refuses zero-row writes
+   (`count` was computed then ignored — same defect as MLB Savant `7588b24`), and
+   stamps `season`/`targetYear` to match the client pipeline's envelope.
+
+**Why #2 was necessary, not scope creep:** `nfl/{year}/ngs-passing.json` has TWO
+independent writers — the client pipeline (Mon 07:00 UTC, nflverse **parquet**)
+and this relay cron (Wed 12–15 UTC, legacy **CSV**). Wednesday runs last, so it
+would have stripped the client's new season labelling off every week.
+
+**Open, gated:** `docs/CC-CMD-2026-08-15-ngs-passing-two-writers.md` — one key,
+two writers, two sources is the real defect; #2 only makes the race harmless for
+the fields we know about today. That CC-CMD also covers this writer's hardcoded
+`nfl/2026/` prefix, which diverges from the route's dynamically computed year
+(`src/index.js` ~15797) from August 2027.
+
+**NFL route coverage, measured today** (`outbox/nfl-route-coverage-probe-*.log`):
+6/17 allow-listed files serve 200. The six nflverse Stage-1 tables
+(`team_epa`, `qb_metrics`, `receiver_metrics`, `defense_metrics`, `schedule_refs`,
+`team_tendencies`) all 404 — the relay half of that design was built in May and
+the producing pipeline never was.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-14 (J-layer model provenance)
 
 **HEAD:** `12e4018` (+ this commit)
