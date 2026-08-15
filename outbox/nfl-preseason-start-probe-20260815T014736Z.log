@@ -1,0 +1,10 @@
+NFL scoreboard dates with games, 2026-07-25..08-16:
+
+  20260806  games=1  seasontype=[1]  states=["post"]  e.g. Carolina Panthers at Arizona Cardinals
+  20260813  games=6  seasontype=[1]  states=["post"]  e.g. Detroit Lions at Cincinnati Bengals
+  20260814  games=3  seasontype=[1]  states=["in"]  e.g. Denver Broncos at Atlanta Falcons
+  20260815  games=7  seasontype=[1]  states=["pre"]  e.g. Carolina Panthers at Buffalo Bills
+
+EARLIEST date with games: 20260806
+
+== RESULT: 4 dates found ==
