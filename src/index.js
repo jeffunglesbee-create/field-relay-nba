@@ -721,6 +721,7 @@ const NFLVERSE_OUT_ALLOWED = [
     'bdb_separation.json',      // build_bdb_separation — avg sep at pass_arrived
     'bdb_xblock_pass_rush.json',    // build_bdb_pass_rush — pressure generated per rusher
     'bdb_tendency_fingerprint.json',// build_bdb_tendency — team PA/dropback/formation profile
+    'bdb_time_to_throw.json',       // build_bdb_time_to_throw — team avg time-to-throw (s)
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
     'ngs-passing.json',
     'ngs-receiving.json',
@@ -15799,6 +15800,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 // P3 BDB tracking-derived (Kaggle dataset)
                 'bdb_speed.json', 'bdb_separation.json', 'bdb_route_entropy.json',
                 'bdb_xblock_pass_rush.json', 'bdb_tendency_fingerprint.json',
+                'bdb_time_to_throw.json',
             ];
             // Dynamic year: use current NFL season year
             const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
