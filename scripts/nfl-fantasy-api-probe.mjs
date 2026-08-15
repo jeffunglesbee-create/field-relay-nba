@@ -68,3 +68,34 @@ const TARGETS = [
   console.log('the FPL-style open door does not exist for NFL fantasy and there is nothing to force.');
   process.exit(0);
 })();
+
+// ── Appendix: dump the shape of the one endpoint that answered 200 ──────────
+// So the "open door" is characterized by real structure, not just a status code.
+(async () => {
+  const url = 'https://api.fantasy.nfl.com/v2/players/weekstats?season=2024&week=1';
+  console.log('\n=== shape of the open v2/players/weekstats endpoint ===');
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 FIELD-probe', Accept: 'application/json' }, signal: AbortSignal.timeout(30000) });
+    const j = JSON.parse(await r.text());
+    const seen = [];
+    (function walk(o, pfx) {
+      if (seen.length >= 3 || !o || typeof o !== 'object') return;
+      if (Array.isArray(o)) {
+        if (o.length && o[0] && typeof o[0] === 'object' && (o[0].id || o[0].name || o[0].stats)) {
+          seen.push({ path: pfx, count: o.length, sampleKeys: Object.keys(o[0]).slice(0, 14), sample: o[0] });
+        }
+        return;
+      }
+      for (const k of Object.keys(o)) walk(o[k], pfx + '.' + k);
+    })(j, '$');
+    console.log('top keys:', Object.keys(j).join(','));
+    for (const s of seen) {
+      console.log(`\narray at ${s.path}: ${s.count} items`);
+      console.log('  keys:', s.sampleKeys.join(', '));
+      console.log('  sample[0]:', JSON.stringify(s.sample).slice(0, 400));
+    }
+    if (!seen.length) console.log('no id/name/stats array found — dumping nested keys:\n',
+      JSON.stringify(j, (k, v) => (Array.isArray(v) && v.length > 3 ? `[array ${v.length}]` : v)).slice(0, 800));
+  } catch (e) { console.log('shape probe error:', e.message); }
+  process.exit(0);
+})();
