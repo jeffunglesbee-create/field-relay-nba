@@ -714,14 +714,14 @@ const NFLVERSE_OUT_ALLOWED = [
     // receiver_metrics/defense_metrics/schedule_refs/team_tendencies were
     // allow-listed but had NO builder and NO client consumer (verified 0 refs
     // in both repos) — every request 404'd against a file nothing produced.
-    // STAGED — Big Data Bowl (P3) targets. No builder yet; BDB tracking data is
-    // Kaggle-gated and no Kaggle credentials exist in either repo (verified
-    // 2026-08-15). Unblock: add KAGGLE_KEY secret + a BDB builder, then these
-    // serve. Kept (not removed) because P3 is the active next phase.
-    'bdb_route_entropy.json',
+    // Big Data Bowl (P3) — built by build-bdb-data.py (Kaggle public dataset,
+    // KAGGLE_USERNAME/KAGGLE_KEY secrets added 2026-08-15). Route entropy +
+    // separation have builders + client consumers as of 2026-08-15.
+    'bdb_route_entropy.json',   // build_bdb_route_entropy — routeRan Shannon entropy
+    'bdb_separation.json',      // build_bdb_separation — avg sep at pass_arrived
+    // STILL STAGED — no builder yet. Unblock: add builder fn in build-bdb-data.py.
     'bdb_xblock_pass_rush.json',
     'bdb_tendency_fingerprint.json',
-    'bdb_separation.json',
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
     'ngs-passing.json',
     'ngs-receiving.json',
