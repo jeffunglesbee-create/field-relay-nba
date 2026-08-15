@@ -1,0 +1,15 @@
+=== nfl-fantasy-api-probe  utc=2026-08-15T00:16:33.521Z ===
+anonymous GETs only — no cookie/token sent; a 401/403 means gated and we stop there
+
+  200  application/json; charse     106487b  rows=-  fantasy players (v2 current week)
+         shape: systemConfig,games,nflGames
+  404  text/html; charset=UTF-8         20b  rows=-  fantasy players (v1 research)
+  404  text/html; charset=UTF-8         20b  rows=-  fantasy players list (v1)
+  404  application/json; charse         52b  rows=-  fantasy game (players/ownership)
+  404  application/json                 22b  rows=-  flags api (seen in the page)
+  200  application/json            1380476b  rows=587  FPL bootstrap (CONTROL, open)
+         shape: chips,events,game_settings,game_config,phases,teams,total_players,element_stats
+
+Read: any 200 with a players/stats array = a genuinely open NFL fantasy source.
+BUT box-score stats only — never NGS tracking. If all NFL rows are 401/403,
+the FPL-style open door does not exist for NFL fantasy and there is nothing to force.
