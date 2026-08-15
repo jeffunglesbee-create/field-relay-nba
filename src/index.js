@@ -729,6 +729,7 @@ const NFLVERSE_OUT_ALLOWED = [
     'nfl-injuries.json',
     'snap-counts.json',
     'depth-charts.json',
+    'team-participation.json',
 ];
 const NFLVERSE_RAW_BASE = 'https://raw.githubusercontent.com/jeffunglesbee-create/jubilant-bassoon/main/outbox/nfl';
 
@@ -15793,6 +15794,8 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 'ngs-receiving.json', 'ngs-rushing.json', 'nfl-injuries.json',
                 // NFL-B phase 2: snap counts, depth-chart starters, team EPA/play (pbp)
                 'snap-counts.json', 'depth-charts.json', 'team_epa.json',
+                // P3 (no-Kaggle): pbp_participation formation/pressure tendencies
+                'team-participation.json',
             ];
             // Dynamic year: use current NFL season year
             const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
