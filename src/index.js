@@ -719,9 +719,8 @@ const NFLVERSE_OUT_ALLOWED = [
     // separation have builders + client consumers as of 2026-08-15.
     'bdb_route_entropy.json',   // build_bdb_route_entropy — routeRan Shannon entropy
     'bdb_separation.json',      // build_bdb_separation — avg sep at pass_arrived
-    // STILL STAGED — no builder yet. Unblock: add builder fn in build-bdb-data.py.
-    'bdb_xblock_pass_rush.json',
-    'bdb_tendency_fingerprint.json',
+    'bdb_xblock_pass_rush.json',    // build_bdb_pass_rush — pressure generated per rusher
+    'bdb_tendency_fingerprint.json',// build_bdb_tendency — team PA/dropback/formation profile
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
     'ngs-passing.json',
     'ngs-receiving.json',
@@ -15799,6 +15798,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 'team-participation.json',
                 // P3 BDB tracking-derived (Kaggle dataset)
                 'bdb_speed.json', 'bdb_separation.json', 'bdb_route_entropy.json',
+                'bdb_xblock_pass_rush.json', 'bdb_tendency_fingerprint.json',
             ];
             // Dynamic year: use current NFL season year
             const nflYear = (new Date().getMonth() >= 7) ? new Date().getFullYear() : new Date().getFullYear() - 1;
