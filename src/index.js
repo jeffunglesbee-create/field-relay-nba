@@ -741,6 +741,7 @@ const NFLVERSE_OUT_ALLOWED = [
     'bdb_tendency_fingerprint.json',
     'bdb_separation.json',
     // NFL-B: nflverse parquet pipeline (ngs-update.yml)
+    'ngs-passing.json',
     'ngs-receiving.json',
     'ngs-rushing.json',
     'nfl-injuries.json',
