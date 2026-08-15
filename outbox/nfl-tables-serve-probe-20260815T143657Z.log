@@ -1,0 +1,6 @@
+  PASS  team-participation.json  HTTP 200  src=r2  rows=32
+  PASS  snap-counts.json  HTTP 200  src=r2  rows=2311
+  PASS  depth-charts.json  HTTP 200  src=r2  rows=32
+  PASS  team_epa.json  HTTP 200  src=r2  rows=32
+
+== RESULT: 4/4 serve non-empty ==
