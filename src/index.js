@@ -697,32 +697,11 @@ function bdlCacheTtl(path) {
 }
 
 
-// ── RealtimeSports API — Live NFL play-by-play, scores, odds, teams ──────────
-// Source: realtimesportsapi.com — JWT Bearer auth (server-side only)
-// Key: env.REALTIMESPORTS_KEY (set in CF dashboard → field-relay-nba secrets)
-// CORRECT API STRUCTURE (discovered via Swagger UI May 27 2026):
-//   /api/v1/sports/{sport}/leagues/{league}/events/live  — live events
-//   /api/v1/sports/{sport}/leagues/{league}/events/{id}/boxscore
-//   /api/v1/sports/{sport}/leagues/{league}/teams
-//   /api/v1/sports/{sport}/leagues/{league}/athletes
-// Route: /realtimesports/* → www.realtimesportsapi.com/api/v1/*
-const REALTIMESPORTS_BASE = 'https://www.realtimesportsapi.com/api/v1';
-const REALTIMESPORTS_ALLOWED_PREFIXES = [
-    '/sports',
-];
-function realtimeSportsAllowed(path) {
-    // Allow any path under /sports/ — broad but gated by auth key
-    return path === '/sports' || path.startsWith('/sports/');
-}
-function realtimeSportsTtl(path) {
-    if (path.includes('/events/live'))   return 30;   // live game state
-    if (path.includes('/boxscore'))      return 30;   // live box score
-    if (path.includes('/plays'))         return 30;   // play-by-play
-    if (path.includes('/events'))        return 120;  // schedule/results
-    if (path.includes('/athletes'))      return 3600; // roster reference
-    if (path.includes('/teams'))         return 3600; // team reference
-    return 300;
-}
+// RealtimeSports API (realtimesportsapi.com) — REMOVED 2026-08-15. Source was
+// eliminated; the /realtimesports/* passthrough had zero consumers (no client
+// fetch, no cron, no MCP allow-list entry) and REALTIMESPORTS_KEY was never in
+// wrangler.toml. Rule 63 dead-code cleanup. NFL live PBP now comes from ESPN
+// via /espn-summary (see the NFL EPA path).
 
 // ── nflverse output files — EPA table + analytics JSON served from repo ──────
 // Source: raw.githubusercontent.com/jubilant-bassoon/main/outbox/nfl/{file}
@@ -16942,20 +16921,6 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, sportradarUflTtl(cleanPath), 'sportradar-ufl', ctx);
         }
 
-        // ── /realtimesports/* → realtimesportsapi.com/api/v1 ──────────────────
-        // JWT Bearer auth injected server-side from env.REALTIMESPORTS_KEY secret.
-        // Primary use: NFL live play-by-play schema evaluation + live EPA input.
-        // Secret must be set in CF dashboard → field-relay-nba → Settings → Variables.
-        if (pathname.startsWith('/realtimesports')) {
-            const cleanPath = pathname.replace(/^\/realtimesports/, '') || '/';
-            if (!realtimeSportsAllowed(cleanPath))
-                return new Response('RealtimeSports path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'realtimesports-not-whitelisted', ...CORS } });
-            const rtKey = env.REALTIMESPORTS_KEY;
-            if (!rtKey)
-                return new Response('REALTIMESPORTS_KEY not configured', { status: 503, headers: { 'X-RELAY-Error': 'realtimesports-no-key', ...CORS } });
-            const targetUrl = `${REALTIMESPORTS_BASE}${cleanPath}${url.search || ''}`;
-            return relayFetch(targetUrl, { 'Authorization': `Bearer ${rtKey}`, 'Accept': 'application/json' }, realtimeSportsTtl(cleanPath), 'realtimesports', ctx);
-        }
 
 
         // ── /mcp — MCP Streamable HTTP server ────────────────────────────────────
