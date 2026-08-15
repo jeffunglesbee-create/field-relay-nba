@@ -708,13 +708,16 @@ function bdlCacheTtl(path) {
 // Files committed by GitHub Actions build pipelines (build-epa-table.yml etc.)
 // Route: /nflverse/{file.json} → raw.githubusercontent.com
 const NFLVERSE_OUT_ALLOWED = [
-    'epa_table.json',
-    'team_epa.json',
-    'qb_metrics.json',
-    'receiver_metrics.json',
-    'defense_metrics.json',
-    'schedule_refs.json',
-    'team_tendencies.json',
+    'epa_table.json',   // built by build-epa-table.yml, consumed by epa.js
+    'team_epa.json',    // built by build-ngs-data.py, consumed by getTeamEPA
+    // Removed 2026-08-15 (Rule 63 dead-allow-list cleanup): qb_metrics/
+    // receiver_metrics/defense_metrics/schedule_refs/team_tendencies were
+    // allow-listed but had NO builder and NO client consumer (verified 0 refs
+    // in both repos) — every request 404'd against a file nothing produced.
+    // STAGED — Big Data Bowl (P3) targets. No builder yet; BDB tracking data is
+    // Kaggle-gated and no Kaggle credentials exist in either repo (verified
+    // 2026-08-15). Unblock: add KAGGLE_KEY secret + a BDB builder, then these
+    // serve. Kept (not removed) because P3 is the active next phase.
     'bdb_route_entropy.json',
     'bdb_xblock_pass_rush.json',
     'bdb_tendency_fingerprint.json',
