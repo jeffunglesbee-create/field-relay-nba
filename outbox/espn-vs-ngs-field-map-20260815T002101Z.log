@@ -1,0 +1,38 @@
+=== espn-vs-ngs-field-map  utc=2026-08-15T00:21:01.200Z ===
+
+A. athlete statistics (Mahomes 2024): status=200, 164 stat fields
+   passing stat names: avgGain, completionPct, completions, ESPNQBRating, interceptionPct, interceptions, longPassing, netPassingYards, netPassingYardsPerGame, netTotalYards, netYardsPerGame, passingAttempts, passingBigPlays, passingFirstDowns, passingFumbles, passingFumblesLost, passingTouchdownPct, passingTouchdowns, passingYards, passingYardsAfterCatch, passingYardsAtCatch, passingYardsPerGame, QBRating, sacks, sackYardsLost, netPassingAttempts, teamGamesPlayed, totalOffensivePlays, totalPointsPerGame, totalTouchdowns
+
+B. play-by-play (event 401671744): status=200, 185 plays, 58 distinct fields
+   play fields (filtered): type, type.id, type.text, clock, clock.value, clock.displayValue, team, team.$ref, wallclock, teamParticipants, statYardage, start, start.down, start.distance, start.yardLine, start.yardsToEndzone, end, end.down, end.distance, end.yardLine, end.yardsToEndzone, end.team, end.team.$ref, start.team
+
+── passing ──
+  ABSENT      cpoe                     needs the NGS expectation model
+  ABSENT      aggressiveness           needs the NGS expectation model
+  ABSENT      avgTimeToThrow           needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      avgCompletedAirYards     ESPN PBP carries no air-yards field
+  ABSENT      avgAirYardsDiff          ESPN PBP carries no air-yards field
+  ABSENT      avgAirYardsToSticks      ESPN PBP carries no air-yards field
+  EQUIVALENT  attempts                 ESPN box stat
+  ABSENT      xCompPct                 needs the NGS expectation model
+── receiving ──
+  ABSENT      avgSeparation            needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      avgCushion               needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      avgYAC                   no YAC field in ESPN PBP
+  ABSENT      avgExpectedYAC           needs the NGS expectation model
+  ABSENT      avgYACAboveExp           needs the NGS expectation model
+  ABSENT      pctShareIntendedAirYards ESPN PBP carries no air-yards field
+  EQUIVALENT  targets                  ESPN box stat
+  EQUIVALENT  receptions               ESPN box stat
+  EQUIVALENT  catchPct                 ESPN box (receptions/targets)
+── rushing ──
+  ABSENT      efficiency               needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      pctVsStacked             needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      avgTimeToLOS             needs 10Hz tracking (x/y) — not in any ESPN feed
+  ABSENT      rushYdsOverExp           needs the NGS expectation model
+  ABSENT      rushYdsOverExpPerAtt     needs the NGS expectation model
+  ABSENT      expectedRushYds          needs the NGS expectation model
+  EQUIVALENT  rushAttempts             ESPN box stat
+
+TOTALS: EQUIVALENT=5  DERIVABLE=0  ABSENT=19  (of 24 NGS metric fields)
+EQUIVALENT+DERIVABLE = free from ESPN. ABSENT = only via nflverse (which republishes it CC-BY).
