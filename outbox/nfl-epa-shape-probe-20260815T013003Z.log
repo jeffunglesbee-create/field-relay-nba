@@ -1,0 +1,56 @@
+Game: Denver Broncos at Atlanta Falcons (id=401873278, 20260814, state=in)
+
+  PASS  relay /espn-summary returns 200 :: HTTP 200
+  PASS  summary has drives object :: present
+  PASS  drives.previous is a non-empty array :: len=19
+  PASS  at least one play extracted :: plays=147
+  PASS  found a snap with start.down 1-4
+  PASS  play.start.down present :: 1
+  PASS  play.start.distance present :: 10
+  PASS  play.start.yardsToEndzone present (== yardline_100, no conversion) :: 69
+  PASS  play.start.yardsToEndzone in [1,99] :: 69
+  PASS  play.type.text present (SKIP_TYPES + FG/miss detection) :: "Pass Reception"
+  PASS  play.scoringPlay is boolean :: false
+  PASS  play.end present with .yardsToEndzone (normal-play EP_end) :: end.yTE=54 end.down=1 end.dist=10
+  PASS  a play carries homeScore/awayScore :: homeScore=0 awayScore=0
+  PASS  play.isTurnover field exists on plays (turnover branch) :: present
+
+-- SAMPLE SNAP (trimmed) --
+{
+  "type": {
+    "id": "24",
+    "text": "Pass Reception",
+    "abbreviation": "REC"
+  },
+  "scoringPlay": false,
+  "isTurnover": false,
+  "start": {
+    "down": 1,
+    "distance": 10,
+    "yardLine": 69,
+    "yardsToEndzone": 69,
+    "downDistanceText": "1st & 10 at DEN 31",
+    "shortDownDistanceText": "1st & 10",
+    "possessionText": "DEN 31",
+    "team": {
+      "id": "7"
+    }
+  },
+  "end": {
+    "down": 1,
+    "distance": 10,
+    "yardLine": 54,
+    "yardsToEndzone": 54,
+    "downDistanceText": "1st & 10 at DEN 46",
+    "shortDownDistanceText": "1st & 10",
+    "possessionText": "DEN 46",
+    "team": {
+      "id": "7"
+    }
+  },
+  "homeScore": 0,
+  "awayScore": 0,
+  "text": "J.Stidham pass deep right to P.Bryant to DEN 46 for 15 yards (K.Daniels; M.Hughe"
+}
+
+== RESULT: 14 passed, 0 failed ==
