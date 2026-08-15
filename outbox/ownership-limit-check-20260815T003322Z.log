@@ -1,0 +1,6 @@
+limit=  50  ->  count= 2615  served=261KB  3255ms  x-source=relay-fantasy-ownership
+limit= 400  ->  count= 2615  served=261KB  1696ms  x-source=relay-fantasy-ownership
+limit=2000  ->  count= 2615  served=261KB  1437ms  x-source=relay-fantasy-ownership
+
+If count is identical regardless of limit -> ESPN ignores the filter limit for this view;
+the served table is still small, but the SERVER fetch is unbounded. Decide: accept (small enough) or cap post-fetch.
