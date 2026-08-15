@@ -2,7 +2,7 @@
 // the live relay /nflverse/ route (R2-first). Runs on a GH runner (sandbox 403s
 // *.workers.dev). Rule 61 E2E: a client consumer is only real if the file serves.
 const R = 'https://field-relay-nba.jeffunglesbee.workers.dev/nflverse';
-const files = ['team-participation.json', 'snap-counts.json', 'depth-charts.json', 'team_epa.json'];
+const files = ['bdb_speed.json', 'team-participation.json', 'team_epa.json'];
 let fail = 0;
 for (const f of files) {
   try {
