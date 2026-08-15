@@ -1,0 +1,6 @@
+  kaggle-competition-download: HTTP 401 application/json loc=
+  kaggle-dataset-download: HTTP 404 text/html; charset=utf-8 loc=
+  nflverse-releases-tracking: HTTP 404 text/plain; charset=utf-8 loc=
+  nflverse-pbp-participation: HTTP 302 text/html; charset=utf-8 loc=https://release-assets.githubusercontent.com/github-production-release-asset/452908115/404a5
+
+== Conclusion: any non-4xx GET above = a public route to tracking-ish data ==
