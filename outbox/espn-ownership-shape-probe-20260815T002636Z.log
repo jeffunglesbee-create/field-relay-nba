@@ -1,0 +1,21 @@
+=== espn-ownership-shape-probe  utc=2026-08-15T00:26:36.343Z ===
+
+── kona URL-only
+   status=200 bytes=442423 ms=129 players=50
+   ownership keys: activityLevel, auctionValueAverage, auctionValueAverageChange, averageDraftPosition, averageDraftPositionPercentChange, date, leagueType, percentChange, percentOwned, percentStarted
+   sample: Israel Abanikanda percentOwned=0.8412276598075344
+
+── kona + filter header
+   status=200 bytes=25278962 ms=669 players=2887
+   ownership keys: activityLevel, auctionValueAverage, auctionValueAverageChange, averageDraftPosition, averageDraftPositionPercentChange, date, leagueType, percentChange, percentOwned, percentStarted
+   sample: Ryquell Armstead percentOwned=0.14611338398597312
+
+── players_wl URL-only
+   status=200 bytes=11648 ms=37 players=50
+   ownership keys: percentOwned
+   sample: Israel Abanikanda percentOwned=0.8412276598075344
+
+=== BUILD DECISION ===
+URL-ONLY WORKS: kona_player_info returns ownership without a filter header.
+→ a relayFetch passthrough is correct (URL-only cache key is sound).
+  payload 432KB for 50 players.
