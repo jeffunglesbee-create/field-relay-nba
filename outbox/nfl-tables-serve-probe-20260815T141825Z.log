@@ -1,0 +1,8 @@
+  PASS  snap-counts.json  HTTP 200  src=r2  rows=2311
+  PASS  depth-charts.json  HTTP 200  src=r2  rows=32
+  PASS  team_epa.json  HTTP 200  src=r2  rows=32
+  PASS  ngs-rushing.json  HTTP 200  src=r2  rows=81
+  PASS  player-stats.json  HTTP 200  src=r2  rows=1666
+  PASS  nfl-injuries.json  HTTP 200  src=r2  rows=1453
+
+== RESULT: 6/6 serve non-empty ==
