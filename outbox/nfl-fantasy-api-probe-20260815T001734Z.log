@@ -1,0 +1,8 @@
+=== nfl-fantasy-api-probe  utc=2026-08-15T00:17:34.100Z ===
+anonymous GETs only — no cookie/token sent; a 401/403 means gated and we stop there
+
+
+=== shape of the open v2/players/weekstats endpoint ===
+top keys: systemConfig,games,nflGames
+no id/name/stats array found — dumping nested keys:
+ {"systemConfig":{"currentGameId":"102025","DEPRECATED_DO_NOT_USE":"pollingIntervalPlayersWeekStats, pollingIntervalLeagueTeamMatchup, overridePollingPlayersWeekStats","pollingIntervalPlayersWeekStats":10,"pollingIntervalLeagueTeamMatchup":30,"overridePollingPlayersWeekStats":false},"games":{"102025":{"gameId":"102025","type":"core","code":"core","season":"2025","previousSeason":"2024","siteMessages":{"leagueHome":"Thanks for playing fantasy football on the NFL platform last season — we're grateful you've been part of the community.  ESPN Fantasy is now the Official Fantasy Game of the NFL. You can continue your league seamlessly on ESPN, where your team and history will carry forward.\nhttps://fantasy.espn.com/football/league/importnfl","teamMatchup":"Thanks for playing fantasy football on
