@@ -1,0 +1,7 @@
+  PASS  ngs-rushing.json  HTTP 200  src=r2  rows=81
+  PASS  player-stats.json  HTTP 200  src=r2  rows=1666
+  PASS  nfl-injuries.json  HTTP 200  src=r2  rows=1453
+  PASS  ngs-passing.json  HTTP 200  src=r2  rows=65
+  PASS  ngs-receiving.json  HTTP 200  src=r2  rows=212
+
+== RESULT: 5/5 serve non-empty ==
