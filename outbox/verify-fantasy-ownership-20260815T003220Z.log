@@ -1,0 +1,17 @@
+=== verify-fantasy-ownership  utc=2026-08-15T00:32:20.320Z ===
+
+status=200  X-FIELD-Proxy=relay-fantasy-ownership  count=2615  season=2026
+most-owned: Jahmyr Gibbs (proTeamId 8) owned=99.87% started=99.57% adp=1.6
+
+  PASS  HTTP 200
+  PASS  ok:true
+  PASS  X-FIELD-Proxy stamped
+  PASS  6h cache TTL
+  PASS  count > 100 players
+  PASS  every percentOwned in [0,100]
+  PASS  top player owned > 50%
+  PASS  a player carries proTeamId
+  PASS  source names ESPN
+  PASS  second hit identical (edge-cached), 158ms
+
+=== RESULT: PASS ===
