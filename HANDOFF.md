@@ -1,5 +1,28 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-15b (ESPN fantasy ownership route)
+
+**HEAD:** `6532d9d` (+ this) · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-15-fantasy-ownership-route.md` — DONE, confidence 96
+**Deploys:** 31853774282, 31854044681 — success. Done-condition artifact:
+`outbox/verify-fantasy-ownership-*.log` 10/10 PASS (limit=400→count=400, Gibbs 99.87% owned).
+
+`GET /fantasy/ownership` — ESPN percentOwned/percentStarted/ADP per player, reshaped to a
+small `{ espnId: {name, proTeamId, percentOwned, percentStarted, adp} }` table, top-N by
+ownership, zero-owned dropped, 6h edge cache. Transform not passthrough: kona_player_info is
+header-driven (relayFetch keys on URL only) and the full set is ~25MB.
+
+**ADR-002:** commodity (ESPN publishes it) + pull-only + proxy-not-compute + edge-cache-not-a-binding.
+NOT a drama/watch/RUWT value. (Initial "engagement-adjacent" framing was wrong and corrected.)
+
+**Caught + fixed live (Rule 77):** ESPN ignores the x-fantasy-filter limit (2615 rows for any
+limit); the param was a no-op fragmenting the cache. `6532d9d` made it a real post-fetch cap.
+
+**Cross-repo status (Rule 61):** relay half only. No client consumer yet — the NFL card is where
+this renders, alongside the NGS/injuries chips. Client wiring is the open end-to-end step.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-15 (NFL data integrity, paired with jubilant-bassoon)
 
 **HEAD:** `2e5f4d8` (+ this commit) · **Branch:** main throughout
