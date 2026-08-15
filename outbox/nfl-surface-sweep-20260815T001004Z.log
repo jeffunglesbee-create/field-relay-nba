@@ -1,0 +1,37 @@
+=== nfl-surface-sweep  utc=2026-08-15T00:10:04.935Z ===
+unauthenticated GETs of public pages only; the OAuth-gated NGS API is not probed
+
+  status  <tr>   stat-words  bytes     surface
+  200        0           0     31496  ngs leaders (www host)
+  404        0           0    169354  ngs leaders passing
+  404        0           0    169339  ngs landing
+  200       33           7    193218  team-stats (control)   ← USABLE
+  200       33           8    193828  team defense passing   ← USABLE
+  200       33           3    191824  team offense rushing   ← USABLE
+  200       33           1    189359  team offense scoring
+  200       26           7    216792  player stats passing   ← USABLE
+  200       26           7    217020  player stats category   ← USABLE
+  200        0           0    224132  injuries
+  200        0           0   1621377  schedule week 1
+
+server-rendered data surfaces found: 5/11
+
+  team-stats (control)
+    https://www.nfl.com/stats/team-stats/
+    rows=33  columns detected: Att, Cmp, TD, INT, Rate, Sck, Team
+
+  team defense passing
+    https://www.nfl.com/stats/team-stats/defense/passing/2025/reg/all
+    rows=33  columns detected: Att, Cmp, Yds, TD, INT, Rate, Sck, Team
+
+  team offense rushing
+    https://www.nfl.com/stats/team-stats/offense/rushing/2025/reg/all
+    rows=33  columns detected: Att, TD, Team
+
+  player stats passing
+    https://www.nfl.com/stats/player-stats/
+    rows=26  columns detected: Att, Cmp, TD, INT, Rate, Sck, Player
+
+  player stats category
+    https://www.nfl.com/stats/player-stats/category/passing/2025/reg/all/passingyards/desc
+    rows=26  columns detected: Att, Cmp, TD, INT, Rate, Sck, Player
