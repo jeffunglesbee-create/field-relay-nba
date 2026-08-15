@@ -15815,6 +15815,91 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
         }
 
+        // ── GET /fantasy/ownership → ESPN fantasy roster-ownership table ──────────
+        // ESPN publishes percentOwned / percentStarted / ADP per player (the fraction
+        // of ESPN fantasy leagues that roster / start a player). These are commodity
+        // vendor statistics — a neutral source publishes them, and this route serves
+        // them on PULL only — so they clear ADR-002's two tests (commodity + pull).
+        // The relay only reshapes ESPN's numbers; it computes none of its own, and
+        // nothing is stored in a binding (edge cache only). NOT drama/watch/RUWT.
+        //
+        // Why a transform, not a relayFetch passthrough (measured 2026-08-15,
+        // scripts/espn-ownership-shape-probe.mjs): the ownership `kona_player_info`
+        // view is header-driven (x-fantasy-filter) — relayFetch keys on URL only and
+        // would cache-collide across filters — and the full set is ~25MB. So this
+        // fetches server-side WITH the header (top players by percentOwned) and emits
+        // a small { espnId: {name, proTeamId, percentOwned, percentStarted, adp} }
+        // table. Ownership moves slowly; 6h edge cache. Empty upstream is never
+        // cached (same discipline as the empty-write guards added this session).
+        if (pathname === '/fantasy/ownership' && request.method === 'GET') {
+            const season = (new Date().getUTCMonth() >= 7) ? new Date().getUTCFullYear() : new Date().getUTCFullYear() - 1;
+            const limit = Math.min(parseInt(url.searchParams.get('limit') || '600', 10) || 600, 1500);
+            // URL-only cache key so this route is edge-cached like every other proxy.
+            const cacheKey = new Request(`https://field-relay-nba.internal/fantasy/ownership?season=${season}&limit=${limit}`, { method: 'GET' });
+            const cache = caches.default;
+            const cached = await cache.match(cacheKey);
+            if (cached) return cached;
+
+            const espnUrl = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/players?scoringPeriodId=0&view=kona_player_info`;
+            const fantasyFilter = JSON.stringify({
+                players: { limit, sortPercOwned: { sortAsc: false, sortPriority: 1 } },
+            });
+            let upstream;
+            try {
+                upstream = await fetch(espnUrl, {
+                    headers: { 'Accept': 'application/json', 'x-fantasy-filter': fantasyFilter,
+                               'User-Agent': 'FIELD-relay/1.0' },
+                    cf: { cacheTtl: 21600, cacheEverything: true },
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: `espn network: ${e.message}` }),
+                    { status: 502, headers: { 'X-RELAY-Error': 'fantasy-ownership-network', ...CORS, 'Content-Type': 'application/json' } });
+            }
+            if (!upstream.ok) {
+                return new Response(JSON.stringify({ ok: false, error: `espn ${upstream.status}` }),
+                    { status: upstream.status, headers: { 'X-RELAY-Error': `fantasy-ownership-${upstream.status}`, ...CORS, 'Content-Type': 'application/json' } });
+            }
+            let raw;
+            try { raw = await upstream.json(); }
+            catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: 'espn non-json' }),
+                    { status: 502, headers: { 'X-RELAY-Error': 'fantasy-ownership-parse', ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const arr = Array.isArray(raw) ? raw : (raw.players || []);
+            const players = {};
+            for (const entry of arr) {
+                const p = entry.player || entry;
+                const own = p.ownership || entry.ownership;
+                if (!p || p.id == null || !own) continue;
+                const pct = (v) => (typeof v === 'number' ? Math.round(v * 100) / 100 : null);
+                players[p.id] = {
+                    name: p.fullName || null,
+                    proTeamId: p.proTeamId ?? null,          // ESPN numeric team id — client maps it
+                    percentOwned: pct(own.percentOwned),
+                    percentStarted: pct(own.percentStarted),
+                    adp: (typeof own.averageDraftPosition === 'number')
+                        ? Math.round(own.averageDraftPosition * 10) / 10 : null,
+                };
+            }
+            const count = Object.keys(players).length;
+            // Never cache/serve an empty table over a transient upstream hiccup.
+            if (count === 0) {
+                return new Response(JSON.stringify({ ok: false, error: 'espn returned no ownership rows' }),
+                    { status: 502, headers: { 'X-RELAY-Error': 'fantasy-ownership-empty', ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const body = JSON.stringify({
+                ok: true, season, source: 'ESPN fantasy (kona_player_info)',
+                updated: new Date().toISOString(), count, players,
+            });
+            const response = new Response(body, {
+                headers: { 'Content-Type': 'application/json', ...CORS,
+                           'Cache-Control': 'public, max-age=21600',
+                           'X-FIELD-Proxy': 'relay-fantasy-ownership', 'X-Cache-TTL': '21600' },
+            });
+            ctx.waitUntil(cache.put(cacheKey, response.clone()));
+            return response;
+        }
+
         // ── POST /wc-context-patch → write team context patch to R2 ───────────────
         // Stores amendment layer for WC_TEAM_CONTEXT inline data.
         // Body: { "teams": { "USA": { "narrativeNote": "...", "guardrail": "..." } } }
