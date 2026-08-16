@@ -3,6 +3,8 @@
 **Filed by:** field-laboratory
 **Severity:** low — reporting only. The live alert predicate is already correct.
 **Type:** measurement + a naming change. No scoring behaviour changes.
+**Status:** falsifying test ANSWERED before filing — see the section below. The
+recommendation survived it. One sub-question remains open for D1.
 
 ## The finding, in one line
 
@@ -60,31 +62,41 @@ What remains is that 240 survives as a **reported** figure: `below_240`,
 when it is an arithmetic certainty, and any consumer of those fields inherits the
 confusion.
 
-## Requested
+## The falsifying test — RUN, and the result
 
-1. **Name the scale wherever the flat bar is reported.** Either rename the fields
-   to carry their denominator (`below_240_of_300_nominal`) or emit the reachable
-   ceiling alongside them (`reachable_ceiling: 245`), so a reader can see that
-   `below_flat_240_pct: 100` means "below 98% of achievable".
-2. **If the flat bar is meant as a four-fifths standard, state it on the scale it
-   is applied to** — 196 of 245 — rather than as a constant carried over from a
-   rubric total the worker cannot reach.
-3. **Consider deriving the ceiling rather than hardcoding it.** It is currently a
-   comment. Summing the weights actually in play would make it move when a
-   dimension is added, disabled, or returns N/A.
+This CC-CMD was filed with a query designed to kill it. Two ways it could die:
 
-Nothing here changes a score.
+1. **If anything clears 240**, the flat bar is a real bar and item 2 is wrong.
+2. **If nothing clears 196 either**, a four-fifths bar merely relocates the
+   problem and this CC-CMD is answering the wrong question.
 
-## Falsifying query — run this BEFORE acting
+Both halves are settled **without D1**, from `/quality/report`'s own `max_score`
+column, 2026-08-15, seven-day window, 25 brief_type/sport rows:
 
-This CC-CMD's leading claim is that the flat bar is unreachable in practice. Kill
-it if the data disagrees:
+```
+122 125 130 130 148 132 171 135 179 156 148 148 153
+172 205 200 173 173 230 211 209 185 209 189 221
+```
+
+A per-row **maximum** is more decisive than it looks. If a row's max is below a
+bar, **no** brief in that row cleared it — exact, not an estimate.
+
+| test | result |
+|---|---|
+| rows whose max reaches **240** | **0 of 25** — so `cleared = 0` exactly |
+| rows whose max reaches **196** | **7 of 25** — `230, 221, 211, 209, 209, 205, 200` |
+
+So **196 separates rows and 240 separates none.** The recommendation survives its
+own falsifying test.
+
+**What this does NOT answer:** the *count* of briefs clearing 196. A per-row
+maximum proves at least one, never how many. That still needs the row data, and
+it is the one thing worth running D1 for:
 
 ```sql
 SELECT brief_type,
-       COUNT(*)                                        AS n,
-       MAX(quality_score)                              AS best,
-       SUM(CASE WHEN quality_score >= 240 THEN 1 ELSE 0 END) AS cleared,
+       COUNT(*)                                             AS n,
+       MAX(quality_score)                                   AS best,
        SUM(CASE WHEN quality_score >= 196 THEN 1 ELSE 0 END) AS cleared_196
   FROM briefs
  WHERE created_at >= '2026-08-13 03:20:00'   -- era 3 only
@@ -93,22 +105,33 @@ SELECT brief_type,
  ORDER BY best DESC;
 ```
 
-**If `cleared > 0` for any brief_type, item 2 above is wrong and should be
-dropped** — a bar that some briefs clear is a bar, not an arithmetic artefact.
-Report the row either way; a null result is the finding's discriminator and is
-worth as much as a confirmation.
+If `cleared_196` turns out to be a very small fraction of `n` across the board,
+196 is technically discriminating but practically another unreachable bar, and
+item 2 should be revisited rather than adopted. Report the row either way.
 
-`cleared_196` is included because it is the number that decides whether a
-four-fifths-of-reachable bar would discriminate or merely relocate the problem.
-If it is also 0, the issue is not the bar at all and this CC-CMD is answering the
-wrong question.
+## Requested
+
+1. **Name the scale wherever the flat bar is reported.** Either rename the fields
+   to carry their denominator (`below_240_of_300_nominal`) or emit the reachable
+   ceiling alongside them (`reachable_ceiling: 245`), so a reader can see that
+   `below_flat_240_pct: 100` means "below 98% of achievable".
+2. **If the flat bar is meant as a four-fifths standard, state it on the scale it
+   is applied to** — 196 of 245 — rather than as a constant carried over from a
+   rubric total the worker cannot reach. *Survived the falsifying test above;
+   confirm against `cleared_196` before adopting.*
+3. **Consider deriving the ceiling rather than hardcoding it.** It is currently a
+   comment. Summing the weights actually in play would make it move when a
+   dimension is added, disabled, or returns N/A.
+
+Nothing here changes a score.
 
 ## Where the evidence lives
 
 - `field-laboratory/src/Ceiling.fs` — the two scales as distinct types
 - `field-laboratory/docs/CEILING-PROOF.md` — five compiler rejections, including
   that a threshold of 240 on one scale cannot be assigned to 240 on the other
-- `field-laboratory/scripts/ceiling-check.mjs` — 13 assertions, run in `verify`
+- `field-laboratory/scripts/ceiling-check.mjs` — 16 assertions, run in `verify`,
+  including the falsifying test above so it re-runs rather than being asserted once
 - `field-laboratory/outbox/cc-quality-ceiling-2026-08-15.md`
 
 ---
