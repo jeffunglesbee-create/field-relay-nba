@@ -1,5 +1,59 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-16 (quality-bar scale: all 3 asks executed)
+
+**HEAD:** `665c68f` (+ this) · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-16-quality-bar-scale.md`
+**Serves:** `docs/CC-CMD-2026-08-15-quality-bar-scale.md` (filed by field-laboratory).
+Reporting/measurement only — **no scoring behaviour changed**.
+
+**The finding:** 55 of the 300 rubric points are unreachable BY CONSTRUCTION in the
+Worker runtime — Dims 7 (context) and 10 (matchup) have no game object and return
+N/A→0. So the flat 240 bar is 80.00% of the nominal rubric but **97.96%** of what a
+brief here can actually earn, and `below_240` near 100% is an arithmetic certainty,
+not an editorial verdict.
+
+**Ask 3 (derive the ceiling)** — added a `SCALE` table to `src/journalism-quality.js`
+and derived `NOMINAL_TOTAL` (300), `REACHABLE_CEILING` (245), `FOUR_FIFTHS_REACHABLE`
+(196) from it. `scoreProse`'s local `W` now derives from that same table instead of
+holding a second copy — two parallel copies would drift, which is the exact failure
+this ask exists to prevent. Verified the derivation reproduces every documented
+figure: base 150 / nominal 300 / reachable 245 / four-fifths 196 / 80.00% / 97.96%.
+
+**Ask 1 (name the scale)** — `/quality/report` now emits `quality_scale`
+{nominal_total, reachable_ceiling, unreachable_dims, unreachable_points, flat_bar,
+flat_bar_pct_of_nominal, flat_bar_pct_of_reachable, four_fifths_of_reachable}.
+Emitted ALONGSIDE `below_240`/`above_240` rather than renaming them — the CC-CMD
+offered either, and renaming breaks every current consumer (Rule 60).
+
+**Ask 2 (cleared_196)** — the CC-CMD called this "the one thing worth running D1
+for". It does not need a separate D1 session: `/quality/report`'s query is ALREADY a
+`GROUP BY` over ARCHIVE_DB computing below_240/above_240 with the same
+`SUM(CASE WHEN …)` shape, so this is one more line in a query that already runs. The
+adoption question it deferred — is 196 discriminating or another unreachable bar —
+is now answerable from the endpoint on every call, permanently. Self-completing
+(Rule 87) instead of a carry-forward.
+
+**Integration status:** code VERIFIED statically (`node --check` both files; all four
+imported names resolve; derivation assertions pass). Live response UNVERIFIED from
+sandbox (403s `*.workers.dev`); lands on the next push-triggered deploy.
+DONE CONDITION (Rule 90): `GET /quality/report` returns
+`quality_scale.reachable_ceiling === 245` and every `summary` row carries a numeric
+`cleared_196` — exact curl+assert in the session doc.
+
+**Correction:** an earlier claim in this session that the CC-CMD sat on a `claude/*`
+branch was WRONG — `14ac236`/`55a3a34` are on main. Misread a coincidental
+"[new branch]" line from an unrelated fetch. No branch-policy violation.
+
+**Not executed here:** `docs/CC-CMD-2026-08-16-quality-coverage-route.md` (`be8b38f`)
+— expose jq-scoring-coverage on a GET (per-day series, era3ByType, `scoring_version`
+on /archive/query). Complementary but a separate CC-CMD. Also note: there is no
+`/quality/coverage` route today; only `/quality/report` and `/quality/backfill-scores`.
+
+**Companion client work (jubilant-bassoon):** NFL standings dropdown — 4 stacked
+defects, 3 fixed, 1 OPEN (ESPN v2 standings returns HTTP 200 with an error body for
+browser-origin requests). See that repo's HANDOFF.
+
 ## SESSION CLOSE-OUT — 2026-08-15b (ESPN fantasy ownership route)
 
 **HEAD:** `6532d9d` (+ this) · **Branch:** main throughout
