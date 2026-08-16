@@ -678,6 +678,21 @@ const ESPN_SUMMARY_HEADERS = {
 // League segment accepts letters + digits + dots so soccer slugs work
 // (fifa.world, usa.1, eng.1, esp.1, etc.). MLB/NBA/NHL slugs are single
 // letters and still match.
+// ── ESPN standings proxy (CC-CMD follow-up to the NFL standings dropdown) ────
+// The BROWSER cannot read these directly: site.api.espn.com answers a
+// browser-origin request for /standings with HTTP 200 and an ERROR BODY
+// ({error, cached}, zero entries) — verified 2026-08-16 in-page against the live
+// client across FIVE url variants (v2 bare/params, site/v2 bare/params, level=1);
+// all five failed identically while the same urls return real standings from a
+// node runner. Artifact: jubilant-bassoon
+// outbox/nfl-standings-manifest-2026-08-16T03-28-28-978Z.json (workingVariant:null).
+// The fix is server-side Origin injection, exactly as /espn-summary already does.
+const ESPN_STANDINGS_PROXY_BASE = 'https://site.api.espn.com/apis/v2/sports';
+const ESPN_STANDINGS_PROXY_TTL  = 900;   // standings move slowly; 15 min edge cache
+function espnStandingsAllowed(path) {
+    return /^\/[a-z]+\/[a-z0-9.-]+\/standings$/.test(path.split('?')[0]);
+}
+
 function espnSummaryAllowed(path) {
     return /^\/sports\/[a-z]+\/[a-z0-9.]+\/summary$/.test(path.split('?')[0]);
 }
@@ -13941,6 +13956,20 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 return new Response('ESPN Summary path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-summary-path-not-whitelisted', ...CORS } });
             const targetUrl = `${ESPN_SUMMARY_BASE}${cleanPath}${url.search || ''}`;
             return relayFetch(targetUrl, ESPN_SUMMARY_HEADERS, ESPN_SUMMARY_TTL, 'espn-summary', ctx);
+        }
+
+        // /espn-standings/{sport}/{league}/standings → site.api.espn.com/apis/v2/sports
+        // Serves the client's standings dropdown, which cannot fetch ESPN directly
+        // (see ESPN_STANDINGS_PROXY_BASE above). Same Origin-injection headers as
+        // /espn-summary. Response shape is ESPN's verbatim — children[] of
+        // conference groups, each with standings.entries[] — so the client parser
+        // is unchanged (Rule 60: relay owns the contract, passthrough not reshape).
+        if (pathname.startsWith('/espn-standings')) {
+            const cleanPath = pathname.replace(/^\/espn-standings/, '') || '/';
+            if (!espnStandingsAllowed(cleanPath))
+                return new Response('ESPN standings path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'espn-standings-path-not-whitelisted', ...CORS } });
+            const targetUrl = `${ESPN_STANDINGS_PROXY_BASE}${cleanPath}${url.search || ''}`;
+            return relayFetch(targetUrl, ESPN_SUMMARY_HEADERS, ESPN_STANDINGS_PROXY_TTL, 'espn-standings', ctx);
         }
 
         // /field/data/today — FIELD overlay data layer (matchupNotes, series records, MLB overrides)
