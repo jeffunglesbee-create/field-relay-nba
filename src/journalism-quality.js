@@ -354,6 +354,34 @@ export function hasCrossSportHallucination(text) {
 //
 // Ceiling breakdown: 150(base) + 45(arc) + 25(ctx=N/A→0) + 20(temporal) +
 //                    30(voice) + 30(matchup=N/A→0) = 245 without game context
+//
+// ── The two scales, DERIVED (CC-CMD-2026-08-15-quality-bar-scale ask 3) ─────
+// The breakdown above used to live only in that comment, so 245 was a number
+// a reader had to trust and a maintainer had to remember to update. Summing the
+// caps actually in play makes it move on its own when a dimension is added,
+// disabled, or starts returning N/A.
+//
+// Why both numbers must be reported together (asks 1 and 2): 55 of the 300
+// points are unreachable BY CONSTRUCTION in this runtime — Dim 7 (context) and
+// Dim 10 (matchup) have no game object to score against and return N/A→0. So a
+// flat 240 bar is 80% of the nominal rubric but 97.96% of what a brief here can
+// actually earn, and "below_240_pct: 100" reads as an editorial catastrophe when
+// it is an arithmetic certainty. Four-fifths of the REACHABLE scale is 196.
+export const SCALE = {
+  // Dim 1-5, applied in `base` (mirrors the local W in scoreProse)
+  spec: 30, statDepth: 38, variety: 30, density: 16, fresh: 36,
+  // Dim 6-10
+  arc: 45, ctx: 25, temporal: 20, voice: 30, matchup: 30,
+};
+// Dimensions with no input in the Worker runtime (no game object).
+export const UNREACHABLE_DIMS = ['ctx', 'matchup'];
+export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 300
+export const REACHABLE_CEILING = Object.entries(SCALE)                                // 245
+  .filter(([k]) => !UNREACHABLE_DIMS.includes(k))
+  .reduce((a, [, v]) => a + v, 0);
+// Four-fifths OF THE REACHABLE SCALE — the bar stated on the scale it is applied
+// to, rather than a constant carried over from a total this runtime cannot reach.
+export const FOUR_FIFTHS_REACHABLE = Math.round(REACHABLE_CEILING * 0.8);             // 196
 const _STOP_WORDS_RE = /^(their|about|would|could|which|should|after|before|against|during|while|other|first|since|still|being|where|these|those|there|every|until|under|again|from|with|this|that|have|will|they|been|were|what|when|into|than|then|also|each|over|more|most|such|both|some|only|very|just|like|well|even|back|game|team|play|year|time|week)$/i;
 
 async function _datamuseFreshness(words) {
@@ -526,7 +554,12 @@ export async function scoreProse(text, opts = {}) {
   // Dim 5: Freshness via Datamuse (0→36)
   const freshness = await _datamuseFreshness(words);
 
-  const W = { spec:30, statDepth:38, variety:30, density:16, fresh:36 };
+  // Derived from the single SCALE table above — same numbers, one source. Two
+  // parallel copies would drift, which is the failure ask 3 of
+  // CC-CMD-2026-08-15-quality-bar-scale exists to prevent: a ceiling that no
+  // longer matches the weights actually in play.
+  const W = { spec: SCALE.spec, statDepth: SCALE.statDepth, variety: SCALE.variety,
+              density: SCALE.density, fresh: SCALE.fresh };
   const base = Math.round(
     specificity * W.spec +
     statDepth   * W.statDepth +

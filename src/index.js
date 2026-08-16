@@ -71,6 +71,13 @@ import {
   SCORING_ERAS,
   eraForDate,
   CURRENT_SCORING_ERA,
+  // Derived scale — see the SCALE table in journalism-quality.js. Imported so
+  // /quality/report reports the ceiling it is measuring against instead of
+  // leaving 240 as a bare number readers must interpret.
+  NOMINAL_TOTAL,
+  REACHABLE_CEILING,
+  UNREACHABLE_DIMS,
+  FOUR_FIFTHS_REACHABLE,
 } from './journalism-quality.js';
 
 // ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
@@ -12711,7 +12718,13 @@ export default {
                        MIN(quality_score) as min_score,
                        MAX(quality_score) as max_score,
                        SUM(CASE WHEN quality_score < 240 THEN 1 ELSE 0 END) as below_240,
-                       SUM(CASE WHEN quality_score >= 240 THEN 1 ELSE 0 END) as above_240
+                       SUM(CASE WHEN quality_score >= 240 THEN 1 ELSE 0 END) as above_240,
+                       -- Four-fifths of the REACHABLE 245 ceiling. The CC-CMD that
+                       -- asked for this called the count "the one thing worth
+                       -- running D1 for" — but this GROUP BY is already that D1
+                       -- query, so it becomes a standing field instead of a
+                       -- one-off run that goes stale the next day.
+                       SUM(CASE WHEN quality_score >= 196 THEN 1 ELSE 0 END) as cleared_196
                 FROM briefs WHERE date >= ?
                 GROUP BY brief_type, sport
                 ORDER BY avg_score ASC NULLS LAST
@@ -12908,6 +12921,27 @@ export default {
             return new Response(JSON.stringify({
                 ok: true, days, since, summary, alerts,
                 alert_count: alerts.length,
+                // ── The scale these counts are measured against ──────────────
+                // CC-CMD-2026-08-15-quality-bar-scale asks 1 + 2. `below_240` and
+                // `above_240` were reported as bare numbers, so a reader had no way
+                // to know 240 is 80% of the nominal rubric but 97.96% of what this
+                // runtime can actually produce: Dims 7 (context) and 10 (matchup)
+                // have no game object here and return N/A→0, making 55 of the 300
+                // points unreachable BY CONSTRUCTION. `below_240` near 100% is then
+                // an arithmetic certainty, not an editorial verdict.
+                // Emitted alongside rather than renaming the existing fields —
+                // renaming would break every current consumer of this endpoint.
+                // Values are DERIVED from the dimension caps (ask 3), not hardcoded.
+                quality_scale: {
+                    nominal_total: NOMINAL_TOTAL,
+                    reachable_ceiling: REACHABLE_CEILING,
+                    unreachable_dims: UNREACHABLE_DIMS,
+                    unreachable_points: NOMINAL_TOTAL - REACHABLE_CEILING,
+                    flat_bar: 240,
+                    flat_bar_pct_of_nominal: Math.round(240 / NOMINAL_TOTAL * 10000) / 100,
+                    flat_bar_pct_of_reachable: Math.round(240 / REACHABLE_CEILING * 10000) / 100,
+                    four_fifths_of_reachable: FOUR_FIFTHS_REACHABLE,
+                },
                 // Same-response baseline — see alertsLegacyPredicate above.
                 alert_count_legacy_predicate: alertsLegacyPredicate.length,
                 alerts_legacy_predicate: alertsLegacyPredicate,
