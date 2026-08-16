@@ -687,7 +687,15 @@ const ESPN_SUMMARY_HEADERS = {
 // node runner. Artifact: jubilant-bassoon
 // outbox/nfl-standings-manifest-2026-08-16T03-28-28-978Z.json (workingVariant:null).
 // The fix is server-side Origin injection, exactly as /espn-summary already does.
-const ESPN_STANDINGS_PROXY_BASE = 'https://site.api.espn.com/apis/v2/sports';
+// HOST MATTERS: site.api.espn.com is Akamai-blocked for Cloudflare Worker IPs
+// (403 "Access Denied", verified 2026-08-16 via html_probe from the Worker IP),
+// while site.web.api.espn.com — the same host /espn-summary already uses — serves
+// the identical standings payload with HTTP 200. Three different callers get three
+// different answers from site.api: browser 200+error-body, Worker 403, GH runner
+// 200+data. site.web.api is the one that works from here.
+// Requires params: ?region=us&lang=en&contentorigin=espn&type=0&level=2&sort=playoffseed:asc
+// level=2 yields children[] = AFC/NFC, which is the shape the client parser expects.
+const ESPN_STANDINGS_PROXY_BASE = 'https://site.web.api.espn.com/apis/v2/sports';
 const ESPN_STANDINGS_PROXY_TTL  = 900;   // standings move slowly; 15 min edge cache
 function espnStandingsAllowed(path) {
     return /^\/[a-z]+\/[a-z0-9.-]+\/standings$/.test(path.split('?')[0]);
