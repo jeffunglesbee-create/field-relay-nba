@@ -1,0 +1,315 @@
+{
+  "ts": "2026-08-17T09:44:16.500Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "days": 30,
+  "httpStatus": 200,
+  "alertCount": 20,
+  "alerts": [
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA TOUR",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 119.2,
+      "failure_pct": 100,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "slate",
+      "sport": "all",
+      "alert": "high_failure_rate",
+      "threshold": 123,
+      "threshold_source": "brief_type_p25(n=6,era3)",
+      "avg_score": 132.2,
+      "failure_pct": 20,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA Tour",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 135.5,
+      "failure_pct": 100,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "pga tour",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 162,
+      "threshold_source": "brief_type_p25(n=34,era3)",
+      "avg_score": 135.5,
+      "failure_pct": 100,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 135,
+      "threshold_source": "brief_type_p25(n=33,era3)",
+      "avg_score": 136,
+      "failure_pct": 47,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "FIFA World Cup",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 145,
+      "threshold_source": "brief_type_p25(n=9,era3)",
+      "avg_score": 140,
+      "failure_pct": 75,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Baseball (MLB)",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 145,
+      "threshold_source": "brief_type_p25(n=9,era3)",
+      "avg_score": 140.1,
+      "failure_pct": 65,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL Cup",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 145,
+      "threshold_source": "brief_type_p25(n=9,era3)",
+      "avg_score": 141.3,
+      "failure_pct": 63,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLS Soccer",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 145,
+      "threshold_source": "brief_type_p25(n=9,era3)",
+      "avg_score": 142.9,
+      "failure_pct": 58,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Australian Football (AFL)",
+      "alert": "high_failure_rate",
+      "threshold": 145,
+      "threshold_source": "brief_type_p25(n=9,era3)",
+      "avg_score": 145,
+      "failure_pct": 40,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_brief",
+      "sport": "MLS",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 146,
+      "threshold_source": "brief_type_p25(n=32,mixed_eras)",
+      "avg_score": 145.9,
+      "failure_pct": 36,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "mls",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 162,
+      "threshold_source": "brief_type_p25(n=34,era3)",
+      "avg_score": 161.7,
+      "failure_pct": 53,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "wnba",
+      "alert": "high_failure_rate",
+      "threshold": 162,
+      "threshold_source": "brief_type_p25(n=34,era3)",
+      "avg_score": 163.3,
+      "failure_pct": 40,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "mlb",
+      "alert": "high_failure_rate",
+      "threshold": 162,
+      "threshold_source": "brief_type_p25(n=34,era3)",
+      "avg_score": 164.4,
+      "failure_pct": 40,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 166.2,
+      "failure_pct": 41,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "alert": "high_failure_rate",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 167.2,
+      "failure_pct": 42,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "nfl",
+      "alert": "high_failure_rate",
+      "threshold": 162,
+      "threshold_source": "brief_type_p25(n=34,era3)",
+      "avg_score": 172,
+      "failure_pct": 40,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "WNBA",
+      "alert": "high_failure_rate",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 173.2,
+      "failure_pct": 27,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "NFL",
+      "alert": "high_failure_rate",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 176.9,
+      "failure_pct": 25,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Cup",
+      "alert": "high_failure_rate",
+      "threshold": 163,
+      "threshold_source": "brief_type_p25(n=82,era3)",
+      "avg_score": 177.7,
+      "failure_pct": 26,
+      "below_flat_240_pct": 100
+    }
+  ],
+  "selfContradictory": [],
+  "stillUsingFlat240": 17,
+  "alertCountLegacyPredicate": 25,
+  "legacyBaselinePresent": true,
+  "calibration": [
+    {
+      "brief_type": "epl_match",
+      "p25": 104,
+      "count": 16,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 52
+    },
+    {
+      "brief_type": "game_brief",
+      "p25": 146,
+      "count": 32,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 32
+    },
+    {
+      "brief_type": "game_recap",
+      "p25": 163,
+      "count": 82,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 597
+    },
+    {
+      "brief_type": "mlb_game",
+      "p25": 135,
+      "count": 33,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 289
+    },
+    {
+      "brief_type": "narrative_context",
+      "p25": 135,
+      "count": 12,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 12
+    },
+    {
+      "brief_type": "night_owl",
+      "p25": 145,
+      "count": 9,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 154
+    },
+    {
+      "brief_type": "pre_game",
+      "p25": 162,
+      "count": 34,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 144
+    },
+    {
+      "brief_type": "slate",
+      "p25": 123,
+      "count": 6,
+      "era_scoped": true,
+      "era": 3,
+      "window_count": 59
+    }
+  ],
+  "eraScopedCount": 6,
+  "mixedEraCount": 2,
+  "thresholdSources": [
+    "brief_type_p25(n=82,era3)",
+    "brief_type_p25(n=6,era3)",
+    "brief_type_p25(n=34,era3)",
+    "brief_type_p25(n=33,era3)",
+    "brief_type_p25(n=9,era3)",
+    "brief_type_p25(n=32,mixed_eras)"
+  ],
+  "scoringEras": [
+    {
+      "era": 2,
+      "from": "2026-07-16T01:36:49Z",
+      "deploy": "6aed3bb",
+      "change": "Dim 1 redefined per-sentence; Dim 4 clamped to [0,1] (was unbounded)",
+      "measuredEffect": "mlb_game stored mean 203.2 -> 135.4 (n=325 pre / 267 post); rescored delta +0.9",
+      "recordedRetroactively": true
+    },
+    {
+      "era": 3,
+      "from": "2026-08-13T03:20:00Z",
+      "deploy": "CC-CMD-2026-08-13-jq-density-unit-fix",
+      "change": "Dim 4 ratio unit: (properNouns+numbers)/sent -> numbers/sent, matching the FIELD_PROSE_STYLE rule it cites",
+      "measuredEffect": "Dim 4 floored 91.2% -> 7.9% of briefs; mean contribution 0.35 -> 9.89 of 16 pts (n=592)",
+      "recordedRetroactively": false
+    }
+  ],
+  "windowStraddlesEra": [
+    {
+      "era": 3,
+      "from": "2026-08-13T03:20:00Z",
+      "deploy": "CC-CMD-2026-08-13-jq-density-unit-fix"
+    }
+  ],
+  "era3Recorded": true
+}
