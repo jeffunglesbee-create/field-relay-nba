@@ -44,15 +44,26 @@ value; (B) every `espnLeague`-routed soccer `V2_LEAGUES` key has a `LEAGUES` row
 except allowlisted `eflchamp`/`eflone`/`efltwo`. Both negative-tested — they fail
 by name, and (A)'s test uses exactly the label the CC-CMD proposed.
 
-**Integration status:** relay deploy **VERIFIED** (run on `07b987e`, success
-13:09Z). Archive rows **PENDING** the first live-hours journalism tick after
-deploy — the pre-game seed writes on any tick in UTC 10–02, and today carries
-real fixtures in both Europa and Conference qualifying (Anderlecht at Kairat
-Almaty 15:00Z; F.C. København at Inter Turku 16:00Z). Done-condition probe:
-`/context/date/2026-08-20` must list a `games.regular` row whose `sport` starts
-with `UEFA`. **NOT YET OBSERVED at 13:35Z** — either no post-deploy seed tick had
-run, or the route's `max-age=300` cache was serving a pre-deploy body. Recorded
-unverified rather than assumed good.
+**Integration status: VERIFIED end to end.** Deploy succeeded on `07b987e`
+(13:09Z). Archive confirmed by CI-as-proxy probe (`uefa-archive-probe.yml` +
+`scripts/probe-uefa-archive.mjs`, `d5a1002`) — a runner POSTs `/d1/execute`,
+which binds `ARCHIVE_DB` and allows `regular_season_games`. Manifest
+`outbox/uefa-archive-probe-manifest-20260820T131905Z.json`: `landed: true`,
+**43 UEFA rows, 36 dated today** (Conference qual 24, Europa qual 12, UCL qual 4),
+real fixtures (Shamrock v KuPS at Tallaght; Getafe v Partizan; Braga v Vienna).
+
+The earlier `count: 0` readings were the briefs-table trap, not a missing write
+path. `query_ok` is separate from `landed` in the manifest so a broken probe can
+never be misread as an empty archive.
+
+**Open, low priority — one legacy label variant.** The probe's second run found
+exactly one row outside the six declared labels:
+`2026-05-27-conference-crystalpalace-rayovallecano`, `sport: 'UEFA Conference
+League'`, `created_at 2026-07-05`. Its id shape matches the early-July hand-seeded
+schedule import, not any live writer, and the count is static at 1. WC26
+label-fragmentation class (each variant is its own archive id namespace). Fix is a
+one-row UPDATE to `UEFA Europa Conference League`; left undone because it mutates
+live D1 outside this CC-CMD's scope. The probe keeps it visible.
 
 ---
 

@@ -173,12 +173,31 @@ also the leading segment of the archive id, so each variant is a separate id
 namespace for what is one competition.
 
 **The static guard cannot catch this** — `check-leagues-label-contract.mjs`
-compares source tables, and these rows are already in D1. `0ed29fb` extends the
-probe with `nonconforming_rows` / `nonconforming_count` (id, sport, date, teams,
-`created_at`) so the origin is identifiable rather than inferred. Cleanup is
-deliberately NOT done here: it is a data migration over live rows, a different
-concern from this CC-CMD, and it needs the origin path identified first so the
-writer is fixed rather than just the rows.
+compares source tables, and these rows are already in D1. `0ed29fb` extended the
+probe with `nonconforming_rows` / `nonconforming_count`, and the second run
+(`outbox/uefa-archive-probe-manifest-20260820T132044Z.json`) identified it
+exactly — **one row, and it is benign**:
+
+```
+id:         2026-05-27-conference-crystalpalace-rayovallecano
+sport:      UEFA Conference League
+date:       2026-05-27   (Crystal Palace v Rayo Vallecano)
+created_at: 2026-07-05
+```
+
+Its id uses the lowercase-slug form `{date}-{comp}-{home}-{away}`, not the cron
+seed's `{sport}_{date}_{home}_{away}`. That is the same shape as the MLS rows in
+`/context/date` (`2026-08-20-mls-van-hou`, `created_at 2026-07-06`), so this came
+from the early-July hand-seeded schedule import, not from any live writer. **No
+writer is emitting this label today** — `nonconforming_count` is 1 and static,
+and the fix's own 36 rows all carry declared labels.
+
+Remediation, NOT done here and deliberately so: a single
+`UPDATE regular_season_games SET sport = 'UEFA Europa Conference League' WHERE id =
+'2026-05-27-conference-crystalpalace-rayovallecano'`. It is a mutation of live D1
+data for a match played in May, outside this CC-CMD's scope, and the probe now
+makes the row permanently visible rather than silently fragmenting. Worth a
+one-line CC-CMD; not worth an unrequested write.
 
 ## For the laboratory
 
