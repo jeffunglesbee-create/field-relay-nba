@@ -83,6 +83,16 @@ jobs:
         continue-on-error: true
         run: node scripts/check-route-shadowing.mjs src/index.js
 
+      # Static, pre-deploy, and deliberately BLOCKING (no continue-on-error).
+      # The "Soccer league label contract check" further down is a live check
+      # against /v2/games -- it verified V2_LEAGUES <-> SOCCER_LEAGUE_LABELS and
+      # passed happily for months while the UEFA competitions were never
+      # archived at all, because nothing checked the third table (LEAGUES) that
+      # actually drives archive writes. This closes that gap before deploy
+      # rather than after. See CC-CMD-2026-08-20-uefa-club-competitions.
+      - name: Soccer three-table contract — LEAGUES vs SOCCER_LEAGUE_LABELS vs V2_LEAGUES
+        run: node scripts/check-leagues-label-contract.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
