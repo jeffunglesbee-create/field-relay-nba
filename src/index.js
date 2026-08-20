@@ -7516,6 +7516,36 @@ async function handleJournalismCycle(env, opts = {}) {
     // across two id namespaces.
     {sport:'soccer',    league:'eng.league_cup', label:'EFL Cup'},
     {sport:'soccer',    league:'eng.trophy',   label:'EFL Trophy'},
+    // UEFA club competitions -- CC-CMD-2026-08-20-uefa-club-competitions.
+    // These were already in V2_LEAGUES (slugs + BSD lids) and already had
+    // SOCCER_LEAGUE_LABELS entries, so /v2/games?sport=ucl already worked on
+    // demand. What was missing is exactly this table: LEAGUES is what the
+    // journalism cron fetches and archive-writes, and /context/date reads ONLY
+    // ARCHIVE_DB. Config without a LEAGUES row means the competition is
+    // reachable but never persisted -- which is why /archive/query?sport=
+    // 'UEFA Champions League' returned count 0 while the config looked correct.
+    //
+    // Labels are copied VERBATIM from SOCCER_LEAGUE_LABELS and must stay that
+    // way, for the reason already documented on the EFL Cup row above: the
+    // archive-write sites send `sport: gm.league`, so this label both lands in
+    // the archive `sport` column and forms the archive id prefix. A drifting
+    // label splits one competition across two id namespaces.
+    //
+    // The qualifying slugs are included deliberately, not as extra scope.
+    // Probed 2026-08-20 via CF-Worker egress against site.web.api:
+    //   uefa.champions?dates=20260819      -> events: [] (season still 2025-26, type Final)
+    //   uefa.champions_qual?dates=20260819 -> real fixtures (LASK Linz at Celtic, FT, Playoff Round)
+    // The CC-CMD's own cited observation date is a QUALIFYING matchday. Adding
+    // only the three main slugs would have satisfied the ask as written and
+    // still rendered zero games on the very date that motivated it. UEFA's
+    // Jul-Aug qualifying and Aug-May main draw are one competition to a viewer
+    // and two slugs to ESPN; covering only half is a fallback, not a fix.
+    {sport:'soccer',    league:'uefa.champions',        label:'UEFA Champions League'},
+    {sport:'soccer',    league:'uefa.europa',           label:'UEFA Europa League'},
+    {sport:'soccer',    league:'uefa.europa.conf',      label:'UEFA Europa Conference League'},
+    {sport:'soccer',    league:'uefa.champions_qual',   label:'UEFA Champions League Qualifying'},
+    {sport:'soccer',    league:'uefa.europa_qual',      label:'UEFA Europa League Qualifying'},
+    {sport:'soccer',    league:'uefa.europa.conf_qual', label:'UEFA Europa Conference League Qualifying'},
     {sport:'football',  league:'nfl',        label:'NFL'},
     // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
     // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
