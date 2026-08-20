@@ -192,12 +192,51 @@ from the early-July hand-seeded schedule import, not from any live writer. **No
 writer is emitting this label today** — `nonconforming_count` is 1 and static,
 and the fix's own 36 rows all carry declared labels.
 
-Remediation, NOT done here and deliberately so: a single
-`UPDATE regular_season_games SET sport = 'UEFA Europa Conference League' WHERE id =
-'2026-05-27-conference-crystalpalace-rayovallecano'`. It is a mutation of live D1
-data for a match played in May, outside this CC-CMD's scope, and the probe now
-makes the row permanently visible rather than silently fragmenting. Worth a
-one-line CC-CMD; not worth an unrequested write.
+**Remediation: DONE** (authorised in-session). `6b0525f` adds
+`scripts/fix-uefa-label-variant.mjs` + `.github/workflows/uefa-label-fix.yml`.
+
+Because this mutates live D1, the safety is the substance:
+
+- targeted by **primary-key id**, never by label alone — a `WHERE sport = …`
+  would silently rewrite any future row sharing the string;
+- asserts the exact pre-state and refuses to write if the row is missing or
+  carries an unexpected label;
+- the `UPDATE`'s `WHERE` carries **id AND the expected current label**, so a
+  concurrent change between read and write matches zero rows rather than
+  clobbering a newer value;
+- idempotent — a re-run after success is a reported no-op, not a second write;
+- re-reads the row afterwards and fails unless it holds the target label;
+- `id` left untouched: it is a stored column, was never sport-derived on this
+  legacy row, and rewriting it would break references for no gain;
+- dry-run by default; writing requires typing `APPLY` into the dispatch input,
+  so an accidental "Run workflow" click cannot mutate production.
+
+Dry run first (`outbox/uefa-label-fix-manifest-20260820T132548Z.json`):
+`precondition_met: true`, `applied: false`, exact row confirmed.
+
+Then APPLY (`outbox/uefa-label-fix-manifest-20260820T132626Z.json`):
+```
+applied: true   rows_changed: 1   verified: true
+pre : sport 'UEFA Conference League'
+post: sport 'UEFA Europa Conference League'
+      id 2026-05-27-conference-crystalpalace-rayovallecano (unchanged)
+```
+
+**Independently confirmed by the archive probe** — a different script than the
+one that made the change (`outbox/uefa-archive-probe-manifest-20260820T132715Z.json`):
+```
+landed: true    uefa_rows_total: 43    uefa_rows_today: 36
+labels_missing: []          nonconforming_count: 0
+UEFA Europa Conference League Qualifying 24 · UEFA Europa League Qualifying 12
+UEFA Champions League Qualifying 4 · UEFA Champions League 1
+UEFA Europa Conference League 1 · UEFA Europa League 1
+```
+All six declared labels present, no variants. The games table now has exactly one
+archive id namespace per UEFA competition.
+
+A wider read-only survey in the fix manifest (`soccer_labels_after`) shows the
+remaining competition labels — `FIFA World Cup` 103, `EFL Cup` 34 — all conforming.
+No other fragmentation surfaced.
 
 ## For the laboratory
 

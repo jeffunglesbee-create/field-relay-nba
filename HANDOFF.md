@@ -56,14 +56,19 @@ The earlier `count: 0` readings were the briefs-table trap, not a missing write
 path. `query_ok` is separate from `landed` in the manifest so a broken probe can
 never be misread as an empty archive.
 
-**Open, low priority — one legacy label variant.** The probe's second run found
-exactly one row outside the six declared labels:
-`2026-05-27-conference-crystalpalace-rayovallecano`, `sport: 'UEFA Conference
-League'`, `created_at 2026-07-05`. Its id shape matches the early-July hand-seeded
-schedule import, not any live writer, and the count is static at 1. WC26
-label-fragmentation class (each variant is its own archive id namespace). Fix is a
-one-row UPDATE to `UEFA Europa Conference League`; left undone because it mutates
-live D1 outside this CC-CMD's scope. The probe keeps it visible.
+**Label fragmentation: CLOSED.** The probe found one row outside the six declared
+labels — `2026-05-27-conference-crystalpalace-rayovallecano`, `sport: 'UEFA
+Conference League'`, `created_at 2026-07-05`, from the early-July hand-seeded
+schedule import (its id uses the legacy `{date}-{comp}-{home}-{away}` slug form, not
+the cron seed's). Fixed by `6b0525f` — a dispatch-only, `APPLY`-gated, idempotent
+one-shot that targets the row by primary key, asserts pre-state, and re-reads to
+verify. Dry run then apply: `rows_changed: 1`, `verified: true`. Re-confirmed by
+the independent archive probe: `labels_missing: []`, `nonconforming_count: 0`,
+43 UEFA rows across all six declared labels.
+
+Both one-shot workflows (`uefa-archive-probe.yml`, `uefa-label-fix.yml`) are
+dispatch-only with no `schedule:` — deliberately, per the 2026-08-16 workflow
+waste audit. They are inert until fired.
 
 ---
 
