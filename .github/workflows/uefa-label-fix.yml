@@ -1,0 +1,71 @@
+name: UEFA label variant fix (one-shot)
+
+# One-shot data fix authorised in-session for
+# CC-CMD-2026-08-20-uefa-club-competitions: collapse the single stray
+# 'UEFA Conference League' row into the declared 'UEFA Europa Conference League'.
+#
+# Dispatch-only, and NO schedule: — this mutates live D1 and answers a question
+# that is permanently answered once it succeeds. A cron on a data migration
+# would re-run a write forever; see the waste audit in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+#
+# Defaults to a DRY RUN. Writing requires typing APPLY into the confirm input,
+# so an accidental "Run workflow" click cannot mutate production data.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type APPLY to actually write. Anything else = dry run.'
+        type: string
+        required: true
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uefa-label-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fix label variant
+        run: |
+          if [ "${{ inputs.confirm }}" = "APPLY" ]; then
+            echo "APPLY confirmed — writing."
+            node scripts/fix-uefa-label-variant.mjs --apply
+          else
+            echo "No APPLY confirmation given — dry run only."
+            node scripts/fix-uefa-label-variant.mjs
+          fi
+
+      - name: Commit manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/uefa-label-fix-manifest-*.json || {
+            echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: UEFA label variant fix manifest [skip ci]"
+
+          # Many concurrent writers to outbox/ in this repo; a lost race must not
+          # fail the run, but a permissions failure must. Same split as deploy.yml.
+          LOG=/tmp/label-fix-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0
