@@ -1,0 +1,77 @@
+name: UEFA archive probe
+
+# Rule 90 CI-as-proxy artifact for CC-CMD-2026-08-20-uefa-club-competitions.
+#
+# The fix (8289762) added six UEFA rows to the cron LEAGUES table so the
+# journalism cycle seeds them into ARCHIVE_DB.regular_season_games -- the only
+# table /context/date reads. That path could not be observed from the session
+# sandbox (403 on *.workers.dev; the GET self-probe cannot filter the games
+# table; /context/date is 155 KB behind a 300 s cache). A runner can POST
+# /d1/execute and count the rows.
+#
+# NO schedule: deliberately. This answers a specific one-time question. Leaving
+# a cron on it would repeat the exact waste pattern documented in
+# jubilant-bassoon outbox/cc-session-2026-08-16-scheduled-workflow-audit.md --
+# a workflow that keeps running after its question is permanently answered.
+# Fire it manually, or by pushing outbox/.trigger-uefa-probe.
+on:
+  workflow_dispatch:
+    inputs:
+      strict:
+        description: 'Fail the run if no UEFA rows are found yet'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'outbox/.trigger-uefa-probe'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uefa-archive-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe archive for UEFA rows
+        run: node scripts/probe-uefa-archive.mjs ${{ inputs.strict && '--strict' || '' }}
+
+      - name: Commit manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/uefa-archive-probe-manifest-*.json || {
+            echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then
+            echo "nothing to commit"; exit 0
+          fi
+          git commit -m "chore: UEFA archive probe manifest [skip ci]"
+
+          # This repo has many concurrent writers to outbox/ (crons, probe
+          # workflows, sessions), so a push landing between checkout and push
+          # is expected and must not fail the run. A PERMISSION failure is a
+          # real defect and must still fail loudly -- deliberately
+          # distinguished rather than blanket-swallowed with `|| true`. Same
+          # reasoning as deploy.yml's verification-note push.
+          PUSH_LOG=/tmp/uefa-probe-push.log; : > "$PUSH_LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$PUSH_LOG" 2>&1 \
+               && git push origin main >>"$PUSH_LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."
+            sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$PUSH_LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$PUSH_LOG"; then
+            echo "Push failed on PERMISSIONS, not a race."; exit 1
+          fi
+          echo "Could not push after 5 attempts (race contention). Probe result is in the log above."
+          exit 0
