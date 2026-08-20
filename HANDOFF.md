@@ -1,5 +1,56 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-20 (UEFA club competitions: archived at last)
+
+**HEAD:** `8a6d05e` → `8289762` (feat) → `07b987e` (ci) · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-20-uefa-club-competitions.md`
+**Serves:** `docs/CC-CMD-2026-08-20-uefa-club-competitions.md` (filed by field-laboratory,
+in that repo — not this one).
+
+**The ask was already half-done, and its premise was stale.** `V2_LEAGUES` has
+carried `ucl`/`europa`/`conference` with the exact slugs and BSD lids requested
+since the June 26 migration, and `SOCCER_LEAGUE_LABELS` already declared all six
+labels. Probing HEAD first (Rule 87) is what surfaced that.
+
+**Real root cause — a third table nothing guarded.** `/context/date` reads ONLY
+`ARCHIVE_DB`; the archive is written by the journalism cron iterating the
+`LEAGUES` table (~L7500), which had no UEFA row. So `/v2/games?sport=ucl` worked
+on demand while nothing was ever persisted — `/archive/query?sport=UEFA%20Champions%20League`
+returned `count: 0` against config that reads as complete. The existing live
+"Soccer league label contract check" passes either way, because an on-demand
+fetch is healthy with or without a `LEAGUES` row.
+
+**Declared labels (the laboratory's answer to ask 2)** — `sport` AND `league`
+both carry the same string:
+`UEFA Champions League` · `UEFA Europa League` · `UEFA Europa Conference League`
+· `UEFA Champions League Qualifying` · `UEFA Europa League Qualifying` ·
+`UEFA Europa Conference League Qualifying`.
+The CC-CMD's suggested labels (no `UEFA` prefix) appear nowhere in this repo and
+would have split each competition across two archive id namespaces.
+
+**Qualifying slugs included deliberately.** Probed 2026-08-20 via CF-Worker
+egress: `uefa.champions?dates=20260819` → `events: []`, while
+`uefa.champions_qual` → real fixtures. The CC-CMD's own cited observation date is
+a qualifying matchday, so the literal three-entry ask would have rendered zero
+games on the very date that motivated it. Main-draw slugs stay empty until the
+league phase opens 2026-09-16 per ESPN's calendar.
+
+**Guard added (`07b987e`):** `scripts/check-leagues-label-contract.mjs`, blocking,
+pre-deploy. (A) every soccer `LEAGUES` label is a declared `SOCCER_LEAGUE_LABELS`
+value; (B) every `espnLeague`-routed soccer `V2_LEAGUES` key has a `LEAGUES` row,
+except allowlisted `eflchamp`/`eflone`/`efltwo`. Both negative-tested — they fail
+by name, and (A)'s test uses exactly the label the CC-CMD proposed.
+
+**Integration status:** relay deploy **VERIFIED** (run on `07b987e`, success
+13:09Z). Archive rows **PENDING** the first live-hours journalism tick after
+deploy — the pre-game seed writes on any tick in UTC 10–02, and today carries
+real fixtures in both Europa and Conference qualifying (Anderlecht at Kairat
+Almaty 15:00Z; F.C. København at Inter Turku 16:00Z). Done-condition probe:
+`/archive/query?sport=UEFA%20Europa%20League%20Qualifying&limit=3` must return
+`count > 0` with `sport` exactly that string.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-16 (quality-bar scale: all 3 asks executed)
 
 **HEAD:** `665c68f` (+ this) · **Branch:** main throughout
