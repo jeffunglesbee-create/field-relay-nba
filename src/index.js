@@ -7522,8 +7522,15 @@ async function handleJournalismCycle(env, opts = {}) {
     // demand. What was missing is exactly this table: LEAGUES is what the
     // journalism cron fetches and archive-writes, and /context/date reads ONLY
     // ARCHIVE_DB. Config without a LEAGUES row means the competition is
-    // reachable but never persisted -- which is why /archive/query?sport=
-    // 'UEFA Champions League' returned count 0 while the config looked correct.
+    // reachable but never persisted -- which is why /context/date/2026-08-19
+    // listed 49 games with no Champions League among them while the config
+    // looked correct.
+    //
+    // NOTE for anyone verifying this: /archive/query?sport=... reads the
+    // BRIEFS table, not regular_season_games (see its handler comment). The
+    // CC-CMD cited count 0 from that route as evidence of missing games; it
+    // actually only proves no journalism brief exists. The games-table
+    // evidence is /context/date, and that is the route to check this against.
     //
     // Labels are copied VERBATIM from SOCCER_LEAGUE_LABELS and must stay that
     // way, for the reason already documented on the EFL Cup row above: the

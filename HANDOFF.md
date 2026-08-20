@@ -15,8 +15,11 @@ labels. Probing HEAD first (Rule 87) is what surfaced that.
 **Real root cause — a third table nothing guarded.** `/context/date` reads ONLY
 `ARCHIVE_DB`; the archive is written by the journalism cron iterating the
 `LEAGUES` table (~L7500), which had no UEFA row. So `/v2/games?sport=ucl` worked
-on demand while nothing was ever persisted — `/archive/query?sport=UEFA%20Champions%20League`
-returned `count: 0` against config that reads as complete. The existing live
+on demand while nothing was ever persisted — `/context/date/2026-08-19` listed 49
+games with no Champions League among them, against config that reads as complete.
+(Note: `/archive/query?sport=` reads the BRIEFS table, not `regular_season_games`.
+The CC-CMD cited `count: 0` from it as games evidence; it is not. Its `/context/date`
+measurements are the sound half.) The existing live
 "Soccer league label contract check" passes either way, because an on-demand
 fetch is healthy with or without a `LEAGUES` row.
 
@@ -46,8 +49,10 @@ by name, and (A)'s test uses exactly the label the CC-CMD proposed.
 deploy — the pre-game seed writes on any tick in UTC 10–02, and today carries
 real fixtures in both Europa and Conference qualifying (Anderlecht at Kairat
 Almaty 15:00Z; F.C. København at Inter Turku 16:00Z). Done-condition probe:
-`/archive/query?sport=UEFA%20Europa%20League%20Qualifying&limit=3` must return
-`count > 0` with `sport` exactly that string.
+`/context/date/2026-08-20` must list a `games.regular` row whose `sport` starts
+with `UEFA`. **NOT YET OBSERVED at 13:35Z** — either no post-deploy seed tick had
+run, or the route's `max-age=300` cache was serving a pre-deploy body. Recorded
+unverified rather than assumed good.
 
 ---
 

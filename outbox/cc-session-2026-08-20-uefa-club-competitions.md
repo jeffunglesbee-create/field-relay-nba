@@ -29,8 +29,8 @@ written by the journalism cron, which iterates a **`LEAGUES` table** inside
 
 That is the whole bug. Config was correct, labels were correct, and
 `/v2/games?sport=ucl` worked on demand — while nothing was ever persisted.
-Hence `/archive/query?sport=UEFA%20Champions%20League` → `count: 0` against
-config that reads as complete.
+Hence `/context/date/2026-08-19` listing 49 games with no Champions League among
+them, against config that reads as complete.
 
 The existing CI check ("Soccer league label contract check", deploy.yml) verifies
 `V2_LEAGUES` ↔ `SOCCER_LEAGUE_LABELS` through live `/v2/games`. An on-demand
@@ -102,20 +102,39 @@ label drifted to 'Europa League' -> FAIL: LEAGUES row 'uefa.europa' has label 'E
 ```
 (The A test uses precisely the label the CC-CMD suggested. The guard rejects it.)
 
-## Done condition (Rule 90 artifact)
+## Done condition (Rule 90 artifact) — CORRECTED
 
-The cron archives the current date going forward; it does **not** backfill, so
-`/context/date/2026-08-19` will not retroactively populate. The check is against
-today, after a journalism cycle (`*/15`) has run post-deploy:
+**A correction to my own first draft of this doc.** I originally specified
+`/archive/query?sport=UEFA%20Europa%20League%20Qualifying` as the done-condition
+probe. That route reads the **briefs** table, not `regular_season_games` (see its
+handler comment at `src/index.js:11617`). It returns journalism prose. A `count: 0`
+there proves no brief was written — it says nothing about whether a game row exists.
+
+**The CC-CMD's evidence has the same flaw.** Its `/archive/query?sport=Champions%20League`
+/ `…=UEFA%20Champions%20League` / `…=Europa%20League` → `count: 0` findings do not
+demonstrate missing game rows. Its `/context/date` measurements do, and those are
+sound — which is why the root cause and the fix are unaffected.
+
+The correct probe reads the games table:
 
 ```
-curl -s "$RELAY/archive/query?sport=UEFA%20Europa%20League%20Qualifying&limit=3" \
- | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));
-   console.assert(d.count>0,"no rows"); console.log("PASS",d.count,d.results?.[0]?.sport);'
+curl -s "$RELAY/context/date/2026-08-20" | node -e '
+  const d=JSON.parse(require("fs").readFileSync(0,"utf8"));
+  const u=d.games.regular.filter(g=>String(g.sport).startsWith("UEFA"));
+  console.assert(u.length>0,"no UEFA rows");
+  console.log("PASS",u.length,[...new Set(u.map(g=>g.sport))]);'
 ```
-Must return `count > 0` with `sport` exactly `UEFA Europa League Qualifying`
-(NOT `Europa League`, NOT `soccer`). Today's expected rows: Anderlecht at Kairat
-Almaty, F.C. København at FC Inter Turku.
+Must list at least one row whose `sport` starts with `UEFA` — expected today:
+Anderlecht at Kairat Almaty, F.C. København at FC Inter Turku. Note the route
+sets `Cache-Control: public,max-age=300`, so allow for a stale read.
+
+**Status at session close: NOT YET OBSERVED.** Deploy succeeded on `07b987e`
+(13:09Z) and the pre-game seed runs on any live-hours tick (UTC 10–02), but no
+UEFA row had appeared by 13:35Z. Two candidate explanations, neither eliminated:
+the seed had not yet run a post-deploy tick, or the 5-minute cache was serving a
+pre-deploy body (`bodyBytes` was byte-identical, 155,610, across two reads
+~15 min apart, which is consistent with a cached response). This is recorded as
+unverified rather than assumed-good — the code path is argued, not proven.
 
 ## For the laboratory
 
