@@ -69,6 +69,8 @@ const manifest = {
     labels_present: [],
     labels_missing: null,
     sample: [],
+    nonconforming_rows: [],
+    nonconforming_count: null,
     // Distinguishes "the archive genuinely has none" from "the probe broke".
     // A null count with query_ok:false is NOT evidence about the archive.
     error: null,
@@ -91,6 +93,21 @@ try {
          FROM regular_season_games WHERE sport LIKE 'UEFA%'
          ORDER BY date DESC LIMIT 5`);
 
+    // Rows whose label is UEFA-ish but is NOT one of the six declared strings.
+    // Added after the first run found "UEFA Conference League" (1 row) alongside
+    // the declared "UEFA Europa Conference League" -- a seventh variant that the
+    // static three-table guard cannot see, because it is written by some path
+    // other than the cron LEAGUES table. This is the WC26 label-fragmentation
+    // class (12 variants under briefs.sport), and the archive `sport` string is
+    // also the id prefix, so each variant is its own id namespace.
+    const nonconforming = await d1(
+        `SELECT id, sport, date, home, away, created_at
+         FROM regular_season_games
+         WHERE sport LIKE 'UEFA%' AND sport NOT IN (?,?,?,?,?,?)
+         ORDER BY date DESC LIMIT 20`, EXPECTED);
+
+    manifest.nonconforming_rows = nonconforming;
+    manifest.nonconforming_count = nonconforming.length;
     manifest.query_ok = true;
     manifest.uefa_rows_total = total[0]?.n ?? 0;
     manifest.uefa_rows_today = todayRows[0]?.n ?? 0;
@@ -112,6 +129,13 @@ console.log(`\nwrote ${out}`);
 if (!manifest.query_ok) {
     console.error('PROBE FAILED — the query did not run. This says nothing about the archive.');
     process.exit(1);
+}
+if (manifest.nonconforming_count > 0) {
+    console.log(`\nNOTE: ${manifest.nonconforming_count} row(s) carry a UEFA label that is `
+              + `NOT one of the six declared strings: `
+              + `${[...new Set(manifest.nonconforming_rows.map(r => r.sport))].join(', ')}`);
+    console.log('Each variant is its own archive id namespace. Not written by the cron '
+              + 'LEAGUES table -- see nonconforming_rows[].created_at for origin.');
 }
 if (manifest.landed) {
     console.log(`PASS: ${manifest.uefa_rows_total} UEFA row(s) archived `
