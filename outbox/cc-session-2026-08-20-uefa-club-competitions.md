@@ -144,11 +144,16 @@ holds and is still the right order — this doc just supplies the labels the
 sentinel will see, so the modelling can be written against a declared contract
 rather than a guess.
 
-Register the follow-up probe against
-`/archive/query?sport=UEFA%20Europa%20League%20Qualifying` (a competition with
-fixtures *today*), not against `Champions League` — the main-draw slugs stay
-empty until the league phase begins 2026-09-16 per ESPN's own calendar, so a
-`landed` predicate keyed on them would read as failed for a month.
+Register the follow-up probe against **`/context/date/<date>`** filtered on
+`sport` starting with `UEFA` — NOT against `/archive/query?sport=…`, which reads
+the briefs table and would report `landed: false` forever even once games are
+archived. The CC-CMD proposed the archive-query form; that is the one thing in it
+to change.
+
+Key the probe on a **qualifying** label (`UEFA Europa League Qualifying` has
+fixtures today), not on `Champions League` — the main-draw slugs stay empty until
+the league phase opens 2026-09-16 per ESPN's own calendar, so a `landed`
+predicate keyed on them reads as failed for a month.
 
 ## Not touched (Rule 69)
 
