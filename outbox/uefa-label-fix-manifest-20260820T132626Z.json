@@ -1,0 +1,64 @@
+{
+  "ran_at": "2026-08-20T13:26:26.384Z",
+  "mode": "apply",
+  "target_id": "2026-05-27-conference-crystalpalace-rayovallecano",
+  "from_label": "UEFA Conference League",
+  "to_label": "UEFA Europa Conference League",
+  "query_ok": true,
+  "pre_state": {
+    "id": "2026-05-27-conference-crystalpalace-rayovallecano",
+    "sport": "UEFA Conference League",
+    "date": "2026-05-27",
+    "home": "Crystal Palace",
+    "away": "Rayo Vallecano",
+    "created_at": "2026-07-05"
+  },
+  "precondition_met": true,
+  "already_correct": false,
+  "applied": true,
+  "post_state": {
+    "id": "2026-05-27-conference-crystalpalace-rayovallecano",
+    "sport": "UEFA Europa Conference League",
+    "date": "2026-05-27",
+    "home": "Crystal Palace",
+    "away": "Rayo Vallecano",
+    "created_at": "2026-07-05"
+  },
+  "verified": true,
+  "soccer_labels_after": [
+    {
+      "sport": "FIFA World Cup",
+      "rows": 103
+    },
+    {
+      "sport": "EFL Cup",
+      "rows": 34
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "rows": 24
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "rows": 12
+    },
+    {
+      "sport": "UEFA Champions League Qualifying",
+      "rows": 4
+    },
+    {
+      "sport": "UEFA Champions League",
+      "rows": 1
+    },
+    {
+      "sport": "UEFA Europa Conference League",
+      "rows": 1
+    },
+    {
+      "sport": "UEFA Europa League",
+      "rows": 1
+    }
+  ],
+  "error": null,
+  "rows_changed": 1
+}
