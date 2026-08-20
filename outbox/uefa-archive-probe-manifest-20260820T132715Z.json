@@ -1,0 +1,93 @@
+{
+  "probed_at": "2026-08-20T13:27:15.902Z",
+  "date_probed": "2026-08-20",
+  "expected_labels": [
+    "UEFA Champions League",
+    "UEFA Europa League",
+    "UEFA Europa Conference League",
+    "UEFA Champions League Qualifying",
+    "UEFA Europa League Qualifying",
+    "UEFA Europa Conference League Qualifying"
+  ],
+  "query_ok": true,
+  "landed": true,
+  "uefa_rows_total": 43,
+  "uefa_rows_today": 36,
+  "labels_present": [
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "rows": 24
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "rows": 12
+    },
+    {
+      "sport": "UEFA Champions League Qualifying",
+      "rows": 4
+    },
+    {
+      "sport": "UEFA Champions League",
+      "rows": 1
+    },
+    {
+      "sport": "UEFA Europa Conference League",
+      "rows": 1
+    },
+    {
+      "sport": "UEFA Europa League",
+      "rows": 1
+    }
+  ],
+  "labels_missing": [],
+  "sample": [
+    {
+      "id": "UEFA Europa Conference League Qualifying_2026-08-20_shamrock_kupskuopio",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "date": "2026-08-20",
+      "home": "Shamrock",
+      "away": "KuPS Kuopio",
+      "venue": "Tallaght Stadium",
+      "start_time": "2026-08-20T19:00Z"
+    },
+    {
+      "id": "UEFA Europa Conference League Qualifying_2026-08-20_hajduksplit_rakw",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "date": "2026-08-20",
+      "home": "Hajduk Split",
+      "away": "Raków",
+      "venue": "Stadion Poljud",
+      "start_time": "2026-08-20T19:00Z"
+    },
+    {
+      "id": "UEFA Europa Conference League Qualifying_2026-08-20_getafe_fkpartizan",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "date": "2026-08-20",
+      "home": "Getafe",
+      "away": "FK Partizan",
+      "venue": "Estadio Coliseum",
+      "start_time": "2026-08-20T19:00Z"
+    },
+    {
+      "id": "UEFA Europa Conference League Qualifying_2026-08-20_dinamocity_pafos",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "date": "2026-08-20",
+      "home": "Dinamo City",
+      "away": "Pafos",
+      "venue": "Elbasan Arena",
+      "start_time": "2026-08-20T19:00Z"
+    },
+    {
+      "id": "UEFA Europa Conference League Qualifying_2026-08-20_braga_vienna",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "date": "2026-08-20",
+      "home": "Braga",
+      "away": "Vienna",
+      "venue": "Estádio Municipal de Braga",
+      "start_time": "2026-08-20T19:00Z"
+    }
+  ],
+  "nonconforming_rows": [],
+  "nonconforming_count": 0,
+  "error": null
+}
