@@ -128,13 +128,57 @@ Must list at least one row whose `sport` starts with `UEFA` — expected today:
 Anderlecht at Kairat Almaty, F.C. København at FC Inter Turku. Note the route
 sets `Cache-Control: public,max-age=300`, so allow for a stale read.
 
-**Status at session close: NOT YET OBSERVED.** Deploy succeeded on `07b987e`
-(13:09Z) and the pre-game seed runs on any live-hours tick (UTC 10–02), but no
-UEFA row had appeared by 13:35Z. Two candidate explanations, neither eliminated:
-the seed had not yet run a post-deploy tick, or the 5-minute cache was serving a
-pre-deploy body (`bodyBytes` was byte-identical, 155,610, across two reads
-~15 min apart, which is consistent with a cached response). This is recorded as
-unverified rather than assumed-good — the code path is argued, not proven.
+**Status: VERIFIED.** Closed by a CI-as-proxy probe
+(`.github/workflows/uefa-archive-probe.yml` + `scripts/probe-uefa-archive.mjs`,
+commit `d5a1002`), because a GitHub runner can POST `/d1/execute` and count the
+rows directly — the route binds `env.ARCHIVE_DB` and `regular_season_games` is in
+its `ALLOWED_TABLES`. Committed manifest
+`outbox/uefa-archive-probe-manifest-20260820T131905Z.json`:
+
+```
+query_ok: true      landed: true
+uefa_rows_total: 43   uefa_rows_today: 36   (date_probed 2026-08-20)
+UEFA Europa Conference League Qualifying  24
+UEFA Europa League Qualifying             12
+UEFA Champions League Qualifying           4
+```
+Real fixtures, e.g. `UEFA Europa Conference League Qualifying_2026-08-20_shamrock_kupskuopio`
+(Shamrock v KuPS Kuopio, Tallaght Stadium, 19:00Z), Getafe v FK Partizan, Braga v
+Vienna. The earlier `count: 0` readings were the briefs-table trap described above,
+not an absent write path.
+
+`query_ok` is deliberately separate from `landed` so a broken probe can never be
+misread as "the archive has none" — verified by running it from the sandbox,
+where the egress block yields `query_ok:false`, null counts, exit 1, and an
+explicit disclaimer.
+
+## New finding from the probe's first run — a seventh label variant
+
+The probe caught something a pass/fail boolean would have hidden:
+
+```
+labels_present includes  "UEFA Conference League"  -> 1 row
+labels_missing:          ["UEFA Europa Conference League"]
+```
+
+`UEFA Conference League` is **not** one of the six declared strings. It cannot
+have come from this fix — the three main-draw slugs return `events: []` today, and
+the LEAGUES row declares `UEFA Europa Conference League`. Each main-draw label
+holds exactly 1 row, so these predate the change and were written by some other
+path (client-supplied `/archive/game`, most likely).
+
+This is the **WC26 label-fragmentation class** (`CC-CMD-2026-07-15`, which found 12
+variants under `briefs.sport`). It matters because the archive `sport` string is
+also the leading segment of the archive id, so each variant is a separate id
+namespace for what is one competition.
+
+**The static guard cannot catch this** — `check-leagues-label-contract.mjs`
+compares source tables, and these rows are already in D1. `0ed29fb` extends the
+probe with `nonconforming_rows` / `nonconforming_count` (id, sport, date, teams,
+`created_at`) so the origin is identifiable rather than inferred. Cleanup is
+deliberately NOT done here: it is a data migration over live rows, a different
+concern from this CC-CMD, and it needs the origin path identified first so the
+writer is fixed rather than just the rows.
 
 ## For the laboratory
 
