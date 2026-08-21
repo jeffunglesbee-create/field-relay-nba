@@ -1,0 +1,80 @@
+{
+  "probed_at": "2026-08-21T22:40:47.481Z",
+  "days": [
+    {
+      "date": "2026-08-19",
+      "http": 200,
+      "total": 53,
+      "by_sport": {
+        "MLS": 30,
+        "MLB": 15,
+        "WNBA": 2,
+        "La Liga": 1,
+        "EFL Trophy": 1,
+        "UEFA Champions League Qualifying": 4
+      },
+      "has_mlb": true,
+      "has_epl": false
+    },
+    {
+      "date": "2026-08-20",
+      "http": 200,
+      "total": 62,
+      "by_sport": {
+        "MLS": 8,
+        "MLB": 9,
+        "WNBA": 3,
+        "La Liga": 1,
+        "NFL": 2,
+        "PGA Tour": 1,
+        "UEFA Europa League Qualifying": 12,
+        "UEFA Europa Conference League Qualifying": 24,
+        "golf": 1,
+        "CFL": 1
+      },
+      "has_mlb": true,
+      "has_epl": false
+    },
+    {
+      "date": "2026-08-21",
+      "http": 200,
+      "total": 25,
+      "by_sport": {
+        "MLB": 15,
+        "WNBA": 3,
+        "EPL": 1,
+        "La Liga": 1,
+        "Ligue 1": 1,
+        "NFL": 3,
+        "golf": 1
+      },
+      "has_mlb": true,
+      "has_epl": true
+    },
+    {
+      "date": "2026-08-22",
+      "http": 200,
+      "total": 15,
+      "by_sport": {
+        "MLS": 15
+      },
+      "has_mlb": false,
+      "has_epl": false
+    },
+    {
+      "date": "2026-08-23",
+      "http": 200,
+      "total": 9,
+      "by_sport": {
+        "MLS": 9
+      },
+      "has_mlb": false,
+      "has_epl": false
+    }
+  ],
+  "verdict": {
+    "mlb_present_on_past_days": "3/3",
+    "mlb_present_on_future_days": "0/2",
+    "reading": "GAME-DAY SEEDING: MLB behaves exactly like EPL, so absence on the eve is not an EPL-specific gap"
+  }
+}
