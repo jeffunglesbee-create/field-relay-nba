@@ -1,0 +1,77 @@
+{
+  "probed_at": "2026-08-21T22:47:20.688Z",
+  "query_ok": true,
+  "change_log_by_source": [
+    {
+      "source": "savant",
+      "n": 7541,
+      "last_ts": "2026-08-17T11:14:25.225Z"
+    },
+    {
+      "source": "odds_api",
+      "n": 1381,
+      "last_ts": "2026-08-21T10:00:56.858Z"
+    },
+    {
+      "source": "odds_backfill",
+      "n": 208,
+      "last_ts": "2026-08-20 10:33:38"
+    },
+    {
+      "source": "closing_odds_capture",
+      "n": 18,
+      "last_ts": "2026-08-21 19:03:03"
+    }
+  ],
+  "capture_events": [
+    {
+      "n": 18,
+      "first_": "2026-07-04 17:01:34",
+      "last_": "2026-08-21 19:03:03"
+    }
+  ],
+  "today_odds_state": [
+    {
+      "sport": "MLB",
+      "n": 15,
+      "has_open": 15,
+      "has_close": 15
+    },
+    {
+      "sport": "WNBA",
+      "n": 3,
+      "has_open": 3,
+      "has_close": 3
+    },
+    {
+      "sport": "NFL",
+      "n": 3,
+      "has_open": 0,
+      "has_close": 0
+    },
+    {
+      "sport": "golf",
+      "n": 1,
+      "has_open": 0,
+      "has_close": 0
+    },
+    {
+      "sport": "Ligue 1",
+      "n": 1,
+      "has_open": 1,
+      "has_close": 1
+    },
+    {
+      "sport": "La Liga",
+      "n": 1,
+      "has_open": 0,
+      "has_close": 1
+    },
+    {
+      "sport": "EPL",
+      "n": 1,
+      "has_open": 0,
+      "has_close": 1
+    }
+  ]
+}
