@@ -550,3 +550,71 @@ for ask 5, available only on rich-tier fixtures (detectable in advance via
 
 Flagging it as an option, **not** adopting it: it widens ask 5's scope beyond
 what the CC-CMD specifies, and Rule 69 puts that in its own prompt.
+
+---
+
+## Addendum 7 — all five sports measured; two decisions ADOPTED
+
+Runs 17–19 (`40d8403`, `99aa4eb`, `81d5739`; manifest
+`ask5-ask6-prereq-manifest-20260821T131941Z.json`). Contract adopted in
+CONTRACTS.md (`23504b3` relay, `7b140102` client).
+
+### (A) Five sports, three different containers
+
+| sport | container | scoring items/game | sample |
+|-------|-----------|--------------------|--------|
+| soccer | `keyEvents` | 2–4 | "Goal! …Enda Stevens…right footed shot from the centre of the box" |
+| MLB | `plays` | 11 | "Walker homered to center (407 feet)…" |
+| NBA | `plays` | **119** | "Paolo Banchero makes driving layup (Anthony Black assists)" |
+| NHL | `plays` | 8 | "Cole Caufield Goal (22) Wrist Shot, assists: Noah Dobson (21)" |
+| NFL | `scoringPlays` | 8 | "Woody Marks 20 Yd Run (Ka'imi Fairbairn Kick)" |
+
+`keyEvents` is absent for four of five. `plays` is absent for soccer and NFL.
+Three independent containers across five sports — which is why "one probe each"
+was the right call rather than extrapolating from soccer and baseball.
+
+**NBA is the trap:** 119 scoring plays per game against 8 for NFL and NHL. A
+generator that concatenates scoring items yields a paragraph for four sports and
+an unusable wall for basketball. Recorded in the contract.
+
+#### A self-correction on the NBA/NHL "no data" result
+
+The first attempt reported `no finalized row with an espn_event_id` for both and
+I nearly recorded that as the answer. It is a fact about **this D1 table in
+August**, not about the ESPN feed — both leagues are out of season. Reporting it
+as a limit would have left the contract two sports short for no real reason.
+
+The scoreboard fallback then returned nothing for 2026-06-07, and that result
+carried no attempt log — the same shape of finding corrected three times already
+this session. Rewritten to try several dates and record each one's status and
+event count. Mid-January returned 9 NBA and 10 NHL events immediately; early June
+had simply fallen past the end of both postseasons.
+
+### (B) Near-miss enrichment — ADOPTED, ~60% availability
+
+Widened from 6 to 20 fixtures:
+
+- **12 rich-tier:** 98–129 commentary items, 5–16 near-misses each
+- **8 sparse-tier:** 18–29 items, **0** near-misses each
+- Clean bimodal split — nothing sampled lands between 29 and 98, so
+  `commentary.length >= 60` identifies a rich fixture before parsing.
+
+60% is a majority, so this is worth the code. Adopted in CONTRACTS.md: recaps use
+near-miss items where present and degrade to goals-only where not. Same tier
+governs `participants[1]` (sparse 0/6 assists structured, rich 8/8).
+
+### Also adopted
+
+- **Generate from `text`, not `participants`** — assister structurally present on
+  8 of 14 assisted goals, in `text` 14/14.
+- **Fetch at finalization, not per tick** — ~28 calls/day vs 2,688 / 790 MB.
+
+### Divergence caught while syncing
+
+The client's `CONTRACTS.md` was **173 lines behind** the relay's before this sync
+— stale since 2026-06-30 while the relay copy kept growing. Verified no client
+content was lost (the sync commit deleted exactly one line, the `Last synced`
+header). Both copies now identical; client smoke 985 passed, 0 failed.
+
+This is precisely the failure CONTRACTS.md exists to prevent, happening to
+CONTRACTS.md itself. Worth a periodic identity check between the two copies.
