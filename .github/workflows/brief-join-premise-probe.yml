@@ -36,12 +36,19 @@ jobs:
       - name: Probe ask5/ask6 prerequisites
         run: node scripts/probe-ask5-ask6-prereqs.mjs
 
+      # Rev 4 of the CC-CMD carries figures from earlier probe runs. Two of them
+      # move: the gNN count went 535 -> 539, which either is measurement drift or
+      # means ask 4a's guard is not holding, and the EPL-readiness claim has a
+      # deadline of 2026-08-22. Neither should be read off a day-old number.
+      - name: Probe rev-4 follow-ups (gNN guard, EPL readiness, ask 3 sizing)
+        run: node scripts/probe-v4-followups.mjs
+
       - name: Commit manifest
         if: always()
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json || {
+          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json outbox/v4-followup-manifest-*.json || {
             echo "no manifest produced"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: brief join premise manifest [skip ci]"
