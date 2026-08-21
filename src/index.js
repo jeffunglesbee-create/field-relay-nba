@@ -8702,7 +8702,20 @@ async function handleJournalismCycle(env, opts = {}) {
                          ON CONFLICT(id) DO NOTHING`
                       ).bind(
                         `pre_game_${_pgArchRow.id}`,
-                        _pgDateStr, label.toLowerCase(), eventId, _pgStripped,
+                        // ask 3: was `label.toLowerCase()`, which lowercased an
+                        // already-correct declared label on the way into the column
+                        // -- 'MLB'->'mlb', 'La Liga'->'la liga', 'UEFA Europa
+                        // Conference League Qualifying'->all lowercase. The id kept
+                        // the right casing (it is built from the game row id), which
+                        // is exactly why this stayed invisible: the row looked fine
+                        // until you filtered on sport. A brief whose sport matches no
+                        // declared label is unreachable by every sport-filtered read,
+                        // including /archive/query?sport=. Measured 2026-08-21: ~145
+                        // such rows, still being written daily at the 10:01 tick.
+                        //
+                        // Same bug class CC-CMD-2026-07-15 fixed at the kv_capture
+                        // site, recurring here -- hence the guard, not just the fix.
+                        _pgDateStr, canonicalizeWC26Sport(label), eventId, _pgStripped,
                         _pgStripped.split(/\s+/).length
                       ).run();
                       console.log(`[GAME-BRIEF-ENQUEUE] pre-game brief written for ${eventId} (${_pgArchRow.id})`);
