@@ -67,6 +67,8 @@ const m = {
     assist_structure: null,
     commentary_probe: null,
     keyevents_commentary_setcmp: null,
+    enrichment_availability: null,
+    other_sports: null,
     error: null,
 };
 
@@ -435,6 +437,49 @@ try {
             });
         }
         m.keyevents_commentary_setcmp = setcmp;
+
+        // ── (B) is near-miss enrichment reliably available? ───────────────────
+        // Addendum 6 found Shot Off Target / Shot Hit Woodwork / Foul events in
+        // commentary that keyEvents does not carry at all, and flagged them as an
+        // enrichment option. Before that option is worth a prompt, it needs the
+        // number the 6-fixture sample cannot give: what SHARE of fixtures are
+        // rich-tier. If most soccer games come back sparse, an enrichment that
+        // only ever fires on a minority is not worth the code.
+        //
+        // Widened to 20 fixtures. Reports the tier split and the near-miss counts
+        // per fixture, so the decision rests on a distribution rather than on the
+        // six fixtures that happened to be probed first.
+        const wide = await d1(
+            `SELECT espn_event_id AS id FROM regular_season_games
+             WHERE espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
+               AND sport LIKE '%League%'
+             ORDER BY date DESC LIMIT 20`);
+        const NEAR = /^(shot off target|shot hit woodwork|foul|shot saved|penalty missed)$/i;
+        const tiers = [];
+        for (const g of wide) {
+            const rw = await fetch(`${ESPN}/soccer/${m.keyevents_goal_items?.slug || 'uefa.europa.conf_qual'}/summary?event=${g.id}`,
+                { headers: { 'User-Agent': UA } });
+            if (rw.status !== 200) { tiers.push({ event: String(g.id), http: rw.status }); continue; }
+            const jw = await rw.json();
+            const cw = Array.isArray(jw?.commentary) ? jw.commentary : [];
+            const near = cw.filter(x => NEAR.test(x.play?.type?.text || ''));
+            tiers.push({
+                event: String(g.id),
+                commentary_count: cw.length,
+                near_miss_items: near.length,
+                // Which near-miss types actually occur, so the regex above is not
+                // silently the thing defining the answer.
+                near_types: [...new Set(cw.map(x => x.play?.type?.text).filter(Boolean))],
+            });
+        }
+        m.enrichment_availability = {
+            fixtures: tiers,
+            // Threshold read off Addendum 5's observed split (20-29 vs 109-112),
+            // not invented: nothing sampled has landed between 29 and 109.
+            rich_tier: tiers.filter(t => (t.commentary_count ?? 0) >= 60).length,
+            sparse_tier: tiers.filter(t => t.commentary_count !== undefined && t.commentary_count !== null && t.commentary_count < 60).length,
+            http_failures: tiers.filter(t => t.http).length,
+        };
     } else {
         m.keyevents_goal_items = { error: 'no finalized soccer row with 2+ goals and an espn_event_id' };
     }
@@ -452,6 +497,63 @@ try {
     };
 } catch (e) {
     m.keyevents_probe = { error: String(e.message || e) };
+}
+
+// ── (A) the remaining three sports ───────────────────────────────────────────
+// Soccer and baseball are settled and they landed on DIFFERENT keys -- keyEvents
+// vs plays. That is the whole reason these three cannot be assumed: two data
+// points that disagree do not extrapolate to a third. Same method as the MLB
+// probe: enumerate top-level containers, then describe whichever one actually
+// holds scoring records, quoting the prose verbatim.
+const OTHER_SPORTS = [
+    { sport: 'NFL', path: 'football/nfl' },
+    { sport: 'NBA', path: 'basketball/nba' },
+    { sport: 'NHL', path: 'hockey/nhl' },
+];
+m.other_sports = [];
+for (const s of OTHER_SPORTS) {
+    try {
+        const row = (await d1(
+            `SELECT espn_event_id AS id, date FROM regular_season_games
+             WHERE sport = ? AND espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
+             ORDER BY date DESC LIMIT 1`, [s.sport]))[0];
+        if (!row?.id) { m.other_sports.push({ sport: s.sport, error: 'no finalized row with an espn_event_id' }); continue; }
+
+        const ro = await fetch(`${ESPN}/${s.path}/summary?event=${row.id}`, { headers: { 'User-Agent': UA } });
+        if (ro.status !== 200) { m.other_sports.push({ sport: s.sport, event: String(row.id), http: ro.status }); continue; }
+        const jo = await ro.json();
+
+        const top = Object.entries(jo || {}).map(([k, v]) => ({
+            key: k,
+            type: Array.isArray(v) ? 'array' : typeof v,
+            len: Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : null),
+            kb: Math.round(JSON.stringify(v ?? null).length / 1024),
+        })).sort((a, b) => b.kb - a.kb);
+
+        // Check every plausible container rather than picking one: baseball's
+        // data was in `plays`, soccer's in `keyEvents`, and NFL is known to
+        // publish `scoringPlays` as well. Report what each one actually holds.
+        const containers = {};
+        for (const key of ['plays', 'keyEvents', 'scoringPlays', 'commentary']) {
+            const v = jo[key];
+            if (!Array.isArray(v)) { containers[key] = { present: false }; continue; }
+            const scoring = v.filter(e => e?.scoringPlay || /goal|touchdown|score/i.test(e?.type?.text || ''));
+            containers[key] = {
+                present: true,
+                count: v.length,
+                fields: v.length ? Object.keys(v[0]) : null,
+                scoring_count: scoring.length,
+                scoring_samples: scoring.slice(0, 3).map(e => ({
+                    text: e.text ?? e.description ?? null,
+                    clock: e.clock?.displayValue ?? null,
+                    period: e.period?.number ?? null,
+                })),
+            };
+        }
+        m.other_sports.push({ sport: s.sport, event: String(row.id), date: row.date, http: 200, top_level: top.slice(0, 12), containers });
+    } catch (e) {
+        m.other_sports.push({ sport: s.sport, error: String(e.message || e) });
+    }
 }
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
