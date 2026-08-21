@@ -1,0 +1,272 @@
+{
+  "probed_at": "2026-08-21T15:15:11.900Z",
+  "query_ok": true,
+  "gnn_total": 539,
+  "gnn_recent": [
+    {
+      "id": "mlb_game_2026-08-21_g2",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:12"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g4",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:11"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g3",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:10"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g1",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:10"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g11",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:01"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g13",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g12",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g10",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    }
+  ],
+  "gnn_by_day": [
+    {
+      "day": "2026-08-21",
+      "n": 8
+    },
+    {
+      "day": "2026-08-20",
+      "n": 4
+    },
+    {
+      "day": "2026-08-19",
+      "n": 4
+    },
+    {
+      "day": "2026-08-18",
+      "n": 8
+    },
+    {
+      "day": "2026-08-16",
+      "n": 13
+    },
+    {
+      "day": "2026-08-15",
+      "n": 22
+    },
+    {
+      "day": "2026-08-13",
+      "n": 4
+    },
+    {
+      "day": "2026-08-12",
+      "n": 19
+    },
+    {
+      "day": "2026-08-09",
+      "n": 18
+    },
+    {
+      "day": "2026-08-08",
+      "n": 17
+    }
+  ],
+  "epl_context": {
+    "http": 200,
+    "total": 15,
+    "by_sport": {
+      "MLS": 15
+    },
+    "has_epl": false
+  },
+  "epl_archive": {
+    "http": 200,
+    "count": 1,
+    "by_sport": {
+      "MLB": 1
+    }
+  },
+  "nonconforming_total": [
+    {
+      "rows_": 784,
+      "variants": 20
+    }
+  ],
+  "nonconforming_by_variant": [
+    {
+      "sport": "Baseball (MLB)",
+      "n": 303,
+      "last_written": "2026-08-20 21:23:59"
+    },
+    {
+      "sport": null,
+      "n": 183,
+      "last_written": "2026-08-21 10:01:02"
+    },
+    {
+      "sport": "mlb",
+      "n": 133,
+      "last_written": "2026-08-20 10:01:22"
+    },
+    {
+      "sport": "mls",
+      "n": 77,
+      "last_written": "2026-08-19 10:01:48"
+    },
+    {
+      "sport": "football",
+      "n": 21,
+      "last_written": "2026-06-26 00:00:10"
+    },
+    {
+      "sport": "MLS Soccer",
+      "n": 14,
+      "last_written": "2026-08-16 03:41:57"
+    },
+    {
+      "sport": "PGA TOUR",
+      "n": 10,
+      "last_written": "2026-08-16 22:31:10"
+    },
+    {
+      "sport": "la liga",
+      "n": 7,
+      "last_written": "2026-08-20 10:01:24"
+    },
+    {
+      "sport": "Australian Football (AFL)",
+      "n": 7,
+      "last_written": "2026-08-16 11:40:13"
+    },
+    {
+      "sport": "pga tour",
+      "n": 6,
+      "last_written": "2026-08-20 10:01:26"
+    },
+    {
+      "sport": "nfl",
+      "n": 6,
+      "last_written": "2026-08-20 10:01:25"
+    },
+    {
+      "sport": "uefa europa conference league qualifying",
+      "n": 3,
+      "last_written": "2026-08-20 15:47:37"
+    },
+    {
+      "sport": "fifa world cup",
+      "n": 2,
+      "last_written": "2026-07-19 10:01:23"
+    },
+    {
+      "sport": "NBA Playoffs",
+      "n": 2,
+      "last_written": "2026-06-16 12:30:55"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 7",
+      "n": 2,
+      "last_written": "2026-07-20 04:24:22"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 6",
+      "n": 2,
+      "last_written": "2026-07-13 00:01:15"
+    },
+    {
+      "sport": "AFL 2026 — Round 15",
+      "n": 2,
+      "last_written": "2026-06-19 03:14:35"
+    },
+    {
+      "sport": "wc",
+      "n": 1,
+      "last_written": "2026-07-18 23:02:34"
+    },
+    {
+      "sport": "uefa europa league qualifying",
+      "n": 1,
+      "last_written": "2026-08-20 15:16:12"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 5",
+      "n": 1,
+      "last_written": "2026-07-05 20:46:56"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 10",
+      "n": 1,
+      "last_written": "2026-08-09 04:00:20"
+    }
+  ],
+  "client_writes_since_fix": [
+    {
+      "n": 6,
+      "still_ordinal": 0,
+      "first_": "2026-08-21 04:42:03",
+      "last_": "2026-08-21 04:43:30"
+    }
+  ],
+  "client_samples_since_fix": [
+    {
+      "id": "epl_match_2026-08-21_all",
+      "sport": null,
+      "game_id": null,
+      "created_at": "2026-08-21 04:43:30"
+    },
+    {
+      "id": "mlb_game_2026-08-21_all",
+      "sport": "MLB",
+      "game_id": null,
+      "created_at": "2026-08-21 04:42:12"
+    },
+    {
+      "id": "mlb_game_2026-08-21_823746",
+      "sport": "MLB",
+      "game_id": "823746",
+      "created_at": "2026-08-21 04:42:03"
+    },
+    {
+      "id": "mlb_game_2026-08-21_823420",
+      "sport": "MLB",
+      "game_id": "823420",
+      "created_at": "2026-08-21 04:42:03"
+    },
+    {
+      "id": "mlb_game_2026-08-21_823510",
+      "sport": "MLB",
+      "game_id": "823510",
+      "created_at": "2026-08-21 04:42:03"
+    },
+    {
+      "id": "mlb_game_2026-08-21_824721",
+      "sport": "MLB",
+      "game_id": "824721",
+      "created_at": "2026-08-21 04:42:03"
+    }
+  ],
+  "error": null
+}
