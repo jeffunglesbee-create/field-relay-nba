@@ -65,6 +65,7 @@ const m = {
     keyevents_goal_items: null,
     keyevents_goal_attempts: null,
     assist_structure: null,
+    commentary_probe: null,
     error: null,
 };
 
@@ -344,6 +345,46 @@ try {
             goals_sampled: raw.length,
             goals: raw,
         };
+
+        // ── commentary ───────────────────────────────────────────────────────
+        // Flagged in Addendum 4: soccer carries `commentary` (20 entries) beside
+        // keyEvents (12). Larger container, unverified shape -- and "keyEvents is
+        // the soccer container" is the same shape of claim that already proved
+        // wrong for baseball, where the data was in `plays`.
+        //
+        // 20 entries is also suspiciously small for a full match: real
+        // minute-by-minute commentary runs to hundreds. So this reports the
+        // COUNT per fixture alongside keyEvents' count -- if commentary is a
+        // highlights subset rather than full coverage, that is the thing that
+        // decides whether it can replace keyEvents, and it is invisible from one
+        // fixture. Every item of one fixture is dumped raw; the field union is
+        // taken across all fixtures so a key present on only some items shows up.
+        const comm = { per_fixture: [], field_union: [], sample_items: null, sample_event: null };
+        for (const g of scoredMany) {
+            const rc = await fetch(`${ESPN}/soccer/${m.keyevents_goal_items?.slug || 'uefa.europa.conf_qual'}/summary?event=${g.id}`,
+                { headers: { 'User-Agent': UA } });
+            if (rc.status !== 200) { comm.per_fixture.push({ event: String(g.id), http: rc.status }); continue; }
+            const jc = await rc.json();
+            const c = Array.isArray(jc?.commentary) ? jc.commentary : null;
+            const ke2 = Array.isArray(jc?.keyEvents) ? jc.keyEvents : [];
+            comm.per_fixture.push({
+                event: String(g.id),
+                commentary_count: c ? c.length : null,
+                keyEvents_count: ke2.length,
+                // Does commentary carry the scoring moments at all, and does it
+                // carry ones keyEvents lacks?
+                commentary_scoring: c ? c.filter(x => x.play?.scoringPlay || /^goal!/i.test(x.text || '')).length : null,
+                kb: c ? Math.round(JSON.stringify(c).length / 1024) : null,
+            });
+            if (c) {
+                for (const k of new Set(c.flatMap(x => Object.keys(x)))) {
+                    if (!comm.field_union.includes(k)) comm.field_union.push(k);
+                }
+                if (!comm.sample_items) { comm.sample_items = c; comm.sample_event = String(g.id); }
+            }
+        }
+        comm.field_union.sort();
+        m.commentary_probe = comm;
     } else {
         m.keyevents_goal_items = { error: 'no finalized soccer row with 2+ goals and an espn_event_id' };
     }
