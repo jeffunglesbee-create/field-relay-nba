@@ -52,6 +52,13 @@ const m = {
     keyevents_mlb: null,
     games_per_day_sample: [],
     espn_mb_per_day_estimate: null,
+    // ── ask 5 rescope: where DOES baseball event data live? ───────────────────
+    // The 2026-08-21 run falsified the ask's premise: MLB summary carries NO
+    // keyEvents at all (has_keyEvents: false, 1082 KB payload). Rather than
+    // conclude "baseball is impossible" (Rule 3 class E — verify before claiming
+    // impossible), enumerate the payload's top-level keys and check the
+    // candidates that would carry per-play prose.
+    mlb_payload_shape: null,
     error: null,
 };
 
@@ -131,7 +138,41 @@ try {
          ORDER BY date DESC LIMIT 1`))[0]?.id;
     if (mlbId) {
         const rm = await fetch(`${ESPN}/baseball/mlb/summary?event=${mlbId}`, { headers: { 'User-Agent': UA } });
-        m.keyevents_mlb = { event: String(mlbId), http: rm.status, ...shape(await rm.json()) };
+        const jm = await rm.json();
+        m.keyevents_mlb = { event: String(mlbId), http: rm.status, ...shape(jm) };
+
+        // Ask 5 rescope. keyEvents is absent for baseball; that is a finding
+        // about ONE key, not about the feed. Enumerate every top-level
+        // container with its size, then describe the fields of whichever
+        // candidate actually holds per-play records. No key names are assumed
+        // to exist — each is reported present-or-absent from the real payload.
+        const topLevel = Object.entries(jm || {}).map(([k, v]) => ({
+            key: k,
+            type: Array.isArray(v) ? 'array' : typeof v,
+            len: Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : null),
+            kb: Math.round(JSON.stringify(v ?? null).length / 1024),
+        })).sort((a, b) => b.kb - a.kb);
+
+        // Describe any candidate that is a non-empty array of objects: that is
+        // the shape a per-play generator would consume. Reporting the actual
+        // field names is the point -- ask 5 promises named athletes and prose
+        // ("Rice's 447-ft homer"), and only the real keys settle whether the
+        // feed supports that for baseball.
+        const describe = (arr) => ({
+            count: arr.length,
+            sample_fields: Object.keys(arr[0]),
+            first_has_text: !!(arr[0].text || arr[0].shortText || arr[0].alternativeText),
+            first_has_athletes: !!(arr[0].athletesInvolved || arr[0].participants),
+            sample_text: String(arr[0].text || arr[0].shortText || '').slice(0, 160) || null,
+        });
+        const candidates = {};
+        for (const { key } of topLevel) {
+            const v = jm[key];
+            if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0]) {
+                candidates[key] = describe(v);
+            }
+        }
+        m.mlb_payload_shape = { event: String(mlbId), top_level: topLevel, array_candidates: candidates };
     } else {
         m.keyevents_mlb = { error: 'no finalized MLB row with an espn_event_id' };
     }
