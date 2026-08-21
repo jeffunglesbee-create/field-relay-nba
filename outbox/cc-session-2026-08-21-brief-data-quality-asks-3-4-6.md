@@ -402,3 +402,83 @@ Soccer summaries also carry a **`commentary` array (20 entries vs `keyEvents`'
 Out of scope for this probe (Rule 69); flagged because "keyEvents is the soccer
 container" is exactly the kind of claim that was already wrong once this session
 for baseball.
+
+---
+
+## Addendum 5 — `commentary`, and what it reveals about the assist gap
+
+Run 15 (`da1277d`; manifest `ask5-ask6-prereq-manifest-20260821T055421Z.json`).
+
+### Shape
+
+Four fields, total: `sequence`, `time`, `text`, `play`.
+
+```json
+{"sequence":5,"time":{"value":2940,"displayValue":"49'"},
+ "text":"Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers)
+         right footed shot from the centre of the box to the centre of the goal.",
+ "play":{"id":"51178987","type":{"id":"70","text":"Goal","type":"goal"}, ...}}
+```
+
+`text` is present on every item. `play` appears only on key moments and embeds a
+keyEvents-shaped object. Items without `play` are the connective material
+keyEvents omits — `"Lineups are announced and players are warming up."`,
+`"Fourth official has announced 1 minutes of added time."`
+
+### Coverage is NOT uniform — it splits into two tiers
+
+| event | commentary | keyEvents | scoring items |
+|-------|-----------|-----------|---------------|
+| 401910985 | **20** | 12 | 2 |
+| 401909635 | **27** | 19 | 2 |
+| 401909634 | **29** | 21 | 4 |
+| 401910989 | **109** | 20 | 2 |
+| 401909826 | **111** | 21 | 4 |
+| 401910986 | **112** | 19 | 3 |
+
+Three fixtures carry ~20–29 items; three carry ~109–112. `keyEvents` stays flat
+at 12–21 across both, so the variance is specific to `commentary`.
+
+### This is the same tier that governs the assist gap
+
+Cross-referencing Addendum 4 against the counts above — same six fixtures, same
+manifest:
+
+| event | commentary | assisted goals | with 2 participants |
+|-------|-----------|----------------|---------------------|
+| 401910985 | 20 | 1 | **0** |
+| 401909635 | 27 | 1 | **0** |
+| 401909634 | 29 | 4 | **0** |
+| 401910989 | 109 | 1 | **1** |
+| 401909826 | 111 | 4 | **4** |
+| 401910986 | 112 | 3 | **3** |
+
+A clean split, no overlap: **the sparse tier structures 0 of 6 assists; the rich
+tier structures 8 of 8.** The "43% of assists missing" figure from Addendum 4 is
+not random per-goal dropout — it is three fixtures served at a lower feed tier,
+and `commentary.length` is a usable proxy for which tier a fixture got.
+
+### What this changes for ask 5: nothing, and that is the finding
+
+`commentary` is not a better source than `keyEvents` filtered on `scoringPlay`:
+
+- The goal prose is **identical** in both — same string, verbatim.
+- It is larger where it matters least (32 KB vs the whole 301 KB payload) and
+  sparse on exactly the fixtures where structure is already thin.
+- Its extra items are lineups, added-time announcements and period markers —
+  nothing a recap needs.
+
+So the per-sport contract stands unchanged: soccer → `keyEvents` where
+`scoringPlay === true`, read `text`. Baseball → `plays` where `scoringPlay ===
+true`, read `text`.
+
+`commentary` earns one narrow use: **`commentary.length` distinguishes a
+rich-tier fixture from a sparse one**, which is the only reliable way found so
+far to know in advance whether `participants[1]` will be populated. Worth
+recording only if something later needs structured assists.
+
+### Not verified
+
+Whether every `keyEvents` item also appears in `commentary`. The goal items
+match verbatim in the fixtures examined, but no per-item set comparison was run,
+so "commentary is a superset" is UNVERIFIED and should not be relied on.
