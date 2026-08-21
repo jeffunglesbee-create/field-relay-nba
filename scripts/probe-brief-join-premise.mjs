@@ -57,6 +57,10 @@ const m = {
     mls_by_month: [],
     brief_game_id_shapes: [],
     game_recap_join_rate: null,
+    join_by_sport: [],
+    mls_key_space: null,
+    mls_brief_ids: [],
+    mls_game_rows: [],
     unjoinable_sample: [],
     error: null,
 };
@@ -99,21 +103,61 @@ try {
          FROM briefs WHERE game_id IS NOT NULL
          GROUP BY shape ORDER BY n DESC`);
 
-    // 4. Do game_recap briefs actually resolve to a game row? (ask 4 artifact)
-    const join = await d1(
-        `SELECT COUNT(*) AS total,
-                SUM(CASE WHEN g.espn_event_id IS NOT NULL THEN 1 ELSE 0 END) AS joined
-         FROM briefs b
-         LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
-         WHERE b.brief_type = 'game_recap'`);
-    const t = join[0]?.total ?? 0, j = join[0]?.joined ?? 0;
-    m.game_recap_join_rate = { total: t, joined: j, pct: t ? Math.round((j / t) * 100) : null };
+    // 4. Join rate — CORRECTED.
+    //
+    // The first version of this query joined ONLY regular_season_games and did
+    // not exclude golf, and reported 82%. That number was a floor, not the
+    // truth: postseason games live in postseason_games, so well-formed MLB ids
+    // (e.g. 401873710) counted as misses; and PGA rows are keyed
+    // `golf_<eventid>_R<round>`, a per-round composite that by construction has
+    // no game row to match. Both are defects in the question, not the data.
+    // Corrected: union both game tables, exclude golf.
+    const GAME_KEYS = `(
+        SELECT espn_event_id AS k FROM regular_season_games WHERE espn_event_id IS NOT NULL AND espn_event_id <> ''
+        UNION
+        SELECT espn_event_id AS k FROM postseason_games     WHERE espn_event_id IS NOT NULL AND espn_event_id <> ''
+    )`;
+    const NOT_GOLF = `b.sport NOT IN ('golf','PGA Tour','PGA TOUR')`;
+
+    const joinC = await d1(
+        `SELECT COUNT(*) AS total, SUM(CASE WHEN g.k IS NOT NULL THEN 1 ELSE 0 END) AS joined
+         FROM briefs b LEFT JOIN ${GAME_KEYS} g ON g.k = b.game_id
+         WHERE b.brief_type = 'game_recap' AND ${NOT_GOLF}`);
+    const tc = joinC[0]?.total ?? 0, jc = joinC[0]?.joined ?? 0;
+    m.game_recap_join_rate = {
+        total: tc, joined: jc, pct: tc ? Math.round((jc / tc) * 100) : null,
+        note: 'both game tables unioned; golf excluded (composite per-round ids)',
+    };
+
+    m.join_by_sport = await d1(
+        `SELECT b.sport, COUNT(*) AS total,
+                SUM(CASE WHEN g.k IS NOT NULL THEN 1 ELSE 0 END) AS joined
+         FROM briefs b LEFT JOIN ${GAME_KEYS} g ON g.k = b.game_id
+         WHERE b.brief_type = 'game_recap' AND ${NOT_GOLF}
+         GROUP BY b.sport ORDER BY total DESC LIMIT 25`);
+
+    // 5. MLS specifically — is this a COVERAGE problem or a KEY-SPACE problem?
+    // Coverage would mean the brief's id is right but the game row lacks one.
+    // Key-space would mean the brief is keyed in an id space the games table
+    // does not contain at all, in which case no amount of backfilling
+    // espn_event_id makes these briefs join. Test both candidate columns.
+    m.mls_key_space = (await d1(
+        `SELECT COUNT(*) AS mls_recaps,
+                SUM(CASE WHEN EXISTS(SELECT 1 FROM regular_season_games r WHERE r.espn_event_id = b.game_id) THEN 1 ELSE 0 END) AS match_espn_event_id,
+                SUM(CASE WHEN EXISTS(SELECT 1 FROM regular_season_games r WHERE r.id            = b.game_id) THEN 1 ELSE 0 END) AS match_row_id
+         FROM briefs b WHERE b.brief_type = 'game_recap' AND b.sport = 'MLS'`))[0] ?? null;
+
+    m.mls_brief_ids = await d1(
+        `SELECT game_id, id, date FROM briefs
+         WHERE brief_type = 'game_recap' AND sport = 'MLS' ORDER BY date DESC LIMIT 5`);
+    m.mls_game_rows = await d1(
+        `SELECT id, espn_event_id, date FROM regular_season_games
+         WHERE sport = 'MLS' AND date >= '2026-08-01' ORDER BY date DESC LIMIT 5`);
 
     m.unjoinable_sample = await d1(
         `SELECT b.id, b.sport, b.game_id, b.date
-         FROM briefs b
-         LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
-         WHERE b.brief_type = 'game_recap' AND g.espn_event_id IS NULL
+         FROM briefs b LEFT JOIN ${GAME_KEYS} g ON g.k = b.game_id
+         WHERE b.brief_type = 'game_recap' AND ${NOT_GOLF} AND g.k IS NULL
          ORDER BY b.date DESC LIMIT 8`);
 
     const mlsRow = m.coverage_by_sport.find(r => r.sport === 'MLS');
@@ -136,5 +180,6 @@ if (!m.query_ok) {
 }
 console.log(`\npremise "every row carries espn_event_id": ${m.premise_holds}`);
 console.log(`premise holds for MLS (ask 5's dependency): ${m.premise_holds_for_mls}`);
-console.log(`game_recap join rate: ${m.game_recap_join_rate.pct}% (${m.game_recap_join_rate.joined}/${m.game_recap_join_rate.total})`);
+console.log(`game_recap join rate (corrected): ${m.game_recap_join_rate.pct}% (${m.game_recap_join_rate.joined}/${m.game_recap_join_rate.total})`);
+console.log('MLS key space:', JSON.stringify(m.mls_key_space));
 process.exit(0);
