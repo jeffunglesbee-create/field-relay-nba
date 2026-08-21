@@ -257,3 +257,82 @@ usable prose (the earlier run found `any_with_athletes` not computed and an empt
 clock on element [0] — same element-[0] trap, so it needs the same verbatim
 re-read before any soccer claim); and whether NFL/NBA/NHL summaries use `plays`,
 `keyEvents`, or a third key. Each is one probe.
+
+---
+
+## Addendum 3 — soccer `keyEvents`, every item read verbatim
+
+Runs 12–13 (`d9a0a60`, `e21429c`; manifests `...T054737Z.json`,
+`...T054834Z.json`). This corrects a defect in my own probe.
+
+### The earlier "no athletes attached" reading was a probe bug
+
+The field is **`participants`**, not `athletesInvolved`. The earlier run computed
+`any_with_athletes` off `athletesInvolved` only and reported nothing. That was a
+false negative manufactured by the probe. **8 of 12 items carry named
+participants.** Full field union across items:
+
+`clock, id, participants, period, scoringPlay, shootout, shortText, source, team, text, type, wallclock`
+
+### Fixture A — event 401909622, Inter Turku 0-0 FC Copenhagen (12 items)
+
+| i | type | clock | text |
+|---|------|-------|------|
+| 0 | Kickoff | `""` | *(none)* |
+| 1 | Halftime | 45'+1' | First Half ends, Inter Turku 0, FC Copenhagen 0. |
+| 2 | Start 2nd Half | 45' | Second Half begins Inter Turku 0, FC Copenhagen 0. |
+| 3–10 | Substitution ×8 | 70'–90'+3' | e.g. "Substitution, Inter Turku. Yeboah Amankwah replaces Juuso Hämäläinen because of an injury." |
+| 11 | End Regular Time | 90'+3' | Second Half ends, Inter Turku 0, FC Copenhagen 0. |
+
+**This fixture finished 0-0.** `scoringPlay` is false on all 12 items. It
+therefore says nothing about goal events — the only item type ask 5 needs.
+Concluding "soccer keyEvents lack scoring detail" from it would be the
+element-[0] error repeated at fixture scale, so a scoring fixture was probed
+separately.
+
+Note `clock` on item 0 is the empty string, not null — that is what the first
+run reported as "empty clock". Every other item has a real clock. A single
+period-marker element, again.
+
+### Fixture B — event 401910985, Shamrock Rovers 1-1 KuPS (scoring items)
+
+```
+type: "Goal"  clock: 49'  scoringPlay: true
+text: "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers)
+       right footed shot from the centre of the box to the centre of the goal."
+shortText: "Enda Stevens Goal"   participants: [Enda Stevens]
+
+type: "Goal"  clock: 85'  scoringPlay: true
+text: "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed
+       shot from the centre of the box to the centre of the goal.
+       Assisted by Clinton Antwi."
+shortText: "Piotr Parzyszek Goal"   participants: [Piotr Parzyszek]
+```
+
+Slug resolution: `uefa.europa.conf_qual` returned 200 on the first attempt.
+
+### What this settles for ask 5
+
+Soccer carries the same grade of material as baseball: named scorer, shot type,
+location on the pitch, running scoreline, and a match clock — parallel to MLB's
+`"Walker homered to center (407 feet)"`.
+
+**`text` is the richest field and the one to generate from. `participants` is
+not sufficient**: it lists only the scorer, while the assisting player appears
+in `text` alone ("Assisted by Clinton Antwi"). A generator reading
+`participants` would silently drop assists.
+
+`role` came back null for both participants. My accessor read `p.type?.text ??
+p.type`; that is a statement about that path, NOT evidence that no role marker
+exists elsewhere on the object. Anything depending on scorer-vs-assist
+structured roles needs its own probe (Rule 73).
+
+### Per-sport event source — the corrected contract
+
+| sport | key | filter | prose field |
+|-------|-----|--------|-------------|
+| soccer | `keyEvents` | `scoringPlay === true` | `text` |
+| MLB | `plays` | `scoringPlay === true` | `text` |
+| NFL/NBA/NHL | UNVERIFIED | — | — |
+
+Still unverified: NFL, NBA and NHL summaries. One probe each, same method.
