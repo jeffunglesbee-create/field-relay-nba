@@ -1,0 +1,1427 @@
+{
+  "probed_at": "2026-08-21T05:48:34.754Z",
+  "query_ok": true,
+  "score_by_liveness": [
+    {
+      "kind": "in-progress language",
+      "n": 94,
+      "mean_score": 184.3,
+      "min_score": 116,
+      "max_score": 277
+    },
+    {
+      "kind": "reads as final",
+      "n": 1381,
+      "mean_score": 190.1,
+      "min_score": 97,
+      "max_score": 283
+    }
+  ],
+  "score_distribution": [
+    {
+      "bucket": 97,
+      "n": 1
+    },
+    {
+      "bucket": 105,
+      "n": 1
+    },
+    {
+      "bucket": 110.00000000000001,
+      "n": 1
+    },
+    {
+      "bucket": 115.99999999999999,
+      "n": 1
+    },
+    {
+      "bucket": 117,
+      "n": 1
+    },
+    {
+      "bucket": 119,
+      "n": 2
+    },
+    {
+      "bucket": 121,
+      "n": 2
+    },
+    {
+      "bucket": 124,
+      "n": 2
+    },
+    {
+      "bucket": 125,
+      "n": 2
+    },
+    {
+      "bucket": 128,
+      "n": 2
+    },
+    {
+      "bucket": 129,
+      "n": 1
+    },
+    {
+      "bucket": 130,
+      "n": 2
+    },
+    {
+      "bucket": 132,
+      "n": 2
+    },
+    {
+      "bucket": 133,
+      "n": 3
+    },
+    {
+      "bucket": 135,
+      "n": 5
+    },
+    {
+      "bucket": 136,
+      "n": 3
+    },
+    {
+      "bucket": 137,
+      "n": 3
+    },
+    {
+      "bucket": 138,
+      "n": 3
+    },
+    {
+      "bucket": 139,
+      "n": 2
+    },
+    {
+      "bucket": 140,
+      "n": 6
+    },
+    {
+      "bucket": 141,
+      "n": 4
+    },
+    {
+      "bucket": 142,
+      "n": 8
+    },
+    {
+      "bucket": 143,
+      "n": 6
+    },
+    {
+      "bucket": 144,
+      "n": 8
+    },
+    {
+      "bucket": 145,
+      "n": 8
+    },
+    {
+      "bucket": 146,
+      "n": 8
+    },
+    {
+      "bucket": 147,
+      "n": 14
+    },
+    {
+      "bucket": 148,
+      "n": 9
+    },
+    {
+      "bucket": 149,
+      "n": 9
+    },
+    {
+      "bucket": 150,
+      "n": 10
+    },
+    {
+      "bucket": 151,
+      "n": 7
+    },
+    {
+      "bucket": 152,
+      "n": 11
+    },
+    {
+      "bucket": 153,
+      "n": 12
+    },
+    {
+      "bucket": 154,
+      "n": 10
+    },
+    {
+      "bucket": 155,
+      "n": 11
+    },
+    {
+      "bucket": 156,
+      "n": 12
+    },
+    {
+      "bucket": 157,
+      "n": 15
+    },
+    {
+      "bucket": 158,
+      "n": 14
+    },
+    {
+      "bucket": 159,
+      "n": 16
+    },
+    {
+      "bucket": 160,
+      "n": 25
+    },
+    {
+      "bucket": 161,
+      "n": 19
+    },
+    {
+      "bucket": 162,
+      "n": 21
+    },
+    {
+      "bucket": 163,
+      "n": 22
+    },
+    {
+      "bucket": 164,
+      "n": 17
+    },
+    {
+      "bucket": 165,
+      "n": 11
+    },
+    {
+      "bucket": 166,
+      "n": 25
+    },
+    {
+      "bucket": 167,
+      "n": 17
+    },
+    {
+      "bucket": 168,
+      "n": 30
+    },
+    {
+      "bucket": 169,
+      "n": 22
+    },
+    {
+      "bucket": 170,
+      "n": 19
+    },
+    {
+      "bucket": 171,
+      "n": 18
+    },
+    {
+      "bucket": 172,
+      "n": 27
+    },
+    {
+      "bucket": 173,
+      "n": 29
+    },
+    {
+      "bucket": 174,
+      "n": 28
+    },
+    {
+      "bucket": 175,
+      "n": 16
+    },
+    {
+      "bucket": 176,
+      "n": 22
+    },
+    {
+      "bucket": 177,
+      "n": 16
+    },
+    {
+      "bucket": 178,
+      "n": 17
+    },
+    {
+      "bucket": 179,
+      "n": 13
+    },
+    {
+      "bucket": 180,
+      "n": 20
+    },
+    {
+      "bucket": 181,
+      "n": 18
+    },
+    {
+      "bucket": 182,
+      "n": 10
+    },
+    {
+      "bucket": 183,
+      "n": 17
+    },
+    {
+      "bucket": 184,
+      "n": 13
+    },
+    {
+      "bucket": 185,
+      "n": 17
+    },
+    {
+      "bucket": 186,
+      "n": 11
+    },
+    {
+      "bucket": 187,
+      "n": 4
+    },
+    {
+      "bucket": 188,
+      "n": 16
+    },
+    {
+      "bucket": 189,
+      "n": 14
+    },
+    {
+      "bucket": 190,
+      "n": 11
+    },
+    {
+      "bucket": 191,
+      "n": 19
+    },
+    {
+      "bucket": 192,
+      "n": 13
+    },
+    {
+      "bucket": 193,
+      "n": 4
+    },
+    {
+      "bucket": 194,
+      "n": 11
+    },
+    {
+      "bucket": 195,
+      "n": 11
+    },
+    {
+      "bucket": 196,
+      "n": 9
+    },
+    {
+      "bucket": 197,
+      "n": 10
+    },
+    {
+      "bucket": 198,
+      "n": 9
+    },
+    {
+      "bucket": 199,
+      "n": 15
+    },
+    {
+      "bucket": 200,
+      "n": 12
+    },
+    {
+      "bucket": 200.99999999999997,
+      "n": 11
+    },
+    {
+      "bucket": 202,
+      "n": 14
+    },
+    {
+      "bucket": 202.99999999999997,
+      "n": 19
+    },
+    {
+      "bucket": 204,
+      "n": 20
+    },
+    {
+      "bucket": 204.99999999999997,
+      "n": 10
+    },
+    {
+      "bucket": 206,
+      "n": 11
+    },
+    {
+      "bucket": 206.99999999999997,
+      "n": 17
+    },
+    {
+      "bucket": 208,
+      "n": 20
+    },
+    {
+      "bucket": 209,
+      "n": 15
+    },
+    {
+      "bucket": 210,
+      "n": 12
+    },
+    {
+      "bucket": 211,
+      "n": 18
+    },
+    {
+      "bucket": 212,
+      "n": 14
+    },
+    {
+      "bucket": 213,
+      "n": 10
+    },
+    {
+      "bucket": 214,
+      "n": 12
+    },
+    {
+      "bucket": 215,
+      "n": 22
+    },
+    {
+      "bucket": 216,
+      "n": 8
+    },
+    {
+      "bucket": 217,
+      "n": 10
+    },
+    {
+      "bucket": 218.00000000000003,
+      "n": 10
+    },
+    {
+      "bucket": 219,
+      "n": 10
+    },
+    {
+      "bucket": 220.00000000000003,
+      "n": 14
+    },
+    {
+      "bucket": 221,
+      "n": 21
+    },
+    {
+      "bucket": 222.00000000000003,
+      "n": 12
+    },
+    {
+      "bucket": 223,
+      "n": 7
+    },
+    {
+      "bucket": 224.00000000000003,
+      "n": 20
+    },
+    {
+      "bucket": 225,
+      "n": 15
+    },
+    {
+      "bucket": 225.99999999999997,
+      "n": 9
+    },
+    {
+      "bucket": 227,
+      "n": 10
+    },
+    {
+      "bucket": 227.99999999999997,
+      "n": 12
+    },
+    {
+      "bucket": 229,
+      "n": 12
+    },
+    {
+      "bucket": 229.99999999999997,
+      "n": 10
+    },
+    {
+      "bucket": 231,
+      "n": 11
+    },
+    {
+      "bucket": 231.99999999999997,
+      "n": 11
+    },
+    {
+      "bucket": 233,
+      "n": 6
+    },
+    {
+      "bucket": 234,
+      "n": 8
+    },
+    {
+      "bucket": 235,
+      "n": 5
+    },
+    {
+      "bucket": 236,
+      "n": 9
+    },
+    {
+      "bucket": 237,
+      "n": 6
+    },
+    {
+      "bucket": 238,
+      "n": 8
+    },
+    {
+      "bucket": 239,
+      "n": 4
+    },
+    {
+      "bucket": 240,
+      "n": 3
+    },
+    {
+      "bucket": 241,
+      "n": 10
+    },
+    {
+      "bucket": 242,
+      "n": 2
+    },
+    {
+      "bucket": 243.00000000000003,
+      "n": 6
+    },
+    {
+      "bucket": 244,
+      "n": 3
+    },
+    {
+      "bucket": 245.00000000000003,
+      "n": 7
+    },
+    {
+      "bucket": 246,
+      "n": 3
+    },
+    {
+      "bucket": 247.00000000000003,
+      "n": 3
+    },
+    {
+      "bucket": 248,
+      "n": 3
+    },
+    {
+      "bucket": 249.00000000000003,
+      "n": 5
+    },
+    {
+      "bucket": 250,
+      "n": 3
+    },
+    {
+      "bucket": 250.99999999999997,
+      "n": 2
+    },
+    {
+      "bucket": 252,
+      "n": 2
+    },
+    {
+      "bucket": 252.99999999999997,
+      "n": 3
+    },
+    {
+      "bucket": 254,
+      "n": 1
+    },
+    {
+      "bucket": 254.99999999999997,
+      "n": 1
+    },
+    {
+      "bucket": 256,
+      "n": 1
+    },
+    {
+      "bucket": 258,
+      "n": 4
+    },
+    {
+      "bucket": 260,
+      "n": 2
+    },
+    {
+      "bucket": 261,
+      "n": 4
+    },
+    {
+      "bucket": 262,
+      "n": 4
+    },
+    {
+      "bucket": 264,
+      "n": 1
+    },
+    {
+      "bucket": 265,
+      "n": 1
+    },
+    {
+      "bucket": 266,
+      "n": 3
+    },
+    {
+      "bucket": 268,
+      "n": 2
+    },
+    {
+      "bucket": 270,
+      "n": 2
+    },
+    {
+      "bucket": 274,
+      "n": 3
+    },
+    {
+      "bucket": 277,
+      "n": 1
+    },
+    {
+      "bucket": 279,
+      "n": 1
+    },
+    {
+      "bucket": 283,
+      "n": 1
+    }
+  ],
+  "scoring_version_coverage": [
+    {
+      "ver": "1",
+      "n": 716,
+      "last_written": "2026-07-15 21:25:45"
+    },
+    {
+      "ver": "2",
+      "n": 518,
+      "last_written": "2026-08-12 10:02:23"
+    },
+    {
+      "ver": "(null)",
+      "n": 241,
+      "last_written": "2026-08-20 13:18:07"
+    }
+  ],
+  "espn_calls_per_cron_tick": 28,
+  "espn_calls_per_day_estimate": 2688,
+  "keyevents_probe": {
+    "http": 200,
+    "has_keyEvents": true,
+    "count": 12,
+    "sample_fields": [
+      "id",
+      "type",
+      "period",
+      "clock",
+      "scoringPlay",
+      "source",
+      "wallclock",
+      "shootout"
+    ],
+    "first_has_athletes": false,
+    "first_clock": "",
+    "payload_kb": 301
+  },
+  "keyevents_mlb": {
+    "event": "401816603",
+    "http": 200,
+    "has_keyEvents": false,
+    "count": null,
+    "sample_fields": null,
+    "first_has_athletes": null,
+    "first_has_text": null,
+    "first_clock": null,
+    "any_with_athletes": null,
+    "payload_kb": 1082
+  },
+  "games_per_day_sample": [
+    {
+      "date": "2026-08-20",
+      "n": 54
+    },
+    {
+      "date": "2026-08-19",
+      "n": 38
+    },
+    {
+      "date": "2026-08-18",
+      "n": 25
+    },
+    {
+      "date": "2026-08-17",
+      "n": 13
+    },
+    {
+      "date": "2026-08-16",
+      "n": 26
+    },
+    {
+      "date": "2026-08-15",
+      "n": 43
+    },
+    {
+      "date": "2026-08-14",
+      "n": 21
+    },
+    {
+      "date": "2026-08-13",
+      "n": 19
+    },
+    {
+      "date": "2026-08-12",
+      "n": 18
+    },
+    {
+      "date": "2026-08-11",
+      "n": 18
+    },
+    {
+      "date": "2026-08-10",
+      "n": 13
+    },
+    {
+      "date": "2026-08-09",
+      "n": 22
+    },
+    {
+      "date": "2026-08-08",
+      "n": 55
+    },
+    {
+      "date": "2026-08-07",
+      "n": 21
+    }
+  ],
+  "espn_mb_per_day_estimate": 790,
+  "mlb_payload_shape": {
+    "event": "401816603",
+    "top_level": [
+      {
+        "key": "plays",
+        "type": "array",
+        "len": 655,
+        "kb": 538
+      },
+      {
+        "key": "boxscore",
+        "type": "object",
+        "len": 2,
+        "kb": 191
+      },
+      {
+        "key": "rosters",
+        "type": "array",
+        "len": 2,
+        "kb": 129
+      },
+      {
+        "key": "seasonseries",
+        "type": "array",
+        "len": 2,
+        "kb": 56
+      },
+      {
+        "key": "header",
+        "type": "object",
+        "len": 7,
+        "kb": 31
+      },
+      {
+        "key": "playsMap",
+        "type": "object",
+        "len": 655,
+        "kb": 29
+      },
+      {
+        "key": "news",
+        "type": "object",
+        "len": 3,
+        "kb": 27
+      },
+      {
+        "key": "article",
+        "type": "object",
+        "len": 27,
+        "kb": 17
+      },
+      {
+        "key": "videos",
+        "type": "array",
+        "len": 3,
+        "kb": 16
+      },
+      {
+        "key": "atBats",
+        "type": "object",
+        "len": 85,
+        "kb": 16
+      },
+      {
+        "key": "injuries",
+        "type": "array",
+        "len": 2,
+        "kb": 9
+      },
+      {
+        "key": "standings",
+        "type": "object",
+        "len": 2,
+        "kb": 7
+      },
+      {
+        "key": "winprobability",
+        "type": "array",
+        "len": 85,
+        "kb": 6
+      },
+      {
+        "key": "pickcenter",
+        "type": "array",
+        "len": 1,
+        "kb": 5
+      },
+      {
+        "key": "againstTheSpread",
+        "type": "array",
+        "len": 2,
+        "kb": 2
+      },
+      {
+        "key": "gameInfo",
+        "type": "object",
+        "len": 4,
+        "kb": 1
+      },
+      {
+        "key": "broadcasts",
+        "type": "array",
+        "len": 3,
+        "kb": 1
+      },
+      {
+        "key": "notes",
+        "type": "array",
+        "len": 0,
+        "kb": 0
+      },
+      {
+        "key": "format",
+        "type": "object",
+        "len": 1,
+        "kb": 0
+      },
+      {
+        "key": "odds",
+        "type": "array",
+        "len": 0,
+        "kb": 0
+      },
+      {
+        "key": "wallclockAvailable",
+        "type": "boolean",
+        "len": null,
+        "kb": 0
+      },
+      {
+        "key": "meta",
+        "type": "object",
+        "len": 8,
+        "kb": 0
+      }
+    ],
+    "array_candidates": {
+      "plays": {
+        "count": 655,
+        "sample_fields": [
+          "id",
+          "sequenceNumber",
+          "type",
+          "text",
+          "awayScore",
+          "homeScore",
+          "period",
+          "scoringPlay",
+          "scoreValue",
+          "team",
+          "wallclock",
+          "atBatId",
+          "summaryType",
+          "pitchCount",
+          "resultCount",
+          "outs"
+        ],
+        "first_has_text": true,
+        "first_has_athletes": false,
+        "sample_text": "Top of the 1st inning"
+      },
+      "rosters": {
+        "count": 2,
+        "sample_fields": [
+          "homeAway",
+          "winner",
+          "team",
+          "roster"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "seasonseries": {
+        "count": 2,
+        "sample_fields": [
+          "type",
+          "title",
+          "description",
+          "summary",
+          "completed",
+          "totalCompetitions",
+          "seriesScore",
+          "events"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "videos": {
+        "count": 3,
+        "sample_fields": [
+          "id",
+          "cerebroId",
+          "source",
+          "headline",
+          "description",
+          "lastModified",
+          "originalPublishDate",
+          "duration",
+          "timeRestrictions",
+          "deviceRestrictions",
+          "geoRestrictions",
+          "thumbnail",
+          "links",
+          "ad",
+          "tracking"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "injuries": {
+        "count": 2,
+        "sample_fields": [
+          "team",
+          "injuries"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "winprobability": {
+        "count": 85,
+        "sample_fields": [
+          "homeWinPercentage",
+          "tiePercentage",
+          "playId"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "pickcenter": {
+        "count": 1,
+        "sample_fields": [
+          "provider",
+          "details",
+          "overUnder",
+          "spread",
+          "overOdds",
+          "underOdds",
+          "awayTeamOdds",
+          "homeTeamOdds",
+          "links",
+          "moneyline",
+          "pointSpread",
+          "total",
+          "link",
+          "header",
+          "footer"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "againstTheSpread": {
+        "count": 2,
+        "sample_fields": [
+          "team",
+          "records"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "broadcasts": {
+        "count": 3,
+        "sample_fields": [
+          "type",
+          "station",
+          "market",
+          "media",
+          "lang",
+          "region",
+          "isNational"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      }
+    }
+  },
+  "mlb_scoring_plays": {
+    "total_plays": 655,
+    "scoring_plays": 11,
+    "with_text": 11,
+    "samples": [
+      {
+        "text": "Walker grounded out to second, Wetherholt scored, Herrera to second.",
+        "period": 1,
+        "scoreValue": 1,
+        "has_athletes_field": true
+      },
+      {
+        "text": "Walker homered to center (407 feet), Wetherholt scored and Herrera scored.",
+        "period": 3,
+        "scoreValue": 3,
+        "has_athletes_field": true
+      },
+      {
+        "text": "Bleday singled to right, Rodríguez scored, Stewart to second, Hayes to third.",
+        "period": 6,
+        "scoreValue": 1,
+        "has_athletes_field": true
+      },
+      {
+        "text": "McLain homered to left (360 feet), Hayes scored, Stewart scored and Bleday scored.",
+        "period": 6,
+        "scoreValue": 4,
+        "has_athletes_field": true
+      },
+      {
+        "text": "Wetherholt safe at first on fielding error by center fielder Myers, Fermín and Winn scored on error. Wetherholt safe at second on error. ",
+        "period": 9,
+        "scoreValue": 2,
+        "has_athletes_field": true
+      }
+    ],
+    "plays_kb": 538
+  },
+  "keyevents_items": [
+    {
+      "i": 0,
+      "type": "Kickoff",
+      "text": null,
+      "shortText": null,
+      "clock": "",
+      "period": 1,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 1,
+      "type": "Halftime",
+      "text": "First Half ends, Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "45'+1'",
+      "period": 1,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 2,
+      "type": "Start 2nd Half",
+      "text": "Second Half begins Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "45'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 3,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Lauri Laine replaces Antoin Essomba.",
+      "shortText": "Lauri Laine Substitution",
+      "clock": "70'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Lauri Laine",
+        "Antoin Bikoula"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 4,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Prosper Ahiabu replaces Jasse Tuominen.",
+      "shortText": "Prosper Ahiabu Substitution",
+      "clock": "70'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Prosper Ahiabu",
+        "Jasse Tuominen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 5,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Thomas Delaney replaces Alex Král.",
+      "shortText": "Thomas Delaney Substitution",
+      "clock": "72'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Thomas Delaney",
+        "Alex Král"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 6,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Youssoufa Moukoko replaces Geovanni Vianney Ndjee.",
+      "shortText": "Youssoufa Moukoko Substitution",
+      "clock": "72'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Youssoufa Moukoko",
+        "Geovanni Vianney"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 7,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Marvin Nasnas replaces Robert Silva.",
+      "shortText": "Marvin Nasnas Substitution",
+      "clock": "81'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Marvin Nasnas",
+        "Robert"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 8,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Yeboah Amankwah replaces Juuso Hämäläinen because of an injury.",
+      "shortText": "Yeboah Amankwah Substitution",
+      "clock": "86'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Yeboah Amankwah",
+        "Juuso Hämäläinen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 9,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Johannes Yli-Kokko replaces Janne-Pekka Laine.",
+      "shortText": "Johannes Yli-Kokko Substitution",
+      "clock": "86'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Johannes Yli-Kokko",
+        "Janne-Pekka Laine"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 10,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Viktor Dadason replaces Mads Emil Madsen.",
+      "shortText": "Viktor Dadason Substitution",
+      "clock": "90'+3'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Viktor Dadason",
+        "Mads Emil Madsen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 11,
+      "type": "End Regular Time",
+      "text": "Second Half ends, Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "90'+3'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    }
+  ],
+  "keyevents_field_union": [
+    "clock",
+    "id",
+    "participants",
+    "period",
+    "scoringPlay",
+    "shootout",
+    "shortText",
+    "source",
+    "team",
+    "text",
+    "type",
+    "wallclock"
+  ],
+  "keyevents_goal_items": {
+    "event": "401910985",
+    "slug": "uefa.europa.conf_qual",
+    "final": "1-1",
+    "items": [
+      {
+        "type": "Goal",
+        "text": "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right footed shot from the centre of the box to the centre of the goal.",
+        "shortText": "Enda Stevens Goal",
+        "clock": "49'",
+        "scoringPlay": true,
+        "participants": [
+          {
+            "name": "Enda Stevens",
+            "role": null
+          }
+        ]
+      },
+      {
+        "type": "Goal",
+        "text": "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed shot from the centre of the box to the centre of the goal. Assisted by Clinton Antwi.",
+        "shortText": "Piotr Parzyszek Goal",
+        "clock": "85'",
+        "scoringPlay": true,
+        "participants": [
+          {
+            "name": "Piotr Parzyszek",
+            "role": null
+          }
+        ]
+      }
+    ]
+  },
+  "keyevents_goal_attempts": [
+    {
+      "slug": "uefa.europa.conf_qual",
+      "http": 200,
+      "scoring_items": 2
+    }
+  ],
+  "error": null
+}
