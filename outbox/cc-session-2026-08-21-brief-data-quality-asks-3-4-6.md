@@ -110,3 +110,88 @@ are made on numbers.
 - 535 rows with `gNN` game_ids — unrecoverable by construction; deletion or
   null-out is a judgement call.
 - 41 genuinely mislabelled `game_recap` rows (ask 2's residue).
+
+---
+
+## Addendum — prerequisite probes run; both remaining asks change shape
+
+### Correction to this document and to commit `300fb73`
+
+I wrote that "no writer ever filled" `scoring_version`. **That is wrong.** It is
+populated on 1,234 `game_recap` rows:
+
+```
+ver=1      716   last 2026-07-15 21:25
+ver=2      518   last 2026-08-12 10:02
+(null)     241   last 2026-08-20 13:18
+```
+
+Some writer did stamp it and stopped after 2026-08-12. The null tail is 241 rows,
+not the whole table. Ask 6a is still correct and still needed — nothing was
+stamping it at the four sites I fixed, and `CURRENT_SCORING_ERA` is 3 while no
+row carries 3 — but the premise as I stated it was overclaimed.
+
+### Ask 6b — the premise does not survive measurement
+
+```
+in-progress language   n=  94   mean 184.3   min 116   max 277
+reads as final         n=1381   mean 190.1   min  97   max 283
+```
+
+Finals score **higher** on average. The CC-CMD's "quality_score rewards fluency
+over truth" holds for the cited 191 row — that row is real — but the metric is
+**not systemically inverted**. Recalibrating weights to correct an inversion that
+does not exist would be a change built on a false premise, and could degrade
+scoring rather than improve it.
+
+Ask 2 has also already removed most of 6b's motivation: in-progress briefs are no
+longer labelled `game_recap` at all, so the freshness weighting 6b asked for is
+largely moot for new rows.
+
+**Recommendation: rescope 6b** from "recalibrate because the metric is inverted"
+to the narrower, evidenced version — the metric fails to *penalise* in-progress
+prose (94 such rows scored up to 277). That is a real but much smaller change,
+and it needs a `measuredEffect` from a before/after re-score either way.
+
+### Ask 5 — premise FALSIFIED for the sport it was written about
+
+```
+MLB    event 401816603   has_keyEvents: FALSE     payload 1082 KB
+soccer event 401909622   has_keyEvents: true (12) payload  301 KB
+```
+
+The CC-CMD states "ESPN summary `keyEvents`: scoring plays, athletes involved,
+field coordinates" and illustrates with "Rice's 447-ft homer in the 3rd."
+**MLB summaries carry no `keyEvents` array.** Baseball play data lives elsewhere
+in that payload. Ask 5 cannot be built on `keyEvents` for baseball — which is
+both the CC-CMD's example sport and the archive's largest (MLB 791 of 1,452
+`game_recap` rows).
+
+Soccer does have `keyEvents` (12 entries on the probed fixture), but its `[0]`
+carried no `athletesInvolved` and an empty clock. Whether later entries carry
+athletes is UNMEASURED — `any_with_athletes` was only wired into the MLB code
+path, so the soccer value in the manifest is "not computed", not "none found".
+Stated as unknown rather than inferred.
+
+### Cost — and a correction to my own framing
+
+Measured: 28 games/day mean over 14 days (54, 38, 25, 13, 26 on recent days).
+
+I framed this as ~4,800 calls/day and treated Rule 78 as a gate. That used a
+per-tick model — 96 ticks/day — which is the wrong design and was never the only
+option. Fetching **once per game at finalisation** is ~28 calls/day and ~8 MB.
+The naive per-tick figure is 2,688 calls / 790 MB/day, which is what to avoid,
+not what the feature costs.
+
+**So cost was never the real blocker. The missing `keyEvents` array is.**
+
+### What each ask needs now
+
+- **Ask 5:** probe where MLB play data actually lives in the summary payload
+  (`plays`?), then rescope to "event-grounded where the feed supports it,
+  per-sport" — or drop baseball from the ask. Either way the CC-CMD's shape claim
+  must be corrected first; building against it as written would fail on the
+  largest sport.
+- **Ask 6b:** rescope per above, then a before/after re-score for `measuredEffect`.
+
+Both are laboratory-side doc corrections before they are relay-side builds.
