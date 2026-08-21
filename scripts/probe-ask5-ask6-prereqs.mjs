@@ -49,6 +49,9 @@ const m = {
     espn_calls_per_cron_tick: null,
     espn_calls_per_day_estimate: null,
     keyevents_probe: null,
+    keyevents_mlb: null,
+    games_per_day_sample: [],
+    espn_mb_per_day_estimate: null,
     error: null,
 };
 
@@ -84,12 +87,20 @@ try {
 
     // ask 5: real call volume. One summary fetch per game per tick is the naive
     // implementation; this is what that actually costs.
-    const perTick = await d1(
-        `SELECT COUNT(*) AS n FROM regular_season_games
-         WHERE date = date('now') AND espn_event_id IS NOT NULL`);
-    const n = perTick[0]?.n ?? 0;
-    m.espn_calls_per_cron_tick = n;
-    m.espn_calls_per_day_estimate = n * 96;   // */15 = 96 ticks/day
+    // CORRECTED: the first run measured date('now') at 05:15 UTC, before the day
+    // was seeded, and read 0. That was the probe's fault, not a finding. Use a
+    // 14-day mean of DAYS THAT HAVE GAMES -- a representative tick, not an empty
+    // one.
+    const vol = await d1(
+        `SELECT date, COUNT(*) AS n FROM regular_season_games
+         WHERE espn_event_id IS NOT NULL AND date >= date('now','-14 day') AND date < date('now')
+         GROUP BY date ORDER BY date DESC`);
+    m.games_per_day_sample = vol;
+    const days = vol.filter(r => r.n > 0);
+    const mean = days.length ? Math.round(days.reduce((a, r) => a + r.n, 0) / days.length) : 0;
+    m.espn_calls_per_cron_tick = mean;
+    m.espn_calls_per_day_estimate = mean * 96;   // */15 = 96 ticks/day
+    m.espn_mb_per_day_estimate = Math.round(mean * 96 * 301 / 1024);  // 301 KB/payload measured
     m.query_ok = true;
 } catch (e) {
     m.error = String(e.message || e);
@@ -97,6 +108,35 @@ try {
 
 // ask 5: does the payload actually carry what the ask assumes? Probed against a
 // real finished fixture rather than trusting the CC-CMD's description.
+const shape = (j) => {
+    const ke = j?.keyEvents;
+    return {
+        has_keyEvents: Array.isArray(ke),
+        count: Array.isArray(ke) ? ke.length : null,
+        sample_fields: Array.isArray(ke) && ke.length ? Object.keys(ke[0]) : null,
+        first_has_athletes: Array.isArray(ke) && ke.length ? !!ke[0].athletesInvolved : null,
+        first_has_text: Array.isArray(ke) && ke.length ? !!(ke[0].text || ke[0].shortText) : null,
+        first_clock: Array.isArray(ke) && ke.length ? (ke[0].clock?.displayValue ?? null) : null,
+        any_with_athletes: Array.isArray(ke) ? ke.filter(e => e.athletesInvolved?.length).length : null,
+        payload_kb: Math.round(JSON.stringify(j).length / 1024),
+    };
+};
+
+// MLB, because the CC-CMD's own examples are baseball ("Rice's 447-ft homer").
+// Soccer alone cannot settle whether the premise holds.
+try {
+    const mlbId = (await d1(
+        `SELECT espn_event_id AS id FROM regular_season_games
+         WHERE sport = 'MLB' AND espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
+         ORDER BY date DESC LIMIT 1`))[0]?.id;
+    if (mlbId) {
+        const rm = await fetch(`${ESPN}/baseball/mlb/summary?event=${mlbId}`, { headers: { 'User-Agent': UA } });
+        m.keyevents_mlb = { event: String(mlbId), http: rm.status, ...shape(await rm.json()) };
+    } else {
+        m.keyevents_mlb = { error: 'no finalized MLB row with an espn_event_id' };
+    }
+} catch (e) { m.keyevents_mlb = { error: String(e.message || e) }; }
+
 try {
     const r = await fetch(`${ESPN}/soccer/uefa.europa.conf_qual/summary?event=401909622`, {
         headers: { 'User-Agent': UA },
