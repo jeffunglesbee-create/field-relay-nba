@@ -1,0 +1,205 @@
+{
+  "probed_at": "2026-08-21T23:12:44.545Z",
+  "query_ok": true,
+  "coverage_past_only": [
+    {
+      "sport": "MLB",
+      "played_rows": 807,
+      "with_open": 704,
+      "pct": 87.2
+    },
+    {
+      "sport": "MLS",
+      "played_rows": 222,
+      "with_open": 108,
+      "pct": 48.6
+    },
+    {
+      "sport": "WNBA",
+      "played_rows": 183,
+      "with_open": 138,
+      "pct": 75.4
+    },
+    {
+      "sport": "EPL",
+      "played_rows": 26,
+      "with_open": 6,
+      "pct": 23.1
+    },
+    {
+      "sport": "La Liga",
+      "played_rows": 17,
+      "with_open": 2,
+      "pct": 11.8
+    },
+    {
+      "sport": "Ligue 1",
+      "played_rows": 2,
+      "with_open": 0,
+      "pct": 0
+    }
+  ],
+  "mls_past_vs_future": [
+    {
+      "bucket": "future",
+      "n": 326,
+      "with_open": 0
+    },
+    {
+      "bucket": "played",
+      "n": 222,
+      "with_open": 108
+    }
+  ],
+  "laliga_names": [
+    {
+      "team": "Alavés"
+    },
+    {
+      "team": "Athletic Club"
+    },
+    {
+      "team": "Atletico Madrid"
+    },
+    {
+      "team": "Atlético"
+    },
+    {
+      "team": "Barcelona"
+    },
+    {
+      "team": "Betis"
+    },
+    {
+      "team": "Celta Vigo"
+    },
+    {
+      "team": "Deportivo"
+    },
+    {
+      "team": "Elche"
+    },
+    {
+      "team": "Espanyol"
+    },
+    {
+      "team": "Español"
+    },
+    {
+      "team": "Getafe"
+    },
+    {
+      "team": "Girona"
+    },
+    {
+      "team": "Levante"
+    },
+    {
+      "team": "Mallorca"
+    },
+    {
+      "team": "Málaga"
+    },
+    {
+      "team": "Osasuna"
+    },
+    {
+      "team": "Racing"
+    },
+    {
+      "team": "Rayo"
+    },
+    {
+      "team": "Rayo Vallecano"
+    },
+    {
+      "team": "Real Betis"
+    },
+    {
+      "team": "Real Madrid"
+    },
+    {
+      "team": "Real Oviedo"
+    },
+    {
+      "team": "Real Sociedad"
+    },
+    {
+      "team": "Sevilla"
+    },
+    {
+      "team": "Valencia"
+    },
+    {
+      "team": "Villarreal"
+    }
+  ],
+  "epl_names": [
+    {
+      "team": "AFC Bournemouth"
+    },
+    {
+      "team": "Arsenal"
+    },
+    {
+      "team": "Aston Villa"
+    },
+    {
+      "team": "Brentford"
+    },
+    {
+      "team": "Brighton & Hove Albion"
+    },
+    {
+      "team": "Burnley"
+    },
+    {
+      "team": "Chelsea"
+    },
+    {
+      "team": "Coventry"
+    },
+    {
+      "team": "Crystal Palace"
+    },
+    {
+      "team": "Everton"
+    },
+    {
+      "team": "Fulham"
+    },
+    {
+      "team": "Leeds United"
+    },
+    {
+      "team": "Liverpool"
+    },
+    {
+      "team": "Manchester City"
+    },
+    {
+      "team": "Manchester United"
+    },
+    {
+      "team": "Newcastle United"
+    },
+    {
+      "team": "Nottingham Forest"
+    },
+    {
+      "team": "Sunderland"
+    },
+    {
+      "team": "Sunderland AFC"
+    },
+    {
+      "team": "Tottenham Hotspur"
+    },
+    {
+      "team": "West Ham United"
+    },
+    {
+      "team": "Wolverhampton Wanderers"
+    }
+  ]
+}

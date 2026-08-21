@@ -1,0 +1,3265 @@
+{
+  "probed_at": "2026-08-21T23:12:37.600Z",
+  "query_ok": true,
+  "score_by_liveness": [
+    {
+      "kind": "in-progress language",
+      "n": 94,
+      "mean_score": 184.3,
+      "min_score": 116,
+      "max_score": 277
+    },
+    {
+      "kind": "reads as final",
+      "n": 1385,
+      "mean_score": 190.1,
+      "min_score": 97,
+      "max_score": 283
+    }
+  ],
+  "score_distribution": [
+    {
+      "bucket": 97,
+      "n": 1
+    },
+    {
+      "bucket": 105,
+      "n": 1
+    },
+    {
+      "bucket": 110.00000000000001,
+      "n": 1
+    },
+    {
+      "bucket": 115.99999999999999,
+      "n": 1
+    },
+    {
+      "bucket": 117,
+      "n": 1
+    },
+    {
+      "bucket": 119,
+      "n": 2
+    },
+    {
+      "bucket": 121,
+      "n": 2
+    },
+    {
+      "bucket": 124,
+      "n": 2
+    },
+    {
+      "bucket": 125,
+      "n": 2
+    },
+    {
+      "bucket": 128,
+      "n": 2
+    },
+    {
+      "bucket": 129,
+      "n": 1
+    },
+    {
+      "bucket": 130,
+      "n": 2
+    },
+    {
+      "bucket": 132,
+      "n": 2
+    },
+    {
+      "bucket": 133,
+      "n": 3
+    },
+    {
+      "bucket": 135,
+      "n": 5
+    },
+    {
+      "bucket": 136,
+      "n": 3
+    },
+    {
+      "bucket": 137,
+      "n": 3
+    },
+    {
+      "bucket": 138,
+      "n": 3
+    },
+    {
+      "bucket": 139,
+      "n": 2
+    },
+    {
+      "bucket": 140,
+      "n": 6
+    },
+    {
+      "bucket": 141,
+      "n": 4
+    },
+    {
+      "bucket": 142,
+      "n": 8
+    },
+    {
+      "bucket": 143,
+      "n": 5
+    },
+    {
+      "bucket": 144,
+      "n": 8
+    },
+    {
+      "bucket": 145,
+      "n": 9
+    },
+    {
+      "bucket": 146,
+      "n": 8
+    },
+    {
+      "bucket": 147,
+      "n": 14
+    },
+    {
+      "bucket": 148,
+      "n": 9
+    },
+    {
+      "bucket": 149,
+      "n": 9
+    },
+    {
+      "bucket": 150,
+      "n": 10
+    },
+    {
+      "bucket": 151,
+      "n": 7
+    },
+    {
+      "bucket": 152,
+      "n": 11
+    },
+    {
+      "bucket": 153,
+      "n": 12
+    },
+    {
+      "bucket": 154,
+      "n": 10
+    },
+    {
+      "bucket": 155,
+      "n": 11
+    },
+    {
+      "bucket": 156,
+      "n": 12
+    },
+    {
+      "bucket": 157,
+      "n": 15
+    },
+    {
+      "bucket": 158,
+      "n": 14
+    },
+    {
+      "bucket": 159,
+      "n": 16
+    },
+    {
+      "bucket": 160,
+      "n": 25
+    },
+    {
+      "bucket": 161,
+      "n": 19
+    },
+    {
+      "bucket": 162,
+      "n": 21
+    },
+    {
+      "bucket": 163,
+      "n": 22
+    },
+    {
+      "bucket": 164,
+      "n": 17
+    },
+    {
+      "bucket": 165,
+      "n": 11
+    },
+    {
+      "bucket": 166,
+      "n": 26
+    },
+    {
+      "bucket": 167,
+      "n": 17
+    },
+    {
+      "bucket": 168,
+      "n": 30
+    },
+    {
+      "bucket": 169,
+      "n": 22
+    },
+    {
+      "bucket": 170,
+      "n": 19
+    },
+    {
+      "bucket": 171,
+      "n": 18
+    },
+    {
+      "bucket": 172,
+      "n": 27
+    },
+    {
+      "bucket": 173,
+      "n": 29
+    },
+    {
+      "bucket": 174,
+      "n": 28
+    },
+    {
+      "bucket": 175,
+      "n": 17
+    },
+    {
+      "bucket": 176,
+      "n": 22
+    },
+    {
+      "bucket": 177,
+      "n": 16
+    },
+    {
+      "bucket": 178,
+      "n": 17
+    },
+    {
+      "bucket": 179,
+      "n": 13
+    },
+    {
+      "bucket": 180,
+      "n": 21
+    },
+    {
+      "bucket": 181,
+      "n": 18
+    },
+    {
+      "bucket": 182,
+      "n": 10
+    },
+    {
+      "bucket": 183,
+      "n": 17
+    },
+    {
+      "bucket": 184,
+      "n": 13
+    },
+    {
+      "bucket": 185,
+      "n": 17
+    },
+    {
+      "bucket": 186,
+      "n": 11
+    },
+    {
+      "bucket": 187,
+      "n": 4
+    },
+    {
+      "bucket": 188,
+      "n": 16
+    },
+    {
+      "bucket": 189,
+      "n": 14
+    },
+    {
+      "bucket": 190,
+      "n": 11
+    },
+    {
+      "bucket": 191,
+      "n": 19
+    },
+    {
+      "bucket": 192,
+      "n": 13
+    },
+    {
+      "bucket": 193,
+      "n": 4
+    },
+    {
+      "bucket": 194,
+      "n": 11
+    },
+    {
+      "bucket": 195,
+      "n": 11
+    },
+    {
+      "bucket": 196,
+      "n": 9
+    },
+    {
+      "bucket": 197,
+      "n": 10
+    },
+    {
+      "bucket": 198,
+      "n": 9
+    },
+    {
+      "bucket": 199,
+      "n": 15
+    },
+    {
+      "bucket": 200,
+      "n": 12
+    },
+    {
+      "bucket": 200.99999999999997,
+      "n": 12
+    },
+    {
+      "bucket": 202,
+      "n": 14
+    },
+    {
+      "bucket": 202.99999999999997,
+      "n": 19
+    },
+    {
+      "bucket": 204,
+      "n": 20
+    },
+    {
+      "bucket": 204.99999999999997,
+      "n": 10
+    },
+    {
+      "bucket": 206,
+      "n": 11
+    },
+    {
+      "bucket": 206.99999999999997,
+      "n": 17
+    },
+    {
+      "bucket": 208,
+      "n": 20
+    },
+    {
+      "bucket": 209,
+      "n": 15
+    },
+    {
+      "bucket": 210,
+      "n": 12
+    },
+    {
+      "bucket": 211,
+      "n": 18
+    },
+    {
+      "bucket": 212,
+      "n": 14
+    },
+    {
+      "bucket": 213,
+      "n": 10
+    },
+    {
+      "bucket": 214,
+      "n": 12
+    },
+    {
+      "bucket": 215,
+      "n": 22
+    },
+    {
+      "bucket": 216,
+      "n": 8
+    },
+    {
+      "bucket": 217,
+      "n": 10
+    },
+    {
+      "bucket": 218.00000000000003,
+      "n": 10
+    },
+    {
+      "bucket": 219,
+      "n": 10
+    },
+    {
+      "bucket": 220.00000000000003,
+      "n": 14
+    },
+    {
+      "bucket": 221,
+      "n": 21
+    },
+    {
+      "bucket": 222.00000000000003,
+      "n": 12
+    },
+    {
+      "bucket": 223,
+      "n": 7
+    },
+    {
+      "bucket": 224.00000000000003,
+      "n": 20
+    },
+    {
+      "bucket": 225,
+      "n": 15
+    },
+    {
+      "bucket": 225.99999999999997,
+      "n": 9
+    },
+    {
+      "bucket": 227,
+      "n": 10
+    },
+    {
+      "bucket": 227.99999999999997,
+      "n": 12
+    },
+    {
+      "bucket": 229,
+      "n": 12
+    },
+    {
+      "bucket": 229.99999999999997,
+      "n": 10
+    },
+    {
+      "bucket": 231,
+      "n": 11
+    },
+    {
+      "bucket": 231.99999999999997,
+      "n": 11
+    },
+    {
+      "bucket": 233,
+      "n": 6
+    },
+    {
+      "bucket": 234,
+      "n": 8
+    },
+    {
+      "bucket": 235,
+      "n": 5
+    },
+    {
+      "bucket": 236,
+      "n": 9
+    },
+    {
+      "bucket": 237,
+      "n": 6
+    },
+    {
+      "bucket": 238,
+      "n": 8
+    },
+    {
+      "bucket": 239,
+      "n": 4
+    },
+    {
+      "bucket": 240,
+      "n": 3
+    },
+    {
+      "bucket": 241,
+      "n": 10
+    },
+    {
+      "bucket": 242,
+      "n": 2
+    },
+    {
+      "bucket": 243.00000000000003,
+      "n": 6
+    },
+    {
+      "bucket": 244,
+      "n": 3
+    },
+    {
+      "bucket": 245.00000000000003,
+      "n": 7
+    },
+    {
+      "bucket": 246,
+      "n": 3
+    },
+    {
+      "bucket": 247.00000000000003,
+      "n": 3
+    },
+    {
+      "bucket": 248,
+      "n": 3
+    },
+    {
+      "bucket": 249.00000000000003,
+      "n": 5
+    },
+    {
+      "bucket": 250,
+      "n": 3
+    },
+    {
+      "bucket": 250.99999999999997,
+      "n": 2
+    },
+    {
+      "bucket": 252,
+      "n": 2
+    },
+    {
+      "bucket": 252.99999999999997,
+      "n": 3
+    },
+    {
+      "bucket": 254,
+      "n": 1
+    },
+    {
+      "bucket": 254.99999999999997,
+      "n": 1
+    },
+    {
+      "bucket": 256,
+      "n": 1
+    },
+    {
+      "bucket": 258,
+      "n": 4
+    },
+    {
+      "bucket": 260,
+      "n": 2
+    },
+    {
+      "bucket": 261,
+      "n": 4
+    },
+    {
+      "bucket": 262,
+      "n": 4
+    },
+    {
+      "bucket": 264,
+      "n": 1
+    },
+    {
+      "bucket": 265,
+      "n": 1
+    },
+    {
+      "bucket": 266,
+      "n": 3
+    },
+    {
+      "bucket": 268,
+      "n": 2
+    },
+    {
+      "bucket": 270,
+      "n": 2
+    },
+    {
+      "bucket": 274,
+      "n": 3
+    },
+    {
+      "bucket": 277,
+      "n": 1
+    },
+    {
+      "bucket": 279,
+      "n": 1
+    },
+    {
+      "bucket": 283,
+      "n": 1
+    }
+  ],
+  "scoring_version_coverage": [
+    {
+      "ver": "1",
+      "n": 716,
+      "last_written": "2026-07-15 21:25:45"
+    },
+    {
+      "ver": "2",
+      "n": 518,
+      "last_written": "2026-08-12 10:02:23"
+    },
+    {
+      "ver": "(null)",
+      "n": 241,
+      "last_written": "2026-08-20 13:18:07"
+    },
+    {
+      "ver": "3",
+      "n": 4,
+      "last_written": "2026-08-21 22:45:19"
+    }
+  ],
+  "espn_calls_per_cron_tick": 28,
+  "espn_calls_per_day_estimate": 2688,
+  "keyevents_probe": {
+    "http": 200,
+    "has_keyEvents": true,
+    "count": 12,
+    "sample_fields": [
+      "id",
+      "type",
+      "period",
+      "clock",
+      "scoringPlay",
+      "source",
+      "wallclock",
+      "shootout"
+    ],
+    "first_has_athletes": false,
+    "first_clock": "",
+    "payload_kb": 301
+  },
+  "keyevents_mlb": {
+    "event": "401816617",
+    "http": 200,
+    "has_keyEvents": false,
+    "count": null,
+    "sample_fields": null,
+    "first_has_athletes": null,
+    "first_has_text": null,
+    "first_clock": null,
+    "any_with_athletes": null,
+    "payload_kb": 890
+  },
+  "games_per_day_sample": [
+    {
+      "date": "2026-08-20",
+      "n": 54
+    },
+    {
+      "date": "2026-08-19",
+      "n": 38
+    },
+    {
+      "date": "2026-08-18",
+      "n": 25
+    },
+    {
+      "date": "2026-08-17",
+      "n": 13
+    },
+    {
+      "date": "2026-08-16",
+      "n": 26
+    },
+    {
+      "date": "2026-08-15",
+      "n": 43
+    },
+    {
+      "date": "2026-08-14",
+      "n": 21
+    },
+    {
+      "date": "2026-08-13",
+      "n": 19
+    },
+    {
+      "date": "2026-08-12",
+      "n": 18
+    },
+    {
+      "date": "2026-08-11",
+      "n": 18
+    },
+    {
+      "date": "2026-08-10",
+      "n": 13
+    },
+    {
+      "date": "2026-08-09",
+      "n": 22
+    },
+    {
+      "date": "2026-08-08",
+      "n": 55
+    },
+    {
+      "date": "2026-08-07",
+      "n": 21
+    }
+  ],
+  "espn_mb_per_day_estimate": 790,
+  "mlb_payload_shape": {
+    "event": "401816617",
+    "top_level": [
+      {
+        "key": "plays",
+        "type": "array",
+        "len": 519,
+        "kb": 415
+      },
+      {
+        "key": "boxscore",
+        "type": "object",
+        "len": 2,
+        "kb": 170
+      },
+      {
+        "key": "rosters",
+        "type": "array",
+        "len": 2,
+        "kb": 111
+      },
+      {
+        "key": "header",
+        "type": "object",
+        "len": 7,
+        "kb": 30
+      },
+      {
+        "key": "seasonseries",
+        "type": "array",
+        "len": 2,
+        "kb": 27
+      },
+      {
+        "key": "news",
+        "type": "object",
+        "len": 3,
+        "kb": 25
+      },
+      {
+        "key": "playsMap",
+        "type": "object",
+        "len": 519,
+        "kb": 23
+      },
+      {
+        "key": "videos",
+        "type": "array",
+        "len": 4,
+        "kb": 21
+      },
+      {
+        "key": "article",
+        "type": "object",
+        "len": 27,
+        "kb": 16
+      },
+      {
+        "key": "atBats",
+        "type": "object",
+        "len": 71,
+        "kb": 13
+      },
+      {
+        "key": "standings",
+        "type": "object",
+        "len": 2,
+        "kb": 13
+      },
+      {
+        "key": "injuries",
+        "type": "array",
+        "len": 2,
+        "kb": 12
+      },
+      {
+        "key": "pickcenter",
+        "type": "array",
+        "len": 1,
+        "kb": 5
+      },
+      {
+        "key": "winprobability",
+        "type": "array",
+        "len": 71,
+        "kb": 5
+      },
+      {
+        "key": "againstTheSpread",
+        "type": "array",
+        "len": 2,
+        "kb": 2
+      },
+      {
+        "key": "gameInfo",
+        "type": "object",
+        "len": 4,
+        "kb": 1
+      },
+      {
+        "key": "broadcasts",
+        "type": "array",
+        "len": 4,
+        "kb": 1
+      },
+      {
+        "key": "notes",
+        "type": "array",
+        "len": 0,
+        "kb": 0
+      },
+      {
+        "key": "format",
+        "type": "object",
+        "len": 1,
+        "kb": 0
+      },
+      {
+        "key": "odds",
+        "type": "array",
+        "len": 0,
+        "kb": 0
+      },
+      {
+        "key": "wallclockAvailable",
+        "type": "boolean",
+        "len": null,
+        "kb": 0
+      },
+      {
+        "key": "meta",
+        "type": "object",
+        "len": 8,
+        "kb": 0
+      }
+    ],
+    "array_candidates": {
+      "plays": {
+        "count": 519,
+        "sample_fields": [
+          "id",
+          "sequenceNumber",
+          "type",
+          "text",
+          "awayScore",
+          "homeScore",
+          "period",
+          "scoringPlay",
+          "scoreValue",
+          "team",
+          "wallclock",
+          "atBatId",
+          "summaryType",
+          "pitchCount",
+          "resultCount",
+          "outs"
+        ],
+        "first_has_text": true,
+        "first_has_athletes": false,
+        "sample_text": "Top of the 1st inning"
+      },
+      "rosters": {
+        "count": 2,
+        "sample_fields": [
+          "homeAway",
+          "winner",
+          "team",
+          "roster"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "seasonseries": {
+        "count": 2,
+        "sample_fields": [
+          "type",
+          "title",
+          "description",
+          "summary",
+          "completed",
+          "totalCompetitions",
+          "seriesScore",
+          "events"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "videos": {
+        "count": 4,
+        "sample_fields": [
+          "id",
+          "cerebroId",
+          "source",
+          "headline",
+          "description",
+          "lastModified",
+          "originalPublishDate",
+          "duration",
+          "timeRestrictions",
+          "deviceRestrictions",
+          "geoRestrictions",
+          "thumbnail",
+          "links",
+          "ad",
+          "tracking"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "injuries": {
+        "count": 2,
+        "sample_fields": [
+          "team",
+          "injuries"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "pickcenter": {
+        "count": 1,
+        "sample_fields": [
+          "provider",
+          "details",
+          "overUnder",
+          "spread",
+          "overOdds",
+          "underOdds",
+          "awayTeamOdds",
+          "homeTeamOdds",
+          "links",
+          "moneyline",
+          "pointSpread",
+          "total",
+          "link",
+          "header",
+          "footer"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "winprobability": {
+        "count": 71,
+        "sample_fields": [
+          "homeWinPercentage",
+          "tiePercentage",
+          "playId"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "againstTheSpread": {
+        "count": 2,
+        "sample_fields": [
+          "team",
+          "records"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      },
+      "broadcasts": {
+        "count": 4,
+        "sample_fields": [
+          "type",
+          "station",
+          "market",
+          "media",
+          "lang",
+          "region",
+          "isNational"
+        ],
+        "first_has_text": false,
+        "first_has_athletes": false,
+        "sample_text": null
+      }
+    }
+  },
+  "mlb_scoring_plays": {
+    "total_plays": 519,
+    "scoring_plays": 3,
+    "with_text": 3,
+    "samples": [
+      {
+        "text": "Contreras singled to center, Lara scored, Chourio to third.",
+        "period": 3,
+        "scoreValue": 1,
+        "has_athletes_field": true
+      },
+      {
+        "text": "Vaughn grounded into fielder's choice to shortstop, Chourio scored, Contreras out at second.",
+        "period": 3,
+        "scoreValue": 1,
+        "has_athletes_field": true
+      },
+      {
+        "text": "Harris II singled to left, Acuña Jr. scored, Olson to second.",
+        "period": 8,
+        "scoreValue": 1,
+        "has_athletes_field": true
+      }
+    ],
+    "plays_kb": 415
+  },
+  "keyevents_items": [
+    {
+      "i": 0,
+      "type": "Kickoff",
+      "text": null,
+      "shortText": null,
+      "clock": "",
+      "period": 1,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 1,
+      "type": "Halftime",
+      "text": "First Half ends, Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "45'+1'",
+      "period": 1,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 2,
+      "type": "Start 2nd Half",
+      "text": "Second Half begins Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "45'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 3,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Lauri Laine replaces Antoin Essomba.",
+      "shortText": "Lauri Laine Substitution",
+      "clock": "70'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Lauri Laine",
+        "Antoin Bikoula"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 4,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Prosper Ahiabu replaces Jasse Tuominen.",
+      "shortText": "Prosper Ahiabu Substitution",
+      "clock": "70'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Prosper Ahiabu",
+        "Jasse Tuominen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 5,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Thomas Delaney replaces Alex Král.",
+      "shortText": "Thomas Delaney Substitution",
+      "clock": "72'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Thomas Delaney",
+        "Alex Král"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 6,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Youssoufa Moukoko replaces Geovanni Vianney Ndjee.",
+      "shortText": "Youssoufa Moukoko Substitution",
+      "clock": "72'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Youssoufa Moukoko",
+        "Geovanni Vianney"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 7,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Marvin Nasnas replaces Robert Silva.",
+      "shortText": "Marvin Nasnas Substitution",
+      "clock": "81'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Marvin Nasnas",
+        "Robert"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 8,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Yeboah Amankwah replaces Juuso Hämäläinen because of an injury.",
+      "shortText": "Yeboah Amankwah Substitution",
+      "clock": "86'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Yeboah Amankwah",
+        "Juuso Hämäläinen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 9,
+      "type": "Substitution",
+      "text": "Substitution, Inter Turku. Johannes Yli-Kokko replaces Janne-Pekka Laine.",
+      "shortText": "Johannes Yli-Kokko Substitution",
+      "clock": "86'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "3726",
+      "athletes": [
+        "Johannes Yli-Kokko",
+        "Janne-Pekka Laine"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 10,
+      "type": "Substitution",
+      "text": "Substitution, FC Copenhagen. Viktor Dadason replaces Mads Emil Madsen.",
+      "shortText": "Viktor Dadason Substitution",
+      "clock": "90'+3'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": "909",
+      "athletes": [
+        "Viktor Dadason",
+        "Mads Emil Madsen"
+      ],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    },
+    {
+      "i": 11,
+      "type": "End Regular Time",
+      "text": "Second Half ends, Inter Turku 0, FC Copenhagen 0.",
+      "shortText": null,
+      "clock": "90'+3'",
+      "period": 2,
+      "scoringPlay": false,
+      "scoreValue": null,
+      "team": null,
+      "athletes": [],
+      "all_fields": [
+        "id",
+        "type",
+        "text",
+        "period",
+        "clock",
+        "scoringPlay",
+        "source",
+        "wallclock",
+        "shootout"
+      ]
+    }
+  ],
+  "keyevents_field_union": [
+    "clock",
+    "id",
+    "participants",
+    "period",
+    "scoringPlay",
+    "shootout",
+    "shortText",
+    "source",
+    "team",
+    "text",
+    "type",
+    "wallclock"
+  ],
+  "keyevents_goal_items": {
+    "event": "401910985",
+    "slug": "uefa.europa.conf_qual",
+    "final": "1-1",
+    "items": [
+      {
+        "type": "Goal",
+        "text": "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right footed shot from the centre of the box to the centre of the goal.",
+        "shortText": "Enda Stevens Goal",
+        "clock": "49'",
+        "scoringPlay": true,
+        "participants": [
+          {
+            "name": "Enda Stevens",
+            "role": null
+          }
+        ]
+      },
+      {
+        "type": "Goal",
+        "text": "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed shot from the centre of the box to the centre of the goal. Assisted by Clinton Antwi.",
+        "shortText": "Piotr Parzyszek Goal",
+        "clock": "85'",
+        "scoringPlay": true,
+        "participants": [
+          {
+            "name": "Piotr Parzyszek",
+            "role": null
+          }
+        ]
+      }
+    ]
+  },
+  "keyevents_goal_attempts": [
+    {
+      "slug": "uefa.europa.conf_qual",
+      "http": 200,
+      "scoring_items": 2
+    }
+  ],
+  "assist_structure": {
+    "soccer_top_level": [
+      {
+        "key": "commentary",
+        "type": "array",
+        "len": 20
+      },
+      {
+        "key": "keyEvents",
+        "type": "array",
+        "len": 12
+      },
+      {
+        "key": "header",
+        "type": "object",
+        "len": 9
+      },
+      {
+        "key": "meta",
+        "type": "object",
+        "len": 8
+      },
+      {
+        "key": "gameInfo",
+        "type": "object",
+        "len": 3
+      },
+      {
+        "key": "news",
+        "type": "object",
+        "len": 3
+      },
+      {
+        "key": "lastFiveGames",
+        "type": "array",
+        "len": 2
+      },
+      {
+        "key": "odds",
+        "type": "array",
+        "len": 2
+      },
+      {
+        "key": "rosters",
+        "type": "array",
+        "len": 2
+      },
+      {
+        "key": "boxscore",
+        "type": "object",
+        "len": 1
+      },
+      {
+        "key": "format",
+        "type": "object",
+        "len": 1
+      },
+      {
+        "key": "pickcenter",
+        "type": "array",
+        "len": 1
+      },
+      {
+        "key": "standings",
+        "type": "object",
+        "len": 1
+      },
+      {
+        "key": "broadcasts",
+        "type": "array",
+        "len": 0
+      },
+      {
+        "key": "hasOdds",
+        "type": "boolean",
+        "len": null
+      },
+      {
+        "key": "videos",
+        "type": "array",
+        "len": 0
+      },
+      {
+        "key": "wallclockAvailable",
+        "type": "boolean",
+        "len": null
+      }
+    ],
+    "goals_sampled": 18,
+    "goals": [
+      {
+        "event": "401910985",
+        "final": "1-1",
+        "clock": "49'",
+        "text": "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right footed shot from the centre of the box to the centre of the goal.",
+        "text_says_assisted": false,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "149339",
+              "displayName": "Enda Stevens"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910985",
+        "final": "1-1",
+        "clock": "85'",
+        "text": "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed shot from the centre of the box to the centre of the goal. Assisted by Clinton Antwi.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "150441",
+              "displayName": "Piotr Parzyszek"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909634",
+        "final": "2-2",
+        "clock": "21'",
+        "text": "Goal! Hajduk Split 1, Rakow Czestochowa 0. Michele Sego (Hajduk Split) right footed shot from the centre of the box to the high centre of the goal. Assisted by Abdoulie Sanyang.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "274574",
+              "displayName": "Michele Sego"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909634",
+        "final": "2-2",
+        "clock": "27'",
+        "text": "Goal! Hajduk Split 1, Rakow Czestochowa 1. Mahir Emreli (Rakow Czestochowa) right footed shot from the centre of the box to the centre of the goal. Assisted by Erick Otieno.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "226974",
+              "displayName": "Mahir Emreli"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909634",
+        "final": "2-2",
+        "clock": "47'",
+        "text": "Goal! Hajduk Split 2, Rakow Czestochowa 1. Dali (Hajduk Split) right footed shot from the centre of the box to the centre of the goal. Assisted by Marin Soticek.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "300713",
+              "displayName": "Dalisson De Almeida"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909634",
+        "final": "2-2",
+        "clock": "90'+5'",
+        "text": "Goal! Hajduk Split 2, Rakow Czestochowa 2. Lamine Diaby-Fadiga (Rakow Czestochowa) right footed shot from the centre of the box to the high centre of the goal. Assisted by Isak Brusberg.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "268797",
+              "displayName": "Lamine Diaby-Fadiga"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909826",
+        "final": "3-1",
+        "clock": "9'",
+        "text": "Goal! Getafe 1, Partizan Belgrade 0. Enes Ünal (Getafe) right footed shot from the centre of the box to the bottom right corner. Assisted by Johan Mojica with a cross.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "218122",
+              "displayName": "Enes Ünal"
+            }
+          },
+          {
+            "athlete": {
+              "id": "173247",
+              "displayName": "Johan Mojica"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909826",
+        "final": "3-1",
+        "clock": "43'",
+        "text": "Goal! Getafe 1, Partizan Belgrade 1. Demba Seck (Partizan Belgrade) right footed shot from a difficult angle on the right to the bottom left corner. Assisted by Jeh.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "308476",
+              "displayName": "Demba Seck"
+            }
+          },
+          {
+            "athlete": {
+              "id": "358779",
+              "displayName": "Jeh "
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909826",
+        "final": "3-1",
+        "clock": "87'",
+        "text": "Goal! Getafe 2, Partizan Belgrade 1. Andrés García (Getafe) right footed shot from the centre of the box to the bottom right corner. Assisted by Martín Satriano.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "356080",
+              "displayName": "Andrés García"
+            }
+          },
+          {
+            "athlete": {
+              "id": "284854",
+              "displayName": "Martín Satriano"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909826",
+        "final": "3-1",
+        "clock": "90'",
+        "text": "Goal! Getafe 3, Partizan Belgrade 1. Johan Mojica (Getafe) left footed shot from outside the box to the bottom right corner. Assisted by Martín Satriano.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "173247",
+              "displayName": "Johan Mojica"
+            }
+          },
+          {
+            "athlete": {
+              "id": "284854",
+              "displayName": "Martín Satriano"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909635",
+        "final": "1-1",
+        "clock": "78'",
+        "text": "Goal! Dinamo City 1, Pafos 0. David Fadairo (Dinamo City) right footed shot. Assisted by Adamu Alhassan.",
+        "text_says_assisted": true,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "385807",
+              "displayName": "David Fadairo"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401909635",
+        "final": "1-1",
+        "clock": "83'",
+        "text": "Goal! Dinamo City 1, Pafos 1. Lelê (Pafos) converts the penalty with a right footed shot.",
+        "text_says_assisted": false,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "333936",
+              "displayName": "Lelê"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910989",
+        "final": "2-0",
+        "clock": "24'",
+        "text": "Goal! Sporting Braga 1, Austria Vienna 0. Pau Víctor (Sporting Braga) converts the penalty with a right footed shot to the high centre of the goal.",
+        "text_says_assisted": false,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "303808",
+              "displayName": "Pau Víctor"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910989",
+        "final": "2-0",
+        "clock": "88'",
+        "text": "Goal! Sporting Braga 2, Austria Vienna 0. Diego Rodrigues (Sporting Braga) right footed shot from the centre of the box to the bottom left corner. Assisted by Mario Dorgeles with a through ball following a fast break.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "398386",
+              "displayName": "Diego Rodrigues"
+            }
+          },
+          {
+            "athlete": {
+              "id": "347459",
+              "displayName": "Mario Dorgeles"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910986",
+        "final": "2-2",
+        "clock": "30'",
+        "text": "Goal! Heart of Midlothian 0, Rapid Vienna 1. Serge-Philippe Raux-Yao (Rapid Vienna) header from the centre of the box to the top right corner. Assisted by Matthias Seidl following a corner.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "290577",
+              "displayName": "Serge Raux Yao"
+            }
+          },
+          {
+            "athlete": {
+              "id": "364532",
+              "displayName": "Matthias Seidl"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910986",
+        "final": "2-2",
+        "clock": "55'",
+        "text": "Own Goal by Serge-Philippe Raux-Yao, Rapid Vienna. Heart of Midlothian 1, Rapid Vienna 1.",
+        "text_says_assisted": false,
+        "participant_count": 1,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "290577",
+              "displayName": "Serge Raux Yao"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910986",
+        "final": "2-2",
+        "clock": "62'",
+        "text": "Goal! Heart of Midlothian 2, Rapid Vienna 1. James Wilson (Heart of Midlothian) right footed shot from outside the box to the top right corner. Assisted by Cláudio Braga with a headed pass.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "362560",
+              "displayName": "James Wilson"
+            }
+          },
+          {
+            "athlete": {
+              "id": "405624",
+              "displayName": "Cláudio Braga"
+            }
+          }
+        ]
+      },
+      {
+        "event": "401910986",
+        "final": "2-2",
+        "clock": "79'",
+        "text": "Goal! Heart of Midlothian 2, Rapid Vienna 2. Nikolaus Wurmbrand (Rapid Vienna) left footed shot from a difficult angle on the left to the bottom left corner. Assisted by Nicolas Bajlicz following a corner.",
+        "text_says_assisted": true,
+        "participant_count": 2,
+        "participants_raw": [
+          {
+            "athlete": {
+              "id": "390503",
+              "displayName": "Nikolaus Wurmbrand"
+            }
+          },
+          {
+            "athlete": {
+              "id": "358565",
+              "displayName": "Nicolas Bajlicz"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "commentary_probe": {
+    "per_fixture": [
+      {
+        "event": "401910985",
+        "commentary_count": 20,
+        "keyEvents_count": 12,
+        "commentary_scoring": 2,
+        "kb": 4
+      },
+      {
+        "event": "401909634",
+        "commentary_count": 29,
+        "keyEvents_count": 21,
+        "commentary_scoring": 4,
+        "kb": 9
+      },
+      {
+        "event": "401909826",
+        "commentary_count": 111,
+        "keyEvents_count": 21,
+        "commentary_scoring": 4,
+        "kb": 32
+      },
+      {
+        "event": "401909635",
+        "commentary_count": 27,
+        "keyEvents_count": 19,
+        "commentary_scoring": 2,
+        "kb": 7
+      },
+      {
+        "event": "401910989",
+        "commentary_count": 109,
+        "keyEvents_count": 20,
+        "commentary_scoring": 2,
+        "kb": 29
+      },
+      {
+        "event": "401910986",
+        "commentary_count": 112,
+        "keyEvents_count": 19,
+        "commentary_scoring": 3,
+        "kb": 32
+      }
+    ],
+    "field_union": [
+      "play",
+      "sequence",
+      "text",
+      "time"
+    ],
+    "sample_items": [
+      {
+        "sequence": 0,
+        "time": {
+          "value": 0,
+          "displayValue": ""
+        },
+        "text": "Lineups are announced and players are warming up."
+      },
+      {
+        "sequence": 1,
+        "time": {
+          "value": 0,
+          "displayValue": ""
+        },
+        "text": "First Half begins."
+      },
+      {
+        "sequence": 2,
+        "time": {
+          "value": 2700,
+          "displayValue": "45'"
+        },
+        "text": "Fourth official has announced 1 minutes of added time."
+      },
+      {
+        "sequence": 3,
+        "time": {
+          "value": 2820,
+          "displayValue": "45'+2'"
+        },
+        "text": "First Half ends, Shamrock Rovers 0, KuPS 0."
+      },
+      {
+        "sequence": 4,
+        "time": {
+          "value": 2700,
+          "displayValue": "45'"
+        },
+        "text": "Second Half begins Shamrock Rovers 0, KuPS 0."
+      },
+      {
+        "sequence": 5,
+        "time": {
+          "value": 2940,
+          "displayValue": "49'"
+        },
+        "text": "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right footed shot from the centre of the box to the centre of the goal.",
+        "play": {
+          "id": "51178987",
+          "type": {
+            "id": "70",
+            "text": "Goal",
+            "type": "goal"
+          },
+          "text": "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right footed shot from the centre of the box to the centre of the goal.",
+          "shortText": "Enda Stevens Goal",
+          "period": {
+            "number": 2
+          },
+          "clock": {
+            "value": 2940,
+            "displayValue": "49'"
+          },
+          "team": {
+            "displayName": "Shamrock Rovers"
+          },
+          "participants": [
+            {
+              "athlete": {
+                "displayName": "Enda Stevens"
+              }
+            }
+          ],
+          "source": {
+            "id": "38",
+            "description": "SA.ENVOY"
+          },
+          "wallclock": "2026-08-20T20:05:49Z"
+        }
+      },
+      {
+        "sequence": 6,
+        "time": {
+          "value": 3480,
+          "displayValue": "58'"
+        },
+        "text": "Substitution, KuPS. Piotr Parzyszek replaces Petteri Pennanen."
+      },
+      {
+        "sequence": 7,
+        "time": {
+          "value": 3480,
+          "displayValue": "58'"
+        },
+        "text": "Substitution, KuPS. Joslyn Luyeye-Lutumba replaces Jaime Moreno."
+      },
+      {
+        "sequence": 8,
+        "time": {
+          "value": 4080,
+          "displayValue": "68'"
+        },
+        "text": "Substitution, Shamrock Rovers. Michael Noonan replaces Graham Burke."
+      },
+      {
+        "sequence": 9,
+        "time": {
+          "value": 4140,
+          "displayValue": "69'"
+        },
+        "text": "Saikou Touray (KuPS) is shown the yellow card for a bad foul.",
+        "play": {
+          "id": "51181818",
+          "type": {
+            "id": "94",
+            "text": "Yellow Card",
+            "type": "yellow-card"
+          },
+          "text": "Saikou Touray (KuPS) is shown the yellow card for a bad foul.",
+          "shortText": "Saikou Touray Yellow Card",
+          "period": {
+            "number": 2
+          },
+          "clock": {
+            "value": 4140,
+            "displayValue": "69'"
+          },
+          "team": {
+            "displayName": "KuPS Kuopio"
+          },
+          "participants": [
+            {
+              "athlete": {
+                "displayName": "Saikou Touray"
+              }
+            }
+          ],
+          "source": {
+            "id": "38",
+            "description": "SA.ENVOY"
+          },
+          "wallclock": "2026-08-20T20:25:48Z"
+        }
+      },
+      {
+        "sequence": 10,
+        "time": {
+          "value": 4140,
+          "displayValue": "69'"
+        },
+        "text": "Substitution, Shamrock Rovers. Daniel Mândroiu replaces Jack Byrne."
+      },
+      {
+        "sequence": 11,
+        "time": {
+          "value": 4140,
+          "displayValue": "69'"
+        },
+        "text": "Substitution, Shamrock Rovers. Aaron Greene replaces Jonathan Afolabi."
+      },
+      {
+        "sequence": 12,
+        "time": {
+          "value": 4620,
+          "displayValue": "77'"
+        },
+        "text": "Substitution, KuPS. Gustav Engvall replaces Saikou Touray."
+      },
+      {
+        "sequence": 13,
+        "time": {
+          "value": 4800,
+          "displayValue": "80'"
+        },
+        "text": "Substitution, Shamrock Rovers. Adam Brennan replaces Tunmise Sobowale."
+      },
+      {
+        "sequence": 14,
+        "time": {
+          "value": 5100,
+          "displayValue": "85'"
+        },
+        "text": "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed shot from the centre of the box to the centre of the goal. Assisted by Clinton Antwi.",
+        "play": {
+          "id": "51183798",
+          "type": {
+            "id": "70",
+            "text": "Goal",
+            "type": "goal"
+          },
+          "text": "Goal! Shamrock Rovers 1, KuPS 1. Piotr Parzyszek (KuPS) right footed shot from the centre of the box to the centre of the goal. Assisted by Clinton Antwi.",
+          "shortText": "Piotr Parzyszek Goal",
+          "period": {
+            "number": 2
+          },
+          "clock": {
+            "value": 5100,
+            "displayValue": "85'"
+          },
+          "team": {
+            "displayName": "KuPS Kuopio"
+          },
+          "participants": [
+            {
+              "athlete": {
+                "displayName": "Piotr Parzyszek"
+              }
+            }
+          ],
+          "source": {
+            "id": "38",
+            "description": "SA.ENVOY"
+          },
+          "wallclock": "2026-08-20T20:41:48Z"
+        }
+      },
+      {
+        "sequence": 15,
+        "time": {
+          "value": 5220,
+          "displayValue": "87'"
+        },
+        "text": "Substitution, KuPS. Niilo Kujasalo replaces Bob Armah."
+      },
+      {
+        "sequence": 16,
+        "time": {
+          "value": 5400,
+          "displayValue": "90'"
+        },
+        "text": "Fourth official has announced 4 minutes of added time."
+      },
+      {
+        "sequence": 17,
+        "time": {
+          "value": 5580,
+          "displayValue": "90'+3'"
+        },
+        "text": "Tommi Jyry (KuPS) is shown the yellow card for a bad foul.",
+        "play": {
+          "id": "51184423",
+          "type": {
+            "id": "94",
+            "text": "Yellow Card",
+            "type": "yellow-card"
+          },
+          "text": "Tommi Jyry (KuPS) is shown the yellow card for a bad foul.",
+          "shortText": "Tommi Jyry Yellow Card",
+          "period": {
+            "number": 2
+          },
+          "clock": {
+            "value": 5400,
+            "displayValue": "90'+3'"
+          },
+          "team": {
+            "displayName": "KuPS Kuopio"
+          },
+          "participants": [
+            {
+              "athlete": {
+                "displayName": "Tommi Jyry"
+              }
+            }
+          ],
+          "source": {
+            "id": "38",
+            "description": "SA.ENVOY"
+          },
+          "wallclock": "2026-08-20T20:49:48Z"
+        }
+      },
+      {
+        "sequence": 18,
+        "time": {
+          "value": 5700,
+          "displayValue": "90'+5'"
+        },
+        "text": "Second Half ends, Shamrock Rovers 1, KuPS 1."
+      },
+      {
+        "sequence": 19,
+        "time": {
+          "value": 0,
+          "displayValue": ""
+        },
+        "text": "Match ends, Shamrock Rovers 1, KuPS 1."
+      }
+    ],
+    "sample_event": "401910985"
+  },
+  "keyevents_commentary_setcmp": [
+    {
+      "event": "401910985",
+      "keyEvents": 12,
+      "commentary_total": 20,
+      "commentary_with_play": 4,
+      "keyEvents_distinct_ids": 12,
+      "commentary_distinct_play_ids": 4,
+      "missing_from_commentary": [
+        {
+          "id": "51180430",
+          "type": "Substitution",
+          "text": "Piotr Parzyszek (KuPS Kuopio) Substitution at 58'"
+        },
+        {
+          "id": "51180431",
+          "type": "Substitution",
+          "text": "Joslyn Luyeye-Lutumba (KuPS Kuopio) Substitution at 58'"
+        },
+        {
+          "id": "51181932",
+          "type": "Substitution",
+          "text": "Michael Noonan (Shamrock Rovers) Substitution at 68'"
+        },
+        {
+          "id": "51182111",
+          "type": "Substitution",
+          "text": "Aaron Greene (Shamrock Rovers) Substitution at 69'"
+        },
+        {
+          "id": "51182112",
+          "type": "Substitution",
+          "text": "Daniel Mandroiu (Shamrock Rovers) Substitution at 69'"
+        },
+        {
+          "id": "51182934",
+          "type": "Substitution",
+          "text": "Gustav Engvall (KuPS Kuopio) Substitution at 77'"
+        },
+        {
+          "id": "51183130",
+          "type": "Substitution",
+          "text": "Adam Brennan (Shamrock Rovers) Substitution at 80'"
+        },
+        {
+          "id": "51184078",
+          "type": "Substitution",
+          "text": "Niilo Kujasalo (KuPS Kuopio) Substitution at 87'"
+        }
+      ],
+      "extra_in_commentary": [],
+      "is_superset": false
+    },
+    {
+      "event": "401909634",
+      "keyEvents": 21,
+      "commentary_total": 29,
+      "commentary_with_play": 11,
+      "keyEvents_distinct_ids": 21,
+      "commentary_distinct_play_ids": 11,
+      "missing_from_commentary": [
+        {
+          "id": "51178588",
+          "type": "Substitution",
+          "text": "Diedounne Gaucho Debohi (Raków Czestochowa) Substitution at 45'"
+        },
+        {
+          "id": "51181146",
+          "type": "Substitution",
+          "text": "Jean Carlos (Raków Czestochowa) Substitution at 58'"
+        },
+        {
+          "id": "51181147",
+          "type": "Substitution",
+          "text": "Tomasz Pienko (Raków Czestochowa) Substitution at 58'"
+        },
+        {
+          "id": "51181360",
+          "type": "Substitution",
+          "text": "Alberto Del Moral (Hajduk Split) Substitution at 61'"
+        },
+        {
+          "id": "51182113",
+          "type": "Substitution",
+          "text": "Arvid Brorsson (Raków Czestochowa) Substitution at 67'"
+        },
+        {
+          "id": "51182250",
+          "type": "Substitution",
+          "text": "Dario Melnjak (Hajduk Split) Substitution at 68'"
+        },
+        {
+          "id": "51182251",
+          "type": "Substitution",
+          "text": "Anđelo Šutalo (Hajduk Split) Substitution at 68'"
+        },
+        {
+          "id": "51182737",
+          "type": "Substitution",
+          "text": "Isak Brusberg (Raków Czestochowa) Substitution at 74'"
+        },
+        {
+          "id": "51183132",
+          "type": "Substitution",
+          "text": "Marko Livaja (Hajduk Split) Substitution at 77'"
+        },
+        {
+          "id": "51183133",
+          "type": "Substitution",
+          "text": "Alec Van Hoorenbeeck (Hajduk Split) Substitution at 77'"
+        }
+      ],
+      "extra_in_commentary": [],
+      "is_superset": false
+    },
+    {
+      "event": "401909826",
+      "keyEvents": 21,
+      "commentary_total": 111,
+      "commentary_with_play": 32,
+      "keyEvents_distinct_ids": 21,
+      "commentary_distinct_play_ids": 32,
+      "missing_from_commentary": [
+        {
+          "id": "51184668",
+          "type": "End Regular Time",
+          "text": null
+        }
+      ],
+      "extra_in_commentary": [
+        {
+          "id": "51170066",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Martín Satriano (Getafe) right footed shot from outside the box is too high. Assisted by Ramón Terrats with a headed pass."
+        },
+        {
+          "id": "51170496",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Ramón Terrats (Getafe) header from the centre of the box misses to the right. Assisted by Johan Mojica with a cross."
+        },
+        {
+          "id": "51171708",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Ramón Terrats (Getafe) left footed shot from the left side of the box misses to the right. Assisted by Francho Serrano."
+        },
+        {
+          "id": "51172785",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Kiko Femenía (Getafe) right footed shot from the right side of the box is high and wide to the right."
+        },
+        {
+          "id": "51178912",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Francho Serrano (Getafe) left footed shot from the centre of the box is too high."
+        },
+        {
+          "id": "51180156",
+          "type": "Shot Hit Woodwork",
+          "text": "Jeh (Partizan Belgrade) hits the bar with a header from very close range. Assisted by Milan Vukotic with a cross following a corner."
+        },
+        {
+          "id": "51182418",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Milan Roganovic (Partizan Belgrade) left footed shot from the centre of the box is too high. Assisted by Milan Aleksic with a cross."
+        },
+        {
+          "id": "51182683",
+          "type": "Shot Hit Woodwork",
+          "text": "Enes Ünal (Getafe) hits the left post with a right footed shot from the centre of the box. Assisted by Andrés García."
+        },
+        {
+          "id": "51182955",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Milan Aleksic (Partizan Belgrade) right footed shot from outside the box is just a bit too high from a direct free kick."
+        },
+        {
+          "id": "51183494",
+          "type": "Shot Hit Woodwork",
+          "text": "Nikola Cumic (Partizan Belgrade) hits the left post with a left footed shot from the left side of the six yard box. Assisted by Milan Aleksic."
+        },
+        {
+          "id": "51183998",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Milan Aleksic (Partizan Belgrade) right footed shot from outside the box misses to the right. Assisted by Igor Miladinovic."
+        },
+        {
+          "id": "51184663",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Erik Kojzek (Partizan Belgrade) right footed shot from very close range is close, but misses to the left. Assisted by Vukasin Djurdjevic with a headed pass following a corner."
+        }
+      ],
+      "is_superset": false
+    },
+    {
+      "event": "401909635",
+      "keyEvents": 19,
+      "commentary_total": 27,
+      "commentary_with_play": 9,
+      "keyEvents_distinct_ids": 19,
+      "commentary_distinct_play_ids": 9,
+      "missing_from_commentary": [
+        {
+          "id": "51178639",
+          "type": "Substitution",
+          "text": "Samy Mmaee (Pafos) Substitution at 45'"
+        },
+        {
+          "id": "51180716",
+          "type": "Substitution",
+          "text": "Guga (Pafos) Substitution at 56'"
+        },
+        {
+          "id": "51180717",
+          "type": "Substitution",
+          "text": "Alexandre Brito (Pafos) Substitution at 56'"
+        },
+        {
+          "id": "51180718",
+          "type": "Substitution",
+          "text": "João Correia (Pafos) Substitution at 56'"
+        },
+        {
+          "id": "51183318",
+          "type": "Substitution",
+          "text": "Ibrahim Alhassan (Dinamo City) Substitution at 76'"
+        },
+        {
+          "id": "51183319",
+          "type": "Substitution",
+          "text": "David Fadairo (Dinamo City) Substitution at 76'"
+        },
+        {
+          "id": "51183320",
+          "type": "Substitution",
+          "text": "Dejvi Metaj (Dinamo City) Substitution at 76'"
+        },
+        {
+          "id": "51183321",
+          "type": "Substitution",
+          "text": "Isi Manellari (Dinamo City) Substitution at 76'"
+        },
+        {
+          "id": "51184278",
+          "type": "Substitution",
+          "text": "Anderson Silva (Pafos) Substitution at 88'"
+        },
+        {
+          "id": "51184349",
+          "type": "Substitution",
+          "text": "Bright James (Dinamo City) Substitution at 90'"
+        }
+      ],
+      "extra_in_commentary": [],
+      "is_superset": false
+    },
+    {
+      "event": "401910989",
+      "keyEvents": 20,
+      "commentary_total": 109,
+      "commentary_with_play": 27,
+      "keyEvents_distinct_ids": 20,
+      "commentary_distinct_play_ids": 26,
+      "missing_from_commentary": [
+        {
+          "id": "51175612",
+          "type": "Halftime",
+          "text": null
+        },
+        {
+          "id": "51185059",
+          "type": "End Delay",
+          "text": null
+        },
+        {
+          "id": "51184676",
+          "type": "End Regular Time",
+          "text": null
+        }
+      ],
+      "extra_in_commentary": [
+        {
+          "id": "51166898",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Johannes Eggestein (Austria Vienna) right footed shot from outside the box is close, but misses to the right. Assisted by Manfred Fischer."
+        },
+        {
+          "id": "51168921",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Demir Ege Tiknaz (Sporting Braga) right footed shot from the centre of the box is high and wide to the right following a corner."
+        },
+        {
+          "id": "51172597",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. João Moutinho (Sporting Braga) right footed shot from outside the box is too high. Assisted by Gabriel Silva."
+        },
+        {
+          "id": "51172832",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Fran Navarro (Sporting Braga) right footed shot from very close range is close, but misses to the right. Assisted by Gabriel Silva following a fast break."
+        },
+        {
+          "id": "51175294",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. João Moutinho (Sporting Braga) header from the centre of the box is close, but misses to the left. Assisted by Vítor Carvalho with a headed pass following a corner."
+        },
+        {
+          "id": "51179208",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Philipp Maybach (Austria Vienna) header from very close range is just a bit too high following a corner."
+        },
+        {
+          "id": "51183812",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Mario Dorgeles (Sporting Braga) left footed shot from the right side of the box is close, but misses to the right following a set piece situation."
+        },
+        {
+          "id": "51185064",
+          "type": "Foul",
+          "text": "Ibrahim Buhari (Austria Vienna) wins a free kick in the defensive half."
+        },
+        {
+          "id": "51185064",
+          "type": "Foul",
+          "text": "Foul by Diogo Travassos (Sporting Braga)."
+        },
+        {
+          "id": "51184629",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Sanel Saljic (Austria Vienna) left footed shot from outside the box is close, but misses to the left. Assisted by Lee Tae-Seok following a corner."
+        }
+      ],
+      "is_superset": false
+    },
+    {
+      "event": "401910986",
+      "keyEvents": 19,
+      "commentary_total": 112,
+      "commentary_with_play": 28,
+      "keyEvents_distinct_ids": 19,
+      "commentary_distinct_play_ids": 28,
+      "missing_from_commentary": [
+        {
+          "id": "51163109",
+          "type": "Kickoff",
+          "text": null
+        }
+      ],
+      "extra_in_commentary": [
+        {
+          "id": "51165615",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Oisin McEntee (Heart of Midlothian) header from the centre of the box misses to the right. Assisted by Blair Spittal following a set piece situation."
+        },
+        {
+          "id": "51166253",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Tom Renaud (Heart of Midlothian) right footed shot from the right side of the box is too high following a corner."
+        },
+        {
+          "id": "51170375",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Stuart Findlay (Heart of Midlothian) left footed shot from more than 35 yards is high and wide to the left. Assisted by Jordi Altena."
+        },
+        {
+          "id": "51171391",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Cláudio Braga (Heart of Midlothian) right footed shot from outside the box misses to the left."
+        },
+        {
+          "id": "51172536",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Pierre Landry Kaboré (Heart of Midlothian) left footed shot from the centre of the box misses to the left. Assisted by Josh McPake with a cross."
+        },
+        {
+          "id": "51176644",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Josh McPake (Heart of Midlothian) right footed shot from outside the box is too high. Assisted by Stuart Findlay following a corner."
+        },
+        {
+          "id": "51176749",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Matthias Seidl (Rapid Vienna) left footed shot from outside the box misses to the right. Assisted by Tonni Adamsen."
+        },
+        {
+          "id": "51178978",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Oisin McEntee (Heart of Midlothian) header from the centre of the box is too high. Assisted by Blair Spittal with a cross following a corner."
+        },
+        {
+          "id": "51180942",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Stuart Findlay (Heart of Midlothian) header from the centre of the box is high and wide to the right. Assisted by Blair Spittal following a set piece situation."
+        },
+        {
+          "id": "51181529",
+          "type": "Shot Off Target",
+          "text": "Attempt missed. Nenad Cvetkovic (Rapid Vienna) left footed shot from the centre of the box is just a bit too high. Assisted by Serge-Philippe Raux-Yao with a headed pass following a corner."
+        }
+      ],
+      "is_superset": false
+    }
+  ],
+  "enrichment_availability": {
+    "fixtures": [
+      {
+        "event": "401910985",
+        "commentary_count": 20,
+        "near_miss_items": 0,
+        "near_types": [
+          "Goal",
+          "Yellow Card"
+        ]
+      },
+      {
+        "event": "401909634",
+        "commentary_count": 29,
+        "near_miss_items": 0,
+        "near_types": [
+          "Goal",
+          "Yellow Card",
+          "Red Card"
+        ]
+      },
+      {
+        "event": "401909826",
+        "commentary_count": 111,
+        "near_miss_items": 12,
+        "near_types": [
+          "Kickoff",
+          "Goal",
+          "Shot Off Target",
+          "Yellow Card",
+          "Halftime",
+          "Start 2nd Half",
+          "Shot Hit Woodwork",
+          "Substitution",
+          "Red Card"
+        ]
+      },
+      {
+        "event": "401909635",
+        "commentary_count": 27,
+        "near_miss_items": 0,
+        "near_types": [
+          "Yellow Card",
+          "Penalty - Missed",
+          "Goal",
+          "Penalty - Scored"
+        ]
+      },
+      {
+        "event": "401910989",
+        "commentary_count": 109,
+        "near_miss_items": 10,
+        "near_types": [
+          "Kickoff",
+          "Shot Off Target",
+          "Penalty - Scored",
+          "Start 2nd Half",
+          "Substitution",
+          "Yellow Card",
+          "Goal - Volley",
+          "End Delay",
+          "Foul"
+        ]
+      },
+      {
+        "event": "401909637",
+        "commentary_count": 108,
+        "near_miss_items": 10,
+        "near_types": [
+          "Yellow Card",
+          "Shot Off Target",
+          "Shot Hit Woodwork",
+          "Goal - Volley",
+          "Substitution",
+          "Red Card",
+          "Foul",
+          "End Regular Time"
+        ]
+      },
+      {
+        "event": "401910986",
+        "commentary_count": 112,
+        "near_miss_items": 10,
+        "near_types": [
+          "Shot Off Target",
+          "Goal - Header",
+          "Halftime",
+          "Start 2nd Half",
+          "Yellow Card",
+          "Own Goal",
+          "Substitution",
+          "Goal",
+          "End Regular Time"
+        ]
+      },
+      {
+        "event": "401910974",
+        "commentary_count": 24,
+        "near_miss_items": 0,
+        "near_types": [
+          "Yellow Card",
+          "Goal"
+        ]
+      },
+      {
+        "event": "401910991",
+        "commentary_count": 127,
+        "near_miss_items": 13,
+        "near_types": [
+          "Kickoff",
+          "Goal",
+          "Shot Off Target",
+          "Yellow Card",
+          "Shot Hit Woodwork",
+          "Goal - Header",
+          "Shot On Target",
+          "Substitution",
+          "Start 2nd Half",
+          "Foul",
+          "Red Card",
+          "Penalty - Scored"
+        ]
+      },
+      {
+        "event": "401909630",
+        "commentary_count": 23,
+        "near_miss_items": 0,
+        "near_types": [
+          "Penalty - Saved",
+          "Yellow Card"
+        ]
+      },
+      {
+        "event": "401910969",
+        "commentary_count": 108,
+        "near_miss_items": 14,
+        "near_types": [
+          "Kickoff",
+          "Shot Off Target",
+          "Goal - Header",
+          "Halftime",
+          "Start 2nd Half",
+          "Goal",
+          "Penalty - Scored",
+          "Substitution",
+          "Offside",
+          "Shot Hit Woodwork"
+        ]
+      },
+      {
+        "event": "401909472",
+        "commentary_count": 99,
+        "near_miss_items": 5,
+        "near_types": [
+          "Shot Off Target",
+          "Substitution",
+          "Yellow Card",
+          "Start Delay",
+          "End Delay",
+          "Halftime",
+          "Start 2nd Half",
+          "Shot On Target",
+          "Shot Blocked",
+          "End Regular Time"
+        ]
+      },
+      {
+        "event": "401909632",
+        "commentary_count": 105,
+        "near_miss_items": 16,
+        "near_types": [
+          "Kickoff",
+          "Shot Off Target",
+          "Shot Hit Woodwork",
+          "Yellow Card",
+          "Goal",
+          "Substitution",
+          "Start 2nd Half",
+          "Goal - Header",
+          "Penalty - Scored"
+        ]
+      },
+      {
+        "event": "401910971",
+        "commentary_count": 23,
+        "near_miss_items": 0,
+        "near_types": [
+          "Goal",
+          "Yellow Card",
+          "Penalty - Scored"
+        ]
+      },
+      {
+        "event": "401909629",
+        "commentary_count": 123,
+        "near_miss_items": 12,
+        "near_types": [
+          "Kickoff",
+          "Goal",
+          "Shot Off Target",
+          "Yellow Card",
+          "Halftime",
+          "Substitution",
+          "Goal - Header",
+          "Shot Hit Woodwork"
+        ]
+      },
+      {
+        "event": "401909620",
+        "commentary_count": 99,
+        "near_miss_items": 8,
+        "near_types": [
+          "Yellow Card",
+          "Shot Off Target",
+          "Substitution",
+          "Shot Hit Woodwork",
+          "Goal"
+        ]
+      },
+      {
+        "event": "401910956",
+        "commentary_count": 29,
+        "near_miss_items": 0,
+        "near_types": [
+          "Goal",
+          "Yellow Card"
+        ]
+      },
+      {
+        "event": "401910987",
+        "commentary_count": 98,
+        "near_miss_items": 12,
+        "near_types": [
+          "Shot Off Target",
+          "Yellow Card",
+          "Halftime",
+          "Start 2nd Half",
+          "Substitution",
+          "Goal",
+          "Goal - Header"
+        ]
+      },
+      {
+        "event": "401911219",
+        "commentary_count": 18,
+        "near_miss_items": 0,
+        "near_types": [
+          "Yellow Card"
+        ]
+      },
+      {
+        "event": "401910953",
+        "commentary_count": 129,
+        "near_miss_items": 15,
+        "near_types": [
+          "Shot Off Target",
+          "Halftime",
+          "Start 2nd Half",
+          "Yellow Card",
+          "Substitution"
+        ]
+      }
+    ],
+    "rich_tier": 12,
+    "sparse_tier": 8,
+    "http_failures": 0
+  },
+  "other_sports": [
+    {
+      "sport": "NFL",
+      "event": "401873286",
+      "source": "d1",
+      "scoreboard_attempts": null,
+      "date": "2026-08-20",
+      "http": 200,
+      "top_level": [
+        {
+          "key": "drives",
+          "type": "object",
+          "len": 1,
+          "kb": 404
+        },
+        {
+          "key": "boxscore",
+          "type": "object",
+          "len": 2,
+          "kb": 68
+        },
+        {
+          "key": "news",
+          "type": "object",
+          "len": 3,
+          "kb": 31
+        },
+        {
+          "key": "videos",
+          "type": "array",
+          "len": 5,
+          "kb": 23
+        },
+        {
+          "key": "article",
+          "type": "object",
+          "len": 27,
+          "kb": 19
+        },
+        {
+          "key": "injuries",
+          "type": "array",
+          "len": 2,
+          "kb": 13
+        },
+        {
+          "key": "winprobability",
+          "type": "array",
+          "len": 181,
+          "kb": 13
+        },
+        {
+          "key": "header",
+          "type": "object",
+          "len": 8,
+          "kb": 13
+        },
+        {
+          "key": "standings",
+          "type": "object",
+          "len": 4,
+          "kb": 13
+        },
+        {
+          "key": "leaders",
+          "type": "array",
+          "len": 2,
+          "kb": 12
+        },
+        {
+          "key": "scoringPlays",
+          "type": "array",
+          "len": 8,
+          "kb": 10
+        },
+        {
+          "key": "pickcenter",
+          "type": "array",
+          "len": 1,
+          "kb": 5
+        }
+      ],
+      "containers": {
+        "plays": {
+          "present": false
+        },
+        "keyEvents": {
+          "present": false
+        },
+        "scoringPlays": {
+          "present": true,
+          "count": 8,
+          "fields": [
+            "id",
+            "type",
+            "text",
+            "awayScore",
+            "homeScore",
+            "period",
+            "clock",
+            "team",
+            "scoringType"
+          ],
+          "scoring_count": 8,
+          "scoring_samples": [
+            {
+              "text": "Woody Marks 20 Yd Run (Ka'imi Fairbairn Kick)",
+              "clock": "10:06",
+              "period": 1
+            },
+            {
+              "text": "Wade Woodaz 80 Yd Interception Return (Ka'imi Fairbairn Kick)",
+              "clock": "8:18",
+              "period": 1
+            },
+            {
+              "text": "Ka'imi Fairbairn 51 Yd Field Goal ",
+              "clock": "3:04",
+              "period": 1
+            }
+          ]
+        },
+        "commentary": {
+          "present": false
+        }
+      }
+    },
+    {
+      "sport": "NBA",
+      "event": "401810433",
+      "source": "espn-scoreboard:20260115",
+      "scoreboard_attempts": [
+        {
+          "date": "20260115",
+          "http": 200,
+          "events": 9
+        }
+      ],
+      "date": "2026-01-15T19:00Z",
+      "http": 200,
+      "top_level": [
+        {
+          "key": "plays",
+          "type": "array",
+          "len": 491,
+          "kb": 241
+        },
+        {
+          "key": "news",
+          "type": "object",
+          "len": 3,
+          "kb": 44
+        },
+        {
+          "key": "winprobability",
+          "type": "array",
+          "len": 491,
+          "kb": 33
+        },
+        {
+          "key": "boxscore",
+          "type": "object",
+          "len": 2,
+          "kb": 24
+        },
+        {
+          "key": "header",
+          "type": "object",
+          "len": 8,
+          "kb": 13
+        },
+        {
+          "key": "standings",
+          "type": "object",
+          "len": 4,
+          "kb": 13
+        },
+        {
+          "key": "leaders",
+          "type": "array",
+          "len": 2,
+          "kb": 12
+        },
+        {
+          "key": "injuries",
+          "type": "array",
+          "len": 2,
+          "kb": 10
+        },
+        {
+          "key": "seasonseries",
+          "type": "array",
+          "len": 1,
+          "kb": 6
+        },
+        {
+          "key": "article",
+          "type": "object",
+          "len": 27,
+          "kb": 6
+        },
+        {
+          "key": "pickcenter",
+          "type": "array",
+          "len": 1,
+          "kb": 5
+        },
+        {
+          "key": "againstTheSpread",
+          "type": "array",
+          "len": 2,
+          "kb": 2
+        }
+      ],
+      "containers": {
+        "plays": {
+          "present": true,
+          "count": 491,
+          "fields": [
+            "id",
+            "sequenceNumber",
+            "type",
+            "text",
+            "awayScore",
+            "homeScore",
+            "period",
+            "clock",
+            "scoringPlay",
+            "scoreValue",
+            "team",
+            "participants",
+            "wallclock",
+            "shootingPlay",
+            "coordinate",
+            "pointsAttempted",
+            "shortDescription"
+          ],
+          "scoring_count": 119,
+          "scoring_samples": [
+            {
+              "text": "Paolo Banchero makes driving layup (Anthony Black assists)",
+              "clock": "11:23",
+              "period": 1
+            },
+            {
+              "text": "Jaren Jackson Jr. makes 9-foot two point shot (Cam Spencer assists)",
+              "clock": "11:02",
+              "period": 1
+            },
+            {
+              "text": "Anthony Black makes 25-foot three point jumper (Desmond Bane assists)",
+              "clock": "10:11",
+              "period": 1
+            }
+          ]
+        },
+        "keyEvents": {
+          "present": false
+        },
+        "scoringPlays": {
+          "present": false
+        },
+        "commentary": {
+          "present": false
+        }
+      }
+    },
+    {
+      "sport": "NHL",
+      "event": "401803091",
+      "source": "espn-scoreboard:20260115",
+      "scoreboard_attempts": [
+        {
+          "date": "20260115",
+          "http": 200,
+          "events": 10
+        }
+      ],
+      "date": "2026-01-16T00:00Z",
+      "http": 200,
+      "top_level": [
+        {
+          "key": "plays",
+          "type": "array",
+          "len": 299,
+          "kb": 252
+        },
+        {
+          "key": "boxscore",
+          "type": "object",
+          "len": 2,
+          "kb": 46
+        },
+        {
+          "key": "header",
+          "type": "object",
+          "len": 8,
+          "kb": 36
+        },
+        {
+          "key": "seasonseries",
+          "type": "array",
+          "len": 2,
+          "kb": 31
+        },
+        {
+          "key": "news",
+          "type": "object",
+          "len": 3,
+          "kb": 16
+        },
+        {
+          "key": "standings",
+          "type": "object",
+          "len": 2,
+          "kb": 9
+        },
+        {
+          "key": "leaders",
+          "type": "array",
+          "len": 2,
+          "kb": 7
+        },
+        {
+          "key": "article",
+          "type": "object",
+          "len": 27,
+          "kb": 6
+        },
+        {
+          "key": "injuries",
+          "type": "array",
+          "len": 2,
+          "kb": 5
+        },
+        {
+          "key": "pickcenter",
+          "type": "array",
+          "len": 1,
+          "kb": 5
+        },
+        {
+          "key": "againstTheSpread",
+          "type": "array",
+          "len": 2,
+          "kb": 2
+        },
+        {
+          "key": "gameInfo",
+          "type": "object",
+          "len": 3,
+          "kb": 1
+        }
+      ],
+      "containers": {
+        "plays": {
+          "present": true,
+          "count": 299,
+          "fields": [
+            "id",
+            "sequenceNumber",
+            "type",
+            "text",
+            "awayScore",
+            "homeScore",
+            "period",
+            "clock",
+            "scoringPlay",
+            "scoreValue",
+            "modified",
+            "wallclock",
+            "shootingPlay",
+            "strength"
+          ],
+          "scoring_count": 8,
+          "scoring_samples": [
+            {
+              "text": "Cole Caufield Goal (22) Wrist Shot, assists: Noah Dobson (21)",
+              "clock": "3:11",
+              "period": 1
+            },
+            {
+              "text": "Tage Thompson Goal (23) Snap Shot, assists: Noah Ostlund (7), Jason Zucker (11)",
+              "clock": "4:05",
+              "period": 1
+            },
+            {
+              "text": "Josh Doan Goal (15) Wrist Shot, assists: Tage Thompson (23), Noah Ostlund (8)",
+              "clock": "10:30",
+              "period": 1
+            }
+          ]
+        },
+        "keyEvents": {
+          "present": false
+        },
+        "scoringPlays": {
+          "present": false
+        },
+        "commentary": {
+          "present": false
+        }
+      }
+    }
+  ],
+  "error": null
+}
