@@ -69,6 +69,8 @@ const m = {
     epl_labelled_mls_content: [],
     nonconforming_recent: [],
     football_rows: [],
+    lowercase_sport_samples: [],
+    baseball_mlb_samples: [],
     error: null,
 };
 
@@ -268,6 +270,21 @@ try {
     m.football_rows = await d1(
         `SELECT id, brief_type, source, date, substr(brief_text,1,80) AS excerpt
          FROM briefs WHERE sport = 'football' ORDER BY date DESC LIMIT 6`);
+
+    // 10. Which writer? The id shape names it -- each site builds a distinct
+    // id prefix, so a sample of the offending rows identifies the code path
+    // faster and more reliably than reading 13 INSERT sites.
+    m.lowercase_sport_samples = await d1(
+        `SELECT id, sport, brief_type, source, date, created_at
+         FROM briefs
+         WHERE sport IN ('mlb','mls','la liga','nfl','pga tour','fifa world cup',
+                         'uefa europa league qualifying','uefa europa conference league qualifying')
+           AND source = 'cron'
+         ORDER BY created_at DESC LIMIT 10`);
+
+    m.baseball_mlb_samples = await d1(
+        `SELECT id, sport, brief_type, source, date, created_at
+         FROM briefs WHERE sport = 'Baseball (MLB)' ORDER BY created_at DESC LIMIT 4`);
 
     const mlsRow = m.coverage_by_sport.find(r => r.sport === 'MLS');
     m.premise_holds_for_mls = mlsRow ? mlsRow.rows_with_id > 0 : null;
