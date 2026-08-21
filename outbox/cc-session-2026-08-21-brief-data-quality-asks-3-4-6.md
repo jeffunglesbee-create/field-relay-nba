@@ -670,3 +670,74 @@ negative-tested against all three cases:
 
 The third case matters: a missing file must fail loudly rather than compare as
 "no diff," which is how this class of check usually rots.
+
+---
+
+## Addendum 9 — closing-odds capture: fixed one defect, found a second
+
+`887c843` (fix + guard), `e816bda` (probe). Manifest
+`outbox/closing-hook-firing-20260821T224048Z.json`.
+
+### The CC-CMD asked for something already built
+
+`CC-CMD-2026-08-21-closing-odds-capture` asks to "land (or re-activate)" the
+pre→live hook. It is already landed: `src/ambient-do.js` defines
+`_captureClosingOdds` (L718), calls it from `pendingStarts` (L498–500), dedupes
+via `_gameStarts` (L394–397). Its named carry-forward is done too —
+`brief-freshness.js` `_ODDS_SOURCES` already contains `'closing_odds_capture'`.
+
+**And the hook fires: 18 captures, 2026-07-04 → 2026-08-21 19:03:03.** That last
+timestamp is the Betis card on the live desk (`19:03:03.474Z`); Arsenal's
+`19:01:36.023Z` is another. It works.
+
+### Defect 1 (FIXED) — the backfill stole the column
+
+`.github/scripts/odds-backfill.js` wrote one historical snapshot into **both**
+`opening_odds` and `closing_odds`. `_captureClosingOdds` updates
+`WHERE closing_odds IS NULL`, so for a game not yet kicked off the batch won
+first and the guard was false forever. Result: byte-identical pair, closing's
+`captured_at` at or before opening's — the desk's
+`NOT SEQUENCED (10:00:54.720Z vs 10:00:37.956Z)` on WNBA.
+
+Fixed with a date gate rather than a deletion: a game already played has no
+kickoff left to capture, so one-snapshot-to-both stays correct there. Guarded by
+`check-closing-odds-not-prefilled.mjs`, negative-tested.
+
+### Defect 2 (FOUND, NOT FIXED) — and I read it backwards first
+
+Seeing "one snapshot" on the Arsenal and Betis cards, I said their
+`closing_odds` was NULL and the hook had not fired. **Both halves were wrong.**
+Measured state for 2026-08-21:
+
+| sport | rows | has_open | has_close |
+|-------|------|----------|-----------|
+| MLB | 15 | 15 | 15 |
+| WNBA | 3 | 3 | 3 |
+| Ligue 1 | 1 | 1 | 1 |
+| **EPL** | 1 | **0** | **1** |
+| **La Liga** | 1 | **0** | **1** |
+| NFL | 3 | 0 | 0 |
+| golf | 1 | 0 | 0 |
+
+EPL and La Liga have the **closing** line and no **opening** one — the mirror
+image of what I assumed. The hook did its job; nothing captured the opening line
+for those competitions.
+
+So `OddsStory.Moved` needs both ends and is blocked two different ways:
+
+- **MLB / WNBA** — blocked by defect 1. Now unblocked: opening arrives from the
+  `odds_api` poll (~10:00), closing from the hook at kickoff, which is a real
+  sequence. Verifiable on the next completed MLB or WNBA game.
+- **EPL / La Liga** — blocked by a missing **opening** capture. Out of scope for
+  the fix above and not something to patch blind; it needs its own probe into why
+  `odds_api` opening writes cover MLB, WNBA and Ligue 1 but not EPL or La Liga.
+
+### Verification (Rule 74 — STAGED with unblock criteria)
+
+**Staged:** whether defect 1's fix produces a genuine sequence.
+**Blocked by:** needs one MLB/WNBA game to complete a pre→live transition after
+the 887c843 deploy.
+**Verify:** on the next such game,
+`closing_odds.captured_at > opening_odds.captured_at` and the desk renders
+`ML X → Y` rather than `NOT SEQUENCED`.
+**Unblocked when:** tomorrow's slate runs.
