@@ -41,7 +41,8 @@ async function d1(sql, params = []) {
 const m = { probed_at: new Date().toISOString(), query_ok: false,
     gnn_total: null, gnn_recent: null, gnn_by_day: [],
     epl_context: null, epl_archive: null,
-    nonconforming_total: null, error: null };
+    nonconforming_total: null, nonconforming_by_variant: null,
+    client_writes_since_fix: null, client_samples_since_fix: null, error: null };
 
 try {
     m.gnn_total = (await d1(
@@ -63,6 +64,30 @@ try {
         `SELECT COUNT(*) AS rows_, COUNT(DISTINCT sport) AS variants FROM briefs b
          WHERE NOT EXISTS (SELECT 1 FROM regular_season_games g WHERE g.sport = b.sport)
            AND NOT EXISTS (SELECT 1 FROM postseason_games p WHERE p.sport = b.sport)`);
+    // POSITIVE CONTROL. The newest gNN row is 04:26:12 and the client fix
+    // (jubilant-bassoon 7eb5d388) was committed 04:40:50, so every ordinal row
+    // predates the fix. But "no new bad rows" proves nothing if the client
+    // wrote NOTHING since -- the test would be vacuous. This asks whether
+    // client-source briefs are still arriving, and whether their ids are the
+    // real event ids the fix was supposed to start sending.
+    m.client_writes_since_fix = await d1(
+        `SELECT COUNT(*) AS n,
+                SUM(CASE WHEN game_id GLOB 'g[0-9]*' THEN 1 ELSE 0 END) AS still_ordinal,
+                MIN(created_at) AS first_, MAX(created_at) AS last_
+         FROM briefs WHERE source = 'client' AND created_at > '2026-08-21 04:41:00'`);
+    m.client_samples_since_fix = await d1(
+        `SELECT id, sport, game_id, created_at FROM briefs
+         WHERE source = 'client' AND created_at > '2026-08-21 04:41:00'
+         ORDER BY created_at DESC LIMIT 6`);
+
+    // 601 (census, 13:19) vs 784 (NOT EXISTS, 15:13) cannot both be current.
+    // Recount per variant with the same predicate so the difference is
+    // attributable to a variant rather than to the query shape.
+    m.nonconforming_by_variant = await d1(
+        `SELECT b.sport, COUNT(*) AS n, MAX(b.created_at) AS last_written FROM briefs b
+         WHERE NOT EXISTS (SELECT 1 FROM regular_season_games g WHERE g.sport = b.sport)
+           AND NOT EXISTS (SELECT 1 FROM postseason_games p WHERE p.sport = b.sport)
+         GROUP BY b.sport ORDER BY n DESC`);
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }
 
