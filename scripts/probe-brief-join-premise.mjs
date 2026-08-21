@@ -65,6 +65,8 @@ const m = {
     recaps_written_before_kickoff: null,
     recaps_pre_kickoff_with_live_language: null,
     recap_types_present: [],
+    brief_sport_census: [],
+    epl_labelled_mls_content: [],
     error: null,
 };
 
@@ -214,6 +216,36 @@ try {
         `SELECT brief_type, COUNT(*) AS n FROM briefs
          WHERE brief_type IN ('game_recap','game_live','narrative_context')
          GROUP BY brief_type ORDER BY n DESC`);
+
+    // 7. ask 3: full census of briefs.sport, with the games table's own sport
+    // vocabulary alongside. A brief whose sport matches no value the games table
+    // uses is unreachable by every sport-filtered read, including
+    // /archive/query?sport= -- which is how `football` (21) and `mlb` (4) sit at
+    // a 0% join rate. Measured rather than assumed: there may be more than two.
+    m.brief_sport_census = await d1(
+        `SELECT b.sport,
+                COUNT(*) AS briefs,
+                SUM(CASE WHEN EXISTS(SELECT 1 FROM regular_season_games r WHERE r.sport = b.sport)
+                      OR EXISTS(SELECT 1 FROM postseason_games p WHERE p.sport = b.sport)
+                    THEN 1 ELSE 0 END) AS sport_known_to_games
+         FROM briefs b WHERE b.sport IS NOT NULL
+         GROUP BY b.sport ORDER BY briefs DESC LIMIT 40`);
+
+    // 8. ask 3 part 2: sport label vs the clubs actually named in the text.
+    // Enumerated club list, not a judgement call. These names cannot appear in
+    // an EPL fixture.
+    m.epl_labelled_mls_content = await d1(
+        `SELECT id, sport, date, substr(brief_text,1,90) AS excerpt
+         FROM briefs
+         WHERE sport IN ('EPL','epl')
+           AND ( brief_text LIKE '%Revolution%'   OR brief_text LIKE '%D.C. United%'
+              OR brief_text LIKE '%Sounders%'     OR brief_text LIKE '%Whitecaps%'
+              OR brief_text LIKE '%Timbers%'      OR brief_text LIKE '%Earthquakes%'
+              OR brief_text LIKE '%Red Bulls%'    OR brief_text LIKE '%Inter Miami%'
+              OR brief_text LIKE '%LA Galaxy%'    OR brief_text LIKE '%Sporting Kansas City%'
+              OR brief_text LIKE '%Real Salt Lake%' OR brief_text LIKE '%FC Dallas%'
+              OR brief_text LIKE '%MLS%' )
+         ORDER BY date DESC LIMIT 10`);
 
     const mlsRow = m.coverage_by_sport.find(r => r.sport === 'MLS');
     m.premise_holds_for_mls = mlsRow ? mlsRow.rows_with_id > 0 : null;
