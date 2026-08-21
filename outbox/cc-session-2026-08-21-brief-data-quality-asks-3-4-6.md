@@ -618,3 +618,55 @@ header). Both copies now identical; client smoke 985 passed, 0 failed.
 
 This is precisely the failure CONTRACTS.md exists to prevent, happening to
 CONTRACTS.md itself. Worth a periodic identity check between the two copies.
+
+---
+
+## Addendum 8 — CONTRACTS.md identity check, in CI
+
+`00556d9` (relay), `9f175643` (client).
+
+CONTRACTS.md has always opened with "This file must be identical in
+jubilant-bassoon AND field-relay-nba." Nothing enforced it, and Addendum 7 found
+the client copy 173 lines behind, stale since 2026-06-30.
+
+### Design
+
+`.github/workflows/contracts-identity-check.yml` in **both** repos. Each checks
+out both copies and diffs them. On mismatch it prints the unified diff, the
+differing `## ` section headings, and each copy's line count and sha256 — so the
+output says *which side is behind*, not merely that they disagree.
+
+**Both halves are required.** A workflow only sees its own repo's pushes, so the
+relay copy catches relay-side edits and the client copy catches client-side ones.
+Together they cover every change to either file.
+
+**No `schedule:`.** It fires on pushes touching `CONTRACTS.md` — the only event
+that can create divergence. A cron would burn runs on days nobody edited it,
+which is the waste pattern documented in
+jubilant-bassoon `outbox/cc-session-2026-08-16-scheduled-workflow-audit.md`.
+
+**Auth differs by direction, and that was measured, not assumed.** The relay side
+uses the `checkout` + `repository:` + `RELAY_GH_PAT` pattern already established
+by `deploy-health-protocol.yml`. The client side has no equivalent secret — but
+`field-relay-nba` is public (verified 2026-08-21 via the repos API,
+`"visibility": "public"`), so an unauthenticated checkout succeeds. The workflow
+records that if the relay ever goes private, the fix is to add a read-scoped PAT,
+**not** to delete the step.
+
+### Verification artifact (Rule 89)
+
+Dispatched both, both `conclusion: success`:
+- relay run `32489615730`
+- client run `32489622308`
+
+Green on identical files only proves the happy path, so the comparison logic was
+negative-tested against all three cases:
+
+| case | result |
+|------|--------|
+| identical (792 lines, sha `74d010c8` both sides) | exit 0, "PASS: identical." |
+| client missing the ESPN section (792 vs 718 lines) | **exit 1**, named `## ESPN per-sport event source (summary endpoint)` |
+| client file absent | **exit 1**, `client/CONTRACTS.md does not exist` |
+
+The third case matters: a missing file must fail loudly rather than compare as
+"no diff," which is how this class of check usually rots.
