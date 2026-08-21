@@ -482,3 +482,71 @@ recording only if something later needs structured assists.
 Whether every `keyEvents` item also appears in `commentary`. The goal items
 match verbatim in the fixtures examined, but no per-item set comparison was run,
 so "commentary is a superset" is UNVERIFIED and should not be relied on.
+
+---
+
+## Addendum 6 — set comparison: the containers OVERLAP, neither is a superset
+
+Run 16 (`23883a0`; manifest `ask5-ask6-prereq-manifest-20260821T055808Z.json`).
+Joined on event id (`keyEvents[].id` vs `commentary[].play.id`), not on text —
+text equality would beg the question and would also pair two identically-worded
+substitutions.
+
+**`is_superset: false` on all 6 fixtures.** Addendum 5's caution was correct;
+had it been asserted, it would have been wrong.
+
+| event | keyEvents | commentary (with play) | missing from commentary | extra in commentary |
+|-------|-----------|------------------------|-------------------------|---------------------|
+| 401910985 | 12 | 20 (4) | **8** | 0 |
+| 401909634 | 21 | 29 (11) | **10** | 0 |
+| 401909826 | 21 | 111 (32) | 1 | **12** |
+| 401909635 | 19 | 27 (9) | **10** | 0 |
+| 401910989 | 20 | 109 (27) | 3 | **10** |
+| 401910986 | 19 | 112 (28) | 1 | **10** |
+
+Both directions miss, so the relationship is **overlap**, not containment.
+
+### What each side holds exclusively
+
+**Only in `keyEvents`** — substitutions and period markers:
+`"Piotr Parzyszek (KuPS Kuopio) Substitution at 58'"`, plus `Kickoff`,
+`Halftime`, `End Delay`, `End Regular Time` (these carry `text: null`).
+The sparse-tier fixtures lose 8–10 items this way, all substitutions.
+
+**Only in `commentary`** — near-miss and incident events, which `keyEvents` has
+no representation of at all:
+```
+[Shot Off Target] "Attempt missed. Martín Satriano (Getafe) right footed shot
+                   from outside the box is too high. Assisted by Ramón Terrats."
+[Shot Hit Woodwork] ...
+[Foul] ...
+```
+These appear only in the rich tier (10–12 per fixture); the sparse tier has zero.
+
+### Goals are in both — verified, not assumed
+
+**0 goal items missing from commentary across all 6 fixtures.** The exclusions
+are entirely substitutions, period markers, and near-misses. So the ask-5 read
+path is unaffected either way: goal prose is reachable and verbatim-identical
+through both containers.
+
+### One duplicate id found
+
+401910989: `commentary_with_play: 27` but `commentary_distinct_play_ids: 26` — a
+repeated play id. Reporting raw and distinct counts separately was what caught
+it; a single count would have shown 27 items of "coverage" from 26 events.
+
+### Net effect on ask 5: still unchanged, plus one real option
+
+The contract stands: soccer → `keyEvents` where `scoringPlay === true`, read
+`text`. Nothing here displaces it.
+
+But the set comparison surfaced something the count comparison could not:
+`commentary` carries **`Shot Off Target` / `Shot Hit Woodwork` / `Foul` events
+that `keyEvents` does not contain at all** — the near-misses that make a recap
+read like a match rather than a scoreline. That is a genuine enrichment option
+for ask 5, available only on rich-tier fixtures (detectable in advance via
+`commentary.length`, per Addendum 5).
+
+Flagging it as an option, **not** adopting it: it widens ask 5's scope beyond
+what the CC-CMD specifies, and Rule 69 puts that in its own prompt.
