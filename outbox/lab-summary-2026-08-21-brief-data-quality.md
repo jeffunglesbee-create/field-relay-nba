@@ -318,3 +318,73 @@ golf excluded. The remaining 18% is not one problem:
 
 Neither is in scope for the three items above; both are listed so the 82% is not
 mistaken for evidence about them.
+
+---
+
+## 8. Verification of rev 4 (probed 2026-08-21 15:13–15:16 UTC)
+
+Rev 4 folds in this session's corrections accurately. Three of its figures were
+re-checked rather than inherited (Rule 72), and one of them moved.
+
+### 8.1 The gNN guard IS holding — verified non-vacuously
+
+Rev 4 says 535 ordinal ids; the census said 539. Four more rows looks like a
+shipped guard that does not guard, so it was checked properly.
+
+- Newest ordinal row: **04:26:12**. Client fix `7eb5d388`: **04:40:50**. Every
+  gNN row predates the fix.
+- **Positive control** — "no new bad rows" proves nothing if the client wrote
+  nothing since. Client-source briefs after 04:41: **6 writes, `still_ordinal: 0`**,
+  carrying real event ids (`823746`, `823420`, `823510`, `824721`).
+
+The guard works. 535 → 539 was measurement drift between two probe runs, not
+leakage. **Use 539.**
+
+### 8.2 EPL is still NOT being carried — opens tomorrow
+
+Rev 4's EPL-readiness claim was a day old with a deadline of 2026-08-22.
+Re-checked against the relay's own served view (the thing the client renders,
+not ESPN, which answers a different question):
+
+```
+/context/date/2026-08-22   -> 15 games, {"MLS": 15}, has_epl: false
+/archive/query?date=2026-08-22 -> count 1  (a single MLB row)
+```
+
+**Unchanged. The 2026-27 Premier League opens tomorrow and FIELD carries none of
+it.** This is the most time-critical item in the document and it is not one of
+the shipped asks — ask 3 gave EPL a *label contract*, not an *archive seed*.
+
+### 8.3 The residual is 601, not 784 — my query, not the data
+
+A `NOT EXISTS` recount returned **784 rows / 20 variants** against the census's
+601. Resolved: the gap is **183 rows with `sport IS NULL`**, which the census
+grouped separately.
+
+Those are **not defects**. They are overwhelmingly `brief_type: 'slate'` —
+cross-sport daily briefs that legitimately have no single sport and no
+`game_id` (`slate_2026-08-21_cron`, `slate_2026-08-20_all`, …). They run back to
+**2026-06-15** across 4 sources at a steady 2–3/day.
+
+Also checked, because the timing implicated it: **ask 3's fix did not create
+this class.** The old bind was `label.toLowerCase()`, which *throws* on null,
+while `canonicalizeWC26Sport` opens `if (!sport) return sport` and would pass
+null through — so a new NULL class dated 2026-08-21 would have been my
+regression. It dates to two months before the fix. Not a regression.
+
+**§5's 601 figure stands.** Ignore 784.
+
+### 8.4 One row that does look wrong
+
+`epl_match_2026-08-21_all` — `brief_type: epl_match`, `sport: null`,
+`game_id: null`, `source: client`. A competition-specific brief should carry a
+competition label. One row, but it is an *EPL* row the day before EPL opens, so
+it is worth a look alongside 8.2.
+
+### 8.5 Two rev-4 items to amend
+
+- **CFL is not ambiguous.** Rev 4 item 5 still lists `CFL … Week 7` as ambiguous
+  alongside `NBA Playoffs`. `'CFL'` is this project's declared sponsor-neutral
+  label (`src/index.js:8034`), so all four CFL variants map determinately.
+  `NBA Playoffs` (2 rows) is the only genuine judgment call.
+- **Ordinal count 535 → 539**, per 8.1.
