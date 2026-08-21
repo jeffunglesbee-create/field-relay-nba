@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-06-30 (round-label shipped end to end — relay + client)
+Last synced: 2026-08-21 (ESPN per-sport event source — relay + client copies)
 
 ---
 
@@ -713,3 +713,80 @@ needs its own dedicated look, not a rushed change under this dispatch.
 set from a client-supplied WebSocket query param) was also left unverified
 — not confirmed against real client code in this session.
 
+
+---
+
+## ESPN per-sport event source (summary endpoint)
+
+Producer: ESPN `site.web.api.espn.com/apis/site/v2/sports/{path}/summary?event={id}`
+Consumer: relay recap/brief generation (ask 5, CC-CMD-2026-08-20-brief-data-quality)
+
+**There is no single container. Each sport puts scoring events somewhere
+different, and the three probed independently disagreed.** Verified 2026-08-21
+against real finalized events (Rule 73 context: one completed event per sport;
+NBA/NHL ids came from the ESPN scoreboard for 2026-01-15 because both are out of
+season in D1 in August).
+
+| sport | ESPN path | container | filter | prose field |
+|-------|-----------|-----------|--------|-------------|
+| soccer | `soccer/{league-slug}` | `keyEvents` | `scoringPlay === true` | `text` |
+| MLB | `baseball/mlb` | `plays` | `scoringPlay === true` | `text` |
+| NBA | `basketball/nba` | `plays` | `scoringPlay === true` | `text` |
+| NHL | `hockey/nhl` | `plays` | `scoringPlay === true` | `text` |
+| NFL | `football/nfl` | `scoringPlays` | *(all items are scoring)* | `text` |
+
+`keyEvents` is ABSENT for MLB, NBA, NHL and NFL. `plays` is ABSENT for soccer and
+NFL. `commentary` exists for soccer only. **Do not read a container without
+checking the sport** — every one of these absences was measured, not assumed.
+
+Verbatim samples, one per sport:
+
+```
+soccer  "Goal! Shamrock Rovers 1, KuPS 0. Enda Stevens (Shamrock Rovers) right
+         footed shot from the centre of the box to the centre of the goal."
+MLB     "Walker homered to center (407 feet), Wetherholt scored and Herrera scored."
+NBA     "Paolo Banchero makes driving layup (Anthony Black assists)"
+NHL     "Cole Caufield Goal (22) Wrist Shot, assists: Noah Dobson (21)"
+NFL     "Woody Marks 20 Yd Run (Ka'imi Fairbairn Kick)"
+```
+
+### Read `text`, not the structured participant fields
+
+Soccer `participants[]` entries are `{athlete:{id,displayName}}` with **no role
+field**; role is positional (`[0]` scorer, `[1]` assister). Measured across 18
+goals: the assister is structurally present on only 8 of 14 assisted goals, while
+`text` carried it 14/14. NBA and NHL `text` likewise names assists inline.
+Structured names also disagree with the prose ("Dali" vs "Dalisson De Almeida").
+
+Use `participants[0].athlete.id` for stable joins. Not as a prose source.
+
+### Scoring-item volume differs by an order of magnitude
+
+Per completed event: NFL 8, NHL 8, soccer 2–4, MLB 11, **NBA 119** (every made
+basket is a scoring play). A generator that concatenates scoring items will
+produce a usable paragraph for four sports and an unusable wall for basketball —
+NBA needs selection, not enumeration.
+
+### Cost
+
+One summary fetch per game **at finalization**, not per cron tick: ~28 calls/day
+against a 14-day mean of 28 games/day. Per-tick would be 2,688 calls / 790 MB.
+Payload sizes measured: MLB 1,082 KB, soccer 301 KB. Rule 78 applies — replicate
+the existing `cacheEverything` + TTL pattern.
+
+### Soccer near-miss enrichment — ADOPTED
+
+`commentary` carries `Shot Off Target`, `Shot Hit Woodwork` and `Foul` events
+that `keyEvents` does not contain at all. Availability measured over 20 fixtures:
+**12 rich-tier (98–129 commentary items, 5–16 near-misses), 8 sparse-tier (18–29
+items, 0 near-misses)** — a clean bimodal split with nothing in between, so
+`commentary.length >= 60` identifies a rich fixture before parsing.
+
+Enrichment therefore fires on ~60% of soccer fixtures. Recaps use near-miss items
+where present and degrade to goals-only where not. The same tier governs whether
+`participants[1]` is populated (sparse: 0/6 assists structured; rich: 8/8).
+
+`keyEvents` and `commentary` **overlap; neither is a superset** — verified by
+per-item id join across 6 fixtures. `keyEvents` uniquely holds substitutions and
+period markers; `commentary` uniquely holds near-misses. All goal items appear in
+both (0 missing across 6 fixtures), so the goal read path is unaffected.
