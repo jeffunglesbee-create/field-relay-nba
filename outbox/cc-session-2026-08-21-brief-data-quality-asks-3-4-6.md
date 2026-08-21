@@ -741,3 +741,88 @@ the 887c843 deploy.
 `closing_odds.captured_at > opening_odds.captured_at` and the desk renders
 `ML X → Y` rather than `NOT SEQUENCED`.
 **Unblocked when:** tomorrow's slate runs.
+
+---
+
+## Addendum 10 — Odds API probe: a credential exposure, and the real EPL cause
+
+Manifest `outbox/odds-api-probe-20260821T224721Z.json` (`aba3948`).
+
+### ⚠️ URGENT — a live Odds API key is committed in plaintext to a PUBLIC repo
+
+While checking why the probe's quota read returned `key_present: false`, the
+grep for the secret name surfaced the key itself, hardcoded in two workflow
+files:
+
+- `.github/workflows/odds-backfill.yml:27` — as a `||` fallback after
+  `secrets.ODDS_API_KEY`
+- `.github/workflows/update-odds-key.yml:19` — echoed into `wrangler secret put`
+
+`field-relay-nba` is **public** (verified 2026-08-21 via the repos API,
+`"visibility": "public"`). The value is therefore world-readable, and is in git
+history, so deleting the lines does not un-expose it.
+
+**The value is deliberately not reproduced here, in any commit message, or in
+any probe output.** It should be **rotated at the Odds API**, then stored as a
+real GitHub Actions secret and as a Cloudflare Worker secret — never as a literal
+in a tracked file. Rotation is the only remedy that works; redaction is not.
+
+This also explains the probe's own miss: `secrets.ODDS_API_KEY` is **not set as a
+GitHub Actions secret** in this repo. The Odds API key exists as a *Cloudflare
+Worker* secret (set via `wrangler secret put`), which CI cannot read. The backfill
+workflow only works because of the hardcoded fallback. So quota and
+sport-activity remain UNREAD — deliberately, rather than by using the exposed
+literal.
+
+### Both of my stated hypotheses are dead
+
+**H1 (timing) — dead.** Every row was created before the last `odds_api` write:
+
+| sport | row created | opening | closing |
+|-------|-------------|---------|---------|
+| MLB ×15 | 10:00:19 – 10:00:34 | set | set |
+| WNBA ×3 | 10:00:35 – 10:00:37 | set | set |
+| **EPL** | **10:00:38** | **NULL** | set |
+| **La Liga** | **10:00:39** | **NULL** | set |
+| Ligue 1 | 10:00:41 | set | set |
+
+Last `odds_api` opening write: **10:00:56.858**. EPL and La Liga existed 18 and
+17 seconds before it. They were in the table and were passed over.
+
+**H2 (quota short-circuit) — dead too, and killed by one row.** Ligue 1 was
+created at 10:00:41, *after* both, and still got its opening line. A quota
+`return` starves everything downstream; it cannot skip two competitions and then
+serve a third.
+
+### The actual pattern: soccer fails, US sports succeed
+
+All-time opening-odds coverage:
+
+| sport | rows | with opening | rate |
+|-------|------|--------------|------|
+| MLB | 822 | 719 | **87%** |
+| WNBA | 186 | 141 | **76%** |
+| EPL | 27 | 6 | **22%** |
+| MLS | 548 | 108 | **20%** |
+| La Liga | 18 | 2 | **11%** |
+| Ligue 1 | 3 | 1 | 33% |
+
+This is not an EPL/La Liga defect — it is a **soccer-wide** one, and today's
+misses are a normal sample of it, not an anomaly. MLS at 20% over 548 rows is the
+largest instance by volume and nobody had noticed it.
+
+The mapping hypothesis was already dead before this probe (`epl` and `'la liga'`
+are both in `ARCHIVE_SPORT_TO_ODDS_KEY`, `src/index.js:5947-5949`). What is left
+is the join: `byPair.set(resolveTeamKey(g.home_team)|resolveTeamKey(g.away_team))`
+matched against the same on the D1 row. Soccer club names are exactly where that
+breaks — *Betis* vs *Real Betis*, *Coventry* vs *Coventry City* — and
+`CC-CMD-2026-08-21-closing-odds-capture` names this as its carry-forward #2
+("team-name matching … uses the client's alias table today; port it relay-side
+if the hook produces >5% no-match warns"). The measured no-match rate for soccer
+is ~80%.
+
+**Not fixed here.** The fix is an alias table, and building one from two examples
+would be guessing. The next probe should dump the D1 names against the Odds API's
+canonical names for one soccer slate and derive the mapping from the actual
+mismatches — which requires the quota read, which requires the key rotation
+above first.
