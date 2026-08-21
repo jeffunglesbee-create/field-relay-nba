@@ -51,12 +51,21 @@ jobs:
       - name: Probe whether the closing-odds hook has ever fired
         run: node scripts/probe-closing-hook-firing.mjs
 
+      # Odds API probe. ODDS_API_KEY is passed as env to THIS STEP ONLY and is
+      # never printed -- the script emits counts, HTTP statuses and
+      # header-derived numbers, never the value. /v4/sports is the documented
+      # zero-credit endpoint, so reading quota costs no quota (Rule 78).
+      - name: Probe the Odds API (quota + why EPL/La Liga lack opening odds)
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: node scripts/probe-odds-api.mjs
+
       - name: Commit manifest
         if: always()
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json outbox/v4-followup-manifest-*.json outbox/epl-seed-premise-*.json outbox/closing-hook-firing-*.json || {
+          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json outbox/v4-followup-manifest-*.json outbox/epl-seed-premise-*.json outbox/closing-hook-firing-*.json outbox/odds-api-probe-*.json || {
             echo "no manifest produced"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: brief join premise manifest [skip ci]"
