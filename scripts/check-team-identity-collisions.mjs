@@ -58,6 +58,14 @@ const MUST_MATCH = [
     ['Real',             'Real Madrid'],
     ['Sociedad',         'Real Sociedad'],
     ['Betis',            'Real Betis'],
+    ['Los Blancos',      'Real Madrid'],
+    ['Blancos',          'Real Madrid'],
+    ['Heliopolitanos',   'Real Betis'],
+    ['Los Heliopolitanos','Real Betis'],
+    ['Txuri-Urdin',      'Real Sociedad'],
+    // _strip() drops the hyphen, so the spaced spelling must land on the same
+    // club without needing its own table entry. Asserted rather than assumed.
+    ['Txuri Urdin',      'Real Sociedad'],
     // Pre-existing entries, included so this check also protects them.
     ['Wolves',           'Wolverhampton Wanderers'],
     ['Brighton',         'Brighton & Hove Albion'],
@@ -84,6 +92,10 @@ const MUST_DIFFER = [
     ['Real', 'Betis'],
     ['Real', 'Sociedad'],
     ['Betis', 'Sociedad'],
+    // The Spanish nicknames must not cross-contaminate either.
+    ['Los Blancos', 'Heliopolitanos'],
+    ['Heliopolitanos', 'Txuri-Urdin'],
+    ['Los Blancos', 'Txuri-Urdin'],
 ];
 for (const [a, b] of MUST_DIFFER) {
     const same = resolveTeamKey(a) === resolveTeamKey(b);

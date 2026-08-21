@@ -320,6 +320,18 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
         ['Real Sociedad',          'Real Sociedad'],
         ['Sociedad',               'Real Sociedad'],
         ['Real',                   'Real Madrid'],
+        // Nicknames, owner-supplied 2026-08-21. Same reasoning as the EPL
+        // nicknames: an unlisted form a feed or editorial line actually uses is
+        // a silent miss. Article and bare forms are both listed because _strip()
+        // keeps the article ("Los Blancos" -> losblancos, "Blancos" -> blancos).
+        ['Los Blancos',            'Real Madrid'],
+        ['Blancos',                'Real Madrid'],
+        ['Heliopolitanos',         'Real Betis'],
+        ['Los Heliopolitanos',     'Real Betis'],
+        // One entry covers both spellings here: _strip() removes the hyphen, so
+        // "Txuri-Urdin" and "Txuri Urdin" already produce the same key
+        // (txuriurdin). Listing a second form would be dead weight, not safety.
+        ['Txuri-Urdin',            'Real Sociedad'],
         ['Atletico Madrid',        'Atletico Madrid'],
         ['Atlético Madrid',        'Atletico Madrid'],
         ['Atlético',               'Atletico Madrid'],
