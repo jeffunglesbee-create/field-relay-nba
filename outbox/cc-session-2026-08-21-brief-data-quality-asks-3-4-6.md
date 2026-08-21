@@ -195,3 +195,65 @@ not what the feature costs.
 - **Ask 6b:** rescope per above, then a before/after re-score for `measuredEffect`.
 
 Both are laboratory-side doc corrections before they are relay-side builds.
+
+---
+
+## Addendum 2 — ask 5's premise HOLDS for baseball, at a different key
+
+Runs 10 and 11 of `brief-join-premise-probe` (commits `173dc2c`, `e77564e`;
+manifests `ask5-ask6-prereq-manifest-20260821T052124Z.json` and
+`...T052216Z.json`). This **reverses** the conclusion in Addendum 1.
+
+Addendum 1 said the missing `keyEvents` array was the real blocker for ask 5.
+That was a finding about one key, not about the feed — and stopping there would
+have been a Rule 3 class E call (declaring something impossible without
+verifying). Enumerating every top-level container in a real finalized MLB
+payload (event 401816603) instead of guessing:
+
+| kb | key | shape |
+|----|-----|-------|
+| 538 | `plays` | array, 655 |
+| 191 | `boxscore` | object |
+| 129 | `rosters` | array, 2 |
+| 29 | `playsMap` | object, 655 |
+| 16 | `atBats` | object, 85 |
+| 6 | `winprobability` | array, 85 |
+
+Baseball's event data is in **`plays`**, with fields `id, sequenceNumber, type,
+text, awayScore, homeScore, period, scoringPlay, scoreValue, team, wallclock,
+atBatId, summaryType, pitchCount, resultCount, outs`.
+
+`plays[0]` is `"Top of the 1st inning"` — a period marker, and exactly what made
+the soccer `keyEvents` read look empty two runs earlier. Reading element [0] a
+third time would have produced a third wrong answer. Filtering to
+`scoringPlay: true` instead — 11 of 655, all 11 carrying `text`:
+
+- `"Walker homered to center (407 feet), Wetherholt scored and Herrera scored."` (period 3, scoreValue 3)
+- `"McLain homered to left (360 feet), Hayes scored, Stewart scored and Bleday scored."` (period 6, scoreValue 4)
+- `"Bleday singled to right, Rodríguez scored, Stewart to second, Hayes to third."` (period 6, scoreValue 1)
+
+That is precisely the ask's promise — its own example was "Rice's 447-ft homer".
+Named athletes, the distance detail, and a period. A `participants` field is
+present on every scoring play as well.
+
+### Corrected position on ask 5
+
+The ask is **buildable for baseball**, and neither stated blocker survives:
+
+1. **Cost** — not a blocker. Once-per-finalization is ~28 calls/day (Addendum 1).
+   Payload is the real consideration: 1,082 KB per MLB summary, of which `plays`
+   is 538 KB. ~30 MB/day at 28 games. Rule 78 still requires the fetch replicate
+   the existing `cacheEverything` + TTL pattern, but there is no quota risk here.
+2. **Shape** — not a blocker. The CC-CMD names the wrong key, not a missing
+   capability.
+
+**The correction the laboratory doc needs is one line, not a rescope:** the event
+source is per-sport — `keyEvents` for soccer, `plays` filtered on `scoringPlay`
+for baseball. "Drop baseball from the ask" is off the table; it was based on my
+own incomplete probe, and I am flagging that rather than letting Addendum 1 stand.
+
+Unverified and NOT to be assumed (Rule 73): whether soccer's `keyEvents` carries
+usable prose (the earlier run found `any_with_athletes` not computed and an empty
+clock on element [0] — same element-[0] trap, so it needs the same verbatim
+re-read before any soccer claim); and whether NFL/NBA/NHL summaries use `plays`,
+`keyEvents`, or a third key. Each is one probe.
