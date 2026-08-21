@@ -101,6 +101,12 @@ jobs:
       - name: No raw drama number in generated prose
         run: node scripts/check-no-drama-number-in-prompts.mjs
 
+      # ask 2: brief_type must be gated on finality and single-sourced. A fifth
+      # write site pasting the 'game_recap' literal back in, or the enqueue
+      # dropping isFinal, both silently restore the pre-fix behaviour.
+      - name: game_recap gated on finality
+        run: node scripts/check-game-recap-classification.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys

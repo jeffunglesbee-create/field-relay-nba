@@ -62,6 +62,8 @@ const m = {
     mls_brief_ids: [],
     mls_game_rows: [],
     unjoinable_sample: [],
+    recaps_written_before_kickoff: null,
+    recap_types_present: [],
     error: null,
 };
 
@@ -160,6 +162,28 @@ try {
          WHERE b.brief_type = 'game_recap' AND ${NOT_GOLF} AND g.k IS NULL
          ORDER BY b.date DESC LIMIT 8`);
 
+    // 6. ask 2's runtime artifact: a recap written BEFORE its game kicked off
+    // cannot be a recap. Structural and sport-agnostic -- unlike a text regex it
+    // cannot be evaded by rephrasing. Does not catch a halftime capture (that is
+    // after start_time), which is why the FIX gates on finality and this only
+    // measures the residue.
+    const pre = await d1(
+        `SELECT COUNT(*) AS n
+         FROM briefs b
+         JOIN (
+            SELECT espn_event_id AS k, start_time FROM regular_season_games WHERE espn_event_id IS NOT NULL
+            UNION ALL
+            SELECT espn_event_id AS k, start_time FROM postseason_games     WHERE espn_event_id IS NOT NULL
+         ) g ON g.k = b.game_id
+         WHERE b.brief_type = 'game_recap' AND g.start_time IS NOT NULL
+           AND b.created_at < replace(replace(g.start_time,'T',' '),'Z','')`);
+    m.recaps_written_before_kickoff = pre[0]?.n ?? null;
+
+    m.recap_types_present = await d1(
+        `SELECT brief_type, COUNT(*) AS n FROM briefs
+         WHERE brief_type IN ('game_recap','game_live','narrative_context')
+         GROUP BY brief_type ORDER BY n DESC`);
+
     const mlsRow = m.coverage_by_sport.find(r => r.sport === 'MLS');
     m.premise_holds_for_mls = mlsRow ? mlsRow.rows_with_id > 0 : null;
     m.premise_holds = m.coverage_by_sport.every(r => r.rows_total === r.rows_with_id);
@@ -182,4 +206,6 @@ console.log(`\npremise "every row carries espn_event_id": ${m.premise_holds}`);
 console.log(`premise holds for MLS (ask 5's dependency): ${m.premise_holds_for_mls}`);
 console.log(`game_recap join rate (corrected): ${m.game_recap_join_rate.pct}% (${m.game_recap_join_rate.joined}/${m.game_recap_join_rate.total})`);
 console.log('MLS key space:', JSON.stringify(m.mls_key_space));
+console.log('recaps written BEFORE kickoff:', m.recaps_written_before_kickoff);
+console.log('brief types:', JSON.stringify(m.recap_types_present));
 process.exit(0);
