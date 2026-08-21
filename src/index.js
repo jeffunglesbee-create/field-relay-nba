@@ -5901,8 +5901,8 @@ async function sweepKVBriefs(env) {
       // it can't itself refresh correctly.
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
-           (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_sweep')
+           (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source, scoring_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_sweep', ?)
          ON CONFLICT(id) DO UPDATE SET
            brief_text    = excluded.brief_text,
            quality_score = excluded.quality_score,
@@ -5911,7 +5911,8 @@ async function sweepKVBriefs(env) {
       ).bind(
         briefId,
         sweepDate, _sweepType, sport, gameId, briefText, qualityScore, contextHash,
-        briefText.split(/\s+/).length
+        briefText.split(/\s+/).length,
+        CURRENT_SCORING_ERA
       ).run();
       swept++;
     }
@@ -11638,8 +11639,8 @@ export default {
                             } catch (e) { console.error("[ARCHIVE-GAME] KV brief quality score compute failed:", e.message); }
                             await env.ARCHIVE_DB.prepare(
                                 `INSERT INTO briefs
-                                   (id, date, brief_type, sport, game_id, brief_text, quality_score, source, word_count)
-                                 VALUES (?, ?, ?, ?, ?, ?, ?, 'kv_capture', ?)
+                                   (id, date, brief_type, sport, game_id, brief_text, quality_score, source, word_count, scoring_version)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, 'kv_capture', ?, ?)
                                  ON CONFLICT(id) DO NOTHING`
                             ).bind(
                                 // sportKey is the lowercased KV-lookup key (a separate
@@ -11648,7 +11649,8 @@ export default {
                                 // normalized `sport` here instead, so this path stops
                                 // lowercasing an otherwise-correct label on the way in.
                                 briefId, date, briefType, sport, sid, briefText,
-                                kvCaptureScore, briefText.split(/\s+/).length
+                                kvCaptureScore, briefText.split(/\s+/).length,
+                                CURRENT_SCORING_ERA
                             ).run();
                             briefCaptured = briefId;
                         }
@@ -12350,8 +12352,8 @@ export default {
                         const qualityScore = await jqScoreProse(text, { sport: cand.sport, game: gameCtx })
                             .catch(e => { console.error("[INTEGRITY-GAME-BRIEFS] score compute failed:", e.message); return null; });
                         await env.ARCHIVE_DB.prepare(
-                            `INSERT INTO briefs (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_repair')
+                            `INSERT INTO briefs (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source, scoring_version)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_repair', ?)
                              ON CONFLICT(id) DO UPDATE SET
                                brief_text = excluded.brief_text,
                                word_count = excluded.word_count,
@@ -12360,7 +12362,8 @@ export default {
                                source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                         ).bind(
                             id, date, _repairType, canonicalizeWC26Sport(cand.sport) || null, String(eventId), text,
-                            qualityScore, kvBrief.contextHash || null, text.split(/\s+/).filter(Boolean).length
+                            qualityScore, kvBrief.contextHash || null, text.split(/\s+/).filter(Boolean).length,
+                            CURRENT_SCORING_ERA
                         ).run();
                         repairedCount++;
                         repairResult = { id, quality_score: qualityScore };
@@ -18797,8 +18800,8 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                     job.isFinal === undefined ? null : !!job.isFinal);
                 await env.ARCHIVE_DB.prepare(
                   `INSERT INTO briefs
-                     (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source, scoring_version)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
@@ -18832,7 +18835,12 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                   // future enqueue site ever accidentally passes source:'' or
                   // source:0, surfacing that as a visible bug instead of silently
                   // swallowing it into 'cron' forever.
-                  job.source ?? 'cron'
+                  job.source ?? 'cron',
+                  // ask 6: stamp which rubric graded this row. The column and the
+                  // SCORING_ERAS table already existed; no writer ever filled it, so
+                  // /quality/coverage had to DERIVE the era from the row's date and
+                  // flag it `ambiguous` (~L12981). A stored value ends the guessing.
+                  CURRENT_SCORING_ERA
                 ).run();
               }
             } catch (e) {
