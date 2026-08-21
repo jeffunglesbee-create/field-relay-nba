@@ -63,6 +63,7 @@ const m = {
     mls_game_rows: [],
     unjoinable_sample: [],
     recaps_written_before_kickoff: null,
+    recaps_pre_kickoff_with_live_language: null,
     recap_types_present: [],
     error: null,
 };
@@ -179,6 +180,36 @@ try {
            AND b.created_at < replace(replace(g.start_time,'T',' '),'Z','')`);
     m.recaps_written_before_kickoff = pre[0]?.n ?? null;
 
+    // The count above is an UPPER BOUND, not a defect count. `briefs` has
+    // created_at and no updated_at, and every write site's ON CONFLICT DO UPDATE
+    // refreshes brief_text without touching created_at -- so a row seeded
+    // pre-game and later refreshed with genuine recap prose still reads as
+    // "written before kickoff". Intersecting with in-progress LANGUAGE separates
+    // the two: pre-kickoff timestamp AND live phrasing is a real defect;
+    // pre-kickoff timestamp with final phrasing is just an updated row.
+    const preLive = await d1(
+        `SELECT COUNT(*) AS n
+         FROM briefs b
+         JOIN (
+            SELECT espn_event_id AS k, start_time FROM regular_season_games WHERE espn_event_id IS NOT NULL
+            UNION ALL
+            SELECT espn_event_id AS k, start_time FROM postseason_games     WHERE espn_event_id IS NOT NULL
+         ) g ON g.k = b.game_id
+         WHERE b.brief_type = 'game_recap' AND g.start_time IS NOT NULL
+           AND b.created_at < replace(replace(g.start_time,'T',' '),'Z','')
+           AND ( b.brief_text LIKE '%scoreless%'
+              OR b.brief_text LIKE '%at halftime%'
+              OR b.brief_text LIKE '%second-half action%'
+              OR b.brief_text LIKE '%first-half action%'
+              OR b.brief_text LIKE '%through 4_ minutes%'
+              OR b.brief_text LIKE '%through 3_ minutes%'
+              OR b.brief_text LIKE '%minutes into%'
+              OR b.brief_text LIKE '% in the __th minute%'
+              OR b.brief_text LIKE '% in the __st minute%'
+              OR b.brief_text LIKE '% in the __nd minute%'
+              OR b.brief_text LIKE '% in the __rd minute%' )`);
+    m.recaps_pre_kickoff_with_live_language = preLive[0]?.n ?? null;
+
     m.recap_types_present = await d1(
         `SELECT brief_type, COUNT(*) AS n FROM briefs
          WHERE brief_type IN ('game_recap','game_live','narrative_context')
@@ -206,6 +237,7 @@ console.log(`\npremise "every row carries espn_event_id": ${m.premise_holds}`);
 console.log(`premise holds for MLS (ask 5's dependency): ${m.premise_holds_for_mls}`);
 console.log(`game_recap join rate (corrected): ${m.game_recap_join_rate.pct}% (${m.game_recap_join_rate.joined}/${m.game_recap_join_rate.total})`);
 console.log('MLS key space:', JSON.stringify(m.mls_key_space));
-console.log('recaps written BEFORE kickoff:', m.recaps_written_before_kickoff);
+console.log('recaps written BEFORE kickoff (upper bound):', m.recaps_written_before_kickoff);
+console.log('  ...of those, ALSO carrying live language (real defects):', m.recaps_pre_kickoff_with_live_language);
 console.log('brief types:', JSON.stringify(m.recap_types_present));
 process.exit(0);
