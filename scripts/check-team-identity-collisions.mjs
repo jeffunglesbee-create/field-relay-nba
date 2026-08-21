@@ -45,6 +45,19 @@ const MUST_MATCH = [
     ['Español',          'Espanyol'],
     ['Rayo',             'Rayo Vallecano'],
     ['Coventry',         'Coventry City'],
+    ['the Sky Blues',    'Coventry City'],
+    ['Sky Blues',        'Coventry City'],
+    ['Ipswich',          'Ipswich Town'],
+    ['the Tractor Boys', 'Ipswich Town'],
+    ['Tractors',         'Ipswich Town'],
+    ['Hull',             'Hull City'],
+    ['the Tigers',       'Hull City'],
+    ['Tigers',           'Hull City'],
+    // Owner-stated convention: unqualified "Real" is Real Madrid; Betis and
+    // Real Sociedad go by their own short forms.
+    ['Real',             'Real Madrid'],
+    ['Sociedad',         'Real Sociedad'],
+    ['Betis',            'Real Betis'],
     // Pre-existing entries, included so this check also protects them.
     ['Wolves',           'Wolverhampton Wanderers'],
     ['Brighton',         'Brighton & Hove Albion'],
@@ -65,6 +78,12 @@ const MUST_DIFFER = [
     ['Atletico Madrid', 'Real Madrid'],
     ['Manchester United', 'Manchester City'],
     ['Sunderland AFC', 'Sunderland'],   // same club — see note below
+    // The short forms, which are where the convention bites: "Real" must reach
+    // Real Madrid and NOT Betis or Sociedad, and the two short forms must not
+    // reach each other.
+    ['Real', 'Betis'],
+    ['Real', 'Sociedad'],
+    ['Betis', 'Sociedad'],
 ];
 for (const [a, b] of MUST_DIFFER) {
     const same = resolveTeamKey(a) === resolveTeamKey(b);
@@ -84,7 +103,9 @@ const DISTINCT = [
     'Real Betis', 'Real Sociedad', 'Real Madrid', 'Real Oviedo', 'Atletico Madrid',
     'Espanyol', 'Rayo Vallecano', 'Barcelona', 'Sevilla', 'Valencia', 'Villarreal',
     'Celta Vigo', 'Athletic Club', 'Getafe', 'Girona', 'Levante', 'Mallorca',
-    'Osasuna', 'Alavés', 'Elche', 'Coventry City', 'Arsenal',
+    'Osasuna', 'Alavés', 'Elche', 'Arsenal',
+    // The three 2026-27 promoted clubs.
+    'Coventry City', 'Ipswich Town', 'Hull City',
 ];
 const seen = new Map();
 for (const club of DISTINCT) {

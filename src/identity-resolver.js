@@ -307,9 +307,19 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
         // each other on 2026-08-21. That failure would not merely miss; it
         // would write one club's odds onto the other's game. Guarded by
         // scripts/check-team-identity-collisions.mjs.
+        // NAMING CONVENTION (owner-stated 2026-08-21, not inferred): unqualified
+        // "Real" means Real Madrid. Betis and Real Sociedad are referred to by
+        // their own short forms — "Betis" and "Sociedad" — never by "Real".
+        // Those three entries are therefore safe as explicit per-club aliases,
+        // and are exactly why the token rule must never be reintroduced: the
+        // short form of Real Sociedad drops "Real", so a stripping rule would
+        // point "Real"-prefixed input at the wrong club in two directions at
+        // once.
         ['Real Betis',             'Real Betis'],
         ['Betis',                  'Real Betis'],
         ['Real Sociedad',          'Real Sociedad'],
+        ['Sociedad',               'Real Sociedad'],
+        ['Real',                   'Real Madrid'],
         ['Atletico Madrid',        'Atletico Madrid'],
         ['Atlético Madrid',        'Atletico Madrid'],
         ['Atlético',               'Atletico Madrid'],
@@ -340,13 +350,32 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
         // the invention that produces a wrong-club match, so they are left
         // unmapped: a miss, not a mismatch.
 
-        // ── EPL, 2026-27 intake ───────────────────────────────────
-        // The EPL block above predates this season and has no entry for the
-        // promoted clubs. D1 holds 'Coventry'; the club's full name carries
-        // 'City', so a feed using the full form cannot match today. Arsenal v
-        // Coventry on 2026-08-21 is the live instance -- opening_odds NULL.
+        // ── EPL, 2026-27 promoted clubs ───────────────────────────
+        // The EPL block above predates this season and has no entry for any of
+        // the three promoted sides. D1 holds only 'Coventry', so a feed sending
+        // the full name cannot match — Arsenal v Coventry on 2026-08-21 is the
+        // live instance, opening_odds NULL. Ipswich and Hull have no D1 rows at
+        // all yet, so they are added before their first fixture rather than
+        // after the first orphaned row.
+        //
+        // Nicknames included because feeds and editorial copy both use them and
+        // an unlisted form is a silent miss. _strip() removes non-alphanumerics
+        // but KEEPS the article, so "the Tigers" and "Tigers" are different
+        // keys — both are listed deliberately, not redundantly.
         ['Coventry City',          'Coventry City'],
         ['Coventry',               'Coventry City'],
+        ['the Sky Blues',          'Coventry City'],
+        ['Sky Blues',              'Coventry City'],
+        ['Ipswich Town',           'Ipswich Town'],
+        ['Ipswich',                'Ipswich Town'],
+        ['the Tractor Boys',       'Ipswich Town'],
+        ['Tractor Boys',           'Ipswich Town'],
+        ['the Tractors',           'Ipswich Town'],
+        ['Tractors',               'Ipswich Town'],
+        ['Hull City',              'Hull City'],
+        ['Hull',                   'Hull City'],
+        ['the Tigers',             'Hull City'],
+        ['Tigers',                 'Hull City'],
     ];
     const strip = {};
     const display = {};
