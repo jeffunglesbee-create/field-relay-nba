@@ -59,6 +59,7 @@ const m = {
     // impossible), enumerate the payload's top-level keys and check the
     // candidates that would carry per-play prose.
     mlb_payload_shape: null,
+    mlb_scoring_plays: null,
     error: null,
 };
 
@@ -173,6 +174,27 @@ try {
             }
         }
         m.mlb_payload_shape = { event: String(mlbId), top_level: topLevel, array_candidates: candidates };
+
+        // plays[0] is "Top of the 1st inning" -- a period marker, exactly the
+        // trap that made the soccer read look empty. Judging the feed from
+        // element [0] would repeat that mistake. Ask 5 promises named-athlete
+        // prose, so sample the SCORING plays specifically and quote them
+        // verbatim: that text either carries a player name and a detail or it
+        // does not, and nothing short of reading it settles the question.
+        const plays = Array.isArray(jm?.plays) ? jm.plays : [];
+        const scoring = plays.filter(p => p?.scoringPlay);
+        m.mlb_scoring_plays = {
+            total_plays: plays.length,
+            scoring_plays: scoring.length,
+            with_text: scoring.filter(p => p.text).length,
+            samples: scoring.slice(0, 5).map(p => ({
+                text: p.text ?? null,
+                period: p.period?.number ?? null,
+                scoreValue: p.scoreValue ?? null,
+                has_athletes_field: !!(p.participants || p.athletesInvolved),
+            })),
+            plays_kb: Math.round(JSON.stringify(plays).length / 1024),
+        };
     } else {
         m.keyevents_mlb = { error: 'no finalized MLB row with an espn_event_id' };
     }
