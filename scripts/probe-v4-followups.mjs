@@ -42,7 +42,8 @@ const m = { probed_at: new Date().toISOString(), query_ok: false,
     gnn_total: null, gnn_recent: null, gnn_by_day: [],
     epl_context: null, epl_archive: null,
     nonconforming_total: null, nonconforming_by_variant: null,
-    client_writes_since_fix: null, client_samples_since_fix: null, error: null };
+    client_writes_since_fix: null, client_samples_since_fix: null,
+    null_sport_history: null, null_sport_span: null, null_sport_samples: null, error: null };
 
 try {
     m.gnn_total = (await d1(
@@ -88,6 +89,23 @@ try {
          WHERE NOT EXISTS (SELECT 1 FROM regular_season_games g WHERE g.sport = b.sport)
            AND NOT EXISTS (SELECT 1 FROM postseason_games p WHERE p.sport = b.sport)
          GROUP BY b.sport ORDER BY n DESC`);
+    // DID MY OWN FIX CREATE THIS CLASS? The pre-game writer used to bind
+    // `label.toLowerCase()`, which THROWS on a null label -- so a null-label row
+    // could never be written, it errored. Ask 3 replaced that with
+    // canonicalizeWC26Sport(label), which returns a falsy input unchanged and
+    // therefore writes NULL. If sport IS NULL rows begin on 2026-08-21, I turned
+    // a failing write into a silently null one and this is my regression, not a
+    // pre-existing defect. Only the date distribution can tell the difference.
+    m.null_sport_history = await d1(
+        `SELECT substr(created_at,1,10) AS day, COUNT(*) AS n, MIN(source) AS src
+         FROM briefs WHERE sport IS NULL GROUP BY day ORDER BY day DESC LIMIT 14`);
+    m.null_sport_span = await d1(
+        `SELECT COUNT(*) AS n, MIN(created_at) AS first_, MAX(created_at) AS last_,
+                COUNT(DISTINCT source) AS sources
+         FROM briefs WHERE sport IS NULL`);
+    m.null_sport_samples = await d1(
+        `SELECT id, source, brief_type, game_id, created_at FROM briefs
+         WHERE sport IS NULL ORDER BY created_at DESC LIMIT 8`);
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }
 
