@@ -60,6 +60,8 @@ const m = {
     // candidates that would carry per-play prose.
     mlb_payload_shape: null,
     mlb_scoring_plays: null,
+    keyevents_items: null,
+    keyevents_field_union: null,
     error: null,
 };
 
@@ -206,6 +208,31 @@ try {
     });
     const j = await r.json();
     const ke = j?.keyEvents;
+
+    // The soccer read has now been judged from element [0] twice, and both times
+    // it looked emptier than it was -- element [0] turned out to be a period
+    // marker on the baseball side. Summary fields cannot settle this. Dump EVERY
+    // keyEvent item in full: its type, its prose, its clock, and the athlete
+    // names actually attached. Whatever ask 5 can or cannot say about soccer is
+    // decided by reading these, not by another boolean.
+    if (Array.isArray(ke)) {
+        m.keyevents_items = ke.map((e, i) => ({
+            i,
+            type: e.type?.text ?? e.type?.id ?? null,
+            text: e.text ?? null,
+            shortText: e.shortText ?? null,
+            clock: e.clock?.displayValue ?? null,
+            period: e.period?.number ?? null,
+            scoringPlay: e.scoringPlay ?? null,
+            scoreValue: e.scoreValue ?? null,
+            team: e.team?.id ?? null,
+            // Both spellings, because which one soccer uses is the open question.
+            athletes: (e.athletesInvolved || e.participants || [])
+                .map(a => a.displayName || a.athlete?.displayName || a.fullName || null),
+            all_fields: Object.keys(e),
+        }));
+        m.keyevents_field_union = [...new Set(ke.flatMap(e => Object.keys(e)))].sort();
+    }
     m.keyevents_probe = {
         http: r.status,
         has_keyEvents: Array.isArray(ke),
