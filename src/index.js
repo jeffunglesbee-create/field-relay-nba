@@ -11795,6 +11795,30 @@ export default {
                 // owns the data contract (Rule 60) -- normalize here rather than
                 // relying on the client to send a canonical string.
                 sport = canonicalizeWC26Sport(sport);
+                // ask 4b/4a: reject the render-order ordinal as a game_id.
+                //
+                // jubilant-bassoon's buildDateSchedule assigns game._id = 'g'+(++_gid)
+                // as a DOM/card key, and every archiveBrief call site used to pass it
+                // here. Result: 535 archived rows keyed g1/g2/g16 that cannot join to a
+                // game row, a box score, or an event feed. The client was fixed
+                // 2026-08-21 (_briefGameId) and now sends a real id or null.
+                //
+                // REJECT rather than normalize, which is the opposite of the `sport`
+                // handling directly above -- deliberately. That line CAN normalize,
+                // because a WC26 variant carries enough information to recover the
+                // canonical label. An ordinal carries none: 'g16' cannot be turned
+                // back into an event id by any means. Silently nulling it would keep
+                // the prose and hide a contract violation; rejecting makes it loud,
+                // and the brief was unjoinable either way.
+                if (game_id && /^g\d+$/.test(String(game_id))) {
+                    console.warn(`[ARCHIVE-BRIEF] rejected ordinal game_id ${game_id} (id=${id})`);
+                    return new Response(JSON.stringify({
+                        ok: false,
+                        error: 'game_id is a render-order ordinal, not an external id',
+                        got: String(game_id),
+                        fix: 'send a real event id (espnId/sourceId/eventId) or null -- never game._id',
+                    }), { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
 
                 // ── Quality scoring for client-archived briefs ───────────────
                 // mlb_game / night_owl / wc_matchup arrive with quality_score=null
