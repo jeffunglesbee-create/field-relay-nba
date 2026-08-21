@@ -1,0 +1,129 @@
+#!/usr/bin/env node
+// Unblocks the two remaining brief-data-quality asks. Read-only.
+//
+// ASK 6b needs a `measuredEffect` number. Every SCORING_ERAS entry records one
+// computed from real data ("Dim 4 floored 91.2% -> 7.9%; mean contribution 0.35
+// -> 9.89 of 16 pts, n=592"). Changing weights without it means inventing the
+// number or filing an era entry that lies by omission. This produces the BEFORE
+// half: the current score distribution, split by whether a brief actually
+// describes a finished game. The AFTER half comes from re-running this once the
+// weights change — that is what makes the delta real rather than asserted.
+//
+// ASK 5 needs a cost decision before a line is written. Generating from
+// keyEvents means an ESPN summary fetch per game inside a */15 cron. Rule 78
+// exists because a prior session added two uncached Odds API helpers and burned
+// 19,999/20,000 credits in one sitting. This measures the real call volume and
+// confirms the payload shape, so caching/TTL and finals-only scoping are decided
+// on numbers.
+
+import { writeFileSync } from 'node:fs';
+
+const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+// site.api 403s CF-Worker egress (2026-08-08 Akamai block); site.web.api serves
+// the identical payload. A runner could use either, but matching what the relay
+// must use keeps the shape finding applicable.
+const ESPN = 'https://site.web.api.espn.com/apis/site/v2/sports';
+
+async function d1(sql, params = []) {
+    const r = await fetch(`${RELAY}/d1/execute`, {
+        method: 'POST',
+        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026', 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: JSON.stringify({ sql, params }),
+    });
+    const t = await r.text();
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${t.slice(0, 200)}`);
+    const j = JSON.parse(t);
+    if (j.ok === false) throw new Error(`relay error: ${j.error}`);
+    return j.results || [];
+}
+
+const m = {
+    probed_at: new Date().toISOString(),
+    query_ok: false,
+    // ── ask 6b baseline ──────────────────────────────────────────────────────
+    score_by_liveness: [],
+    score_distribution: [],
+    scoring_version_coverage: [],
+    // ── ask 5 cost + shape ───────────────────────────────────────────────────
+    espn_calls_per_cron_tick: null,
+    espn_calls_per_day_estimate: null,
+    keyevents_probe: null,
+    error: null,
+};
+
+const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at halftime%'
+   OR b.brief_text LIKE '%second-half action%' OR b.brief_text LIKE '%first-half action%'
+   OR b.brief_text LIKE '%through 4_ minutes%' OR b.brief_text LIKE '%minutes into%' )`;
+
+try {
+    // 6b: the inversion, quantified. If briefs describing UNFINISHED games score
+    // at or above real finals, the metric is pointed the wrong way — and this is
+    // the number that says by how much.
+    m.score_by_liveness = await d1(
+        `SELECT CASE WHEN ${LIVE_LANG} THEN 'in-progress language' ELSE 'reads as final' END AS kind,
+                COUNT(*) AS n,
+                ROUND(AVG(b.quality_score),1) AS mean_score,
+                MIN(b.quality_score) AS min_score,
+                MAX(b.quality_score) AS max_score
+         FROM briefs b
+         WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+         GROUP BY kind`);
+
+    m.score_distribution = await d1(
+        `SELECT (b.quality_score / 25) * 25 AS bucket, COUNT(*) AS n
+         FROM briefs b WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+         GROUP BY bucket ORDER BY bucket`);
+
+    // Confirms ask 6a is taking effect on new rows, and sizes the untagged tail.
+    m.scoring_version_coverage = await d1(
+        `SELECT COALESCE(CAST(scoring_version AS TEXT),'(null)') AS ver,
+                COUNT(*) AS n, MAX(created_at) AS last_written
+         FROM briefs WHERE brief_type = 'game_recap'
+         GROUP BY ver ORDER BY n DESC`);
+
+    // ask 5: real call volume. One summary fetch per game per tick is the naive
+    // implementation; this is what that actually costs.
+    const perTick = await d1(
+        `SELECT COUNT(*) AS n FROM regular_season_games
+         WHERE date = date('now') AND espn_event_id IS NOT NULL`);
+    const n = perTick[0]?.n ?? 0;
+    m.espn_calls_per_cron_tick = n;
+    m.espn_calls_per_day_estimate = n * 96;   // */15 = 96 ticks/day
+    m.query_ok = true;
+} catch (e) {
+    m.error = String(e.message || e);
+}
+
+// ask 5: does the payload actually carry what the ask assumes? Probed against a
+// real finished fixture rather than trusting the CC-CMD's description.
+try {
+    const r = await fetch(`${ESPN}/soccer/uefa.europa.conf_qual/summary?event=401909622`, {
+        headers: { 'User-Agent': UA },
+    });
+    const j = await r.json();
+    const ke = j?.keyEvents;
+    m.keyevents_probe = {
+        http: r.status,
+        has_keyEvents: Array.isArray(ke),
+        count: Array.isArray(ke) ? ke.length : null,
+        // Shape matters: ask 5 promises "Rice's 447-ft homer", i.e. named
+        // athletes and clock. Report whether those fields are actually present.
+        sample_fields: Array.isArray(ke) && ke.length
+            ? Object.keys(ke[0]) : null,
+        first_has_athletes: Array.isArray(ke) && ke.length ? !!ke[0].athletesInvolved : null,
+        first_clock: Array.isArray(ke) && ke.length ? (ke[0].clock?.displayValue ?? null) : null,
+        payload_kb: Math.round(JSON.stringify(j).length / 1024),
+    };
+} catch (e) {
+    m.keyevents_probe = { error: String(e.message || e) };
+}
+
+const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+const out = `outbox/ask5-ask6-prereq-manifest-${stamp}.json`;
+writeFileSync(out, JSON.stringify(m, null, 2) + '\n');
+console.log(JSON.stringify(m, null, 2));
+console.log(`\nwrote ${out}`);
+if (!m.query_ok) { console.error('D1 QUERIES FAILED — says nothing about the data.'); process.exit(1); }
+console.log(`\nask 5 naive cost: ${m.espn_calls_per_cron_tick} games/tick -> ~${m.espn_calls_per_day_estimate} ESPN calls/day`);
+process.exit(0);

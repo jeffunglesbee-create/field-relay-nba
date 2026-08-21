@@ -30,12 +30,18 @@ jobs:
       - name: Probe espn_event_id coverage and brief join rate
         run: node scripts/probe-brief-join-premise.mjs
 
+      # Unblocks asks 5 and 6b: the scoring baseline that ask 6b's measuredEffect
+      # needs, and the real ESPN call volume + keyEvents shape that ask 5's
+      # caching decision needs (Rule 78). Read-only.
+      - name: Probe ask5/ask6 prerequisites
+        run: node scripts/probe-ask5-ask6-prereqs.mjs
+
       - name: Commit manifest
         if: always()
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/brief-join-premise-manifest-*.json || {
+          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json || {
             echo "no manifest produced"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: brief join premise manifest [skip ci]"
