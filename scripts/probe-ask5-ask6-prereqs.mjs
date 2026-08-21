@@ -62,6 +62,8 @@ const m = {
     mlb_scoring_plays: null,
     keyevents_items: null,
     keyevents_field_union: null,
+    keyevents_goal_items: null,
+    keyevents_goal_attempts: null,
     error: null,
 };
 
@@ -232,6 +234,59 @@ try {
             all_fields: Object.keys(e),
         }));
         m.keyevents_field_union = [...new Set(ke.flatMap(e => Object.keys(e)))].sort();
+    }
+
+    // The fixture above finished 0-0: all 12 items are kickoff/halftime/subs,
+    // and scoringPlay is false on every one. It therefore says NOTHING about
+    // what a GOAL event carries -- which is the only item type ask 5 actually
+    // needs. Concluding "soccer keyEvents lack scoring detail" from a goalless
+    // match would be the element-[0] error at fixture scale. Find a finalized
+    // soccer game that actually had goals and dump its scoring items.
+    const scored = (await d1(
+        `SELECT espn_event_id AS id, sport, home_score, away_score FROM regular_season_games
+         WHERE espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
+           AND sport LIKE '%League%' AND (home_score + away_score) >= 2
+         ORDER BY date DESC LIMIT 1`))[0];
+    if (scored?.id) {
+        // The league slug is not in the games table, so try the paths this relay
+        // already serves. First 200 with a keyEvents array wins; each attempt is
+        // recorded so a miss is visible as a miss rather than as "no goals".
+        const SLUGS = ['uefa.europa.conf_qual', 'uefa.champions_qual', 'uefa.europa_qual',
+                       'usa.1', 'eng.1', 'esp.1', 'ita.1', 'ger.1'];
+        const attempts = [];
+        for (const slug of SLUGS) {
+            const rs = await fetch(`${ESPN}/soccer/${slug}/summary?event=${scored.id}`,
+                { headers: { 'User-Agent': UA } });
+            const ok = rs.status === 200;
+            let items = null;
+            if (ok) {
+                const js = await rs.json();
+                if (Array.isArray(js?.keyEvents)) {
+                    items = js.keyEvents
+                        .filter(e => e.scoringPlay || /goal/i.test(e.type?.text || ''))
+                        .map(e => ({
+                            type: e.type?.text ?? null,
+                            text: e.text ?? null,
+                            shortText: e.shortText ?? null,
+                            clock: e.clock?.displayValue ?? null,
+                            scoringPlay: e.scoringPlay ?? null,
+                            participants: (e.participants || []).map(p => ({
+                                name: p.athlete?.displayName ?? p.displayName ?? null,
+                                role: p.type?.text ?? p.type ?? null,
+                            })),
+                        }));
+                }
+            }
+            attempts.push({ slug, http: rs.status, scoring_items: items ? items.length : null });
+            if (items && items.length) {
+                m.keyevents_goal_items = { event: String(scored.id), slug,
+                    final: `${scored.home_score}-${scored.away_score}`, items };
+                break;
+            }
+        }
+        m.keyevents_goal_attempts = attempts;
+    } else {
+        m.keyevents_goal_items = { error: 'no finalized soccer row with 2+ goals and an espn_event_id' };
     }
     m.keyevents_probe = {
         http: r.status,
