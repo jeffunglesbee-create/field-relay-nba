@@ -336,3 +336,69 @@ structured roles needs its own probe (Rule 73).
 | NFL/NBA/NHL | UNVERIFIED | — | — |
 
 Still unverified: NFL, NBA and NHL summaries. One probe each, same method.
+
+---
+
+## Addendum 4 — scorer vs assist: structure resolved (18 goals, 6 fixtures)
+
+Run 14 (`553f425`; manifest `ask5-ask6-prereq-manifest-20260821T055209Z.json`).
+Participant objects dumped RAW with no field selection, so a role marker under
+any name would have surfaced.
+
+### There is no role field
+
+Every participant entry across all 18 goals has exactly one key:
+
+```json
+{"athlete": {"id": "218122", "displayName": "Enes Ünal"}}
+```
+
+No `type`, no `role`, no ordinal, no `athlete.position` — nothing. My earlier
+null on `p.type` was not a wrong path; the field genuinely does not exist.
+**Role is positional: `participants[0]` is the scorer, `participants[1]` is the
+assister.** Confirmed scorer-at-index-0 on 18/18, including the own goal
+(401910986 55', which correctly lists the own-scorer alone).
+
+### But structured assists are only ~57% covered, and it varies by FIXTURE
+
+| | goals | participants=2 | participants=1 |
+|---|---|---|---|
+| text says "Assisted by" | 14 | **8** | **6** |
+| no assist in text | 4 | 0 | 4 |
+
+The 6 misses are not scattered — they cluster by fixture. Every goal in
+401909634 (5 of them) and the assisted goals in 401910985 and 401909635 carry
+only the scorer, while 401909826, 401910989 and 401910986 attach both on every
+goal. So this is **per-fixture feed coverage, not a per-goal property** — a
+sample of one fixture would have given either 100% or 0% and both would have
+been wrong.
+
+Examples of the miss:
+
+```
+participants: [Michele Sego]                       ← assister absent from structure
+text: "...Michele Sego (Hajduk Split) right footed shot ...
+       Assisted by Abdoulie Sanyang."              ← assister present in prose
+```
+
+### Confirms the Addendum 3 call, with a number
+
+`text` is the field to generate from. A generator reading `participants` would
+drop the assist on **6 of 14 assisted goals (43%)**. `text` carried it on 14/14.
+
+Secondary reason to prefer `text`: the structured `displayName` and the name in
+`text` disagree — `"Dali"` vs `"Dalisson De Almeida"`, `"Serge-Philippe
+Raux-Yao"` vs `"Serge Raux Yao"`, and `"Jeh "` with a trailing space. `text` uses
+the form a reader expects.
+
+**Use `participants[0].athlete.id` if a stable scorer identifier is ever needed
+for joins** — that is what the structure is good for. It is not a substitute for
+the prose.
+
+### Unprobed, noted not assumed
+
+Soccer summaries also carry a **`commentary` array (20 entries vs `keyEvents`'
+12)** — larger than the container examined here, and its shape is UNVERIFIED.
+Out of scope for this probe (Rule 69); flagged because "keyEvents is the soccer
+container" is exactly the kind of claim that was already wrong once this session
+for baseball.
