@@ -93,6 +93,14 @@ jobs:
       - name: Soccer three-table contract — LEAGUES vs SOCCER_LEAGUE_LABELS vs V2_LEAGUES
         run: node scripts/check-leagues-label-contract.mjs
 
+      # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
+      # drama number must not enter prompt text, because the model transcribes it
+      # into user-facing prose. Storage and pull-serving stay permitted (Rule E);
+      # this constrains prompts only. See CC-CMD-2026-08-20-brief-data-quality
+      # ask 1.
+      - name: No raw drama number in generated prose
+        run: node scripts/check-no-drama-number-in-prompts.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
