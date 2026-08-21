@@ -67,6 +67,8 @@ const m = {
     recap_types_present: [],
     brief_sport_census: [],
     epl_labelled_mls_content: [],
+    nonconforming_recent: [],
+    football_rows: [],
     error: null,
 };
 
@@ -246,6 +248,26 @@ try {
               OR brief_text LIKE '%Real Salt Lake%' OR brief_text LIKE '%FC Dallas%'
               OR brief_text LIKE '%MLS%' )
          ORDER BY date DESC LIMIT 10`);
+
+    // 9. ask 3a scoping: WHICH non-conforming sport values are still being
+    // written, by whom, and how recently. The all-time census cannot answer
+    // this, and it is the difference between a gate (stops live bad writes) and
+    // a migration (fixes dead rows). Rejecting a value nothing writes any more
+    // protects nothing; rejecting one still in use drops briefs.
+    m.nonconforming_recent = await d1(
+        `SELECT b.sport, b.source, COUNT(*) AS n,
+                MAX(b.created_at) AS last_written,
+                MIN(b.created_at) AS first_written
+         FROM briefs b
+         WHERE b.sport IS NOT NULL
+           AND NOT EXISTS(SELECT 1 FROM regular_season_games r WHERE r.sport = b.sport)
+           AND NOT EXISTS(SELECT 1 FROM postseason_games p     WHERE p.sport = b.sport)
+         GROUP BY b.sport, b.source ORDER BY last_written DESC LIMIT 30`);
+
+    // What ARE the 21 'football' rows? Cannot be mapped without knowing.
+    m.football_rows = await d1(
+        `SELECT id, brief_type, source, date, substr(brief_text,1,80) AS excerpt
+         FROM briefs WHERE sport = 'football' ORDER BY date DESC LIMIT 6`);
 
     const mlsRow = m.coverage_by_sport.find(r => r.sport === 'MLS');
     m.premise_holds_for_mls = mlsRow ? mlsRow.rows_with_id > 0 : null;
