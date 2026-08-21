@@ -66,6 +66,7 @@ const m = {
     keyevents_goal_attempts: null,
     assist_structure: null,
     commentary_probe: null,
+    keyevents_commentary_setcmp: null,
     error: null,
 };
 
@@ -385,6 +386,55 @@ try {
         }
         comm.field_union.sort();
         m.commentary_probe = comm;
+
+        // ── per-item set comparison ──────────────────────────────────────────
+        // Addendum 5 left "commentary is a superset of keyEvents" explicitly
+        // UNVERIFIED: the goal items matched verbatim, but matching on the items
+        // you went looking for is not a set comparison. This does the real one.
+        //
+        // Join key is the event id -- keyEvents[].id against commentary[].play.id
+        // -- not the text, because text equality would beg the question and would
+        // also silently pair two distinct substitutions with identical wording.
+        // Both directions are reported: keyEvents items absent from commentary
+        // (which would falsify superset) and commentary play items absent from
+        // keyEvents (which would make the containers merely overlapping). Any
+        // item that fails to match is quoted, so a miss is inspectable rather
+        // than just a count.
+        const setcmp = [];
+        for (const g of scoredMany) {
+            const rr = await fetch(`${ESPN}/soccer/${m.keyevents_goal_items?.slug || 'uefa.europa.conf_qual'}/summary?event=${g.id}`,
+                { headers: { 'User-Agent': UA } });
+            if (rr.status !== 200) { setcmp.push({ event: String(g.id), http: rr.status }); continue; }
+            const jj = await rr.json();
+            const ke3 = Array.isArray(jj?.keyEvents) ? jj.keyEvents : [];
+            const cm3 = Array.isArray(jj?.commentary) ? jj.commentary : [];
+
+            const keIds = ke3.map(e => String(e.id ?? ''));
+            const cmPlay = cm3.filter(x => x.play).map(x => String(x.play.id ?? ''));
+            const keSet = new Set(keIds), cmSet = new Set(cmPlay);
+
+            const missingFromCommentary = ke3
+                .filter(e => !cmSet.has(String(e.id ?? '')))
+                .map(e => ({ id: String(e.id ?? ''), type: e.type?.text ?? null, text: e.text ?? null }));
+            const extraInCommentary = cm3
+                .filter(x => x.play && !keSet.has(String(x.play.id ?? '')))
+                .map(x => ({ id: String(x.play.id ?? ''), type: x.play.type?.text ?? null, text: x.text ?? null }));
+
+            setcmp.push({
+                event: String(g.id),
+                keyEvents: ke3.length,
+                commentary_total: cm3.length,
+                commentary_with_play: cmPlay.length,
+                // Ids can repeat; report both raw and distinct so a duplicate id
+                // cannot masquerade as coverage.
+                keyEvents_distinct_ids: keSet.size,
+                commentary_distinct_play_ids: cmSet.size,
+                missing_from_commentary: missingFromCommentary,
+                extra_in_commentary: extraInCommentary,
+                is_superset: missingFromCommentary.length === 0,
+            });
+        }
+        m.keyevents_commentary_setcmp = setcmp;
     } else {
         m.keyevents_goal_items = { error: 'no finalized soccer row with 2+ goals and an espn_event_id' };
     }
