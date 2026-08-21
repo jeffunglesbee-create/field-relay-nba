@@ -1,0 +1,57 @@
+name: Brief join premise probe
+
+# Read-only CI-as-proxy probe for CC-CMD-2026-08-20-brief-data-quality ask 5.
+# Tests the claim "every row carries espn_event_id", which that ask is scoped on.
+# Needs POST /d1/execute for a GROUP BY, which the sandbox cannot reach.
+#
+# Dispatch-only, NO schedule: — this answers a scoping question once. A cron on
+# it would repeat the waste pattern documented in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-brief-premise'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brief-join-premise-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe espn_event_id coverage and brief join rate
+        run: node scripts/probe-brief-join-premise.mjs
+
+      - name: Commit manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/brief-join-premise-manifest-*.json || {
+            echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: brief join premise manifest [skip ci]"
+
+          # Many concurrent writers to outbox/; a lost race must not fail the
+          # run, but a permissions failure must. Same split as deploy.yml.
+          LOG=/tmp/premise-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0
