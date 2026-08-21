@@ -388,3 +388,71 @@ it is worth a look alongside 8.2.
   label (`src/index.js:8034`), so all four CFL variants map determinately.
   `NBA Playoffs` (2 rows) is the only genuine judgment call.
 - **Ordinal count 535 → 539**, per 8.1.
+
+---
+
+## 9. `CC-CMD-2026-08-21-archive-seed-coverage` ask 3 — DO NOT BUILD
+
+V5 hands the EPL gap to the seed-coverage CC-CMD, whose ask 3 asks for EPL to be
+added to the seed path "again, like the UEFA fix", with a deadline of tomorrow.
+Probed before building (manifest `outbox/epl-seed-premise-20260821T155154Z.json`).
+**The premise is false in two independent ways.**
+
+### 9.1 EPL is already in the seed table
+
+`src/index.js:7587`:
+
+```js
+{sport:'soccer',    league:'eng.1',      label:'EPL'},
+```
+
+It sits in `LEAGUES` between MLS and La Liga, and predates this session. The row
+ask 3 asks for exists. The UEFA fix worked because those six rows were genuinely
+absent; this is not that situation, and adding a duplicate would have been a
+change with no effect, dressed as a fix.
+
+### 9.2 EPL is already being seeded — and the "gap" is game-day seeding
+
+`/context/date` across five consecutive days:
+
+| date | total | sports |
+|------|-------|--------|
+| 08-19 | 53 | MLS 30, MLB 15, WNBA 2, La Liga 1, EFL Trophy 1, UCL Qual 4 |
+| 08-20 | 62 | MLS 8, MLB 9, WNBA 3, La Liga 1, NFL 2, PGA 1, UEL Qual 12, UECL Qual 24, golf 1, CFL 1 |
+| **08-21** | 25 | MLB 15, WNBA 3, **EPL 1**, La Liga 1, Ligue 1 1, NFL 3, golf 1 |
+| 08-22 | 15 | **MLS 15** |
+| 08-23 | 9 | **MLS 9** |
+
+Two things fall out:
+
+1. **`EPL: 1` is present today.** "Not seeded at all" is directly contradicted by
+   the surface the ask measured.
+2. **MLB — indisputably seeded, indisputably playing — is present 3/3 past days
+   and 0/2 future days**, exactly like EPL. Only MLS is pre-seeded ahead; the ask's
+   own table says MLB seeds "~10:00 local on the day."
+
+So `/context/date/2026-08-22` returning only MLS on the eve is **the system
+working as designed**. Tomorrow's Premier League fixtures should appear at
+tomorrow's ~10:01 tick, the same way today's EPL, MLB, NFL and Ligue 1 rows did.
+
+The ask read a future date, saw only the one competition that pre-seeds, and
+concluded the others were missing. That is the same shape as this document's
+earlier `/context/date`-truncation error — a snapshot of one date mistaken for a
+property of the system.
+
+### 9.3 What survives, and what to do
+
+**Ask 3: do not build.** No rows to add; nothing is missing.
+
+**Asks 1 and 2 remain valid and are the useful part.** A declared seed manifest
+and a check that fails on a configured-with-fixtures-but-absent competition are
+worth having regardless — that is what would have answered this in one CI run
+instead of a probe. But the check must be written against the **game-day seeding
+model**, or it will fire every single day on every competition that has not
+reached its tick yet. Ask 2's artifact as written ("on 2026-08-22 as it stands
+today, the check flags EPL") would encode the false positive permanently.
+
+**The one thing genuinely worth watching:** confirm tomorrow's 10:01 tick actually
+writes the EPL matchday. That is a real verification with a real artifact —
+`/context/date/2026-08-22` containing Arsenal v Coventry (`401879301`) with
+Arsenal home — and it is cheap. It is *not* a reason to change code today.
