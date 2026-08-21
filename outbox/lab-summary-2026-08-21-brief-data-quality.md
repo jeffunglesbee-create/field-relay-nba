@@ -142,9 +142,90 @@ None of these were executed; all are writes to production data.
 
 | item | count | notes |
 |------|-------|-------|
-| non-conforming `briefs.sport` values | ~601 across 20 variants | safe mappings known: `mlb`→`MLB`, `Baseball (MLB)`→`MLB`, `football`→`FIFA World Cup`. Ambiguous and needing a call: `CFL – 2026 Season · Week 7`, `NBA Playoffs` |
+| non-conforming `briefs.sport` values | **601** across 20 variants | mappings below |
 | ordinal `gNN` game_ids | 535 | new writes already blocked by ask 4a/4b |
 | mislabelled `game_recap` rows | 41 | the real ask-2 defects |
+
+### 5.1 The mappings
+
+"Non-conforming" = the value matches no declared label, so the row is invisible
+to every sport-filtered read. Census taken 2026-08-21 (`query_ok: true`).
+
+**Class A — lowercased by the relay's pre-game writer (235 rows, 8 variants).**
+This is the ask-3 bug, now fixed at source. **The correct label is recoverable
+from each row's own id**, which was built separately and kept its casing:
+
+```
+id:    pre_game_La Liga_2026-08-19_atltico_mlaga
+sport: la liga                       <- the defect
+```
+
+So this class needs no hand-written map — the migration reads the label out of
+the id and is verifiable row by row.
+
+| value | rows | → |
+|-------|------|---|
+| `mlb` | 133 | `MLB` |
+| `mls` | 77 | `MLS` |
+| `la liga` | 7 | `La Liga` |
+| `pga tour` | 6 | `PGA Tour` |
+| `nfl` | 6 | `NFL` |
+| `uefa europa conference league qualifying` | 3 | `UEFA Europa Conference League Qualifying` |
+| `fifa world cup` | 2 | `FIFA World Cup` |
+| `uefa europa league qualifying` | 1 | `UEFA Europa League Qualifying` |
+
+**Class B — client display strings from `inferSport()` (324 rows, 3 variants).**
+These are formatted for section headings, not for storage. Mechanical:
+
+| value | rows | → |
+|-------|------|---|
+| `Baseball (MLB)` | 303 | `MLB` |
+| `MLS Soccer` | 14 | `MLS` |
+| `Australian Football (AFL)` | 7 | `AFL` |
+
+**Class C — case variant (10 rows).** `PGA TOUR` → `PGA Tour`. All-caps rather
+than lowercase, so Class A's id-recovery does not apply; it is still unambiguous.
+
+**Class D — context strings, where the label got concatenated with the round
+(10 rows, 6 variants).** The declared label is the prefix:
+
+| value | rows | → |
+|-------|------|---|
+| `CFL – 2026 Season · Week 7` | 2 | `CFL` |
+| `CFL – 2026 Season · Week 6` | 2 | `CFL` |
+| `CFL – 2026 Season · Week 5` | 1 | `CFL` |
+| `CFL – 2026 Season · Week 10` | 1 | `CFL` |
+| `AFL 2026 — Round 15` | 2 | `AFL` |
+| `NBA Playoffs` | 2 | `NBA` *(see below)* |
+
+`CFL` is confirmed as this project's declared label at `src/index.js:8034`
+("sponsor-neutral, stable label"), so these four are determinate, not guesses.
+
+**Totals check:** 235 (A) + 324 (B) + 10 (C) + 10 (D) + 22 (E) = **601 rows**
+across 8 + 3 + 1 + 6 + 2 = **20 variants**. Matches the census exactly.
+
+**Class E — `football` (21 rows) and `wc` (1 row) → `FIFA World Cup`.**
+Determined by reading the rows, not by inference from the string. All 21
+`football` rows are World Cup group-stage content — Mexico at the Azteca,
+Ecuador–Germany at MetLife, Curaçao–Ivory Coast, a Group E decider — written by
+`kv_sweep` on 2026-06-25/26 with 7-digit api-sports ids. `NFL` was the other
+plausible reading and it is ruled out by the content.
+
+### 5.2 The one real judgment call
+
+**`NBA Playoffs` (2 rows).** Mapping to `NBA` makes the rows reachable but
+discards the postseason distinction the string carries. That distinction is not
+lost overall — postseason games live in `postseason_games` — so `NBA` is the
+recommendation. Flagged rather than folded into the mechanical set because it is
+the only mapping here that throws information away, and it is 2 rows, so
+deferring it costs nothing.
+
+### 5.3 Two values that look wrong but are NOT
+
+`wnba` (34 rows) and `golf` (9 rows) are lowercase but report
+`sport_known_to_games` > 0 — the games table itself carries those forms. They are
+conforming. Folding them into a "fix all lowercase values" sweep would break
+working joins.
 
 Root cause of the label fragmentation is `inferSport()` in
 `jubilant-bassoon/src/utils/sport-format.js:11` — it emits display strings like
