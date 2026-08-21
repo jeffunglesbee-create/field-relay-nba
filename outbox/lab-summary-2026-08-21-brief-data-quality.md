@@ -143,8 +143,11 @@ None of these were executed; all are writes to production data.
 | item | count | notes |
 |------|-------|-------|
 | non-conforming `briefs.sport` values | **601** across 20 variants | mappings below |
-| ordinal `gNN` game_ids | 535 | new writes already blocked by ask 4a/4b |
-| mislabelled `game_recap` rows | 41 | the real ask-2 defects |
+| ordinal `gNN` game_ids | **539** | not recoverable — see 5.4 |
+| mislabelled `game_recap` rows | 41 | the real ask-2 defects — see 5.5 |
+
+(539 is the census figure. An earlier note in this session said 535; that was
+from a narrower slice and the census number is the one to use.)
 
 ### 5.1 The mappings
 
@@ -252,3 +255,66 @@ because it also feeds section headings (Rule 69).
 - Soccer league-slug resolution for non-UEFA competitions: the probe hard-codes
   `uefa.europa.conf_qual` and tries a candidate list. A production build needs a
   real slug source.
+
+---
+
+### 5.4 The 539 ordinal `gNN` game_ids — NOT recoverable
+
+Brief `game_id` shapes across the whole table:
+
+| shape | n |
+|-------|---|
+| 9-digit espn-like | 2272 |
+| 6-digit numeric | 590 |
+| **ordinal `gNN`** | **539** |
+| other | 1 |
+
+These came from the client's render-order counter (`_id = "g" + (++_gid)`).
+**The critical difference from the sport mappings: an ordinal carries no
+information about which game it was.** `g47` means "the 47th card rendered in
+that session" — it is not stable across renders, so it cannot be joined, and
+unlike the Class A lowercase values there is nothing in the id to recover the
+truth from.
+
+Re-identification would have to come from the row's other columns — `date`,
+`sport`, and the team names inside `brief_text` — matched back against the games
+table. That is a heuristic, not a lookup, and it will not resolve every row.
+
+Three options, in order of what I would suggest:
+1. **Leave them.** They are inert: unreachable by id-based reads but harming
+   nothing, and new writes are already blocked (ask 4a returns 400, ask 4b sends
+   real event ids).
+2. **Text-match re-identification**, accepting partial success and recording the
+   match rate.
+3. **Delete.** Cleanest table, permanent loss of the prose.
+
+No action is needed to stop the bleeding — that part already shipped.
+
+### 5.5 The 41 mislabelled `game_recap` rows
+
+Current `brief_type` distribution: `game_recap` 1475, `narrative_context` 171,
+`game_live` 24.
+
+The 41 are rows typed `game_recap` whose `created_at` precedes kickoff **and**
+whose prose uses in-progress language ("scoreless", "at halftime", "through 40
+minutes"). Both conditions are required — timestamp alone gave 513, which is an
+upper bound, not a defect count, for the `updated_at` reason in §2.
+
+Remediation is a reclassification, not a rewrite: these are correctly-written
+*live* briefs wearing the wrong type. Retyping them to `game_live` makes the
+label true and leaves the prose intact. Regenerating as real recaps is also
+possible but needs a finalized-game fetch per row.
+
+### 5.6 A separate gap the join rate exposes
+
+`game_recap` join rate is **1196 / 1452 (82%)**, both game tables unioned and
+golf excluded. The remaining 18% is not one problem:
+
+- **Missing game rows.** Sampled unjoinable ids are well-formed 9-digit MLB
+  values (`401873710`, `401816308`, `401901849`…) whose game rows simply are not
+  in D1. That is a seeding gap, not a label or id defect.
+- **A prefix format.** `game_recap_wc26_espn:760516` stores `espn:760516` — the
+  `espn:` prefix means it will never match a bare numeric column.
+
+Neither is in scope for the three items above; both are listed so the 82% is not
+mistaken for evidence about them.
