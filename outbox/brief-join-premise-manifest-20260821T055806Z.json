@@ -1,0 +1,960 @@
+{
+  "probed_at": "2026-08-21T05:58:06.596Z",
+  "query_ok": true,
+  "premise_holds": false,
+  "premise_holds_for_mls": true,
+  "coverage_by_sport": [
+    {
+      "sport": "MLB",
+      "rows_total": 807,
+      "rows_with_id": 807,
+      "pct": 100
+    },
+    {
+      "sport": "MLS",
+      "rows_total": 548,
+      "rows_with_id": 93,
+      "pct": 17
+    },
+    {
+      "sport": "WNBA",
+      "rows_total": 183,
+      "rows_with_id": 169,
+      "pct": 92
+    },
+    {
+      "sport": "AFL",
+      "rows_total": 138,
+      "rows_with_id": 138,
+      "pct": 100
+    },
+    {
+      "sport": "FIFA World Cup",
+      "rows_total": 103,
+      "rows_with_id": 103,
+      "pct": 100
+    },
+    {
+      "sport": "golf",
+      "rows_total": 47,
+      "rows_with_id": 40,
+      "pct": 85
+    },
+    {
+      "sport": "EFL Cup",
+      "rows_total": 34,
+      "rows_with_id": 34,
+      "pct": 100
+    },
+    {
+      "sport": "EPL",
+      "rows_total": 26,
+      "rows_with_id": 26,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "rows_total": 24,
+      "rows_with_id": 24,
+      "pct": 100
+    },
+    {
+      "sport": "NFL",
+      "rows_total": 18,
+      "rows_with_id": 18,
+      "pct": 100
+    },
+    {
+      "sport": "La Liga",
+      "rows_total": 17,
+      "rows_with_id": 13,
+      "pct": 76
+    },
+    {
+      "sport": "PGA Tour",
+      "rows_total": 13,
+      "rows_with_id": 13,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "rows_total": 12,
+      "rows_with_id": 12,
+      "pct": 100
+    },
+    {
+      "sport": "CFL",
+      "rows_total": 10,
+      "rows_with_id": 10,
+      "pct": 100
+    },
+    {
+      "sport": "wnba",
+      "rows_total": 10,
+      "rows_with_id": 10,
+      "pct": 100
+    },
+    {
+      "sport": "EFL Trophy",
+      "rows_total": 7,
+      "rows_with_id": 7,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Champions League Qualifying",
+      "rows_total": 4,
+      "rows_with_id": 4,
+      "pct": 100
+    },
+    {
+      "sport": "IPL",
+      "rows_total": 2,
+      "rows_with_id": 0,
+      "pct": 0
+    },
+    {
+      "sport": "Ligue 1",
+      "rows_total": 2,
+      "rows_with_id": 2,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Champions League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa Conference League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    }
+  ],
+  "mls_by_month": [
+    {
+      "month": "2026-11",
+      "rows_total": 16,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-10",
+      "rows_total": 131,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-09",
+      "rows_total": 132,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-08",
+      "rows_total": 156,
+      "rows_with_id": 45
+    },
+    {
+      "month": "2026-07",
+      "rows_total": 101,
+      "rows_with_id": 38
+    },
+    {
+      "month": "2026-05",
+      "rows_total": 10,
+      "rows_with_id": 10
+    },
+    {
+      "month": "2026-04",
+      "rows_total": 1,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-03",
+      "rows_total": 1,
+      "rows_with_id": 0
+    }
+  ],
+  "brief_game_id_shapes": [
+    {
+      "shape": "9-digit espn-like",
+      "n": 2243
+    },
+    {
+      "shape": "6-digit numeric",
+      "n": 590
+    },
+    {
+      "shape": "ordinal gNN",
+      "n": 539
+    },
+    {
+      "shape": "other",
+      "n": 1
+    }
+  ],
+  "game_recap_join_rate": {
+    "total": 1452,
+    "joined": 1196,
+    "pct": 82,
+    "note": "both game tables unioned; golf excluded (composite per-round ids)"
+  },
+  "join_by_sport": [
+    {
+      "sport": "MLB",
+      "total": 791,
+      "joined": 665
+    },
+    {
+      "sport": "FIFA World Cup",
+      "total": 299,
+      "joined": 217
+    },
+    {
+      "sport": "WNBA",
+      "total": 155,
+      "joined": 132
+    },
+    {
+      "sport": "MLS",
+      "total": 83,
+      "joined": 83
+    },
+    {
+      "sport": "EFL Cup",
+      "total": 31,
+      "joined": 31
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "total": 24,
+      "joined": 24
+    },
+    {
+      "sport": "football",
+      "total": 21,
+      "joined": 0
+    },
+    {
+      "sport": "NFL",
+      "total": 18,
+      "joined": 18
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "total": 12,
+      "joined": 12
+    },
+    {
+      "sport": "La Liga",
+      "total": 7,
+      "joined": 7
+    },
+    {
+      "sport": "EFL Trophy",
+      "total": 7,
+      "joined": 7
+    },
+    {
+      "sport": "mlb",
+      "total": 4,
+      "joined": 0
+    }
+  ],
+  "mls_key_space": {
+    "mls_recaps": 83,
+    "match_espn_event_id": 83,
+    "match_row_id": 0
+  },
+  "mls_brief_ids": [
+    {
+      "game_id": "761732",
+      "id": "game_recap_mls_761732",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761738",
+      "id": "game_recap_mls_761738",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761736",
+      "id": "game_recap_mls_761736",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761735",
+      "id": "game_recap_mls_761735",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761731",
+      "id": "game_recap_mls_761731",
+      "date": "2026-08-19"
+    }
+  ],
+  "mls_game_rows": [
+    {
+      "id": "2026-11-07-mls-phi-tor",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-orl-ne",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-rbny-atl",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-mtl-van",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-mia-clt",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    }
+  ],
+  "unjoinable_sample": [
+    {
+      "id": "game_recap_mlb_401873710",
+      "sport": "MLB",
+      "game_id": "401873710",
+      "date": "2026-08-17"
+    },
+    {
+      "id": "game_recap_mlb_401816308",
+      "sport": "MLB",
+      "game_id": "401816308",
+      "date": "2026-07-29"
+    },
+    {
+      "id": "game_recap_mlb_401901849",
+      "sport": "MLB",
+      "game_id": "401901849",
+      "date": "2026-07-28"
+    },
+    {
+      "id": "game_recap_mlb_401898715",
+      "sport": "MLB",
+      "game_id": "401898715",
+      "date": "2026-07-22"
+    },
+    {
+      "id": "game_recap_mlb_401816219",
+      "sport": "MLB",
+      "game_id": "401816219",
+      "date": "2026-07-22"
+    },
+    {
+      "id": "game_recap_mlb_401897386",
+      "sport": "MLB",
+      "game_id": "401897386",
+      "date": "2026-07-19"
+    },
+    {
+      "id": "game_recap_wc26_espn:760516",
+      "sport": "FIFA World Cup",
+      "game_id": "espn:760516",
+      "date": "2026-07-18"
+    },
+    {
+      "id": "game_recap_mlb_401896568",
+      "sport": "MLB",
+      "game_id": "401896568",
+      "date": "2026-07-18"
+    }
+  ],
+  "recaps_written_before_kickoff": 513,
+  "recaps_pre_kickoff_with_live_language": 41,
+  "recap_types_present": [
+    {
+      "brief_type": "game_recap",
+      "n": 1475
+    },
+    {
+      "brief_type": "narrative_context",
+      "n": 171
+    }
+  ],
+  "brief_sport_census": [
+    {
+      "sport": "MLB",
+      "briefs": 1566,
+      "sport_known_to_games": 1566
+    },
+    {
+      "sport": "FIFA World Cup",
+      "briefs": 590,
+      "sport_known_to_games": 590
+    },
+    {
+      "sport": "Baseball (MLB)",
+      "briefs": 303,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "WNBA",
+      "briefs": 168,
+      "sport_known_to_games": 168
+    },
+    {
+      "sport": "MLS",
+      "briefs": 146,
+      "sport_known_to_games": 146
+    },
+    {
+      "sport": "mlb",
+      "briefs": 133,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "mls",
+      "briefs": 77,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "EPL",
+      "briefs": 73,
+      "sport_known_to_games": 73
+    },
+    {
+      "sport": "EFL Cup",
+      "briefs": 61,
+      "sport_known_to_games": 61
+    },
+    {
+      "sport": "wnba",
+      "briefs": 34,
+      "sport_known_to_games": 34
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "briefs": 24,
+      "sport_known_to_games": 24
+    },
+    {
+      "sport": "football",
+      "briefs": 21,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "NFL",
+      "briefs": 18,
+      "sport_known_to_games": 18
+    },
+    {
+      "sport": "NBA",
+      "briefs": 15,
+      "sport_known_to_games": 15
+    },
+    {
+      "sport": "PGA Tour",
+      "briefs": 14,
+      "sport_known_to_games": 14
+    },
+    {
+      "sport": "NHL",
+      "briefs": 14,
+      "sport_known_to_games": 14
+    },
+    {
+      "sport": "MLS Soccer",
+      "briefs": 14,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "AFL",
+      "briefs": 13,
+      "sport_known_to_games": 13
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "briefs": 12,
+      "sport_known_to_games": 12
+    },
+    {
+      "sport": "PGA TOUR",
+      "briefs": 10,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "golf",
+      "briefs": 9,
+      "sport_known_to_games": 9
+    },
+    {
+      "sport": "la liga",
+      "briefs": 7,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "La Liga",
+      "briefs": 7,
+      "sport_known_to_games": 7
+    },
+    {
+      "sport": "EFL Trophy",
+      "briefs": 7,
+      "sport_known_to_games": 7
+    },
+    {
+      "sport": "Australian Football (AFL)",
+      "briefs": 7,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "pga tour",
+      "briefs": 6,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "nfl",
+      "briefs": 6,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "uefa europa conference league qualifying",
+      "briefs": 3,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "fifa world cup",
+      "briefs": 2,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "NBA Playoffs",
+      "briefs": 2,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 7",
+      "briefs": 2,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 6",
+      "briefs": 2,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "AFL 2026 — Round 15",
+      "briefs": 2,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "wc",
+      "briefs": 1,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "uefa europa league qualifying",
+      "briefs": 1,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "UEFA Europa League",
+      "briefs": 1,
+      "sport_known_to_games": 1
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 5",
+      "briefs": 1,
+      "sport_known_to_games": 0
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 10",
+      "briefs": 1,
+      "sport_known_to_games": 0
+    }
+  ],
+  "epl_labelled_mls_content": [
+    {
+      "id": "epl_match_2026-08-21_espn:761741",
+      "sport": "EPL",
+      "date": "2026-08-21",
+      "excerpt": "D.C. United enters this match sitting 12th in the Eastern Conference, aiming to improve up"
+    },
+    {
+      "id": "epl_match_2026-08-21_espn:761745",
+      "sport": "EPL",
+      "date": "2026-08-21",
+      "excerpt": "LA Galaxy travels to face CF Montréal tonight in an MLS fixture. Galaxy enters this match "
+    },
+    {
+      "id": "epl_match_2026-08-19_espn:761725",
+      "sport": "EPL",
+      "date": "2026-08-19",
+      "excerpt": "New England Revolution travel to face D.C. United tonight in an MLS matchup between two te"
+    },
+    {
+      "id": "epl_match_2026-08-18_espn:761725",
+      "sport": "EPL",
+      "date": "2026-08-18",
+      "excerpt": "New England dominated Audi Field with a 3-0 shutout victory over D.C. United. Carles Gil, "
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761723",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "Portland Timbers visit Chicago Fire FC with the visitors sitting 8th in the Western Confer"
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761721",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "San Jose Earthquakes host St. Louis CITY SC at PayPal Park tonight looking to improve upon"
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761718",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "Sporting Kansas City visits Colorado Rapids tonight in a Western Conference clash between "
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761720",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "San Diego FC visits LAFC for this MLS fixture. LAFC enters the match holding a higher posi"
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761716",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "Inter Miami CF travels to face Nashville SC in a clash between two Eastern Conference play"
+    },
+    {
+      "id": "epl_match_2026-08-16_espn:761715",
+      "sport": "EPL",
+      "date": "2026-08-16",
+      "excerpt": "LA Galaxy visits Houston Dynamo FC as the visitors hold a higher standing in the Western C"
+    }
+  ],
+  "nonconforming_recent": [
+    {
+      "sport": "Baseball (MLB)",
+      "source": "client",
+      "n": 303,
+      "last_written": "2026-08-20 21:23:59",
+      "first_written": "2026-06-21 13:25:14"
+    },
+    {
+      "sport": "uefa europa conference league qualifying",
+      "source": "cron",
+      "n": 3,
+      "last_written": "2026-08-20 15:47:37",
+      "first_written": "2026-08-20 15:47:29"
+    },
+    {
+      "sport": "uefa europa league qualifying",
+      "source": "cron",
+      "n": 1,
+      "last_written": "2026-08-20 15:16:12",
+      "first_written": "2026-08-20 15:16:12"
+    },
+    {
+      "sport": "pga tour",
+      "source": "cron",
+      "n": 6,
+      "last_written": "2026-08-20 10:01:26",
+      "first_written": "2026-07-18 15:21:27"
+    },
+    {
+      "sport": "nfl",
+      "source": "cron",
+      "n": 6,
+      "last_written": "2026-08-20 10:01:25",
+      "first_written": "2026-08-13 10:02:16"
+    },
+    {
+      "sport": "la liga",
+      "source": "cron",
+      "n": 7,
+      "last_written": "2026-08-20 10:01:24",
+      "first_written": "2026-08-15 10:01:38"
+    },
+    {
+      "sport": "mlb",
+      "source": "cron",
+      "n": 51,
+      "last_written": "2026-08-20 10:01:22",
+      "first_written": "2026-07-18 15:46:27"
+    },
+    {
+      "sport": "mls",
+      "source": "cron",
+      "n": 77,
+      "last_written": "2026-08-19 10:01:48",
+      "first_written": "2026-07-22 10:02:31"
+    },
+    {
+      "sport": "PGA TOUR",
+      "source": "cron",
+      "n": 10,
+      "last_written": "2026-08-16 22:31:10",
+      "first_written": "2026-06-21 22:50:45"
+    },
+    {
+      "sport": "Australian Football (AFL)",
+      "source": "client",
+      "n": 7,
+      "last_written": "2026-08-16 11:40:13",
+      "first_written": "2026-06-26 12:26:35"
+    },
+    {
+      "sport": "MLS Soccer",
+      "source": "client",
+      "n": 14,
+      "last_written": "2026-08-16 03:41:57",
+      "first_written": "2026-07-17 02:38:38"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 10",
+      "source": "client",
+      "n": 1,
+      "last_written": "2026-08-09 04:00:20",
+      "first_written": "2026-08-09 04:00:20"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 7",
+      "source": "client",
+      "n": 2,
+      "last_written": "2026-07-20 04:24:22",
+      "first_written": "2026-07-18 04:02:20"
+    },
+    {
+      "sport": "fifa world cup",
+      "source": "cron",
+      "n": 2,
+      "last_written": "2026-07-19 10:01:23",
+      "first_written": "2026-07-18 15:46:37"
+    },
+    {
+      "sport": "wc",
+      "source": "bracket_do",
+      "n": 1,
+      "last_written": "2026-07-18 23:02:34",
+      "first_written": "2026-07-18 23:02:34"
+    },
+    {
+      "sport": "mlb",
+      "source": "kv_sweep",
+      "n": 4,
+      "last_written": "2026-07-16 15:15:42",
+      "first_written": "2026-07-16 15:15:37"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 6",
+      "source": "client",
+      "n": 2,
+      "last_written": "2026-07-13 00:01:15",
+      "first_written": "2026-07-12 02:15:40"
+    },
+    {
+      "sport": "mlb",
+      "source": "kv_capture",
+      "n": 78,
+      "last_written": "2026-07-11 00:30:32",
+      "first_written": "2026-07-01 01:40:59"
+    },
+    {
+      "sport": "CFL – 2026 Season · Week 5",
+      "source": "client",
+      "n": 1,
+      "last_written": "2026-07-05 20:46:56",
+      "first_written": "2026-07-05 20:46:56"
+    },
+    {
+      "sport": "football",
+      "source": "kv_sweep",
+      "n": 21,
+      "last_written": "2026-06-26 00:00:10",
+      "first_written": "2026-06-24 03:25:56"
+    },
+    {
+      "sport": "AFL 2026 — Round 15",
+      "source": "client",
+      "n": 2,
+      "last_written": "2026-06-19 03:14:35",
+      "first_written": "2026-06-18 12:47:37"
+    },
+    {
+      "sport": "NBA Playoffs",
+      "source": "client",
+      "n": 2,
+      "last_written": "2026-06-16 12:30:55",
+      "first_written": "2026-06-16 12:30:55"
+    }
+  ],
+  "football_rows": [
+    {
+      "id": "game_recap_1539010_2026-06-26",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-26",
+      "excerpt": "Mexico’s 3-0 victory at the Azteca was a masterclass in handling the weight of a"
+    },
+    {
+      "id": "game_recap_1489410_2026-06-26",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-26",
+      "excerpt": "Ecuador’s 2-1 victory over Germany at MetLife was a masterclass in resilience, h"
+    },
+    {
+      "id": "game_recap_1489409_2026-06-26",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-26",
+      "excerpt": "Curaçao’s historic debut run concluded with a 0-2 loss to Ivory Coast, a match d"
+    },
+    {
+      "id": "game_recap_1489407_2026-06-26",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-26",
+      "excerpt": "South Africa’s 1-0 victory in Monterrey, sealed by a clinical strike in the 80th"
+    },
+    {
+      "id": "game_recap_1489409_2026-06-25",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-25",
+      "excerpt": "Ivory Coast secured their place in the next round with a professional 2-0 victor"
+    },
+    {
+      "id": "game_recap_1489410_2026-06-25",
+      "brief_type": "game_recap",
+      "source": "kv_sweep",
+      "date": "2026-06-25",
+      "excerpt": "Ecuador’s defensive discipline at MetLife turned this Group E decider into a tac"
+    }
+  ],
+  "lowercase_sport_samples": [
+    {
+      "id": "pre_game_UEFA Europa Conference League Qualifying_2026-08-20_hearts_rapidvienna",
+      "sport": "uefa europa conference league qualifying",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 15:47:37"
+    },
+    {
+      "id": "pre_game_UEFA Europa Conference League Qualifying_2026-08-20_motherwell_freiburg",
+      "sport": "uefa europa conference league qualifying",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 15:47:35"
+    },
+    {
+      "id": "pre_game_UEFA Europa Conference League Qualifying_2026-08-20_paok_skbrann",
+      "sport": "uefa europa conference league qualifying",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 15:47:29"
+    },
+    {
+      "id": "pre_game_UEFA Europa League Qualifying_2026-08-20_kairatalmaty_anderlecht",
+      "sport": "uefa europa league qualifying",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 15:16:12"
+    },
+    {
+      "id": "pre_game_PGA Tour_2026-08-20_src401811963",
+      "sport": "pga tour",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 10:01:26"
+    },
+    {
+      "id": "pre_game_NFL_2026-08-20_texans_raiders",
+      "sport": "nfl",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-21",
+      "created_at": "2026-08-20 10:01:25"
+    },
+    {
+      "id": "pre_game_La Liga_2026-08-20_rayo_alavs",
+      "sport": "la liga",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 10:01:24"
+    },
+    {
+      "id": "pre_game_MLB_2026-08-20_whitesox_braves",
+      "sport": "mlb",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 10:01:22"
+    },
+    {
+      "id": "pre_game_La Liga_2026-08-19_atltico_mlaga",
+      "sport": "la liga",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-19",
+      "created_at": "2026-08-19 10:01:49"
+    },
+    {
+      "id": "pre_game_MLS_2026-08-19_vancouver_houston",
+      "sport": "mls",
+      "brief_type": "pre_game",
+      "source": "cron",
+      "date": "2026-08-20",
+      "created_at": "2026-08-19 10:01:48"
+    }
+  ],
+  "baseball_mlb_samples": [
+    {
+      "id": "night_owl_2026-08-20_824474",
+      "sport": "Baseball (MLB)",
+      "brief_type": "night_owl",
+      "source": "client",
+      "date": "2026-08-20",
+      "created_at": "2026-08-20 21:23:59"
+    },
+    {
+      "id": "night_owl_2026-08-16_g5",
+      "sport": "Baseball (MLB)",
+      "brief_type": "night_owl",
+      "source": "client",
+      "date": "2026-08-16",
+      "created_at": "2026-08-16 03:03:52"
+    },
+    {
+      "id": "night_owl_2026-08-16_822941",
+      "sport": "Baseball (MLB)",
+      "brief_type": "night_owl",
+      "source": "client",
+      "date": "2026-08-16",
+      "created_at": "2026-08-16 02:43:47"
+    },
+    {
+      "id": "night_owl_2026-08-16_824239",
+      "sport": "Baseball (MLB)",
+      "brief_type": "night_owl",
+      "source": "client",
+      "date": "2026-08-16",
+      "created_at": "2026-08-16 00:27:21"
+    }
+  ],
+  "error": null
+}
