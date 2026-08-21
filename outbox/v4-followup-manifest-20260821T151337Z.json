@@ -1,0 +1,119 @@
+{
+  "probed_at": "2026-08-21T15:13:37.494Z",
+  "query_ok": true,
+  "gnn_total": 539,
+  "gnn_recent": [
+    {
+      "id": "mlb_game_2026-08-21_g2",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:12"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g4",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:11"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g3",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:10"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g1",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 04:26:10"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g11",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:01"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g13",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g12",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    },
+    {
+      "id": "mlb_game_2026-08-21_g10",
+      "source": "client",
+      "brief_type": "mlb_game",
+      "created_at": "2026-08-21 02:20:00"
+    }
+  ],
+  "gnn_by_day": [
+    {
+      "day": "2026-08-21",
+      "n": 8
+    },
+    {
+      "day": "2026-08-20",
+      "n": 4
+    },
+    {
+      "day": "2026-08-19",
+      "n": 4
+    },
+    {
+      "day": "2026-08-18",
+      "n": 8
+    },
+    {
+      "day": "2026-08-16",
+      "n": 13
+    },
+    {
+      "day": "2026-08-15",
+      "n": 22
+    },
+    {
+      "day": "2026-08-13",
+      "n": 4
+    },
+    {
+      "day": "2026-08-12",
+      "n": 19
+    },
+    {
+      "day": "2026-08-09",
+      "n": 18
+    },
+    {
+      "day": "2026-08-08",
+      "n": 17
+    }
+  ],
+  "epl_context": {
+    "http": 200,
+    "total": 15,
+    "by_sport": {
+      "MLS": 15
+    },
+    "has_epl": false
+  },
+  "epl_archive": {
+    "http": 200,
+    "count": 1,
+    "by_sport": {
+      "MLB": 1
+    }
+  },
+  "nonconforming_total": [
+    {
+      "rows_": 784,
+      "variants": 20
+    }
+  ],
+  "error": null
+}
