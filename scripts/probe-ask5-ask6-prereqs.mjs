@@ -64,6 +64,7 @@ const m = {
     keyevents_field_union: null,
     keyevents_goal_items: null,
     keyevents_goal_attempts: null,
+    assist_structure: null,
     error: null,
 };
 
@@ -285,6 +286,64 @@ try {
             }
         }
         m.keyevents_goal_attempts = attempts;
+
+        // ── scorer-vs-assist structure ───────────────────────────────────────
+        // Open question from Addendum 3: participants[] listed only the scorer,
+        // and role read null off `p.type`. Null on ONE path is not evidence that
+        // no role marker exists -- that is exactly the class of inference this
+        // session has had to correct twice already. So: dump the participant
+        // objects RAW, with no field selection at all, and separately enumerate
+        // the soccer payload's top-level containers. If assist data is
+        // structured anywhere, it is either a field I did not read on the
+        // participant or a container other than keyEvents. Both are covered here
+        // without guessing which.
+        //
+        // One fixture cannot settle it either: Fixture B's assisted goal had a
+        // single participant, but a match may attach the assister only on some
+        // goals. Sample several fixtures and report each goal's participant
+        // count against whether its text says "Assisted by".
+        const scoredMany = await d1(
+            `SELECT espn_event_id AS id, home_score, away_score FROM regular_season_games
+             WHERE espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
+               AND sport LIKE '%League%' AND (home_score + away_score) >= 2
+             ORDER BY date DESC LIMIT 6`);
+        const raw = [];
+        let topLevelSoccer = null;
+        for (const g of scoredMany) {
+            const rs = await fetch(`${ESPN}/soccer/${m.keyevents_goal_items?.slug || 'uefa.europa.conf_qual'}/summary?event=${g.id}`,
+                { headers: { 'User-Agent': UA } });
+            if (rs.status !== 200) { raw.push({ event: String(g.id), http: rs.status }); continue; }
+            const js = await rs.json();
+
+            // Does soccer have a richer per-event container than keyEvents, the
+            // way baseball's data turned out to live in `plays`? Enumerated once.
+            if (!topLevelSoccer) {
+                topLevelSoccer = Object.entries(js || {}).map(([k, v]) => ({
+                    key: k,
+                    type: Array.isArray(v) ? 'array' : typeof v,
+                    len: Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : null),
+                })).sort((a, b) => (b.len ?? 0) - (a.len ?? 0));
+            }
+
+            const goals = (js?.keyEvents || []).filter(e => e.scoringPlay || /goal/i.test(e.type?.text || ''));
+            for (const e of goals) {
+                raw.push({
+                    event: String(g.id),
+                    final: `${g.home_score}-${g.away_score}`,
+                    clock: e.clock?.displayValue ?? null,
+                    text: e.text ?? null,
+                    text_says_assisted: /assisted by/i.test(e.text || ''),
+                    participant_count: Array.isArray(e.participants) ? e.participants.length : null,
+                    // RAW -- every key, every nested value, no selection.
+                    participants_raw: e.participants ?? null,
+                });
+            }
+        }
+        m.assist_structure = {
+            soccer_top_level: topLevelSoccer,
+            goals_sampled: raw.length,
+            goals: raw,
+        };
     } else {
         m.keyevents_goal_items = { error: 'no finalized soccer row with 2+ goals and an espn_event_id' };
     }
