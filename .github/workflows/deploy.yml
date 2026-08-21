@@ -113,6 +113,14 @@ jobs:
       - name: briefs.sport carries declared labels
         run: node scripts/check-brief-sport-label.mjs
 
+      # CC-CMD-2026-08-21-closing-odds-capture: the odds backfill wrote
+      # closing_odds for games that had not kicked off yet, which made
+      # AmbientDO._captureClosingOdds's `WHERE closing_odds IS NULL` false
+      # forever. The only visible symptom was in another repo — the laboratory's
+      # OddsStory.Moved branch, shipped since June, had never been reachable.
+      - name: closing_odds is not pre-filled for unplayed games
+        run: node scripts/check-closing-odds-not-prefilled.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys

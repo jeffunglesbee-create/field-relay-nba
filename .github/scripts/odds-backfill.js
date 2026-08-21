@@ -384,10 +384,18 @@ function decimalToAmerican(dec) {
 
 // ── Sync odds_history → game tables ─────────────────────────────────────────
 async function syncOddsToGameTables() {
+  // UTC day boundary. A game dated today has a kickoff still ahead of it (or in
+  // progress), so its closing line is not this batch's to write.
+  const TODAY_UTC = new Date().toISOString().slice(0, 10);
+  let skippedClosing = 0;
   // Find odds_history rows whose game_id exists in game tables with NULL opening_odds
   const candidates = await d1Query(
     `SELECT oh.game_id, oh.sport, oh.home_ml, oh.away_ml, oh.draw_ml,
-            oh.over_under, oh.bookmaker, oh.snapshot_time
+            oh.over_under, oh.bookmaker, oh.snapshot_time,
+            COALESCE(
+              (SELECT date FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT date FROM postseason_games     WHERE id = oh.game_id)
+            ) AS game_date
      FROM odds_history oh
      WHERE oh.game_id IN (
        SELECT id FROM regular_season_games WHERE opening_odds IS NULL OR closing_odds IS NULL
@@ -424,12 +432,38 @@ async function syncOddsToGameTables() {
     // The Odds API historical endpoint returns odds near game time,
     // which is closer to closing than opening. For completed games with
     // one data point, it serves as both.
+    //
+    // BUT ONLY FOR GAMES THAT HAVE ALREADY HAPPENED (added 2026-08-21).
+    // AmbientDO._captureClosingOdds fires on the pre→live transition and
+    // writes `WHERE closing_odds IS NULL`. If this batch has already filled
+    // that column for a game that has not kicked off yet, the guard is false
+    // forever and the real capture silently never lands -- so opening and
+    // closing end up as one snapshot written to two columns, byte-identical,
+    // with `closing_odds.captured_at` at or even BEFORE the opening one.
+    // That is exactly the state measured on /context/date/2026-08-21, and it
+    // is why the laboratory's OddsStory.Moved branch has never been reachable:
+    // it correctly refuses to narrate a movement from a non-sequence.
+    //
+    // For a game in the past there is no kickoff left to capture, so the
+    // one-data-point behaviour above is still right and is preserved. For
+    // today and later, leave closing_odds NULL and let the hook do its job.
+    // A game still to be played keeps closing_odds NULL for the kickoff hook.
+    // Driven by the row's own date rather than by the UPDATE's guard alone, so
+    // the change_log insert below cannot record a write that never matched.
+    const isPast = !!row.game_date && row.game_date < TODAY_UTC;
+    const fields = isPast ? ['opening_odds', 'closing_odds'] : ['opening_odds'];
+    if (!isPast) skippedClosing++;
+
     for (const table of ['regular_season_games', 'postseason_games']) {
-      for (const field of ['opening_odds', 'closing_odds']) {
+      for (const field of fields) {
         try {
+          const guard = field === 'closing_odds' ? ' AND date < ?' : '';
+          const args  = field === 'closing_odds'
+            ? [json, row.game_id, TODAY_UTC]
+            : [json, row.game_id];
           await d1Query(
-            `UPDATE ${table} SET ${field} = ? WHERE id = ? AND ${field} IS NULL`,
-            [json, row.game_id]
+            `UPDATE ${table} SET ${field} = ? WHERE id = ? AND ${field} IS NULL${guard}`,
+            args
           );
           // Log to change_log for O(1) Newspaper "What's Moving" + Brief Freshness Guard.
           // Candidates are pre-filtered (field IS NULL), so the UPDATE above matched.
@@ -450,6 +484,7 @@ async function syncOddsToGameTables() {
   const afterRegClose = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE closing_odds IS NOT NULL`);
   const afterPostClose = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE closing_odds IS NOT NULL`);
 
+  console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedClosing} game(s) dated ${TODAY_UTC} or later — AmbientDO._captureClosingOdds owns those.`);
   console.log(`[odds-backfill] sync: attempted=${attempted}, opening_odds=${(afterRegOpen[0]?.c||0)+(afterPostOpen[0]?.c||0)} (reg=${afterRegOpen[0]?.c||0}, post=${afterPostOpen[0]?.c||0}), closing_odds=${(afterRegClose[0]?.c||0)+(afterPostClose[0]?.c||0)} (reg=${afterRegClose[0]?.c||0}, post=${afterPostClose[0]?.c||0})`);
 }
 
