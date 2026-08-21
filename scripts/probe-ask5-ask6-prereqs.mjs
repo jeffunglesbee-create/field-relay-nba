@@ -513,9 +513,14 @@ try {
 // date on which it was definitely playing, and the id comes from ESPN's
 // scoreboard for that date instead.
 const OTHER_SPORTS = [
-    { sport: 'NFL', path: 'football/nfl', fallbackDate: '20260101' },
-    { sport: 'NBA', path: 'basketball/nba', fallbackDate: '20260607' },
-    { sport: 'NHL', path: 'hockey/nhl', fallbackDate: '20260607' },
+    { sport: 'NFL', path: 'football/nfl', fallbackDates: ['20260101', '20251214'] },
+    // 20260607 returned no events. Rather than assume why, try mid-season dates
+    // too -- a January weekday is unambiguously in-season for both leagues,
+    // whereas an early-June date depends on how far a postseason ran. Every
+    // attempt records its http status and event count, so "no games that day"
+    // stays distinguishable from "the fetch failed".
+    { sport: 'NBA', path: 'basketball/nba', fallbackDates: ['20260115', '20260210', '20260607'] },
+    { sport: 'NHL', path: 'hockey/nhl', fallbackDates: ['20260115', '20260210', '20260607'] },
 ];
 m.other_sports = [];
 for (const s of OTHER_SPORTS) {
@@ -524,18 +529,26 @@ for (const s of OTHER_SPORTS) {
             `SELECT espn_event_id AS id, date FROM regular_season_games
              WHERE sport = ? AND espn_event_id IS NOT NULL AND finalized_at IS NOT NULL
              ORDER BY date DESC LIMIT 1`, [s.sport]))[0];
-        let eventId = row?.id, source = 'd1', when = row?.date ?? null;
+        let eventId = row?.id, source = 'd1', when = row?.date ?? null, sbAttempts = null;
         if (!eventId) {
             // Out of season locally -- ask ESPN for a date the sport was playing.
-            const rsb = await fetch(`${ESPN}/${s.path}/scoreboard?dates=${s.fallbackDate}`,
-                { headers: { 'User-Agent': UA } });
-            if (rsb.status === 200) {
-                const jsb = await rsb.json();
-                const ev = (jsb?.events || []).find(e => e?.status?.type?.completed) || (jsb?.events || [])[0];
-                if (ev?.id) { eventId = ev.id; source = `espn-scoreboard:${s.fallbackDate}`; when = ev.date ?? null; }
+            sbAttempts = [];
+            for (const d of s.fallbackDates) {
+                const rsb = await fetch(`${ESPN}/${s.path}/scoreboard?dates=${d}`,
+                    { headers: { 'User-Agent': UA } });
+                let n = null;
+                if (rsb.status === 200) {
+                    const jsb = await rsb.json();
+                    const evs = jsb?.events || [];
+                    n = evs.length;
+                    const ev = evs.find(e => e?.status?.type?.completed) || evs[0];
+                    if (ev?.id) { eventId = ev.id; source = `espn-scoreboard:${d}`; when = ev.date ?? null; }
+                }
+                sbAttempts.push({ date: d, http: rsb.status, events: n });
+                if (eventId) break;
             }
         }
-        if (!eventId) { m.other_sports.push({ sport: s.sport, error: 'no event id from D1 or the ESPN scoreboard fallback' }); continue; }
+        if (!eventId) { m.other_sports.push({ sport: s.sport, error: 'no event id from D1 or the ESPN scoreboard fallback', scoreboard_attempts: sbAttempts }); continue; }
 
         const ro = await fetch(`${ESPN}/${s.path}/summary?event=${eventId}`, { headers: { 'User-Agent': UA } });
         if (ro.status !== 200) { m.other_sports.push({ sport: s.sport, event: String(eventId), source, http: ro.status }); continue; }
@@ -568,7 +581,7 @@ for (const s of OTHER_SPORTS) {
                 })),
             };
         }
-        m.other_sports.push({ sport: s.sport, event: String(eventId), source, date: when, http: 200, top_level: top.slice(0, 12), containers });
+        m.other_sports.push({ sport: s.sport, event: String(eventId), source, scoreboard_attempts: sbAttempts, date: when, http: 200, top_level: top.slice(0, 12), containers });
     } catch (e) {
         m.other_sports.push({ sport: s.sport, error: String(e.message || e) });
     }
