@@ -5873,7 +5873,12 @@ async function sweepKVBriefs(env) {
         ).bind(gameId, gameId).first();
         if (existingRow) existingId = existingRow.id;
       } catch (e) { console.error("[KV-SWEEP] existing-row lookup failed:", e.message); }
-      const briefId = existingId || `game_recap_${String(sport || '').toLowerCase()}_${gameId}`;
+      // ask 2: a repair path must not promote a live snapshot to a recap.
+      // brief_type is already excluded from the ON CONFLICT UPDATE SET below, so
+      // this only governs FRESH inserts.
+      const _sweepFinal = await isGameFinalByEventId(env, gameId);
+      const _sweepType  = gameBriefTypeForFinality(_sweepFinal);
+      const briefId = existingId || `${_sweepType}_${String(sport || '').toLowerCase()}_${gameId}`;
       // DO UPDATE, not DO NOTHING: now that ids genuinely collide with real
       // rows, this turns the sweep into an active repair mechanism for the
       // "fresh KV, stale D1" archive-write bug (KV is written before D1 by
@@ -5897,7 +5902,7 @@ async function sweepKVBriefs(env) {
       await env.ARCHIVE_DB.prepare(
         `INSERT INTO briefs
            (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
-         VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, 'kv_sweep')
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_sweep')
          ON CONFLICT(id) DO UPDATE SET
            brief_text    = excluded.brief_text,
            quality_score = excluded.quality_score,
@@ -5905,7 +5910,7 @@ async function sweepKVBriefs(env) {
            word_count    = excluded.word_count`
       ).bind(
         briefId,
-        sweepDate, sport, gameId, briefText, qualityScore, contextHash,
+        sweepDate, _sweepType, sport, gameId, briefText, qualityScore, contextHash,
         briefText.split(/\s+/).length
       ).run();
       swept++;
@@ -7067,6 +7072,68 @@ function matchV2Game(games, { espnId, home, away } = {}) {
 // statically verifies every name below appears in both routes' source, so a
 // future field added to one path cannot silently go missing from the other.
 const COMPLETION_FIELDS = ['home_score', 'away_score', 'went_to_ot', 'finalized_at', 'espn_event_id'];
+
+// ── Game-brief type classification ──────────────────────────────────────────
+// CC-CMD-2026-08-20-brief-data-quality ask 2.
+//
+// THE BUG THIS REPLACES: the classifier was
+//   briefType = (home_score != null) ? 'game_recap' : 'narrative_context'
+// whose comment claimed score presence "distinguishes a true game recap from a
+// pre-game brief". It does not. Score presence separates PRE-GAME from
+// NOT-PRE-GAME; it cannot separate IN-PROGRESS from FINAL, because a game five
+// minutes in has a score of 0-0. Every live capture therefore landed as
+// `game_recap`, which is how "Seattle and Austin remain scoreless at Lumen Field
+// through 46 minutes" shipped as a recap on 2026-08-19 -- and scored highest on
+// the slate.
+//
+// Single source deliberately: four write sites produced 'game_recap' as a
+// hardcoded literal. Four copies of a rule is how the rule drifts (see the UEFA
+// LEAGUES/SOCCER_LEAGUE_LABELS split closed 2026-08-20).
+//
+// isFinal === null means "could not determine". That returns 'game_recap' to
+// preserve prior behaviour rather than silently reclassifying rows on absent
+// data -- the repair paths below can hit it when a game row is missing. It is
+// logged, not swallowed.
+function gameBriefTypeForFinality(isFinal) {
+    if (isFinal === true)  return 'game_recap';
+    if (isFinal === false) return 'game_live';
+    return 'game_recap';   // unknown -- see note above
+}
+
+// Use where a score is genuinely observable, so pre-game briefs can be told
+// apart too. Where only finality is knowable (the KV sweep/repair paths, which
+// copy prose without scores), call gameBriefTypeForFinality directly rather
+// than passing a fake score in to reach the same branch.
+function classifyGameBriefType({ isFinal, homeScore }) {
+    if (homeScore === null || homeScore === undefined) return 'narrative_context';
+    return gameBriefTypeForFinality(isFinal);
+}
+
+// finalized_at is the canonical "this game ended" marker (COMPLETION_FIELDS
+// above; set by /archive/score-by-id via COALESCE(finalized_at, datetime('now'))).
+// Returns true/false, or null when the game row cannot be found at all.
+//
+// NOTE start_time is deliberately NOT used as the gate. `created_at < start_time`
+// detects a brief written before kickoff -- which is the right ARTIFACT, and is
+// what the CC-CMD checks -- but it cannot catch a capture taken at halftime,
+// which is after start_time and still not a recap.
+async function isGameFinalByEventId(env, eventId) {
+    if (!env?.ARCHIVE_DB || !eventId) return null;
+    try {
+        const r = await env.ARCHIVE_DB.prepare(
+            `SELECT finalized_at FROM regular_season_games WHERE espn_event_id = ?
+             UNION ALL
+             SELECT finalized_at FROM postseason_games     WHERE espn_event_id = ?
+             LIMIT 1`
+        ).bind(String(eventId), String(eventId)).first();
+        if (!r) return null;
+        return r.finalized_at != null;
+    } catch (e) {
+        console.error('[BRIEF-TYPE] finalized_at lookup failed:', e.message);
+        return null;
+    }
+}
+
 
 // ── Morning WC Catch-Up Brief (UTC 11-13 / 7-9am ET) ─────────────────────
 // Runs in the gap between the live-hours cron (UTC 10am–2am) and the
@@ -8672,6 +8739,11 @@ async function handleJournalismCycle(env, opts = {}) {
               homeScore,
               awayScore,
               matchupNote,
+              // ask 2: ESPN's own completed flag, forwarded so the consumer can
+              // classify without a second lookup. Already trusted at ~L8548 as
+              // the gate for the debrief block, so this is the same signal, not
+              // a new judgement.
+              isFinal:    !!comp.status?.type?.completed,
               cycleId,
               prompt:     gamePrompt,
               max_tokens: 400,
@@ -11537,11 +11609,12 @@ export default {
                         }
                         if (briefText && briefText.length > 50) {
                             await ensureBriefsTable(env);
-                            // Brief type classification: presence of scores
-                            // distinguishes a true game recap from a pre-game
-                            // / narrative-only brief stored under the same
-                            // brief:game:* KV key shape.
-                            const briefType = (home_score !== null && home_score !== undefined) ? 'game_recap' : 'narrative_context';
+                            // ask 2: classify on FINAL STATE, not score presence.
+                            // The old test could not separate in-progress from
+                            // final -- see classifyGameBriefType's note.
+                            const _isFinal = await isGameFinalByEventId(env, sid);
+                            if (_isFinal === null) console.warn(`[ARCHIVE-GAME] finality unknown for ${sid}; defaulting brief_type to game_recap`);
+                            const briefType = classifyGameBriefType({ isFinal: _isFinal, homeScore: home_score });
                             const briefId = `${briefType}_${sportKey}_${sid}`;
                             let kvCaptureScore = null;
                             try {
@@ -12231,13 +12304,17 @@ export default {
                 if (repair) {
                     try {
                         const text = String(kvBrief.brief);
-                        const id = d1Row?.id || `game_recap_${String(cand.sport || '').toLowerCase()}_${eventId}`;
+                        // ask 2: a repair path must not promote a live snapshot
+                        // to a recap. brief_type is preserved on conflict below,
+                        // so this governs FRESH inserts only.
+                        const _repairType = gameBriefTypeForFinality(await isGameFinalByEventId(env, eventId));
+                        const id = d1Row?.id || `${_repairType}_${String(cand.sport || '').toLowerCase()}_${eventId}`;
                         const gameCtx = { home: cand.home, away: cand.away, homeScore: cand.home_score, awayScore: cand.away_score };
                         const qualityScore = await jqScoreProse(text, { sport: cand.sport, game: gameCtx })
                             .catch(e => { console.error("[INTEGRITY-GAME-BRIEFS] score compute failed:", e.message); return null; });
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO briefs (id, date, brief_type, sport, game_id, brief_text, quality_score, context_hash, word_count, source)
-                             VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, 'kv_repair')
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'kv_repair')
                              ON CONFLICT(id) DO UPDATE SET
                                brief_text = excluded.brief_text,
                                word_count = excluded.word_count,
@@ -12245,7 +12322,7 @@ export default {
                                context_hash = excluded.context_hash,
                                source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                         ).bind(
-                            id, date, canonicalizeWC26Sport(cand.sport) || null, String(eventId), text,
+                            id, date, _repairType, canonicalizeWC26Sport(cand.sport) || null, String(eventId), text,
                             qualityScore, kvBrief.contextHash || null, text.split(/\s+/).filter(Boolean).length
                         ).run();
                         repairedCount++;
@@ -18672,10 +18749,19 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
               if (env.ARCHIVE_DB) {
                 await ensureBriefsTable(env);
                 const briefDate = new Date(job.enqueuedAt || Date.now()).toISOString().slice(0, 10);
+                // ask 2: this is the dominant real writer. job.isFinal carries
+                // ESPN's own status.type.completed from the enqueue site, so the
+                // classification uses the state AT GENERATION TIME -- the truth
+                // about whether this prose describes a finished game. Older jobs
+                // already on the queue have no isFinal field; undefined resolves
+                // to 'game_recap', i.e. prior behaviour, and drains out within a
+                // cycle rather than mislabelling in the other direction.
+                const _jobBriefType = gameBriefTypeForFinality(
+                    job.isFinal === undefined ? null : !!job.isFinal);
                 await env.ARCHIVE_DB.prepare(
                   `INSERT INTO briefs
                      (id, date, brief_type, sport, game_id, brief_text, model, quality_score, context_hash, word_count, source)
-                   VALUES (?, ?, 'game_recap', ?, ?, ?, ?, ?, ?, ?, ?)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET
                      brief_text = excluded.brief_text,
                      word_count = excluded.word_count,
@@ -18688,8 +18774,9 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                   // wc-label-fragmentation. job.sport itself stays 'wc26' upstream
                   // (line 14842's bracket-impact check keys off that literal) --
                   // canonicalize only at this final persistence boundary.
-                  `game_recap_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
+                  `${_jobBriefType}_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
                   briefDate,
+                  _jobBriefType,
                   canonicalizeWC26Sport(job.sport) || null,
                   String(job.eventId),
                   finalText,
