@@ -1,0 +1,85 @@
+name: CONTRACTS.md identity check
+
+# CONTRACTS.md carries a standing instruction at the top: "This file must be
+# identical in jubilant-bassoon AND field-relay-nba." Nothing enforced it. On
+# 2026-08-21 the client copy was found 173 lines behind the relay's, stale since
+# 2026-06-30 -- roughly two months of silent divergence in the very file whose
+# job is to prevent silent divergence.
+#
+# NO schedule: deliberately. This fires on the only event that can create the
+# problem -- a push that touches CONTRACTS.md. A cron would burn runs on days
+# nobody edited it, which is the waste pattern documented in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md. Coverage is still
+# complete because the companion repo carries the mirror of this workflow: an
+# edit on either side triggers the comparison from that side.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'CONTRACTS.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-identity-check
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out this repo (field-relay-nba)
+        uses: actions/checkout@v4
+        with:
+          path: relay
+
+      # Same cross-repo read pattern as deploy-health-protocol.yml: checkout
+      # with an explicit repository and RELAY_GH_PAT, which is already proven
+      # to authenticate for reads against another repo in this account.
+      - name: Check out jubilant-bassoon
+        uses: actions/checkout@v4
+        with:
+          repository: jeffunglesbee-create/jubilant-bassoon
+          token: ${{ secrets.RELAY_GH_PAT }}
+          path: client
+
+      - name: Compare the two copies
+        run: |
+          set -euo pipefail
+          A=relay/CONTRACTS.md
+          B=client/CONTRACTS.md
+
+          # A missing file must fail loudly rather than compare as "no diff".
+          for f in "$A" "$B"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f does not exist. CONTRACTS.md must be present in both repos."
+              exit 1
+            fi
+          done
+
+          echo "relay:  $(wc -l < "$A") lines, sha256 $(sha256sum "$A" | cut -c1-16)"
+          echo "client: $(wc -l < "$B") lines, sha256 $(sha256sum "$B" | cut -c1-16)"
+
+          if diff -q "$A" "$B" >/dev/null; then
+            echo "PASS: CONTRACTS.md is identical in both repos."
+            exit 0
+          fi
+
+          echo "::error::CONTRACTS.md has DIVERGED between field-relay-nba and jubilant-bassoon."
+          echo "::group::diff (relay = -, client = +)"
+          diff -u "$A" "$B" || true
+          echo "::endgroup::"
+
+          # Name the direction. "They differ" leaves the next reader to work out
+          # which side is behind; the line counts and the changed-section names
+          # answer it directly.
+          echo ""
+          echo "Sections differing:"
+          diff <(grep '^## ' "$A") <(grep '^## ' "$B") || true
+          echo ""
+          echo "Fix: copy the authoritative version over the stale one, update the"
+          echo "'Last synced' line, and commit to BOTH repos in the same session."
+          exit 1
