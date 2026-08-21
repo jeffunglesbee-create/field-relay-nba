@@ -121,6 +121,14 @@ jobs:
       - name: closing_odds is not pre-filled for unplayed games
         run: node scripts/check-closing-odds-not-prefilled.mjs
 
+      # The odds join keys on resolveTeamKey(home)|resolveTeamKey(away). A
+      # missing alias is a miss (NULL odds); a COLLISION attaches one club's
+      # line to another club's game and looks plausible on the card. Real Betis
+      # and Real Sociedad played each other on 2026-08-21 — a "strip leading
+      # Real" rule would have had a live chance to swap them that day.
+      - name: team identity — no two clubs share a key
+        run: node scripts/check-team-identity-collisions.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys

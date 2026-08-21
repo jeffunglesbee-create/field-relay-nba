@@ -281,6 +281,72 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
         ['Paris Saint-Germain',    'Paris Saint-Germain'],
         ['PSG',                    'Paris Saint-Germain'],
         ['Paris SG',               'Paris Saint-Germain'],
+
+        // ── La Liga ───────────────────────────────────────────────
+        // Added 2026-08-21. There was NO La Liga section, which is why its
+        // opening-odds coverage is 2/17 (11.8%) against MLB's 87.2% -- the
+        // odds join is `resolveTeamKey(home)|resolveTeamKey(away)` on both
+        // sides, so a club stored one way in D1 and another by the odds feed
+        // never matches and the row keeps a NULL opening line.
+        //
+        // Every variant below was READ FROM D1, not remembered: the distinct
+        // home/away strings this table actually holds for sport='La Liga'.
+        // D1 stores the SAME CLUB under two spellings in four cases, so this
+        // fixes an internal inconsistency as well as the feed join.
+        //
+        // WHY LISTING BOTH SPELLINGS IS SAFE WITHOUT READING THE ODDS API:
+        // the resolver's contract is that either side of a comparison maps to
+        // the same key. Listing every observed spelling against one canonical
+        // means whichever form the feed sends resolves correctly -- no guess
+        // about which one it prefers. An unlisted spelling is a MISS (a NULL
+        // odds column, the status quo), never a MISMATCH.
+        //
+        // Deliberately per-club and explicit, never a token rule. Stripping a
+        // leading "Real" would collapse Real Betis, Real Sociedad and Real
+        // Madrid toward each other -- and Real Betis and Real Sociedad played
+        // each other on 2026-08-21. That failure would not merely miss; it
+        // would write one club's odds onto the other's game. Guarded by
+        // scripts/check-team-identity-collisions.mjs.
+        ['Real Betis',             'Real Betis'],
+        ['Betis',                  'Real Betis'],
+        ['Real Sociedad',          'Real Sociedad'],
+        ['Atletico Madrid',        'Atletico Madrid'],
+        ['Atlético Madrid',        'Atletico Madrid'],
+        ['Atlético',               'Atletico Madrid'],
+        ['Espanyol',               'Espanyol'],
+        ['Español',                'Espanyol'],
+        ['Rayo Vallecano',         'Rayo Vallecano'],
+        ['Rayo',                   'Rayo Vallecano'],
+        ['Real Madrid',            'Real Madrid'],
+        ['Barcelona',              'Barcelona'],
+        ['Athletic Club',          'Athletic Club'],
+        ['Celta Vigo',             'Celta Vigo'],
+        ['Alavés',                 'Alavés'],
+        ['Getafe',                 'Getafe'],
+        ['Girona',                 'Girona'],
+        ['Levante',                'Levante'],
+        ['Mallorca',               'Mallorca'],
+        ['Osasuna',                'Osasuna'],
+        ['Sevilla',                'Sevilla'],
+        ['Valencia',               'Valencia'],
+        ['Villarreal',             'Villarreal'],
+        ['Elche',                  'Elche'],
+        ['Real Oviedo',            'Real Oviedo'],
+        // NOT mapped: 'Deportivo', 'Racing', 'Málaga' also appear under
+        // sport='La Liga' in D1. Those are second-division clubs and their
+        // presence under this label is a separate question (the label
+        // fragmentation tracked in CC-CMD-2026-08-20-brief-data-quality ask 3).
+        // Guessing which club a bare 'Racing' or 'Deportivo' denotes is exactly
+        // the invention that produces a wrong-club match, so they are left
+        // unmapped: a miss, not a mismatch.
+
+        // ── EPL, 2026-27 intake ───────────────────────────────────
+        // The EPL block above predates this season and has no entry for the
+        // promoted clubs. D1 holds 'Coventry'; the club's full name carries
+        // 'City', so a feed using the full form cannot match today. Arsenal v
+        // Coventry on 2026-08-21 is the live instance -- opening_odds NULL.
+        ['Coventry City',          'Coventry City'],
+        ['Coventry',               'Coventry City'],
     ];
     const strip = {};
     const display = {};
