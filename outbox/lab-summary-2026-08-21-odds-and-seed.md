@@ -55,7 +55,7 @@ relay deploy.
 
 ### A SECOND defect the desk exposed — and a correction to my first read
 
-Seeing "one snapshot" on the Arsenal and Betis cards, I reported that their
+Seeing "one snapshot" on the Arsenal and Real Betis cards, I reported that their
 `closing_odds` was NULL and the hook had not fired. **Both halves were wrong.**
 Measured state, 2026-08-21:
 
@@ -89,7 +89,19 @@ The ask should be **withdrawn and re-filed** as two things:
    remaining blocker for `Moved` on the marquee competitions.
 
 Carry-forwards #2 (team-name aliasing) and #3 (non-AmbientDO sports) survive
-unchanged.
+unchanged — and #2 is now measured at **~80% no-match for soccer**: opening-odds
+coverage is MLB 87% and WNBA 76% against MLS 20% (108/548), EPL 22%, La Liga 11%.
+It is a soccer-wide defect, not an EPL one, and MLS is the volume case.
+
+**A hazard for whoever builds that alias table.** The names in play are
+`Betis → Real Betis` and `Coventry → Coventry City` — each pair is ONE club under
+two names, not a fixture. The tempting normalisation is to strip a leading
+"Real", and that is dangerous here: Real Betis, Real Sociedad and Real Madrid all
+carry it, and the first two were the two sides of today's La Liga match. A
+token-stripping rule would not merely fail to match — it could resolve a row to
+the wrong club and write one side's odds against the other's game. This needs a
+per-club mapping plus a test asserting Real Betis and Real Sociedad never
+resolve to the same key.
 
 ### Verification, staged with unblock criteria (Rule 74)
 
@@ -163,4 +175,3 @@ filed from what `/context/date` and the desk *render*, which is a correct place
 to notice a symptom and an unreliable place to infer a cause. Every one of the
 three would have been caught by a HEAD probe before filing — `grep` for the
 function the ask says to write, and check whether a table already has the row.
-EOF

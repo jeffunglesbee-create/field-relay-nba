@@ -815,7 +815,21 @@ The mapping hypothesis was already dead before this probe (`epl` and `'la liga'`
 are both in `ARCHIVE_SPORT_TO_ODDS_KEY`, `src/index.js:5947-5949`). What is left
 is the join: `byPair.set(resolveTeamKey(g.home_team)|resolveTeamKey(g.away_team))`
 matched against the same on the D1 row. Soccer club names are exactly where that
-breaks — *Betis* vs *Real Betis*, *Coventry* vs *Coventry City* — and
+breaks. Written as `D1 name → Odds API canonical name`, for ONE club each:
+`Betis → Real Betis`, `Coventry → Coventry City`. (An earlier draft wrote these
+with "vs", which in a paragraph about the Betis v Real Sociedad fixture read as a
+matchup rather than as two names for the same club. Real Betis and Real Sociedad
+are unrelated clubs — Seville and San Sebastián — and they played each other in
+that very fixture.)
+
+**That confusion is itself the hazard the alias table has to survive.** The naive
+normalisation is to strip a leading "Real", which collapses Real Betis, Real
+Sociedad and Real Madrid toward each other — and the first two were the two sides
+of one match today, so a bad rule would not merely fail to match, it could match
+a row to the WRONG club and write one team's odds against the other's game. Any
+alias work here needs a per-club mapping, not a token-stripping rule, and needs a
+test asserting that Real Betis and Real Sociedad never resolve to the same key.
+And — 
 `CC-CMD-2026-08-21-closing-odds-capture` names this as its carry-forward #2
 ("team-name matching … uses the client's alias table today; port it relay-side
 if the hook produces >5% no-match warns"). The measured no-match rate for soccer
