@@ -107,6 +107,12 @@ jobs:
       - name: game_recap gated on finality
         run: node scripts/check-game-recap-classification.mjs
 
+      # ask 3: briefs.sport must carry the declared label verbatim. A lowercased
+      # column value is unreachable by every sport-filtered read while still
+      # looking correct in the row's id. Second occurrence of this bug class.
+      - name: briefs.sport carries declared labels
+        run: node scripts/check-brief-sport-label.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
