@@ -5315,8 +5315,23 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
   let debriefBlock = null;
   if (debriefCtx) {
     const lines = ['DEBRIEF CONTEXT — use to enrich the recap, don\'t list mechanically:'];
-    if (debriefCtx.drama_peak != null)
-      lines.push(` Drama: ${debriefCtx.drama_peak}/100`);
+    // drama_peak is DELIBERATELY NOT injected -- CC-CMD-2026-08-20-brief-data-quality
+    // ask 1. This line used to render ` Drama: ${debriefCtx.drama_peak}/100` into
+    // the prompt, and the model transcribed it straight into user-facing prose:
+    // "in a game with a 52/100 drama rating" (game_recap_la liga_401882925,
+    // 2026-08-19). That is ADR-002 PROHIBITED #3 -- a raw composite drama number
+    // displayed to the user -- which the 2026-07-07 corrections explicitly do NOT
+    // relax (ADR-002-CONTEXT.md L75-78).
+    //
+    // Note what is NOT the issue: storing drama_peak and serving it on pull are
+    // both permitted (Rule E), and post-game content is in the amnesty zone. Only
+    // the number reaching the reader violates. "don't list mechanically" in the
+    // header above was the previous mitigation and it did not hold -- an
+    // instruction is not a guardrail.
+    //
+    // Do NOT re-add this. If the tonal signal is wanted back, a NON-numeric band
+    // is the thing to propose, and that is a design decision with an ADR-002
+    // dimension -- not a silent restore.
     if (debriefCtx.pre_game_brief)
       lines.push(` Pre-game: ${debriefCtx.pre_game_brief}`);
     if (debriefCtx.opening_odds_parsed) {
@@ -8553,7 +8568,6 @@ async function handleJournalismCycle(env, opts = {}) {
                       if (_comp.length) _seriesSummary = `${_comp.length} games played, ${homeName} leads ${_hw}-${_aw}`;
                     }
                     const _dc = {
-                      drama_peak:          _gameRow.drama_peak  ?? null,
                       opening_odds_parsed: _gameRow.opening_odds_parsed ?? null,
                       closing_odds_parsed: _gameRow.closing_odds_parsed ?? null,
                       went_to_ot:          !!_gameRow.went_to_ot,
@@ -8561,7 +8575,9 @@ async function handleJournalismCycle(env, opts = {}) {
                       series_summary:      _seriesSummary,
                     };
                     const _lines = ['DEBRIEF CONTEXT — use to enrich the recap, don\'t list mechanically:'];
-                    if (_dc.drama_peak != null) _lines.push(` Drama: ${_dc.drama_peak}/100`);
+                    // drama_peak deliberately not injected -- see the long note in
+                    // buildGameCompletePrompt. Same ADR-002 PROHIBITED #3 issue; this
+                    // is the cron path that actually wrote the observed row.
                     if (_dc.pre_game_brief)     _lines.push(` Pre-game: ${_dc.pre_game_brief}`);
                     if (_dc.opening_odds_parsed) {
                       const o = _dc.opening_odds_parsed;
