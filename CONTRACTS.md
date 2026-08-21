@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-08-21 (ESPN per-sport event source — relay + client copies)
+Last synced: 2026-08-21 (team identity + FPL source authority — relay + client copies)
 
 ---
 
@@ -790,3 +790,58 @@ where present and degrade to goals-only where not. The same tier governs whether
 per-item id join across 6 fixtures. `keyEvents` uniquely holds substitutions and
 period markers; `commentary` uniquely holds near-misses. All goal items appear in
 both (0 missing across 6 fixtures), so the goal read path is unaffected.
+
+---
+
+## Team identity — one resolver, one table (relay-owned)
+
+Producer/owner: `field-relay-nba/src/identity-resolver.js` (`resolveTeamKey`)
+Consumers: the odds join, the FPL→game join, every archive match
+
+**There is exactly one club-alias table, and it lives in the relay.** Any join
+that matches a club name from one source against a club name from another
+resolves BOTH sides through `resolveTeamKey` and compares the returned keys.
+
+### Why this is a contract and not a style note
+
+A missing alias is a **miss** — the column stays NULL, which is merely
+unhelpful. A collision is a **corruption**: the odds join keys on
+`resolveTeamKey(home) + '|' + resolveTeamKey(away)`, so two clubs sharing a key
+attach one club's line to another club's game, silently, and it looks entirely
+plausible on the card. Two independent alias tables can drift into exactly that.
+
+Guarded by `scripts/check-team-identity-collisions.mjs` (deploy-gating): 35 alias
+pairs must resolve together, and no two distinct clubs may share a key.
+Negative-tested by club name.
+
+**Never normalise by token-stripping.** Spanish naming is the case that proves
+it: unqualified *"Real"* means **Real Madrid**, while **Real Sociedad**'s short
+form is *"Sociedad"* — the "Real" is dropped. A strip-leading-"Real" rule points
+the wrong way in two directions at once, and Real Betis v Real Sociedad was a
+real fixture on 2026-08-21. Per-club entries only.
+
+### `FPL_SHORT_NAME_MAP` is superseded
+
+`jubilant-bassoon/src/legacy/field.js:19195` carries a 12-entry FPL club-alias
+map. Measured 2026-08-21, entry by entry: **11 of the 12 already resolved through
+`resolveTeamKey`; `Spurs` was the only gap**, now added. The relay resolver is a
+strict superset.
+
+So the FPL→game join uses `resolveTeamKey`, **not** a second table. Any FPL
+spelling found missing is added to `identity-resolver.js`, where the collision
+guard covers it — never to a parallel map. The client map is retained only until
+its call sites are repointed; it must not gain new entries.
+
+### Source authority for shared FPL/ESPN fields
+
+FPL `event/{gw}/live/` and ESPN `keyEvents` both carry goals and assists. To stop
+two feeds disagreeing inside one brief:
+
+| field | authoritative source |
+|-------|---------------------|
+| goals, assists, match narrative | **ESPN** (`keyEvents`, per the per-sport table above) |
+| bonus points, saves, FPL-native stats | **FPL** (`event/{gw}/live/`) |
+| cards, minutes | FPL (finer-grained), falling back to ESPN prose |
+
+ESPN owns the match story; FPL adds the fantasy layer ESPN does not carry. A
+brief must never name the same goal from both.

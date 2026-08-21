@@ -85,6 +85,15 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
         ['West Ham',               'West Ham United'],
         ['Leeds United',           'Leeds United'],
         ['Leeds',                  'Leeds United'],
+        // Added 2026-08-21 for the FPL join. jubilant-bassoon's
+        // FPL_SHORT_NAME_MAP (src/legacy/field.js:19195) was tested entry by
+        // entry against this resolver: 11 of its 12 aliases already resolved
+        // here, and 'Spurs' was the only gap. That is what makes the second
+        // table unnecessary rather than merely redundant -- see the note at the
+        // FPL section of CONTRACTS.md.
+        ['Tottenham Hotspur',      'Tottenham Hotspur'],
+        ['Tottenham',              'Tottenham Hotspur'],
+        ['Spurs',                  'Tottenham Hotspur'],
 
         // ── MLS — all 30 clubs, 2026 (canonical: stats-api.mlssoccer.com) ────
         // Aliases cover: ESPN displayName variants, D1 seed variants, common

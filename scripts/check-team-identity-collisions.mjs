@@ -70,6 +70,17 @@ const MUST_MATCH = [
     ['Wolves',           'Wolverhampton Wanderers'],
     ['Brighton',         'Brighton & Hove Albion'],
     ['Man Utd',          'Manchester United'],
+    // Every jubilant-bassoon FPL_SHORT_NAME_MAP key, asserted here so the
+    // client's table can be retired rather than kept in sync by hand.
+    ['Spurs',            'Tottenham Hotspur'],
+    ['Tottenham',        'Tottenham Hotspur'],
+    ['Nottm Forest',     'Nottingham Forest'],
+    ["Nott'm Forest",    'Nottingham Forest'],
+    ['Newcastle',        'Newcastle United'],
+    ['Bournemouth',      'AFC Bournemouth'],
+    ['West Ham',         'West Ham United'],
+    ['Leeds',            'Leeds United'],
+    ['Man City',         'Manchester City'],
 ];
 for (const [variant, canonical] of MUST_MATCH) {
     if (resolveTeamKey(variant) !== resolveTeamKey(canonical)) {
@@ -118,6 +129,7 @@ const DISTINCT = [
     'Osasuna', 'Alavés', 'Elche', 'Arsenal',
     // The three 2026-27 promoted clubs.
     'Coventry City', 'Ipswich Town', 'Hull City',
+    'Tottenham Hotspur', 'Manchester United', 'Manchester City', 'Newcastle United',
 ];
 const seen = new Map();
 for (const club of DISTINCT) {
