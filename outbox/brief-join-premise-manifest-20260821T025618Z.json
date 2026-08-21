@@ -1,0 +1,378 @@
+{
+  "probed_at": "2026-08-21T02:56:18.633Z",
+  "query_ok": true,
+  "premise_holds": false,
+  "premise_holds_for_mls": true,
+  "coverage_by_sport": [
+    {
+      "sport": "MLB",
+      "rows_total": 807,
+      "rows_with_id": 807,
+      "pct": 100
+    },
+    {
+      "sport": "MLS",
+      "rows_total": 548,
+      "rows_with_id": 93,
+      "pct": 17
+    },
+    {
+      "sport": "WNBA",
+      "rows_total": 183,
+      "rows_with_id": 169,
+      "pct": 92
+    },
+    {
+      "sport": "AFL",
+      "rows_total": 138,
+      "rows_with_id": 138,
+      "pct": 100
+    },
+    {
+      "sport": "FIFA World Cup",
+      "rows_total": 103,
+      "rows_with_id": 103,
+      "pct": 100
+    },
+    {
+      "sport": "golf",
+      "rows_total": 47,
+      "rows_with_id": 40,
+      "pct": 85
+    },
+    {
+      "sport": "EFL Cup",
+      "rows_total": 34,
+      "rows_with_id": 34,
+      "pct": 100
+    },
+    {
+      "sport": "EPL",
+      "rows_total": 26,
+      "rows_with_id": 26,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "rows_total": 24,
+      "rows_with_id": 24,
+      "pct": 100
+    },
+    {
+      "sport": "NFL",
+      "rows_total": 18,
+      "rows_with_id": 18,
+      "pct": 100
+    },
+    {
+      "sport": "La Liga",
+      "rows_total": 17,
+      "rows_with_id": 13,
+      "pct": 76
+    },
+    {
+      "sport": "PGA Tour",
+      "rows_total": 13,
+      "rows_with_id": 13,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "rows_total": 12,
+      "rows_with_id": 12,
+      "pct": 100
+    },
+    {
+      "sport": "CFL",
+      "rows_total": 10,
+      "rows_with_id": 10,
+      "pct": 100
+    },
+    {
+      "sport": "wnba",
+      "rows_total": 10,
+      "rows_with_id": 10,
+      "pct": 100
+    },
+    {
+      "sport": "EFL Trophy",
+      "rows_total": 7,
+      "rows_with_id": 7,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Champions League Qualifying",
+      "rows_total": 4,
+      "rows_with_id": 4,
+      "pct": 100
+    },
+    {
+      "sport": "IPL",
+      "rows_total": 2,
+      "rows_with_id": 0,
+      "pct": 0
+    },
+    {
+      "sport": "Ligue 1",
+      "rows_total": 2,
+      "rows_with_id": 2,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Champions League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa Conference League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    },
+    {
+      "sport": "UEFA Europa League",
+      "rows_total": 1,
+      "rows_with_id": 1,
+      "pct": 100
+    }
+  ],
+  "mls_by_month": [
+    {
+      "month": "2026-11",
+      "rows_total": 16,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-10",
+      "rows_total": 131,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-09",
+      "rows_total": 132,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-08",
+      "rows_total": 156,
+      "rows_with_id": 45
+    },
+    {
+      "month": "2026-07",
+      "rows_total": 101,
+      "rows_with_id": 38
+    },
+    {
+      "month": "2026-05",
+      "rows_total": 10,
+      "rows_with_id": 10
+    },
+    {
+      "month": "2026-04",
+      "rows_total": 1,
+      "rows_with_id": 0
+    },
+    {
+      "month": "2026-03",
+      "rows_total": 1,
+      "rows_with_id": 0
+    }
+  ],
+  "brief_game_id_shapes": [
+    {
+      "shape": "9-digit espn-like",
+      "n": 2243
+    },
+    {
+      "shape": "6-digit numeric",
+      "n": 586
+    },
+    {
+      "shape": "ordinal gNN",
+      "n": 535
+    },
+    {
+      "shape": "other",
+      "n": 1
+    }
+  ],
+  "game_recap_join_rate": {
+    "total": 1452,
+    "joined": 1196,
+    "pct": 82,
+    "note": "both game tables unioned; golf excluded (composite per-round ids)"
+  },
+  "join_by_sport": [
+    {
+      "sport": "MLB",
+      "total": 791,
+      "joined": 665
+    },
+    {
+      "sport": "FIFA World Cup",
+      "total": 299,
+      "joined": 217
+    },
+    {
+      "sport": "WNBA",
+      "total": 155,
+      "joined": 132
+    },
+    {
+      "sport": "MLS",
+      "total": 83,
+      "joined": 83
+    },
+    {
+      "sport": "EFL Cup",
+      "total": 31,
+      "joined": 31
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "total": 24,
+      "joined": 24
+    },
+    {
+      "sport": "football",
+      "total": 21,
+      "joined": 0
+    },
+    {
+      "sport": "NFL",
+      "total": 18,
+      "joined": 18
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "total": 12,
+      "joined": 12
+    },
+    {
+      "sport": "La Liga",
+      "total": 7,
+      "joined": 7
+    },
+    {
+      "sport": "EFL Trophy",
+      "total": 7,
+      "joined": 7
+    },
+    {
+      "sport": "mlb",
+      "total": 4,
+      "joined": 0
+    }
+  ],
+  "mls_key_space": {
+    "mls_recaps": 83,
+    "match_espn_event_id": 83,
+    "match_row_id": 0
+  },
+  "mls_brief_ids": [
+    {
+      "game_id": "761732",
+      "id": "game_recap_mls_761732",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761738",
+      "id": "game_recap_mls_761738",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761736",
+      "id": "game_recap_mls_761736",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761735",
+      "id": "game_recap_mls_761735",
+      "date": "2026-08-19"
+    },
+    {
+      "game_id": "761731",
+      "id": "game_recap_mls_761731",
+      "date": "2026-08-19"
+    }
+  ],
+  "mls_game_rows": [
+    {
+      "id": "2026-11-07-mls-phi-tor",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-orl-ne",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-rbny-atl",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-mtl-van",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    },
+    {
+      "id": "2026-11-07-mls-mia-clt",
+      "espn_event_id": null,
+      "date": "2026-11-07"
+    }
+  ],
+  "unjoinable_sample": [
+    {
+      "id": "game_recap_mlb_401873710",
+      "sport": "MLB",
+      "game_id": "401873710",
+      "date": "2026-08-17"
+    },
+    {
+      "id": "game_recap_mlb_401816308",
+      "sport": "MLB",
+      "game_id": "401816308",
+      "date": "2026-07-29"
+    },
+    {
+      "id": "game_recap_mlb_401901849",
+      "sport": "MLB",
+      "game_id": "401901849",
+      "date": "2026-07-28"
+    },
+    {
+      "id": "game_recap_mlb_401898715",
+      "sport": "MLB",
+      "game_id": "401898715",
+      "date": "2026-07-22"
+    },
+    {
+      "id": "game_recap_mlb_401816219",
+      "sport": "MLB",
+      "game_id": "401816219",
+      "date": "2026-07-22"
+    },
+    {
+      "id": "game_recap_mlb_401897386",
+      "sport": "MLB",
+      "game_id": "401897386",
+      "date": "2026-07-19"
+    },
+    {
+      "id": "game_recap_wc26_espn:760516",
+      "sport": "FIFA World Cup",
+      "game_id": "espn:760516",
+      "date": "2026-07-18"
+    },
+    {
+      "id": "game_recap_mlb_401896568",
+      "sport": "MLB",
+      "game_id": "401896568",
+      "date": "2026-07-18"
+    }
+  ],
+  "error": null
+}
