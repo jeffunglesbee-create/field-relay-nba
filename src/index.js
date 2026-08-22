@@ -5973,7 +5973,18 @@ function _normTeam(s) {
 }
 
 // Extract a normalized odds payload from one /v4/.../odds game object.
-function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
+// capturedAt: pass the snapshot time when the payload came from the HISTORICAL
+// endpoint. Defaulting to now is correct only for a live fetch.
+//
+// Why this parameter exists (measured 2026-08-22): captured_at was
+// unconditionally `new Date()`, including for historical payloads anchored to
+// noon UTC on the game's date. The stored timestamp therefore recorded when the
+// worker happened to write the row, not when the market data was from -- so the
+// 41 mis-sequenced rows differed by 23 seconds purely because /archive/game ran
+// seconds before the opening-odds cron. Any check comparing opening and closing
+// captured_at was measuring cron execution order, and would have kept doing so
+// even after the finality gate landed.
+function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, capturedAt = null) {
   const books = oddsGame.bookmakers || [];
   if (!books.length) return null;
   const bk = books.find(b => b.key === preferredBook) || books[0];
@@ -5985,7 +5996,7 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK) {
   const away    = oddsGame.away_team;
   const out = {
     source:      bk.key,
-    captured_at: new Date().toISOString(),
+    captured_at: capturedAt || new Date().toISOString(),
     _oddsProof:  { adapterId: 'odds-api', sourceId: 'odds-api-the-odds-api' },
   };
   if (h2h) {
@@ -6191,7 +6202,21 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   try { payload = await r.json(); } catch (_) { payload = null; }
   // Historical endpoint wraps in {timestamp, previous_timestamp, next_timestamp, data: [...]}
   const games = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.data) ? payload.data : []);
-  return { games, quotaRemaining, ok: true };
+  // Surface WHEN this data is from. Previously discarded, which forced every
+  // caller to stamp captured_at with wall-clock time and made opening/closing
+  // sequencing a measurement of cron execution order (see extractOddsForGame).
+  // The API reports the snapshot it actually served in `timestamp`; `snapshot`
+  // is what we asked for. They normally agree -- the API snaps to its nearest
+  // stored snapshot -- so a divergence is worth seeing rather than smoothing
+  // over, and it is logged instead of silently preferred.
+  const servedAt = (payload && typeof payload.timestamp === 'string') ? payload.timestamp : null;
+  if (servedAt && servedAt !== snapshot) {
+    console.log(`[ODDS-HIST] ${sportKey} ${isoDate}: requested ${snapshot}, served ${servedAt}`);
+  }
+  if (!servedAt) {
+    console.warn(`[ODDS-HIST] ${sportKey} ${isoDate}: historical payload carried no timestamp; using requested anchor ${snapshot}`);
+  }
+  return { games, quotaRemaining, ok: true, snapshotAt: servedAt || snapshot };
 }
 
 // One-shot historical odds backfill for a single archive date. Per-sport
@@ -6242,7 +6267,7 @@ async function runOddsBackfillForDate(env, isoDate) {
     if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low'; break;
     }
-    const { games, quotaRemaining, ok } = await fetchSportOddsHistorical(env, sportKey, isoDate);
+    const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate);
     lastQuota = quotaRemaining;
     if (!ok) { oddsSkipped += group.rs.length + group.ps.length; continue; }
     if (quotaRemaining > 0 && quotaRemaining < ODDS_QUOTA_FLOOR) {
@@ -6266,7 +6291,9 @@ async function runOddsBackfillForDate(env, isoDate) {
       for (const row of rows) {
         const og = byPair.get(`${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`);
         if (!og) { oddsSkipped++; continue; }
-        const odds = extractOddsForGame(og);
+        // Historical payload: stamp the snapshot's own time, not the moment
+        // this backfill happened to run.
+        const odds = extractOddsForGame(og, ODDS_PREFERRED_BOOK, snapshotAt);
         if (!odds) { oddsSkipped++; continue; }
         updates.push({ id: row.id, fields: { opening_odds: JSON.stringify(odds) } });
       }
@@ -11708,7 +11735,7 @@ export default {
                             // captured and AmbientDO still owns the kickoff moment.
                             const _rowIsFinal = rowCheck?.finalized_at != null;
                             if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal) {
-                                const { games, ok: oddsOk } = await fetchSportOddsHistorical(env, oddsSportKey, date);
+                                const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
                                     const byPair = new Map();
                                     for (const g of games) {
@@ -11716,7 +11743,7 @@ export default {
                                     }
                                     const matched = byPair.get(`${resolveTeamKey(home)}|${resolveTeamKey(away)}`);
                                     if (matched) {
-                                        const odds = extractOddsForGame(matched);
+                                        const odds = extractOddsForGame(matched, ODDS_PREFERRED_BOOK, snapshotAt);
                                         if (odds) {
                                             const _oddsJson = JSON.stringify(odds);
                                             await env.ARCHIVE_DB.prepare(
