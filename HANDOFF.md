@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-22 (staged FAIL diagnosis: a third closing-odds writer)
+
+**HEAD:** `5f2fabb` → `aca5c93` · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-22-staged-fail-diagnosis.md`
+**Deploy:** run 834 (`0d74e2b`), 21:13:25Z, success
+
+Two staged checks were FAILing. `soccer_opening_coverage` was the probe's fault
+— it called a regression off a single fixture; over 30 days EPL rose to 66.7%
+and La Liga to 22.2%, both above baseline. A 4-game floor now holds small
+samples at PENDING.
+
+`closing_after_opening` was real. The 41 failing rows came from a **third
+closing_odds writer** — `/archive/game` — that wrote **no change_log row**, so
+it had no attribution, and whose `start_time` gate did not test finality. It
+fired pre-kickoff and pre-filled `closing_odds`, permanently defeating
+AmbientDO's `WHERE closing_odds IS NULL` guard: 19 hook writes in all of
+history. Second, independent cause: `captured_at` was stamped `new Date()` even
+for noon-UTC historical snapshots, so the check was comparing cron execution
+order, not market time. Both fixed (`f6fa820`, `a1937eb`).
+
+**State:** `closing_after_opening` PENDING · `soccer_opening_coverage` PASS ·
+`epl_brief_event_grounded` PARTIAL · **no false FAILs remain.**
+
+**Follow-up is automated:** `staged-verification.yml` now runs daily at 06:00
+UTC, reversing its own earlier "no schedule" argument — every answer so far had
+required a human to remember to dispatch it.
+
+**Standing:** the Odds API key is still unrotated, and `ODDS_API_KEY_FALLBACK`
+in `src/index.js` is a hardcoded key constant in a public repo. Remove it as
+part of rotation.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-20 (UEFA club competitions: archived at last)
 
 **HEAD:** `8a6d05e` → `8289762` (feat) → `07b987e` (ci) · **Branch:** main throughout
