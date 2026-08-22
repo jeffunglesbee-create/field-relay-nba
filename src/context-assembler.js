@@ -1102,6 +1102,165 @@ async function buildFPLPlayerContext(env, game) {
     return lines.length > 2 ? lines.join('\n') : '';
 }
 
+// ── buildFPLMatchEventsContext ───────────────────────────────────────────
+// CC-CMD-2026-08-21-fpl-event-grounding-epl. EPL briefs were season-stat
+// templates ("both sides holding 0 points through 0 matches") because nothing
+// fed them what actually happened. This reads the per-player gameweek payload
+// and names the scorers, assisters, cards and saves for THIS fixture.
+//
+// SEPARATE from buildFPLPlayerContext deliberately (Rule 69). That one is
+// pre-game — who is dangerous coming in, by ICT/xG. This one is what occurred.
+// Merging them would restructure a working builder for no benefit.
+//
+// SCOPING IS THE WHOLE PROBLEM. /fpl/event/{gw}/live/ returns every player in
+// the gameweek — 600 elements, of which 62 touched fixture 1 (measured
+// 2026-08-22). `stats` on the element is the GAMEWEEK aggregate, so in a double
+// gameweek a team plays twice and a team-id filter would silently merge two
+// matches into one recap. The per-fixture breakdown lives in
+// `explain[] = [{fixture, stats:[{identifier, value, points}]}]`, shape read
+// from the live payload rather than written from memory. Every number below
+// comes from the explain entry for this fixture only.
+//
+// WHAT FPL CANNOT GIVE. There is no goal MINUTE anywhere in this payload —
+// `minutes` is minutes played, not when a goal went in. The CC-CMD's example
+// prose ("Saka opened the scoring in the 34th") is therefore NOT satisfiable
+// from FPL, and this builder does not pretend otherwise: it emits who and how
+// many, never a timestamp. Minutes are ESPN keyEvents' job, which CONTRACTS.md
+// already makes authoritative for match narrative.
+//
+// Team join uses _FPL_SHORT_TO_ESPN_ABBR — a scoped closed dictionary, never
+// the cross-sport resolveTeamKey, where FPL's Sunderland short code "SUN"
+// resolves to the WNBA Connecticut Sun (see CONTRACTS.md, short-code rule).
+async function buildFPLMatchEventsContext(env, game) {
+    const homeAbbr = String(game.home?.abbr || game.homeAbbr || '').toUpperCase();
+    const awayAbbr = String(game.away?.abbr || game.awayAbbr || '').toUpperCase();
+    if (!homeAbbr && !awayAbbr) return '';
+
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    const fetchJson = async (path, ms = 5000) => {
+        const r = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(ms) });
+        if (!r.ok) return null;
+        return r.json();
+    };
+
+    try {
+        const boot = await fetchJson('/fpl/bootstrap-static');
+        const teams = boot?.teams || [];
+        const roster = boot?.elements || [];
+        if (!teams.length || !roster.length) return '';
+
+        // Gameweek: exactly one event carries is_current (verified 2026-08-22,
+        // 1 of 38). is_next is the fallback for the window after a gameweek
+        // closes and before the next opens; without it a naive find() returns
+        // undefined and the whole builder silently no-ops.
+        const events = boot?.events || [];
+        const gw = events.find(e => e.is_current)?.id ?? events.find(e => e.is_next)?.id;
+        if (!gw) return '';
+
+        const teamIdFor = (espnAbbr) => {
+            const t = teams.find(t => _FPL_SHORT_TO_ESPN_ABBR[t.short_name] === espnAbbr);
+            return t ? t.id : null;
+        };
+        const homeId = homeAbbr ? teamIdFor(homeAbbr) : null;
+        const awayId = awayAbbr ? teamIdFor(awayAbbr) : null;
+        if (!homeId || !awayId) return '';   // both sides needed to identify one fixture
+
+        const fixtures = await fetchJson(`/fpl/fixtures?event=${gw}`);
+        const fixture = (Array.isArray(fixtures) ? fixtures : []).find(f =>
+            (f.team_h === homeId && f.team_a === awayId) ||
+            (f.team_h === awayId && f.team_a === homeId));
+        if (!fixture) return '';
+
+        // Gate on `started`, NOT on `finished`. Measured 2026-08-22: Arsenal v
+        // Coventry read finished:false while already carrying a 3-0 score and 11
+        // stat blocks, because FPL only flips `finished` once bonus points are
+        // finalised hours later. Gating on it would mean recaps never fire.
+        if (!fixture.started) return '';
+
+        const live = await fetchJson(`/fpl/event/${gw}/live/`);
+        const elements = live?.elements || [];
+        if (!elements.length) return '';
+
+        const rosterById = new Map(roster.map(p => [p.id, p]));
+        const abbrForTeam = (id) => (id === homeId ? homeAbbr : awayAbbr);
+
+        // Pull this fixture's numbers out of explain[], by identifier.
+        const perPlayer = [];
+        for (const el of elements) {
+            const entry = (el.explain || []).find(x => x.fixture === fixture.id);
+            if (!entry) continue;
+            const p = rosterById.get(el.id);
+            if (!p || (p.team !== homeId && p.team !== awayId)) continue;
+            const v = {};
+            for (const s of (entry.stats || [])) v[s.identifier] = s.value;
+            perPlayer.push({
+                name: p.web_name,
+                abbr: abbrForTeam(p.team),
+                goals: v.goals_scored || 0,
+                assists: v.assists || 0,
+                ownGoals: v.own_goals || 0,
+                yellow: v.yellow_cards || 0,
+                red: v.red_cards || 0,
+                saves: v.saves || 0,
+                pensSaved: v.penalties_saved || 0,
+                pensMissed: v.penalties_missed || 0,
+                bonus: v.bonus || 0,
+                minutes: v.minutes || 0,
+            });
+        }
+        if (!perPlayer.length) return '';
+
+        const lines = ['', '[FPL MATCH EVENTS]'];
+        const say = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+        const scorers = perPlayer.filter(p => p.goals > 0)
+            .sort((a, b) => b.goals - a.goals);
+        if (scorers.length) {
+            lines.push(`Goals: ${scorers.map(p =>
+                `${p.name} (${p.abbr})${p.goals > 1 ? ` ${p.goals}` : ''}`).join(', ')}`);
+        }
+        const assisters = perPlayer.filter(p => p.assists > 0)
+            .sort((a, b) => b.assists - a.assists);
+        if (assisters.length) {
+            lines.push(`Assists: ${assisters.map(p =>
+                `${p.name} (${p.abbr})${p.assists > 1 ? ` ${p.assists}` : ''}`).join(', ')}`);
+        }
+        const owns = perPlayer.filter(p => p.ownGoals > 0);
+        if (owns.length) lines.push(`Own goals: ${owns.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+
+        const reds = perPlayer.filter(p => p.red > 0);
+        if (reds.length) lines.push(`Red cards: ${reds.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+        const yellows = perPlayer.filter(p => p.yellow > 0);
+        if (yellows.length) lines.push(`Yellow cards: ${yellows.length} — ${yellows.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+
+        const pensSaved = perPlayer.filter(p => p.pensSaved > 0);
+        if (pensSaved.length) lines.push(`Penalties saved: ${pensSaved.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+        const pensMissed = perPlayer.filter(p => p.pensMissed > 0);
+        if (pensMissed.length) lines.push(`Penalties missed: ${pensMissed.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+
+        // Keepers: only worth a line when the workload was real.
+        const keepers = perPlayer.filter(p => p.saves >= 3).sort((a, b) => b.saves - a.saves);
+        if (keepers.length) {
+            lines.push(`Saves: ${keepers.map(p => `${p.name} (${p.abbr}) ${say(p.saves, 'save')}`).join(', ')}`);
+        }
+
+        // The fantasy layer ESPN does not carry — CONTRACTS.md makes FPL
+        // authoritative for bonus, so this is the half that is FPL's to state.
+        const bonus = perPlayer.filter(p => p.bonus > 0).sort((a, b) => b.bonus - a.bonus);
+        if (bonus.length) {
+            lines.push(`FPL bonus: ${bonus.map(p => `${p.name} (${p.abbr}) +${p.bonus}`).join(', ')}`);
+        }
+
+        // Stated so a generator cannot infer a minute it was never given.
+        if (lines.length > 2) lines.push('(FPL carries no goal timings — do not state minutes from this block.)');
+
+        return lines.length > 3 ? lines.join('\n') : '';
+    } catch (_) {
+        // Rule 5: a context-source failure must never break brief generation.
+        return '';
+    }
+}
+
 // ── Source registry ─────────────────────────────────────────────────────
 // Lower priority numbers run first. Budget is per-source soft cap; the
 // assembler sums against the overall totalBudget and stops when exhausted.
@@ -1180,6 +1339,12 @@ const CONTEXT_SOURCES = [
     // ict_index, plus set-piece taker assignments. EPL-only -- FPL's data
     // model is Premier League-specific (CC-CMD-2026-07-15-fpl-analytics-context).
     { id: 'fpl_player_context', priority: 8, budget: 150, builder: buildFPLPlayerContext,
+      sports: ['epl'] },
+    // FPL match events: who actually scored/assisted/was carded in THIS
+    // fixture, scoped via explain[].fixture. Priority 5 — above the pre-game
+    // player analytics, because what happened outranks who was dangerous.
+    // EPL-only; FPL's data model is Premier League-specific.
+    { id: 'fpl_match_events', priority: 5, budget: 200, builder: buildFPLMatchEventsContext,
       sports: ['epl'] },
     // Team form: last 5 completed games per team from regular_season_games.
     // Factual W/L/score history only — no drama values (Rule 47/ADR-002).
@@ -1290,4 +1455,5 @@ export {
     buildBSDHistoryContext,
     buildTeamFormContext,
     buildFPLPlayerContext,
+    buildFPLMatchEventsContext,
 };
