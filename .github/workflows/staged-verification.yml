@@ -11,13 +11,28 @@ name: Staged verification (2026-08-22 items)
 # three separate "check it next time" notes is how staged items rot into
 # orphans (Rule 74).
 #
-# NO schedule:, deliberately. The unblocking event is a fixture being played,
-# which no cron can predict, and a daily run would mostly report PENDING. See
-# jubilant-bassoon outbox/cc-session-2026-08-16-scheduled-workflow-audit.md for
-# why idle crons are not free here. Dispatch it, or touch the trigger file.
+# SCHEDULE ADDED 2026-08-22, reversing this file's original "no schedule:".
+#
+# The original argument was that the unblocking event is a fixture being played,
+# which no cron can predict, so a daily run would mostly report PENDING. Two
+# days of use showed the cost of having no schedule is higher than the cost of a
+# PENDING run: every answer so far has required a human to remember to dispatch
+# this, which is the same way staged items became orphans in the first place
+# (Rule 74). A cheap daily run that usually says PENDING still converts "someone
+# must remember" into "it will be answered."
+#
+# 06:00 UTC: after the previous day's European and US slates have finalised, so
+# a run reads completed fixtures rather than catching them mid-play. Three D1
+# reads, well under the idle-cron concern in
+# jubilant-bassoon outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+#
+# Still exits non-zero ONLY on a genuine regression, so a green history is
+# meaningful and a red run is worth opening.
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
   push:
     paths:
       - 'outbox/.trigger-staged-verification'
