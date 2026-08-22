@@ -5426,6 +5426,70 @@ async function ensureBriefsTable(env) {
       created_at TEXT DEFAULT (datetime('now')),
       source TEXT DEFAULT 'live'
     )`).run();
+
+  // updated_at — added 2026-08-22, because the table could not answer "when was
+  // this row last written."
+  //
+  // Three of the ten INSERT sites are ON CONFLICT(id) DO UPDATE (lines ~5903,
+  // ~8546, ~11964), so a brief can be rewritten in place any number of times
+  // while created_at keeps its original value forever. Measured directly:
+  // game_recap_epl_401879321 carried a fabricated "37 goals this season" at
+  // 19:09, and was clean at 21:14 with a different length — genuinely
+  // regenerated after the Layer 2f fix deployed, and completely invisible to
+  // any freshness question, because its created_at still said 18:30:53.
+  //
+  // That made the 2f verification unfalsifiable in both directions: the check
+  // could not see the rewrite that proved the fix, and equally could not have
+  // seen a rewrite that reintroduced a leak. brief-freshness.js has the same
+  // exposure — it reasons about staleness against a column that does not move.
+  //
+  // Done as a trigger rather than by editing ten call sites: it covers every
+  // existing writer, every future one, and cannot be forgotten at a new site
+  // (Rule 69 — the smallest change that actually closes the gap).
+  try {
+    await env.ARCHIVE_DB.prepare(
+      `ALTER TABLE briefs ADD COLUMN updated_at TEXT DEFAULT NULL`
+    ).run();
+    // Only reached on the very first run, when the column did not exist. Existing
+    // rows get created_at so the column is never NULL for a row that predates it,
+    // and consumers do not need a NULL branch.
+    await env.ARCHIVE_DB.prepare(
+      `UPDATE briefs SET updated_at = created_at WHERE updated_at IS NULL`
+    ).run();
+  } catch (e) { console.error("[BRIEFS] updated_at migration:", e.message); /* column already exists — expected on every run after the first */ }
+
+  try {
+    await env.ARCHIVE_DB.prepare(
+      // The WHEN clause is a recursion guard, and it is guarding on brief_text
+      // for a measured reason. This trigger updates the same table it fires on.
+      //
+      // The obvious guard, `NEW.updated_at IS OLD.updated_at`, was written first
+      // and FAILS. Tested against real SQLite with recursive_triggers=ON: the
+      // inner UPDATE writes datetime('now'), which within the same second equals
+      // the old value, so the guard stays true and it recurses until
+      // "too many levels of trigger recursion". The common case — two writes in
+      // the same second — is exactly the failing case.
+      //
+      // brief_text is deterministic instead: the inner UPDATE touches only
+      // updated_at, so the guard is false on re-entry no matter what the clock
+      // says or how the pragma is set. Verified with recursive_triggers=ON from
+      // the first statement, across plain UPDATE and ON CONFLICT DO UPDATE.
+      //
+      // SCOPE, stated rather than assumed: updated_at tracks when the PROSE last
+      // changed. A quality_score-only or context_hash-only write does not move
+      // it. That is the question every consumer here actually asks — "is this
+      // text still the text I judged?" — but it is narrower than the column name
+      // suggests, so it is written down.
+      `CREATE TRIGGER IF NOT EXISTS briefs_set_updated_at
+       AFTER UPDATE ON briefs
+       FOR EACH ROW
+       WHEN NEW.brief_text IS NOT OLD.brief_text
+       BEGIN
+         UPDATE briefs SET updated_at = datetime('now') WHERE id = NEW.id;
+       END`
+    ).run();
+  } catch (e) { console.error("[BRIEFS] updated_at trigger:", e.message); }
+
   _briefsReady = true;
 }
 

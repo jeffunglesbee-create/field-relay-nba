@@ -228,13 +228,26 @@ try {
     // player or venue in an exemplar, and the manifest names the row so a human
     // reads it rather than trusting the verdict blindly.
     const briefs = await d1(
-        `SELECT id, brief_type, created_at, LENGTH(brief_text) AS len,
+        // COALESCE(updated_at, created_at) is the whole point of this query.
+        //
+        // Three brief writers use ON CONFLICT(id) DO UPDATE, so a brief can be
+        // rewritten in place while created_at keeps its original value forever.
+        // game_recap_epl_401879321 carried a fabricated "37 goals this season"
+        // at 19:09 and was clean at 21:14 with a different length — regenerated
+        // after the 2f fix, and invisible to a created_at filter, which still
+        // read 18:30:53. This check therefore reported UNPROVEN while sitting on
+        // the exact rewrite that proved the fix.
+        //
+        // updated_at is populated by the briefs_set_updated_at trigger. COALESCE
+        // covers rows written before the migration ran.
+        `SELECT id, brief_type, created_at, COALESCE(updated_at, created_at) AS written_at,
+                LENGTH(brief_text) AS len,
                 CASE WHEN brief_text LIKE '%through 0 matches%'
                        OR brief_text LIKE '%0 points through%' THEN 1 ELSE 0 END AS season_template,
                 brief_text
          FROM briefs
-         WHERE sport = 'EPL' AND created_at > ?
-         ORDER BY created_at DESC LIMIT 10`, [T_FPL_EVENTS]);
+         WHERE sport = 'EPL' AND COALESCE(updated_at, created_at) > ?
+         ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10`, [T_FPL_EVENTS]);
 
     const briefRows = briefs.map(b => {
         const text = String(b.brief_text || '');
