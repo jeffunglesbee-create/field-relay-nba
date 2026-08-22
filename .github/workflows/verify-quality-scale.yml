@@ -1,0 +1,24 @@
+name: Verify quality scale (2026-08-16 done condition)
+
+# Runs the done condition outbox/cc-session-2026-08-16-quality-bar-scale.md wrote
+# for itself and marked UNVERIFIED, because its sandbox 403s *.workers.dev.
+# Six days unrun. rule-gha-for-sandbox-egress-blocks: a runner has unrestricted
+# egress, so sandbox egress is not a stopping point.
+#
+# Read-only. GET /quality/report only.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-verify-quality-scale'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/verify-quality-scale-2026-08-16.mjs
+      commit_message: "chore: quality-scale done-condition result [skip ci]"
