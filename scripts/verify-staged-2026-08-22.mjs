@@ -138,14 +138,38 @@ try {
         pct: r.games ? Math.round(1000 * r.with_open / r.games) / 10 : null,
         baseline_pct: BASELINE[r.sport] ?? null,
     }));
-    const measurable = covRows.filter(r => r.games > 0);
+    // SAMPLE-SIZE FLOOR, added 2026-08-22 on evidence.
+    //
+    // This check FAILed with "coverage fell for La Liga" off a single fixture:
+    // 0 of 1, read as 0% against an 11.8% baseline. One row cannot carry a
+    // percentage — the only two values it can produce are 0% and 100%, and
+    // both will differ from any baseline, so at n=1 this check was guaranteed
+    // to report either a regression or an improvement no matter what the
+    // aliases did.
+    //
+    // The diagnostic (scripts/diagnose-staged-fails-2026-08-22.mjs) measured
+    // the same two leagues over a 30-day window of played games: EPL 4/6 =
+    // 66.7% against a 23.1% baseline, La Liga 2/9 = 22.2% against 11.8%. Both
+    // ROSE. The reported La Liga regression was an artifact of the denominator,
+    // not a real fall in coverage.
+    //
+    // Below the floor a sport reports PENDING, which is the honest state: not
+    // enough fixtures yet to say. Four is the smallest n where a rate can
+    // straddle a baseline rather than only hit 0 or 100.
+    const MIN_GAMES_FOR_RATE = 4;
+    const measurable = covRows.filter(r => r.games >= MIN_GAMES_FOR_RATE);
+    const tooFew = covRows.filter(r => r.games > 0 && r.games < MIN_GAMES_FOR_RATE);
     const improved = measurable.filter(r => r.baseline_pct != null && r.pct > r.baseline_pct);
     const regressed = measurable.filter(r => r.baseline_pct != null && r.pct < r.baseline_pct);
     add({
         id: 'soccer_opening_coverage',
         what: 'EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)',
         qualifying_rows: measurable.reduce((s, r) => s + r.games, 0),
-        status: !measurable.length ? 'PENDING — no soccer fixture since the aliases landed'
+        min_games_for_rate: MIN_GAMES_FOR_RATE,
+        below_floor: tooFew.map(r => `${r.sport} (${r.with_open}/${r.games})`),
+        status: !measurable.length
+                ? `PENDING — no sport has reached ${MIN_GAMES_FOR_RATE} played fixtures since the aliases landed`
+                  + (tooFew.length ? `; below floor: ${tooFew.map(r => `${r.sport} n=${r.games}`).join(', ')}` : '')
               : regressed.length ? `FAIL — coverage fell for ${regressed.map(r => r.sport).join(', ')}`
               : improved.length ? `PASS — improved for ${improved.map(r => r.sport).join(', ')}`
               : 'PENDING — fixtures exist but none carry a baseline sport yet',
