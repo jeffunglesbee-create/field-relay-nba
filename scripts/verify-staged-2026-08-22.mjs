@@ -26,6 +26,12 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 const T_ODDS_BACKFILL_FIX = '2026-08-21 22:40:09';  // 887c843 closing_odds date gate
 const T_ALIASES_COMPLETE  = '2026-08-21 23:24:27';  // bb04fc8 last alias commit
 const T_FPL_EVENTS        = '2026-08-22 00:20:10';  // eb02ac7 fpl_match_events corrected
+// The two halves of check 3 test two different fixes and therefore need two
+// different baselines. Event-grounding is eb02ac7; freedom from prompt-example
+// literals is 5f2fabb, which landed eighteen hours later. Judging the leak
+// assertion from the earlier baseline makes it FAIL forever on briefs written
+// before the leak fix existed -- the identical error check 1 shipped with.
+const T_2F_LEAK_FIX       = '2026-08-22 18:36:10';  // 5f2fabb promptExampleLeaks corrected
 
 // Measured pre-fix baselines, so "improved" is a comparison and not a vibe.
 const BASELINE = { EPL: 23.1, 'La Liga': 11.8 };
@@ -223,18 +229,32 @@ try {
             excerpt: text.slice(0, 220),
         };
     });
-    const leaking = briefRows.filter(b => b.leaked_literals.length);
     const grounded = briefRows.filter(b => !b.season_template);
+    // Only briefs written after the LEAK fix can testify about the leak fix.
+    // The first run of this assertion failed on two briefs from 10:02 and
+    // 18:30, both before 5f2fabb deployed at 18:36 -- rows the fix never
+    // touched. Older leaking briefs stay in the manifest as history, since
+    // they are the evidence the leak was real, but they cannot fail the run.
+    const postLeakFix = briefRows.filter(b => b.created_at > T_2F_LEAK_FIX);
+    const leaking = postLeakFix.filter(b => b.leaked_literals.length);
+    const historicalLeaks = briefRows.filter(b =>
+        b.leaked_literals.length && b.created_at <= T_2F_LEAK_FIX);
 
     // Order matters: a leak is reported even when a brief also clears the
     // template test, because that is exactly the case the old check missed.
     let briefStatus;
     if (!briefRows.length) briefStatus = 'PENDING — no EPL brief written since the deploy';
     else if (leaking.length) briefStatus =
-        `FAIL — ${leaking.length}/${briefRows.length} brief(s) carry a prompt-example literal: `
+        `FAIL — ${leaking.length}/${postLeakFix.length} post-fix brief(s) carry a prompt-example literal: `
         + [...new Set(leaking.flatMap(b => b.leaked_literals))].join(', ');
     else if (!grounded.length) briefStatus = 'FAIL — every new EPL brief is still the season template';
-    else briefStatus = `PASS — ${grounded.length}/${briefRows.length} not the season template, and no prompt-example literal in any of them`;
+    else if (!postLeakFix.length) briefStatus =
+        `PARTIAL — ${grounded.length}/${briefRows.length} not the season template; `
+        + `leak-freedom UNPROVEN: no EPL brief written since the 2f fix deployed`
+        + (historicalLeaks.length ? ` (${historicalLeaks.length} pre-fix brief(s) did leak)` : '');
+    else briefStatus =
+        `PASS — ${grounded.length}/${briefRows.length} not the season template, and no prompt-example `
+        + `literal in any of the ${postLeakFix.length} brief(s) written since the 2f fix`;
 
     add({
         id: 'epl_brief_event_grounded',
@@ -242,6 +262,8 @@ try {
         qualifying_rows: briefRows.length,
         status: briefStatus,
         literals_checked: PROMPT_EXAMPLE_LITERALS.length,
+        briefs_since_leak_fix: postLeakFix.length,
+        historical_leaks_before_fix: historicalLeaks.map(b => ({ id: b.id, created_at: b.created_at, literals: b.leaked_literals })),
         note: 'Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f\'s "absent from context" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.',
         sample: briefRows,
     });
