@@ -11659,8 +11659,30 @@ export default {
 
                 // ── Closing-odds capture ──────────────────────────────────
                 // Fire-and-forget enrichment; never affects core response.
-                // start_time gate confirms this is a final game with real timing.
                 // Never overwrites an existing closing_odds value.
+                //
+                // FINALITY GATE added 2026-08-22, on measured evidence.
+                //
+                // The old comment here claimed "start_time gate confirms this is a
+                // final game with real timing." It does not. A scheduled fixture
+                // carries a start_time too, so this block fired on games that had
+                // not kicked off -- measured: 41 rows dated 2026-08-22 written at
+                // ~10:01 UTC for evening kickoffs, every one of them with closing
+                // stamped BEFORE opening.
+                //
+                // The ordering was the visible symptom. The real damage is that
+                // AmbientDO._captureClosingOdds guards on `WHERE closing_odds IS
+                // NULL`; once this block pre-fills the column for an unplayed game,
+                // that guard can never match and the genuine pre->live capture is
+                // blocked forever. That is why closing_odds_capture has written
+                // nineteen rows in all of history while this path wrote silently.
+                //
+                // Gate is the row's own finalized_at, the same finality test
+                // isGameFinalByEventId uses, read from the dedup SELECT that was
+                // already happening -- no extra query, no extra Odds API credit.
+                // This block stays as the writer for sports AmbientDO does not
+                // cover (its ODDS_SPORT_KEYS is six sports); it is no longer a
+                // writer for games that still have a kickoff left to capture.
                 try {
                     if (start_time && env.ARCHIVE_DB && env.FIELD_JOURNALISM) {
                         const oddsSportKey = archiveSportToOddsKey(sport);
@@ -11675,13 +11697,17 @@ export default {
                             let rowCheck, rowCheckOk = true;
                             try {
                                 rowCheck = await env.ARCHIVE_DB.prepare(
-                                    `SELECT closing_odds FROM ${oddsTable} WHERE id = ?`
+                                    `SELECT closing_odds, finalized_at FROM ${oddsTable} WHERE id = ?`
                                 ).bind(id).first();
                             } catch (e) {
                                 console.error("[ARCHIVE-GAME] closing-odds dedup check failed:", e.message);
                                 rowCheckOk = false;
                             }
-                            if (rowCheckOk && !rowCheck?.closing_odds) {
+                            // finalized_at null means the game has not been played
+                            // out yet, so its closing line does not exist to be
+                            // captured and AmbientDO still owns the kickoff moment.
+                            const _rowIsFinal = rowCheck?.finalized_at != null;
+                            if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal) {
                                 const { games, ok: oddsOk } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
                                     const byPair = new Map();
@@ -11692,9 +11718,22 @@ export default {
                                     if (matched) {
                                         const odds = extractOddsForGame(matched);
                                         if (odds) {
+                                            const _oddsJson = JSON.stringify(odds);
                                             await env.ARCHIVE_DB.prepare(
                                                 `UPDATE ${oddsTable} SET closing_odds = ? WHERE id = ?`
-                                            ).bind(JSON.stringify(odds), id).run();
+                                            ).bind(_oddsJson, id).run();
+                                            // This writer logged NOTHING until now, which is
+                                            // precisely why it stayed hidden: change_log showed
+                                            // only odds_backfill and closing_odds_capture, so
+                                            // 41 rows appeared to have no author at all and the
+                                            // investigation had to reach for timestamps to
+                                            // identify it. A writer that leaves no trace cannot
+                                            // be attributed when it misbehaves.
+                                            await env.ARCHIVE_DB.prepare(
+                                                `INSERT INTO change_log (game_id, source, field, old_value, new_value, ts)
+                                                 VALUES (?, 'archive_game_closing', 'closing_odds', NULL, ?, datetime('now'))`
+                                            ).bind(id, _oddsJson).run()
+                                             .catch(e => console.error('[ARCHIVE-GAME] closing-odds change_log failed:', e.message));
                                         }
                                     }
                                 }

@@ -9,7 +9,12 @@
 import { getRecentChanges } from './sync-reconciler.js';
 
 // Sources whose changes might invalidate odds claims in a brief.
-const _ODDS_SOURCES   = new Set(['odds_api', 'odds', 'odds_backfill', 'closing_odds_capture']);
+// 'archive_game_closing' added 2026-08-22 alongside the /archive/game writer's
+// first change_log entry. That writer has always set closing_odds; it simply
+// logged nothing, so its changes were invisible to this guard as well as to
+// attribution. Omitting it here would mean a closing-line move written by that
+// path silently failed to stale a brief.
+const _ODDS_SOURCES   = new Set(['odds_api', 'odds', 'odds_backfill', 'closing_odds_capture', 'archive_game_closing']);
 const _LINEUP_SOURCES = new Set(['lineup']);
 const _SAVANT_SOURCES = new Set(['savant']);
 const _WEATHER_SOURCES = new Set(['weather']);
