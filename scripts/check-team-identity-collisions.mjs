@@ -139,5 +139,40 @@ for (const club of DISTINCT) {
 }
 if (!failed) console.log(`ok: ${DISTINCT.length} distinct clubs → ${seen.size} distinct keys, no collisions`);
 
+// 5. THE FPL JOIN MUST USE `name`, NEVER `short_name`.
+//    Measured 2026-08-22 against the live /fpl/bootstrap-static: all 20 club
+//    `name` values resolve correctly, but the 3-letter `short_name` codes do
+//    not — and one of them is actively dangerous. FPL's Sunderland is "SUN",
+//    which strips to "sun" and hits the WNBA alias for the Connecticut Sun.
+//    A build that joined on short_name would attach Premier League player
+//    events to a WNBA game and look plausible doing it.
+const FPL_CLUB_NAMES = [
+    'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton', 'Chelsea',
+    'Coventry City', 'Crystal Palace', 'Everton', 'Fulham', 'Hull City',
+    'Ipswich Town', 'Leeds', 'Liverpool', 'Man City', 'Man Utd', 'Newcastle',
+    "Nott'm Forest", 'Spurs', 'Sunderland',
+];
+const fplSeen = new Map();
+for (const club of FPL_CLUB_NAMES) {
+    const k = resolveTeamKey(club);
+    if (fplSeen.has(k)) fail(`FPL name "${club}" collides with "${fplSeen.get(k)}".`);
+    else fplSeen.set(k, club);
+}
+if (fplSeen.size === FPL_CLUB_NAMES.length) {
+    console.log(`ok: all ${FPL_CLUB_NAMES.length} FPL club names resolve to distinct keys`);
+}
+
+// The hazard, asserted as a documented FACT rather than fixed: "SUN" resolving
+// to the Connecticut Sun is correct behaviour for the WNBA alias. What must
+// never happen is a join using it for Sunderland. If this assertion ever starts
+// failing, someone has "fixed" SUN -> Sunderland and broken the WNBA join
+// instead. The rule is: join on FPL `name`.
+if (resolveTeamKey('SUN') === resolveTeamKey('Sunderland AFC')) {
+    fail('"SUN" now resolves to Sunderland — the WNBA Connecticut Sun join is broken.');
+    console.error('       FPL short codes must NOT be aliased. Join on the `name` field.');
+} else {
+    console.log(`ok: FPL short codes stay unaliased ("SUN" -> ${resolveTeamKey('SUN')}); join on \`name\``);
+}
+
 if (failed) process.exit(1);
 console.log('PASS: team identity is per-club; no two clubs share a key.');

@@ -88,14 +88,27 @@ try {
     for (const t of teams) {
         const byName = resolveTeamKey(t.name);
         const byShort = resolveTeamKey(t.short_name);
-        // A club is joinable if either form lands on the same key as the other,
-        // i.e. both spellings are known to the resolver.
+        // CORRECTED 2026-08-22: the first version compared name-key against
+        // short_name-key and reported 0/20 agreeing. That was the CHECK being
+        // wrong, not the data -- short_name is a 3-letter code (ARS, AVL) and
+        // was never meant to resolve. The real question is whether `name`
+        // resolves, which it does for all 20. Kept as a report of both keys
+        // rather than a pass/fail, because it surfaced something worth keeping:
+        // "SUN" strips to "sun" and hits the WNBA Connecticut Sun alias.
         if (byName !== byShort) unresolved.push({ id: t.id, name: t.name, short_name: t.short_name, key_name: byName, key_short: byShort });
     }
+    // The meaningful measure: do the `name` values resolve to distinct clubs?
+    const nameKeys = teams.map(t => resolveTeamKey(t.name));
     m.club_join = {
         clubs: teams.length,
-        both_forms_agree: teams.length - unresolved.length,
-        disagreeing: unresolved,
+        name_keys_distinct: new Set(nameKeys).size,
+        name_join_ok: new Set(nameKeys).size === teams.length,
+        // Short codes are NOT joinable and must not be used -- reported so the
+        // hazard stays visible rather than being rediscovered.
+        short_code_hazard: teams
+            .map(t => ({ short_name: t.short_name, key: resolveTeamKey(t.short_name), club: t.name }))
+            .filter(x => x.key !== x.short_name.toLowerCase()),
+        both_key_forms: unresolved,
     };
 
     // ── 2. per-player shape ─────────────────────────────────────────────────
