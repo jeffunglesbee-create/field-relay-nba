@@ -1,0 +1,473 @@
+{
+  "probed_at": "2026-08-22T23:43:07.372Z",
+  "fetch_ok": true,
+  "error": null,
+  "assertions": [
+    {
+      "name": "quality_scale present",
+      "pass": true,
+      "detail": "present"
+    },
+    {
+      "name": "reachable_ceiling === 245",
+      "pass": true,
+      "detail": "got 245"
+    },
+    {
+      "name": "summary rows returned",
+      "pass": true,
+      "detail": "47 rows"
+    },
+    {
+      "name": "every row carries numeric cleared_196",
+      "pass": true,
+      "detail": "all 47 rows"
+    }
+  ],
+  "quality_scale": {
+    "nominal_total": 300,
+    "reachable_ceiling": 245,
+    "unreachable_dims": [
+      "ctx",
+      "matchup"
+    ],
+    "unreachable_points": 55,
+    "flat_bar": 240,
+    "flat_bar_pct_of_nominal": 80,
+    "flat_bar_pct_of_reachable": 97.96,
+    "four_fifths_of_reachable": 196
+  },
+  "summary": [
+    {
+      "brief_type": "epl_match",
+      "sport": "MLS Soccer",
+      "n": null,
+      "avg": 104,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": null,
+      "n": null,
+      "avg": 106,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "compound",
+      "sport": null,
+      "n": null,
+      "avg": 122,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA Tour",
+      "n": null,
+      "avg": 140,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "pga tour",
+      "n": null,
+      "avg": 140,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "EPL",
+      "n": null,
+      "avg": 141.4,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 21
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "PGA Tour",
+      "n": null,
+      "avg": 142,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "slate",
+      "sport": null,
+      "n": null,
+      "avg": 142.7,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 16
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "n": null,
+      "avg": 142.9,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 71
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA TOUR",
+      "n": null,
+      "avg": 147,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLB",
+      "n": null,
+      "avg": 148,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 2
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Baseball (MLB)",
+      "n": null,
+      "avg": 148.9,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 7
+    },
+    {
+      "brief_type": "narrative_context",
+      "sport": "MLB",
+      "n": null,
+      "avg": 151,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 2
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Australian Football (AFL)",
+      "n": null,
+      "avg": 158,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLS Soccer",
+      "n": null,
+      "avg": 158,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 2
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "uefa europa conference league qualifying",
+      "n": null,
+      "avg": 160,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 3
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "wnba",
+      "n": null,
+      "avg": 164.8,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 5
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "La Liga",
+      "n": null,
+      "avg": 168.5,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLB",
+      "n": null,
+      "avg": 170,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "WNBA",
+      "n": null,
+      "avg": 170.2,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 6
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "mls",
+      "n": null,
+      "avg": 171.2,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 30
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "La Liga",
+      "n": null,
+      "avg": 174.1,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 11
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLB",
+      "n": null,
+      "avg": 174.4,
+      "cleared_196": 2,
+      "above_240": 0,
+      "below_240": 30
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "uefa europa league qualifying",
+      "n": null,
+      "avg": 175,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 1
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "mlb",
+      "n": null,
+      "avg": 175.3,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 9
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "la liga",
+      "n": null,
+      "avg": 175.7,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 7
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "n": null,
+      "avg": 175.8,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 30
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "n": null,
+      "avg": 176.4,
+      "cleared_196": 14,
+      "above_240": 0,
+      "below_240": 90
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NFL",
+      "n": null,
+      "avg": 177.4,
+      "cleared_196": 3,
+      "above_240": 0,
+      "below_240": 13
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Trophy",
+      "n": null,
+      "avg": 179,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 7
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLS",
+      "n": null,
+      "avg": 179.7,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 11
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "EPL",
+      "n": null,
+      "avg": 180.5,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 2
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Ligue 1",
+      "n": null,
+      "avg": 182.2,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 6
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Ligue 1",
+      "n": null,
+      "avg": 182.2,
+      "cleared_196": 0,
+      "above_240": 0,
+      "below_240": 6
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EPL",
+      "n": null,
+      "avg": 182.7,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 6
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EPL",
+      "n": null,
+      "avg": 183.3,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 6
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "NFL",
+      "n": null,
+      "avg": 183.9,
+      "cleared_196": 5,
+      "above_240": 0,
+      "below_240": 17
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "WNBA",
+      "n": null,
+      "avg": 184.4,
+      "cleared_196": 6,
+      "above_240": 0,
+      "below_240": 18
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Serie A",
+      "n": null,
+      "avg": 186.3,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "n": null,
+      "avg": 188.3,
+      "cleared_196": 4,
+      "above_240": 0,
+      "below_240": 24
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "NFL",
+      "n": null,
+      "avg": 188.4,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 5
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "nfl",
+      "n": null,
+      "avg": 188.5,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "La Liga",
+      "n": null,
+      "avg": 191.5,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Europa League Qualifying",
+      "n": null,
+      "avg": 192.5,
+      "cleared_196": 4,
+      "above_240": 0,
+      "below_240": 12
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Serie A",
+      "n": null,
+      "avg": 195,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 4
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "Serie A",
+      "n": null,
+      "avg": 208.5,
+      "cleared_196": 1,
+      "above_240": 0,
+      "below_240": 2
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLS",
+      "n": null,
+      "avg": 209.1,
+      "cleared_196": 12,
+      "above_240": 0,
+      "below_240": 13
+    }
+  ],
+  "score_reality": {
+    "rows": 47,
+    "briefs_counted": 0,
+    "cleared_196": 61,
+    "above_240": 0,
+    "note": "Reported only. Whether scoreThreshold 110 at src/index.js:8855 is deliberate or a fossil is a judgement this probe informs, not one it makes."
+  },
+  "all_passed": true
+}
