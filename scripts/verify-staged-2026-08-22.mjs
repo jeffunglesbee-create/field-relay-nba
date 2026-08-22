@@ -17,6 +17,7 @@
 // never be counted as evidence for it.
 
 import { writeFileSync } from 'node:fs';
+import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -158,24 +159,67 @@ try {
     // fingerprint. A join against FPL stats needs the fixture payload, which
     // this D1-only probe cannot reach — so what cannot be proved here is
     // reported as UNPROVEN rather than quietly claimed.
+    //
+    // STRENGTHENED 2026-08-22, because the weak version PASSED on a defective
+    // brief. `game_recap_epl_401879321` was not the season template — so the
+    // old assertion went green — while carrying "37 goals this season", a
+    // literal lifted verbatim out of FIELD_VOICE_REGISTER's exemplar. The check
+    // asserted the absence of one known failure and read as an all-clear for a
+    // brief that was still fabricating a figure. That is the same shape as the
+    // sport-filter and the `date <` gaps earlier today: a check built from a
+    // partial model of its input can only see the failures that model admits.
+    //
+    // Second assertion added: no brief may contain any PROMPT_EXAMPLE_LITERALS
+    // entry. The literals are imported from journalism-quality.js rather than
+    // copied, so the check cannot drift from what Layer 2f actually polices.
+    //
+    // This is DELIBERATELY stricter than 2f itself. 2f's discriminator is
+    // "present in the brief AND absent from the game context", which needs the
+    // prompt — and D1 stores briefs, not prompts. So this probe drops condition
+    // (c) and flags on presence alone. A brief that legitimately earns one of
+    // these strings would be a false positive; that is the correct trade here,
+    // because every literal is a specific figure attached to a specific named
+    // player or venue in an exemplar, and the manifest names the row so a human
+    // reads it rather than trusting the verdict blindly.
     const briefs = await d1(
         `SELECT id, brief_type, created_at, LENGTH(brief_text) AS len,
                 CASE WHEN brief_text LIKE '%through 0 matches%'
                        OR brief_text LIKE '%0 points through%' THEN 1 ELSE 0 END AS season_template,
-                substr(brief_text, 1, 220) AS excerpt
+                brief_text
          FROM briefs
          WHERE sport = 'EPL' AND created_at > ?
          ORDER BY created_at DESC LIMIT 10`, [T_FPL_EVENTS]);
+
+    const briefRows = briefs.map(b => {
+        const text = String(b.brief_text || '');
+        return {
+            id: b.id, created_at: b.created_at, len: b.len,
+            season_template: !!b.season_template,
+            leaked_literals: PROMPT_EXAMPLE_LITERALS.filter(lit => text.includes(lit)),
+            excerpt: text.slice(0, 220),
+        };
+    });
+    const leaking = briefRows.filter(b => b.leaked_literals.length);
+    const grounded = briefRows.filter(b => !b.season_template);
+
+    // Order matters: a leak is reported even when a brief also clears the
+    // template test, because that is exactly the case the old check missed.
+    let briefStatus;
+    if (!briefRows.length) briefStatus = 'PENDING — no EPL brief written since the deploy';
+    else if (leaking.length) briefStatus =
+        `FAIL — ${leaking.length}/${briefRows.length} brief(s) carry a prompt-example literal: `
+        + [...new Set(leaking.flatMap(b => b.leaked_literals))].join(', ');
+    else if (!grounded.length) briefStatus = 'FAIL — every new EPL brief is still the season template';
+    else briefStatus = `PASS — ${grounded.length}/${briefRows.length} not the season template, and no prompt-example literal in any of them`;
+
     add({
         id: 'epl_brief_event_grounded',
-        what: 'an EPL brief written since fpl_match_events deployed, no longer a season-stat template',
-        qualifying_rows: briefs.length,
-        status: briefs.length === 0 ? 'PENDING — no EPL brief written since the deploy'
-              : briefs.every(b => b.season_template) ? 'FAIL — every new EPL brief is still the season template'
-              : 'PASS — at least one new EPL brief is not the season template',
-        note: 'Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts.',
-        sample: briefs.map(b => ({ id: b.id, created_at: b.created_at, len: b.len,
-            season_template: !!b.season_template, excerpt: b.excerpt })),
+        what: 'an EPL brief written since fpl_match_events deployed: not a season-stat template AND free of prompt-example literals',
+        qualifying_rows: briefRows.length,
+        status: briefStatus,
+        literals_checked: PROMPT_EXAMPLE_LITERALS.length,
+        note: 'Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f\'s "absent from context" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.',
+        sample: briefRows,
     });
 
     m.query_ok = true;
