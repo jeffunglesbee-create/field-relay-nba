@@ -709,15 +709,29 @@ export const FIELD_PROSE_STYLE = [
 // carried. Condition (c) is what separates a fabricated number from a real one,
 // so the style block is subtracted from the prompt before the context is
 // searched.
+// Entries are the NUMERIC CORE of each exemplar figure, not the full phrase it
+// appears in. That is a correction, made 2026-08-22 on live evidence.
+//
+// The list originally held whole phrases like '37 goals this season'. A live EPL
+// brief then read "contrasting their 37 goals last season" — the same fabricated
+// figure, one word different, and completely invisible to an exact-string match.
+// The model paraphrases the exemplar; it does not quote it. Matching the phrase
+// only catches the one wording that happened to be observed first.
+//
+// The numeric core is safe to match this loosely ONLY because of
+// promptExampleLeaks' second condition: the literal must also be ABSENT from the
+// game context. A team that genuinely scored 37 goals has that figure in its
+// context block, so the real case never fires. Remove the context check and this
+// list becomes far too aggressive — the two are a pair, not independent.
 export const PROMPT_EXAMPLE_LITERALS = [
     '107.7 DRTG',
     '29.0 PPG',
     '28.2 PPG',
     '26.0 PPG',
     '25.0 points',
-    '32 points through the season',
-    '37 goals this season',
-    '32 goals this season',
+    '32 points',
+    '37 goals',
+    '32 goals',
     '4.67 ERA',
     '5.81 ERA',
     '5.72 ERA',
@@ -725,7 +739,7 @@ export const PROMPT_EXAMPLE_LITERALS = [
     '5-for-6',
     '93.5% penalty kill',
     '+17% runs at Camden Yards',
-    '48 minutes from their first Finals since 1999',
+    '48 minutes',
 ];
 
 export function promptExampleLeaks(prompt, text) {

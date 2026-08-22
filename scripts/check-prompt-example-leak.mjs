@@ -25,7 +25,7 @@ const cases = [
   ['live defect 1', PROMPT_WITH_STYLE('[GAME] Everton v Crystal Palace 2-0.'),
    'Everton maintains a 107.7 DRTG, best in the NBA, despite playing soccer tonight.', ['107.7 DRTG']],
   ['live defect 2', PROMPT_WITH_STYLE('[GAME] Brentford v Spurs 3-0, 58th minute.'),
-   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals this season']],
+   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals']],
 
   // THE FALSE-POSITIVE TEST: a team that genuinely has 37 goals, with the
   // figure present in the context. Must NOT flag.
@@ -42,7 +42,23 @@ const cases = [
   // 37 goals this season"), which the first version of the detector did not
   // subtract -- so the leak sat in what it treated as game context.
   ['voice-register leak', PROMPT_WITH_STYLE('[GAME] Brentford v Spurs 3-0, 58th minute.'),
-   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals this season']],
+   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals']],
+
+  // THE PARAPHRASE CASE, from the live desk on 2026-08-22 19:17 ET. The Everton
+  // brief read "contrasting their 37 goals last season" -- the same fabricated
+  // exemplar figure with ONE word changed. The literal list held the full phrase
+  // '37 goals this season' at the time, so this was invisible: an exact-string
+  // match only ever catches the wording that happened to be observed first, and
+  // the model paraphrases rather than quotes. This case is why the list now
+  // holds numeric cores.
+  ['paraphrased exemplar', PROMPT_WITH_STYLE('[GAME] Everton v Crystal Palace 2-0.'),
+   'Everton maintains a clean sheet through 90 minutes, contrasting their 37 goals last season.', ['37 goals']],
+
+  // The paraphrase case's own false-positive control: same wording, but the
+  // figure IS in the context. Loosening to the numeric core is only safe because
+  // of the absent-from-context condition, so that pairing is tested directly.
+  ['legit paraphrase', PROMPT_WITH_STYLE('[SEASON] Everton scored 37 goals last season.'),
+   'Everton built on their 37 goals last season.', []],
 
   // Multiple leaks at once.
   ['two leaks', PROMPT_WITH_STYLE('[GAME] Anything.'),
