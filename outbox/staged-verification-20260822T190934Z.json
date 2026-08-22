@@ -1,0 +1,216 @@
+{
+  "probed_at": "2026-08-22T19:09:34.566Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 40,
+      "status": "FAIL — every pair is still non-sequenced",
+      "sequenced": 0,
+      "sample": [
+        {
+          "id": "Ligue 1_2026-08-22_troyes_parisfc",
+          "sport": "Ligue 1",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:04.210Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_toulouse_lyon",
+          "sport": "Ligue 1",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:03.267Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_nice_lorient",
+          "sport": "Ligue 1",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:02.369Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "Serie A_2026-08-22_parma_cagliari",
+          "sport": "Serie A",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:59.341Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "Serie A_2026-08-22_genoa_napoli",
+          "sport": "Serie A",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:58.480Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "Serie A_2026-08-22_udinese_como",
+          "sport": "Serie A",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:57.558Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        }
+      ]
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 5,
+      "min_games_for_rate": 4,
+      "below_floor": [
+        "La Liga (0/1)",
+        "Ligue 1 (0/1)"
+      ],
+      "status": "PASS — improved for EPL",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 5,
+          "with_open": 4,
+          "pct": 80,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 1,
+          "with_open": 0,
+          "pct": 0,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 1,
+          "with_open": 0,
+          "pct": 0,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "an EPL brief written since fpl_match_events deployed: not a season-stat template AND free of prompt-example literals",
+      "qualifying_rows": 10,
+      "status": "PARTIAL — 4/10 not the season template; leak-freedom UNPROVEN: no EPL brief written since the 2f fix deployed (2 pre-fix brief(s) did leak)",
+      "literals_checked": 16,
+      "briefs_since_leak_fix": 0,
+      "historical_leaks_before_fix": [
+        {
+          "id": "game_recap_epl_401879321",
+          "created_at": "2026-08-22 18:30:53",
+          "literals": [
+            "37 goals this season"
+          ]
+        },
+        {
+          "id": "game_live_epl_401879321",
+          "created_at": "2026-08-22 10:02:28",
+          "literals": [
+            "37 goals this season"
+          ]
+        }
+      ],
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f's \"absent from context\" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.",
+      "sample": [
+        {
+          "id": "game_recap_epl_401879321",
+          "created_at": "2026-08-22 18:30:53",
+          "len": 283,
+          "season_template": false,
+          "leaked_literals": [
+            "37 goals this season"
+          ],
+          "excerpt": "Brentford shut out Spurs 3-0 at Gtech Community Stadium tonight on NBC, as Spurs managed only 3 shots this match against Brentford’s 37 goals this season. Spurs fall to 0-0-1 this season with 0 points, while Brentford im"
+        },
+        {
+          "id": "game_recap_epl_401879298",
+          "created_at": "2026-08-22 16:00:21",
+          "len": 287,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Leeds moved to 1-0-0 this season after a 1-0 win tonight at The City Ground, while Nottingham Forest fell to 0-0-1. Both clubs remained at 0 points through 57 minutes of play tonight after generating fewer than 3 shots t"
+        },
+        {
+          "id": "game_recap_epl_401879300",
+          "created_at": "2026-08-22 16:00:20",
+          "len": 305,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Everton moved to 1-0-0 this season with a 2-0 win over Crystal Palace at Hill Dickinson Stadium. Crystal Palace finished with 0 points through this match. Everton’s 37 goals through the season and 3 shots tonight fueled "
+        },
+        {
+          "id": "game_recap_epl_401879299",
+          "created_at": "2026-08-22 16:00:20",
+          "len": 301,
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Ipswich secured a 2-1 win at Portman Road tonight, moving to 1-0-0 this season. Sunderland fell to 0-1-0 this season after failing to overcome the deficit. Betting markets closed with Ipswich at +180 and Sunderland at +1"
+        },
+        {
+          "id": "game_recap_epl_401879322",
+          "created_at": "2026-08-22 13:30:19",
+          "len": 299,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Hull stunned Manchester United 2-0 at The MKM Stadium, marking a cold start for the visitors who remain at 0 points through 1 match this season. Despite closing as -295 favorites, United failed to register 3 shots on tar"
+        },
+        {
+          "id": "game_live_epl_401879321",
+          "created_at": "2026-08-22 10:02:28",
+          "len": 316,
+          "season_template": false,
+          "leaked_literals": [
+            "37 goals this season"
+          ],
+          "excerpt": "Brentford leads Spurs 3-0 in the 58th minute at Gtech Community Stadium on NBC. Brentford’s 3 goals this match contrast with Spurs’ 0 goals this match. Spurs’ 3 shots this match trail Brentford’s 37 goals this season. Bo"
+        },
+        {
+          "id": "game_live_epl_401879298",
+          "created_at": "2026-08-22 10:02:26",
+          "len": 275,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Nottingham Forest and Leeds remain deadlocked at 0 points through 57 minutes of play tonight at The City Ground. Both clubs seek their first goal of the season. NBCSN broadcasts this match as the sides struggle to genera"
+        },
+        {
+          "id": "game_live_epl_401879299",
+          "created_at": "2026-08-22 10:02:23",
+          "len": 301,
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Ipswich secured a 2-1 win at Portman Road tonight, moving to 1-0-0 this season. Sunderland fell to 0-1-0 this season after failing to overcome the deficit. Betting markets closed with Ipswich at +180 and Sunderland at +1"
+        },
+        {
+          "id": "game_live_epl_401879300",
+          "created_at": "2026-08-22 10:02:21",
+          "len": 305,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Everton moved to 1-0-0 this season with a 2-0 win over Crystal Palace at Hill Dickinson Stadium. Crystal Palace finished with 0 points through this match. Everton’s 37 goals through the season and 3 shots tonight fueled "
+        },
+        {
+          "id": "game_live_epl_401879322",
+          "created_at": "2026-08-22 10:02:19",
+          "len": 299,
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Hull stunned Manchester United 2-0 at The MKM Stadium, marking a cold start for the visitors who remain at 0 points through 1 match this season. Despite closing as -295 favorites, United failed to register 3 shots on tar"
+        }
+      ]
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: FAIL — every pair is still non-sequenced",
+    "soccer_opening_coverage: PASS — improved for EPL",
+    "epl_brief_event_grounded: PARTIAL — 4/10 not the season template; leak-freedom UNPROVEN: no EPL brief written since the 2f fix deployed (2 pre-fix brief(s) did leak)"
+  ],
+  "all_passed": false,
+  "any_failed": true
+}
