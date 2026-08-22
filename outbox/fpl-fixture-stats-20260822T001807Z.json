@@ -1,0 +1,885 @@
+{
+  "probed_at": "2026-08-22T00:18:07.118Z",
+  "ok": true,
+  "fixture": {
+    "id": 1,
+    "gw": 1,
+    "home": "Arsenal",
+    "away": "Coventry City",
+    "score": "3-0",
+    "started": true,
+    "finished": false,
+    "finished_provisional": true,
+    "minutes": 90
+  },
+  "route_a_shape": {
+    "blocks": 11,
+    "identifiers": [
+      "goals_scored",
+      "assists",
+      "own_goals",
+      "penalties_saved",
+      "penalties_missed",
+      "yellow_cards",
+      "red_cards",
+      "saves",
+      "bonus",
+      "bps",
+      "defensive_contribution"
+    ],
+    "block_keys": [
+      "identifier",
+      "a",
+      "h"
+    ],
+    "raw_first_block": {
+      "identifier": "goals_scored",
+      "a": [],
+      "h": [
+        {
+          "value": 1,
+          "element": 12
+        },
+        {
+          "value": 1,
+          "element": 15
+        },
+        {
+          "value": 1,
+          "element": 26
+        }
+      ]
+    }
+  },
+  "route_a": {
+    "goals_scored": [
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "Havertz",
+        "element": 26,
+        "value": 1,
+        "side": "h"
+      }
+    ],
+    "assists": [
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 1,
+        "side": "h"
+      }
+    ],
+    "yellow_cards": [
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "Yirenkyi",
+        "element": 575,
+        "value": 1,
+        "side": "a"
+      }
+    ],
+    "saves": [
+      {
+        "name": "Raya",
+        "element": 1,
+        "value": 1,
+        "side": "h"
+      },
+      {
+        "name": "Rushworth",
+        "element": 110,
+        "value": 2,
+        "side": "a"
+      }
+    ],
+    "bonus": [
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 3,
+        "side": "h"
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 2,
+        "side": "h"
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 1,
+        "side": "h"
+      }
+    ],
+    "bps": [
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 41,
+        "side": "h"
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 37,
+        "side": "h"
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 36,
+        "side": "h"
+      },
+      {
+        "name": "Havertz",
+        "element": 26,
+        "value": 34,
+        "side": "h"
+      },
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 31,
+        "side": "h"
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 29,
+        "side": "h"
+      },
+      {
+        "name": "Mosquera",
+        "element": 11,
+        "value": 27,
+        "side": "h"
+      },
+      {
+        "name": "Raya",
+        "element": 1,
+        "value": 24,
+        "side": "h"
+      },
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 21,
+        "side": "h"
+      },
+      {
+        "name": "Lewis-Skelly",
+        "element": 7,
+        "value": 15,
+        "side": "h"
+      },
+      {
+        "name": "Rice",
+        "element": 13,
+        "value": 9,
+        "side": "h"
+      },
+      {
+        "name": "Madueke",
+        "element": 16,
+        "value": 8,
+        "side": "h"
+      },
+      {
+        "name": "Merino",
+        "element": 17,
+        "value": 5,
+        "side": "h"
+      },
+      {
+        "name": "Eze",
+        "element": 14,
+        "value": 4,
+        "side": "h"
+      },
+      {
+        "name": "Hincapie",
+        "element": 9,
+        "value": 3,
+        "side": "h"
+      },
+      {
+        "name": "Zubimendi",
+        "element": 19,
+        "value": 3,
+        "side": "h"
+      },
+      {
+        "name": "Grimes",
+        "element": 184,
+        "value": 14,
+        "side": "a"
+      },
+      {
+        "name": "Thomas",
+        "element": 173,
+        "value": 13,
+        "side": "a"
+      },
+      {
+        "name": "Tchaouna",
+        "element": 190,
+        "value": 9,
+        "side": "a"
+      },
+      {
+        "name": "Thomas-Asante",
+        "element": 194,
+        "value": 9,
+        "side": "a"
+      },
+      {
+        "name": "Onyeka",
+        "element": 104,
+        "value": 8,
+        "side": "a"
+      },
+      {
+        "name": "Torp",
+        "element": 188,
+        "value": 8,
+        "side": "a"
+      },
+      {
+        "name": "Simms",
+        "element": 195,
+        "value": 7,
+        "side": "a"
+      },
+      {
+        "name": "Awoniyi",
+        "element": 492,
+        "value": 4,
+        "side": "a"
+      },
+      {
+        "name": "Rudoni",
+        "element": 183,
+        "value": 3,
+        "side": "a"
+      },
+      {
+        "name": "Hamer",
+        "element": 584,
+        "value": 3,
+        "side": "a"
+      },
+      {
+        "name": "Yirenkyi",
+        "element": 575,
+        "value": 2,
+        "side": "a"
+      },
+      {
+        "name": "Amenda",
+        "element": 182,
+        "value": 1,
+        "side": "a"
+      },
+      {
+        "name": "Dasilva",
+        "element": 176,
+        "value": -4,
+        "side": "a"
+      },
+      {
+        "name": "van Ewijk",
+        "element": 175,
+        "value": -8,
+        "side": "a"
+      }
+    ],
+    "defensive_contribution": [
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 8,
+        "side": "h"
+      },
+      {
+        "name": "Lewis-Skelly",
+        "element": 7,
+        "value": 7,
+        "side": "h"
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 7,
+        "side": "h"
+      },
+      {
+        "name": "Mosquera",
+        "element": 11,
+        "value": 6,
+        "side": "h"
+      },
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 5,
+        "side": "h"
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 5,
+        "side": "h"
+      },
+      {
+        "name": "Rice",
+        "element": 13,
+        "value": 5,
+        "side": "h"
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 5,
+        "side": "h"
+      },
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 3,
+        "side": "h"
+      },
+      {
+        "name": "Zubimendi",
+        "element": 19,
+        "value": 3,
+        "side": "h"
+      },
+      {
+        "name": "Eze",
+        "element": 14,
+        "value": 2,
+        "side": "h"
+      },
+      {
+        "name": "Madueke",
+        "element": 16,
+        "value": 2,
+        "side": "h"
+      },
+      {
+        "name": "Merino",
+        "element": 17,
+        "value": 2,
+        "side": "h"
+      },
+      {
+        "name": "Havertz",
+        "element": 26,
+        "value": 2,
+        "side": "h"
+      },
+      {
+        "name": "Thomas",
+        "element": 173,
+        "value": 10,
+        "side": "a"
+      },
+      {
+        "name": "Onyeka",
+        "element": 104,
+        "value": 9,
+        "side": "a"
+      },
+      {
+        "name": "Amenda",
+        "element": 182,
+        "value": 9,
+        "side": "a"
+      },
+      {
+        "name": "Tchaouna",
+        "element": 190,
+        "value": 8,
+        "side": "a"
+      },
+      {
+        "name": "van Ewijk",
+        "element": 175,
+        "value": 7,
+        "side": "a"
+      },
+      {
+        "name": "Grimes",
+        "element": 184,
+        "value": 7,
+        "side": "a"
+      },
+      {
+        "name": "Dasilva",
+        "element": 176,
+        "value": 6,
+        "side": "a"
+      },
+      {
+        "name": "Thomas-Asante",
+        "element": 194,
+        "value": 6,
+        "side": "a"
+      },
+      {
+        "name": "Rudoni",
+        "element": 183,
+        "value": 5,
+        "side": "a"
+      },
+      {
+        "name": "Simms",
+        "element": 195,
+        "value": 3,
+        "side": "a"
+      },
+      {
+        "name": "Yirenkyi",
+        "element": 575,
+        "value": 3,
+        "side": "a"
+      },
+      {
+        "name": "Torp",
+        "element": 188,
+        "value": 1,
+        "side": "a"
+      },
+      {
+        "name": "Awoniyi",
+        "element": 492,
+        "value": 1,
+        "side": "a"
+      },
+      {
+        "name": "Hamer",
+        "element": 584,
+        "value": 1,
+        "side": "a"
+      }
+    ]
+  },
+  "route_b_elements_scanned": 62,
+  "route_b": {
+    "minutes": [
+      {
+        "name": "Raya",
+        "element": 1,
+        "value": 90
+      },
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 90
+      },
+      {
+        "name": "Lewis-Skelly",
+        "element": 7,
+        "value": 90
+      },
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 80
+      },
+      {
+        "name": "Hincapie",
+        "element": 9,
+        "value": 9
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 90
+      },
+      {
+        "name": "Mosquera",
+        "element": 11,
+        "value": 90
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 67
+      },
+      {
+        "name": "Rice",
+        "element": 13,
+        "value": 67
+      },
+      {
+        "name": "Eze",
+        "element": 14,
+        "value": 14
+      },
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 75
+      },
+      {
+        "name": "Madueke",
+        "element": 16,
+        "value": 22
+      },
+      {
+        "name": "Merino",
+        "element": 17,
+        "value": 14
+      },
+      {
+        "name": "Zubimendi",
+        "element": 19,
+        "value": 22
+      },
+      {
+        "name": "Havertz",
+        "element": 26,
+        "value": 90
+      },
+      {
+        "name": "Onyeka",
+        "element": 104,
+        "value": 90
+      },
+      {
+        "name": "Rushworth",
+        "element": 110,
+        "value": 90
+      },
+      {
+        "name": "Thomas",
+        "element": 173,
+        "value": 90
+      },
+      {
+        "name": "van Ewijk",
+        "element": 175,
+        "value": 90
+      },
+      {
+        "name": "Dasilva",
+        "element": 176,
+        "value": 90
+      },
+      {
+        "name": "Amenda",
+        "element": 182,
+        "value": 90
+      },
+      {
+        "name": "Rudoni",
+        "element": 183,
+        "value": 20
+      },
+      {
+        "name": "Grimes",
+        "element": 184,
+        "value": 90
+      },
+      {
+        "name": "Torp",
+        "element": 188,
+        "value": 28
+      },
+      {
+        "name": "Tchaouna",
+        "element": 190,
+        "value": 81
+      },
+      {
+        "name": "Thomas-Asante",
+        "element": 194,
+        "value": 69
+      },
+      {
+        "name": "Simms",
+        "element": 195,
+        "value": 69
+      },
+      {
+        "name": "Awoniyi",
+        "element": 492,
+        "value": 20
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 75
+      },
+      {
+        "name": "Yirenkyi",
+        "element": 575,
+        "value": 61
+      },
+      {
+        "name": "Hamer",
+        "element": 584,
+        "value": 8
+      }
+    ],
+    "clean_sheets": [
+      {
+        "name": "Raya",
+        "element": 1,
+        "value": 1
+      },
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 1
+      },
+      {
+        "name": "Lewis-Skelly",
+        "element": 7,
+        "value": 1
+      },
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 1
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 1
+      },
+      {
+        "name": "Mosquera",
+        "element": 11,
+        "value": 1
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 1
+      },
+      {
+        "name": "Rice",
+        "element": 13,
+        "value": 1
+      },
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 1
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 1
+      }
+    ],
+    "yellow_cards": [
+      {
+        "name": "Gabriel",
+        "element": 4,
+        "value": 1
+      },
+      {
+        "name": "Yirenkyi",
+        "element": 575,
+        "value": 1
+      }
+    ],
+    "assists": [
+      {
+        "name": "Calafiori",
+        "element": 8,
+        "value": 1
+      },
+      {
+        "name": "White",
+        "element": 10,
+        "value": 1
+      },
+      {
+        "name": "Tzolis",
+        "element": 557,
+        "value": 1
+      }
+    ],
+    "bonus": [
+      {
+        "name": "White",
+        "element": 10,
+        "value": 2
+      },
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 1
+      },
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 3
+      }
+    ],
+    "goals_scored": [
+      {
+        "name": "Saka",
+        "element": 12,
+        "value": 1
+      },
+      {
+        "name": "Ødegaard",
+        "element": 15,
+        "value": 1
+      },
+      {
+        "name": "Havertz",
+        "element": 26,
+        "value": 1
+      }
+    ],
+    "goals_conceded": [
+      {
+        "name": "Rushworth",
+        "element": 110,
+        "value": 3
+      },
+      {
+        "name": "Thomas",
+        "element": 173,
+        "value": 3
+      },
+      {
+        "name": "van Ewijk",
+        "element": 175,
+        "value": 3
+      },
+      {
+        "name": "Dasilva",
+        "element": 176,
+        "value": 3
+      },
+      {
+        "name": "Amenda",
+        "element": 182,
+        "value": 3
+      }
+    ],
+    "defensive_contribution": [
+      {
+        "name": "Thomas",
+        "element": 173,
+        "value": 10
+      }
+    ]
+  },
+  "comparison": [
+    {
+      "identifier": "goals_scored",
+      "route_a_count": 3,
+      "route_b_count": 3,
+      "identical": true
+    },
+    {
+      "identifier": "assists",
+      "route_a_count": 3,
+      "route_b_count": 3,
+      "identical": true
+    },
+    {
+      "identifier": "own_goals",
+      "route_a_count": 0,
+      "route_b_count": 0,
+      "identical": true
+    },
+    {
+      "identifier": "yellow_cards",
+      "route_a_count": 2,
+      "route_b_count": 2,
+      "identical": true
+    },
+    {
+      "identifier": "red_cards",
+      "route_a_count": 0,
+      "route_b_count": 0,
+      "identical": true
+    },
+    {
+      "identifier": "saves",
+      "route_a_count": 2,
+      "route_b_count": 0,
+      "identical": false,
+      "only_in_a": [
+        {
+          "name": "Raya",
+          "element": 1,
+          "value": 1,
+          "side": "h"
+        },
+        {
+          "name": "Rushworth",
+          "element": 110,
+          "value": 2,
+          "side": "a"
+        }
+      ]
+    },
+    {
+      "identifier": "penalties_saved",
+      "route_a_count": 0,
+      "route_b_count": 0,
+      "identical": true
+    },
+    {
+      "identifier": "penalties_missed",
+      "route_a_count": 0,
+      "route_b_count": 0,
+      "identical": true
+    },
+    {
+      "identifier": "bonus",
+      "route_a_count": 3,
+      "route_b_count": 3,
+      "identical": true
+    }
+  ],
+  "all_event_identifiers_agree": false,
+  "identifiers_only_in_a": [
+    "bps",
+    "saves"
+  ],
+  "identifiers_only_in_b": [
+    "clean_sheets",
+    "goals_conceded",
+    "minutes"
+  ]
+}

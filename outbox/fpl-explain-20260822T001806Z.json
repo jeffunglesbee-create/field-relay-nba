@@ -1,0 +1,48 @@
+{
+  "probed_at": "2026-08-22T00:18:06.704Z",
+  "ok": true,
+  "gw": 1,
+  "explain_shape": {
+    "is_array": true,
+    "entries": 1,
+    "entry_keys": [
+      "fixture",
+      "stats"
+    ],
+    "fixture_value": 1,
+    "raw_first_entry": {
+      "fixture": 1,
+      "stats": [
+        {
+          "identifier": "minutes",
+          "points": 2,
+          "value": 67,
+          "points_modification": 0
+        },
+        {
+          "identifier": "goals_scored",
+          "points": 5,
+          "value": 1,
+          "points_modification": 0
+        },
+        {
+          "identifier": "clean_sheets",
+          "points": 1,
+          "value": 1,
+          "points_modification": 0
+        },
+        {
+          "identifier": "bonus",
+          "points": 1,
+          "value": 1,
+          "points_modification": 0
+        }
+      ]
+    }
+  },
+  "scorer_context": {
+    "element": 12,
+    "goals": 1
+  },
+  "scoped_to_fixture_1": 62
+}
