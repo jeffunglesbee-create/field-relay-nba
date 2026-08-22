@@ -4,7 +4,7 @@
 > If you update one, update the other. Both CC sessions read their own
 > repo's copy. A mismatch causes silent failures at system boundaries.
 
-Last synced: 2026-08-21 (team identity + FPL source authority — relay + client copies)
+Last synced: 2026-08-22 (short-code scoping rule — relay + client copies)
 
 ---
 
@@ -831,6 +831,33 @@ So the FPL→game join uses `resolveTeamKey`, **not** a second table. Any FPL
 spelling found missing is added to `identity-resolver.js`, where the collision
 guard covers it — never to a parallel map. The client map is retained only until
 its call sites are repointed; it must not gain new entries.
+
+### Short codes: scoped tables only, never the global resolver
+
+`resolveTeamKey` is **cross-sport**, so a 2–4 letter code passed to it is
+ambiguous by construction. Measured 2026-08-22: FPL's Sunderland is
+`short_name: "SUN"`, which strips to `sun` and resolves to the **WNBA
+Connecticut Sun**.
+
+That is correct behaviour for the WNBA alias and must not be "fixed" — aliasing
+the short code would break the WNBA join instead. The rule is the other way
+round:
+
+- **Join on the full `name`**, through `resolveTeamKey`. All 20 FPL club names
+  resolve to distinct keys (verified, and asserted by
+  `scripts/check-team-identity-collisions.mjs`).
+- **For codes, use a scoped closed dictionary.** The working precedent is
+  `_FPL_SHORT_TO_ESPN_ABBR` (`src/context-assembler.js:997`) — FPL `short_name` →
+  ESPN abbreviation, live-verified across three matchdays, 18/20 direct with
+  `MCI→MNC` and `MUN→MAN` the two real mismatches. `'SUN':'SUN'` is safe there
+  because the lookup is scoped to EPL and never leaves it.
+
+**If FIELD ever mints its own EPL short codes, Sunderland must not be `SUN`.**
+Use **`SND`** (or `SUND` where four characters are acceptable). The live hazard
+is `resolveAbbr()` at `src/context-assembler.js:119`, which passes any
+`/^[A-Z]{2,4}$/` string through unchanged — so an EPL code added to that table
+would inherit the collision silently. That resolver currently covers MLB, NHL
+and NBA only.
 
 ### Source authority for shared FPL/ESPN fields
 
