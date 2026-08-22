@@ -252,46 +252,85 @@ try {
     const briefRows = briefs.map(b => {
         const text = String(b.brief_text || '');
         return {
-            id: b.id, created_at: b.created_at, len: b.len,
+            id: b.id, created_at: b.created_at, written_at: b.written_at, len: b.len,
+            brief_type: b.brief_type,
             season_template: !!b.season_template,
             leaked_literals: PROMPT_EXAMPLE_LITERALS.filter(lit => text.includes(lit)),
             excerpt: text.slice(0, 220),
         };
     });
+
+    // ── The live/recap split, added 2026-08-22 on measured evidence ─────────
+    //
+    // A game_live brief is REWRITTEN every cycle while the match is on. One
+    // Everton brief was observed in three different states in nine hours:
+    //   14:22  "maintains a 107.7 DRTG, best in the NBA, despite playing soccer"
+    //   19:17  "contrasting their 37 goals last season"
+    //   23:31  clean — neither figure present any more
+    // Two different fabricated exemplar figures, then neither.
+    //
+    // That makes a point-in-time snapshot UNABLE to prove leak-freedom for live
+    // briefs. Reading clean proves only that the current text is clean; the leak
+    // this query would have caught may already have been overwritten, which is
+    // exactly what happened to Everton twice. Asserting PASS off that would be
+    // the vacuous-test trap this file was built to avoid.
+    //
+    // game_recap is different: written once when the match finalises and left
+    // alone, so a snapshot of it is a real measurement.
+    //
+    // So the assertion runs on recaps, and live briefs are reported as sampled
+    // rather than proven. The desk and D1 agree on the Brentford text, so this
+    // is churn in the row, not the desk reading some other source — worth
+    // stating, because "the check disagrees with the screenshot" has a much
+    // more alarming explanation that was ruled out rather than assumed.
+    const isLive  = (b) => String(b.brief_type || b.id).includes('live');
+    const recaps  = briefRows.filter(b => !isLive(b));
+    const liveOnes = briefRows.filter(isLive);
     const grounded = briefRows.filter(b => !b.season_template);
     // Only briefs written after the LEAK fix can testify about the leak fix.
     // The first run of this assertion failed on two briefs from 10:02 and
     // 18:30, both before 5f2fabb deployed at 18:36 -- rows the fix never
     // touched. Older leaking briefs stay in the manifest as history, since
     // they are the evidence the leak was real, but they cannot fail the run.
-    const postLeakFix = briefRows.filter(b => b.created_at > T_2F_LEAK_FIX);
+    const written = (b) => b.written_at || b.created_at;
+    const postLeakFix = recaps.filter(b => written(b) > T_2F_LEAK_FIX);
     const leaking = postLeakFix.filter(b => b.leaked_literals.length);
-    const historicalLeaks = briefRows.filter(b =>
-        b.leaked_literals.length && b.created_at <= T_2F_LEAK_FIX);
+    const historicalLeaks = recaps.filter(b =>
+        b.leaked_literals.length && written(b) <= T_2F_LEAK_FIX);
+    // Reported, never asserted on. See the split rationale above.
+    const liveLeaking = liveOnes.filter(b => b.leaked_literals.length);
 
     // Order matters: a leak is reported even when a brief also clears the
     // template test, because that is exactly the case the old check missed.
+    const liveNote = liveOnes.length
+        ? ` | live: ${liveLeaking.length}/${liveOnes.length} leaking right now (sampled, not asserted — live briefs are rewritten every cycle)`
+        : '';
+
     let briefStatus;
     if (!briefRows.length) briefStatus = 'PENDING — no EPL brief written since the deploy';
     else if (leaking.length) briefStatus =
-        `FAIL — ${leaking.length}/${postLeakFix.length} post-fix brief(s) carry a prompt-example literal: `
-        + [...new Set(leaking.flatMap(b => b.leaked_literals))].join(', ');
+        `FAIL — ${leaking.length}/${postLeakFix.length} post-fix recap(s) carry a prompt-example literal: `
+        + [...new Set(leaking.flatMap(b => b.leaked_literals))].join(', ') + liveNote;
     else if (!grounded.length) briefStatus = 'FAIL — every new EPL brief is still the season template';
     else if (!postLeakFix.length) briefStatus =
         `PARTIAL — ${grounded.length}/${briefRows.length} not the season template; `
-        + `leak-freedom UNPROVEN: no EPL brief written since the 2f fix deployed`
-        + (historicalLeaks.length ? ` (${historicalLeaks.length} pre-fix brief(s) did leak)` : '');
+        + `leak-freedom UNPROVEN: no EPL RECAP written since the 2f fix deployed`
+        + (historicalLeaks.length ? ` (${historicalLeaks.length} pre-fix recap(s) did leak)` : '')
+        + liveNote;
     else briefStatus =
         `PASS — ${grounded.length}/${briefRows.length} not the season template, and no prompt-example `
-        + `literal in any of the ${postLeakFix.length} brief(s) written since the 2f fix`;
+        + `literal in any of the ${postLeakFix.length} recap(s) written since the 2f fix` + liveNote;
 
     add({
         id: 'epl_brief_event_grounded',
-        what: 'an EPL brief written since fpl_match_events deployed: not a season-stat template AND free of prompt-example literals',
+        what: 'EPL briefs since fpl_match_events deployed: not a season-stat template (all types) AND free of prompt-example literals (game_recap only — see asserted_on)',
         qualifying_rows: briefRows.length,
         status: briefStatus,
         literals_checked: PROMPT_EXAMPLE_LITERALS.length,
-        briefs_since_leak_fix: postLeakFix.length,
+        recaps_since_leak_fix: postLeakFix.length,
+        live_briefs_sampled: liveOnes.length,
+        live_briefs_leaking_now: liveLeaking.map(b => ({ id: b.id, literals: b.leaked_literals })),
+        asserted_on: 'game_recap only — live briefs are rewritten every cycle, so a snapshot cannot prove leak-freedom for them',
         historical_leaks_before_fix: historicalLeaks.map(b => ({ id: b.id, created_at: b.created_at, literals: b.leaked_literals })),
         note: 'Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f\'s "absent from context" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.',
         sample: briefRows,
