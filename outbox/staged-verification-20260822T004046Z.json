@@ -1,0 +1,37 @@
+{
+  "probed_at": "2026-08-22T00:40:46.980Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 0,
+      "status": "PENDING — no game has been priced since the fix",
+      "sequenced": 0,
+      "sample": []
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 0,
+      "status": "PENDING — no soccer fixture since the aliases landed",
+      "per_sport": []
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "an EPL brief written since fpl_match_events deployed, no longer a season-stat template",
+      "qualifying_rows": 0,
+      "status": "PENDING — no EPL brief written since the deploy",
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts.",
+      "sample": []
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: PENDING — no game has been priced since the fix",
+    "soccer_opening_coverage: PENDING — no soccer fixture since the aliases landed",
+    "epl_brief_event_grounded: PENDING — no EPL brief written since the deploy"
+  ],
+  "all_passed": false,
+  "any_failed": false
+}
