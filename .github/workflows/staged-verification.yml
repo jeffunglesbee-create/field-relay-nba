@@ -1,0 +1,68 @@
+name: Staged verification (2026-08-22 items)
+
+# Verifies the three items left STAGED on 2026-08-21/22, all of which needed a
+# real fixture before they could be proved:
+#
+#   1. closing_odds now lands AFTER opening_odds  (fix 887c843)
+#   2. soccer opening-odds coverage above baseline (fixes e4ad440 → bb04fc8)
+#   3. an EPL brief is no longer a season-stat template (fix eb02ac7)
+#
+# Run this on any matchday. It answers all three in one go, which is the point —
+# three separate "check it next time" notes is how staged items rot into
+# orphans (Rule 74).
+#
+# NO schedule:, deliberately. The unblocking event is a fixture being played,
+# which no cron can predict, and a daily run would mostly report PENDING. See
+# jubilant-bassoon outbox/cc-session-2026-08-16-scheduled-workflow-audit.md for
+# why idle crons are not free here. Dispatch it, or touch the trigger file.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-staged-verification'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staged-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      # Exits non-zero only on a genuine REGRESSION. PENDING is not a failure:
+      # nothing has been disproved, only not yet proved, and failing the run on
+      # that would train everyone to ignore this workflow's status.
+      - name: Verify the three staged items
+        run: node scripts/verify-staged-2026-08-22.mjs
+
+      - name: Commit the manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/staged-verification-*.json || { echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: staged verification manifest [skip ci]"
+
+          # Many concurrent writers to outbox/; a lost race must not fail the
+          # run, but a permissions failure must. Same split as deploy.yml.
+          LOG=/tmp/staged-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0
