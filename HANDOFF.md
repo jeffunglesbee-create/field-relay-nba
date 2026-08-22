@@ -1,5 +1,43 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-22b (the 240 bar has never been cleared)
+
+**HEAD:** `aca5c93` → `e128a4f` · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-22-quality-scale-verified.md`
+**Artifact:** `outbox/quality-scale-verify-20260822T234307Z.json`
+
+Ran the DONE CONDITION that `cc-session-2026-08-16-quality-bar-scale.md` wrote
+for itself and left UNVERIFIED for six days on sandbox egress —
+`rule-gha-for-sandbox-egress-blocks` says that is not a stopping point. All four
+of that session's own assertions **PASS** live: `reachable_ceiling === 245`, and
+`cleared_196` numeric on all 47 rows.
+
+**The finding — 523 briefs over 7 days:**
+
+| bar | cleared | rate |
+|---|---|---|
+| 240 (documented "excellence") | **0** | 0% |
+| 196 (`FOUR_FIFTHS_REACHABLE`) | 61 | 11.7% |
+
+No brief has ever cleared 240. With 55 of 300 points unreachable by
+construction (`ctx`, `matchup`), 240 is **97.96% of what a brief can earn** — a
+near-perfect-score requirement wearing an 80% label. **196 discriminates**,
+which closes the adoption question 08-16 explicitly deferred.
+
+**`scoreThreshold: 110` is inert, not wrong.** Both sites (`src/index.js:8855`,
+the path writing every EPL game brief; and `:7337` wc-morning) predate the 240
+standard. EPL briefs average 141.4, so 110 is cleared by ~30 points and the
+retry gate never fires. NOT changed: 240 would fail all 523 into max-retry
+exhaustion, 196 would retry ~88% — a Rule 78 spend decision needing a cost
+estimate first.
+
+**Also found:** `/quality/report` returns `n: null` on every row; totals derived
+from `below_240` instead. Filed, not fixed (Rule 60/69).
+
+**Re-runnable:** dispatch `verify-quality-scale.yml`.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-22 (staged FAIL diagnosis: a third closing-odds writer)
 
 **HEAD:** `5f2fabb` → `aca5c93` · **Branch:** main throughout
