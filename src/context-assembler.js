@@ -1177,78 +1177,85 @@ async function buildFPLMatchEventsContext(env, game) {
         // finalised hours later. Gating on it would mean recaps never fire.
         if (!fixture.started) return '';
 
-        const live = await fetchJson(`/fpl/event/${gw}/live/`);
-        const elements = live?.elements || [];
-        if (!elements.length) return '';
+        // EVENT SOURCE: fixtures[].stats, not event/{gw}/live.
+        //
+        // The first version of this builder read events from
+        // element.explain[].fixture. A head-to-head diff of both routes on this
+        // exact fixture (probe-fpl-fixture-stats.mjs, 2026-08-22) showed they
+        // are NOT equivalent, and explain[] loses data:
+        //
+        //   saves   route A 2, route B 0   <- explain[] carries only identifiers
+        //   bps     route A yes, route B no    that SCORED POINTS, and saves pay
+        //                                      1pt per 3, so a keeper with 1-2
+        //                                      saves has no entry at all
+        //
+        // Raya (1 save) and Rushworth (2 saves) are both real and both invisible
+        // to explain[]. The Saves line was therefore dead code as first shipped.
+        // fixtures[].stats carries every event identifier unconditionally, plus
+        // bps, in the response already fetched above — so this route is both
+        // more correct and one HTTP call cheaper, with no 600-element scan.
+        //
+        // Shape: [{identifier, h:[{element,value}], a:[{element,value}]}]. The
+        // h/a split gives team attribution directly, so no roster team lookup
+        // is needed to decide which side a player was on.
+        const blocks = fixture.stats || [];
+        if (!blocks.length) return '';
 
         const rosterById = new Map(roster.map(p => [p.id, p]));
-        const abbrForTeam = (id) => (id === homeId ? homeAbbr : awayAbbr);
-
-        // Pull this fixture's numbers out of explain[], by identifier.
-        const perPlayer = [];
-        for (const el of elements) {
-            const entry = (el.explain || []).find(x => x.fixture === fixture.id);
-            if (!entry) continue;
-            const p = rosterById.get(el.id);
-            if (!p || (p.team !== homeId && p.team !== awayId)) continue;
-            const v = {};
-            for (const s of (entry.stats || [])) v[s.identifier] = s.value;
-            perPlayer.push({
-                name: p.web_name,
-                abbr: abbrForTeam(p.team),
-                goals: v.goals_scored || 0,
-                assists: v.assists || 0,
-                ownGoals: v.own_goals || 0,
-                yellow: v.yellow_cards || 0,
-                red: v.red_cards || 0,
-                saves: v.saves || 0,
-                pensSaved: v.penalties_saved || 0,
-                pensMissed: v.penalties_missed || 0,
-                bonus: v.bonus || 0,
-                minutes: v.minutes || 0,
-            });
+        const byIdentifier = {};
+        for (const block of blocks) {
+            const rows = [];
+            for (const [side, abbr] of [['h', homeAbbr], ['a', awayAbbr]]) {
+                for (const item of (block[side] || [])) {
+                    const p = rosterById.get(item.element);
+                    if (!p || !item.value) continue;
+                    rows.push({ name: p.web_name, abbr, value: item.value });
+                }
+            }
+            if (rows.length) byIdentifier[block.identifier] = rows;
         }
-        if (!perPlayer.length) return '';
+        if (!Object.keys(byIdentifier).length) return '';
 
         const lines = ['', '[FPL MATCH EVENTS]'];
-        const say = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+        const desc = (rows, withCount = true) => rows
+            .slice()
+            .sort((a, b) => b.value - a.value)
+            .map(r => `${r.name} (${r.abbr})${withCount && r.value > 1 ? ` ${r.value}` : ''}`)
+            .join(', ');
+        const line = (id, label, withCount = true) => {
+            const rows = byIdentifier[id];
+            if (rows && rows.length) lines.push(`${label}: ${desc(rows, withCount)}`);
+        };
 
-        const scorers = perPlayer.filter(p => p.goals > 0)
-            .sort((a, b) => b.goals - a.goals);
-        if (scorers.length) {
-            lines.push(`Goals: ${scorers.map(p =>
-                `${p.name} (${p.abbr})${p.goals > 1 ? ` ${p.goals}` : ''}`).join(', ')}`);
-        }
-        const assisters = perPlayer.filter(p => p.assists > 0)
-            .sort((a, b) => b.assists - a.assists);
-        if (assisters.length) {
-            lines.push(`Assists: ${assisters.map(p =>
-                `${p.name} (${p.abbr})${p.assists > 1 ? ` ${p.assists}` : ''}`).join(', ')}`);
-        }
-        const owns = perPlayer.filter(p => p.ownGoals > 0);
-        if (owns.length) lines.push(`Own goals: ${owns.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
+        line('goals_scored',      'Goals');
+        line('assists',           'Assists');
+        line('own_goals',         'Own goals');
+        line('red_cards',         'Red cards', false);
+        line('yellow_cards',      'Yellow cards', false);
+        line('penalties_saved',   'Penalties saved', false);
+        line('penalties_missed',  'Penalties missed', false);
 
-        const reds = perPlayer.filter(p => p.red > 0);
-        if (reds.length) lines.push(`Red cards: ${reds.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
-        const yellows = perPlayer.filter(p => p.yellow > 0);
-        if (yellows.length) lines.push(`Yellow cards: ${yellows.length} — ${yellows.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
-
-        const pensSaved = perPlayer.filter(p => p.pensSaved > 0);
-        if (pensSaved.length) lines.push(`Penalties saved: ${pensSaved.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
-        const pensMissed = perPlayer.filter(p => p.pensMissed > 0);
-        if (pensMissed.length) lines.push(`Penalties missed: ${pensMissed.map(p => `${p.name} (${p.abbr})`).join(', ')}`);
-
-        // Keepers: only worth a line when the workload was real.
-        const keepers = perPlayer.filter(p => p.saves >= 3).sort((a, b) => b.saves - a.saves);
-        if (keepers.length) {
-            lines.push(`Saves: ${keepers.map(p => `${p.name} (${p.abbr}) ${say(p.saves, 'save')}`).join(', ')}`);
+        // Saves: every keeper's count, which explain[] could not provide.
+        const saves = byIdentifier.saves;
+        if (saves && saves.length) {
+            lines.push(`Saves: ${saves.slice().sort((a, b) => b.value - a.value)
+                .map(r => `${r.name} (${r.abbr}) ${r.value}`).join(', ')}`);
         }
 
         // The fantasy layer ESPN does not carry — CONTRACTS.md makes FPL
-        // authoritative for bonus, so this is the half that is FPL's to state.
-        const bonus = perPlayer.filter(p => p.bonus > 0).sort((a, b) => b.bonus - a.bonus);
-        if (bonus.length) {
-            lines.push(`FPL bonus: ${bonus.map(p => `${p.name} (${p.abbr}) +${p.bonus}`).join(', ')}`);
+        // authoritative for bonus. bps is the raw ranking behind the 3/2/1
+        // award and separates performances that tie on bonus.
+        const bonusRows = byIdentifier.bonus;
+        if (bonusRows && bonusRows.length) {
+            // Always show the value: 3/2/1 IS the award, so suppressing "1"
+            // (as the shared helper does for counts) would hide who came third.
+            lines.push(`FPL bonus: ${bonusRows.slice().sort((a, b) => b.value - a.value)
+                .map(r => `${r.name} (${r.abbr}) +${r.value}`).join(', ')}`);
+        }
+        const bps = byIdentifier.bps;
+        if (bps && bps.length) {
+            lines.push(`Top BPS: ${bps.slice().sort((a, b) => b.value - a.value).slice(0, 3)
+                .map(r => `${r.name} (${r.abbr}) ${r.value}`).join(', ')}`);
         }
 
         // Stated so a generator cannot infer a minute it was never given.
@@ -1344,7 +1351,11 @@ const CONTEXT_SOURCES = [
     // fixture, scoped via explain[].fixture. Priority 5 — above the pre-game
     // player analytics, because what happened outranks who was dangerous.
     // EPL-only; FPL's data model is Premier League-specific.
-    { id: 'fpl_match_events', priority: 5, budget: 200, builder: buildFPLMatchEventsContext,
+    // Budget 400, not the 200 first declared: the real Arsenal 3-0 Coventry
+    // block measures 386 chars with goals, assists, cards, saves, bonus and
+    // BPS. Declaring 200 would have under-reported this source's cost to the
+    // assembler's running total and silently crowded out later sources.
+    { id: 'fpl_match_events', priority: 5, budget: 400, builder: buildFPLMatchEventsContext,
       sports: ['epl'] },
     // Team form: last 5 completed games per team from regular_season_games.
     // Factual W/L/score history only — no drama values (Rule 47/ADR-002).
