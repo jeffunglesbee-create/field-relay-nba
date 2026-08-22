@@ -63,12 +63,18 @@ jobs:
       - name: Probe the odds team-name join (no API key used)
         run: node scripts/probe-odds-team-names.mjs
 
+      # Pre-build probe for the FPL ask. Reads every field name from the live
+      # payload rather than from the ask's 2026-05-17 Drive-sourced description
+      # (Rule 73). Three cached GETs through the relay proxy — no key, no quota.
+      - name: Probe the FPL payload shape
+        run: node scripts/probe-fpl-shape.mjs
+
       - name: Commit manifest
         if: always()
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json outbox/v4-followup-manifest-*.json outbox/epl-seed-premise-*.json outbox/closing-hook-firing-*.json outbox/odds-api-probe-*.json outbox/odds-team-names-*.json || {
+          git add outbox/brief-join-premise-manifest-*.json outbox/ask5-ask6-prereq-manifest-*.json outbox/v4-followup-manifest-*.json outbox/epl-seed-premise-*.json outbox/closing-hook-firing-*.json outbox/odds-api-probe-*.json outbox/odds-team-names-*.json outbox/fpl-shape-probe-*.json || {
             echo "no manifest produced"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: brief join premise manifest [skip ci]"
