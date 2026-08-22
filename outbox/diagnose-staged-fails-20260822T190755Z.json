@@ -1,0 +1,396 @@
+{
+  "probed_at": "2026-08-22T19:07:55.304Z",
+  "query_ok": true,
+  "error": null,
+  "findings": {
+    "pair_shape": {
+      "rows_scanned": 41,
+      "with_both_timestamps": 41,
+      "counted_by_check1": 41,
+      "relation_tally": {
+        "closing_BEFORE_opening": 41
+      },
+      "identical_whole_blob": 0,
+      "sample": [
+        {
+          "id": "Ligue 1_2026-08-22_troyes_parisfc",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:04.210Z",
+          "delta_seconds": -22,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_toulouse_lyon",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:03.267Z",
+          "delta_seconds": -23,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_nice_lorient",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:02.369Z",
+          "delta_seconds": -24,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_parma_cagliari",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:59.341Z",
+          "delta_seconds": -26,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_genoa_napoli",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:58.480Z",
+          "delta_seconds": -27,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_udinese_como",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:57.558Z",
+          "delta_seconds": -28,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_intermilan_monza",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:56.766Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "La Liga_2026-08-22_espanyol_realmadrid",
+          "sport": "La Liga",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:24.722Z",
+          "close": "2026-08-22T10:00:55.406Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "La Liga_2026-08-22_valencia_celtavigo",
+          "sport": "La Liga",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:24.722Z",
+          "close": "2026-08-22T10:00:54.558Z",
+          "delta_seconds": -30,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "MLS_2026-08-22_sanjose_minnesota",
+          "sport": "MLS",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:21.633Z",
+          "close": "2026-08-22T10:00:52.499Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        }
+      ]
+    },
+    "writers_all_time": [
+      {
+        "source": "odds_api",
+        "field": "opening_odds",
+        "n": 1436,
+        "first_ts": "2026-06-22T00:00:07.351Z",
+        "last_ts": "2026-08-22T10:01:26.235Z"
+      },
+      {
+        "source": "closing_odds_capture",
+        "field": "closing_odds",
+        "n": 19,
+        "first_ts": "2026-07-04 17:01:34",
+        "last_ts": "2026-08-22 14:01:11"
+      },
+      {
+        "source": "odds_backfill",
+        "field": "closing_odds",
+        "n": 104,
+        "first_ts": "2026-06-29 14:12:31",
+        "last_ts": "2026-08-20 10:33:38"
+      },
+      {
+        "source": "odds_backfill",
+        "field": "opening_odds",
+        "n": 104,
+        "first_ts": "2026-06-29 14:12:31",
+        "last_ts": "2026-08-20 10:33:38"
+      }
+    ],
+    "writers_since_fix": [
+      {
+        "source": "odds_api",
+        "field": "opening_odds",
+        "n": 75,
+        "last_ts": "2026-08-22T10:01:26.235Z"
+      },
+      {
+        "source": "closing_odds_capture",
+        "field": "closing_odds",
+        "n": 1,
+        "last_ts": "2026-08-22 14:01:11"
+      }
+    ],
+    "ambient_hook_has_ever_fired": {
+      "fired": true,
+      "source": "closing_odds_capture",
+      "field": "closing_odds",
+      "n": 19,
+      "first_ts": "2026-07-04 17:01:34",
+      "last_ts": "2026-08-22 14:01:11"
+    },
+    "sequenced_pairs_anywhere": {
+      "count": 10,
+      "sample": [
+        {
+          "id": "2026-08-19-mls-dc-ne",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-phi-mia",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-tor-clt",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-skc-stl",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-la-sj",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-por-sd",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-rsl-dal",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-sea-atx",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "MLB_2026-08-17_reds_cardinals",
+          "sport": "MLB",
+          "date": "2026-08-17",
+          "o_at": "2026-08-17T15:00:59.863Z",
+          "c_at": "2026-08-18T10:01:08.601Z"
+        },
+        {
+          "id": "2026-08-15-mls-mtl-dc",
+          "sport": "MLS",
+          "date": "2026-08-15",
+          "o_at": "2026-08-15T10:01:05.261Z",
+          "c_at": "2026-08-15T23:54:59Z"
+        }
+      ]
+    },
+    "soccer_rows_since_aliases": {
+      "total": 9,
+      "by_sport": {
+        "EPL": {
+          "games": 5,
+          "finalized": 5,
+          "with_open": 4
+        },
+        "La Liga": {
+          "games": 1,
+          "finalized": 1,
+          "with_open": 0
+        },
+        "Ligue 1": {
+          "games": 1,
+          "finalized": 1,
+          "with_open": 0
+        },
+        "Serie A": {
+          "games": 2,
+          "finalized": 2,
+          "with_open": 2
+        }
+      },
+      "rows": [
+        {
+          "id": "EPL_2026-08-22_hull_manunited",
+          "sport": "EPL",
+          "date": "2026-08-22",
+          "home": "Hull",
+          "away": "Man United",
+          "finalized_at": "2026-08-22 13:30:19",
+          "has_open": 1,
+          "has_close": 1
+        },
+        {
+          "id": "EPL_2026-08-22_everton_cpalace",
+          "sport": "EPL",
+          "date": "2026-08-22",
+          "home": "Everton",
+          "away": "C Palace",
+          "finalized_at": "2026-08-22 16:00:19",
+          "has_open": 0,
+          "has_close": 1
+        },
+        {
+          "id": "EPL_2026-08-22_ipswich_sunderland",
+          "sport": "EPL",
+          "date": "2026-08-22",
+          "home": "Ipswich",
+          "away": "Sunderland",
+          "finalized_at": "2026-08-22 16:00:20",
+          "has_open": 1,
+          "has_close": 1
+        },
+        {
+          "id": "EPL_2026-08-22_nottmforest_leeds",
+          "sport": "EPL",
+          "date": "2026-08-22",
+          "home": "Nottm Forest",
+          "away": "Leeds",
+          "finalized_at": "2026-08-22 16:00:20",
+          "has_open": 1,
+          "has_close": 1
+        },
+        {
+          "id": "EPL_2026-08-22_brentford_spurs",
+          "sport": "EPL",
+          "date": "2026-08-22",
+          "home": "Brentford",
+          "away": "Spurs",
+          "finalized_at": "2026-08-22 18:30:52",
+          "has_open": 1,
+          "has_close": 1
+        },
+        {
+          "id": "La Liga_2026-08-22_athletic_sevilla",
+          "sport": "La Liga",
+          "date": "2026-08-22",
+          "home": "Athletic",
+          "away": "Sevilla",
+          "finalized_at": "2026-08-22 17:15:19",
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "Ligue 1_2026-08-22_lens_auxerre",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "home": "Lens",
+          "away": "Auxerre",
+          "finalized_at": "2026-08-22 17:15:20",
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "Serie A_2026-08-22_intermilan_monza",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "home": "Inter Milan",
+          "away": "Monza",
+          "finalized_at": "2026-08-22 18:30:54",
+          "has_open": 1,
+          "has_close": 1
+        },
+        {
+          "id": "Serie A_2026-08-22_udinese_como",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "home": "Udinese",
+          "away": "Como",
+          "finalized_at": "2026-08-22 18:45:52",
+          "has_open": 1,
+          "has_close": 1
+        }
+      ]
+    },
+    "soccer_30day_window": [
+      {
+        "sport": "EPL",
+        "games": 6,
+        "with_open": 4,
+        "pct": 66.7
+      },
+      {
+        "sport": "La Liga",
+        "games": 9,
+        "with_open": 2,
+        "pct": 22.2
+      }
+    ]
+  }
+}
