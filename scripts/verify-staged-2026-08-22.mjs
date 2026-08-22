@@ -50,12 +50,22 @@ try {
     // The defect was one snapshot written to both columns, so closing's
     // captured_at landed at or BEFORE opening's. Only games whose odds were
     // written after the date gate shipped can testify.
+    // CORRECTED after the first run. The filter was `date >= date(fix)`, which
+    // is the GAME's date, not when its odds were written. Games dated
+    // 2026-08-21 were priced at 10:00 that morning -- twelve hours BEFORE the
+    // 22:40 deploy -- so eighteen pre-fix rows qualified and the check reported
+    // FAIL for a defect that had already been fixed. The fix cannot be judged by
+    // rows it never touched.
+    //
+    // Two gates now: the game is dated strictly after the fix date, AND its
+    // opening capture timestamp is genuinely after the deploy. The second is
+    // the real test; the first just keeps the scan small.
     const seq = await d1(
         `SELECT id, sport, date, opening_odds, closing_odds
          FROM regular_season_games
          WHERE opening_odds IS NOT NULL AND closing_odds IS NOT NULL
            AND sport IN ('MLB','WNBA','NBA','NHL')
-           AND date >= date(?)
+           AND date > date(?)
          ORDER BY date DESC LIMIT 40`, [T_ODDS_BACKFILL_FIX.slice(0, 10)]);
 
     const seqRows = [];
@@ -63,6 +73,9 @@ try {
         let o, c;
         try { o = JSON.parse(g.opening_odds); c = JSON.parse(g.closing_odds); } catch { continue; }
         if (!o?.captured_at || !c?.captured_at) continue;
+        // The decisive gate: odds written before the deploy cannot testify
+        // about it, whatever the game's date says.
+        if (new Date(o.captured_at) <= new Date(T_ODDS_BACKFILL_FIX + 'Z')) continue;
         const sequenced = new Date(c.captured_at) > new Date(o.captured_at);
         seqRows.push({
             id: g.id, sport: g.sport,
@@ -91,11 +104,20 @@ try {
     // Compared against the measured pre-fix rate, and only over games dated
     // after the aliases landed. A rate computed over all history would be
     // dominated by the months the aliases were missing.
+    // CORRECTED after the first run, and this is the SECOND time today the same
+    // mistake has been made: the denominator included FUTURE fixtures. MLS is
+    // pre-seeded months ahead, so 326 unplayed rows with legitimately no
+    // opening line reported as 0% coverage. Only games that have actually been
+    // played can carry an opening line, so only those count.
+    //
+    // Also `date >` rather than `>=`, for the same reason as check 1: a fixture
+    // dated the day the aliases landed was priced that morning, before them.
     const cov = await d1(
         `SELECT sport, COUNT(*) AS games,
                 SUM(CASE WHEN opening_odds IS NOT NULL THEN 1 ELSE 0 END) AS with_open
          FROM regular_season_games
-         WHERE sport IN ('EPL','La Liga','Ligue 1','MLS') AND date >= date(?)
+         WHERE sport IN ('EPL','La Liga','Ligue 1','MLS')
+           AND date > date(?) AND date < date('now')
          GROUP BY sport`, [T_ALIASES_COMPLETE.slice(0, 10)]);
     const covRows = cov.map(r => ({
         sport: r.sport, games: r.games, with_open: r.with_open,
