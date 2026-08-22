@@ -14,16 +14,18 @@
 // discriminator is whether the number appears in the GAME CONTEXT as well as in
 // the style block, so the third case below is the one that keeps this check
 // honest -- it must stay green.
-import { promptExampleLeaks, FIELD_PROSE_STYLE } from '../src/journalism-quality.js';
+import { promptExampleLeaks, FIELD_PROSE_STYLE, FIELD_VOICE_REGISTER } from '../src/journalism-quality.js';
 
-const PROMPT_WITH_STYLE = (ctx) => `${ctx}\n${FIELD_PROSE_STYLE}`;
+// A real prompt carries BOTH instruction blocks. Building test prompts from
+// only one is what hid the live defect from the first version of this check.
+const PROMPT_WITH_STYLE = (ctx) => `${FIELD_VOICE_REGISTER}\n${ctx}\n${FIELD_PROSE_STYLE}`;
 
 const cases = [
   // The two REAL defects from the live desk. Context has no such figure.
   ['live defect 1', PROMPT_WITH_STYLE('[GAME] Everton v Crystal Palace 2-0.'),
    'Everton maintains a 107.7 DRTG, best in the NBA, despite playing soccer tonight.', ['107.7 DRTG']],
   ['live defect 2', PROMPT_WITH_STYLE('[GAME] Brentford v Spurs 3-0, 58th minute.'),
-   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals']],
+   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals this season']],
 
   // THE FALSE-POSITIVE TEST: a team that genuinely has 37 goals, with the
   // figure present in the context. Must NOT flag.
@@ -33,6 +35,14 @@ const cases = [
   // Clean brief, nothing lifted.
   ['clean', PROMPT_WITH_STYLE('[GAME] Arsenal 3-0 Coventry. Saka scored.'),
    'Saka opened the scoring at the Emirates.', []],
+
+  // THE LIVE DEFECT, reproduced. Brief game_recap_epl_401879321, 18:30:53, was
+  // written AFTER Layer 2f deployed (18:28:35) and still carried this. The
+  // source is the FIELD_VOICE_REGISTER exemplar ("Pavel Dorofeyev enters with
+  // 37 goals this season"), which the first version of the detector did not
+  // subtract -- so the leak sat in what it treated as game context.
+  ['voice-register leak', PROMPT_WITH_STYLE('[GAME] Brentford v Spurs 3-0, 58th minute.'),
+   "Spurs' 3 shots this match trail Brentford's 37 goals this season.", ['37 goals this season']],
 
   // Multiple leaks at once.
   ['two leaks', PROMPT_WITH_STYLE('[GAME] Anything.'),

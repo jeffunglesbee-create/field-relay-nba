@@ -690,7 +690,12 @@ export const FIELD_PROSE_STYLE = [
 //
 // Neither number was measured. Both are VERBATIM strings from FIELD_PROSE_STYLE
 // above: "107.7 DRTG, best in the NBA" is the CITE NBA ANALYTICS example, and
-// "37 goals" is one of the TIME-PERIOD ANCHORING rule's own FORBIDDEN examples.
+// "37 goals this season" is verbatim from the FIELD_VOICE_REGISTER exemplar
+// below ("Pavel Dorofeyev enters with 37 goals this season") -- an NHL sentence
+// reused as an EPL fact. (An earlier version of this note blamed the
+// TIME-PERIOD ANCHORING rule's forbidden list, which also contains "37 goals";
+// the voice exemplar is the actual source, confirmed by the detector failing to
+// fire until the register was subtracted too.)
 // The model mined its own instructions for numerals and presented them as fact —
 // a Rule 1 (DO NOT INVENT) violation reaching the reader, and the anchoring rule
 // supplied the very number it exists to forbid.
@@ -711,7 +716,12 @@ export const PROMPT_EXAMPLE_LITERALS = [
     '26.0 PPG',
     '25.0 points',
     '32 points through the season',
-    '37 goals',
+    '37 goals this season',
+    '32 goals this season',
+    '4.67 ERA',
+    '5.81 ERA',
+    '5.72 ERA',
+    '3.28 ERA',
     '5-for-6',
     '93.5% penalty kill',
     '+17% runs at Camden Yards',
@@ -720,8 +730,17 @@ export const PROMPT_EXAMPLE_LITERALS = [
 
 export function promptExampleLeaks(prompt, text) {
     if (!prompt || !text) return [];
-    // Subtract the style block: everything left is the real game context.
-    const context = String(prompt).split(FIELD_PROSE_STYLE).join(' ');
+    // Subtract EVERY block of instructions, not just the style one. This was
+    // the gap that let the live defect through: FIELD_VOICE_REGISTER is a
+    // separate export prepended to the same prompt, and its exemplar carries
+    // "37 goals this season". Subtracting only the style block left that
+    // exemplar sitting in what this function treated as game context, so the
+    // leak looked like real data and 2f stayed silent. Anything that is
+    // instruction rather than data must come out before the search.
+    let context = String(prompt);
+    for (const block of [FIELD_PROSE_STYLE, FIELD_VOICE_REGISTER]) {
+        if (block) context = context.split(block).join(' ');
+    }
     return PROMPT_EXAMPLE_LITERALS.filter(lit =>
         text.includes(lit) && !context.includes(lit));
 }
