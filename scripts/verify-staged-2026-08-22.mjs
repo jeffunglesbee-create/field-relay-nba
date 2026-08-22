@@ -23,7 +23,23 @@ const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 
 // Deploy baselines (git commit times, UTC).
-const T_ODDS_BACKFILL_FIX = '2026-08-21 22:40:09';  // 887c843 closing_odds date gate
+// BASELINE MOVED 2026-08-22 21:13, and the reason is the whole point of this
+// check. 887c843's date gate fixed ONE of three closing_odds writers. The
+// diagnostic then attributed the 41 failing rows to a third writer that logged
+// nothing: /archive/game, whose `start_time` gate did not test finality, so it
+// wrote closing_odds for games that had not kicked off -- and, worse, pre-filled
+// the column so AmbientDO's `WHERE closing_odds IS NULL` guard could never match.
+// a1937eb then found the second cause: captured_at was stamped `new Date()` even
+// for noon-UTC historical snapshots, so this check was comparing cron execution
+// order rather than market time.
+//
+// Both landed in deploy 834 (21:13:25Z). Rows written before it cannot testify
+// about them -- including the 41 already in the table, which are dated
+// 2026-08-22 and would otherwise keep this check red permanently. That is the
+// same "judged by rows it never touched" error this check shipped with in its
+// first version and check 3 shipped with in its second; the baseline has to
+// move with the fix it measures.
+const T_ODDS_BACKFILL_FIX = '2026-08-22 21:13:25';  // deploy 834: f6fa820 finality gate + a1937eb captured_at
 const T_ALIASES_COMPLETE  = '2026-08-21 23:24:27';  // bb04fc8 last alias commit
 const T_FPL_EVENTS        = '2026-08-22 00:20:10';  // eb02ac7 fpl_match_events corrected
 // The two halves of check 3 test two different fixes and therefore need two
