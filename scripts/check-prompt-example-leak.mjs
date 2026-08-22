@@ -14,6 +14,8 @@
 // discriminator is whether the number appears in the GAME CONTEXT as well as in
 // the style block, so the third case below is the one that keeps this check
 // honest -- it must stay green.
+import { promptExampleLeaks, FIELD_PROSE_STYLE } from '../src/journalism-quality.js';
+
 const PROMPT_WITH_STYLE = (ctx) => `${ctx}\n${FIELD_PROSE_STYLE}`;
 
 const cases = [

@@ -129,6 +129,11 @@ jobs:
       - name: team identity — no two clubs share a key
         run: node scripts/check-team-identity-collisions.mjs
 
+      # Layer 2f: a brief must never quote a number that exists only as an
+      # example in the style rules. Two live EPL briefs did on 2026-08-22.
+      - name: prompt-example numbers cannot leak into prose
+        run: node scripts/check-prompt-example-leak.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
