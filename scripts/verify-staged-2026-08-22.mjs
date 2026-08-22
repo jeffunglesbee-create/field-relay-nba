@@ -120,12 +120,17 @@ try {
     //
     // Also `date >` rather than `>=`, for the same reason as check 1: a fixture
     // dated the day the aliases landed was priced that morning, before them.
+    //
+    // CORRECTED AGAIN 2026-08-22: `date < date('now')` excluded TODAY's games,
+    // and today is the only day with fixtures since the aliases landed -- so the
+    // check reported PENDING while a full EPL matchday sat in the table. Played
+    // is a property of the game, not of the calendar: gate on finalized_at.
     const cov = await d1(
         `SELECT sport, COUNT(*) AS games,
                 SUM(CASE WHEN opening_odds IS NOT NULL THEN 1 ELSE 0 END) AS with_open
          FROM regular_season_games
          WHERE sport IN ('EPL','La Liga','Ligue 1','MLS')
-           AND date > date(?) AND date < date('now')
+           AND date > date(?) AND finalized_at IS NOT NULL
          GROUP BY sport`, [T_ALIASES_COMPLETE.slice(0, 10)]);
     const covRows = cov.map(r => ({
         sport: r.sport, games: r.games, with_open: r.with_open,
