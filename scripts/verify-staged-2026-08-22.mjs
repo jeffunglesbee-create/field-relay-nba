@@ -60,11 +60,19 @@ try {
     // Two gates now: the game is dated strictly after the fix date, AND its
     // opening capture timestamp is genuinely after the deploy. The second is
     // the real test; the first just keeps the scan small.
+    //
+    // SPORT FILTER REMOVED 2026-08-22, and this was a real gap. The first
+    // version restricted to ('MLB','WNBA','NBA','NHL') because those were the
+    // sports I expected the fix to unblock. The live desk then showed today's
+    // EPL fixtures rendering "open/close NOT SEQUENCED" -- the exact defect --
+    // while this check reported PENDING, because soccer was excluded from the
+    // query. A check that cannot see the failing case is worse than no check:
+    // it reports calm. The fix applies to every sport, so the query now does
+    // too.
     const seq = await d1(
         `SELECT id, sport, date, opening_odds, closing_odds
          FROM regular_season_games
          WHERE opening_odds IS NOT NULL AND closing_odds IS NOT NULL
-           AND sport IN ('MLB','WNBA','NBA','NHL')
            AND date > date(?)
          ORDER BY date DESC LIMIT 40`, [T_ODDS_BACKFILL_FIX.slice(0, 10)]);
 
