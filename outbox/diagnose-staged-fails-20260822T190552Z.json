@@ -1,0 +1,891 @@
+{
+  "probed_at": "2026-08-22T19:05:52.340Z",
+  "query_ok": true,
+  "error": null,
+  "findings": {
+    "pair_shape": {
+      "rows_scanned": 41,
+      "with_both_timestamps": 41,
+      "counted_by_check1": 41,
+      "relation_tally": {
+        "closing_BEFORE_opening": 41
+      },
+      "identical_whole_blob": 0,
+      "sample": [
+        {
+          "id": "Ligue 1_2026-08-22_troyes_parisfc",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:04.210Z",
+          "delta_seconds": -22,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_toulouse_lyon",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:03.267Z",
+          "delta_seconds": -23,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Ligue 1_2026-08-22_nice_lorient",
+          "sport": "Ligue 1",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:26.209Z",
+          "close": "2026-08-22T10:01:02.369Z",
+          "delta_seconds": -24,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_parma_cagliari",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:59.341Z",
+          "delta_seconds": -26,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_genoa_napoli",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:58.480Z",
+          "delta_seconds": -27,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_udinese_como",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:57.558Z",
+          "delta_seconds": -28,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "Serie A_2026-08-22_intermilan_monza",
+          "sport": "Serie A",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:25.496Z",
+          "close": "2026-08-22T10:00:56.766Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "La Liga_2026-08-22_espanyol_realmadrid",
+          "sport": "La Liga",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:24.722Z",
+          "close": "2026-08-22T10:00:55.406Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "La Liga_2026-08-22_valencia_celtavigo",
+          "sport": "La Liga",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:24.722Z",
+          "close": "2026-08-22T10:00:54.558Z",
+          "delta_seconds": -30,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        },
+        {
+          "id": "MLS_2026-08-22_sanjose_minnesota",
+          "sport": "MLS",
+          "date": "2026-08-22",
+          "open": "2026-08-22T10:01:21.633Z",
+          "close": "2026-08-22T10:00:52.499Z",
+          "delta_seconds": -29,
+          "relation": "closing_BEFORE_opening",
+          "identical_moneyline": true,
+          "identical_whole_blob": false,
+          "counted_by_check1": true
+        }
+      ]
+    },
+    "writers_all_time": [
+      {
+        "source": "odds_api",
+        "field": "opening_odds",
+        "n": 1436,
+        "first_ts": "2026-06-22T00:00:07.351Z",
+        "last_ts": "2026-08-22T10:01:26.235Z"
+      },
+      {
+        "source": "closing_odds_capture",
+        "field": "closing_odds",
+        "n": 19,
+        "first_ts": "2026-07-04 17:01:34",
+        "last_ts": "2026-08-22 14:01:11"
+      },
+      {
+        "source": "odds_backfill",
+        "field": "closing_odds",
+        "n": 104,
+        "first_ts": "2026-06-29 14:12:31",
+        "last_ts": "2026-08-20 10:33:38"
+      },
+      {
+        "source": "odds_backfill",
+        "field": "opening_odds",
+        "n": 104,
+        "first_ts": "2026-06-29 14:12:31",
+        "last_ts": "2026-08-20 10:33:38"
+      }
+    ],
+    "writers_since_fix": [
+      {
+        "source": "odds_api",
+        "field": "opening_odds",
+        "n": 75,
+        "last_ts": "2026-08-22T10:01:26.235Z"
+      },
+      {
+        "source": "closing_odds_capture",
+        "field": "closing_odds",
+        "n": 1,
+        "last_ts": "2026-08-22 14:01:11"
+      }
+    ],
+    "ambient_hook_has_ever_fired": {
+      "fired": true,
+      "source": "closing_odds_capture",
+      "field": "closing_odds",
+      "n": 19,
+      "first_ts": "2026-07-04 17:01:34",
+      "last_ts": "2026-08-22 14:01:11"
+    },
+    "sequenced_pairs_anywhere": {
+      "count": 10,
+      "sample": [
+        {
+          "id": "2026-08-19-mls-dc-ne",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-phi-mia",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-tor-clt",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-skc-stl",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-la-sj",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-por-sd",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-rsl-dal",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "2026-08-19-mls-sea-atx",
+          "sport": "MLS",
+          "date": "2026-08-19",
+          "o_at": "2026-08-19T10:01:21.193Z",
+          "c_at": "2026-08-19T23:55:33Z"
+        },
+        {
+          "id": "MLB_2026-08-17_reds_cardinals",
+          "sport": "MLB",
+          "date": "2026-08-17",
+          "o_at": "2026-08-17T15:00:59.863Z",
+          "c_at": "2026-08-18T10:01:08.601Z"
+        },
+        {
+          "id": "2026-08-15-mls-mtl-dc",
+          "sport": "MLS",
+          "date": "2026-08-15",
+          "o_at": "2026-08-15T10:01:05.261Z",
+          "c_at": "2026-08-15T23:54:59Z"
+        }
+      ]
+    },
+    "soccer_rows_since_aliases": {
+      "total": 60,
+      "by_sport": {
+        "MLS": {
+          "games": 60,
+          "finalized": 0,
+          "with_open": 0
+        }
+      },
+      "rows": [
+        {
+          "id": "2026-11-07-mls-phi-tor",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "Philadelphia Union",
+          "away": "Toronto FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-orl-ne",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "Orlando City",
+          "away": "New England Revolution",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-rbny-atl",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "Red Bull New York",
+          "away": "Atlanta United",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-mtl-van",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "CF Montréal",
+          "away": "Vancouver Whitecaps FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-mia-clt",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "Inter Miami CF",
+          "away": "Charlotte FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-dc-nyc",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "D.C. United",
+          "away": "New York City Football Club",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-cin-nsh",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "FC Cincinnati",
+          "away": "Nashville SC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-07-mls-chi-clb",
+          "sport": "MLS",
+          "date": "2026-11-07",
+          "home": "Chicago Fire FC",
+          "away": "Columbus Crew",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-05-mls-nyc-lafc",
+          "sport": "MLS",
+          "date": "2026-11-05",
+          "home": "New York City Football Club",
+          "away": "Los Angeles Football Club",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-02-mls-por-hou",
+          "sport": "MLS",
+          "date": "2026-11-02",
+          "home": "Portland Timbers",
+          "away": "Houston Dynamo FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-02-mls-ne-mia",
+          "sport": "MLS",
+          "date": "2026-11-02",
+          "home": "New England Revolution",
+          "away": "Inter Miami CF",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-01-mls-lafc-min",
+          "sport": "MLS",
+          "date": "2026-11-01",
+          "home": "Los Angeles Football Club",
+          "away": "Minnesota United FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-01-mls-atl-tor",
+          "sport": "MLS",
+          "date": "2026-11-01",
+          "home": "Atlanta United",
+          "away": "Toronto FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-01-mls-van-sea",
+          "sport": "MLS",
+          "date": "2026-11-01",
+          "home": "Vancouver Whitecaps FC",
+          "away": "Seattle Sounders FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-01-mls-nsh-rbny",
+          "sport": "MLS",
+          "date": "2026-11-01",
+          "home": "Nashville SC",
+          "away": "Red Bull New York",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-11-01-mls-col-chi",
+          "sport": "MLS",
+          "date": "2026-11-01",
+          "home": "Colorado Rapids",
+          "away": "Chicago Fire FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-por-hou",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Portland Timbers",
+          "away": "Houston Dynamo FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-ne-mia",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "New England Revolution",
+          "away": "Inter Miami CF",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-lafc-min",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Los Angeles Football Club",
+          "away": "Minnesota United FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-atl-tor",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Atlanta United",
+          "away": "Toronto FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-van-sea",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Vancouver Whitecaps FC",
+          "away": "Seattle Sounders FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-nsh-rbny",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Nashville SC",
+          "away": "Red Bull New York",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-col-chi",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Colorado Rapids",
+          "away": "Chicago Fire FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-stl-sd",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "St. Louis CITY SC",
+          "away": "San Diego FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-sj-rsl",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "San Jose Earthquakes",
+          "away": "Real Salt Lake",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-nyc-mtl",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "New York City Football Club",
+          "away": "CF Montréal",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-la-atx",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "LA Galaxy",
+          "away": "Austin FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-skc-dal",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Sporting Kansas City",
+          "away": "FC Dallas",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-clb-dc",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Columbus Crew",
+          "away": "D.C. United",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-cin-phi",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "FC Cincinnati",
+          "away": "Philadelphia Union",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-31-mls-clt-orl",
+          "sport": "MLS",
+          "date": "2026-10-31",
+          "home": "Charlotte FC",
+          "away": "Orlando City",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-van-sd",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Vancouver Whitecaps FC",
+          "away": "San Diego FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-stl-por",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "St. Louis CITY SC",
+          "away": "Portland Timbers",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-sea-hou",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Seattle Sounders FC",
+          "away": "Houston Dynamo FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-sj-col",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "San Jose Earthquakes",
+          "away": "Colorado Rapids",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-nsh-phi",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Nashville SC",
+          "away": "Philadelphia Union",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-min-skc",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Minnesota United FC",
+          "away": "Sporting Kansas City",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-dal-clb",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "FC Dallas",
+          "away": "Columbus Crew",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-chi-orl",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Chicago Fire FC",
+          "away": "Orlando City",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-29-mls-atx-rsl",
+          "sport": "MLS",
+          "date": "2026-10-29",
+          "home": "Austin FC",
+          "away": "Real Salt Lake",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-van-sd",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Vancouver Whitecaps FC",
+          "away": "San Diego FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-stl-por",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "St. Louis CITY SC",
+          "away": "Portland Timbers",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-sea-hou",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Seattle Sounders FC",
+          "away": "Houston Dynamo FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-sj-col",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "San Jose Earthquakes",
+          "away": "Colorado Rapids",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-nsh-phi",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Nashville SC",
+          "away": "Philadelphia Union",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-min-skc",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Minnesota United FC",
+          "away": "Sporting Kansas City",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-dal-clb",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "FC Dallas",
+          "away": "Columbus Crew",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-chi-orl",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Chicago Fire FC",
+          "away": "Orlando City",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-atx-rsl",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Austin FC",
+          "away": "Real Salt Lake",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-tor-dc",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Toronto FC",
+          "away": "D.C. United",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-nyc-atl",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "New York City Football Club",
+          "away": "Atlanta United",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-ne-rbny",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "New England Revolution",
+          "away": "Red Bull New York",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-mia-cin",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Inter Miami CF",
+          "away": "FC Cincinnati",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-28-mls-clt-mtl",
+          "sport": "MLS",
+          "date": "2026-10-28",
+          "home": "Charlotte FC",
+          "away": "CF Montréal",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-26-mls-lafc-la",
+          "sport": "MLS",
+          "date": "2026-10-26",
+          "home": "Los Angeles Football Club",
+          "away": "LA Galaxy",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-25-mls-sd-sea",
+          "sport": "MLS",
+          "date": "2026-10-25",
+          "home": "San Diego FC",
+          "away": "Seattle Sounders FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-25-mls-rsl-stl",
+          "sport": "MLS",
+          "date": "2026-10-25",
+          "home": "Real Salt Lake",
+          "away": "St. Louis CITY SC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-25-mls-por-clt",
+          "sport": "MLS",
+          "date": "2026-10-25",
+          "home": "Portland Timbers",
+          "away": "Charlotte FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-25-mls-skc-atx",
+          "sport": "MLS",
+          "date": "2026-10-25",
+          "home": "Sporting Kansas City",
+          "away": "Austin FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        },
+        {
+          "id": "2026-10-25-mls-hou-min",
+          "sport": "MLS",
+          "date": "2026-10-25",
+          "home": "Houston Dynamo FC",
+          "away": "Minnesota United FC",
+          "finalized_at": null,
+          "has_open": 0,
+          "has_close": 0
+        }
+      ]
+    },
+    "soccer_30day_window": [
+      {
+        "sport": "EPL",
+        "games": 6,
+        "with_open": 4,
+        "pct": 66.7
+      },
+      {
+        "sport": "La Liga",
+        "games": 9,
+        "with_open": 2,
+        "pct": 22.2
+      }
+    ]
+  }
+}
