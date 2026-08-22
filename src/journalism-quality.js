@@ -682,6 +682,50 @@ export const FIELD_PROSE_STYLE = [
   '- NEVER explain what data is missing or why you cannot write something. If context is limited, write a short factual brief from what is available. Do not produce meta-commentary about the data.',
 ].join('\n');
 
+// ── Layer 2f: prompt-example leakage ────────────────────────────────────────
+// MEASURED 2026-08-22 on the live desk, two EPL briefs, both user-facing:
+//
+//   "Everton maintains a 107.7 DRTG, best in the NBA, despite playing soccer"
+//   "Spurs' 3 shots this match trail Brentford's 37 goals this season"
+//
+// Neither number was measured. Both are VERBATIM strings from FIELD_PROSE_STYLE
+// above: "107.7 DRTG, best in the NBA" is the CITE NBA ANALYTICS example, and
+// "37 goals" is one of the TIME-PERIOD ANCHORING rule's own FORBIDDEN examples.
+// The model mined its own instructions for numerals and presented them as fact —
+// a Rule 1 (DO NOT INVENT) violation reaching the reader, and the anchoring rule
+// supplied the very number it exists to forbid.
+//
+// Instructions alone demonstrably did not hold, so this is enforcement.
+//
+// THE DISCRIMINATOR MATTERS. "37 goals" is a perfectly real figure for a team
+// that has scored 37 goals, and flagging it blindly would fire on legitimate
+// prose. A literal is a leak only when it is (a) an example in the style block,
+// (b) present in the brief, and (c) ABSENT from the game context the prompt
+// carried. Condition (c) is what separates a fabricated number from a real one,
+// so the style block is subtracted from the prompt before the context is
+// searched.
+export const PROMPT_EXAMPLE_LITERALS = [
+    '107.7 DRTG',
+    '29.0 PPG',
+    '28.2 PPG',
+    '26.0 PPG',
+    '25.0 points',
+    '32 points through the season',
+    '37 goals',
+    '5-for-6',
+    '93.5% penalty kill',
+    '+17% runs at Camden Yards',
+    '48 minutes from their first Finals since 1999',
+];
+
+export function promptExampleLeaks(prompt, text) {
+    if (!prompt || !text) return [];
+    // Subtract the style block: everything left is the real game context.
+    const context = String(prompt).split(FIELD_PROSE_STYLE).join(' ');
+    return PROMPT_EXAMPLE_LITERALS.filter(lit =>
+        text.includes(lit) && !context.includes(lit));
+}
+
 // ── v4 voice register (synced from jubilant-bassoon FIELD_VOICE_EXEMPLARS) ──
 // Prepended BEFORE FIELD_PROSE_STYLE in prose prompts so the LLM reads the
 // framing (register, exemplars, anti-exemplar, numbers-in-prose grammar)
@@ -870,6 +914,20 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     const retryPrompt = prompt + `\n\nLEAD SENTENCE CORRECTION: Your draft starts with "${genericLead.slice(0,80)}..." — this is the generic AI pattern. Rewrite the first sentence to lead with a specific fact, name, number, or situation. NOT "The [Team] ..." — instead something like "Wembanyama scored 34" or "Two years without a Finals appearance ends tonight."`;
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2c'); }
+  }
+
+  // 2f: prompt-example leakage — a number lifted from the instructions rather
+  // than from the data. Placed BEFORE stat verification: 2d pushes the model to
+  // add figures, so a fabricated one must be removed first or 2d can entrench it.
+  const leaked = promptExampleLeaks(prompt, text);
+  if (leaked.length && retries < maxRetries) {
+    const retryPrompt = prompt +
+      `\n\nFABRICATED NUMBER — CRITICAL: your draft contains ${leaked.map(l => `"${l}"`).join(', ')}. ` +
+      `That figure appears ONLY as an illustrative example in the style rules above; it is NOT in this game's data. ` +
+      `The numbers in the style examples teach FORM, never content — never copy one into a brief. ` +
+      `Rewrite using only figures present in the game context, or write the sentence without a number.`;
+    const retried = await callProxy(retryPrompt);
+    if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2f'); }
   }
 
   // 2d: stat verification
