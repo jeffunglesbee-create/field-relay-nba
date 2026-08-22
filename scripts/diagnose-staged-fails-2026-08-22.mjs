@@ -131,13 +131,21 @@ try {
     // question is whether the alias resolved and the Odds API simply had no
     // event, or whether the join missed. Team names come back so the resolver
     // can be run against them offline.
+    // CORRECTED after the first run, and it is the SAME trap for the fourth
+    // time today. `ORDER BY date DESC LIMIT 60` returned 60 MLS fixtures dated
+    // months into the future -- MLS is pre-seeded -- so the section reported
+    // "MLS: 60 games, 0 finalized, 0 with_open" and no EPL or La Liga row at
+    // all, while check 2 was simultaneously reading 5 EPL and 1 La Liga games
+    // from the same table. Future fixtures crowded out the rows the section
+    // existed to show. Gate on finalized_at: a game that has not been played
+    // cannot carry an opening line and has nothing to say about coverage.
     const soccer = await d1(
         `SELECT id, sport, date, home, away, finalized_at,
                 opening_odds IS NOT NULL AS has_open,
                 closing_odds IS NOT NULL AS has_close
          FROM regular_season_games
          WHERE sport IN ('EPL','La Liga','Ligue 1','Serie A','Bundesliga','MLS')
-           AND date > date(?)
+           AND date > date(?) AND finalized_at IS NOT NULL
          ORDER BY date DESC, sport LIMIT 60`, [T_ALIASES_COMPLETE.slice(0, 10)]);
     out.findings.soccer_rows_since_aliases = {
         total: soccer.length,
