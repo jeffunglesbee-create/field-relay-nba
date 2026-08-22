@@ -1,0 +1,115 @@
+{
+  "probed_at": "2026-08-22T00:39:48.834Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 18,
+      "status": "FAIL — every pair is still non-sequenced",
+      "sequenced": 0,
+      "sample": [
+        {
+          "id": "MLB_2026-08-21_brewers_braves",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:21.288Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-21_phillies_cardinals",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:22.113Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-21_yankees_bluejays",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:24.100Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-21_redsox_giants",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:24.988Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-21_marlins_nationals",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:25.933Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-21_orioles_rays",
+          "sport": "MLB",
+          "open": "2026-08-21T10:00:53.931Z",
+          "close": "2026-08-21T10:00:26.873Z",
+          "sequenced": false,
+          "identical_moneyline": true
+        }
+      ]
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 329,
+      "status": "FAIL — coverage fell for EPL, La Liga",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 1,
+          "with_open": 0,
+          "pct": 0,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 1,
+          "with_open": 0,
+          "pct": 0,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 1,
+          "with_open": 1,
+          "pct": 100,
+          "baseline_pct": null
+        },
+        {
+          "sport": "MLS",
+          "games": 326,
+          "with_open": 0,
+          "pct": 0,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "an EPL brief written since fpl_match_events deployed, no longer a season-stat template",
+      "qualifying_rows": 0,
+      "status": "PENDING — no EPL brief written since the deploy",
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts.",
+      "sample": []
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: FAIL — every pair is still non-sequenced",
+    "soccer_opening_coverage: FAIL — coverage fell for EPL, La Liga",
+    "epl_brief_event_grounded: PENDING — no EPL brief written since the deploy"
+  ],
+  "all_passed": false,
+  "any_failed": true
+}
