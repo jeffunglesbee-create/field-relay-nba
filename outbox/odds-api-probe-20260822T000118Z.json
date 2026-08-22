@@ -1,0 +1,219 @@
+{
+  "probed_at": "2026-08-22T00:01:18.127Z",
+  "query_ok": true,
+  "key_present": false,
+  "quota": {
+    "skipped": "ODDS_API_KEY not in env — quota and sport-activity unread"
+  },
+  "sport_keys_active": null,
+  "h1_timing": [
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_brewers_braves",
+      "created_at": "2026-08-21 10:00:19",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_phillies_cardinals",
+      "created_at": "2026-08-21 10:00:21",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_yankees_bluejays",
+      "created_at": "2026-08-21 10:00:23",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_redsox_giants",
+      "created_at": "2026-08-21 10:00:24",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_marlins_nationals",
+      "created_at": "2026-08-21 10:00:25",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_orioles_rays",
+      "created_at": "2026-08-21 10:00:26",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_whitesox_mets",
+      "created_at": "2026-08-21 10:00:26",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_astros_athletics",
+      "created_at": "2026-08-21 10:00:28",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_royals_tigers",
+      "created_at": "2026-08-21 10:00:28",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_rangers_angels",
+      "created_at": "2026-08-21 10:00:29",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_rockies_guardians",
+      "created_at": "2026-08-21 10:00:30",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_diamondbacks_reds",
+      "created_at": "2026-08-21 10:00:31",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_padres_twins",
+      "created_at": "2026-08-21 10:00:32",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_mariners_cubs",
+      "created_at": "2026-08-21 10:00:33",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-08-21_dodgers_pirates",
+      "created_at": "2026-08-21 10:00:34",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "WNBA",
+      "id": "WNBA_2026-08-21_mystics_lynx",
+      "created_at": "2026-08-21 10:00:35",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "WNBA",
+      "id": "WNBA_2026-08-21_sky_valkyries",
+      "created_at": "2026-08-21 10:00:36",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "WNBA",
+      "id": "WNBA_2026-08-21_tempo_fire",
+      "created_at": "2026-08-21 10:00:37",
+      "opening": "set",
+      "closing": "set"
+    },
+    {
+      "sport": "EPL",
+      "id": "EPL_2026-08-21_arsenal_coventry",
+      "created_at": "2026-08-21 10:00:38",
+      "opening": "NULL",
+      "closing": "set"
+    },
+    {
+      "sport": "La Liga",
+      "id": "La Liga_2026-08-21_betis_realsociedad",
+      "created_at": "2026-08-21 10:00:39",
+      "opening": "NULL",
+      "closing": "set"
+    },
+    {
+      "sport": "Ligue 1",
+      "id": "Ligue 1_2026-08-21_marseille_strasbourg",
+      "created_at": "2026-08-21 10:00:41",
+      "opening": "set",
+      "closing": "set"
+    }
+  ],
+  "h2_order_and_quota": [
+    {
+      "sport": "EPL"
+    },
+    {
+      "sport": "La Liga"
+    },
+    {
+      "sport": "NFL"
+    },
+    {
+      "sport": "golf"
+    }
+  ],
+  "opening_by_sport_today": [
+    {
+      "source": "odds_api",
+      "n": 20,
+      "first_": "2026-08-21T02:31:16.922Z",
+      "last_": "2026-08-21T10:00:56.858Z"
+    }
+  ],
+  "epl_laliga_history": [
+    {
+      "sport": "MLB",
+      "rows_": 822,
+      "with_open": 719,
+      "with_close": 747
+    },
+    {
+      "sport": "MLS",
+      "rows_": 548,
+      "with_open": 108,
+      "with_close": 75
+    },
+    {
+      "sport": "WNBA",
+      "rows_": 186,
+      "with_open": 141,
+      "with_close": 145
+    },
+    {
+      "sport": "EPL",
+      "rows_": 27,
+      "with_open": 6,
+      "with_close": 3
+    },
+    {
+      "sport": "La Liga",
+      "rows_": 18,
+      "with_open": 2,
+      "with_close": 3
+    },
+    {
+      "sport": "Ligue 1",
+      "rows_": 3,
+      "with_open": 1,
+      "with_close": 1
+    }
+  ],
+  "error": null
+}

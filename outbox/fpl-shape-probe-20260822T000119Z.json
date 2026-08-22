@@ -1,0 +1,306 @@
+{
+  "probed_at": "2026-08-22T00:01:19.237Z",
+  "ok": true,
+  "gameweek": {
+    "events_total": 38,
+    "is_current_count": 1,
+    "is_current_id": 1,
+    "is_next_id": 2,
+    "finished_max_id": null,
+    "teams_count": 20
+  },
+  "live_shape": {
+    "gw": 1,
+    "elements": 600,
+    "element_top_level_keys": [
+      "explain",
+      "id",
+      "modified",
+      "stats"
+    ],
+    "stats_field_union": [
+      "assists",
+      "bonus",
+      "bps",
+      "clean_sheets",
+      "clearances_blocks_interceptions",
+      "creativity",
+      "defensive_contribution",
+      "expected_assists",
+      "expected_goal_involvements",
+      "expected_goals",
+      "expected_goals_conceded",
+      "goals_conceded",
+      "goals_scored",
+      "ict_index",
+      "in_dreamteam",
+      "influence",
+      "minutes",
+      "own_goals",
+      "penalties_missed",
+      "penalties_saved",
+      "played",
+      "recoveries",
+      "red_cards",
+      "saves",
+      "starts",
+      "tackles",
+      "threat",
+      "total_points",
+      "yellow_cards"
+    ],
+    "claimed_fields_present": {
+      "goals_scored": true,
+      "assists": true,
+      "yellow_cards": true,
+      "red_cards": true,
+      "minutes": true,
+      "saves": true,
+      "bonus": true
+    },
+    "has_modified_flag": true,
+    "scorers_count": 3,
+    "assisters_count": 3,
+    "scorer_samples": [
+      {
+        "element": 12,
+        "web_name": "Saka",
+        "team_id": 1,
+        "goals": 1,
+        "assists": 0,
+        "minutes": 67,
+        "bonus": 1
+      },
+      {
+        "element": 15,
+        "web_name": "Ødegaard",
+        "team_id": 1,
+        "goals": 1,
+        "assists": 0,
+        "minutes": 75,
+        "bonus": 3
+      },
+      {
+        "element": 26,
+        "web_name": "Havertz",
+        "team_id": 1,
+        "goals": 1,
+        "assists": 0,
+        "minutes": 90,
+        "bonus": 0
+      }
+    ],
+    "name_lookup_available": true
+  },
+  "fixtures_shape": {
+    "count": 10,
+    "sample_fields": [
+      "code",
+      "event",
+      "finished",
+      "finished_provisional",
+      "id",
+      "kickoff_time",
+      "minutes",
+      "provisional_start_time",
+      "pulse_id",
+      "started",
+      "stats",
+      "team_a",
+      "team_a_difficulty",
+      "team_a_score",
+      "team_h",
+      "team_h_difficulty",
+      "team_h_score"
+    ],
+    "sample": [
+      {
+        "id": 1,
+        "team_h": 1,
+        "team_a": 7,
+        "home": "Arsenal",
+        "away": "Coventry City",
+        "finished": false,
+        "score": "3-0",
+        "has_stats": 11
+      },
+      {
+        "id": 4,
+        "team_h": 11,
+        "team_a": 16,
+        "home": "Hull City",
+        "away": "Man Utd",
+        "finished": false,
+        "score": "---",
+        "has_stats": 0
+      },
+      {
+        "id": 3,
+        "team_h": 9,
+        "team_a": 8,
+        "home": "Everton",
+        "away": "Crystal Palace",
+        "finished": false,
+        "score": "---",
+        "has_stats": 0
+      }
+    ]
+  },
+  "club_join": {
+    "clubs": 20,
+    "both_forms_agree": 0,
+    "disagreeing": [
+      {
+        "id": 1,
+        "name": "Arsenal",
+        "short_name": "ARS",
+        "key_name": "arsenal",
+        "key_short": "ars"
+      },
+      {
+        "id": 2,
+        "name": "Aston Villa",
+        "short_name": "AVL",
+        "key_name": "astonvilla",
+        "key_short": "avl"
+      },
+      {
+        "id": 3,
+        "name": "Bournemouth",
+        "short_name": "BOU",
+        "key_name": "afcbournemouth",
+        "key_short": "bou"
+      },
+      {
+        "id": 4,
+        "name": "Brentford",
+        "short_name": "BRE",
+        "key_name": "brentford",
+        "key_short": "bre"
+      },
+      {
+        "id": 5,
+        "name": "Brighton",
+        "short_name": "BHA",
+        "key_name": "brightonhovealbion",
+        "key_short": "bha"
+      },
+      {
+        "id": 6,
+        "name": "Chelsea",
+        "short_name": "CHE",
+        "key_name": "chelsea",
+        "key_short": "che"
+      },
+      {
+        "id": 7,
+        "name": "Coventry City",
+        "short_name": "COV",
+        "key_name": "coventrycity",
+        "key_short": "cov"
+      },
+      {
+        "id": 8,
+        "name": "Crystal Palace",
+        "short_name": "CRY",
+        "key_name": "crystalpalace",
+        "key_short": "cry"
+      },
+      {
+        "id": 9,
+        "name": "Everton",
+        "short_name": "EVE",
+        "key_name": "everton",
+        "key_short": "eve"
+      },
+      {
+        "id": 10,
+        "name": "Fulham",
+        "short_name": "FUL",
+        "key_name": "fulham",
+        "key_short": "ful"
+      },
+      {
+        "id": 11,
+        "name": "Hull City",
+        "short_name": "HUL",
+        "key_name": "hullcity",
+        "key_short": "hul"
+      },
+      {
+        "id": 12,
+        "name": "Ipswich Town",
+        "short_name": "IPS",
+        "key_name": "ipswichtown",
+        "key_short": "ips"
+      },
+      {
+        "id": 13,
+        "name": "Leeds",
+        "short_name": "LEE",
+        "key_name": "leedsunited",
+        "key_short": "lee"
+      },
+      {
+        "id": 14,
+        "name": "Liverpool",
+        "short_name": "LIV",
+        "key_name": "liverpool",
+        "key_short": "liv"
+      },
+      {
+        "id": 15,
+        "name": "Man City",
+        "short_name": "MCI",
+        "key_name": "manchestercity",
+        "key_short": "mci"
+      },
+      {
+        "id": 16,
+        "name": "Man Utd",
+        "short_name": "MUN",
+        "key_name": "manchesterunited",
+        "key_short": "mun"
+      },
+      {
+        "id": 17,
+        "name": "Newcastle",
+        "short_name": "NEW",
+        "key_name": "newcastleunited",
+        "key_short": "new"
+      },
+      {
+        "id": 18,
+        "name": "Nott'm Forest",
+        "short_name": "NFO",
+        "key_name": "nottinghamforest",
+        "key_short": "nfo"
+      },
+      {
+        "id": 19,
+        "name": "Spurs",
+        "short_name": "TOT",
+        "key_name": "tottenhamhotspur",
+        "key_short": "tot"
+      },
+      {
+        "id": 20,
+        "name": "Sunderland",
+        "short_name": "SUN",
+        "key_name": "sunderlandafc",
+        "key_short": "connecticutsun"
+      }
+    ]
+  },
+  "test_case": {
+    "found": true,
+    "fixture_id": 1,
+    "home": "Arsenal",
+    "away": "Coventry City",
+    "home_key": "arsenal",
+    "away_key": "coventrycity",
+    "finished": false,
+    "score": "3-0"
+  },
+  "error": null
+}
