@@ -1,0 +1,25 @@
+name: Diagnose staged fails (2026-08-22)
+
+# Read-only diagnostic for the two FAILs from staged-verification.yml:
+#   closing_after_opening   FAIL — every pair is still non-sequenced
+#   soccer_opening_coverage FAIL — coverage fell for La Liga (0/1)
+#
+# Sandbox egress to *.workers.dev is blocked (curl exit 56), so the D1 reads
+# have to run from a runner. Uses the shared probe runner rather than
+# re-authoring checkout/tolerant-run/race-safe-commit for the ninth time.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-diagnose-staged-fails'
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/diagnose-staged-fails-2026-08-22.mjs
+      commit_message: "chore: staged-fail diagnostic [skip ci]"
