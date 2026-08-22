@@ -133,6 +133,19 @@ Claude's governance obligations are independent of user pace. If the user asks f
 ## Git
 - `git config user.email "claude@field.dev"` / `git config user.name "FIELD CI"`
 - Commit prefixes: `feat:`, `fix:`, `ci:`, `docs:`
+- **Do NOT put `[skip ci]` on an outbox/docs commit.** It buys nothing and breaks
+  Rule 67. `deploy.yml` already filters on `src/**`, `wrangler.toml` and
+  `workers/**`, so an outbox-only commit cannot trigger a deploy — but `[skip ci]`
+  skips ALL workflows, including `drive-upload-outbox.yml`, which is the
+  mechanism that delivers the session doc to Drive. Measured 2026-08-22: the
+  quality-scale session doc was committed with `[skip ci]`, never reached Drive,
+  and needed a manual dispatch. `auto-merge-stray-branches.yml` is the only other
+  workflow suppressed (it has no paths filter). `[skip ci]` remains correct on
+  commits that DO touch a deploy-trigger path but should not deploy.
+- `drive-upload-outbox.yml` runs a daily ledger-based sweep (07:00 UTC) as a
+  backstop, but it is a backstop — the convention above is the fix.
+- The workflow's `file_pattern` dispatch input matches a BASENAME (`find -name`),
+  not a path. `outbox/foo.md` matches nothing; `foo.md` matches.
 
 ## Key Functions
 - `handleJournalismCycle(env)` — line 5504 as of 2026-07-03 (corrected from a stale ~2893 estimate). Every 15 min. Generates slate brief, stores in FIELD_JOURNALISM KV.

@@ -12,6 +12,32 @@
 
 name: FIELD Outbox to Drive
 
+# SCHEDULED BACKSTOP added 2026-08-22, on a demonstrated failure.
+#
+# Rule 67 makes an undelivered session doc a violation, and delivery here has
+# more than one way to silently not happen:
+#   1. `[skip ci]` in the commit message skips ALL workflows, including this one.
+#      Every docs commit in this repo carries it by convention, so every session
+#      doc committed that way never reached Drive. Confirmed tonight: the
+#      quality-scale doc needed a manual dispatch to land.
+#   2. This workflow has failed on its own before (run 14, 2026-06-24).
+#   3. The push path diffs `github.event.before..HEAD`, which misses a file
+#      added in a push that was later rebased over.
+#
+# The convention fix is separate and lands with this: `[skip ci]` was never
+# needed on docs commits, because deploy.yml already filters on src/**,
+# wrangler.toml and workers/** — an outbox-only commit cannot trigger a deploy.
+# That is recorded in CLAUDE.md. This schedule is the backstop for the other two
+# failure modes, not a substitute for the convention fix.
+#
+# LEDGER, and why the sweep cannot spam duplicates: the Apps Script does not
+# dedupe — Drive already holds several same-titled copies from repeated
+# dispatches. The scheduled path therefore uploads only basenames absent from
+# outbox/.drive-uploaded, and appends on success. That ledger was SEEDED with
+# all 523 existing outbox/*.md at creation time, deliberately: most predate this
+# workflow and were never uploaded, and mass-uploading them now would be 500+
+# unwanted Drive files. The sweep covers docs written from this point on.
+
 on:
   push:
     paths:
@@ -19,12 +45,21 @@ on:
       - 'outbox/*.md'
     branches:
       - main
+  schedule:
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       file_pattern:
-        description: 'Glob for outbox files to upload (default: all .md)'
+        description: 'Glob for outbox files to upload (default: all .md). Matches BASENAME, not path — find -name semantics.'
         required: false
         default: ''
+
+# Declared explicitly rather than inherited. This workflow was read-only until
+# the ledger step was added; that step pushes, so it needs contents: write, and
+# relying on whatever the repo default happens to be is the assumption class
+# this project keeps getting caught by. _reusable-probe.yml declares the same.
+permissions:
+  contents: write
 
 jobs:
   upload:
@@ -40,7 +75,17 @@ jobs:
       - name: Find new outbox .md files
         id: files
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Backstop sweep: any outbox .md not yet recorded as delivered.
+            # Ledger-based rather than git-diff based, precisely because the
+            # failure modes this exists for are ones where the git history looks
+            # normal and the upload simply never ran.
+            touch outbox/.drive-uploaded
+            NEW=$(for f in outbox/*.md; do
+                    [ -e "$f" ] || continue
+                    grep -qxF "$(basename "$f")" outbox/.drive-uploaded || echo "$f"
+                  done | sort)
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             PATTERN="${{ github.event.inputs.file_pattern }}"
             if [ -z "$PATTERN" ]; then
               NEW=$(find outbox -name '*.md' -type f 2>/dev/null | sort)
@@ -105,6 +150,11 @@ jobs:
               DOC_ID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
               echo "OK $FILE -> Drive doc $DOC_ID"
               SUCCESS=$((SUCCESS + 1))
+              # Only a confirmed Drive doc id gets recorded. A failed upload
+              # stays absent from the ledger and is retried by the next sweep,
+              # which is the whole point of recording successes rather than
+              # attempts.
+              basename "$FILE" >> /tmp/uploaded-ok.txt
             else
               echo "FAIL $FILE response: $RESULT"
               FAIL=$((FAIL + 1))
@@ -114,3 +164,29 @@ jobs:
           echo ""
           echo "Results: $SUCCESS uploaded, $FAIL failed"
           [ "$FAIL" -gt 0 ] && exit 1 || exit 0
+
+      # Runs even when the upload step failed partway, so the docs that DID land
+      # are recorded and not re-uploaded as duplicates tomorrow. The ones that
+      # failed stay off the ledger and are retried.
+      - name: Record delivered docs in the ledger
+        if: always() && steps.files.outputs.found == 'true'
+        run: |
+          [ -s /tmp/uploaded-ok.txt ] || { echo "nothing confirmed delivered"; exit 0; }
+          touch outbox/.drive-uploaded
+          cat outbox/.drive-uploaded /tmp/uploaded-ok.txt | sort -u > /tmp/ledger.new
+          if cmp -s /tmp/ledger.new outbox/.drive-uploaded; then
+            echo "ledger already current"; exit 0
+          fi
+          mv /tmp/ledger.new outbox/.drive-uploaded
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/.drive-uploaded
+          git diff --cached --quiet && { echo "no ledger change"; exit 0; }
+          git commit -m "chore: record Drive-delivered outbox docs [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin main; then
+              echo "ledger pushed on attempt $i"; exit 0
+            fi
+            sleep $((i * 3))
+          done
+          echo "ledger push lost every attempt; next sweep will re-record"; exit 0
