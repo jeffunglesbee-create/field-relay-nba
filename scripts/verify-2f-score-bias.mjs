@@ -41,8 +41,8 @@ const r1 = x => x == null ? null : Math.round(x * 10) / 10;
 const out = {
   probed_at: new Date().toISOString(), days: DAYS,
   fetch_ok: false, error: null,
-  corpus: { expected: null, collected: 0, scored: 0, truncated_partitions: [] },
-  unambiguous: null, proxy: null, mechanism: null, verdict: null,
+  corpus: { expected: null, collected: 0, scored: 0, recovered_by_sport_split: 0, truncated_partitions: [] },
+  unambiguous: null, proxy: null, mechanism: null, mechanism_reading: null, verdict: null,
 };
 
 try {
@@ -62,8 +62,26 @@ try {
       const q = `/archive/query?date=${date}&brief_type=${encodeURIComponent(bt)}&limit=${PAGE}`;
       let d; try { d = await get(q); } catch (e) { out.corpus.truncated_partitions.push(`${date}/${bt}: ${e.message}`); continue; }
       for (const row of d.results || []) seen.set(row.id, row);
-      // No silent caps: a full page means rows may have been dropped.
-      if ((d.results || []).length === PAGE) out.corpus.truncated_partitions.push(`${date}/${bt}: hit ${PAGE}-row cap`);
+      // A full page means rows were dropped. /archive/query has no offset, so
+      // the only way to see past the cap is to narrow the query -- re-walk the
+      // partition one sport at a time. The first run lost 83 of 460 rows to
+      // exactly two capped partitions (08-22/game_live, 08-20/game_recap), and
+      // those are the partitions a contaminated soccer brief lives in, so the
+      // gap sat precisely where the effect would show.
+      if ((d.results || []).length === PAGE) {
+        const sports = [...new Set(summary.filter(r => r.brief_type === bt)
+          .map(r => r.sport).filter(Boolean))];
+        let recovered = 0;
+        for (const sp of sports) {
+          const sq = `/archive/query?date=${date}&brief_type=${encodeURIComponent(bt)}` +
+                     `&sport=${encodeURIComponent(sp)}&limit=${PAGE}`;
+          let sd; try { sd = await get(sq); } catch { continue; }
+          for (const row of sd.results || []) { if (!seen.has(row.id)) recovered++; seen.set(row.id, row); }
+          if ((sd.results || []).length === PAGE)
+            out.corpus.truncated_partitions.push(`${date}/${bt}/${sp}: still at ${PAGE}-row cap`);
+        }
+        out.corpus.recovered_by_sport_split = (out.corpus.recovered_by_sport_split || 0) + recovered;
+      }
     }
   }
 
@@ -111,12 +129,34 @@ try {
   out.mechanism = Object.fromEntries(['0', '1-3', '4-7', '8-11', '12+']
     .filter(k => buckets[k]).map(k => [k, { n: buckets[k].length, mean_score: r1(mean(buckets[k])) }]));
 
+  // MIN_N exists because of this repo's own precedent, five days old: the
+  // 2026-08-22 session found soccer_opening_coverage "was the probe's fault --
+  // it called a regression off a single fixture", and added a 4-game floor that
+  // holds small samples at PENDING. The first run of THIS probe made the same
+  // mistake in the same week: it printed CONFIRMED off n=2, which is not a
+  // corpus result, it is the two briefs the CC-CMD already quoted.
+  const MIN_N = 8;
   const u = out.unambiguous.delta;
-  out.verdict = u == null
-    ? 'INCONCLUSIVE — one side of the unambiguous split is empty on this corpus.'
-    : u > 0
-      ? `CONFIRMED — contaminated soccer briefs score ${u} points HIGHER on average. The scale pays for the fabrication.`
-      : `NOT CONFIRMED — contaminated soccer briefs score ${u} points relative to clean ones.`;
+  const nDirty = out.unambiguous.contaminated.n;
+  out.verdict =
+    u == null ? 'INCONCLUSIVE — one side of the unambiguous split is empty on this corpus.'
+    : nDirty < MIN_N ? `PENDING — only ${nDirty} contaminated soccer brief(s) in ${DAYS} days ` +
+        `(floor is ${MIN_N}). Observed delta ${u >= 0 ? '+' : ''}${u}, directional only. ` +
+        `Three commits deployed 2026-08-23 remove this contamination at the source, so this ` +
+        `group should shrink toward zero and may never reach the floor — in which case the ` +
+        `mechanism split below, which needs no contamination judgement, is the standing evidence.`
+    : u > 0 ? `CONFIRMED — contaminated soccer briefs score ${u} points HIGHER on average (n=${nDirty}).`
+    : `NOT CONFIRMED — contaminated soccer briefs score ${u} points relative to clean (n=${nDirty}).`;
+
+  // The mechanism split is the load-bearing one: it needs no judgement about
+  // whether a figure is true, only how many figures a brief carries.
+  const m = out.mechanism;
+  if (m['0'] && m['1-3']) {
+    out.mechanism_reading = `having ANY figure is worth ${r1(m['1-3'].mean_score - m['0'].mean_score)} ` +
+      `points over having none (${m['0'].mean_score} -> ${m['1-3'].mean_score}). Stacking more is not ` +
+      `linearly rewarded${m['12+'] ? ` — the 12+ bucket falls back to ${m['12+'].mean_score}` : ''}. ` +
+      `The pressure a thin-context brief feels is therefore to invent ONE number, not many.`;
+  }
   out.fetch_ok = true;
 } catch (e) {
   out.error = e.message;
