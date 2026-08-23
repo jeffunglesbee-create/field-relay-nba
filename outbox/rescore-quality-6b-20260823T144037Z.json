@@ -1,0 +1,109 @@
+{
+  "probed_at": "2026-08-23T14:40:37.599Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 16,
+      "fresh": 36,
+      "arc": 45,
+      "ctx": 25,
+      "temporal": 20,
+      "voice": 30,
+      "matchup": 30
+    },
+    "declared_unreachable": [
+      "ctx",
+      "matchup"
+    ],
+    "declared_reachable_ceiling": 245
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 95,
+      "mean_stored": 184.3
+    },
+    {
+      "kind": "reads as final",
+      "n": 1442,
+      "mean_stored": 190
+    }
+  ],
+  "rescored": {
+    "n_total": 160,
+    "in_progress": {
+      "n": 16,
+      "mean_rescored": 183.8,
+      "mean_stored": 182.7,
+      "dims": {
+        "specificity": 0.351,
+        "statDepth": 1,
+        "variety": 0.644,
+        "density": 0.846,
+        "freshness": 0.893,
+        "arcScore": 0.299,
+        "contextAnchoring": 0.98,
+        "temporalScore": 0.688,
+        "voiceScore": 0.617,
+        "matchupDepth": 0
+      }
+    },
+    "reads_as_final": {
+      "n": 144,
+      "mean_rescored": 178.5,
+      "mean_stored": 183.6,
+      "dims": {
+        "specificity": 0.259,
+        "statDepth": 0.993,
+        "variety": 0.635,
+        "density": 0.687,
+        "freshness": 0.901,
+        "arcScore": 0.373,
+        "contextAnchoring": 0.909,
+        "temporalScore": 0.748,
+        "voiceScore": 0.534,
+        "matchupDepth": 0
+      }
+    },
+    "gap_rescored": -5.4,
+    "gap_stored_for_this_sample": 0.9,
+    "dim_separation": {
+      "specificity": -0.092,
+      "statDepth": -0.007,
+      "variety": -0.009,
+      "density": -0.159,
+      "freshness": 0.008,
+      "arcScore": 0.075,
+      "contextAnchoring": -0.071,
+      "temporalScore": 0.06,
+      "voiceScore": -0.083,
+      "matchupDepth": 0
+    },
+    "era_spread": [
+      "3",
+      "null"
+    ]
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 159,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 154,
+      "statDepth": 160,
+      "variety": 160,
+      "density": 157,
+      "freshness": 160,
+      "arcScore": 153,
+      "contextAnchoring": 159,
+      "temporalScore": 150,
+      "voiceScore": 160,
+      "matchupDepth": 0
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_matchup": "zero on every row in this sample"
+  },
+  "error": null
+}
