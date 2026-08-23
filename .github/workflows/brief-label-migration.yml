@@ -1,0 +1,87 @@
+name: Brief label migration (§5 residual)
+
+# §5 residual of CC-CMD-2026-08-20-brief-data-quality. Live D1 mutations,
+# authorized by Jeff 2026-08-23.
+#
+# FOUR MODES, IN ORDER, AND THE ORDER IS THE SAFETY.
+#   slate   is it safe to mutate now?           writes nothing
+#   scope   measure, emit the explicit id list   writes nothing
+#   apply   consume that scope                   WRITES
+#   verify  re-read the table                    writes nothing
+#
+# Copied from CC-CMD-2026-08-06-apply-soccer-league-label-fix-v2, which corrected
+# 52 mislabelled soccer rows through this exact shape and finished with zero
+# mismatches. Its two load-bearing requirements are carried over: every UPDATE is
+# scoped by a MEASURED ID LIST with the value predicate only as a second guard,
+# and the slate question is answered before anything is written.
+#
+# apply is NOT the default and cannot be reached by a schedule or a path trigger.
+# It requires a manual dispatch that types the mode, which is the last gate
+# between a green button and 600 production rows.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "slate | scope | apply | verify"
+        required: true
+        default: "slate"
+  schedule:
+    # verify only, weekly. Once the migration lands, a non-conforming label
+    # REAPPEARING means the code started emitting one again -- that should be a
+    # failed run, not silent re-accumulation. Same standing-detector pattern the
+    # 2026-08-06 soccer-label fix left behind.
+    - cron: '17 6 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brief-label-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Resolved ONCE into a job-level env. inputs.mode is empty on a schedule
+      # trigger, and the 08-06 run's own note explains why this matters: the run
+      # step, the log filename and the commit message must never be able to
+      # disagree about which mode ran.
+      MODE: ${{ github.event.inputs.mode || 'verify' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run migration (${{ github.event.inputs.mode || 'verify' }})
+        run: node scripts/brief-label-migration.mjs
+
+      - name: Commit the manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          # Separate adds with visible errors. `git add` is ATOMIC ACROSS
+          # PATHSPECS -- the 2026-08-06 run lost a whole commit because one glob
+          # in a multi-pathspec add matched nothing and aborted the rest, with
+          # 2>/dev/null hiding it.
+          git add outbox/brief-label-migration-*.json || echo "no run manifest"
+          git add outbox/brief-label-migration-scope.json || echo "no scope file"
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: brief label migration ($MODE) [skip ci]"
+          LOG=/tmp/mig-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0
