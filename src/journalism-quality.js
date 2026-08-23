@@ -666,6 +666,7 @@ export const PROSE_STYLE_RULES = [
   '- STYLE: specificity over metaphor. "48 minutes from their first Finals since 1999" not "looking to punch their ticket."',
   '- STYLE: numbers over adjectives. "Brunson\'s 29.0 PPG this series" not "Brunson has been dominant."',
   '- TIME-PERIOD ANCHORING (mandatory): every numeric statistic must be qualified with its time period in the SAME sentence. Required for points, PPG, ERA, batting avg, RBIs, goals, goals-against, FG%, saves, shots, etc. Acceptable qualifiers: "this postseason", "this series", "this season", "last 5 games", "career", "through 30 starts", "tonight", "in May". Bare numbers like "25.0 points", "26.0 PPG", "37 goals", "5-for-6 with 2 RBIs", "32 points through the season" without a clear timeframe ARE FORBIDDEN. The reader must always know what window the number is measured over. Example: write "Wembanyama\'s 28.2 PPG this postseason" not "Wembanyama\'s 25.0 points." Write "Jung Hoo Lee\'s 5-for-6 night" not "Jung Hoo Lee went 5-for-6" — the noun "night" anchors the number to one game.',
+  '- ONE WINDOW PER COMPARISON (mandatory): a comparison must measure both sides over the SAME time period. "Spurs\' 3 shots this match trail Brentford\'s 37 goals this season" is not a comparison — it sets one match against one season, and the two numbers cannot be ranked against each other. If you compare two figures in one sentence, both must carry the same window ("3 shots this match to Brentford\'s 11 this match"). If you only have figures from different windows, write them as separate sentences and do not rank them.',
   '- STYLE: active voice. "Wembanyama blocked 3 shots" not "3 shots were blocked."',
   '- STYLE: concrete over abstract. "Game 4 starts at 8pm on ESPN" not "the stage is set for a pivotal matchup."',
   '- STYLE: one metaphor max per brief — if you use one, make it original.',
@@ -1007,6 +1008,44 @@ export function _buildVoiceJudgePrompt(draftText) {
     `FIX: <one concrete instruction for how to rewrite it in FIELD voice>`;
 }
 
+// ── Layer 2g: cross-window comparison ───────────────────────────────────────
+// MEASURED 2026-08-22, live EPL desk: "Spurs' 3 shots this match trail
+// Brentford's 37 goals this season." Both figures may be real; the sentence is
+// still false, because a per-match count and a per-season count cannot be
+// ranked against each other. Dim 8 (TIME-PERIOD ANCHORING) forbids a BARE
+// number and is satisfied here -- both numbers carry a window. Neither window
+// is wrong on its own. The defect is only visible in the comparison.
+//
+// The discriminator is that BOTH sides carry a figure. A sentence naming two
+// windows without two numbers is ordinary prose ("won three straight this
+// season and lead the table tonight") and must not fire, so a window only
+// counts when a number sits within 28 characters before it, and a comparison
+// term must appear BETWEEN the two numbered windows.
+const XW_WINDOWS = /\b(?:this (?:match|game|half|series|season|postseason|playoffs|week|month)|tonight|today|last night|career|(?:in|through) (?:the )?(?:first|second|third|fourth) (?:half|quarter|period)|last \d+ (?:games|matches|starts)|through \d+ (?:games|starts))\b/gi;
+const XW_COMPARE = /\b(?:trails?|trailing|outpaces?|outscor\w*|outshoots?|eclipses?|doubles?|compared (?:to|with)|versus|vs\.?|against|more than|fewer than|less than|ahead of|behind|better than|worse than)\b/i;
+const XW_NUM = /(?:\d+(?:\.\d+)?%?|\d+-(?:for|of)-\d+|\d+-\d+)/;
+
+export function crossWindowComparisons(text) {
+  if (!text) return [];
+  const out = [];
+  for (const raw of String(text).split(/(?<=[.!?])\s+/)) {
+    const sentence = raw.trim();
+    if (!sentence) continue;
+    const wins = [...sentence.matchAll(XW_WINDOWS)];
+    if (wins.length < 2) continue;
+    const numbered = wins.filter(w =>
+      XW_NUM.test(sentence.slice(Math.max(0, w.index - 28), w.index)));
+    if (numbered.length < 2) continue;
+    const labels = [...new Set(numbered.map(w => w[0].toLowerCase()))];
+    if (labels.length < 2) continue;
+    const first = numbered[0], last = numbered[numbered.length - 1];
+    const between = sentence.slice(first.index + first[0].length, last.index);
+    if (!XW_COMPARE.test(between)) continue;
+    out.push({ sentence, windows: labels });
+  }
+  return out;
+}
+
 // ── Orchestrator: runs all 7 quality layers with up to 7 retry calls ────────
 // Returns { text, score, retries, layers_fired, ms }
 //
@@ -1073,6 +1112,23 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
       '. These exact figures MUST appear verbatim in your rewrite. A brief without its own data is just filler.';
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2d'); }
+  }
+
+  // 2g: cross-window comparison. AFTER 2d deliberately -- 2d pushes the model
+  // to ADD figures, so checking composition before it runs would let 2d
+  // reintroduce the pairing. 2g's correction splits a sentence and keeps both
+  // figures, so it does not undo 2d's requirement that they appear.
+  const crossWindow = crossWindowComparisons(text);
+  if (crossWindow.length && retries < maxRetries) {
+    const first = crossWindow[0];
+    const retryPrompt = prompt +
+      `\n\nCROSS-WINDOW COMPARISON — CRITICAL: this sentence compares figures measured over ` +
+      `different time periods: "${first.sentence}" (${first.windows.join(' vs ')}). ` +
+      `Two numbers covering different spans cannot be ranked against each other, even when both ` +
+      `figures are correct. Rewrite so either both figures carry the SAME window, or the two ` +
+      `figures appear in separate sentences with no comparison between them.`;
+    const retried = await callProxy(retryPrompt);
+    if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2g'); }
   }
 
   // 2d-score: score contradiction — verifies no score in the text contradicts
