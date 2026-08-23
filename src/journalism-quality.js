@@ -109,12 +109,28 @@ export const BANNED_PHRASES = [
   'overcome the','to overcome','managed to overcome',
   'result moved','result moves',
   'continued their','extended their','maintained their momentum',
+  // 2026-08-23. jubilant-bassoon's CLAUDE.md carries a section headed "Banned
+  // Journalism Phrases": "Never generate content containing: stunned, shocked,
+  // thriller, instant classic, for the ages, must-watch, can't-miss."
+  //
+  // Not one of the seven was in this list. A live brief through
+  // /journalism/generate opened "Hull City stunned Manchester United 2-0", and
+  // hasCliche() returned [] on it — the governing document banned the word and
+  // the code had never been told.
+  //
+  // 'must-watch' was in SPARINGLY_PHRASES, which permits one use per brief. A
+  // phrase cannot be both banned outright and allowed once; the document is
+  // the authority on FIELD's voice, so it moves here and leaves there.
+  'stunned','shocked','thriller','instant classic','for the ages',
+  'must-watch',"can't-miss",
 ];
 
 export const SPARINGLY_PHRASES = [
   'crucial','critical','pivotal','key',
   'dominant','dominance','impressive','outstanding',
-  'must-watch','storyline','narrative',
+  // 'must-watch' removed 2026-08-23 — CLAUDE.md bans it outright, so it cannot
+  // also live here on a once-per-brief allowance. See BANNED_PHRASES above.
+  'storyline','narrative',
   'momentum','statement game','statement',
   'big-time','clutch','electric','exciting',
   'under the radar','overlooked',
@@ -1102,6 +1118,32 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     const retryPrompt = prompt + `\n\nLEAD SENTENCE CORRECTION: Your draft starts with "${genericLead.slice(0,80)}..." — this is the generic AI pattern. Rewrite the first sentence to lead with a specific fact, name, number, or situation. NOT "The [Team] ..." — instead something like "Wembanyama scored 34" or "Two years without a Finals appearance ends tonight."`;
     const retried = await callProxy(retryPrompt);
     if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2c'); }
+  }
+
+  // 2h: banned phrases. MEASURED 2026-08-23 — a live brief through
+  // /journalism/generate opened "Hull City stunned Manchester United 2-0".
+  // "stunned" is the first entry in BANNED_PHRASES, the style block names every
+  // banned phrase explicitly, and the brief shipped anyway.
+  //
+  // hasCliche() has existed here since JQ v3 and this chain never called it.
+  // index.js imports it as jqHasCliche on line 70 and that import is its only
+  // occurrence in the file — a detector wired to nothing, next to an
+  // instruction that does not hold. That is the exact pair 2f was written for:
+  // "Instructions alone demonstrably did not hold, so this is enforcement."
+  //
+  // Placed BEFORE the content layers on purpose. This retry rewrites prose, so
+  // anything it introduces — a fabricated figure, a cross-window comparison, a
+  // dropped stat — is still policed by 2f, 2g and 2d downstream. Running it
+  // last would give voice the final word over accuracy.
+  const cliches = hasCliche(text);
+  if (cliches.length && retries < maxRetries) {
+    const retryPrompt = prompt +
+      `\n\nBANNED PHRASE — CRITICAL: your draft contains ${cliches.map(c => `"${c}"`).join(', ')}. ` +
+      `These are banned outright in FIELD copy, not discouraged. Rewrite the sentence they appear in ` +
+      `so it says what actually happened instead. Do not substitute a synonym for the same hype — ` +
+      `the fix is a concrete fact, not a quieter adjective.`;
+    const retried = await callProxy(retryPrompt);
+    if (retried && retried.length > 30) { text = retried.trim(); retries++; layers_fired.push('2h'); }
   }
 
   // 2f: prompt-example leakage — a number lifted from the instructions rather

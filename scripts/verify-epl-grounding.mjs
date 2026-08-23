@@ -24,6 +24,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { fetchFplData, fplContextFor } from '../src/fpl-events.js';
+import { hasCliche } from '../src/journalism-quality.js';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -157,6 +158,11 @@ try {
     out.stage2.scorelines_in_prose = proseScores;
     out.stage2.invented_scorelines = invented;
     if (invented.length) fails.push(`the brief states a scoreline the prompt never supplied: ${invented.join(', ')}`);
+    // Run 2's brief opened "Hull City stunned Manchester United 2-0". The word
+    // is banned outright by CLAUDE.md and was absent from the relay's list.
+    const banned = hasCliche(prose || '');
+    out.stage2.banned_phrases = banned;
+    if (banned.length) fails.push(`the brief uses banned phrase(s): ${banned.join(', ')}`);
     // Grounding: at least ONE signal must survive. Which one the model picks is
     // an editorial choice and not asserted — requiring a specific scorer would
     // fail on a legitimate table-led brief.
