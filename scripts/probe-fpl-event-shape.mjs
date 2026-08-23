@@ -87,6 +87,23 @@ try {
     bridge_required: 'FPL team name <-> ESPN team name, by string. No shared numeric id exists.',
     fpl_team_names: (boot.teams || []).map(t => t.name),
   };
+  // The ESPN half of the bridge, read rather than assumed. The golf incident
+  // (CC-CMD-2026-06-18) was a session guessing field shapes instead of probing;
+  // guessing TEAM NAMES has the same failure mode and no compiler to catch it.
+  const today = new Date().toISOString().slice(0, 10);
+  const ctxDay = await get(`/context/date/${today}`);
+  const soccer = (ctxDay.games?.regular || [])
+    .filter(g => /^(EPL|La Liga|Ligue 1|Serie A|MLS|Bundesliga)$/i.test(String(g.sport || '').trim()));
+  out.join.espn_soccer_rows = soccer.length;
+  out.join.espn_epl_names = [...new Set(soccer
+    .filter(g => String(g.sport).trim().toUpperCase() === 'EPL')
+    .flatMap(g => [g.home, g.away]).filter(Boolean))];
+  // Which FPL names match an ESPN name verbatim, and which do not. The
+  // non-matching list IS the alias map that has to be written by hand.
+  const fplNames = new Set(out.join.fpl_team_names);
+  out.join.exact_matches = out.join.espn_epl_names.filter(n => fplNames.has(n));
+  out.join.needs_alias = out.join.espn_epl_names.filter(n => !fplNames.has(n));
+
   out.ok = true;
 } catch (e) { out.error = e.message; }
 
