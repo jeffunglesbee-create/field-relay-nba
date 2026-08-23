@@ -1,0 +1,197 @@
+{
+  "probed_at": "2026-08-23T06:18:55.297Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 0,
+      "status": "PENDING — no game has been priced since the fix",
+      "sequenced": 0,
+      "sample": []
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 18,
+      "min_games_for_rate": 4,
+      "below_floor": [
+        "La Liga (2/3)"
+      ],
+      "status": "PASS — improved for EPL",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 5,
+          "with_open": 4,
+          "pct": 80,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 3,
+          "with_open": 2,
+          "pct": 66.7,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 5,
+          "with_open": 3,
+          "pct": 60,
+          "baseline_pct": null
+        },
+        {
+          "sport": "MLS",
+          "games": 8,
+          "with_open": 6,
+          "pct": 75,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "EPL briefs since fpl_match_events deployed: not a season-stat template (all types) AND free of prompt-example literals (game_recap only — see asserted_on)",
+      "qualifying_rows": 10,
+      "status": "PASS — 5/10 not the season template, and no prompt-example literal in any of the 7 recap(s) written since the 2f fix | live: 1/3 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+      "literals_checked": 17,
+      "recaps_since_leak_fix": 7,
+      "live_briefs_sampled": 3,
+      "live_briefs_leaking_now": [
+        {
+          "id": "game_live_epl_401879300",
+          "literals": [
+            "107.7 DRTG"
+          ]
+        }
+      ],
+      "asserted_on": "game_recap only — live briefs are rewritten every cycle, so a snapshot cannot prove leak-freedom for them",
+      "historical_leaks_before_fix": [],
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f's \"absent from context\" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.",
+      "sample": [
+        {
+          "id": "epl_match_2026-08-21_espn:761745",
+          "created_at": "2026-08-21 02:20:05",
+          "written_at": "2026-08-23 02:06:04",
+          "len": 290,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "LA Galaxy and CF Montréal finished in a 2-2 draw tonight at Stade Saputo. Joseph Paintsil, who holds 5 goals this season, and his teammates split points with a Montréal side featuring Prince Owusu and his 12 goals this s"
+        },
+        {
+          "id": "epl_match_2026-08-21_espn:761741",
+          "created_at": "2026-08-21 02:20:06",
+          "written_at": "2026-08-23 01:51:06",
+          "len": 284,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Charlotte improved to 9-5-7 this season by defeating D.C. United 3-1 at Bank of America Stadium. Despite Tai Baribo’s 12 goals this season and Pep Biel’s 10 goals this season, Charlotte secured the result as home favorit"
+        },
+        {
+          "id": "pre_game_EPL_2026-08-22_brentford_spurs",
+          "created_at": "2026-08-22 10:01:39",
+          "written_at": "2026-08-23 01:51:03",
+          "len": 337,
+          "brief_type": "pre_game",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Brentford dominated their season opener at Gtech Community Stadium, shutting out Spurs 3-0 tonight. Spurs recorded only 3 shots tonight, finishing with 0 points through the game. Brentford closed as +110 favorites, succe"
+        },
+        {
+          "id": "game_live_epl_401879322",
+          "created_at": "2026-08-22 10:02:19",
+          "written_at": "2026-08-23 01:51:03",
+          "len": 306,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City stunned Manchester United 2-0 at The MKM Stadium, marking a massive upset after closing at +800 odds. United finished with 0 goals through this match, failing to capitalize on their -295 favorite status. Hull m"
+        },
+        {
+          "id": "game_live_epl_401879300",
+          "created_at": "2026-08-22 10:02:21",
+          "written_at": "2026-08-23 01:51:02",
+          "len": 273,
+          "brief_type": "game_live",
+          "season_template": true,
+          "leaked_literals": [
+            "107.7 DRTG"
+          ],
+          "excerpt": "Everton secured a 2-0 win at Hill Dickinson Stadium, moving to 1-0-0 this season while holding Crystal Palace to 0 points through this match. Palace fell to 0-0-1 this season after failing to convert any of their 3 shots"
+        },
+        {
+          "id": "game_live_epl_401879299",
+          "created_at": "2026-08-22 10:02:23",
+          "written_at": "2026-08-23 01:51:02",
+          "len": 275,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Ipswich secured a 2-1 win over Sunderland at Portman Road in this season's EPL opener. Despite closing at +180, Ipswich overcame the visitors to move to 1-0-0 this season. Sunderland drops to 0-1-0 this season after fail"
+        },
+        {
+          "id": "pre_game_EPL_2026-08-22_nottmforest_leeds",
+          "created_at": "2026-08-22 10:01:38",
+          "written_at": "2026-08-23 01:51:01",
+          "len": 319,
+          "brief_type": "pre_game",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Leeds defeated Nottingham Forest 1-0 tonight at The City Ground as +210 away underdogs. Both clubs remained at 0 points through 57 minutes of play tonight after generating fewer than 3 shots through 57 minutes this seaso"
+        },
+        {
+          "id": "game_recap_epl_401879321",
+          "created_at": "2026-08-22 18:30:53",
+          "written_at": "2026-08-23 01:47:12",
+          "len": 337,
+          "brief_type": "game_recap",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Brentford dominated their season opener at Gtech Community Stadium, shutting out Spurs 3-0 tonight. Spurs recorded only 3 shots tonight, finishing with 0 points through the game. Brentford closed as +110 favorites, succe"
+        },
+        {
+          "id": "game_recap_epl_401879298",
+          "created_at": "2026-08-22 16:00:21",
+          "written_at": "2026-08-23 01:47:09",
+          "len": 319,
+          "brief_type": "game_recap",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Leeds defeated Nottingham Forest 1-0 tonight at The City Ground as +210 away underdogs. Both clubs remained at 0 points through 57 minutes of play tonight after generating fewer than 3 shots through 57 minutes this seaso"
+        },
+        {
+          "id": "game_recap_epl_401879299",
+          "created_at": "2026-08-22 16:00:20",
+          "written_at": "2026-08-23 01:47:07",
+          "len": 275,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Ipswich secured a 2-1 win over Sunderland at Portman Road in this season's EPL opener. Despite closing at +180, Ipswich overcame the visitors to move to 1-0-0 this season. Sunderland drops to 0-1-0 this season after fail"
+        }
+      ]
+    },
+    {
+      "id": "recap_names_a_scoring_play",
+      "what": "game_recap briefs written since match_events deployed name a player who appears in that game's ESPN scoring plays",
+      "qualifying_rows": 0,
+      "testable_rows": 0,
+      "status": "PENDING — no game_recap in the six sports since match_events deployed",
+      "method": "per-row join: ESPN scoring plays for the brief's own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.",
+      "note": "PARTIAL is expected on some slates and is not a regression by itself: a recap can legitimately lead on something other than a scorer. Read the evidence rows — 0/N is the signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.",
+      "evidence": []
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: PENDING — no game has been priced since the fix",
+    "soccer_opening_coverage: PASS — improved for EPL",
+    "epl_brief_event_grounded: PASS — 5/10 not the season template, and no prompt-example literal in any of the 7 recap(s) written since the 2f fix | live: 1/3 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+    "recap_names_a_scoring_play: PENDING — no game_recap in the six sports since match_events deployed"
+  ],
+  "all_passed": false,
+  "any_failed": false
+}
