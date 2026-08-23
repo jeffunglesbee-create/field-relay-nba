@@ -1,0 +1,29 @@
+name: Verify 2f score bias
+
+# Does the 300-point quality scale reward a fabricated statistic?
+#
+# Measured locally 2026-08-23: the Everton brief that prompted
+# CC-CMD-2026-08-22-brief-sport-contamination scored 165 WITH its invented
+# "107.7 DRTG, best in the NBA" and 128 with a true stat in its place. EPL
+# briefs average 141.4, so the contaminated version scored above average and
+# the truthful one below it. n=1 is an anecdote; this runs it across the
+# corpus.
+#
+# Sandbox egress 403s *.workers.dev (rule-gha-for-sandbox-egress-blocks).
+# Read-only: GET /quality/report and GET /archive/query.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-verify-2f-score-bias'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/verify-2f-score-bias.mjs
+      commit_message: "chore: 2f score-bias corpus result [skip ci]"
