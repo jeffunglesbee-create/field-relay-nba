@@ -1,0 +1,21 @@
+name: Probe FPL event shape
+
+# PRE-BUILD probe for CC-CMD-2026-08-21-fpl-event-grounding-epl.
+# Read-only GETs against the relay's existing /fpl proxy. Emits a compact shape
+# summary; the raw payloads are ~700KB and are deliberately not archived.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-probe-fpl-event-shape'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-fpl-event-shape.mjs
+      commit_message: "chore: FPL event shape probe [skip ci]"
