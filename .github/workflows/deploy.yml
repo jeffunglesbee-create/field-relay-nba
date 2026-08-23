@@ -164,6 +164,25 @@ jobs:
       - name: a SCALE change is recorded as a scoring era
         run: node scripts/check-scoring-era-recorded.mjs
 
+      # Ported from field-laboratory 2026-08-23, both halves of one idea: a
+      # claim that nothing checks, and a check that has never been shown to
+      # fail, are the same defect wearing different clothes.
+      #
+      # 55 files in this repo contain the word STAGED. Four things checked
+      # anything, and not one of them had ever been demonstrated to fail --
+      # they ran daily, printed PASS or PENDING, and nothing established that a
+      # real regression would make them say otherwise.
+      #
+      # The scanner found a live orphan on its first run:
+      # cc-session-2026-07-20-game-thread-relay.md had read "STAGED -- fires at
+      # next :30 mark post-deploy" for 34 days, during which that cron fired
+      # roughly 816 times unobserved. It is check 5 now.
+      - name: every staged verdict can fail, and can pass
+        run: node scripts/staged-verdicts-check.mjs
+
+      - name: a staged claim names a verifier that exists and runs
+        run: node scripts/staged-verifier-check.mjs --self-test && node scripts/staged-verifier-check.mjs
+
       # Four guards written earlier today ran nowhere. A guard nobody runs
       # catches nothing -- it only records that someone once knew the rule.
       # Each of these covers a defect that reached a live brief.

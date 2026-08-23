@@ -41,7 +41,13 @@ Applied via Cloudflare D1 MCP tool to `ARCHIVE_DB` (`cc49101c-0569-4d41-8e7a-be1
 - `src/index.js`: early-return block for `event.cron === '30 * * * *'` (same isolation pattern as anomaly watcher at `0 * * * *`)
 - Deletes `WHERE expires_at < Date.now()`; logs deleted count
 - Returns early — journalism/KV/handleCron never run on this tick
-- **STAGED** — fires at next :30 mark post-deploy; D1 write proven by TASK 2 verification
+- **STAGED** (verifier: thread_notes_cleanup @ relay/staged-verification.yml) — fires at next :30 mark post-deploy; D1 write proven by TASK 2 verification
+  - *Tagged 2026-08-23, 34 days later.* This line had no executor: its unblock
+    condition was a future event, and nothing re-evaluated whether that event
+    happened. The cron has fired roughly 816 times since it was written and
+    nobody looked, because nothing was going to. Found by
+    `scripts/staged-verifier-check.mjs` on its first run against `docs/`.
+    Check 5 of `verify-staged-items.mjs` now answers it daily.
 
 ## TASK 5 — GHA WebSocket Probe (`.github/workflows/game-thread-ws-probe.yml`)
 - Written and iterated to pass: WS connect, thread_note send, broadcast assert, rate cap assert, catchup assert
@@ -66,7 +72,7 @@ Applied via Cloudflare D1 MCP tool to `ARCHIVE_DB` (`cc49101c-0569-4d41-8e7a-be1
 | thread_note handler | VERIFIED | GHA probe run 29709708720 |
 | thread_catchup on join | VERIFIED | GHA probe run 29709708720 |
 | rate cap | VERIFIED | GHA probe run 29709708720 |
-| hourly cleanup | STAGED | D1 write proven; cron fires at :30 |
+| hourly cleanup | STAGED → verified daily since 2026-08-23 | check 5, `thread_notes_cleanup` |
 
 ## Relay Contract (for client CC-CMD)
 - **WebSocket message in:** `{type:'thread_note', body: string (1-280), token: any}`

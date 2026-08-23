@@ -13865,7 +13865,7 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'missing sql' }),
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
-            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'jq_retry_telemetry'];
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'jq_retry_telemetry', 'game_thread_notes'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

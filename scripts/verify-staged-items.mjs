@@ -34,6 +34,13 @@
 import { writeFileSync } from 'node:fs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 import { selectScoringPlays } from '../src/context-assembler.js';
+// The four verdicts moved to their own module so they can be exercised against
+// known-bad payloads without a network round trip. Imported rather than copied:
+// two copies of a decision are free to disagree, and this file IS the decision
+// field-laboratory registers its staged items against.
+import { closingAfterOpening, soccerOpeningCoverage,
+         eplBriefEventGrounded, recapNamesScoringPlay,
+         threadNotesCleanup } from './staged-verdicts.mjs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -92,7 +99,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 4;
+const EXPECTED_CHECKS = 5;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -151,10 +158,7 @@ try {
         id: 'closing_after_opening',
         what: 'closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate',
         qualifying_rows: seqRows.length,
-        status: seqRows.length === 0 ? 'PENDING — no game has been priced since the fix'
-              : sequencedCount === seqRows.length ? 'PASS'
-              : sequencedCount === 0 ? 'FAIL — every pair is still non-sequenced'
-              : `PARTIAL — ${sequencedCount}/${seqRows.length} sequenced`,
+        status: closingAfterOpening({ rows: seqRows.length, sequenced: sequencedCount }),
         sequenced: sequencedCount,
         sample: seqRows.slice(0, 6),
     });
@@ -217,12 +221,7 @@ try {
         qualifying_rows: measurable.reduce((s, r) => s + r.games, 0),
         min_games_for_rate: MIN_GAMES_FOR_RATE,
         below_floor: tooFew.map(r => `${r.sport} (${r.with_open}/${r.games})`),
-        status: !measurable.length
-                ? `PENDING — no sport has reached ${MIN_GAMES_FOR_RATE} played fixtures since the aliases landed`
-                  + (tooFew.length ? `; below floor: ${tooFew.map(r => `${r.sport} n=${r.games}`).join(', ')}` : '')
-              : regressed.length ? `FAIL — coverage fell for ${regressed.map(r => r.sport).join(', ')}`
-              : improved.length ? `PASS — improved for ${improved.map(r => r.sport).join(', ')}`
-              : 'PENDING — fixtures exist but none carry a baseline sport yet',
+        status: soccerOpeningCoverage({ measurable, tooFew, improved, regressed, minGames: MIN_GAMES_FOR_RATE }),
         per_sport: covRows,
     });
 
@@ -334,20 +333,10 @@ try {
         ? ` | live: ${liveLeaking.length}/${liveOnes.length} leaking right now (sampled, not asserted — live briefs are rewritten every cycle)`
         : '';
 
-    let briefStatus;
-    if (!briefRows.length) briefStatus = 'PENDING — no EPL brief written since the deploy';
-    else if (leaking.length) briefStatus =
-        `FAIL — ${leaking.length}/${postLeakFix.length} post-fix recap(s) carry a prompt-example literal: `
-        + [...new Set(leaking.flatMap(b => b.leaked_literals))].join(', ') + liveNote;
-    else if (!grounded.length) briefStatus = 'FAIL — every new EPL brief is still the season template';
-    else if (!postLeakFix.length) briefStatus =
-        `PARTIAL — ${grounded.length}/${briefRows.length} not the season template; `
-        + `leak-freedom UNPROVEN: no EPL RECAP written since the 2f fix deployed`
-        + (historicalLeaks.length ? ` (${historicalLeaks.length} pre-fix recap(s) did leak)` : '')
-        + liveNote;
-    else briefStatus =
-        `PASS — ${grounded.length}/${briefRows.length} not the season template, and no prompt-example `
-        + `literal in any of the ${postLeakFix.length} recap(s) written since the 2f fix` + liveNote;
+    const briefStatus = eplBriefEventGrounded({
+        briefRows: briefRows.length, leaking, postLeakFix: postLeakFix.length,
+        grounded: grounded.length, historicalLeaks: historicalLeaks.length, liveNote,
+    });
 
     add({
         id: 'epl_brief_event_grounded',
@@ -467,15 +456,9 @@ try {
     // for the same reason: a check that fails on absent data gets ignored.
     const testable = evidence.filter(e => e.testable);
     const named = testable.filter(e => e.grounded);
-    let meStatus;
-    if (!recapRows.length) meStatus = 'PENDING — no game_recap in the six sports since match_events deployed';
-    else if (!testable.length) meStatus =
-        `PENDING — ${recapRows.length} recap(s), none testable (no ESPN scoring plays or no usable event id)`;
-    else if (!named.length) meStatus =
-        `FAIL — 0/${testable.length} recap(s) name anyone who scored in the game they describe`;
-    else if (named.length < testable.length) meStatus =
-        `PARTIAL — ${named.length}/${testable.length} recap(s) name a real scorer; see the rest in evidence`;
-    else meStatus = `PASS — ${named.length}/${named.length} recap(s) name someone who actually scored`;
+    const meStatus = recapNamesScoringPlay({
+        recapRows: recapRows.length, testable: testable.length, named: named.length,
+    });
 
     add({
         id: 'recap_names_a_scoring_play',
@@ -486,6 +469,32 @@ try {
         method: 'per-row join: ESPN scoring plays for the brief\'s own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.',
         note: 'PARTIAL is expected on some slates and is not a regression by itself: a recap can legitimately lead on something other than a scorer. Read the evidence rows — 0/N is the signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.',
         evidence,
+    });
+
+    // ── 5. Does the hourly cleanup cron actually sweep? ────────────────────
+    // cc-session-2026-07-20-game-thread-relay.md has read "**STAGED** — fires at
+    // next :30 mark post-deploy" for 34 days. The cron has run ~816 times since.
+    // Found by staged-verifier-check.mjs on its first run; this is the executor
+    // it was missing.
+    //
+    // A grace window of one hour, because the sweep fires at :30: a row that
+    // expired four minutes ago is not evidence of anything. Only rows expired
+    // longer than the cron's own interval can testify against it.
+    const GRACE_MS = 60 * 60 * 1000;
+    const notes = await d1(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN expires_at < ? THEN 1 ELSE 0 END) AS expired_beyond_grace
+         FROM game_thread_notes`, [Date.now() - GRACE_MS]);
+    const total = notes.rows?.[0]?.total ?? notes[0]?.total ?? 0;
+    const beyond = notes.rows?.[0]?.expired_beyond_grace ?? notes[0]?.expired_beyond_grace ?? 0;
+    add({
+        id: 'thread_notes_cleanup',
+        what: 'the 30 * * * * cron deletes game_thread_notes rows past expires_at',
+        qualifying_rows: total,
+        status: threadNotesCleanup({ total, expiredBeyondGrace: beyond }),
+        grace_window: '1 hour — the sweep fires at :30, so a just-expired row proves nothing',
+        expired_beyond_grace: beyond,
+        note: 'STAGED in cc-session-2026-07-20-game-thread-relay.md since 2026-07-20 with no executor. The cron has fired ~816 times since; this is the first thing that asks whether any of them worked.',
     });
 
     m.query_ok = true;
