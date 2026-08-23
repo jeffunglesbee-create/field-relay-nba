@@ -1,0 +1,61 @@
+{
+  "probed_at": "2026-08-23T02:32:15.295Z",
+  "days": 7,
+  "fetch_ok": true,
+  "error": null,
+  "corpus": {
+    "expected": 461,
+    "collected": 388,
+    "scored": 386,
+    "recovered_by_sport_split": 10,
+    "truncated_partitions": []
+  },
+  "unambiguous": {
+    "what": "soccer briefs naming NBA/NHL/NFL/MLB/WNBA/DRTG/ORTG vs soccer briefs that do not",
+    "contaminated": {
+      "n": 2,
+      "mean_score": 197
+    },
+    "clean": {
+      "n": 119,
+      "mean_score": 179
+    },
+    "delta": 18
+  },
+  "proxy": {
+    "caveat": "prompt not stored; cannot apply 2f context check. A genuine figure matching a tracked literal counts as flagged.",
+    "with_literal": {
+      "n": 21,
+      "mean_score": 173.8
+    },
+    "without": {
+      "n": 365,
+      "mean_score": 174.8
+    },
+    "delta": -1
+  },
+  "mechanism": {
+    "0": {
+      "n": 3,
+      "mean_score": 107.7
+    },
+    "1-3": {
+      "n": 26,
+      "mean_score": 166
+    },
+    "4-7": {
+      "n": 156,
+      "mean_score": 176.3
+    },
+    "8-11": {
+      "n": 174,
+      "mean_score": 177.3
+    },
+    "12+": {
+      "n": 27,
+      "mean_score": 165.6
+    }
+  },
+  "mechanism_reading": "having ANY figure is worth 58.3 points over having none (107.7 -> 166). Stacking more is not linearly rewarded — the 12+ bucket falls back to 165.6. The pressure a thin-context brief feels is therefore to invent ONE number, not many.",
+  "verdict": "PENDING — only 2 contaminated soccer brief(s) in 7 days (floor is 8). Observed delta +18, directional only. Three commits deployed 2026-08-23 remove this contamination at the source, so this group should shrink toward zero and may never reach the floor — in which case the mechanism split below, which needs no contamination judgement, is the standing evidence."
+}
