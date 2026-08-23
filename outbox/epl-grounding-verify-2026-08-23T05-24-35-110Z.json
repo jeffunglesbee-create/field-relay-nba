@@ -1,0 +1,42 @@
+{
+  "probed_at": "2026-08-23T05:24:35.110Z",
+  "ok": true,
+  "error": null,
+  "stage1": {
+    "gameweek": 1,
+    "date_used": "2026-08-22",
+    "fixtures": 5,
+    "resolved": 5,
+    "unresolved_clubs": [],
+    "with_table": 5,
+    "with_events": 5,
+    "players_named": 24,
+    "strays": [],
+    "sample_block": "[EPL GOALSCORERS] Ajayi, Mendy\n[EPL ASSISTS] McBurnie, Slater\n[EPL GOALKEEPER SAVES] Tzolakis (5)\n[EPL TABLE] Hull City: 0th in the table, no matches played yet | Man Utd: 0th in the table, no matches played yet\n[EPL EVENT NOTE] These are the players involved, from the official Premier League feed. It carries NO minute for any goal or card, and NO scoreline — do not state when anything happened, and never infer the score from the number of goalscorers listed here. Use only a score given elsewhere in this prompt. Name who did what, and treat it as the state so far, not a final account."
+  },
+  "stage2": {
+    "http": 200,
+    "fixture": "Man United @ Hull",
+    "players_available": [
+      "Ajayi",
+      "Mendy",
+      "McBurnie",
+      "Slater",
+      "Tzolakis"
+    ],
+    "players_named_in_prose": [
+      "Ajayi",
+      "Mendy",
+      "Tzolakis"
+    ],
+    "cites_table_position": false,
+    "claims_a_minute": false,
+    "cites_wdl_record": false,
+    "prose": "Hull City stunned Manchester United 2-0, a result that feels like a fever dream for the opening weekend. Ajayi and Mendy provided the clinical finishes, while Tzolakis’s 5 saves kept the clean sheet intact. It is early, but Hull is already proving they are far more than a relegation-threatened side.",
+    "scorelines_in_prose": [
+      "2-0"
+    ],
+    "invented_scorelines": []
+  },
+  "verdict": "VERIFIED — GW1, 5 real fixtures resolved from production names, 24 players named with zero misattributions, and a live brief carried the grounding through."
+}
