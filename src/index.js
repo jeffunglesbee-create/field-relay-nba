@@ -5312,7 +5312,24 @@ function computeGameHash(promptText) {
 // confirmed via diff before extraction) so the model-comparison test route
 // below reuses the exact real prompt, not a hand-copied approximation that
 // could silently drift from what production actually sends.
-function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx }) {
+// `sportContext` ADDED 2026-08-23. It is the assembled context block --
+// [MATCH EVENTS], [ESPN GAME LEADERS], [FPL MATCH EVENTS] and the rest of the
+// registry in src/context-assembler.js.
+//
+// WHY IT WAS MISSING, WHICH IS THE WHOLE POINT OF THE FIX. `match_events`
+// shipped this morning (644d7f6) and registered correctly. It never reached a
+// single recap, because assembleContext is called from four places and NONE of
+// them is this one: two backfills, the journalism-cron SLATE brief, and an
+// import. The live per-game recap path -- game finalizes, buildGameCompletePrompt,
+// JOURNALISM_QUEUE, consumer writes game_recap_${sport}_${eventId} -- assembled
+// no context at all.
+//
+// Caught by check 4 of verify-staged-items.mjs on its first live run:
+// "FAIL — 0/3 recap(s) name anyone who scored in the game they describe", with
+// ESPN carrying 3-4 scoring plays for each of those three games. Rule 61: a
+// feature is not done until the full path works, and the builder, the selection
+// rule, the budget and the contract were all verified while the path was not.
+function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx, sportContext }) {
   const scoreStr = (homeScore != null && awayScore != null)
       ? `RESULT: ${away} ${awayScore} at ${home} ${homeScore}.` : '';
   const sportLabel = sport.toUpperCase();
@@ -5364,6 +5381,11 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
       `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
       scoreStr,
       debriefBlock,
+      // Above the SPORT BOUNDARY line and below the score, so what HAPPENED in
+      // the game sits beside the result rather than after the instructions.
+      // `.filter(Boolean)` below drops it when assembly produced nothing, so a
+      // failed or empty context leaves the prompt exactly as it was.
+      sportContext || null,
       `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
       `Write the brief as a single paragraph. No headers, no bullet points.`,
       proseStyleFor(sportLabel),  // sport-gated: no NBA rules in a soccer brief
@@ -16020,7 +16042,47 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                         }
                     }
 
-                    const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx });
+                    // Assemble the context registry for THIS game. Best-effort and
+                    // bounded, in that order of importance.
+                    //
+                    // Rule 5: a context source can never break a primary function.
+                    // The primary function here is enqueueing the brief at all, so
+                    // this is wrapped AND raced against a ceiling. assembleContext
+                    // already try/catches every source individually and each carries
+                    // its own AbortSignal.timeout, but those are per-source: for EPL
+                    // the registry runs match_events, espn_summary, fpl_match_events,
+                    // odds_story and team_form in sequence, and the sum is what would
+                    // delay the enqueue. 8s is the ceiling on the sum.
+                    //
+                    // Cost (Rule 78): one summary fetch per game AT FINALIZATION, not
+                    // per cron tick. CONTRACTS.md measured that at ~28 calls/day
+                    // against a 14-day mean of 28 games/day and cleared it. GameDO's
+                    // `archived` flag one level up guarantees this fires at most once
+                    // per game, so there is no loop.
+                    //
+                    // computeGameHash hashes the prompt, so adding this block changes
+                    // the hash. That is the intended direction: the hash's own note
+                    // calls prompt-hashing "a better cache-validity signal ... also
+                    // captures notes, bracket-impact additions, anything that would
+                    // make regeneration genuinely necessary". More regeneration on a
+                    // context change, never less.
+                    let sportContext = '';
+                    try {
+                        sportContext = await Promise.race([
+                            assembleContext(env, {
+                                sport, home, away,
+                                homeAbbr: '', awayAbbr: '',
+                                sourceId: gameId,       // feeds match_events + espn_summary
+                                league: sport,
+                                homeScore, awayScore,
+                            }, 600),
+                            new Promise(r => setTimeout(() => r(''), 8000)),
+                        ]);
+                    } catch (e) {
+                        console.error('[GAME-COMPLETE] sport context assembly failed (non-fatal):', e.message);
+                    }
+
+                    const prompt = buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debriefCtx, sportContext });
                     await env.JOURNALISM_QUEUE.send({
                         type:        'game-brief',
                         prompt,

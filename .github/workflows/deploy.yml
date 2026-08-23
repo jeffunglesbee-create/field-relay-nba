@@ -153,6 +153,21 @@ jobs:
       - name: scoring-play selection stays in budget and states its truncation
         run: node scripts/match-events-check.mjs
 
+      # The other half of ask 5, and the half that was actually broken.
+      # `match_events` shipped registered, budgeted and tested (644d7f6) and
+      # reached ZERO recaps: assembleContext is called from four places --
+      # two backfills, the journalism-cron SLATE brief, and an import -- and
+      # none of them is the live per-game recap path. Four hours later check 4
+      # of verify-staged-items.mjs said so on its first live run, "0/3 recap(s)
+      # name anyone who scored", with ESPN carrying 3-4 scoring plays for each
+      # of the three games. That check is the right long-term detector but can
+      # only speak once a slate has finalised; this one speaks at deploy time,
+      # when the wiring is being changed. --self-test cuts each link and
+      # requires the corresponding check to go red -- it caught one of the five
+      # matching the function DECLARATION instead of the call site.
+      - name: the live recap path assembles context
+        run: node scripts/check-recap-assembles-context.mjs --self-test && node scripts/check-recap-assembles-context.mjs
+
       # SCORING_ERAS' own header says to add an entry BEFORE deploying any
       # scoreProse change that moves scores. Nothing enforced it, and the one
       # time it was skipped (6aed3bb, 2026-07-16) the mlb_game mean fell
