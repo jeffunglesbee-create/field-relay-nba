@@ -41,7 +41,7 @@ const r1 = x => x == null ? null : Math.round(x * 10) / 10;
 const out = {
   probed_at: new Date().toISOString(), days: DAYS,
   fetch_ok: false, error: null,
-  corpus: { expected: null, collected: 0, scored: 0, recovered_by_sport_split: 0, truncated_partitions: [] },
+  corpus: { expected: null, window: null, collected: 0, scored: 0, recovered_by_sport_split: 0, truncated_partitions: [] },
   unambiguous: null, proxy: null, mechanism: null, mechanism_reading: null, verdict: null,
 };
 
@@ -53,8 +53,19 @@ try {
   out.corpus.expected = summary.reduce((n, r) => n + (r.total || 0), 0);
   const types = [...new Set(summary.map(r => r.brief_type).filter(Boolean))];
 
-  const dates = Array.from({ length: DAYS }, (_, i) =>
-    new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+  // Walk the report's OWN window, not a locally derived one. /quality/report
+  // filters `date >= since` where since is DAYS days back, which spans DAYS+1
+  // distinct dates; a `today - i for i in 0..DAYS-1` walk covers only DAYS of
+  // them and silently skips the oldest. Run 2 collected 388 of an expected 461
+  // with zero capped partitions -- the missing 73 were 2026-08-16, counted in
+  // the denominator and never queried. Deriving both ends from `since` makes
+  // expected and collected reconcile.
+  const since = report.since || new Date(Date.now() - DAYS * 86400000).toISOString().slice(0, 10);
+  const dates = [];
+  for (let d = new Date(`${since}T00:00:00Z`); d <= new Date(); d.setUTCDate(d.getUTCDate() + 1)) {
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  out.corpus.window = { since, dates: dates.length };
 
   const seen = new Map();
   for (const date of dates) {
