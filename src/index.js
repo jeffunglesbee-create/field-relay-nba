@@ -10010,9 +10010,19 @@ export default {
 
         // /health/sources — Stale Data Sentinel. Reports freshness of every
         // data source feeding the journalism pipeline. Probe-only; no alerts.
+        //
+        // ?force=1 ignores the season window. Added 2026-08-23 because the
+        // content check (minEntries + a container body read) shipped in August,
+        // when the three R2 sources that use it -- nba_clutch_playoffs,
+        // nba_clutch_regular, nhl_series_stats -- are all out of season and
+        // skipped. Without this the body-read path would sit unexercised until
+        // October and the deploy readout would keep reporting 4/10 skipped.
+        // Forced rows carry forced:true so an out-of-season staleness reading is
+        // never mistaken for an in-season alarm.
         if (pathname === '/health/sources') {
             const { checkAllSources } = await import('./stale-data-sentinel.js');
-            const result = await checkAllSources(env);
+            const force = url.searchParams.get('force') === '1';
+            const result = await checkAllSources(env, { force });
             return new Response(JSON.stringify(result, null, 2), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json', ...CORS },

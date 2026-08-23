@@ -154,3 +154,64 @@ code cannot *read* is a defect in this code, and does.
   `empty` in the summary
 - `scripts/sentinel-content-check.mjs` — new
 - `.github/workflows/deploy.yml` — gate step + post-deploy readout
+
+---
+
+## Addendum — the first live run, and what it did not measure
+
+Run 32659418899, deploy green, gate step 17 `a fresh but empty source is stale`
+green. The readout printed real counts for the first time:
+
+```
+  ok    mlb_team_abs         entries=30   floor=1 empty=false
+  ok    mlb_pitch_arsenals   entries=216  floor=1 empty=false
+  ok    mlb_expected_stats   entries=442  floor=1 empty=false
+  skip  nba_clutch_playoffs  (out of season)
+  skip  nba_clutch_regular   (out of season)
+  skip  nhl_series_stats     (out of season)
+  skip  wc_group             (out of season)
+  ok    odds_daily / odds_monthly / journalism_brief
+total=10 stale=0 empty=0 healthy=6 skipped=4
+```
+
+Two defects in that run, both mine.
+
+### 1. The artifact was written and thrown away
+
+The readout wrote `outbox/health-sources-32659418899.json` and the verify job's
+`Commit results` step stages exactly one pathspec:
+
+```bash
+git add outbox/live-verify-*.md || echo "(no live-verify artifact to stage)"
+```
+
+The JSON was never staged. It died with the runner. The step went green, printed
+the counts, and committed nothing — the same shape as the `entries` field this
+whole change is about: produced, then discarded. Fixed by adding the pathspec,
+following the existing `|| echo` convention (the comment above that line already
+records why an unmatched glob must not abort the step under `bash -e`).
+
+### 2. The path that changed is the path that did not run
+
+Three sources use the new body read. **All three are out of season right now.**
+NBA clutch is `season: [10, 7]`, NHL series is `[10, 6]`; it is August. The
+readout skipped every source that exercises `checkR2(env, key, container)`.
+
+So the run proved the GitHub-JSON counting path works — which was already
+computing `entries` before this change — and proved nothing about the R2 body
+read, which is the part that did not exist yesterday. The three healthy counts
+came from the one path that was never broken.
+
+Waiting until October is not verification. `/health/sources?force=1` ignores the
+season window; forced rows carry `forced: true` so an out-of-season staleness
+reading is never mistaken for an in-season alarm. The readout now calls it, and
+asserts two more things:
+
+- `skipped === 0` — a skipped source is one whose count was not measured
+- every source declaring a floor produced a real number, or failed outright with
+  a stated reason
+
+Silence is the failure mode being eliminated, so silence cannot be a pass.
+
+`checkAllSources(env, { force })` is the only signature change; the default is
+`false`, so the ordinary endpoint behaves exactly as before.

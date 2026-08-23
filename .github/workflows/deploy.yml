@@ -998,7 +998,11 @@ jobs:
         run: |
           OUT="outbox/health-sources-${{ github.run_id }}.json"
           mkdir -p outbox
-          curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/health/sources" -o "$OUT" || {
+          # force=1 ignores the season window. Without it the three R2 sources
+          # that exercise the new body read -- the ONLY sources that do -- are
+          # skipped every run until October, and this readout would prove the
+          # change works by never running the part that changed.
+          curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/health/sources?force=1" -o "$OUT" || {
             echo "REQUEST FAILED"; exit 1; }
           node -e '
             const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
@@ -1021,6 +1025,18 @@ jobs:
             const broken = d.sources.filter(s => s.reason === "entry count unreadable");
             if (broken.length)
               throw new Error("container read failed for: " + broken.map(s => s.key).join(", "));
+            // (3) force=1 means nothing may be skipped. A skipped source is one
+            // whose entry count was not measured, and the three R2 sources are
+            // out of season from March to September -- exactly the window this
+            // change shipped in.
+            if (d.skipped !== 0)
+              throw new Error("force=1 still skipped: " + d.sources.filter(s => s.skipped).map(s => s.key).join(", "));
+            // (4) Every source with a declared floor must have produced a real
+            // number, or have failed outright with a stated reason. Silence is
+            // the failure mode being eliminated.
+            const mute = d.sources.filter(s => s.minEntries != null && typeof s.entries !== "number" && s.ok !== false);
+            if (mute.length)
+              throw new Error("floor declared but no count produced: " + mute.map(s => s.key).join(", "));
           ' "$OUT"
 
       - name: Live-check endpoints
@@ -1132,6 +1148,12 @@ jobs:
           # whole step before the push ever runs. Same defect class really hit
           # in soccer-league-mislabel-scope-probe.yml on 2026-08-06.
           git add outbox/live-verify-*.md || echo "(no live-verify artifact to stage)"
+          # The readout is the artifact (Rule 89). Written on the runner and
+          # never staged, it dies with the runner -- which is what happened on
+          # run 32659418899: the step went green, printed the six entry counts,
+          # and committed nothing. An artifact nobody can read afterwards is
+          # the same defect as the count that was computed and discarded.
+          git add outbox/health-sources-*.json || echo "(no health-sources artifact to stage)"
 
           if ! git commit -m "chore: post-deploy live verification [skip ci]"; then
             echo "Nothing to commit — no push needed."

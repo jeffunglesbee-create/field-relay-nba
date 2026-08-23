@@ -223,10 +223,15 @@ export function sourceVerdict(source, data, now) {
     return { ageHours, stale, empty, reason };
 }
 
-export async function checkAllSources(env) {
+// `force` ignores the season window. The content check shipped in August, when
+// the three R2 sources that exercise the body read are all out of season; without
+// a way to run them the new path would sit unexercised until October. Forced rows
+// are labelled so an out-of-season staleness reading is never read as an alarm.
+export async function checkAllSources(env, { force = false } = {}) {
     const now = Date.now();
     const checks = await Promise.all(SOURCES.map(async (source) => {
-        if (!inSeason(source.season)) {
+        const seasonal = inSeason(source.season);
+        if (!seasonal && !force) {
             return {
                 key: source.key, label: source.label,
                 inSeason: false, skipped: true, stale: false,
@@ -238,7 +243,8 @@ export async function checkAllSources(env) {
             const { ageHours, stale, empty, reason } = sourceVerdict(source, data, now);
             return {
                 key: source.key, label: source.label,
-                inSeason: true,
+                inSeason: seasonal,
+                ...(seasonal ? {} : { forced: true }),
                 ...data,
                 ageHours,
                 maxAgeHours: source.maxAgeHours,
@@ -250,7 +256,9 @@ export async function checkAllSources(env) {
         } catch (e) {
             return {
                 key: source.key, label: source.label,
-                inSeason: true, ok: false,
+                inSeason: seasonal,
+                ...(seasonal ? {} : { forced: true }),
+                ok: false,
                 error: e.message, stale: true,
                 maxAgeHours: source.maxAgeHours,
             };
@@ -264,6 +272,7 @@ export async function checkAllSources(env) {
         empty: checks.filter(r => r.empty).length,
         healthy: checks.filter(r => !r.stale && !r.skipped).length,
         skipped: checks.filter(r => r.skipped).length,
+        forced: checks.filter(r => r.forced).length,
         sources: checks,
     };
 }
