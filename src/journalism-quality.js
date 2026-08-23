@@ -456,6 +456,9 @@ export async function scoreProse(text, opts = {}) {
   // (dropping connective/analytical prose) over specificity woven into real
   // sentences. Reproduced live: the file's own labeled ANTI-exemplar ("Stanley
   // Cup Final Game 1 begins tonight... 39-26-17 Golden Knights face the
+  // (quoted as it read before 2026-08-23; the live anti-exemplar now carries ##
+  // placeholders instead of these figures, which does not change the SHAPE this
+  // rationale is about)
   // 53-22-7 Hurricanes...") scored 4x higher on this exact dimension (0.55 vs
   // 0.13) than FIELD_VOICE_REGISTER's own real Exemplar A, because listing
   // facts with minimal connective tissue maximizes a flat ratio. Redefined
@@ -780,6 +783,18 @@ export const PROMPT_EXAMPLE_LITERALS = [
     '93.5% penalty kill',
     '+17% runs at Camden Yards',
     '48 minutes',
+    // The placeholder itself. Every exemplar figure in the voice register's
+    // UNIVERSAL segments -- the anti-exemplar and the six numbers-in-prose
+    // patterns -- is now written as ##, #.##, ##.# or ##-##-##, all of which
+    // contain '##', so this single entry catches a copy of any of them.
+    //
+    // A placeholder is only safe if copying it is DETECTABLE, or the fix trades
+    // a plausible fabrication for an invisible one. It lives in the instructions,
+    // and instructions are subtracted before the context search, so 2f reports it
+    // with no extra machinery. Not square brackets: [DRAMA TREND], [CHAMPION] and
+    // [FEATURED STAT] are live tags the prompt tells the model to read, and a
+    // placeholder shaped like one would collide with them.
+    '##',
 ];
 
 export function promptExampleLeaks(prompt, text) {
@@ -890,7 +905,7 @@ export const VOICE_REGISTER_SEGMENTS = [
     '',
     'The following is the FAILURE mode — what FIELD writing must NOT be:',
     '',
-    '"Stanley Cup Final Game 1 begins tonight at Lenovo Center as the 39-26-17 Golden Knights face the 53-22-7 Hurricanes. Pavel Dorofeyev enters with 37 goals this season, while Seth Jarvis has 32 goals this season. In MLB, 4-2 Steven Matz with a 4.67 ERA meets 0-7 Jack Flaherty with a 5.81 ERA. 3-4 Aaron Nola carries a 5.72 ERA against 5-3 Randy Vasquez with a 3.28 ERA."',
+    '"Stanley Cup Final Game 1 begins tonight at Lenovo Center as the ##-##-## Golden Knights face the ##-##-## Hurricanes. Pavel Dorofeyev enters with ## goals this season, while Seth Jarvis has ## goals this season. In MLB, ##-## Steven Matz with a #.## ERA meets ##-## Jack Flaherty with a #.## ERA. ##-## Aaron Nola carries a #.## ERA against ##-## Randy Vasquez with a #.## ERA."',
     '',
     'Why this fails:',
     '- Records and stats stacked without angle',
@@ -908,35 +923,35 @@ export const VOICE_REGISTER_SEGMENTS = [
     'Six patterns that work. The wire-copy form on the left FAILS. The FIELD form on the right works because the number lives inside a noun-phrase, prepositional phrase, parenthetical, or appositive — NEVER as the predicate.',
     '',
     'PATTERN 1 — APPOSITIVE (number tucked into a description of who)',
-    '  Wire copy: "Aho leads Carolina with 80 points this season."',
-    '  FIELD:     "Aho, an 80-point center, is the reason Carolina is here."',
+    '  Wire copy: "Aho leads Carolina with ## points this season."',
+    '  FIELD:     "Aho, an ##-point center, is the reason Carolina is here."',
     '',
     'PATTERN 2 — POSSESSIVE COMPOUND (number as adjective on a noun-phrase)',
-    '  Wire copy: "Matz holds a 4.67 ERA this season."',
-    '  FIELD:     "Matz\'s 4.67 ERA tells the story — bullpen night."',
+    '  Wire copy: "Matz holds a #.## ERA this season."',
+    '  FIELD:     "Matz\'s #.## ERA tells the story — bullpen night."',
     '',
     'PATTERN 3 — PREPOSITIONAL EMBED (number as object of a preposition)',
-    '  Wire copy: "Eichel has 90 points this season."',
-    '  FIELD:     "Eichel at 90 is the headline; whether Carolina can deny him space is the question."',
+    '  Wire copy: "Eichel has ## points this season."',
+    '  FIELD:     "Eichel at ## is the headline; whether Carolina can deny him space is the question."',
     '',
     'PATTERN 4 — PARENTHETICAL (number isolated as supporting evidence)',
-    '  Wire copy: "Nola brings a 5.72 ERA to his start."',
-    '  FIELD:     "Nola\'s been getting hit (5.72), but the underlying numbers say bad luck more than bad pitcher."',
+    '  Wire copy: "Nola brings a #.## ERA to his start."',
+    '  FIELD:     "Nola\'s been getting hit (#.##), but the underlying numbers say bad luck more than bad pitcher."',
     '',
     'PATTERN 5 — THRESHOLD / COLLECTIVE (multiple numbers compressed)',
-    '  Wire copy: "Matz 4.67 vs Flaherty 5.81. Nola 5.72 vs Vasquez 3.28."',
-    '  FIELD:     "Three of tonight\'s four starters are carrying ERAs north of 4.50 — bullpen leverage across the board."',
+    '  Wire copy: "Matz #.## vs Flaherty #.##. Nola #.## vs Vasquez #.##."',
+    '  FIELD:     "Three of tonight\'s four starters are carrying ERAs north of #.## — bullpen leverage across the board."',
     '',
     'PATTERN 6 — PUNCTUATION (number as rhetorical beat)',
-    '  Wire copy: "Wilson leads the Aces with 24.8 PPG this season."',
-    '  FIELD:     "Wilson does what Wilson does. 24.8 a night. Pick your poison."',
+    '  Wire copy: "Wilson leads the Aces with ##.# PPG this season."',
+    '  FIELD:     "Wilson does what Wilson does. ##.# a night. Pick your poison."',
     '',
     '═══ FORBIDDEN — THE WIRE-COPY SIGNATURE ═══',
     '',
     'The construction:',
     '  SUBJECT + [has / holds / carries / posts / leads with / brings / maintains / enters with / sits at / owns / averages] + NUMBER + [this season / in May / through May / this postseason]',
     '',
-    'Whenever you find yourself reaching for that construction, STOP. The verb is the tell. "Holds a 4.67 ERA," "carries a 5.72 ERA," "enters with 90 points," "averages 24.8 PPG" — these are the verbs that automated wire feeds use. They make every player into a stat-holder. That is not what FIELD does.',
+    'Whenever you find yourself reaching for that construction, STOP. The verb is the tell. "Holds a #.## ERA," "carries a #.## ERA," "enters with ## points," "averages ##.# PPG" — these are the verbs that automated wire feeds use. They make every player into a stat-holder. That is not what FIELD does.',
     '',
     'Restructure into one of the six patterns above. The number is evidence; the claim is the sentence.',
     '',

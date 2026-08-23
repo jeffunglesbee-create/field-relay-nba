@@ -62,6 +62,29 @@ for (const lit of atRisk) {
   ok(`2f reports "${lit}" from a gated soccer prompt`,
     promptExampleLeaks(gated, `Everton, a ${lit} side, held on.`).includes(lit));
 }
+// e) CC-CMD-2026-08-23-prompt-numeral-mining. The universal segments reach every
+// brief in every sport by design, so a real-looking figure sitting in them is
+// mineable by all of them. They now carry ## placeholders instead.
+//
+// This assertion is why the at-risk count above is allowed to fall: it dropped
+// from 34 to 30 assertions when four literals left the register, and without
+// this line that drop would look like coverage quietly shrinking.
+const universal = VOICE_REGISTER_SEGMENTS.filter(s => s.sport === null).flatMap(s => s.lines).join('\n');
+const stillThere = PROMPT_EXAMPLE_LITERALS.filter(l => l !== '##' && universal.includes(l));
+ok('no tracked literal survives in the universal segments', stillThere.length === 0,
+  stillThere.join(', '));
+
+// A placeholder is only safe if copying it is detectable. Without this, the fix
+// would trade a plausible fabrication for an invisible one.
+ok('2f reports the placeholder itself if a draft copies it',
+  promptExampleLeaks(gated, 'Everton, a ## goals side, held on.').includes('##'));
+
+// The teaching must survive the substitution — six patterns, both halves of each.
+ok('all six numbers-in-prose patterns and their wire/FIELD pairs survive',
+  (universal.match(/PATTERN \d/g) || []).length === 6 &&
+  (universal.match(/Wire copy:/g) || []).length === 6 &&
+  /ANTI-EXEMPLAR/.test(universal));
+
 ok('2f stays silent when the figure is real game context',
   promptExampleLeaks(gated + '\nEverton have 37 goals this season',
     'Everton, a 37 goals side, held on.').length === 0);
