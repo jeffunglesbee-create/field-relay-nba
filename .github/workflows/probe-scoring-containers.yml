@@ -1,0 +1,20 @@
+name: Probe scoring containers
+
+# PRE-BUILD probe for ask 5 of CC-CMD-2026-08-20-brief-data-quality.
+# Read-only GETs through the relay's /espn-summary proxy.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-probe-scoring-containers'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-scoring-containers.mjs
+      commit_message: "chore: scoring container shape probe [skip ci]"
