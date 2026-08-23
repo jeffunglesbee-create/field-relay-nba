@@ -98,22 +98,46 @@ const EXPLICIT = {
 // 'CFL – 2026 Season · Week 7' -> 'CFL'. The declared label is confirmed at
 // src/index.js:8034. Split on the en-dash or the middot, never on a hyphen: a
 // real label could contain one.
+// Class D — a context string whose LABEL is its prefix. Two shapes measured:
+//   'CFL – 2026 Season · Week 7'  -> 'CFL'
+//   'AFL 2026 — Round 15'         -> 'AFL 2026' -> 'AFL'
+// So the prefix may carry a trailing season year, which is stripped and then
+// checked against the authority. Split on the dashes and the middot only, never
+// on a plain hyphen: a real competition label could contain one.
 const contextPrefix = (v) => {
-    const head = String(v).split(/\s+[–—·]\s+|\s+·\s+/)[0].trim();
+    let head = String(v).split(/\s*[–—·]\s*/)[0].trim();
+    if (!CONFORMING.has(head)) head = head.replace(/\s+(19|20)\d{2}$/, '').trim();
     return CONFORMING.has(head) ? head : null;
 };
 
-// Class A — recover the label from the row's OWN id, which kept its casing when
-// the column was lowercased. Verifiable per row, which is why the census chose
-// it over a hand map: the evidence travels with the row.
-const fromId = (id, briefType) => {
-    const s = String(id || '');
-    const bt = String(briefType || '');
-    if (!bt || !s.startsWith(bt + '_')) return null;
-    const rest = s.slice(bt.length + 1);
-    const cut = rest.lastIndexOf('_');          // trailing game id
-    const label = (cut > 0 ? rest.slice(0, cut) : rest).trim();
-    return CONFORMING.has(label) ? label : null;
+// Class A — CASING RECOVERY against the authority set, not id parsing.
+//
+// The census said to "recover the label from each row's own id, which kept its
+// casing". Measured 2026-08-23, that is unsafe, and one row shows why: 77 rows
+// carry sport `mls` with ids like
+// `pre_game_FIFA World Cup 2026_2026-07-22_austin_seattle`. Austin v Seattle is
+// an MLS fixture — the COLUMN is right and the ID is wrong. Trusting ids would
+// have relabelled 77 MLS briefs as World Cup. The id tail is also multi-segment
+// (`date_home_away`), not the single game id the parse assumed, so the first
+// implementation resolved 0 of every group and abstained. It abstained for the
+// wrong reason, but abstaining was correct.
+//
+// What the 235 lowercased rows actually need is casing, and casing can be
+// recovered from the authority set with no reference to the id at all: a value
+// is a casing variant iff EXACTLY ONE authority label equals it
+// case-insensitively. Exactly-one matters — `wnba` and `WNBA` are both in the
+// games table, so a value matching two labels is genuinely ambiguous and is
+// refused. (`wnba` and `golf` never reach this branch: they ARE authority
+// labels, so they are conforming and skipped, which is the census's central
+// warning honoured by construction rather than by a special case.)
+//
+// This is not a blanket lowercase rule. Nothing is uppercased, title-cased or
+// transformed; a value is only ever replaced by a label the games table already
+// carries.
+const casingMatch = (value) => {
+    const lc = String(value).toLowerCase();
+    const hits = [...CONFORMING].filter(a => String(a).toLowerCase() === lc);
+    return hits.length === 1 ? hits[0] : null;
 };
 
 const out = {
@@ -193,18 +217,16 @@ try {
                         rows: rows.map(r => ({ id: r.id, to: explicit })) });
             continue;
         }
-        // Class A — recover from each row's own id. Per-row by nature: the
-        // evidence travels with the row, which is why the census chose it over a
-        // hand map for the 235 lowercased labels.
-        const derived = rows.map(r => ({ id: r.id, to: fromId(r.id, r.brief_type) }));
-        const ok = derived.filter(d => d.to);
-        if (rows.length && ok.length === rows.length) {
-            plan.push({ from: v.sport, to: '(per-row, from id)', n: rows.length,
-                        via: 'from-id', rows: ok });
-        } else {
-            unclassified.push({ sport: v.sport, n: rows.length, sample_id: v.sample_id,
-                                resolved_from_id: ok.length, of: rows.length });
+        // Class A — casing recovery against the authority set.
+        const cased = casingMatch(v.sport);
+        if (cased && cased !== v.sport) {
+            plan.push({ from: v.sport, to: cased, n: rows.length, via: 'casing',
+                        rows: rows.map(r => ({ id: r.id, to: cased })) });
+            continue;
         }
+        unclassified.push({ sport: v.sport, n: rows.length, sample_id: v.sample_id,
+                            reason: cased ? 'already matches its authority label'
+                                          : 'no single authority label matches case-insensitively' });
     }
     out.plan = plan;
     out.unclassified = unclassified;
@@ -213,9 +235,31 @@ try {
     // ── 41 mislabelled game_recap: RECLASSIFY, not rewrite ─────────────────
     // Correct live briefs wearing the wrong type. Prose untouched; only
     // brief_type moves, and brief_type is insert-only, so the cron cannot undo it.
+    // GATED ON FINALITY, not on language alone -- which is ask 2's own lesson
+    // applied to ask 2's own residual. Language by itself measured 95 rows here
+    // (the census said 41), and a finished 1-0 game whose recap reads "scoreless
+    // through 60 minutes" is legitimate retrospective prose, not a live brief.
+    // Retyping it would be a NEW defect created while fixing an old one.
+    //
+    // So a row is retyped only on POSITIVE evidence that its game is unfinished:
+    // the game row exists AND finalized_at IS NULL. A brief whose game cannot be
+    // joined abstains -- it is reported below, never retyped, because "we cannot
+    // tell" is not "it is live".
     const { rows: mis } = await d1(
-        `SELECT id FROM briefs WHERE brief_type = 'game_recap' AND ${LIVE_LANG}`);
-    out.mislabelled_recaps = { n: mis.length, ids: mis.map(r => r.id) };
+        `SELECT b.id FROM briefs b
+         JOIN regular_season_games g ON g.espn_event_id = b.game_id
+         WHERE b.brief_type = 'game_recap' AND ${LIVE_LANG}
+           AND g.finalized_at IS NULL`);
+    const { rows: langOnly } = await d1(
+        `SELECT COUNT(*) AS n FROM briefs WHERE brief_type = 'game_recap' AND ${LIVE_LANG}`);
+    out.mislabelled_recaps = {
+        n: mis.length, ids: mis.map(r => r.id),
+        by_language_alone: langOnly[0]?.n ?? null,
+        abstained: (langOnly[0]?.n ?? 0) - mis.length,
+        predicate: 'live language AND joined game row has finalized_at IS NULL',
+        note: 'The difference between these two counts is rows whose prose reads live but whose '
+            + 'game is finished or unjoinable. Those are left alone deliberately.',
+    };
 
     // The revert is generated from the OBSERVED before-state, before anything is
     // written, so undoing never depends on re-deriving what the old value was.
@@ -287,7 +331,10 @@ try {
             `SELECT sport, COUNT(*) AS n FROM briefs GROUP BY sport ORDER BY n DESC`);
         const stillBad = after.filter(v => v.sport != null && !CONFORMING.has(v.sport));
         const { rows: stillMis } = await d1(
-            `SELECT COUNT(*) AS n FROM briefs WHERE brief_type = 'game_recap' AND ${LIVE_LANG}`);
+            `SELECT COUNT(*) AS n FROM briefs b
+             JOIN regular_season_games g ON g.espn_event_id = b.game_id
+             WHERE b.brief_type = 'game_recap' AND ${LIVE_LANG}
+               AND g.finalized_at IS NULL`);
         out.verification = {
             distribution_after: after.map(v => ({ sport: v.sport, n: v.n })),
             non_conforming_remaining: stillBad,
