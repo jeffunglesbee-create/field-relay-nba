@@ -63,6 +63,7 @@ import {
 import {
   FIELD_PROSE_STYLE as JQ_STYLE,
   proseStyleFor,
+  voiceRegisterFor,
   FIELD_VOICE_REGISTER,
   runQualityChain,
   scoreProse as jqScoreProse,
@@ -2814,7 +2815,7 @@ async function writeWCResult(db, game, env, ctx) {
         })();
 
         const prompt = [
-            FIELD_VOICE_REGISTER,
+            voiceRegisterFor('WC26'),  // sport-gated exemplars
             `Write a 2-3 sentence post-match brief for this World Cup 2026 result.`,
             `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
             `Include: key goalscorers with minutes, standout performances, what this means for the group.`,
@@ -4386,7 +4387,7 @@ async function handleV2Games(url, env, ctx, request = null) {
                             } catch (e) { console.error(`[V2GAMES] NHL three-stars fetch failed (${g.id}):`, e.message); }
 
                             const prompt = [
-                                FIELD_VOICE_REGISTER,
+                                voiceRegisterFor('NHL'),  // sport-gated exemplars
                                 `Write a 2-3 sentence post-game brief for this NHL result.`,
                                 `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through.`,
                                 `Include: three-star performers, key moment or turning point, what this means for the series or standings.`,
@@ -4511,7 +4512,7 @@ async function handleV2Games(url, env, ctx, request = null) {
                             } catch (e) { console.error(`[V2GAMES] NBA CDN boxscore fetch failed (${g.id}):`, e.message); }
 
                             const prompt = [
-                                FIELD_VOICE_REGISTER,
+                                voiceRegisterFor('NBA'),  // sport-gated exemplars
                                 `Write a 2-3 sentence post-game brief for this NBA result.`,
                                 `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
                                 `Include: key performers with stats, decisive run or moment, what this means for the standings or series.`,
@@ -5354,7 +5355,7 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
   }
 
   return [
-      FIELD_VOICE_REGISTER,
+      voiceRegisterFor(sportLabel),  // sport-gated exemplars
       `Write a 2-3 sentence post-game brief for this ${sportLabel} result.`,
       `Factual, warm. FIELD voice: the truth in sports is fun — let that energy through. No manufactured drama.`,
       `Do NOT use banned phrases: "stunned", "shocked", "thriller", "instant classic", "for the ages".`,
@@ -6660,7 +6661,7 @@ async function executeGameBriefBackfill(env, date) {
     }
 
     const gamePrompt = [
-      FIELD_VOICE_REGISTER,
+      voiceRegisterFor(sport),  // sport-gated exemplars
       `Write a 50-70 word game brief for this ${sport}${isPostseason ? ' playoff' : ''} game.`,
       `${away} ${game.away_score} at ${home} ${game.home_score}`,
       game.venue ? `Venue: ${game.venue}` : '',
@@ -12776,7 +12777,7 @@ export default {
                         } catch (e) { console.error("[BACKFILL-GAME-BRIEFS] sport context assembly failed:", e.message); }
 
                         const gamePrompt = [
-                            FIELD_VOICE_REGISTER,
+                            voiceRegisterFor(sportLabel),  // sport-gated exemplars
                             `Write a 50-70 word game brief for this ${sportLabel}${isPostseason ? ' playoff' : ''} game.`,
                             `${game.away} ${game.away_score} at ${game.home} ${game.home_score}`,
                             game.venue ? `Venue: ${game.venue}` : '',
