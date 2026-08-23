@@ -1,0 +1,199 @@
+{
+  "probed_at": "2026-08-23T05:58:24.812Z",
+  "sports": {
+    "mlb": {
+      "slug": "sports/baseball/mlb",
+      "expected_container": "plays",
+      "event_id": "401816625",
+      "summary_ok": true,
+      "containers_present": [
+        "plays:601"
+      ],
+      "scoring_items": 5,
+      "item_keys": [
+        "id",
+        "sequenceNumber",
+        "type",
+        "alternativeType",
+        "alternativePlay",
+        "text",
+        "awayScore",
+        "homeScore",
+        "period",
+        "scoringPlay",
+        "scoreValue",
+        "team",
+        "participants",
+        "wallclock",
+        "atBatId",
+        "batOrder",
+        "bats",
+        "atBatPitchNumber",
+        "pitchCoordinate",
+        "hitCoordinate",
+        "summaryType",
+        "pitchCount",
+        "resultCount",
+        "trajectory",
+        "outs"
+      ],
+      "sample_text": "Adames homered to left center (403 feet).",
+      "selection_fields": {
+        "has_text": true,
+        "has_period": true,
+        "has_clock": false,
+        "has_scoreValue": true,
+        "has_homeScore": true,
+        "has_awayScore": true,
+        "running_score_on_all": true
+      },
+      "error": null,
+      "archive_rows": 6
+    },
+    "nba": {
+      "slug": "sports/basketball/nba",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "PENDING — no game_recap in the archive for this sport (out of season?)",
+      "archive_rows": 0
+    },
+    "wnba": {
+      "slug": "sports/basketball/wnba",
+      "expected_container": "plays",
+      "event_id": "401857164",
+      "summary_ok": true,
+      "containers_present": [
+        "plays:410"
+      ],
+      "scoring_items": 112,
+      "item_keys": [
+        "id",
+        "sequenceNumber",
+        "type",
+        "text",
+        "awayScore",
+        "homeScore",
+        "period",
+        "clock",
+        "scoringPlay",
+        "scoreValue",
+        "team",
+        "participants",
+        "wallclock",
+        "shootingPlay",
+        "coordinate",
+        "pointsAttempted",
+        "shortDescription"
+      ],
+      "sample_text": "Sabrina Ionescu makes 4-foot layup (Leonie Fiebich assists)",
+      "selection_fields": {
+        "has_text": true,
+        "has_period": true,
+        "has_clock": true,
+        "has_scoreValue": true,
+        "has_homeScore": true,
+        "has_awayScore": true,
+        "running_score_on_all": true
+      },
+      "error": null,
+      "archive_rows": 6
+    },
+    "nhl": {
+      "slug": "sports/hockey/nhl",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "PENDING — no game_recap in the archive for this sport (out of season?)",
+      "archive_rows": 0
+    },
+    "nfl": {
+      "slug": "sports/football/nfl",
+      "expected_container": "scoringPlays",
+      "event_id": "401873296",
+      "summary_ok": true,
+      "containers_present": [
+        "scoringPlays:7"
+      ],
+      "scoring_items": 7,
+      "item_keys": [
+        "id",
+        "type",
+        "text",
+        "awayScore",
+        "homeScore",
+        "period",
+        "clock",
+        "team",
+        "scoringType"
+      ],
+      "sample_text": "Harrison Butker 45 Yd Field Goal",
+      "selection_fields": {
+        "has_text": true,
+        "has_period": true,
+        "has_clock": true,
+        "has_scoreValue": false,
+        "has_homeScore": true,
+        "has_awayScore": true,
+        "running_score_on_all": true
+      },
+      "error": null,
+      "archive_rows": 6
+    },
+    "epl": {
+      "slug": "sports/soccer/eng.1",
+      "expected_container": "keyEvents",
+      "event_id": "401879321",
+      "summary_ok": true,
+      "containers_present": [
+        "keyEvents:20",
+        "commentary:131"
+      ],
+      "scoring_items": 3,
+      "item_keys": [
+        "id",
+        "type",
+        "text",
+        "shortText",
+        "period",
+        "clock",
+        "scoringPlay",
+        "team",
+        "participants",
+        "source",
+        "wallclock",
+        "shootout",
+        "goalPositionY",
+        "fieldPositionX",
+        "fieldPositionY",
+        "fieldPosition2X",
+        "fieldPosition2Y"
+      ],
+      "sample_text": "Goal! Brentford 1, Tottenham Hotspur 0. Keane Lewis-Potter (Brentford) right footed shot from the centre of the box to the centre of the goa",
+      "selection_fields": {
+        "has_text": true,
+        "has_period": true,
+        "has_clock": true,
+        "has_scoreValue": false,
+        "has_homeScore": false,
+        "has_awayScore": false,
+        "running_score_on_all": false
+      },
+      "error": null,
+      "archive_rows": 6
+    }
+  },
+  "notes": [
+    "scoring items per finalized game — mlb:5 wnba:112 nfl:7 epl:3"
+  ]
+}
