@@ -1258,6 +1258,34 @@ async function buildFPLMatchEventsContext(env, game) {
                 .map(r => `${r.name} (${r.abbr}) ${r.value}`).join(', ')}`);
         }
 
+        // ── Table position (defect 2 of CC-CMD-2026-08-22-brief-sport-
+        // contamination) ────────────────────────────────────────────────────
+        // Observed on the live desk 2026-08-22: "Brentford leads Spurs 3-0 in
+        // the 58th minute … The game remains a 0-0-0 stalemate in league
+        // standings." A side leading 3-0 is not in a stalemate, and 0-0-0 is a
+        // won-drawn-lost RECORD, which is the wrong season stat for European
+        // football twice over: the table separates sides on points and goal
+        // difference, and on an opening weekend EVERY record is 0-0-0, so the
+        // line is vacuous before it is contradictory.
+        //
+        // bootstrap-static's team records already carry position/points/played,
+        // and `teams` is fetched above, so this costs no extra request.
+        // Deliberately never emits a W-D-L triple.
+        const ord = (n) => {
+            const teens = n % 100;
+            if (teens >= 11 && teens <= 13) return `${n}th`;
+            return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+        };
+        const standing = (id) => {
+            const t = teams.find(x => x.id === id);
+            if (!t || t.position == null || t.points == null) return null;
+            return t.played === 0
+                ? `${t.name} ${ord(t.position)}, no matches played yet`
+                : `${t.name} ${ord(t.position)} on ${t.points} point${t.points === 1 ? '' : 's'} from ${t.played}`;
+        };
+        const table = [standing(homeId), standing(awayId)].filter(Boolean);
+        if (table.length === 2) lines.push(`League table: ${table.join(' | ')}`);
+
         // Stated so a generator cannot infer a minute it was never given.
         if (lines.length > 2) lines.push('(FPL carries no goal timings — do not state minutes from this block.)');
 
@@ -1467,4 +1495,8 @@ export {
     buildTeamFormContext,
     buildFPLPlayerContext,
     buildFPLMatchEventsContext,
+    // Exported so a check can compare it against the CURRENT season's team
+    // list rather than against a copy of itself. A closed dictionary of clubs
+    // is only correct until the league is promoted into.
+    _FPL_SHORT_TO_ESPN_ABBR,
 };

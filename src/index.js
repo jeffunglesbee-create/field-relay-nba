@@ -97,7 +97,6 @@ import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
-import { fetchFplData, fplContextFor } from './fpl-events.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -8635,26 +8634,6 @@ async function handleJournalismCycle(env, opts = {}) {
     // Consumer handles AI call + quality chain + KV write (same path as wc-morning).
     // Falls back to old sync path if Queue not bound.
     const gameBriefResults = [];
-    // EPL event grounding (CC-CMD-2026-08-21) + table context (defect 2 of
-    // CC-CMD-2026-08-22). Fetched at most ONCE per cycle and only if the slate
-    // actually carries an EPL game, so a slate without one costs nothing.
-    //
-    // handleJournalismCycle fires every 15 minutes (Rule 24), so this is 3
-    // upstream requests per quarter hour at worst, against TTLs of 3600s for
-    // bootstrap and 30s for live — the same TTLs the /fpl proxy already uses.
-    //
-    // Wrapped so that FPL can never break journalism: any failure leaves
-    // _fplData null, fplContextFor returns a null block, and the prompt is
-    // built exactly as it was before this change.
-    let _fplData = null, _fplTried = false;
-    const _fplUnresolved = new Set();
-    const getFplData = async () => {
-      if (_fplTried) return _fplData;
-      _fplTried = true;
-      try { _fplData = await fetchFplData(); }
-      catch (e) { console.error('[FPL] fetch failed, EPL briefs fall back to ungrounded:', e.message); }
-      return _fplData;
-    };
     if (env.JOURNALISM_QUEUE) {
       for (const {sport, league, label} of LEAGUES) {
         try {
@@ -8840,34 +8819,17 @@ async function handleJournalismCycle(env, opts = {}) {
               } catch (e) { console.error('[GAME-BRIEF-ENQUEUE] pre-game brief failed (non-fatal):', e.message); }
             }
 
-            // Who actually scored, and where both sides sit in the table. Only
-            // EPL: this feed is the Premier League's own and covers nothing else.
-            let _fplBlock = null;
-            if (label === 'EPL') {
-              try {
-                const _fpl = fplContextFor(homeName, awayName, await getFplData());
-                _fplBlock = _fpl.block;
-                if (_fpl.reason === 'unresolved-team') {
-                  // A club the alias map has not seen. Named in the log rather
-                  // than approximated — the map is extended on observation, the
-                  // same way the laboratory models a sport when the sentinel
-                  // reports it.
-                  for (const n of _fpl.unresolved || []) _fplUnresolved.add(n);
-                }
-              } catch (e) { console.error('[FPL] context failed for', homeName, awayName, e.message); }
-            }
             const gamePrompt = [
               `Write a FIELD Game Brief for this ${label} game.`,
               `${awayName} @ ${homeName}.`,
               series ? `Series: ${series}.` : '',
               `Status: ${comp.status?.type?.description || 'Scheduled'}. Broadcast: ${broadcast}.`,
               `Game data: ${gameLine}`,
-              _fplBlock,
               _cronDebriefBlock,
               '',
               isPlayoff
                 ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
-                : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : label === 'EPL' && _fplBlock ? 'who scored, then where it leaves them in the table' : 'the matchup'}. One complete thought.`,
+                : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
               proseStyleFor(label),  // sport-gated: no NBA rules in a soccer brief
               'Write only from data above. No invented stats.',
             ].filter(Boolean).join('\n');
@@ -8900,14 +8862,6 @@ async function handleJournalismCycle(env, opts = {}) {
         } catch(e) {
           console.warn(`[journalism-cycle] game briefs enqueue ${label} error:`, e.message);
         }
-      }
-      // A club whose ESPN name the FPL alias map does not carry gets no event
-      // grounding and no table line. Silent would be the wrong shape: the map
-      // is extended on observation, so the observation has to be visible. Only
-      // ten of the twenty EPL clubs had been seen when the map was derived.
-      if (_fplUnresolved.size) {
-        console.warn('[FPL] EPL clubs not in the alias map, briefs ungrounded for them:',
-          [...(_fplUnresolved)].join(', '));
       }
     }
 
