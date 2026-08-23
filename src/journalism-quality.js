@@ -662,7 +662,7 @@ export async function scoreProse(text, opts = {}) {
 }
 
 // ── Layer 1: style block (synced from FIELD_PROSE_STYLE) ────────────────────
-export const FIELD_PROSE_STYLE = [
+export const PROSE_STYLE_RULES = [
   '- STYLE: specificity over metaphor. "48 minutes from their first Finals since 1999" not "looking to punch their ticket."',
   '- STYLE: numbers over adjectives. "Brunson\'s 29.0 PPG this series" not "Brunson has been dominant."',
   '- TIME-PERIOD ANCHORING (mandatory): every numeric statistic must be qualified with its time period in the SAME sentence. Required for points, PPG, ERA, batting avg, RBIs, goals, goals-against, FG%, saves, shots, etc. Acceptable qualifiers: "this postseason", "this series", "this season", "last 5 games", "career", "through 30 starts", "tonight", "in May". Bare numbers like "25.0 points", "26.0 PPG", "37 goals", "5-for-6 with 2 RBIs", "32 points through the season" without a clear timeframe ARE FORBIDDEN. The reader must always know what window the number is measured over. Example: write "Wembanyama\'s 28.2 PPG this postseason" not "Wembanyama\'s 25.0 points." Write "Jung Hoo Lee\'s 5-for-6 night" not "Jung Hoo Lee went 5-for-6" — the noun "night" anchors the number to one game.',
@@ -680,7 +680,46 @@ export const FIELD_PROSE_STYLE = [
   '- BANNED PHRASES (never use): '+BANNED_PHRASES.join(', ')+'.',
   '- USE SPARINGLY (maximum once per brief): '+SPARINGLY_PHRASES.join(', ')+'. If you use any of these, use it once only — then choose a more specific word.',
   '- NEVER explain what data is missing or why you cannot write something. If context is limited, write a short factual brief from what is available. Do not produce meta-commentary about the data.',
-].join('\n');
+];
+
+// Rules that speak ONE sport's language, keyed by their leading tag. Everything
+// not listed here is universal and goes to every brief.
+//
+// MEASURED 2026-08-22, live EPL desk: a soccer brief read "Everton maintains a
+// 107.7 DRTG, best in the NBA, despite playing soccer tonight." "107.7 DRTG,
+// best in the NBA" is the CITE NBA ANALYTICS example VERBATIM. The per-game
+// prompts at src/index.js already carry a SPORT BOUNDARY line ("Write ONLY
+// ${sportLabel} content"), and the style block sat directly beneath it citing a
+// basketball rating metric by name. The instruction and the example contradicted
+// each other in one prompt; the example won.
+//
+// CITE CHAMPION is scoped for the same reason -- its text instructs the model to
+// write "reigning NBA champions".
+//
+// NOT scoped (deliberate, Rule 69): LEAGUE BOUNDARIES names every league, but it
+// is the rule that FORBIDS mixing them -- removing it from a soccer prompt would
+// delete the guardrail, not the contamination. CITE ANALYTICS spans four sports
+// in one string ([PP/PK] hockey, [PARK]/[UMPIRE] baseball, [POSSESSION] soccer)
+// and needs splitting before it can be scoped; it names no league, so it is not
+// this ask. Both carried forward in the outbox.
+const SPORT_SCOPED_RULES = {
+  '- CITE NBA ANALYTICS:': 'basketball',
+  '- CITE CHAMPION:':      'basketball',
+};
+
+// The style block for one sport. An unknown or absent sport (the mixed-sport
+// slate brief) gets every rule -- identical to the pre-2026-08-23 behavior.
+export function proseStyleFor(sport) {
+  const cls = detectSportClass(sport);
+  if (!cls) return PROSE_STYLE_RULES.join('\n');
+  return PROSE_STYLE_RULES.filter(rule => {
+    const tag = Object.keys(SPORT_SCOPED_RULES).find(t => rule.startsWith(t));
+    return !tag || SPORT_SCOPED_RULES[tag] === cls;
+  }).join('\n');
+}
+
+// Ungated: every rule. Kept as the export the slate-brief call sites already use.
+export const FIELD_PROSE_STYLE = PROSE_STYLE_RULES.join('\n');
 
 // ── Layer 2f: prompt-example leakage ────────────────────────────────────────
 // MEASURED 2026-08-22 on the live desk, two EPL briefs, both user-facing:
@@ -752,9 +791,18 @@ export function promptExampleLeaks(prompt, text) {
     // leak looked like real data and 2f stayed silent. Anything that is
     // instruction rather than data must come out before the search.
     let context = String(prompt);
-    for (const block of [FIELD_PROSE_STYLE, FIELD_VOICE_REGISTER]) {
-        if (block) context = context.split(block).join(' ');
+    // Subtract each style rule INDIVIDUALLY, not the joined block. As of
+    // 2026-08-23 a per-game prompt carries proseStyleFor(sport) -- a SUBSET of
+    // the rules -- so splitting on the joined FIELD_PROSE_STYLE string matches
+    // nothing, leaves the instructions sitting in what this function treats as
+    // game context, and every literal then looks like real data. 2f would have
+    // gone silent in the same commit that reduced the leaks. Per-rule
+    // subtraction is subset-proof: it holds for the full block and for any
+    // gated variant of it.
+    for (const rule of PROSE_STYLE_RULES) {
+        if (rule) context = context.split(rule).join(' ');
     }
+    if (FIELD_VOICE_REGISTER) context = context.split(FIELD_VOICE_REGISTER).join(' ');
     return PROMPT_EXAMPLE_LITERALS.filter(lit =>
         text.includes(lit) && !context.includes(lit));
 }

@@ -62,6 +62,7 @@ import {
 // See src/journalism-quality.js for full documentation.
 import {
   FIELD_PROSE_STYLE as JQ_STYLE,
+  proseStyleFor,
   FIELD_VOICE_REGISTER,
   runQualityChain,
   scoreProse as jqScoreProse,
@@ -5361,7 +5362,7 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
       debriefBlock,
       `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content.`,
       `Write the brief as a single paragraph. No headers, no bullet points.`,
-      JQ_STYLE,
+      proseStyleFor(sportLabel),  // sport-gated: no NBA rules in a soccer brief
   ].filter(Boolean).join('\n');
 }
 
@@ -8781,7 +8782,7 @@ async function handleJournalismCycle(env, opts = {}) {
                       isPlayoff
                         ? 'Focus on playoff stakes and what to watch. Factual context only. No predictions.'
                         : 'This game is on national television. Lead with the most interesting matchup fact.',
-                      JQ_STYLE,
+                      proseStyleFor(label),  // sport-gated: no NBA rules in a soccer brief
                       'Write only from data above. No invented stats.',
                     ].filter(Boolean).join('\n');
                     const _pgProse = await callProxy(_pgPrompt);
@@ -8828,7 +8829,7 @@ async function handleJournalismCycle(env, opts = {}) {
               isPlayoff
                 ? 'Rules: 50-70 words. Lead with the series stakes. Tactical focus — what decides this game.'
                 : `Rules: 40-60 words. Lead with the most interesting fact about ${label === 'MLB' ? 'the pitching matchup or park conditions' : label === 'WNBA' ? 'the standings context' : 'the matchup'}. One complete thought.`,
-              JQ_STYLE,
+              proseStyleFor(label),  // sport-gated: no NBA rules in a soccer brief
               'Write only from data above. No invented stats.',
             ].filter(Boolean).join('\n');
 
@@ -12784,7 +12785,7 @@ export default {
                             sportContext || '',
                             `SPORT BOUNDARY: This is a ${sportLabel} game. Write ONLY ${sportLabel} content. Do not reference players, stats, or terminology from any other sport. If context is empty, write from the score and date only.`,
                             `Rules: Lead with the decisive moment or stat. No clichés. One paragraph, no headers.`,
-                            JQ_STYLE,
+                            proseStyleFor(sportLabel),  // sport-gated: no NBA rules in a soccer brief
                         ].filter(Boolean).join('\n');
 
                         const initial = await callProxy(gamePrompt);
