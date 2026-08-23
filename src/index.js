@@ -11888,8 +11888,24 @@ export default {
                 if (source)    { clauses.push('source = ?');        binds.push(source); }
                 if (team)      { clauses.push('brief_text LIKE ?'); binds.push(`%${team}%`); }
 
+                // updated_at ADDED 2026-08-23, additive so no consumer moves.
+                // Three brief writers use ON CONFLICT(id) DO UPDATE (5975, 12036,
+                // 12492), so brief_text is rewritten in place while created_at
+                // keeps its original value forever -- the exact defect recorded
+                // at line ~5438, where a brief carrying a fabricated figure at
+                // 19:09 was clean at 21:14 and still reported created_at
+                // 18:30:53.
+                //
+                // Any consumer asking "was this brief written since the fix
+                // deployed" therefore CANNOT answer it from this projection.
+                // field-laboratory's cc-cmd-followup.mjs is one: its
+                // brief-contamination predicate scans every returned brief with
+                // no baseline, so one never-regenerated pre-fix brief pins it at
+                // "still generating" permanently and the fix can never be
+                // observed. Serving updated_at is the relay-side half of that
+                // fix (Rule 60: the relay owns the contract).
                 const sql = `SELECT id, date, brief_type, sport, game_id, brief_text, model,
-                                    quality_score, word_count, source, created_at
+                                    quality_score, word_count, source, created_at, updated_at
                              FROM briefs
                              WHERE ${clauses.join(' AND ')}
                              ORDER BY date DESC, created_at DESC
