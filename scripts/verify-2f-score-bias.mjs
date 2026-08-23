@@ -166,7 +166,27 @@ try {
     out.mechanism_reading = `having ANY figure is worth ${r1(m['1-3'].mean_score - m['0'].mean_score)} ` +
       `points over having none (${m['0'].mean_score} -> ${m['1-3'].mean_score}). Stacking more is not ` +
       `linearly rewarded${m['12+'] ? ` — the 12+ bucket falls back to ${m['12+'].mean_score}` : ''}. ` +
-      `The pressure a thin-context brief feels is therefore to invent ONE number, not many.`;
+      `This measures FORM, not truth: it cannot distinguish a real figure from an ` +
+      `invented one, and a controlled test on 2026-08-23 showed it does not need to — ` +
+      `see below.`;
+    // CORRECTION, 2026-08-23. An earlier version of this line ended "the pressure a
+    // thin-context brief feels is therefore to invent ONE number, not many." That
+    // inference does not survive a control.
+    //
+    // It came from one pair: the Everton brief scored 165 with its invented
+    // "107.7 DRTG" and 128 with a true stat in its place. But the true version read
+    // "a third clean sheet in four" — worded, no digit — so the pair varied TWO
+    // things at once, fabrication and surface form, and the gap was attributed to
+    // the wrong one.
+    //
+    // Holding form constant, three fabricated/real pairs scored 165/161, 153/140
+    // and 154/152 — a mean gap near 6 on a 300-point scale. Against that, the same
+    // fact as a digit rather than a word is worth 161 vs 128, and any figure versus
+    // none is worth 26 to 59. The scale rewards NUMERALS OVER WORDS. It barely
+    // notices whether the numeral is true.
+    //
+    // Which means these buckets are a real measurement of form and a bad proxy for
+    // fabrication pressure. Reported as the former.
   }
   out.fetch_ok = true;
 } catch (e) {
