@@ -1,0 +1,293 @@
+{
+  "probed_at": "2026-08-23T03:29:36.023Z",
+  "ok": true,
+  "error": null,
+  "gameweek": {
+    "id": 1,
+    "name": "Gameweek 1",
+    "finished": false,
+    "is_current": true
+  },
+  "bootstrap": {
+    "teams": 20,
+    "team_keys": [
+      "code",
+      "draw",
+      "form",
+      "id",
+      "loss",
+      "name",
+      "played",
+      "points",
+      "position",
+      "short_name",
+      "strength",
+      "team_division",
+      "unavailable",
+      "win",
+      "link_url",
+      "strength_overall_home",
+      "strength_overall_away",
+      "strength_attack_home",
+      "strength_attack_away",
+      "strength_defence_home",
+      "strength_defence_away",
+      "pulse_id"
+    ],
+    "team_sample": [
+      {
+        "id": 1,
+        "name": "Arsenal",
+        "short_name": "ARS"
+      },
+      {
+        "id": 2,
+        "name": "Aston Villa",
+        "short_name": "AVL"
+      },
+      {
+        "id": 3,
+        "name": "Bournemouth",
+        "short_name": "BOU"
+      }
+    ],
+    "elements": 604,
+    "element_identity_keys": [
+      "code",
+      "dreamteam_count",
+      "first_name",
+      "id",
+      "in_dreamteam",
+      "second_name",
+      "team",
+      "team_code",
+      "web_name",
+      "known_name",
+      "team_join_date",
+      "has_temporary_code",
+      "opta_code"
+    ],
+    "element_sample": [
+      {
+        "id": 1,
+        "web_name": "Raya",
+        "team": 1,
+        "element_type": 1
+      },
+      {
+        "id": 2,
+        "web_name": "Arrizabalaga",
+        "team": 1,
+        "element_type": 1
+      }
+    ]
+  },
+  "live": {
+    "elements_returned": 604,
+    "element_top_level_keys": [
+      "id",
+      "stats",
+      "explain",
+      "modified"
+    ],
+    "stat_keys": [
+      "minutes",
+      "goals_scored",
+      "assists",
+      "clean_sheets",
+      "goals_conceded",
+      "own_goals",
+      "penalties_saved",
+      "penalties_missed",
+      "yellow_cards",
+      "red_cards",
+      "saves",
+      "bonus",
+      "bps",
+      "influence",
+      "creativity",
+      "threat",
+      "ict_index",
+      "clearances_blocks_interceptions",
+      "recoveries",
+      "tackles",
+      "defensive_contribution",
+      "starts",
+      "expected_goals",
+      "expected_assists",
+      "expected_goal_involvements",
+      "expected_goals_conceded",
+      "total_points",
+      "in_dreamteam",
+      "played"
+    ],
+    "players_with_minutes": 186,
+    "players_with_zero_minutes": 418,
+    "scorers": 14,
+    "assisters": 12,
+    "explain_shape": {
+      "fixture": 1,
+      "stats": [
+        {
+          "identifier": "minutes",
+          "points": 2,
+          "value": 90,
+          "points_modification": 0
+        },
+        {
+          "identifier": "clean_sheets",
+          "points": 4,
+          "value": 1,
+          "points_modification": 0
+        }
+      ]
+    }
+  },
+  "fixtures": {
+    "count": 10,
+    "keys": [
+      "code",
+      "event",
+      "finished",
+      "finished_provisional",
+      "id",
+      "kickoff_time",
+      "minutes",
+      "provisional_start_time",
+      "started",
+      "team_a",
+      "team_a_score",
+      "team_h",
+      "team_h_score",
+      "stats",
+      "team_h_difficulty",
+      "team_a_difficulty",
+      "pulse_id"
+    ],
+    "sample": [
+      {
+        "id": 1,
+        "team_h": 1,
+        "team_a": 7,
+        "finished": false,
+        "kickoff_time": "2026-08-21T19:00:00Z",
+        "stats_types": [
+          "goals_scored",
+          "assists",
+          "own_goals",
+          "penalties_saved",
+          "penalties_missed",
+          "yellow_cards",
+          "red_cards",
+          "saves",
+          "bonus",
+          "bps",
+          "defensive_contribution"
+        ]
+      },
+      {
+        "id": 4,
+        "team_h": 11,
+        "team_a": 16,
+        "finished": false,
+        "kickoff_time": "2026-08-22T11:30:00Z",
+        "stats_types": [
+          "goals_scored",
+          "assists",
+          "own_goals",
+          "penalties_saved",
+          "penalties_missed",
+          "yellow_cards",
+          "red_cards",
+          "saves",
+          "bonus",
+          "bps",
+          "defensive_contribution"
+        ]
+      },
+      {
+        "id": 3,
+        "team_h": 9,
+        "team_a": 8,
+        "finished": false,
+        "kickoff_time": "2026-08-22T14:00:00Z",
+        "stats_types": [
+          "goals_scored",
+          "assists",
+          "own_goals",
+          "penalties_saved",
+          "penalties_missed",
+          "yellow_cards",
+          "red_cards",
+          "saves",
+          "bonus",
+          "bps",
+          "defensive_contribution"
+        ]
+      }
+    ]
+  },
+  "join": {
+    "fpl_side": "element.id -> bootstrap.elements[].web_name; explain[].fixture -> fixtures[].id -> team_h/team_a (ids) -> bootstrap.teams[].name",
+    "espn_side": "brief prompts carry home/away TEAM NAMES and an ESPN event id",
+    "bridge_required": "FPL team name <-> ESPN team name, by string. No shared numeric id exists.",
+    "fpl_team_names": [
+      "Arsenal",
+      "Aston Villa",
+      "Bournemouth",
+      "Brentford",
+      "Brighton",
+      "Chelsea",
+      "Coventry City",
+      "Crystal Palace",
+      "Everton",
+      "Fulham",
+      "Hull City",
+      "Ipswich Town",
+      "Leeds",
+      "Liverpool",
+      "Man City",
+      "Man Utd",
+      "Newcastle",
+      "Nott'm Forest",
+      "Spurs",
+      "Sunderland"
+    ],
+    "espn_date_used": "2026-08-22",
+    "espn_soccer_rows": 45,
+    "espn_epl_names": [
+      "Hull",
+      "Man United",
+      "Everton",
+      "C Palace",
+      "Ipswich",
+      "Sunderland",
+      "Nottm Forest",
+      "Leeds",
+      "Brentford",
+      "Spurs"
+    ],
+    "espn_other_soccer_names": [
+      "MLS: New England Revolution v New York City Football Club",
+      "MLS: Atlanta United v Sporting Kansas City",
+      "MLS: Vancouver Whitecaps FC v FC Dallas",
+      "MLS: St. Louis CITY SC v Houston Dynamo FC",
+      "MLS: San Jose Earthquakes v Minnesota United FC",
+      "MLS: San Diego FC v Colorado Rapids"
+    ],
+    "exact_matches": [
+      "Everton",
+      "Sunderland",
+      "Leeds",
+      "Brentford",
+      "Spurs"
+    ],
+    "needs_alias": [
+      "Hull",
+      "Man United",
+      "C Palace",
+      "Ipswich",
+      "Nottm Forest"
+    ]
+  }
+}
