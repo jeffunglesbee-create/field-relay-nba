@@ -80,6 +80,9 @@ import {
   REACHABLE_CEILING,
   UNREACHABLE_DIMS,
   FOUR_FIFTHS_REACHABLE,
+  REACHABLE_CEILING_GAME,
+  UNREACHABLE_DIMS_GAME,
+  FOUR_FIFTHS_REACHABLE_GAME,
 } from './journalism-quality.js';
 
 // ── R2 Finals Narrative Context (PM-23 / B1 + TIER 1B salvage — June 3 2026) ─
@@ -13266,6 +13269,28 @@ export default {
                     flat_bar_pct_of_nominal: Math.round(240 / NOMINAL_TOTAL * 10000) / 100,
                     flat_bar_pct_of_reachable: Math.round(240 / REACHABLE_CEILING * 10000) / 100,
                     four_fifths_of_reachable: FOUR_FIFTHS_REACHABLE,
+                    // ADDED 2026-08-23, additive so no existing consumer moves.
+                    // The fields above describe the SLATE shape, which has no
+                    // single game object. Most briefs are game briefs, and for
+                    // those Dim 7 is reachable -- measured above zero on 181 of
+                    // 190 real rows. Reporting only the 245 ceiling made the
+                    // "240 is 97.96% of reachable" argument with the wrong
+                    // denominator for exactly the rows the 0-of-523 finding was
+                    // drawn from; against 270 the same bar is 88.89%.
+                    game_shape: {
+                        reachable_ceiling: REACHABLE_CEILING_GAME,
+                        unreachable_dims: UNREACHABLE_DIMS_GAME,
+                        unreachable_points: NOMINAL_TOTAL - REACHABLE_CEILING_GAME,
+                        flat_bar_pct_of_reachable: Math.round(240 / REACHABLE_CEILING_GAME * 10000) / 100,
+                        four_fifths_of_reachable: FOUR_FIFTHS_REACHABLE_GAME,
+                        // Dim 10 is zero on game briefs today, and the reason is
+                        // not that it cannot run: regular_season_games.note is
+                        // populated on 36 of 1284 finalized games. Starved, not
+                        // unreachable -- so it is listed above as unreachable
+                        // for honesty about today's scores, and named here so
+                        // nobody reads that as a structural limit.
+                        matchup_note_status: 'data-starved: note populated on 36/1284 finalized games (2.8%), measured 2026-08-23',
+                    },
                 },
                 // Same-response baseline — see alertsLegacyPredicate above.
                 alert_count_legacy_predicate: alertsLegacyPredicate.length,

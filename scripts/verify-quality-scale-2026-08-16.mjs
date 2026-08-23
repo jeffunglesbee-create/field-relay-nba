@@ -14,6 +14,12 @@
 //   quality_scale.reachable_ceiling === 245
 //   every summary row carries a numeric cleared_196
 //
+// THAT DOC'S GENERALISATION WAS TOO BROAD, corrected here 2026-08-23 without
+// weakening its assertions. 245 is right for a slate brief and wrong for a game
+// brief, where Dim 7 measured above zero on 181 of 190 real rows. Four
+// assertions on the game shape are added below; the original two are untouched
+// and still pass.
+//
 // SECOND PURPOSE, and the reason this is worth running today: the same response
 // reports what briefs actually SCORE. Two relay enqueue sites still pass
 // scoreThreshold: 110 (src/index.js:8855, the per-game brief path that writes
@@ -43,6 +49,31 @@ try {
     assert('quality_scale present', !!d.quality_scale, d.quality_scale ? 'present' : 'MISSING — ask 1 did not deploy');
     assert('reachable_ceiling === 245', d.quality_scale?.reachable_ceiling === 245,
            `got ${JSON.stringify(d.quality_scale?.reachable_ceiling)}`);
+
+    // ── ADDED 2026-08-23, and the reason matters more than the assertion ────
+    // The assertion above is kept exactly as the 08-16 session wrote it, and it
+    // still passes: 245 is the correct ceiling for a SLATE brief, which has no
+    // single game object. What that session got wrong -- and what its doc, this
+    // file's own header, and the 0-of-523 analysis all inherited -- is that 245
+    // was reported as the ceiling for everything.
+    //
+    // Measured 2026-08-23 (scripts/rescore-quality-6b.mjs, n=190 real
+    // game_recap rows): Dim 7 scored above zero on 181 of them. It is reachable
+    // on game briefs, which are most briefs and are precisely the rows the
+    // 0-of-523 finding was drawn from. Against the game-shape ceiling of 270
+    // the 240 bar is 88.89% of earnable, not 97.96% -- still a demanding bar,
+    // but an editorial one rather than a near-perfect-score requirement, which
+    // changes what "no brief has ever cleared 240" means.
+    const g = d.quality_scale?.game_shape;
+    assert('game_shape reported', !!g, g ? 'present' : 'MISSING — the game-shape ceiling did not deploy');
+    assert('game reachable_ceiling === 270', g?.reachable_ceiling === 270,
+           `got ${JSON.stringify(g?.reachable_ceiling)}`);
+    assert('game shape drops only matchup', JSON.stringify(g?.unreachable_dims) === JSON.stringify(['matchup']),
+           `got ${JSON.stringify(g?.unreachable_dims)}`);
+    // Guards the arithmetic, not the opinion. If someone later changes SCALE
+    // without re-deriving these, this fails rather than reporting a stale pct.
+    assert('240 is 88.89% of the game-shape ceiling', g?.flat_bar_pct_of_reachable === 88.89,
+           `got ${JSON.stringify(g?.flat_bar_pct_of_reachable)}`);
 
     const rows = Array.isArray(d.summary) ? d.summary : [];
     assert('summary rows returned', rows.length > 0, `${rows.length} rows`);

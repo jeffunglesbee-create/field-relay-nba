@@ -389,8 +389,31 @@ export const SCALE = {
   // Dim 6-10
   arc: 45, ctx: 25, temporal: 20, voice: 30, matchup: 30,
 };
-// Dimensions with no input in the Worker runtime (no game object).
-export const UNREACHABLE_DIMS = ['ctx', 'matchup'];
+// Dimensions with no input — and WHICH dimensions those are depends on the
+// CALL SITE, not on the runtime. The original comment here, and the 2026-08-16
+// session doc built on it, said Dims 7 and 10 "have no game object in the
+// Worker runtime" and called 55 points unreachable BY CONSTRUCTION. Measured
+// 2026-08-23 (scripts/rescore-quality-6b.mjs, n=190 real game_recap rows,
+// outbox/rescore-quality-6b-2026-08-23T1447*.json), that is true for one brief
+// shape and false for the other:
+//
+//   Dim 7 (ctx)     scored ABOVE ZERO on 181 of 190 game briefs. It is
+//                   reachable. Eight of the ten runQualityChain call sites in
+//                   src/index.js pass `game`, and scoreProse is called with it.
+//   Dim 10 (matchup) scored zero on 190 of 190 — but NOT because it cannot run.
+//                   Zero of those rows carried a matchupNote, because
+//                   regular_season_games.note is populated on 36 of 1284
+//                   finalized games (2.8%). Data starvation, not construction.
+//                   The two have different fixes, which is why they are named
+//                   differently here.
+//
+// So a slate brief, which covers many games and legitimately has no single
+// `game` object, loses both. A game brief loses only Dim 10, and only until the
+// note column is fed. Reporting one global 245 made a 97.96%-of-reachable
+// argument about the 240 bar using the wrong denominator for the very rows the
+// 0-of-523 finding was drawn from.
+export const UNREACHABLE_DIMS = ['ctx', 'matchup'];          // slate / no-game shape
+export const UNREACHABLE_DIMS_GAME = ['matchup'];            // per-game shape
 export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 300
 export const REACHABLE_CEILING = Object.entries(SCALE)                                // 245
   .filter(([k]) => !UNREACHABLE_DIMS.includes(k))
@@ -398,6 +421,14 @@ export const REACHABLE_CEILING = Object.entries(SCALE)                          
 // Four-fifths OF THE REACHABLE SCALE — the bar stated on the scale it is applied
 // to, rather than a constant carried over from a total this runtime cannot reach.
 export const FOUR_FIFTHS_REACHABLE = Math.round(REACHABLE_CEILING * 0.8);             // 196
+
+// The same two numbers for a brief that HAS a game object — the majority shape.
+// Derived identically, from the same SCALE table, so they cannot drift apart
+// from it (ask 3 of CC-CMD-2026-08-15-quality-bar-scale).
+export const REACHABLE_CEILING_GAME = Object.entries(SCALE)                          // 270
+  .filter(([k]) => !UNREACHABLE_DIMS_GAME.includes(k))
+  .reduce((a, [, v]) => a + v, 0);
+export const FOUR_FIFTHS_REACHABLE_GAME = Math.round(REACHABLE_CEILING_GAME * 0.8);  // 216
 const _STOP_WORDS_RE = /^(their|about|would|could|which|should|after|before|against|during|while|other|first|since|still|being|where|these|those|there|every|until|under|again|from|with|this|that|have|will|they|been|were|what|when|into|than|then|also|each|over|more|most|such|both|some|only|very|just|like|well|even|back|game|team|play|year|time|week)$/i;
 
 async function _datamuseFreshness(words) {
