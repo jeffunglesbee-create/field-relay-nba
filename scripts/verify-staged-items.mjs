@@ -382,9 +382,14 @@ try {
     // Team names are excluded from the candidate set. "Arsenal" appears in
     // every Arsenal play text and in every Arsenal brief, grounded or not, so
     // counting it would make the check pass on a template.
+    // Columns are the briefs table's ACTUAL ones. The first version of this
+    // query selected home_team/away_team, which do not exist on briefs -- run 13
+    // died on `no such column: home_team`. Team names come from the ESPN summary
+    // this check already fetches, via the header.competitions[0].competitors
+    // shape src/index.js reads in two places.
     const recapRows = await d1(
         `SELECT id, sport, game_id, COALESCE(updated_at, created_at) AS written_at,
-                home_team, away_team, brief_text
+                brief_text
          FROM briefs
          WHERE brief_type = 'game_recap'
            AND sport IN ('MLB','WNBA','NBA','NHL','NFL','EPL')
@@ -405,8 +410,12 @@ try {
     for (const r of recapRows) {
         const sport = String(r.sport);
         const gid = String(r.game_id || '');
+        // testable is its own flag, not derived from espn_ok. A successful fetch
+        // that yields no team-word exclusion set is a row that must ABSTAIN, and
+        // conflating that with "the fetch failed" hides why.
         const row = { id: r.id, sport, game_id: gid, written_at: r.written_at,
-                      espn_ok: false, scoring_items: 0, names_in_plays: [],
+                      espn_ok: false, testable: false, scoring_items: 0,
+                      names_in_plays: [], team_words: [],
                       names_in_brief: [], grounded: false, why: null };
         if (!/^\d{6,}$/.test(gid) || !SLUG[sport]) { row.why = 'no usable ESPN event id'; evidence.push(row); continue; }
         try {
@@ -417,8 +426,22 @@ try {
             row.scoring_items = items.length;
             if (!items.length) { row.why = 'ESPN lists no scoring plays for this event'; evidence.push(row); continue; }
 
-            const teamWords = new Set([r.home_team, r.away_team]
+            // Team names from the summary's own header, the shape src/index.js
+            // reads in two places. Without them "Arsenal" -- which appears in
+            // every Arsenal play text AND in every Arsenal brief, grounded or
+            // not -- would count as a scorer and pass a season template.
+            const competitors = d?.header?.competitions?.[0]?.competitors || [];
+            const teamWords = new Set(competitors
+                .flatMap(c => [c.team?.displayName, c.team?.shortDisplayName, c.team?.name])
                 .filter(Boolean).flatMap(t => String(t).split(/\s+/)));
+            row.team_words = [...teamWords];
+            if (!teamWords.size) {
+                // No exclusion set means a team-name match would read as a
+                // scorer. That is worse than no answer, so this row does not
+                // testify. Not a fallback to a weaker test -- an abstention.
+                row.why = 'no competitors in the ESPN header; team-word exclusion unavailable';
+                evidence.push(row); continue;   // testable stays false
+            }
             const names = new Set();
             for (const it of selectScoringPlays(items)) {
                 for (const tok of String(it.text || '').match(/\b[A-Z][a-z'\u00C0-\u024F]{3,}\b/g) || []) {
@@ -429,6 +452,10 @@ try {
             const text = String(r.brief_text || '');
             row.names_in_brief = [...names].filter(n => text.includes(n));
             row.grounded = row.names_in_brief.length > 0;
+            // Only now: ESPN answered, it listed scoring plays, and the team-word
+            // exclusion existed. Anything short of all three abstains.
+            row.testable = row.names_in_plays.length > 0;
+            if (!row.testable) row.why = 'no candidate names left after excluding team words';
             if (!row.grounded) row.why = 'brief names nobody who scored in this game';
         } catch (e) { row.why = `ESPN fetch failed: ${String(e.message || e)}`; }
         evidence.push(row);
@@ -438,7 +465,7 @@ try {
     // and a fetch failure are both "no evidence", not "the fix is broken" —
     // the same PENDING-is-not-PASS discipline the other three checks use, and
     // for the same reason: a check that fails on absent data gets ignored.
-    const testable = evidence.filter(e => e.espn_ok && e.scoring_items > 0);
+    const testable = evidence.filter(e => e.testable);
     const named = testable.filter(e => e.grounded);
     let meStatus;
     if (!recapRows.length) meStatus = 'PENDING — no game_recap in the six sports since match_events deployed';
