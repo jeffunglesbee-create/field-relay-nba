@@ -1,5 +1,58 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-23 (recaps now say what happened in the game)
+
+**HEAD:** `77eff06` → `90e6c99` · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-23-match-events.md`
+**Artifacts:** `outbox/scoring-containers-2026-08-23T05-58-*.json` (pre-build
+probe), `outbox/staged-verification-20260823T061855Z.json` (post-deploy)
+
+**Shipped**
+
+| commit | what |
+|--------|------|
+| `8701b6b` | the sport-key table's multi-word entries were never reachable |
+| `644d7f6` | ground briefs in ESPN scoring plays (ask 5) |
+| `8c7b5a6` | run this session's quality-chain guards at the deploy gate |
+| `90e6c99` | check 4's column names, read from the schema this time |
+
+Deploy 846 green, all 13 gate steps. Client `575e5d3` mirrors CONTRACTS.md
+byte-identically.
+
+**Verified vs staged**
+
+- VERIFIED here: `scripts/match-events-check.mjs` 25/25 and
+  `scripts/sport-key-check.mjs` 13/13, both blocking at the gate. The
+  sport-key negative tests fail against the pre-fix lookup, which is the
+  artifact that the defect was real.
+- STAGED: that a live recap names a scorer. Not a note — check 4 of
+  `scripts/verify-staged-items.mjs` on the daily 06:00 schedule. Run 14
+  reported `PENDING — no game_recap in the six sports since match_events
+  deployed`, seven minutes after the deploy, which is the correct answer and
+  proves the check runs end to end. Tonight's slate answers it.
+
+**Two things found while building, both fixed**
+
+- Every multi-word key in the sport-normalization table had been unreachable
+  since it was written, so a D1 row reading "Major League Baseball" resolved
+  to no ESPN slug and `buildESPNSummaryContext` returned '' with no error.
+- Four guards written on 2026-08-22 were wired into nothing and would have
+  kept passing while the code they guard drifted.
+
+**Carry-forwards**
+
+- A third sport-key table, `_CONTEXT_LEAGUE_TO_SPORT` (`src/index.js` ~8452),
+  maps league labels to the same keys in the other file. Currently correct and
+  consistent, which is when a table is cheapest to consolidate. Its own commit.
+- NBA and NHL scoring containers are PENDING, not assumed — both out of season
+  in August. Re-probe at season open; a wrong container presents as a silently
+  missing block.
+- `CC-CMD-2026-08-23-soccer-near-miss-enrichment` (filed in field-laboratory):
+  ask 5's `commentary` layer was not built and is a second command, not a
+  follow-up line.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-22b (the 240 bar has never been cleared)
 
 **HEAD:** `aca5c93` → `e128a4f` · **Branch:** main throughout
