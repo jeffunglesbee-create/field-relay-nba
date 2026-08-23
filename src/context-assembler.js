@@ -994,11 +994,31 @@ async function buildTeamFormContext(env, game) {
 // Man City (FPL short_name MCI, ESPN abbr MNC) and Man Utd (FPL MUN, ESPN
 // MAN). This table is the full real, live-verified mapping, not a partial
 // guess extended by pattern-matching the other 18.
+// A closed list of clubs is correct only until the league is promoted into.
+//
+// MEASURED 2026-08-23: this carried 20 entries and still missed three of the
+// twenty clubs in the current season — COV, HUL and IPS — while holding BUR,
+// WHU and WOL for clubs no longer in it. The count matching was the trap: it
+// looked complete. An unmapped club makes teamIdFor return null, and
+// buildFPLMatchEventsContext then returns '' for BOTH sides of that fixture, so
+// every Coventry, Hull and Ipswich match was silently getting no events and no
+// table.
+//
+// The three additions are ESPN's own abbreviations, read from
+// /espn-standings/soccer/eng.1/standings rather than guessed — all twenty are
+// listed there in one response, and the same run confirmed MCI->MNC and
+// MUN->MAN are still right. Relegated entries are kept: a promoted club comes
+// back, and a stale key costs nothing because it never matches.
+//
+// verify-epl-grounding.mjs compares this against the live team list every run,
+// so the next promotion fails a check instead of silently dropping fixtures.
 const _FPL_SHORT_TO_ESPN_ABBR = {
     'ARS': 'ARS', 'AVL': 'AVL', 'BUR': 'BUR', 'BOU': 'BOU', 'BRE': 'BRE',
     'BHA': 'BHA', 'CHE': 'CHE', 'CRY': 'CRY', 'EVE': 'EVE', 'FUL': 'FUL',
     'LEE': 'LEE', 'LIV': 'LIV', 'MCI': 'MNC', 'MUN': 'MAN', 'NEW': 'NEW',
     'NFO': 'NFO', 'SUN': 'SUN', 'TOT': 'TOT', 'WHU': 'WHU', 'WOL': 'WOL',
+    // Promoted for this season, observed 2026-08-23.
+    'COV': 'COV', 'HUL': 'HUL', 'IPS': 'IPS',
 };
 
 async function buildFPLPlayerContext(env, game) {
