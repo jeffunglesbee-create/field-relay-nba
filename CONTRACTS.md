@@ -8,6 +8,45 @@ Last synced: 2026-08-22 (short-code scoping rule — relay + client copies)
 
 ---
 
+## FPL event grounding for EPL briefs (relay-internal)
+
+Producer: `src/fpl-events.js` · Consumer: `handleJournalismCycle`'s per-game
+prompt, EPL only. Source: `fantasy.premierleague.com/api`, the Premier League's
+own fantasy feed, already proxied at `/fpl/*`.
+
+```
+[EPL GOALSCORERS] Name, Name (2)
+[EPL OWN GOALS]   Name
+[EPL ASSISTS]     Name
+[EPL RED CARDS]   Name
+[EPL GOALKEEPER SAVES] Name (>= 4 saves only)
+[EPL TABLE] Home: 1st in the table, 3 points from 1 match | Away: 8th in the table, 1 point from 1 match
+[EPL EVENT NOTE] ... carries NO minute for any goal or card ...
+```
+
+**Which feed owns which field.** This block owns goalscorers, assists, cards,
+saves and league position for EPL. ESPN owns the scoreline, status, venue and
+broadcast, and keeps owning them — the FPL block never states a score. Two
+sources cannot disagree inside one brief because they do not describe the same
+field.
+
+**No minute exists.** Probed 2026-08-23: no timestamp appears in
+`event/{gw}/live/` `stats`, in `explain[]`, or in `fixtures[].stats`. The block
+says so in its own text, because the alternative is a model supplying one.
+
+**Per-fixture, not per-gameweek.** Stats are read from `explain[].fixture`, not
+from the element's top-level `stats`, which is the gameweek total. In a double
+gameweek the total over-attributes to whichever match is being written about.
+
+**The join is by team name.** FPL and ESPN share no numeric id. `EPL_ALIASES`
+maps the five ESPN names observed on 2026-08-22 that differ from FPL's spelling
+(`Hull`→`Hull City`, `Man United`→`Man Utd`, `C Palace`→`Crystal Palace`,
+`Ipswich`→`Ipswich Town`, `Nottm Forest`→`Nott'm Forest`). Ten of twenty clubs
+had been observed when it was written. An unmapped club yields no block and is
+logged by name — there is deliberately no fuzzy matcher.
+
+---
+
 ## bracket:updated (WebSocket)
 
 Producer: BracketDO (`src/bracket-do.js`)

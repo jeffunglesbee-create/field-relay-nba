@@ -1,0 +1,24 @@
+name: Verify EPL grounding
+
+# Done condition for CC-CMD-2026-08-21-fpl-event-grounding-epl.
+#
+# Scheduled, not left as a note. The wiring landed between gameweeks, so there
+# was no live EPL fixture to observe it on; a "verify after the next matchday"
+# line in an outbox is the kind of follow-up that goes unrun for six days —
+# this repo has one of those on record. Tuesdays and Mondays 09:00 UTC catch
+# the weekend and midweek rounds.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 1,2'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/verify-epl-grounding.mjs
+      commit_message: "chore: EPL grounding verification [skip ci]"
