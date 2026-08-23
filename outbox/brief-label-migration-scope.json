@@ -1,0 +1,2227 @@
+{
+  "scoped_at": "2026-08-23T16:22:38.827Z",
+  "plan": [
+    {
+      "from": "Baseball (MLB)",
+      "to": "MLB",
+      "n": 303,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "night_owl_2026-06-21_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g10",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_coloradorock_pittsburghpi",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g13",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g12",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g9",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g8",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g11",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_detroittiger_chicagowhite",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_newyorkyanke_cincinnatire",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_kansascityro_stlouiscardi",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_atlantabrave_milwaukeebre",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_texasrangers_sandiegopadr",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_miamimarlins_sanfrancisco",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_houstonastro_clevelandgua",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_tampabayrays_washingtonna",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_g14",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-21_mlb_arizonadiamo_minnesotatwi",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g11",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g14",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_mlb_seattlemarin_bostonredsox",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_mlb_losangelesdo_baltimoreori",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g12",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_mlb_athletics_losangelesan",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g10",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g9",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g13",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g15",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-22_mlb_washingtonna_philadelphia",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g15",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_mlb_cincinnatire_milwaukeebre",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g9",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_mlb_minnesotatwi_losangelesdo",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_g12",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_mlb_coloradorock_bostonredsox",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_mlb_torontobluej_houstonastro",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-23_mlb_losangelesan_baltimoreori",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_coloradorock_bostonredsox",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g12",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g8",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_washingtonna_philadelphia",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_pittsburghpi_seattlemarin",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_tampabayrays_kansascityro",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_miamimarlins_texasrangers",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_torontobluej_houstonastro",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_newyorkmets_chicagocubs",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g14",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g13",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_cincinnatire_milwaukeebre",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_chicagowhite_clevelandgua",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_minnesotatwi_losangelesdo",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_detroittiger_newyorkyanke",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g10",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_g15",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-24_mlb_sandiegopadr_atlantabrave",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g8",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_mlb_sanfrancisco_athletics",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-25_mlb_tampabayrays_kansascityro",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-26_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-27_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823771",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824822",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_822792",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_825065",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824420",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824339",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823444",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824741",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824176",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824662",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823121",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823529",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824986",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823528",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_824819",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-06-30_823445",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_823528",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824819",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824818",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824419",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_822791",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824740",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_823446",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824660",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_823530",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-01_824905",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_824818",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_823530",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_824419",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_824740",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_824660",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g8",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-02_823442",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824659",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_822714",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824336",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_823527",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824498",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824417",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824904",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_823118",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824334",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_824171",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-04_823526",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_824903",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_823526",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_822882",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_823118",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_824415",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-05_824413",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-07_824089",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-07_823062",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-07_824254",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-07_824820",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_823847",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_824254",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_824579",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_824495",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_822881",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_824820",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_822956",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_823361",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_823203",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-08_823360",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_822957",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_824496",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_823360",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_823605",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_823848",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_824815",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_823684",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_824577",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-09_824578",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-11_822711",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-11_824249",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-11_824492",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-11_824813",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_823357",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_823356",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_824576",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_823198",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_824814",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_822708",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_824491",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_823602",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-12_823029",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_823602",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_822708",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_824491",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_824814",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_823029",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_822876",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_823274",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-13_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-14_g6",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-17_823440",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-17_824766",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824766",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824737",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g3",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_823766",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824657",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824414",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g9",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g11",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824899",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_822790",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824169",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_824738",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g10",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g12",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g15",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g14",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-18_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_822790",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_825059",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824414",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824657",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_g10",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824169",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_823763",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_823441",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824412",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_g7",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_g13",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_823523",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_823764",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824007",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_825057",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-19_824739",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_825057",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_823764",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_824007",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_824739",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_823523",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-20_824897",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-21_824736",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-21_823522",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-21_824410",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-21_823519",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-22_824409",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-22_823519",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-23_824893",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-24_824893",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-27_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-27_824810",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-27_823028",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-27_823194",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-27_824246",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-30_822946",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-30_823674",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-30_824568",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-31_822946",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-07-31_823674",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_822944",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_822781",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_823269",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_824648",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_824891",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_822783",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_824163",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-02_824807",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_824891",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_824807",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_824163",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_824648",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_823270",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_823107",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_g9",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_g13",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-03_g8",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-08_823514",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_g2",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_823514",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_823426",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_823834",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_823752",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_825049",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-09_g4",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-12_823672",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-12_823187",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-12_823017",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-12_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-12_823263",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-15_g1",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-15_824479",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-15_824239",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-16_824239",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-16_822941",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-16_g5",
+          "to": "MLB"
+        },
+        {
+          "id": "night_owl_2026-08-20_824474",
+          "to": "MLB"
+        }
+      ]
+    },
+    {
+      "from": "football",
+      "to": "FIFA World Cup",
+      "n": 21,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "game_recap_1489400_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489401_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489402_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489403_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489404_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539008_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489408_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539009_2026-06-24",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489408_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539008_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539009_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489405_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489406_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539010_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489407_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489410_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489409_2026-06-25",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489407_2026-06-26",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489409_2026-06-26",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1489410_2026-06-26",
+          "to": "FIFA World Cup"
+        },
+        {
+          "id": "game_recap_1539010_2026-06-26",
+          "to": "FIFA World Cup"
+        }
+      ]
+    },
+    {
+      "from": "MLS Soccer",
+      "to": "MLS",
+      "n": 16,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "night_owl_2026-07-17_espn:761659",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-07-17_espn:761661",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-07-18_espn:761663",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-01_espn:761695",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761697",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761705",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761696",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761702",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761699",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-02_espn:761698",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-08_espn:761469",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-09_espn:761469",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-16_espn:761712",
+          "to": "MLS"
+        },
+        {
+          "id": "night_owl_2026-08-16_espn:761711",
+          "to": "MLS"
+        },
+        {
+          "id": "epl_match_2026-08-22_all",
+          "to": "MLS"
+        },
+        {
+          "id": "epl_match_2026-08-23_all",
+          "to": "MLS"
+        }
+      ]
+    },
+    {
+      "from": "PGA TOUR",
+      "to": "PGA Tour",
+      "n": 10,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "game_recap_PGA TOUR_golf_401811952_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_PGA TOUR_golf_401811953_R5",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_PGA TOUR_golf_401811954_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811954_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811955_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811957_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811959_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811960_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811961_R4",
+          "to": "PGA Tour"
+        },
+        {
+          "id": "game_recap_pga tour_golf_401811962_R4",
+          "to": "PGA Tour"
+        }
+      ]
+    },
+    {
+      "from": "Australian Football (AFL)",
+      "to": "AFL",
+      "n": 7,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "night_owl_2026-06-26_afl_38625",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-07-10_afl_38640",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-07-24_afl_38661",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-08-02_afl_38670",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-08-09_afl_38682",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-08-09_afl_38676",
+          "to": "AFL"
+        },
+        {
+          "id": "night_owl_2026-08-16_afl_38689",
+          "to": "AFL"
+        }
+      ]
+    },
+    {
+      "from": "NBA Playoffs",
+      "to": "NBA",
+      "n": 2,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "stakes_2026-06-16_g1",
+          "to": "NBA"
+        },
+        {
+          "id": "series_preview_2026-06-16_g1",
+          "to": "NBA"
+        }
+      ]
+    },
+    {
+      "from": "CFL – 2026 Season · Week 7",
+      "to": "CFL",
+      "n": 2,
+      "via": "context-prefix",
+      "rows": [
+        {
+          "id": "night_owl_2026-07-18_cfl_13419696",
+          "to": "CFL"
+        },
+        {
+          "id": "night_owl_2026-07-20_cfl_13419699",
+          "to": "CFL"
+        }
+      ]
+    },
+    {
+      "from": "CFL – 2026 Season · Week 6",
+      "to": "CFL",
+      "n": 2,
+      "via": "context-prefix",
+      "rows": [
+        {
+          "id": "night_owl_2026-07-12_cfl_13419694",
+          "to": "CFL"
+        },
+        {
+          "id": "night_owl_2026-07-13_cfl_13419694",
+          "to": "CFL"
+        }
+      ]
+    },
+    {
+      "from": "wc",
+      "to": "FIFA World Cup",
+      "n": 1,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "bracket_delta:espn:760516:2026-07-18T23:02:33.093Z",
+          "to": "FIFA World Cup"
+        }
+      ]
+    },
+    {
+      "from": "CFL – 2026 Season · Week 5",
+      "to": "CFL",
+      "n": 1,
+      "via": "context-prefix",
+      "rows": [
+        {
+          "id": "night_owl_2026-07-05_cfl_13419691",
+          "to": "CFL"
+        }
+      ]
+    },
+    {
+      "from": "CFL – 2026 Season · Week 10",
+      "to": "CFL",
+      "n": 1,
+      "via": "context-prefix",
+      "rows": [
+        {
+          "id": "night_owl_2026-08-09_cfl_13419710",
+          "to": "CFL"
+        }
+      ]
+    }
+  ],
+  "mislabelled_recaps": {
+    "n": 95,
+    "ids": [
+      "game_recap_FIFA World Cup_760442",
+      "game_recap_FIFA World Cup_760451",
+      "game_recap_MLB_401815861",
+      "game_recap_MLB_401815870",
+      "game_recap_FIFA World Cup_760458",
+      "game_recap_FIFA World Cup_760460",
+      "game_recap_wc26_football:1489402",
+      "game_recap_MLB_401815898",
+      "game_recap_FIFA World Cup_760471",
+      "game_recap_FIFA World Cup_760472",
+      "game_recap_1489410_2026-06-25",
+      "game_recap_FIFA World Cup_760476",
+      "game_recap_MLB_401815926",
+      "game_recap_FIFA World Cup_760481",
+      "game_recap_wc26_espn:760478",
+      "game_recap_MLB_401815939",
+      "game_recap_760481_2026-06-28",
+      "game_recap_FIFA World Cup_760496",
+      "game_recap_WNBA_401857042",
+      "game_recap_FIFA World Cup_760505",
+      "game_recap_wc26_espn:760446",
+      "game_recap_760446_2026-07-05",
+      "game_recap_760478_2026-07-05",
+      "game_recap_mlb_401816064",
+      "game_recap_mlb_401816063",
+      "game_recap_fifa world cup_760508",
+      "game_recap_fifa world cup 2026_760508",
+      "game_recap_mlb_401816069",
+      "game_recap_mlb_401816078",
+      "game_recap_mlb_401816077",
+      "game_recap_wnba_401857048",
+      "game_recap_mlb_401816088",
+      "game_recap_mlb_401816093",
+      "game_recap_mlb_401816105",
+      "game_recap_wnba_401857062",
+      "game_recap_wnba_401857067",
+      "game_recap_mls_761662",
+      "game_recap_fifa world cup_761659",
+      "game_recap_mlb_401816153",
+      "game_recap_mls_761664",
+      "game_recap_mlb_401816199",
+      "game_recap_wnba_401857084",
+      "game_recap_mls_761673",
+      "game_recap_mls_761677",
+      "game_recap_mls_761675",
+      "game_recap_mls_761676",
+      "game_recap_fifa world cup_761666",
+      "game_recap_fifa world cup_761673",
+      "game_recap_fifa world cup_761671",
+      "game_recap_mlb_401816258",
+      "game_recap_mlb_401816253",
+      "game_recap_mls_761690",
+      "game_recap_mls_761694",
+      "game_recap_mls_761692",
+      "game_recap_fifa world cup_761682",
+      "game_recap_fifa world cup_761690",
+      "game_recap_wnba_401857095",
+      "game_recap_mlb_401816307",
+      "game_recap_mlb_401816321",
+      "game_recap_wnba_401857101",
+      "game_recap_mlb_401816350",
+      "game_recap_mls_761707",
+      "game_recap_mls_761709",
+      "game_recap_fifa world cup_761696",
+      "game_recap_fifa world cup_761701",
+      "game_recap_fifa world cup_761706",
+      "game_recap_fifa world cup_761705",
+      "game_recap_mlb_401816362",
+      "game_recap_mlb_401816374",
+      "game_recap_mlb_401816510",
+      "game_recap_mlb_401816528",
+      "game_recap_mls_761718",
+      "game_recap_mls_761719",
+      "game_recap_mls_761720",
+      "game_recap_mls_761715",
+      "game_recap_mls_761721",
+      "game_recap_mls_761724",
+      "game_recap_la liga_401882922",
+      "game_recap_mlb_401816577",
+      "game_recap_mlb_401816583",
+      "game_recap_mls_761729",
+      "game_recap_mls_761737",
+      "game_recap_mls_761734",
+      "game_recap_mls_761728",
+      "game_recap_mls_761739",
+      "game_recap_mls_761735",
+      "game_recap_la liga_401882925",
+      "game_recap_mls_761736",
+      "game_recap_mls_761738",
+      "game_recap_uefa europa league qualifying_401910972",
+      "game_recap_uefa europa league qualifying_401909636",
+      "game_recap_uefa europa conference league qualifying_401909622",
+      "game_recap_uefa europa conference league qualifying_401910953",
+      "game_recap_uefa europa conference league qualifying_401909630",
+      "game_recap_epl_401879321"
+    ]
+  },
+  "unclassified": [
+    {
+      "sport": "mlb",
+      "n": 133,
+      "sample_id": "game_recap_mlb_8880201",
+      "resolved_from_id": 0,
+      "of": 133
+    },
+    {
+      "sport": "mls",
+      "n": 77,
+      "sample_id": "pre_game_FIFA World Cup 2026_2026-07-22_austin_seattle",
+      "resolved_from_id": 0,
+      "of": 77
+    },
+    {
+      "sport": "EFL Cup",
+      "n": 61,
+      "sample_id": "game_recap_efl cup_401880596",
+      "resolved_from_id": 0,
+      "of": 61
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "n": 24,
+      "sample_id": "game_recap_uefa europa conference league qualifying_401909472",
+      "resolved_from_id": 0,
+      "of": 24
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "n": 12,
+      "sample_id": "game_recap_uefa europa league qualifying_401909222",
+      "resolved_from_id": 0,
+      "of": 12
+    },
+    {
+      "sport": "la liga",
+      "n": 7,
+      "sample_id": "pre_game_La Liga_2026-08-15_alavs_getafe",
+      "resolved_from_id": 0,
+      "of": 7
+    },
+    {
+      "sport": "EFL Trophy",
+      "n": 7,
+      "sample_id": "game_recap_efl trophy_401906265",
+      "resolved_from_id": 0,
+      "of": 7
+    },
+    {
+      "sport": "pga tour",
+      "n": 6,
+      "sample_id": "pre_game_PGA Tour_2026-07-16_src401811957",
+      "resolved_from_id": 0,
+      "of": 6
+    },
+    {
+      "sport": "nfl",
+      "n": 6,
+      "sample_id": "pre_game_NFL_2026-08-13_raiders_cardinals",
+      "resolved_from_id": 0,
+      "of": 6
+    },
+    {
+      "sport": "uefa europa conference league qualifying",
+      "n": 3,
+      "sample_id": "pre_game_UEFA Europa Conference League Qualifying_2026-08-20_hearts_rapidvienna",
+      "resolved_from_id": 0,
+      "of": 3
+    },
+    {
+      "sport": "fifa world cup",
+      "n": 2,
+      "sample_id": "pre_game_FIFA World Cup 2026_2026-07-18_france_england",
+      "resolved_from_id": 0,
+      "of": 2
+    },
+    {
+      "sport": "AFL 2026 — Round 15",
+      "n": 2,
+      "sample_id": "night_owl_2026-06-18_afl_38615",
+      "resolved_from_id": 0,
+      "of": 2
+    },
+    {
+      "sport": "uefa europa league qualifying",
+      "n": 1,
+      "sample_id": "pre_game_UEFA Europa League Qualifying_2026-08-20_kairatalmaty_anderlecht",
+      "resolved_from_id": 0,
+      "of": 1
+    },
+    {
+      "sport": "UEFA Europa League",
+      "n": 1,
+      "sample_id": "debrief_2026-05-20-europa-scfreiburg-astonvilla",
+      "resolved_from_id": 0,
+      "of": 1
+    },
+    {
+      "sport": "AFL 2026 — Round 24",
+      "n": 1,
+      "sample_id": "night_owl_2026-08-23_afl_38694",
+      "resolved_from_id": 0,
+      "of": 1
+    }
+  ],
+  "revert_sql": [
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g10\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_coloradorock_pittsburghpi\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g13\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g12\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g9\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g8\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g11\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_detroittiger_chicagowhite\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_newyorkyanke_cincinnatire\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_kansascityro_stlouiscardi\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_atlantabrave_milwaukeebre\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_texasrangers_sandiegopadr\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_miamimarlins_sanfrancisco\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_houstonastro_clevelandgua\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_tampabayrays_washingtonna\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_g14\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-21_mlb_arizonadiamo_minnesotatwi\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g11\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g14\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_mlb_seattlemarin_bostonredsox\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_mlb_losangelesdo_baltimoreori\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g12\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_mlb_athletics_losangelesan\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g10\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g9\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g13\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g15\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-22_mlb_washingtonna_philadelphia\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g15\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_mlb_cincinnatire_milwaukeebre\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g9\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_mlb_minnesotatwi_losangelesdo\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_g12\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_mlb_coloradorock_bostonredsox\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_mlb_torontobluej_houstonastro\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-23_mlb_losangelesan_baltimoreori\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_coloradorock_bostonredsox\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g12\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g8\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_washingtonna_philadelphia\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_pittsburghpi_seattlemarin\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_tampabayrays_kansascityro\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_miamimarlins_texasrangers\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_torontobluej_houstonastro\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_newyorkmets_chicagocubs\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g14\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g13\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_cincinnatire_milwaukeebre\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_chicagowhite_clevelandgua\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_minnesotatwi_losangelesdo\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_detroittiger_newyorkyanke\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g10\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_g15\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-24_mlb_sandiegopadr_atlantabrave\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g8\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_mlb_sanfrancisco_athletics\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-25_mlb_tampabayrays_kansascityro\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-26_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-27_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823771\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824822\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_822792\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_825065\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824420\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824339\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823444\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824741\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824176\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824662\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823121\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823529\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824986\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823528\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_824819\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-06-30_823445\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_823528\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824819\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824818\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824419\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_822791\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824740\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_823446\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824660\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_823530\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-01_824905\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_824818\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_823530\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_824419\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_824740\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_824660\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g8\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-02_823442\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824659\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_822714\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824336\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_823527\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824498\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824417\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824904\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_823118\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824334\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_824171\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-04_823526\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_824903\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_823526\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_822882\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_823118\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_824415\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-05_824413\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-07_824089\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-07_823062\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-07_824254\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-07_824820\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_823847\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_824254\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_824579\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_824495\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_822881\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_824820\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_822956\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_823361\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_823203\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-08_823360\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_822957\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_824496\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_823360\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_823605\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_823848\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_824815\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_823684\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_824577\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-09_824578\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-11_822711\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-11_824249\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-11_824492\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-11_824813\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_823357\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_823356\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_824576\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_823198\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_824814\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_822708\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_824491\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_823602\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-12_823029\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_823602\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_822708\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_824491\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_824814\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_823029\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_822876\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_823274\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-13_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-14_g6\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-17_823440\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-17_824766\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824766\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824737\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g3\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_823766\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824657\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824414\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g9\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g11\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824899\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_822790\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824169\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_824738\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g10\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g12\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g15\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g14\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-18_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_822790\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_825059\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824414\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824657\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_g10\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824169\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_823763\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_823441\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824412\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_g7\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_g13\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_823523\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_823764\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824007\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_825057\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-19_824739\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_825057\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_823764\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_824007\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_824739\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_823523\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-20_824897\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-21_824736\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-21_823522\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-21_824410\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-21_823519\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-22_824409\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-22_823519\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-23_824893\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-24_824893\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-27_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-27_824810\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-27_823028\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-27_823194\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-27_824246\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-30_822946\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-30_823674\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-30_824568\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-31_822946\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-07-31_823674\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_822944\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_822781\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_823269\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_824648\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_824891\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_822783\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_824163\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-02_824807\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_824891\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_824807\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_824163\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_824648\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_823270\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_823107\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_g9\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_g13\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-03_g8\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-08_823514\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_g2\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_823514\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_823426\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_823834\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_823752\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_825049\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-09_g4\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-12_823672\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-12_823187\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-12_823017\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-12_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-12_823263\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-15_g1\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-15_824479\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-15_824239\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-16_824239\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-16_822941\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-16_g5\";",
+    "UPDATE briefs SET sport = \"Baseball (MLB)\" WHERE id = \"night_owl_2026-08-20_824474\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489400_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489401_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489402_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489403_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489404_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539008_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489408_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539009_2026-06-24\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489408_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539008_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539009_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489405_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489406_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539010_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489407_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489410_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489409_2026-06-25\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489407_2026-06-26\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489409_2026-06-26\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1489410_2026-06-26\";",
+    "UPDATE briefs SET sport = \"football\" WHERE id = \"game_recap_1539010_2026-06-26\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-07-17_espn:761659\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-07-17_espn:761661\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-07-18_espn:761663\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-01_espn:761695\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761697\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761705\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761696\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761702\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761699\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-02_espn:761698\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-08_espn:761469\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-09_espn:761469\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-16_espn:761712\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"night_owl_2026-08-16_espn:761711\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"epl_match_2026-08-22_all\";",
+    "UPDATE briefs SET sport = \"MLS Soccer\" WHERE id = \"epl_match_2026-08-23_all\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_PGA TOUR_golf_401811952_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_PGA TOUR_golf_401811953_R5\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_PGA TOUR_golf_401811954_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811954_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811955_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811957_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811959_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811960_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811961_R4\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811962_R4\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-06-26_afl_38625\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-07-10_afl_38640\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-07-24_afl_38661\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-08-02_afl_38670\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-08-09_afl_38682\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-08-09_afl_38676\";",
+    "UPDATE briefs SET sport = \"Australian Football (AFL)\" WHERE id = \"night_owl_2026-08-16_afl_38689\";",
+    "UPDATE briefs SET sport = \"NBA Playoffs\" WHERE id = \"stakes_2026-06-16_g1\";",
+    "UPDATE briefs SET sport = \"NBA Playoffs\" WHERE id = \"series_preview_2026-06-16_g1\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 7\" WHERE id = \"night_owl_2026-07-18_cfl_13419696\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 7\" WHERE id = \"night_owl_2026-07-20_cfl_13419699\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 6\" WHERE id = \"night_owl_2026-07-12_cfl_13419694\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 6\" WHERE id = \"night_owl_2026-07-13_cfl_13419694\";",
+    "UPDATE briefs SET sport = \"wc\" WHERE id = \"bracket_delta:espn:760516:2026-07-18T23:02:33.093Z\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 5\" WHERE id = \"night_owl_2026-07-05_cfl_13419691\";",
+    "UPDATE briefs SET sport = \"CFL – 2026 Season · Week 10\" WHERE id = \"night_owl_2026-08-09_cfl_13419710\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760442\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760451\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_MLB_401815861\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_MLB_401815870\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760458\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760460\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wc26_football:1489402\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_MLB_401815898\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760471\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760472\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_1489410_2026-06-25\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760476\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_MLB_401815926\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760481\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wc26_espn:760478\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_MLB_401815939\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_760481_2026-06-28\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760496\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_WNBA_401857042\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_FIFA World Cup_760505\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wc26_espn:760446\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_760446_2026-07-05\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_760478_2026-07-05\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816064\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816063\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_760508\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup 2026_760508\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816069\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816078\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816077\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857048\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816088\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816093\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816105\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857062\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857067\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761662\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761659\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816153\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761664\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816199\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857084\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761673\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761677\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761675\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761676\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761666\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761673\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761671\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816258\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816253\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761690\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761694\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761692\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761682\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761690\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857095\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816307\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816321\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_wnba_401857101\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816350\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761707\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761709\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761696\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761701\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761706\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_fifa world cup_761705\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816362\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816374\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816510\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816528\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761718\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761719\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761720\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761715\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761721\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761724\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_la liga_401882922\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816577\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mlb_401816583\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761729\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761737\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761734\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761728\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761739\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761735\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_la liga_401882925\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761736\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_mls_761738\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_uefa europa league qualifying_401910972\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_uefa europa league qualifying_401909636\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_uefa europa conference league qualifying_401909622\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_uefa europa conference league qualifying_401910953\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_uefa europa conference league qualifying_401909630\";",
+    "UPDATE briefs SET brief_type = 'game_recap' WHERE id = \"game_recap_epl_401879321\";"
+  ]
+}
