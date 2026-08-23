@@ -60,6 +60,23 @@ const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at h
    OR b.brief_text LIKE '%through 4_ minutes%' OR b.brief_text LIKE '%minutes into%' )`;
 
 const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+// Reported beside every mean. Run 1 produced a 5.4-point difference on n=16 and
+// stated it as a gap; without a spread that number cannot be told apart from
+// noise, which is the same error this repo made with an n=2 "CONFIRMED" five
+// days ago.
+const sd = (xs) => {
+    if (xs.length < 2) return null;
+    const mu = mean(xs);
+    return Math.sqrt(xs.reduce((a, x) => a + (x - mu) ** 2, 0) / (xs.length - 1));
+};
+/// Standard error of the difference of two means. Not a p-value and not
+/// presented as one -- it answers "is this difference larger than the noise in
+/// the samples that produced it", which is the only question being asked.
+const seDiff = (a, b) => {
+    const sa = sd(a), sb = sd(b);
+    if (sa == null || sb == null) return null;
+    return Math.sqrt((sa * sa) / a.length + (sb * sb) / b.length);
+};
 const r1 = (x) => x == null ? null : Math.round(x * 10) / 10;
 const r3 = (x) => x == null ? null : Math.round(x * 1000) / 1000;
 
@@ -68,6 +85,7 @@ const m = {
     rubric: { scale: SCALE, declared_unreachable: UNREACHABLE_DIMS, declared_reachable_ceiling: REACHABLE_CEILING },
     limit: LIMIT,
     stored_baseline: null,
+    matchup_note_coverage: null,
     rescored: null,
     dim_reachability: null,
     error: null,
@@ -87,7 +105,13 @@ try {
     // one and would report a false zero. LEFT JOIN, not INNER: a brief with no
     // matching game row is a real population member and its missing dims are a
     // finding, not a row to hide.
-    const rows = await d1(
+    // STRATIFIED, and run 1 is why. Taking the most recent 160 rows gave 144
+    // finals to 16 in-progress -- the natural 9:1 ratio of the table -- and a
+    // 5.4-point difference on n=16 is not a finding, it is a hint. Half the
+    // sample now comes from each class, which puts the whole in-progress
+    // population (95 rows table-wide) in scope instead of a tail of it.
+    const perClass = Math.max(1, Math.floor(LIMIT / 2));
+    const pick = (want) => d1(
         `SELECT b.id, b.sport, b.game_id, b.brief_type, b.date,
                 b.quality_score AS stored, b.scoring_version,
                 CASE WHEN ${LIVE_LANG} THEN 1 ELSE 0 END AS live_lang,
@@ -96,8 +120,20 @@ try {
          FROM briefs b
          LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
          WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+           AND ${want ? '' : 'NOT '}${LIVE_LANG}
          ORDER BY b.date DESC, b.id DESC
-         LIMIT ?`, [LIMIT]);
+         LIMIT ?`, [perClass]);
+    const rows = [...(await pick(true)), ...(await pick(false))];
+
+    // Dim 10 read zero on 160/160 rows in run 1, and the reason was NOT that the
+    // dimension cannot run: 0 of those rows carried a matchupNote, because
+    // regular_season_games.note was empty on every joined game. That is a data
+    // gap, not a runtime limitation, and the two have different fixes -- so
+    // measure how empty the column actually is rather than inferring it.
+    m.matchup_note_coverage = await d1(
+        `SELECT COUNT(*) AS total,
+                SUM(CASE WHEN note IS NOT NULL AND LENGTH(TRIM(note)) > 10 THEN 1 ELSE 0 END) AS with_note
+         FROM regular_season_games WHERE finalized_at IS NOT NULL`);
 
     const scored = [];
     for (const r of rows) {
@@ -128,8 +164,10 @@ try {
 
     m.rescored = {
         n_total: scored.length,
-        in_progress: { n: live.length, mean_rescored: r1(liveMean), mean_stored: r1(mean(live.map(s => s.stored))), dims: byDim(live) },
-        reads_as_final: { n: fin.length, mean_rescored: r1(finMean), mean_stored: r1(mean(fin.map(s => s.stored))), dims: byDim(fin) },
+        in_progress: { n: live.length, mean_rescored: r1(liveMean), sd_rescored: r1(sd(live.map(s => s.total))),
+                       mean_stored: r1(mean(live.map(s => s.stored))), dims: byDim(live) },
+        reads_as_final: { n: fin.length, mean_rescored: r1(finMean), sd_rescored: r1(sd(fin.map(s => s.total))),
+                          mean_stored: r1(mean(fin.map(s => s.stored))), dims: byDim(fin) },
         // The number ask 6b has to move. Positive = finals score higher.
         gap_rescored: (liveMean != null && finMean != null) ? r1(finMean - liveMean) : null,
         gap_stored_for_this_sample: r1(mean(fin.map(s => s.stored)) - mean(live.map(s => s.stored))),
@@ -140,6 +178,19 @@ try {
             [k, r3((mean(fin.map(s => s.dims[k])) ?? 0) - (mean(live.map(s => s.dims[k])) ?? 0))])),
         era_spread: [...new Set(scored.map(s => String(s.scoring_version)))].sort(),
     };
+
+    // The honest reading of gap_rescored, stated in the manifest so nobody has
+    // to compute it from the numbers beside it.
+    const se = seDiff(fin.map(s => s.total), live.map(s => s.total));
+    const gap = m.rescored.gap_rescored;
+    m.rescored.gap_se = r1(se);
+    m.rescored.gap_ratio_to_noise = (se && se > 0) ? r1(Math.abs(gap) / se) : null;
+    m.rescored.gap_verdict =
+        (live.length < 8 || fin.length < 8) ? 'UNDERPOWERED — fewer than 8 rows in a class, no claim'
+        : (m.rescored.gap_ratio_to_noise == null) ? 'no spread computable'
+        : m.rescored.gap_ratio_to_noise >= 2
+            ? `difference is ${m.rescored.gap_ratio_to_noise}x the standard error of the difference — larger than sample noise`
+            : `difference is only ${m.rescored.gap_ratio_to_noise}x the standard error — INDISTINGUISHABLE from noise at this n`;
 
     // Claim 2 under test. A dim is "live" here if it scored above zero on at
     // least one real row -- the falsifiable form of "unreachable".
