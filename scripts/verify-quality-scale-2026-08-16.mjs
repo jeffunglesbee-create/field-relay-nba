@@ -29,6 +29,19 @@
 // neither site carries a comment. The score distribution is the evidence.
 
 import { writeFileSync } from 'node:fs';
+// Expectations are DERIVED from source, not frozen. The assertions below used to
+// hardcode 245 / 270 / 88.89, which meant the ask 6b reweighting on 2026-08-23
+// failed them for being correct -- the numbers moved because SCALE moved, which
+// is the intended behaviour of a derived ceiling. What this file should catch is
+// the DEPLOYED endpoint disagreeing with the code, and that is what it now
+// checks. Guarding against an unconsidered SCALE edit is a different job, done
+// by scripts/check-scoring-era-recorded.mjs at the deploy gate.
+import {
+  REACHABLE_CEILING, REACHABLE_CEILING_GAME,
+  FOUR_FIFTHS_REACHABLE, FOUR_FIFTHS_REACHABLE_GAME,
+  UNREACHABLE_DIMS_GAME, NOMINAL_TOTAL,
+} from '../src/journalism-quality.js';
+const PCT = (bar, ceil) => Math.round(bar / ceil * 10000) / 100;
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -47,8 +60,14 @@ try {
 
     // ── The Aug 16 session's own two assertions, verbatim ───────────────────
     assert('quality_scale present', !!d.quality_scale, d.quality_scale ? 'present' : 'MISSING — ask 1 did not deploy');
-    assert('reachable_ceiling === 245', d.quality_scale?.reachable_ceiling === 245,
+    assert(`reachable_ceiling === ${REACHABLE_CEILING} (derived from SCALE)`,
+           d.quality_scale?.reachable_ceiling === REACHABLE_CEILING,
            `got ${JSON.stringify(d.quality_scale?.reachable_ceiling)}`);
+    assert(`four_fifths_of_reachable === ${FOUR_FIFTHS_REACHABLE}`,
+           d.quality_scale?.four_fifths_of_reachable === FOUR_FIFTHS_REACHABLE,
+           `got ${JSON.stringify(d.quality_scale?.four_fifths_of_reachable)}`);
+    assert(`nominal_total === ${NOMINAL_TOTAL}`, d.quality_scale?.nominal_total === NOMINAL_TOTAL,
+           `got ${JSON.stringify(d.quality_scale?.nominal_total)}`);
 
     // ── ADDED 2026-08-23, and the reason matters more than the assertion ────
     // The assertion above is kept exactly as the 08-16 session wrote it, and it
@@ -66,13 +85,20 @@ try {
     // changes what "no brief has ever cleared 240" means.
     const g = d.quality_scale?.game_shape;
     assert('game_shape reported', !!g, g ? 'present' : 'MISSING — the game-shape ceiling did not deploy');
-    assert('game reachable_ceiling === 270', g?.reachable_ceiling === 270,
+    assert(`game reachable_ceiling === ${REACHABLE_CEILING_GAME}`,
+           g?.reachable_ceiling === REACHABLE_CEILING_GAME,
            `got ${JSON.stringify(g?.reachable_ceiling)}`);
-    assert('game shape drops only matchup', JSON.stringify(g?.unreachable_dims) === JSON.stringify(['matchup']),
+    assert('game shape drops only matchup',
+           JSON.stringify(g?.unreachable_dims) === JSON.stringify(UNREACHABLE_DIMS_GAME),
            `got ${JSON.stringify(g?.unreachable_dims)}`);
-    // Guards the arithmetic, not the opinion. If someone later changes SCALE
-    // without re-deriving these, this fails rather than reporting a stale pct.
-    assert('240 is 88.89% of the game-shape ceiling', g?.flat_bar_pct_of_reachable === 88.89,
+    assert(`game four_fifths === ${FOUR_FIFTHS_REACHABLE_GAME}`,
+           g?.four_fifths_of_reachable === FOUR_FIFTHS_REACHABLE_GAME,
+           `got ${JSON.stringify(g?.four_fifths_of_reachable)}`);
+    // Guards the arithmetic, not the opinion: the deployed percentage must match
+    // what the deployed ceilings imply. A stale worker serving yesterday's
+    // constants fails here instead of quietly reporting an old bar.
+    assert(`240 is ${PCT(240, REACHABLE_CEILING_GAME)}% of the game-shape ceiling`,
+           g?.flat_bar_pct_of_reachable === PCT(240, REACHABLE_CEILING_GAME),
            `got ${JSON.stringify(g?.flat_bar_pct_of_reachable)}`);
 
     const rows = Array.isArray(d.summary) ? d.summary : [];

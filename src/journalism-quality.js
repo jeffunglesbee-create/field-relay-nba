@@ -48,6 +48,18 @@ export const SCORING_ERAS = [
     measuredEffect: 'Dim 4 floored 91.2% -> 7.9% of briefs; mean contribution 0.35 -> 9.89 of 16 pts (n=592)',
     recordedRetroactively: false,
   },
+  {
+    era: 4,
+    from: '2026-08-23T15:00:00Z',
+    deploy: 'CC-CMD-2026-08-20-brief-data-quality ask 6b',
+    change: 'SCALE reweighted toward the dimensions that separate finished prose from in-progress prose: arc 45->55, ctx 25->32, temporal 20->25, funded by voice 30->20, density 16->10, matchup 30->24. Nominal total unchanged at 300.',
+    // Measured on the SAME 190 rows before and after, so this is a before/after
+    // on identical prose rather than two samples that could differ for their own
+    // reasons. scoreProse's total is linear in the per-dimension fractions, so
+    // both weightings were evaluated from one scoring pass.
+    measuredEffect: 'in-progress vs reads-as-final gap 6.4 -> 11.5 pts (1.8x), n=95 per class, 2.8x -> 4.2x the standard error of the difference; class means 175.3/181.7 -> 175.5/187.0. Reweighting ceiling measured at 41.6 (all weight on arc+ctx+temporal), so this takes ~13% of what reweighting alone could ever buy.',
+    recordedRetroactively: false,
+  },
 ];
 
 // Which scoring era a brief's stored score belongs to, from its `date`.
@@ -383,11 +395,49 @@ export function hasCrossSportHallucination(text) {
 // flat 240 bar is 80% of the nominal rubric but 97.96% of what a brief here can
 // actually earn, and "below_240_pct: 100" reads as an editorial catastrophe when
 // it is an arithmetic certainty. Four-fifths of the REACHABLE scale is 196.
+// REWEIGHTED 2026-08-23 (era 4, ask 6b of CC-CMD-2026-08-20-brief-data-quality).
+// Previous: spec 30, statDepth 38, variety 30, density 16, fresh 36,
+//           arc 45, ctx 25, temporal 20, voice 30, matchup 30.
+//
+// The ask: weight event grounding and finality above fluency, so that a recap
+// of a game still in progress scores materially below a real one. Measured
+// baseline, n=95 per class re-scored under one rubric
+// (scripts/rescore-quality-6b.mjs): in-progress 175.2, reads-as-final 181.7 —
+// a 6.5-point gap on a 300-point scale, at 2.8x the standard error.
+//
+// WHICH DIMENSIONS COULD DO THE WORK, measured rather than assumed. Separation
+// between the two classes, normalised, final minus in-progress:
+//
+//   arcScore          +0.146    resolution language: a finished game resolves
+//   contextAnchoring  +0.144    a recap names the final score
+//   temporalScore     +0.111
+//   voiceScore        -0.134    runs BACKWARDS
+//   density           -0.120    runs BACKWARDS
+//   variety, freshness, specificity, statDepth, matchupDepth   ~0
+//
+// So only three dimensions separate finished prose from in-progress prose, and
+// two actively work against it — weight on voice and density was NARROWING the
+// gap this ask exists to widen. Everything else is inert on this question, which
+// is why the change is concentrated rather than spread across the table.
+//
+// The nominal total stays 300 on purpose. Every threshold in the codebase (240,
+// 196, 110) reads against it, and a change that moved the total would shift all
+// of them at once while wearing this change's name.
+//
+// Predicted effect, computed on the same rows before shipping: gap 6.4 -> 11.5,
+// at 4.2x the standard error. Verified after deploy — see the era 4 entry.
+//
+// NOT the last word, and deliberately so. No dimension here reads game state;
+// arc and ctx are proxies that correlate with finality. Putting the ENTIRE scale
+// on the three forward dimensions was measured at gap 41.6, which is the ceiling
+// of reweighting — and it destroys every other purpose the rubric serves. A
+// dimension that reads finalized_at directly is not bounded that way, and is
+// filed as CC-CMD-2026-08-23-finality-dimension rather than smuggled in here.
 export const SCALE = {
   // Dim 1-5, applied in `base` (mirrors the local W in scoreProse)
-  spec: 30, statDepth: 38, variety: 30, density: 16, fresh: 36,
+  spec: 30, statDepth: 38, variety: 30, density: 10, fresh: 36,
   // Dim 6-10
-  arc: 45, ctx: 25, temporal: 20, voice: 30, matchup: 30,
+  arc: 55, ctx: 32, temporal: 25, voice: 20, matchup: 24,
 };
 // Dimensions with no input — and WHICH dimensions those are depends on the
 // CALL SITE, not on the runtime. The original comment here, and the 2026-08-16

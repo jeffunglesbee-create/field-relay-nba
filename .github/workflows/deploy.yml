@@ -153,6 +153,17 @@ jobs:
       - name: scoring-play selection stays in budget and states its truncation
         run: node scripts/match-events-check.mjs
 
+      # SCORING_ERAS' own header says to add an entry BEFORE deploying any
+      # scoreProse change that moves scores. Nothing enforced it, and the one
+      # time it was skipped (6aed3bb, 2026-07-16) the mlb_game mean fell
+      # 203.2 -> 135.4 and two calibration rechecks burned themselves out asking
+      # whether the quality trend was real. Rescoring under one rubric later put
+      # the true difference at 0.9 points -- the entire 68-point collapse was the
+      # instrument. This makes the rule mechanical: change SCALE without
+      # recording an era and the deploy stops.
+      - name: a SCALE change is recorded as a scoring era
+        run: node scripts/check-scoring-era-recorded.mjs
+
       # Four guards written earlier today ran nowhere. A guard nobody runs
       # catches nothing -- it only records that someone once knew the rule.
       # Each of these covers a defect that reached a live brief.
