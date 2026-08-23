@@ -1,0 +1,344 @@
+{
+  "probed_at": "2026-08-23T18:12:08.368Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 8,
+      "status": "PASS",
+      "sequenced": 8,
+      "sample": [
+        {
+          "id": "Ligue 1_2026-08-23_angers_lille",
+          "sport": "Ligue 1",
+          "open": "2026-08-23T10:00:51.634Z",
+          "close": "2026-08-23T14:50:57.979Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "Serie A_2026-08-23_venezia_lecce",
+          "sport": "Serie A",
+          "open": "2026-08-23T10:00:50.751Z",
+          "close": "2026-08-23T16:34:22.543Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "Serie A_2026-08-23_frosinone_juventus",
+          "sport": "Serie A",
+          "open": "2026-08-23T10:00:50.751Z",
+          "close": "2026-08-23T16:33:28.873Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "La Liga_2026-08-23_atltico_villarreal",
+          "sport": "La Liga",
+          "open": "2026-08-23T10:00:49.980Z",
+          "close": "2026-08-23T15:02:39.577Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "EPL_2026-08-23_newcastle_liverpool",
+          "sport": "EPL",
+          "open": "2026-08-23T10:00:49.361Z",
+          "close": "2026-08-23T15:32:36.831Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "EPL_2026-08-23_mancity_bournemouth",
+          "sport": "EPL",
+          "open": "2026-08-23T10:00:49.361Z",
+          "close": "2026-08-23T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        }
+      ]
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 32,
+      "min_games_for_rate": 4,
+      "below_floor": [],
+      "status": "PASS — improved for EPL, La Liga",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 8,
+          "with_open": 7,
+          "pct": 87.5,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 4,
+          "with_open": 3,
+          "pct": 75,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 7,
+          "with_open": 4,
+          "pct": 57.1,
+          "baseline_pct": null
+        },
+        {
+          "sport": "MLS",
+          "games": 13,
+          "with_open": 11,
+          "pct": 84.6,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "EPL briefs since fpl_match_events deployed: not a season-stat template (all types) AND free of prompt-example literals (game_recap only — see asserted_on)",
+      "qualifying_rows": 10,
+      "status": "PASS — 9/10 not the season template, and no prompt-example literal in any of the 6 recap(s) written since the 2f fix | live: 0/4 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+      "literals_checked": 17,
+      "recaps_since_leak_fix": 6,
+      "live_briefs_sampled": 4,
+      "live_briefs_leaking_now": [],
+      "asserted_on": "game_recap only — live briefs are rewritten every cycle, so a snapshot cannot prove leak-freedom for them",
+      "historical_leaks_before_fix": [],
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f's \"absent from context\" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.",
+      "sample": [
+        {
+          "id": "game_live_epl_401879320",
+          "created_at": "2026-08-23 10:01:45",
+          "written_at": "2026-08-23 17:35:54",
+          "len": 331,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Manchester City secured a 2-1 win over Bournemouth at the Etihad Stadium, moving to 1-0 this season. Bournemouth dropped to 0-0-1 this season after failing to overcome the deficit. City closed as -205 favorites, while Bo"
+        },
+        {
+          "id": "game_live_epl_401879319",
+          "created_at": "2026-08-23 10:01:49",
+          "written_at": "2026-08-23 17:35:52",
+          "len": 294,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool and Newcastle finished in a 2-2 draw at St. James' Park, leaving both clubs with 0-1-0 records this season. Closing odds favored Liverpool at -120 compared to Newcastle at +280. USA Net broadcast the match, whi"
+        },
+        {
+          "id": "game_live_epl_401879297",
+          "created_at": "2026-08-23 10:01:44",
+          "written_at": "2026-08-23 17:35:51",
+          "len": 305,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Brighton opened their season with a 4-0 win against Aston Villa at American Express Stadium, broadcast on Peacock. Brighton moved to 1-0-0 this season, while Aston Villa fell to 0-0-1 this season. Aston Villa recorded 0 "
+        },
+        {
+          "id": "game_recap_epl_401879319",
+          "created_at": "2026-08-23 17:30:19",
+          "written_at": "2026-08-23 17:31:36",
+          "len": 294,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Liverpool and Newcastle finished in a 2-2 draw at St. James' Park, leaving both clubs with 0-1-0 records this season. Closing odds favored Liverpool at -120 compared to Newcastle at +280. USA Net broadcast the match, whi"
+        },
+        {
+          "id": "game_recap_epl_401879320",
+          "created_at": "2026-08-23 15:00:20",
+          "written_at": "2026-08-23 17:31:33",
+          "len": 331,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Manchester City secured a 2-1 win over Bournemouth at the Etihad Stadium, moving to 1-0 this season. Bournemouth dropped to 0-0-1 this season after failing to overcome the deficit. City closed as -205 favorites, while Bo"
+        },
+        {
+          "id": "game_recap_epl_401879297",
+          "created_at": "2026-08-23 15:00:18",
+          "written_at": "2026-08-23 17:31:30",
+          "len": 305,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Brighton opened their season with a 4-0 win against Aston Villa at American Express Stadium, broadcast on Peacock. Brighton moved to 1-0-0 this season, while Aston Villa fell to 0-0-1 this season. Aston Villa recorded 0 "
+        },
+        {
+          "id": "epl_match_2026-08-21_espn:761745",
+          "created_at": "2026-08-21 02:20:05",
+          "written_at": "2026-08-23 02:06:04",
+          "len": 290,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "LA Galaxy and CF Montréal finished in a 2-2 draw tonight at Stade Saputo. Joseph Paintsil, who holds 5 goals this season, and his teammates split points with a Montréal side featuring Prince Owusu and his 12 goals this s"
+        },
+        {
+          "id": "epl_match_2026-08-21_espn:761741",
+          "created_at": "2026-08-21 02:20:06",
+          "written_at": "2026-08-23 01:51:06",
+          "len": 284,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Charlotte improved to 9-5-7 this season by defeating D.C. United 3-1 at Bank of America Stadium. Despite Tai Baribo’s 12 goals this season and Pep Biel’s 10 goals this season, Charlotte secured the result as home favorit"
+        },
+        {
+          "id": "pre_game_EPL_2026-08-22_brentford_spurs",
+          "created_at": "2026-08-22 10:01:39",
+          "written_at": "2026-08-23 01:51:03",
+          "len": 337,
+          "brief_type": "pre_game",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Brentford dominated their season opener at Gtech Community Stadium, shutting out Spurs 3-0 tonight. Spurs recorded only 3 shots tonight, finishing with 0 points through the game. Brentford closed as +110 favorites, succe"
+        },
+        {
+          "id": "game_live_epl_401879322",
+          "created_at": "2026-08-22 10:02:19",
+          "written_at": "2026-08-23 01:51:03",
+          "len": 306,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Hull City stunned Manchester United 2-0 at The MKM Stadium, marking a massive upset after closing at +800 odds. United finished with 0 goals through this match, failing to capitalize on their -295 favorite status. Hull m"
+        }
+      ]
+    },
+    {
+      "id": "recap_names_a_scoring_play",
+      "what": "game_recap briefs written since match_events deployed name a player who appears in that game's ESPN scoring plays",
+      "qualifying_rows": 3,
+      "testable_rows": 3,
+      "status": "FAIL — 0/3 recap(s) name anyone who scored in the game they describe",
+      "method": "per-row join: ESPN scoring plays for the brief's own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.",
+      "note": "PARTIAL is expected on some slates and is not a regression by itself: a recap can legitimately lead on something other than a scorer. Read the evidence rows — 0/N is the signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.",
+      "evidence": [
+        {
+          "id": "game_recap_epl_401879319",
+          "sport": "EPL",
+          "game_id": "401879319",
+          "written_at": "2026-08-23 17:31:36",
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 4,
+          "names_in_plays": [
+            "Anthony",
+            "Elanga",
+            "Assisted",
+            "William",
+            "Osula",
+            "Cody",
+            "Gakpo",
+            "Ryan",
+            "Gravenberch",
+            "Willock",
+            "Yoane",
+            "Wissa",
+            "Dominik",
+            "Szoboszlai"
+          ],
+          "team_words": [
+            "Newcastle",
+            "United",
+            "Liverpool"
+          ],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "brief names nobody who scored in this game"
+        },
+        {
+          "id": "game_recap_epl_401879320",
+          "sport": "EPL",
+          "game_id": "401879320",
+          "written_at": "2026-08-23 17:31:33",
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 3,
+          "names_in_plays": [
+            "Marcus",
+            "Tavernier",
+            "Assisted",
+            "Evanilson",
+            "Marc",
+            "Guéhi",
+            "Rayan",
+            "Cherki",
+            "Josko",
+            "Gvardiol",
+            "Review"
+          ],
+          "team_words": [
+            "Manchester",
+            "City",
+            "Man",
+            "AFC",
+            "Bournemouth"
+          ],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "brief names nobody who scored in this game"
+        },
+        {
+          "id": "game_recap_epl_401879297",
+          "sport": "EPL",
+          "game_id": "401879297",
+          "written_at": "2026-08-23 17:31:30",
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 4,
+          "names_in_plays": [
+            "Victor",
+            "Lindelöf",
+            "Maxim",
+            "Cuyper",
+            "Assisted",
+            "Georginio",
+            "Rutter",
+            "Jack",
+            "Hinshelwood",
+            "Diego",
+            "Gómez"
+          ],
+          "team_words": [
+            "Brighton",
+            "&",
+            "Hove",
+            "Albion",
+            "Aston",
+            "Villa"
+          ],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "brief names nobody who scored in this game"
+        }
+      ]
+    },
+    {
+      "id": "thread_notes_cleanup",
+      "what": "the 30 * * * * cron deletes game_thread_notes rows past expires_at",
+      "qualifying_rows": 4,
+      "status": "PASS",
+      "grace_window": "1 hour — the sweep fires at :30, so a just-expired row proves nothing",
+      "expired_beyond_grace": 0,
+      "note": "STAGED in cc-session-2026-07-20-game-thread-relay.md since 2026-07-20 with no executor. The cron has fired ~816 times since; this is the first thing that asks whether any of them worked."
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: PASS",
+    "soccer_opening_coverage: PASS — improved for EPL, La Liga",
+    "epl_brief_event_grounded: PASS — 9/10 not the season template, and no prompt-example literal in any of the 6 recap(s) written since the 2f fix | live: 0/4 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+    "recap_names_a_scoring_play: FAIL — 0/3 recap(s) name anyone who scored in the game they describe",
+    "thread_notes_cleanup: PASS"
+  ],
+  "all_passed": false,
+  "any_failed": true
+}
