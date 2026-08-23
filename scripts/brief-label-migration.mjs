@@ -36,7 +36,7 @@
 // So there is no lowercase rule here. Every mapping is explicit or derived from
 // the row's own id, and anything else is reported and left alone.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -278,15 +278,45 @@ try {
     }
 
     if (MODE === 'apply') {
+        // APPLY CONSUMES THE COMMITTED SCOPE. It does not re-derive one.
+        //
+        // This was the header's claim before it was the code's behaviour, and
+        // the gap mattered: a re-deriving apply writes whatever it happens to
+        // measure at write time, which is the bare-predicate problem the
+        // 2026-08-06 spec forbade, wearing an id list. Reading the committed
+        // file makes the rows written provably the rows a human read in the
+        // scope manifest.
+        if (!existsSync(SCOPE_FILE)) throw new Error(
+            `refusing to apply: ${SCOPE_FILE} not found — run MODE=scope first and commit it`);
+        const scoped = JSON.parse(readFileSync(SCOPE_FILE, 'utf8'));
+        out.scope_consumed = { scoped_at: scoped.scoped_at, file: SCOPE_FILE };
+
+        if (scoped.unclassified?.length) throw new Error(
+            `refusing to apply: the scope carries ${scoped.unclassified.length} unclassified variant(s) — `
+            + scoped.unclassified.map(u => `${JSON.stringify(u.sport)} (${u.n})`).join(', '));
         if (unclassified.length) throw new Error(
-            `refusing to apply: ${unclassified.length} unclassified variant(s) — `
+            `refusing to apply: ${unclassified.length} variant(s) unclassified at write time — `
             + unclassified.map(u => `${JSON.stringify(u.sport)} (${u.n})`).join(', '));
 
+        // Drift between the scope and now is reported, never silently absorbed.
+        // Rows added since scoping are NOT written -- they are absent from the
+        // scoped list by construction, and `verify` will surface them.
+        const scopedIds = new Set(scoped.plan.flatMap(p => p.rows.map(r => r.id)));
+        const nowIds = new Set(plan.flatMap(p => p.rows.map(r => r.id)));
+        out.scope_drift = {
+            scoped_rows: scopedIds.size,
+            measurable_now: nowIds.size,
+            appeared_since_scope: [...nowIds].filter(i => !scopedIds.has(i)).length,
+            gone_since_scope: [...scopedIds].filter(i => !nowIds.has(i)).length,
+            note: 'rows that appeared since scoping are NOT written; verify reports them',
+        };
+
+        // Everything below writes from `scoped`, never from `plan`.
         const applied = [];
         // Chunked because D1 caps bound parameters per statement; each chunk is
         // still an explicit id list, never a predicate on its own.
         const CHUNK = 40;
-        for (const p of plan) {
+        for (const p of scoped.plan) {
             let changed = 0;
             for (let i = 0; i < p.rows.length; i += CHUNK) {
                 const slice = p.rows.slice(i, i + CHUNK);
@@ -312,15 +342,16 @@ try {
         }
 
         let retyped = 0;
-        for (let i = 0; i < out.mislabelled_recaps.ids.length; i += CHUNK) {
-            const ids = out.mislabelled_recaps.ids.slice(i, i + CHUNK);
+        const scopedRecapIds = scoped.mislabelled_recaps?.ids || [];
+        for (let i = 0; i < scopedRecapIds.length; i += CHUNK) {
+            const ids = scopedRecapIds.slice(i, i + CHUNK);
             const marks = ids.map(() => '?').join(',');
             const { meta } = await d1(
                 `UPDATE briefs SET brief_type = 'game_live'
                  WHERE id IN (${marks}) AND brief_type = 'game_recap'`, ids);
             retyped += meta?.changes ?? 0;
         }
-        applied.push({ reclassified_recap_to_live: retyped, measured: out.mislabelled_recaps.n });
+        applied.push({ reclassified_recap_to_live: retyped, measured: scopedRecapIds.length });
         out.applied = applied;
     }
 
