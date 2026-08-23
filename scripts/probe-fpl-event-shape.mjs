@@ -90,14 +90,26 @@ try {
   // The ESPN half of the bridge, read rather than assumed. The golf incident
   // (CC-CMD-2026-06-18) was a session guessing field shapes instead of probing;
   // guessing TEAM NAMES has the same failure mode and no compiler to catch it.
-  const today = new Date().toISOString().slice(0, 10);
-  const ctxDay = await get(`/context/date/${today}`);
-  const soccer = (ctxDay.games?.regular || [])
-    .filter(g => /^(EPL|La Liga|Ligue 1|Serie A|MLS|Bundesliga)$/i.test(String(g.sport || '').trim()));
+  // Walk back until EPL rows are found. Run 2 of this probe asked only for
+  // today and got 9 soccer rows and zero EPL ones — GW1 was played on 08-21/22,
+  // and a competition that plays twice a week is absent from most single days.
+  // A one-day probe that returns nothing looks identical to a broken join.
+  let ctxDay = null, ctxDate = null, soccer = [], epl = [];
+  for (let back = 0; back < 8; back++) {
+    const d = new Date(Date.now() - back * 86400000).toISOString().slice(0, 10);
+    const day = await get(`/context/date/${d}`);
+    const rows = (day.games?.regular || [])
+      .filter(g => /^(EPL|La Liga|Ligue 1|Serie A|MLS|Bundesliga)$/i.test(String(g.sport || '').trim()));
+    const e = rows.filter(g => String(g.sport).trim().toUpperCase() === 'EPL');
+    if (!ctxDay) { ctxDay = day; ctxDate = d; soccer = rows; }
+    if (e.length) { ctxDate = d; soccer = rows; epl = e; break; }
+  }
+  out.join.espn_date_used = ctxDate;
   out.join.espn_soccer_rows = soccer.length;
-  out.join.espn_epl_names = [...new Set(soccer
-    .filter(g => String(g.sport).trim().toUpperCase() === 'EPL')
-    .flatMap(g => [g.home, g.away]).filter(Boolean))];
+  out.join.espn_epl_names = [...new Set(epl.flatMap(g => [g.home, g.away]).filter(Boolean))];
+  out.join.espn_other_soccer_names = [...new Set(soccer
+    .filter(g => String(g.sport).trim().toUpperCase() !== 'EPL')
+    .map(g => `${g.sport}: ${g.home} v ${g.away}`))].slice(0, 6);
   // Which FPL names match an ESPN name verbatim, and which do not. The
   // non-matching list IS the alias map that has to be written by hand.
   const fplNames = new Set(out.join.fpl_team_names);
