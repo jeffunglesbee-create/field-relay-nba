@@ -59,6 +59,51 @@ const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at h
    OR b.brief_text LIKE '%second-half action%' OR b.brief_text LIKE '%first-half action%'
    OR b.brief_text LIKE '%through 4_ minutes%' OR b.brief_text LIKE '%minutes into%' )`;
 
+
+// ── Candidate weightings, evaluated WITHOUT a second Datamuse pass ──────────
+//
+// scoreProse's total is linear in the per-dimension fractions the breakdown
+// already returns: total = Σ (dim_k × SCALE_k), give or take the rounding inside
+// `base`. So once a row is scored, every candidate weighting can be evaluated on
+// the SAME row for free. That matters twice over: it is ~950 fewer Datamuse
+// lookups per candidate, and it means every candidate is compared on identical
+// prose rather than on a fresh sample that could differ for its own reasons.
+//
+// The candidates are not guesses. They follow the separation measured above:
+// arc, ctx and temporal are the three dimensions where finished-game prose
+// genuinely scores higher; voice and density run the OTHER way, so weight spent
+// on them actively narrows the gap ask 6b exists to widen.
+const DIM_TO_SCALE = {
+    specificity: 'spec', statDepth: 'statDepth', variety: 'variety',
+    density: 'density', freshness: 'fresh', arcScore: 'arc',
+    contextAnchoring: 'ctx', temporalScore: 'temporal',
+    voiceScore: 'voice', matchupDepth: 'matchup',
+};
+const scoreUnder = (dims, W) => Object.entries(DIM_TO_SCALE)
+    .reduce((sum, [dimKey, wKey]) => sum + (dims[dimKey] || 0) * (W[wKey] ?? 0), 0);
+
+// Every candidate keeps the 300-point nominal total, so a score stays readable
+// against every threshold already in the codebase (240, 196, 110). A candidate
+// that changed the total would move every bar at once and make the before/after
+// unreadable -- a different change wearing this one's clothes.
+const CANDIDATES = {
+    current: { ...SCALE },
+    // Shift weight off the two dimensions that discriminate backwards and onto
+    // the three that discriminate correctly. Conservative: voice and density
+    // keep enough weight to still do their own jobs.
+    shift_moderate: { spec: 30, statDepth: 38, variety: 30, density: 10, fresh: 36,
+                      arc: 55, ctx: 32, temporal: 25, voice: 20, matchup: 24 },
+    // The same move, harder.
+    shift_aggressive: { spec: 28, statDepth: 34, variety: 26, density: 8, fresh: 30,
+                        arc: 68, ctx: 40, temporal: 30, voice: 16, matchup: 20 },
+    // The ceiling of this approach: everything on the three forward dimensions.
+    // Not a proposal -- it is here to show how much reweighting alone can EVER
+    // buy, so the decision to add a real finality dimension is made against a
+    // number rather than a feeling.
+    forward_only_bound: { spec: 0, statDepth: 0, variety: 0, density: 0, fresh: 0,
+                          arc: 150, ctx: 90, temporal: 60, voice: 0, matchup: 0 },
+};
+
 const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 // Reported beside every mean. Run 1 produced a 5.4-point difference on n=16 and
 // stated it as a gap; without a spread that number cannot be told apart from
@@ -191,6 +236,30 @@ try {
         : m.rescored.gap_ratio_to_noise >= 2
             ? `difference is ${m.rescored.gap_ratio_to_noise}x the standard error of the difference — larger than sample noise`
             : `difference is only ${m.rescored.gap_ratio_to_noise}x the standard error — INDISTINGUISHABLE from noise at this n`;
+
+    // The AFTER half, on the same rows. This is what produces the numbers a
+    // SCORING_ERAS `measuredEffect` needs.
+    m.candidates = Object.fromEntries(Object.entries(CANDIDATES).map(([name, W]) => {
+        const l = live.map(s => scoreUnder(s.dims, W));
+        const f = fin.map(s => scoreUnder(s.dims, W));
+        const se = seDiff(f, l);
+        const gap = mean(f) - mean(l);
+        return [name, {
+            nominal_total: Object.values(W).reduce((a, b) => a + b, 0),
+            in_progress_mean: r1(mean(l)),
+            final_mean: r1(mean(f)),
+            gap: r1(gap),
+            gap_se: r1(se),
+            gap_ratio_to_noise: (se && se > 0) ? r1(Math.abs(gap) / se) : null,
+            // How much of the scale a finished brief can actually earn under
+            // this weighting, given which dims are live on game briefs.
+            mean_total_final: r1(mean(f)),
+        }];
+    }));
+    const cur = m.candidates.current?.gap;
+    m.candidate_summary = Object.entries(m.candidates)
+        .map(([k, v]) => `${k}: gap ${v.gap} (${v.gap_ratio_to_noise}x noise)`
+            + (cur ? `, ${r1(v.gap / cur)}x the current gap` : ''));
 
     // Claim 2 under test. A dim is "live" here if it scored above zero on at
     // least one real row -- the falsifiable form of "unreachable".
