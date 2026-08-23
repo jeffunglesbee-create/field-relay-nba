@@ -1,0 +1,122 @@
+{
+  "probed_at": "2026-08-23T14:45:23.266Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 16,
+      "fresh": 36,
+      "arc": 45,
+      "ctx": 25,
+      "temporal": 20,
+      "voice": 30,
+      "matchup": 30
+    },
+    "declared_unreachable": [
+      "ctx",
+      "matchup"
+    ],
+    "declared_reachable_ceiling": 245
+  },
+  "limit": 190,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 95,
+      "mean_stored": 184.3
+    },
+    {
+      "kind": "reads as final",
+      "n": 1442,
+      "mean_stored": 190
+    }
+  ],
+  "matchup_note_coverage": [
+    {
+      "total": 1284,
+      "with_note": 36
+    }
+  ],
+  "rescored": {
+    "n_total": 190,
+    "in_progress": {
+      "n": 95,
+      "mean_rescored": 175.2,
+      "sd_rescored": 18.1,
+      "mean_stored": 184.3,
+      "dims": {
+        "specificity": 0.297,
+        "statDepth": 0.983,
+        "variety": 0.645,
+        "density": 0.793,
+        "freshness": 0.899,
+        "arcScore": 0.254,
+        "contextAnchoring": 0.805,
+        "temporalScore": 0.668,
+        "voiceScore": 0.657,
+        "matchupDepth": 0
+      }
+    },
+    "reads_as_final": {
+      "n": 95,
+      "mean_rescored": 181.7,
+      "sd_rescored": 13.9,
+      "mean_stored": 187.9,
+      "dims": {
+        "specificity": 0.28,
+        "statDepth": 0.995,
+        "variety": 0.624,
+        "density": 0.673,
+        "freshness": 0.917,
+        "arcScore": 0.4,
+        "contextAnchoring": 0.949,
+        "temporalScore": 0.779,
+        "voiceScore": 0.523,
+        "matchupDepth": 0
+      }
+    },
+    "gap_rescored": 6.5,
+    "gap_stored_for_this_sample": 3.6,
+    "dim_separation": {
+      "specificity": -0.017,
+      "statDepth": 0.012,
+      "variety": -0.021,
+      "density": -0.12,
+      "freshness": 0.018,
+      "arcScore": 0.146,
+      "contextAnchoring": 0.144,
+      "temporalScore": 0.111,
+      "voiceScore": -0.134,
+      "matchupDepth": 0
+    },
+    "era_spread": [
+      "1",
+      "2",
+      "3",
+      "null"
+    ],
+    "gap_se": 2.3,
+    "gap_ratio_to_noise": 2.8,
+    "gap_verdict": "difference is 2.8x the standard error of the difference — larger than sample noise"
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 181,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 184,
+      "statDepth": 189,
+      "variety": 190,
+      "density": 187,
+      "freshness": 190,
+      "arcScore": 169,
+      "contextAnchoring": 178,
+      "temporalScore": 178,
+      "voiceScore": 190,
+      "matchupDepth": 0
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_matchup": "zero on every row in this sample"
+  },
+  "error": null
+}
