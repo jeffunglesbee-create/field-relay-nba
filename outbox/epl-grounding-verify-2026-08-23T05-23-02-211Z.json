@@ -1,0 +1,40 @@
+{
+  "probed_at": "2026-08-23T05:23:02.211Z",
+  "ok": true,
+  "error": null,
+  "stage1": {
+    "gameweek": 1,
+    "date_used": "2026-08-22",
+    "fixtures": 5,
+    "resolved": 5,
+    "unresolved_clubs": [],
+    "with_table": 5,
+    "with_events": 5,
+    "players_named": 24,
+    "strays": [],
+    "sample_block": "[EPL GOALSCORERS] Ajayi, Mendy\n[EPL ASSISTS] McBurnie, Slater\n[EPL GOALKEEPER SAVES] Tzolakis (5)\n[EPL TABLE] Hull City: 0th in the table, no matches played yet | Man Utd: 0th in the table, no matches played yet\n[EPL EVENT NOTE] These are the players involved, from the official Premier League feed. It carries NO minute for any goal or card — do not state when anything happened. Name who did what, and treat it as the state so far, not a final account."
+  },
+  "stage2": {
+    "http": 200,
+    "fixture": "Man United @ Hull",
+    "players_available": [
+      "Ajayi",
+      "Mendy",
+      "McBurnie",
+      "Slater",
+      "Tzolakis"
+    ],
+    "players_named_in_prose": [
+      "Ajayi",
+      "Mendy",
+      "McBurnie",
+      "Slater",
+      "Tzolakis"
+    ],
+    "cites_table_position": false,
+    "claims_a_minute": false,
+    "cites_wdl_record": false,
+    "prose": "Hull City and Manchester United opened their accounts with a 2-1 result that leaves both sides hunting for their first points of the campaign. Ajayi (Hull) and Mendy (Manchester United) found the net, while McBurnie and Slater provided the assists. Tzolakis, a 5-save keeper, kept things tight in a 32-16 shot-share."
+  },
+  "verdict": "VERIFIED — GW1, 5 real fixtures resolved from production names, 24 players named with zero misattributions, and a live brief carried the grounding through."
+}
