@@ -872,9 +872,36 @@ round:
   `scripts/check-team-identity-collisions.mjs`).
 - **For codes, use a scoped closed dictionary.** The working precedent is
   `_FPL_SHORT_TO_ESPN_ABBR` (`src/context-assembler.js:997`) — FPL `short_name` →
-  ESPN abbreviation, live-verified across three matchdays, 18/20 direct with
-  `MCI→MNC` and `MUN→MAN` the two real mismatches. `'SUN':'SUN'` is safe there
-  because the lookup is scoped to EPL and never leaves it.
+  ESPN abbreviation, `MCI→MNC` and `MUN→MAN` the two real mismatches.
+  `'SUN':'SUN'` is safe there because the lookup is scoped to EPL and never
+  leaves it.
+
+**A closed dictionary is only correct until the league is promoted into, and its
+own size will not tell you.** This entry previously read "live-verified across
+three matchdays, 18/20 direct". Measured 2026-08-23: the table held **20
+entries** and still missed **three of the twenty clubs in the season** — `COV`,
+`HUL`, `IPS` — while carrying `BUR`, `WHU`, `WOL` for clubs no longer in it. The
+count matching the league size is what made it look complete, and "verified
+across three matchdays" was true of the fixtures that happened to be played.
+
+The cost of the gap is silent. An unmapped club makes `teamIdFor` return null and
+`buildFPLMatchEventsContext` returns `''` for **both** sides of that fixture, so
+every Coventry, Hull and Ipswich match got no goalscorers, no cards and no table
+for a full gameweek — and an empty context source is indistinguishable from one
+with nothing to say.
+
+**The rule: verify a scoped table against the live roster, never against itself.**
+`scripts/verify-epl-grounding.mjs` now diffs `_FPL_SHORT_TO_ESPN_ABBR` against
+`bootstrap-static`'s current team list every run and fails on any club it cannot
+map, so the next promotion breaks a check instead of three clubs' fixtures.
+Missing codes are read from `/espn-standings/soccer/eng.1/standings`, which lists
+all twenty in one response — not guessed.
+
+**"Resolvable" is a question about WHICH table.** A 2026-08-21 summary recorded
+"Coventry, Ipswich and Hull all resolvable as of today". That was true of
+`resolveTeamKey` and false of the scoped code table the builder actually reads,
+and the gap above survived a full day underneath it. Names and codes are separate
+key spaces with separate coverage; a claim about one says nothing about the other.
 
 **If FIELD ever mints its own EPL short codes, Sunderland must not be `SUN`.**
 Use **`SND`** (or `SUND` where four characters are acceptable). The live hazard
