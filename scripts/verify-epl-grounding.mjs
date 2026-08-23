@@ -79,7 +79,9 @@ try {
       const el = [...data.elementsById.values()].find(e => e.web_name === n);
       return el && !allowed.has(el.team);
     });
-    return { home: g.home, away: g.away, resolved: ctx.reason === 'ok' || !!ctx.block,
+    const scoreLine = (g.home_score != null && g.away_score != null)
+      ? `${g.home} ${g.home_score}, ${g.away} ${g.away_score}` : null;
+    return { home: g.home, away: g.away, scoreLine, resolved: ctx.reason === 'ok' || !!ctx.block,
              reason: ctx.reason, unresolved: ctx.unresolved || [],
              hasTable: !!ctx.block && ctx.block.includes('[EPL TABLE]'),
              hasEvents: !!ctx.block && /\[EPL (GOALSCORERS|ASSISTS)\]/.test(ctx.block),
@@ -107,9 +109,16 @@ try {
     out.stage2 = { skipped: 'no fixture produced a block' };
     fails.push('stage 2 could not run — no block to generate from');
   } else {
+    // The cron prompt carries ESPN's `Game data:` line directly above the block.
+    // Run 1 of this verification omitted it, and the brief invented "a 2-1
+    // result" from two goalscorers. That was a harness gap, not a production
+    // one — but a verification prompt that differs from the real prompt is
+    // testing something other than production, so it now mirrors it, and the
+    // invented-scoreline check below stays as a standing guard.
     const prompt = [
       `Write a FIELD Game Brief for this EPL game.`,
       `${target.away} @ ${target.home}.`,
+      `Game data: ${target.scoreLine || 'score not yet available'}`,
       target.block,
       '',
       'Rules: 40-60 words. Lead with the most interesting fact about who scored, then where it leaves them in the table. One complete thought.',
@@ -137,6 +146,17 @@ try {
     // Hard failures: things the feed cannot support.
     if (out.stage2.claims_a_minute) fails.push('the brief claims a minute the feed does not carry');
     if (out.stage2.cites_wdl_record) fails.push('the brief cites a won-drawn-lost record');
+    // A scoreline the prompt never supplied. Run 1 produced "a 2-1 result" from
+    // two goalscorers and then contradicted it in the same sentence.
+    const proseScores = (prose || '').match(/\b\d+\s*-\s*\d+\b/g) || [];
+    const supplied = target.scoreLine || '';
+    const invented = proseScores.filter(sc => {
+      const [a, b] = sc.split(/\s*-\s*/);
+      return !(supplied.includes(a) && supplied.includes(b));
+    });
+    out.stage2.scorelines_in_prose = proseScores;
+    out.stage2.invented_scorelines = invented;
+    if (invented.length) fails.push(`the brief states a scoreline the prompt never supplied: ${invented.join(', ')}`);
     // Grounding: at least ONE signal must survive. Which one the model picks is
     // an editorial choice and not asserted — requiring a specific scorer would
     // fail on a legitimate table-led brief.

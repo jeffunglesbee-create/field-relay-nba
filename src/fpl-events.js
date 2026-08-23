@@ -128,9 +128,25 @@ export function buildFplBlock({ events, homeTable, awayTable, fixtureFinished })
     if (!lines.length) return null;
     // The model is told what it does NOT have, because the alternative is that
     // it supplies a minute itself. This feed carries no timestamps at all.
+    // Two absences, both stated. The minute one was designed in; the SCORE one
+    // was found by running the verification early, 2026-08-23:
+    //
+    //   "Hull City and Manchester United opened their accounts with a 2-1 result
+    //    that leaves both sides hunting for their first points of the campaign."
+    //
+    // There is no 2-1 in this block and no scoreline anywhere in the feed. The
+    // model had two goalscorers, one per side, and produced a scoreline from
+    // them — then contradicted it in the same sentence, because the table says
+    // neither side has played. In the cron path ESPN's `Game data:` line sits
+    // directly above this block and supplies the real score, so production was
+    // never exposed; the harness prompt omitted it, which is what made the
+    // tendency visible. A block that lists goals without saying it carries no
+    // score is one missing line away from doing this in production too.
     lines.push('[EPL EVENT NOTE] These are the players involved, from the official '
-        + 'Premier League feed. It carries NO minute for any goal or card — do not state '
-        + 'when anything happened. Name who did what'
+        + 'Premier League feed. It carries NO minute for any goal or card, and NO scoreline '
+        + '— do not state when anything happened, and never infer the score from the number '
+        + 'of goalscorers listed here. Use only a score given elsewhere in this prompt. '
+        + 'Name who did what'
         + (fixtureFinished ? '.' : ', and treat it as the state so far, not a final account.'));
     return lines.join('\n');
 }

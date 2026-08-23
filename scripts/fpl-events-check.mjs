@@ -87,6 +87,12 @@ ok('the block carries the table', /\[EPL TABLE\].*Arsenal.*Spurs/.test(block));
 // The feed has no timestamps. Saying so is what stops the model supplying one.
 ok('the block states that no minute is available', /NO minute/.test(block));
 ok('the block never contains a minute marker itself', !/\b\d{1,2}'/.test(block) && !/\b\d{1,2}th minute/.test(block));
+// Found by the live run, not designed in: with goalscorers listed and no score
+// in sight, the model produced "a 2-1 result" out of two goalscorers.
+ok('the block states it carries no scoreline', /NO scoreline/.test(block));
+ok('the block forbids inferring a score from the scorer list',
+  /never infer the score from the number of goalscorers/.test(block));
+ok('the block contains no scoreline of its own', !/\b\d+\s*-\s*\d+\b/.test(block));
 ok('an empty match yields null, not a heading with nothing under it',
   buildFplBlock({ events: matchEvents(77, live, elementsById), homeTable: null, awayTable: null }) === null);
 
