@@ -1,0 +1,79 @@
+name: Re-score quality (ask 6b baseline)
+
+# Ask 6b of CC-CMD-2026-08-20-brief-data-quality needs a before/after re-score
+# to produce a real `measuredEffect` for its SCORING_ERAS entry. This is the
+# BEFORE, and it changes nothing -- the whole point is a number measured under a
+# single rubric before any weight moves.
+#
+# It runs in CI because the sandbox 403s *.workers.dev and the probe needs both
+# /d1/execute and api.datamuse.com (Dim 5 fires up to 5 lookups per brief).
+# `rule-gha-for-sandbox-egress-blocks`: a runner has unrestricted egress, so
+# "the sandbox cannot reach it" is not a stopping point.
+#
+# NO SCHEDULE, deliberately, and this is the opposite call from
+# staged-verification.yml -- so it needs a reason. That workflow polls for an
+# event nobody can predict (a fixture being played), which is why leaving it
+# manual turned it into something someone had to remember. This one answers a
+# question that only changes when scoreProse changes. A daily run would re-score
+# the same corpus under the same rubric and emit an identical number, spending
+# ~800 Datamuse calls a day to learn nothing. Dispatch it before a weighting
+# change and again after.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "How many game_recap rows to re-score (Datamuse cost is ~5 calls per row)"
+        required: false
+        default: "160"
+  push:
+    paths:
+      - 'outbox/.trigger-rescore-quality-6b'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rescore-quality-6b
+  cancel-in-progress: false
+
+jobs:
+  rescore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Tolerant, like every other probe here: a script that dies before writing
+      # must leave that visible as a failed step next to an absent artifact,
+      # not as an empty commit that reads like "measured, found nothing".
+      - name: Re-score under one rubric
+        continue-on-error: true
+        env:
+          RESCORE_LIMIT: ${{ github.event.inputs.limit || '160' }}
+        run: node scripts/rescore-quality-6b.mjs
+
+      - name: Commit the manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/rescore-quality-6b-*.json || { echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: ask 6b re-score baseline [skip ci]"
+          LOG=/tmp/rescore-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0

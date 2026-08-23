@@ -1,0 +1,164 @@
+#!/usr/bin/env node
+// Ask 6b of CC-CMD-2026-08-20-brief-data-quality — the BEFORE half.
+//
+// The ask says quality_score "under-penalises in-progress prose" and asks for a
+// weighting change plus a before/after re-score to produce a real measuredEffect
+// for the SCORING_ERAS entry. This script is the before. It changes nothing.
+//
+// WHY IT RE-SCORES RATHER THAN READING quality_score. The stored column spans
+// three scoring eras (ver 1 = 716, ver 2 = 518, null = 241 as of 2026-08-21) and
+// SCORING_ERAS exists precisely because scores on either side of a boundary are
+// non-comparable — the 2026-07-16 case where a pure formula change read as a
+// 68-point collapse in prose quality. Any statement about a 5.8-point gap that
+// mixes eras is measuring the instrument, not the prose. Every row here is
+// re-scored under HEAD's scoreProse, one rubric, and the stored value is carried
+// alongside only so the era spread is visible.
+//
+// THE CLASSIFIER IS COPIED VERBATIM from scripts/probe-ask5-ask6-prereqs.mjs,
+// which produced the 184.3 / 190.1 baseline the CC-CMD cites. A different
+// definition of "in-progress" would make the before and after incomparable,
+// which is the whole failure this script exists to avoid.
+//
+// TWO INHERITED CLAIMS ARE UNDER TEST HERE (Rule 72), not assumed:
+//
+//   1. "The gap is 5.8 points." Measured on the STORED column across eras.
+//      Re-scored under one rubric it may be larger, smaller or absent.
+//   2. "55 of the 300 points are unreachable BY CONSTRUCTION in the Worker
+//      runtime" (outbox/cc-session-2026-08-16-quality-bar-scale.md, repeated in
+//      SCALE's own comment and in the 240-bar analysis). Dim 7 reads opts.game
+//      and Dim 10 reads opts.matchupNote, and eight of the ten runQualityChain
+//      call sites in src/index.js DO pass game — six also pass matchupNote. So
+//      the claim is at least too broad: it holds for the slate brief, which has
+//      no single game, and this reports whether it holds for game briefs, which
+//      are the rows the 0-of-523 finding was drawn from.
+//
+// Read-only apart from the artifact it writes.
+
+import { writeFileSync } from 'node:fs';
+import { scoreProse, SCALE, UNREACHABLE_DIMS, REACHABLE_CEILING } from '../src/journalism-quality.js';
+
+const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
+const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+const LIMIT = Number(process.env.RESCORE_LIMIT || 160);
+
+async function d1(sql, params = []) {
+    const r = await fetch(`${RELAY}/d1/execute`, {
+        method: 'POST',
+        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026', 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: JSON.stringify({ sql, params }),
+    });
+    const t = await r.text();
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${t.slice(0, 200)}`);
+    const j = JSON.parse(t);
+    if (j.ok === false) throw new Error(`relay error: ${j.error}`);
+    return j.results || [];
+}
+
+// VERBATIM from probe-ask5-ask6-prereqs.mjs. Do not "improve" it here.
+const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at halftime%'
+   OR b.brief_text LIKE '%second-half action%' OR b.brief_text LIKE '%first-half action%'
+   OR b.brief_text LIKE '%through 4_ minutes%' OR b.brief_text LIKE '%minutes into%' )`;
+
+const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+const r1 = (x) => x == null ? null : Math.round(x * 10) / 10;
+const r3 = (x) => x == null ? null : Math.round(x * 1000) / 1000;
+
+const m = {
+    probed_at: new Date().toISOString(),
+    rubric: { scale: SCALE, declared_unreachable: UNREACHABLE_DIMS, declared_reachable_ceiling: REACHABLE_CEILING },
+    limit: LIMIT,
+    stored_baseline: null,
+    rescored: null,
+    dim_reachability: null,
+    error: null,
+};
+
+try {
+    // The stored-column figure the CC-CMD cites, reproduced exactly, so the
+    // re-scored number below can be compared to a number and not to a memory.
+    m.stored_baseline = await d1(
+        `SELECT CASE WHEN ${LIVE_LANG} THEN 'in-progress language' ELSE 'reads as final' END AS kind,
+                COUNT(*) AS n, ROUND(AVG(b.quality_score),1) AS mean_stored
+         FROM briefs b
+         WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+         GROUP BY kind`);
+
+    // Rows joined to their game, because Dim 7 and Dim 10 have no input without
+    // one and would report a false zero. LEFT JOIN, not INNER: a brief with no
+    // matching game row is a real population member and its missing dims are a
+    // finding, not a row to hide.
+    const rows = await d1(
+        `SELECT b.id, b.sport, b.game_id, b.brief_type, b.date,
+                b.quality_score AS stored, b.scoring_version,
+                CASE WHEN ${LIVE_LANG} THEN 1 ELSE 0 END AS live_lang,
+                b.brief_text,
+                g.home, g.away, g.home_score, g.away_score, g.note, g.finalized_at
+         FROM briefs b
+         LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
+         WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+         ORDER BY b.date DESC, b.id DESC
+         LIMIT ?`, [LIMIT]);
+
+    const scored = [];
+    for (const r of rows) {
+        const game = (r.home && r.away)
+            ? { home: r.home, away: r.away, homeScore: r.home_score, awayScore: r.away_score }
+            : null;
+        // Sequential, one brief at a time. scoreProse fires up to 5 Datamuse
+        // lookups per call for Dim 5; a parallel map over 160 briefs is an 800-
+        // request burst at a free API (Rule 78).
+        const b = await scoreProse(r.brief_text, {
+            sport: r.sport || '', game, matchupNote: r.note || null, breakdown: true,
+        });
+        scored.push({
+            id: r.id, sport: r.sport, live_lang: !!r.live_lang,
+            stored: r.stored, scoring_version: r.scoring_version,
+            joined_game: !!game, has_note: !!r.note,
+            total: b.total, dims: b.dims,
+        });
+    }
+
+    const live = scored.filter(s => s.live_lang);
+    const fin  = scored.filter(s => !s.live_lang);
+    const dimKeys = Object.keys(scored[0]?.dims || {});
+    const byDim = (set) => Object.fromEntries(dimKeys.map(k => [k, r3(mean(set.map(s => s.dims[k])))]));
+
+    const liveMean = mean(live.map(s => s.total));
+    const finMean  = mean(fin.map(s => s.total));
+
+    m.rescored = {
+        n_total: scored.length,
+        in_progress: { n: live.length, mean_rescored: r1(liveMean), mean_stored: r1(mean(live.map(s => s.stored))), dims: byDim(live) },
+        reads_as_final: { n: fin.length, mean_rescored: r1(finMean), mean_stored: r1(mean(fin.map(s => s.stored))), dims: byDim(fin) },
+        // The number ask 6b has to move. Positive = finals score higher.
+        gap_rescored: (liveMean != null && finMean != null) ? r1(finMean - liveMean) : null,
+        gap_stored_for_this_sample: r1(mean(fin.map(s => s.stored)) - mean(live.map(s => s.stored))),
+        // Which dimension separates the two classes at all. A dimension with a
+        // gap of ~0 cannot be reweighted into a penalty -- multiplying zero by
+        // anything is still zero, and that is the whole question ask 6b turns on.
+        dim_separation: Object.fromEntries(dimKeys.map(k =>
+            [k, r3((mean(fin.map(s => s.dims[k])) ?? 0) - (mean(live.map(s => s.dims[k])) ?? 0))])),
+        era_spread: [...new Set(scored.map(s => String(s.scoring_version)))].sort(),
+    };
+
+    // Claim 2 under test. A dim is "live" here if it scored above zero on at
+    // least one real row -- the falsifiable form of "unreachable".
+    m.dim_reachability = {
+        rows_with_joined_game: scored.filter(s => s.joined_game).length,
+        rows_with_matchup_note: scored.filter(s => s.has_note).length,
+        nonzero_rows_per_dim: Object.fromEntries(dimKeys.map(k =>
+            [k, scored.filter(s => (s.dims[k] || 0) > 0).length])),
+        verdict_ctx: scored.some(s => (s.dims.contextAnchoring || 0) > 0)
+            ? 'REACHABLE — scored above zero on real rows'
+            : 'zero on every row in this sample',
+        verdict_matchup: scored.some(s => (s.dims.matchupDepth || 0) > 0)
+            ? 'REACHABLE — scored above zero on real rows'
+            : 'zero on every row in this sample',
+    };
+} catch (e) { m.error = String(e.message || e); }
+
+const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+writeFileSync(`outbox/rescore-quality-6b-${stamp}.json`, JSON.stringify(m, null, 2) + '\n');
+console.log(JSON.stringify(m, null, 2));
+if (m.error) { console.error('\nRE-SCORE FAILED — says nothing about the rubric.'); process.exit(1); }
+process.exit(0);
