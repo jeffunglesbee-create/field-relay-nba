@@ -57,6 +57,27 @@ try {
   // for BOTH sides of that fixture — no events, no table, silently.
   if (unmapped.length) fails.push(`dictionary misses ${unmapped.length} club(s) in this season: ${unmapped.map(t => t.short_name).join(', ')}`);
 
+  // The dictionary maps FPL short_name -> ESPN abbreviation, so completing it
+  // needs ESPN's abbreviation, not a guess at one. Report what ESPN actually
+  // calls every club on the EPL scoreboard, so the missing rows are copied from
+  // evidence. Guessing club identifiers is the failure this whole file exists
+  // to stop repeating.
+  try {
+    const espnAbbrs = new Set();
+    for (let back = 0; back < 10 && espnAbbrs.size < 20; back++) {
+      const d = new Date(Date.now() - back * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+      const sb = await (await fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=${d}`,
+        { headers: { 'User-Agent': UA } })).json();
+      for (const ev of sb.events || []) {
+        for (const c of ev.competitions?.[0]?.competitors || []) {
+          if (c.team?.abbreviation) espnAbbrs.add(`${c.team.abbreviation} (${c.team.displayName})`);
+        }
+      }
+    }
+    out.stage1_dictionary.espn_abbreviations_observed = [...espnAbbrs].sort();
+  } catch (e) { out.stage1_dictionary.espn_abbreviations_observed = `unavailable: ${e.message}`; }
+
   // ── 2. the builder, on a real fixture ─────────────────────────────────────
   const gw = (boot.events || []).find(e => e.is_current)?.id ?? (boot.events || []).find(e => e.is_next)?.id;
   const fixtures = await get(`/fpl/fixtures?event=${gw}`);

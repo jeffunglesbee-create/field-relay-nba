@@ -1276,12 +1276,17 @@ async function buildFPLMatchEventsContext(env, game) {
             if (teens >= 11 && teens <= 13) return `${n}th`;
             return `${n}${['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
         };
+        // MEASURED 2026-08-23, first live run: this emitted "Everton 0th, no
+        // matches played yet". FPL reports position: 0 before the table is
+        // computed, so a null-guard is not enough — 0 is a real value meaning
+        // "unplaced", and an ordinal of it is nonsense. Guard on falsy, and say
+        // what is true instead of ranking a side that has no rank.
         const standing = (id) => {
             const t = teams.find(x => x.id === id);
-            if (!t || t.position == null || t.points == null) return null;
-            return t.played === 0
-                ? `${t.name} ${ord(t.position)}, no matches played yet`
-                : `${t.name} ${ord(t.position)} on ${t.points} point${t.points === 1 ? '' : 's'} from ${t.played}`;
+            if (!t) return null;
+            if (!t.position) return `${t.name} unplaced, no matches played yet`;
+            if (t.points == null) return null;
+            return `${t.name} ${ord(t.position)} on ${t.points} point${t.points === 1 ? '' : 's'} from ${t.played}`;
         };
         const table = [standing(homeId), standing(awayId)].filter(Boolean);
         if (table.length === 2) lines.push(`League table: ${table.join(' | ')}`);
