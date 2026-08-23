@@ -1,0 +1,62 @@
+{
+  "probed_at": "2026-08-23T02:30:28.673Z",
+  "days": 7,
+  "fetch_ok": true,
+  "error": null,
+  "corpus": {
+    "expected": 460,
+    "collected": 377,
+    "scored": 375,
+    "truncated_partitions": [
+      "2026-08-22/game_live: hit 50-row cap",
+      "2026-08-20/game_recap: hit 50-row cap"
+    ]
+  },
+  "unambiguous": {
+    "what": "soccer briefs naming NBA/NHL/NFL/MLB/WNBA/DRTG/ORTG vs soccer briefs that do not",
+    "contaminated": {
+      "n": 2,
+      "mean_score": 197
+    },
+    "clean": {
+      "n": 119,
+      "mean_score": 179.1
+    },
+    "delta": 17.9
+  },
+  "proxy": {
+    "caveat": "prompt not stored; cannot apply 2f context check. A genuine figure matching a tracked literal counts as flagged.",
+    "with_literal": {
+      "n": 21,
+      "mean_score": 176
+    },
+    "without": {
+      "n": 354,
+      "mean_score": 174.3
+    },
+    "delta": 1.7
+  },
+  "mechanism": {
+    "0": {
+      "n": 3,
+      "mean_score": 107.7
+    },
+    "1-3": {
+      "n": 26,
+      "mean_score": 167.8
+    },
+    "4-7": {
+      "n": 146,
+      "mean_score": 175.4
+    },
+    "8-11": {
+      "n": 173,
+      "mean_score": 176.8
+    },
+    "12+": {
+      "n": 27,
+      "mean_score": 167.3
+    }
+  },
+  "verdict": "CONFIRMED — contaminated soccer briefs score 17.9 points HIGHER on average. The scale pays for the fabrication."
+}
