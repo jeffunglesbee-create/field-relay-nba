@@ -134,6 +134,15 @@ jobs:
       - name: prompt-example numbers cannot leak into prose
         run: node scripts/check-prompt-example-leak.mjs
 
+      # The sport-key table is indexed by two shapes of each name, spaced and
+      # collapsed, because D1 display names and ESPN slugs disagree about
+      # whitespace. The lookup stripped whitespace before indexing, so every
+      # multi-word entry was unreachable and a game whose sport read "Major
+      # League Baseball" resolved to no ESPN slug -- returning '' with no
+      # error, indistinguishable from "ESPN had no leaders yet".
+      - name: sport-key normalization reaches both key shapes
+        run: node scripts/sport-key-check.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys

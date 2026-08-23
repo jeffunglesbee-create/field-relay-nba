@@ -474,6 +474,96 @@ async function buildOddsStoryContext(env, game) {
     return '';
 }
 
+// ── sport-key normalization ──────────────────────────────────────────────
+// Shared by every builder that has to turn a D1 sport string into an ESPN
+// slug key. This lived as a local const inside
+// buildESPNSummaryContext until 2026-08-23, when a second builder needed the
+// same mapping: a second copy is precisely how two tables that can disagree
+// get created (CONTRACTS.md; the FPL_SHORT_NAME_MAP case). Hoisted, not
+// copied — buildESPNSummaryContext's own behaviour is unchanged.
+//
+// assembleContext normalizes game.sport for registry FILTERING but passes the
+// original game object to builders, so each builder must normalize for itself.
+//
+// Keys come in two shapes on purpose — spaced ('fifa world cup') and collapsed
+// ('fifaworldcup') — because D1 display names and ESPN slugs disagree about
+// whitespace. normalizeSportKey indexes with both.
+const _SPORT_KEY_NORMALIZE = {
+    // ── World Cup (slug and display name variants) ──────────────────────
+    'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26',
+    'worldcup': 'wc26',         'worldcup2026': 'wc26',
+    // With spaces (D1 stores display names without stripping)
+    'fifa world cup 2026': 'wc26', 'fifa world cup': 'wc26',
+    'world cup 2026': 'wc26',      'world cup': 'wc26',
+    // ── MLB (slug + D1 display name variants) ───────────────────────────
+    'baseball': 'mlb',
+    'baseball (mlb)': 'mlb',
+    'major league baseball': 'mlb',
+    // ── NBA / WNBA ───────────────────────────────────────────────────────
+    'basketball': 'nba',          // WNBA promoted via league check below
+    'basketball (nba)': 'nba',
+    'national basketball association': 'nba',
+    'wnba': 'wnba',
+    'nba w': 'wnba',
+    "women's national basketball association": 'wnba',
+    'womensnationalbasketballassociation': 'wnba',
+    // ── NHL ─────────────────────────────────────────────────────────────
+    'hockey': 'nhl',
+    'hockey (nhl)': 'nhl',
+    'national hockey league': 'nhl',
+    // ── NFL ─────────────────────────────────────────────────────────────
+    'football': 'nfl',
+    'football (nfl)': 'nfl',
+    'national football league': 'nfl',
+    // ── Golf ────────────────────────────────────────────────────────────
+    'golf': 'golf',
+    'pga': 'golf',
+    'pgatour': 'golf',
+    'pga tour': 'golf',
+    // ── Tennis ──────────────────────────────────────────────────────────
+    'tennis': 'atp',              // gender resolved via league below
+    'atp tour': 'atp',
+    'wta tour': 'wta',
+    // ── Soccer (non-WC handled by league slug in V2_LEAGUES) ────────────
+    'soccer': 'soccer',
+    'football (soccer)': 'soccer',
+    // EPL resolved only because D1 already stores the key as 'epl'; the
+    // display forms did not. Harmless to buildESPNSummaryContext, which has no
+    // EPL entry in _ESPN_SPORT_SLUG and so returns '' exactly as the unmapped
+    // string already did — this is the table being complete, not a new path.
+    'epl': 'epl',
+    'premierleague': 'epl',
+    'englishpremierleague': 'epl',
+};
+
+/// D1 stores display names ("Major League Baseball", "Basketball"), GameDO
+/// sends generic ESPN sport names, and the registry key is a third thing.
+/// Returns the canonical key ('mlb', 'wnba', 'wc26', ...) or the stripped raw
+/// string when nothing matches — callers look that up and get undefined,
+/// which is the correct outcome for a sport this file does not model.
+function normalizeSportKey(game) {
+    // Index with both shapes. The lookup previously stripped all whitespace
+    // before indexing, which made every multi-word key in the table above
+    // unreachable — 'major league baseball', 'national football league',
+    // 'fifa world cup 2026' and six others have never matched anything since
+    // they were written. A D1 row carrying the display name resolved to no
+    // slug, and buildESPNSummaryContext returned '' with no error, which is
+    // indistinguishable from "ESPN had no leaders yet". Run
+    // scripts/sport-key-check.mjs against the old single-shape lookup and it
+    // fails on exactly those multi-word cases.
+    const spaced  = String(game.sport || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    const stripped = spaced.replace(/\s+/g, '');
+    let key = _SPORT_KEY_NORMALIZE[spaced] || _SPORT_KEY_NORMALIZE[stripped] || stripped;
+    // 'basketball' and 'nba' both cover the WNBA in the feeds; only the league
+    // string separates them. This matters more than it looks: WNBA is the
+    // sport whose scoring-play volume (112 measured) needs selectScoringPlays,
+    // so mis-keying it fetches an NBA event id against an NBA slug.
+    if ((key === 'nba' || key === 'basketball') && game.league) {
+        if (/wnba|women|nba\s*w/i.test(String(game.league))) key = 'wnba';
+    }
+    return key;
+}
+
 // ── buildESPNSummaryContext — per-game leaders from ESPN Summary API ─────
 // Fetches /espn-summary/sports/{sport}/{league}/summary?event={sourceId} via
 // the relay's existing ESPN Summary proxy route (index.js:8432). Extracts
@@ -500,57 +590,8 @@ async function buildESPNSummaryContext(env, game) {
     const sourceId = game.sourceId || game.source_id || game.espnEventId || game.eventId;
     if (!sourceId) return '';
 
-    // Normalize unnormalized D1 sport strings (e.g. "FIFA World Cup 2026")
-    // to the keys used in _ESPN_SPORT_SLUG (e.g. "wc26"). assembleContext
-    // normalizes for registry filtering but passes the original game object
-    // to builders — builders must normalize themselves.
-    const _SUMMARY_SPORT_NORMALIZE = {
-        // ── World Cup (slug and display name variants) ──────────────────────
-        'fifaworldcup2026': 'wc26', 'fifaworldcup': 'wc26',
-        'worldcup': 'wc26',         'worldcup2026': 'wc26',
-        // With spaces (D1 stores display names without stripping)
-        'fifa world cup 2026': 'wc26', 'fifa world cup': 'wc26',
-        'world cup 2026': 'wc26',      'world cup': 'wc26',
-        // ── MLB (slug + D1 display name variants) ───────────────────────────
-        'baseball': 'mlb',
-        'baseball (mlb)': 'mlb',
-        'major league baseball': 'mlb',
-        // ── NBA / WNBA ───────────────────────────────────────────────────────
-        'basketball': 'nba',          // WNBA promoted via league check below
-        'basketball (nba)': 'nba',
-        'national basketball association': 'nba',
-        'wnba': 'wnba',
-        'nba w': 'wnba',
-        "women's national basketball association": 'wnba',
-        'womensnationalbasketballassociation': 'wnba',
-        // ── NHL ─────────────────────────────────────────────────────────────
-        'hockey': 'nhl',
-        'hockey (nhl)': 'nhl',
-        'national hockey league': 'nhl',
-        // ── NFL ─────────────────────────────────────────────────────────────
-        'football': 'nfl',
-        'football (nfl)': 'nfl',
-        'national football league': 'nfl',
-        // ── Golf ────────────────────────────────────────────────────────────
-        'golf': 'golf',
-        'pga': 'golf',
-        'pgatour': 'golf',
-        'pga tour': 'golf',
-        // ── Tennis ──────────────────────────────────────────────────────────
-        'tennis': 'atp',              // gender resolved via league below
-        'atp tour': 'atp',
-        'wta tour': 'wta',
-        // ── Soccer (non-WC handled by league slug in V2_LEAGUES) ────────────
-        'soccer': 'soccer',
-        'football (soccer)': 'soccer',
-    };
-    const _sportRawKey = String(game.sport || '').toLowerCase().replace(/\s+/g, '');
-    let sportKey = _SUMMARY_SPORT_NORMALIZE[_sportRawKey] || _sportRawKey;
-    // If sport resolved to 'nba'/'basketball' but league signals WNBA, use WNBA slug
-    if ((sportKey === 'nba' || sportKey === 'basketball') && game.league) {
-        const _lgCheck = String(game.league || '').toLowerCase();
-        if (/wnba|women|nba\s*w/i.test(_lgCheck)) sportKey = 'wnba';
-    }
+    // Sport-key normalization is shared — see normalizeSportKey above.
+    const sportKey = normalizeSportKey(game);
     const slug = _ESPN_SPORT_SLUG[sportKey]
         || (game.espnLeague ? _ESPN_SPORT_SLUG[String(game.espnLeague).toLowerCase()] : null)
         || null;
@@ -1520,6 +1561,7 @@ export {
     buildTeamFormContext,
     buildFPLPlayerContext,
     buildFPLMatchEventsContext,
+    normalizeSportKey,
     // Exported so a check can compare it against the CURRENT season's team
     // list rather than against a copy of itself. A closed dictionary of clubs
     // is only correct until the league is promoted into.
