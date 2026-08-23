@@ -32,14 +32,14 @@ const getJson = async (path) => {
 
 // slug -> the scoreboard that yields a finalized event id to probe with
 const TARGETS = [
-  { sport: 'mlb',  slug: 'sports/baseball/mlb',    container: 'plays',        filter: 'scoringPlay' },
-  { sport: 'nba',  slug: 'sports/basketball/nba',  container: 'plays',        filter: 'scoringPlay' },
-  { sport: 'wnba', slug: 'sports/basketball/wnba', container: 'plays',        filter: 'scoringPlay' },
-  { sport: 'nhl',  slug: 'sports/hockey/nhl',      container: 'plays',        filter: 'scoringPlay' },
+  { sport: 'mlb',  archiveSport: 'MLB',  slug: 'sports/baseball/mlb',    container: 'plays',        filter: 'scoringPlay' },
+  { sport: 'nba',  archiveSport: 'NBA',  slug: 'sports/basketball/nba',  container: 'plays',        filter: 'scoringPlay' },
+  { sport: 'wnba', archiveSport: 'WNBA', slug: 'sports/basketball/wnba', container: 'plays',        filter: 'scoringPlay' },
+  { sport: 'nhl',  archiveSport: 'NHL',  slug: 'sports/hockey/nhl',      container: 'plays',        filter: 'scoringPlay' },
   // NOT in _ESPN_SPORT_SLUG. Whether the proxy accepts it is the question.
-  { sport: 'nfl',  slug: 'sports/football/nfl',    container: 'scoringPlays', filter: null },
+  { sport: 'nfl',  archiveSport: 'NFL',  slug: 'sports/football/nfl',    container: 'scoringPlays', filter: null },
   // Slug is hard-coded to fifa.world in _ESPN_SPORT_SLUG; eng.1 is the EPL one.
-  { sport: 'epl',  slug: 'sports/soccer/eng.1',    container: 'keyEvents',    filter: 'scoringPlay' },
+  { sport: 'epl',  archiveSport: 'EPL',  slug: 'sports/soccer/eng.1',    container: 'keyEvents',    filter: 'scoringPlay' },
 ];
 
 const out = { probed_at: new Date().toISOString(), sports: {}, notes: [] };
@@ -49,18 +49,27 @@ for (const t of TARGETS) {
                 summary_ok: null, containers_present: null, scoring_items: null,
                 item_keys: null, sample_text: null, selection_fields: null, error: null };
   try {
-    // Walk back for a finalized event — one day is not a slate, and most
-    // leagues do not play every day.
-    let eventId = null;
-    for (let back = 0; back < 8 && !eventId; back++) {
-      const d = new Date(Date.now() - back * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
-      const sb = await getJson(`/espn-summary/${t.slug}/scoreboard?dates=${d}`);
-      if (sb.__error) { rec.error = `scoreboard: ${sb.__error}`; break; }
-      const done = (sb.events || []).find(e => e.status?.type?.completed);
-      if (done) eventId = done.id;
-    }
+    // Event ids come from the relay's OWN archive, not from ESPN's scoreboard.
+    // Run 1 asked /espn-summary/.../scoreboard and got 403 on all six sports:
+    // espnSummaryAllowed() permits /sports/{a}/{b}/summary and nothing else, so
+    // the scoreboard path was never going to work. The archive already stores
+    // the ESPN event id as game_id on game_recap rows — game_recap_epl_401879301
+    // — so it is both allowed and authoritative for "a game FIELD actually
+    // briefed".
+    const q = await getJson(`/archive/query?sport=${encodeURIComponent(t.archiveSport)}&brief_type=game_recap&limit=6`);
+    if (q.__error) { rec.error = `archive: ${q.__error}`; out.sports[t.sport] = rec; continue; }
+    const ids = (q.results || []).map(r => String(r.game_id || '')).filter(id => /^\d{6,}$/.test(id));
+    rec.archive_rows = (q.results || []).length;
+    const eventId = ids[0] || null;
     rec.event_id = eventId;
-    if (!eventId) { rec.error = rec.error || 'no finalized event in 8 days'; out.sports[t.sport] = rec; continue; }
+    if (!eventId) {
+      // Out of season is not a failure. In August, NBA and NHL have no games,
+      // so their containers cannot be measured now and must not be guessed.
+      rec.error = rec.archive_rows
+        ? 'archive rows carry no numeric ESPN event id'
+        : 'PENDING — no game_recap in the archive for this sport (out of season?)';
+      out.sports[t.sport] = rec; continue;
+    }
 
     const s = await getJson(`/espn-summary/${t.slug}/summary?event=${eventId}`);
     if (s.__error) { rec.error = `summary: ${s.__error} ${s.__body || ''}`; out.sports[t.sport] = rec; continue; }
