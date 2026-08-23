@@ -153,6 +153,31 @@ jobs:
       - name: scoring-play selection stays in budget and states its truncation
         run: node scripts/match-events-check.mjs
 
+      # Four guards written earlier today ran nowhere. A guard nobody runs
+      # catches nothing -- it only records that someone once knew the rule.
+      # Each of these covers a defect that reached a live brief.
+
+      # Layer 2h: the seven words CLAUDE.md bans outright. A live brief said
+      # "stunned" because hasCliche was imported at index.js:70 and never
+      # called, and the relay's own BANNED_PHRASES carried none of the seven.
+      - name: banned journalism phrases are rejected
+        run: node scripts/banned-phrase-check.mjs
+
+      # Layer 2g: "their best stretch in 12 games" next to "over the last 20"
+      # is a comparison across two windows the source data never compared.
+      - name: cross-window comparisons are detected
+        run: node scripts/cross-window-check.mjs
+
+      # Sport scoping: an NBA analytics citation rule reaching an EPL prompt
+      # is how a soccer brief ends up citing a champion's field-goal rate.
+      - name: prose style rules stay in their sport
+        run: node scripts/prose-style-scope-check.mjs
+
+      # Voice exemplars leak their own figures into prose (layer 2f). Scoping
+      # them by sport must not defeat that detector -- this checks both.
+      - name: voice register exemplars stay in their sport
+        run: node scripts/voice-register-scope-check.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
