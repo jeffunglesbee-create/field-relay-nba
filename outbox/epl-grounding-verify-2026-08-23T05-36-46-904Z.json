@@ -1,0 +1,67 @@
+{
+  "probed_at": "2026-08-23T05:36:46.904Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 20,
+    "unmapped_this_season": [
+      "COV (Coventry City)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)"
+    ],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 1,
+    "fixtures_built": 3,
+    "non_empty": 3,
+    "with_table_line": 3,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Dewsbury-Hall (EVE), Barry (EVE)\nAssists: Ndiaye (EVE), Armstrong (EVE)\nYellow cards: Kamada (CRY)\nSaves: Pickford (EVE) 4, Henderson (CRY) 3\nFPL bonus: Dewsbury-Hall (EVE) +3, Barry (EVE) +2, Ndiaye (EVE) +1\nTop BPS: Dewsbury-Hall (EVE) 40, Barry (EVE) 37, Ndiaye (EVE) 36\nLeague table: Everton unplaced, no matches played yet | Crystal Palace unplaced, no matches played yet\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "briefs": 6,
+    "cite_wdl": [
+      "game_recap_epl_401879321",
+      "game_recap_epl_401879298",
+      "game_recap_epl_401879299",
+      "game_recap_epl_401879300",
+      "game_recap_epl_401879322",
+      "game_recap_epl_401879301"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879322: stunned"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — dictionary misses 3 club(s) in this season: COV, HUL, IPS | archived briefs cite a W-D-L record: game_recap_epl_401879321, game_recap_epl_401879298, game_recap_epl_401879299 | archived briefs use a banned phrase: game_recap_epl_401879322: stunned"
+}
