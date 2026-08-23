@@ -159,6 +159,17 @@ try {
             + 'measured id list and will be reported by verify.',
     };
 
+    // ── The label AUTHORITY, read from the games table, not from memory ────
+    // Run 1's CONFORMING set was hand-written and wrong: it lacked EFL Cup, EFL
+    // Trophy and the three UEFA qualifying labels, so 106 correctly-labelled
+    // rows were reported as non-conforming. The census's own test is "the games
+    // table carries this form", so ask the games table.
+    const { rows: authRows } = await d1(
+        `SELECT DISTINCT sport FROM regular_season_games WHERE sport IS NOT NULL
+         UNION SELECT DISTINCT sport FROM postseason_games WHERE sport IS NOT NULL`);
+    out.authority = authRows.map(r => r.sport).sort();
+    for (const a of out.authority) CONFORMING.add(a);
+
     // ── SCOPE: what is actually in the column today ────────────────────────
     const { rows: variants } = await d1(
         `SELECT sport, COUNT(*) AS n, MIN(id) AS sample_id
