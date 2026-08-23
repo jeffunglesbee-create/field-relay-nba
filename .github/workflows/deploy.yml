@@ -168,6 +168,17 @@ jobs:
       - name: the live recap path assembles context
         run: node scripts/check-recap-assembles-context.mjs --self-test && node scripts/check-recap-assembles-context.mjs
 
+      # The Courier writes a named Actions secret into a named repo, OIDC in,
+      # sealed-box out, so the value passes through the runner and lands in no
+      # file. RELAY_SHARED_SECRET's sync step exits 1 until that secret exists
+      # here, and the tempting one-line fix for a red step is to paste the value
+      # where the variable goes -- putting the credential back into a committed
+      # workflow, days after field-laboratory's check:secrets failed for exactly
+      # that. Deleting the step is the other way to make it green, and that
+      # blinds check:sport-vocabulary there permanently. Both are caught.
+      - name: Courier secret syncs carry variables, not values
+        run: node scripts/check-courier-sync-uses-secrets.mjs --self-test && node scripts/check-courier-sync-uses-secrets.mjs
+
       # The stale-data sentinel asked two questions -- does the key exist, is it
       # recent -- and never whether the file contained anything. On 2026-06-22
       # FBref started 403ing GH runner IPs; the workflow parsed 0 squads, wrote
@@ -981,6 +992,50 @@ jobs:
           echo "Result: $RESULT"
           echo "$RESULT" | grep -q '"ok":true' \
             && echo "✅ CLOUDFLARE_API_TOKEN synced to field-laboratory" \
+            || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
+
+      # field-laboratory's check:sport-vocabulary reads the relay's games tables
+      # through POST /d1/execute, which is credentialled. The value was inline in
+      # that repo's scripts/sport-vocabulary-check.mjs until 2026-08-23, when its
+      # check:secrets matched it against docs/exposed-secrets.sha256 and failed
+      # verify. It now reads process.env.RELAY_SHARED_SECRET with no fallback and
+      # fails loudly when empty, so the secret has to arrive some other way.
+      #
+      # This is that way, and it is the pattern already proven three steps above:
+      # OIDC in, Courier verifies against GitHub's JWKS, Courier's own GITHUB_PAT
+      # writes the sealed secret into the target repo. No credential stored in any
+      # workflow, and no literal added to any file -- which is the point, since a
+      # literal is what we just removed.
+      #
+      # ONE MANUAL STEP, ONCE: RELAY_SHARED_SECRET must exist as an Actions secret
+      # in THIS repo. There is nothing to read it from otherwise -- the relay's
+      # five other workflows carry the value inline rather than as a secret, and
+      # copying it in here would recreate the exposure in a new place.
+      #
+      # Empty is fatal, not skipped. Pushing an empty value would create a secret
+      # in field-laboratory that exists and authenticates nothing, and the check
+      # there would report a 401 as "the probe failed" -- the silence both repos
+      # spent today deleting.
+      - name: BOOTSTRAP — Sync RELAY_SHARED_SECRET to field-laboratory
+        continue-on-error: true
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          RELAY_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ -z "$RELAY_SECRET" ]; then
+            echo "❌ RELAY_SHARED_SECRET is not set in this repository."
+            echo "   Add it under Settings → Secrets and variables → Actions."
+            echo "   Until then field-laboratory's check:sport-vocabulary cannot run,"
+            echo "   and it reports that as a failure rather than a skip."
+            exit 1
+          fi
+          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"repo\":\"field-laboratory\",\"name\":\"RELAY_SHARED_SECRET\",\"value\":\"$RELAY_SECRET\"}")
+          echo "Result: $RESULT"
+          echo "$RESULT" | grep -q '"ok":true' \
+            && echo "✅ RELAY_SHARED_SECRET synced to field-laboratory" \
             || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
 
 
