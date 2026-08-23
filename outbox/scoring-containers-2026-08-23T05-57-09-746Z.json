@@ -1,0 +1,80 @@
+{
+  "probed_at": "2026-08-23T05:57:09.746Z",
+  "sports": {
+    "mlb": {
+      "slug": "sports/baseball/mlb",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    },
+    "nba": {
+      "slug": "sports/basketball/nba",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    },
+    "wnba": {
+      "slug": "sports/basketball/wnba",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    },
+    "nhl": {
+      "slug": "sports/hockey/nhl",
+      "expected_container": "plays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    },
+    "nfl": {
+      "slug": "sports/football/nfl",
+      "expected_container": "scoringPlays",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    },
+    "epl": {
+      "slug": "sports/soccer/eng.1",
+      "expected_container": "keyEvents",
+      "event_id": null,
+      "summary_ok": null,
+      "containers_present": null,
+      "scoring_items": null,
+      "item_keys": null,
+      "sample_text": null,
+      "selection_fields": null,
+      "error": "scoreboard: HTTP 403"
+    }
+  },
+  "notes": [
+    "scoring items per finalized game — "
+  ]
+}
