@@ -123,7 +123,10 @@ brief.
 
 This changes the meaning of a finding that was already reported. Against the
 game-shape ceiling of 270, the 240 bar is **88.89%** of what a game brief can
-earn — not 97.96%. "No brief has ever cleared 240 across 523" then reads as a
+earn — not 97.96%. (Those are the `74dc759` figures. Era 4 then moved the
+weights, so the deployed numbers today are ceiling **276** and **86.96%** — both
+derived from `SCALE`, both confirmed live below. The verdict does not change; the
+arithmetic follows the weights, which is the point of deriving it.) "No brief has ever cleared 240 across 523" then reads as a
 demanding editorial bar that is never met, rather than a near-perfect-score
 requirement that is arithmetically unmeetable. Those call for different
 responses.
@@ -166,7 +169,27 @@ that is now what it checks. 11 assertions, up from 4.
 - **NOT ASSERTED:** that era-4 scores are *better* in any editorial sense. The
   probe reports separation between two classes and declines that judgement.
 
-Re-runnable any time: dispatch `rescore-quality-6b.yml`.
+**Live confirmation of era 4, 11/11 assertions against the deployed relay**
+(`outbox/quality-scale-verify-20260823T145535Z.json`):
+
+```
+PASS reachable_ceiling === 244 (derived from SCALE)
+PASS four_fifths_of_reachable === 195
+PASS nominal_total === 300
+PASS game_shape reported
+PASS game reachable_ceiling === 276
+PASS game shape drops only matchup
+PASS game four_fifths === 221
+PASS 240 is 86.96% of the game-shape ceiling
+PASS summary rows returned | 48 rows
+PASS every row carries numeric cleared_196 | all 48 rows
+```
+
+The deployed worker agrees with the source on every derived constant, which is
+the invariant that probe now exists to hold.
+
+Re-runnable any time: dispatch `rescore-quality-6b.yml` or
+`verify-quality-scale.yml`.
 
 ## Carry-forwards — both filed as commands, neither carried here
 

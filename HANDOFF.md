@@ -1,5 +1,58 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-23b (ask 6b, scoring era 4)
+
+**HEAD:** `7c75dad` → `95bf3c0` · **Branch:** main throughout
+**Session doc (Rule 67):** `outbox/cc-session-2026-08-23-ask6b-scoring-weights.md`
+**Artifacts:** `outbox/rescore-quality-6b-2026-08-23T144*.json` (three runs),
+`outbox/quality-scale-verify-20260823T145535Z.json` (11/11 live)
+
+| commit | what |
+|--------|------|
+| `09aada2` | measure ask 6b's baseline before moving any weight |
+| `91626aa` | evaluate candidate weightings on the rows already scored |
+| `74dc759` | 245 is the ceiling for a slate brief, not for every brief |
+| `95bf3c0` | era 4 — weight the dimensions that tell a finished game from an unfinished one |
+
+Deploys 847 and 848 green. Live verification 11/11.
+
+**Era 4**
+
+```
+arc 45->55   ctx 25->32   temporal 20->25
+voice 30->20 density 16->10 matchup 30->24      nominal total held at 300
+```
+
+Measured on the same 190 rows before and after: in-progress/final gap
+**6.4 → 11.5** points, **2.8× → 4.2×** the standard error. n=95 per class.
+
+**Two premises this session had to correct**
+
+- A first re-score over the 160 most recent rows reported the gap REVERSED.
+  That sample was 144 finals to 16 in-progress; stratified to 95/95 the
+  original direction holds. The artifact from the wrong run is committed and
+  the session doc says which to believe.
+- `UNREACHABLE_DIMS` called `ctx` unreachable "by construction". It scored
+  above zero on 181 of 190 real rows. 245 is the slate-brief ceiling; the
+  game-shape ceiling is 276 and the 240 bar is 86.96% of it, not 97.96% —
+  which changes what "0 of 523 cleared 240" means.
+
+**New deploy gate:** `check-scoring-era-recorded.mjs`. A `SCALE` edit without
+a `SCORING_ERAS` entry now stops the deploy, and an era entry whose
+`measuredEffect` carries no number is rejected. Negative-tested.
+
+**Carry-forwards — both filed as commands, not carried (Rule 87)**
+
+- `CC-CMD-2026-08-23-finality-dimension` — nothing in `scoreProse` reads game
+  state; reweighting's ceiling is 41.6 and costs the rest of the rubric.
+- `CC-CMD-2026-08-23-matchup-note-starvation` — Dim 10 scored zero on 190/190;
+  `regular_season_games.note` is populated on 36/1284 finalized games.
+
+Unchanged from earlier sessions: `scoreThreshold` 110 → 196 (needs a retry-cost
+estimate), `n: null` in `/quality/report` rows.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-23 (recaps now say what happened in the game)
 
 **HEAD:** `77eff06` → `90e6c99` · **Branch:** main throughout
