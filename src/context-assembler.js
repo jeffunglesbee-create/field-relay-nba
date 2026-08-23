@@ -1163,6 +1163,132 @@ async function buildFPLPlayerContext(env, game) {
     return lines.length > 2 ? lines.join('\n') : '';
 }
 
+// ── buildMatchEventsContext ──────────────────────────────────────────────
+// Ask 5 of CC-CMD-2026-08-20-brief-data-quality: briefs describe games without
+// saying what happened in them. ESPN carries the prose; nothing read it outside
+// one World Cup-only path in index.js (~2782).
+//
+// EVERY NUMBER AND FIELD BELOW WAS MEASURED, 2026-08-23, through the relay's
+// own /espn-summary proxy against real finalized games FIELD had briefed
+// (outbox/scoring-containers-2026-08-23T05-58-*.json). The ask's own premise —
+// that this lives in `keyEvents` — is wrong for four of five sports, which
+// CONTRACTS.md already records; these are the containers that exist:
+//
+//   sport  container       scoring items   running score on every item
+//   MLB    plays (601)     5               yes
+//   WNBA   plays (410)     112             yes
+//   NFL    scoringPlays    7               yes (no scoreValue field)
+//   EPL    keyEvents (20)  3               NO
+//   NBA / NHL — out of season in August, PENDING, deliberately not guessed.
+//
+// THE VOLUME PROBLEM IS NOT NBA'S ALONE. The brief-data-quality summary flags
+// NBA at 119 scoring items as the case that needs selection rather than
+// enumeration. WNBA measured 112 on a real game — the same wall, and unlike
+// NBA it is in season, so the selection rule below is exercised by live data
+// today instead of waiting for October.
+//
+// THE SELECTION RULE, and why it is derivable at all: `homeScore`/`awayScore`
+// are present on EVERY scoring item for MLB, WNBA and NFL — checked across the
+// whole array, not just the first element, because "the first item has it" is
+// how a selection rule ends up throwing halfway down a list. So a lead change
+// is computable. EPL carries no running score, and needs none: three items.
+const _EVENT_SLUG = {
+    mlb:  'sports/baseball/mlb',
+    nba:  'sports/basketball/nba',
+    wnba: 'sports/basketball/wnba',
+    nhl:  'sports/hockey/nhl',
+    // Absent from _ESPN_SPORT_SLUG entirely. Verified reachable 2026-08-23.
+    nfl:  'sports/football/nfl',
+    // _ESPN_SPORT_SLUG maps every soccer key to fifa.world, which is the World
+    // Cup and wrong for a domestic league. eng.1 verified working; the other
+    // domestic slugs are NOT guessed here, so an unlisted competition returns
+    // '' rather than fetching a plausible-looking URL.
+    epl:  'sports/soccer/eng.1',
+};
+const _EVENT_CONTAINER = {
+    mlb: 'plays', nba: 'plays', wnba: 'plays', nhl: 'plays',
+    nfl: 'scoringPlays',   // every item is already a scoring play
+    epl: 'keyEvents',
+};
+/// Above this many scoring items, selecting beats listing. MLB 5, NFL 7 and
+/// EPL 3 all enumerate; WNBA 112 and NBA ~119 select.
+const _ENUMERATE_MAX = 12;
+const _SELECT_CAP = 8;
+
+/// Which scoring plays a reader would actually want out of a hundred: the ones
+/// that changed who was winning, plus the closing stretch. Chronological.
+export function selectScoringPlays(items, { enumerateMax = _ENUMERATE_MAX, cap = _SELECT_CAP } = {}) {
+    if (items.length <= enumerateMax) return items;
+    const scored = items.filter(i => i.homeScore != null && i.awayScore != null);
+    if (scored.length !== items.length) return items.slice(-cap);  // cannot rank without a running score
+    const lastPeriod = Math.max(...items.map(i => Number(i.period?.number ?? i.period ?? 0) || 0));
+    const picked = [];
+    let prev = null;
+    for (const i of items) {
+        const margin = Number(i.homeScore) - Number(i.awayScore);
+        const flipped = prev !== null && Math.sign(margin) !== Math.sign(prev) && Math.sign(margin) !== 0;
+        const late = (Number(i.period?.number ?? i.period ?? 0) || 0) === lastPeriod;
+        if (flipped || late) picked.push(i);
+        prev = margin;
+    }
+    // Keep the last `cap`, which favours the decisive end of the game over an
+    // early lead change that was overturned six times.
+    return (picked.length ? picked : items).slice(-cap);
+}
+
+/// The block itself, split out from the fetch so the guard script can exercise
+/// what the generator actually sees without a network round trip. Everything
+/// that decides what a brief can claim happens in here.
+export function formatMatchEvents(items) {
+    const chosen = selectScoringPlays(items);
+    const lines = ['', '[MATCH EVENTS]'];
+    for (const i of chosen) {
+        const text = String(i.text || '').trim();
+        if (!text) continue;
+        const per = i.period?.displayValue || (i.period?.number != null ? `P${i.period.number}` : '');
+        const clk = typeof i.clock === 'object' ? (i.clock?.displayValue || '') : (i.clock || '');
+        const when = [per, clk].filter(Boolean).join(' ');
+        lines.push(when ? `${when} — ${text}` : text);
+    }
+    if (lines.length <= 2) return '';
+    if (chosen.length < items.length) {
+        // Say so, in the block, where the generator reads it. A brief written
+        // from 8 of 112 plays that reads as a full account of the game is a
+        // different failure from one that admits its own scope — and the
+        // generator has no other way to know the list was cut.
+        lines.push(`(${chosen.length} of ${items.length} scoring plays — lead changes and the closing period.)`);
+    }
+    return lines.join('\n');
+}
+
+async function buildMatchEventsContext(env, game) {
+    const sourceId = game.sourceId || game.source_id || game.espnEventId || game.eventId;
+    if (!sourceId || !/^\d{6,}$/.test(String(sourceId))) return '';
+    // normalizeSportKey, not a local lowercase — a WNBA row stored as
+    // "Basketball" would otherwise take the NBA slug and fetch a WNBA event
+    // id against the wrong league, and every D1 display name ("Major League
+    // Baseball") would silently produce no block at all.
+    const key = normalizeSportKey(game);
+    const slug = _EVENT_SLUG[key];
+    const container = _EVENT_CONTAINER[key];
+    if (!slug || !container) return '';
+
+    const base = env?.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+    try {
+        const r = await fetch(`${base}/espn-summary/${slug}/summary?event=${encodeURIComponent(String(sourceId))}`,
+            { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) return '';
+        const d = await r.json();
+        const raw = Array.isArray(d[container]) ? d[container] : [];
+        // NFL's container is scoring plays already; the rest need the filter.
+        const items = container === 'scoringPlays' ? raw : raw.filter(x => x.scoringPlay === true);
+        if (!items.length) return '';
+        return formatMatchEvents(items);
+    } catch (_) {
+        return '';   // Rule 5: a context source can never break brief generation.
+    }
+}
+
 // ── buildFPLMatchEventsContext ───────────────────────────────────────────
 // CC-CMD-2026-08-21-fpl-event-grounding-epl. EPL briefs were season-stat
 // templates ("both sides holding 0 points through 0 matches") because nothing
@@ -1449,6 +1575,26 @@ const CONTEXT_SOURCES = [
     // block measures 386 chars with goals, assists, cards, saves, bonus and
     // BPS. Declaring 200 would have under-reported this source's cost to the
     // assembler's running total and silently crowded out later sources.
+    // What happened in the game, in ESPN's own prose. Priority 4 puts it above
+    // the analytics sources and just under espn_summary's leaders — a recap
+    // should be able to say who scored before it says who leads the league in
+    // anything.
+    //
+    // Budget 200, measured not guessed. The largest block this can emit is
+    // the post-selection WNBA/NBA case: 8 plays of ESPN basketball prose
+    // ("Caitlin Clark makes 26-foot three point jumper (Aliyah Boston
+    // assists)") plus the header and the truncation note = 674 chars = 169
+    // tokens. MLB's 5 plays measure ~100, NFL's 7 ~105, EPL's 3 fewer still.
+    // 200 leaves headroom without making the assembler's own 1.5x per-source
+    // ceiling meaningless — at the 350 first declared, a runaway block could
+    // have taken 525 of the 600-token per-game budget and starved every
+    // source below it while still passing the ceiling.
+    //
+    // CONTRACTS.md makes ESPN authoritative for goals, assists and match
+    // narrative, and FPL authoritative for bonus and saves, so this and
+    // fpl_match_events do not compete for the same fields.
+    { id: 'match_events', priority: 4, budget: 200, builder: buildMatchEventsContext,
+      sports: ['mlb', 'nba', 'wnba', 'nhl', 'nfl', 'epl'] },
     { id: 'fpl_match_events', priority: 5, budget: 400, builder: buildFPLMatchEventsContext,
       sports: ['epl'] },
     // Team form: last 5 completed games per team from regular_season_games.
@@ -1562,6 +1708,8 @@ export {
     buildFPLPlayerContext,
     buildFPLMatchEventsContext,
     normalizeSportKey,
+    buildMatchEventsContext,
+    // selectScoringPlays is exported inline at its declaration.
     // Exported so a check can compare it against the CURRENT season's team
     // list rather than against a copy of itself. A closed dictionary of clubs
     // is only correct until the league is promoted into.

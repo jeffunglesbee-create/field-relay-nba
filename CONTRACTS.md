@@ -815,6 +815,81 @@ per-item id join across 6 fixtures. `keyEvents` uniquely holds substitutions and
 period markers; `commentary` uniquely holds near-misses. All goal items appear in
 both (0 missing across 6 fixtures), so the goal read path is unaffected.
 
+
+### WNBA, and the EPL slug — second measurement, 2026-08-23
+
+The table above was measured 2026-08-21 on one event per sport. Re-probed
+2026-08-23 through the relay's own `/espn-summary` proxy against finalized games
+FIELD had actually briefed, with event ids taken from `/archive/query`'s
+`game_id` (Rule 73 conditions: completed games, August, so NBA and NHL are out of
+season and were NOT re-measured — their rows above stand on the 2026-08-21
+scoreboard probe alone). Artifact:
+`outbox/scoring-containers-2026-08-23T05-58-*.json`.
+
+| sport | ESPN path | container | scoring items | running score on EVERY item |
+|-------|-----------|-----------|---------------|------------------------------|
+| MLB | `baseball/mlb` | `plays` (601 total) | 5 | yes |
+| **WNBA** | `basketball/wnba` | `plays` (410 total) | **112** | yes |
+| NFL | `football/nfl` | `scoringPlays` | 7 | yes (no `scoreValue` field) |
+| **EPL** | `soccer/eng.1` | `keyEvents` (20 total) | 3 | **no** |
+
+Two things this adds that the 2026-08-21 probe could not:
+
+**WNBA is the volume case, and it is in season.** 112 scoring items is the same
+wall as NBA's 119, so the selection rule below is exercised by live data now
+rather than from October. Anything that treats "NBA needs selection" as a
+basketball-in-winter problem is wrong by one sport.
+
+**`soccer/eng.1` works through `/espn-summary`.** The relay's `_ESPN_SPORT_SLUG`
+maps every soccer key to `fifa.world`, which is the World Cup and wrong for a
+domestic league. `eng.1` is verified reachable. Other domestic slugs are NOT
+verified and must not be inferred from this one. `football/nfl` is likewise
+reachable although absent from `_ESPN_SPORT_SLUG`.
+
+### Running score is the selection key, and soccer does not have it
+
+`homeScore` and `awayScore` are present on **every** scoring item for MLB, WNBA
+and NFL — checked across the whole array, not just element 0, because "the first
+item has it" is how a selection rule ends up throwing halfway down a list. EPL
+`keyEvents` carries neither, and needs neither at three items.
+
+Any consumer ranking scoring plays must verify the field on the whole array and
+degrade to the chronological tail when it is missing or partial. A partial array
+is the dangerous case: arithmetic on `undefined` yields `NaN`, `Math.sign(NaN)`
+is `NaN`, and a lead-change test silently finds no lead changes anywhere.
+
+## `[MATCH EVENTS]` prompt block (relay-internal)
+
+Producer: `formatMatchEvents` / `buildMatchEventsContext` in
+`src/context-assembler.js`, context source `match_events`, priority 4, budget
+200. Consumer: the journalism generator prompt. Not client-facing — briefs are,
+this block is not.
+
+```
+[MATCH EVENTS]
+Q4 9:02 — Caitlin Clark makes 26-foot three point jumper (Aliyah Boston assists)
+Q4 8:01 — Alyssa Thomas makes driving layup (DeWanna Bonner assists)
+(8 of 112 scoring plays — lead changes and the closing period.)
+```
+
+**The block never states a scoreline.** `homeScore`/`awayScore` are read for
+ranking and discarded. This is deliberate: on 2026-08-22 a live EPL brief invented
+"a 2-1 result" from a goalscorer list that carried no score at all, and a block
+printing running totals invites the generator to do arithmetic and report the
+score as of the 8th-from-last scoring play as if it were final.
+
+**Above 12 scoring items the block is a selection, not a list** — lead changes
+plus the closing period, capped at 8, in chronological order. The truncation is
+stated in the block itself, in the last line, because the generator has no other
+way to know the list was cut and a brief written from 8 of 112 plays that reads
+as a full account of the game is a distinct failure from one that admits its
+scope. MLB (5), NFL (7) and EPL (3) enumerate whole.
+
+**Authority.** Per the FPL/ESPN split below, this block is authoritative for
+goals, assists and match narrative; `[FPL MATCH EVENTS]` is authoritative for
+bonus points and saves. They are registered as separate sources at different
+priorities and must not both name the same goal.
+
 ---
 
 ## Team identity — one resolver, one table (relay-owned)

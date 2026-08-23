@@ -143,6 +143,16 @@ jobs:
       - name: sport-key normalization reaches both key shapes
         run: node scripts/sport-key-check.mjs
 
+      # ask 5: recaps ground in ESPN scoring plays. Two failure modes are
+      # silent rather than loud. (a) The selection rule degrading to "return
+      # everything" blows the declared budget, and the assembler SKIPS an
+      # over-budget block -- so an unusable wall of 112 plays presents as a
+      # brief with no events at all. (b) A block that prints running scores
+      # invites the generator to report the score as of the 8th-from-last
+      # play as final, which is how a live EPL brief invented "a 2-1 result".
+      - name: scoring-play selection stays in budget and states its truncation
+        run: node scripts/match-events-check.mjs
+
       - name: Deploy to Cloudflare Workers
         id: wrangler_deploy
         continue-on-error: true  # wrangler exits 1 on secret-PUT errors even when code deploys
