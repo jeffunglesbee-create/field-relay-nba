@@ -1,10 +1,25 @@
 #!/usr/bin/env node
-// Combined verification for the three staged items from 2026-08-21/22.
-// Read-only. Dispatch this on any matchday; it answers all three at once.
+// Combined verification for the repo's open STAGED items. Read-only. Dispatch
+// this on any matchday; it answers all of them at once.
 //
-// WHY ONE PROBE: three separate fixes shipped with three separate "verify on the
-// next fixture" notes. Three ad-hoc queries later is how staged items rot into
-// orphans (Rule 74). This makes verifying them a single run.
+// RENAMED from verify-staged-2026-08-22.mjs on 2026-08-23, when a fourth item
+// needed adding. A date in the filename guarantees one of two bad outcomes: a
+// name that lies about what the file covers, or a new near-identical script per
+// date. Staged items arrive continuously; the registry that verifies them is a
+// standing thing, so it now has a standing name.
+//
+// WHY ONE PROBE: separate fixes ship with separate "verify on the next fixture"
+// notes. Several ad-hoc queries later is how staged items rot into orphans
+// (Rule 74). This makes verifying them a single run.
+//
+// OVERLAP WITH scripts/verify-epl-grounding.mjs IS DELIBERATE, AND THEY ARE NOT
+// DUPLICATES. That file calls buildFPLMatchEventsContext directly on a live
+// fixture and checks the club dictionary against bootstrap-static's current
+// team list — neither is reachable from a D1 read, and both catch a class of
+// break this file cannot see (a promoted club missing from a closed table). Its
+// stage 3 does read the archive, which is the one place the two meet. Keep both;
+// merging them would trade a cheap redundancy for the loss of the builder-level
+// assertions.
 //
 // THE DESIGN RULE THAT MATTERS: every check reports PASS, FAIL or **PENDING**,
 // and PENDING is never PASS. A check with no qualifying data yet has proved
@@ -18,6 +33,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
+import { selectScoringPlays } from '../src/context-assembler.js';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -48,9 +64,20 @@ const T_FPL_EVENTS        = '2026-08-22 00:20:10';  // eb02ac7 fpl_match_events 
 // assertion from the earlier baseline makes it FAIL forever on briefs written
 // before the leak fix existed -- the identical error check 1 shipped with.
 const T_2F_LEAK_FIX       = '2026-08-22 18:36:10';  // 5f2fabb promptExampleLeaks corrected
+const T_MATCH_EVENTS      = '2026-08-23 06:12:03';  // 644d7f6 match_events context source
 
 // Measured pre-fix baselines, so "improved" is a comparison and not a vibe.
 const BASELINE = { EPL: 23.1, 'La Liga': 11.8 };
+
+// Plain relay GET. Check 4 needs ESPN's scoring plays for a specific game, and
+// /espn-summary is the only path to them the relay allows -- espnSummaryAllowed()
+// permits /sports/{a}/{b}/summary and nothing else, which is why event ids come
+// from D1's game_id rather than an ESPN scoreboard.
+async function get(path) {
+    const r = await fetch(`${RELAY}${path}`, { headers: { 'User-Agent': UA } });
+    if (!r.ok) throw new Error(`HTTP ${r.status} on ${path}`);
+    return r.json();
+}
 
 async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
@@ -65,6 +92,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
+const EXPECTED_CHECKS = 4;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -336,11 +364,112 @@ try {
         sample: briefRows,
     });
 
+
+    // ── 4. Do recaps name what happened in the game? ────────────────────────
+    //
+    // Ask 5 of CC-CMD-2026-08-20-brief-data-quality, deployed 644d7f6. The
+    // context source match_events feeds ESPN's own scoring-play prose into the
+    // prompt. STAGED because it needs a slate to run after the deploy.
+    //
+    // THIS IS A JOIN, NOT A VIBE CHECK. The tempting version greps the brief
+    // for scoring verbs ("scored", "homered", "makes") and calls a match a
+    // pass. That proves nothing: a season-stat template says "scored 4.7 runs
+    // per game" and would sail through. So this pulls the ACTUAL scoring plays
+    // for that exact game from ESPN, extracts the names in them, and asks
+    // whether the brief names any of those people. A brief can only pass by
+    // naming someone who really did score in the game it is about.
+    //
+    // Team names are excluded from the candidate set. "Arsenal" appears in
+    // every Arsenal play text and in every Arsenal brief, grounded or not, so
+    // counting it would make the check pass on a template.
+    const recapRows = await d1(
+        `SELECT id, sport, game_id, COALESCE(updated_at, created_at) AS written_at,
+                home_team, away_team, brief_text
+         FROM briefs
+         WHERE brief_type = 'game_recap'
+           AND sport IN ('MLB','WNBA','NBA','NHL','NFL','EPL')
+           AND COALESCE(updated_at, created_at) > ?
+         ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 12`, [T_MATCH_EVENTS]);
+
+    const SLUG = { MLB: 'sports/baseball/mlb', NBA: 'sports/basketball/nba',
+                   WNBA: 'sports/basketball/wnba', NHL: 'sports/hockey/nhl',
+                   NFL: 'sports/football/nfl', EPL: 'sports/soccer/eng.1' };
+    const CONTAINER = { MLB: 'plays', NBA: 'plays', WNBA: 'plays', NHL: 'plays',
+                        NFL: 'scoringPlays', EPL: 'keyEvents' };
+    // Words that are capitalised in ESPN prose but are not people.
+    const NOT_A_NAME = new Set(['Goal', 'Kick', 'Yd', 'Run', 'Pass', 'Wrist', 'Shot',
+        'Quarter', 'Period', 'Half', 'Inning', 'Penalty', 'Assist', 'Assists',
+        'Field', 'Left', 'Right', 'Center', 'Centre', 'Own', 'Extra', 'Point']);
+
+    const evidence = [];
+    for (const r of recapRows) {
+        const sport = String(r.sport);
+        const gid = String(r.game_id || '');
+        const row = { id: r.id, sport, game_id: gid, written_at: r.written_at,
+                      espn_ok: false, scoring_items: 0, names_in_plays: [],
+                      names_in_brief: [], grounded: false, why: null };
+        if (!/^\d{6,}$/.test(gid) || !SLUG[sport]) { row.why = 'no usable ESPN event id'; evidence.push(row); continue; }
+        try {
+            const d = await get(`/espn-summary/${SLUG[sport]}/summary?event=${gid}`);
+            const raw = Array.isArray(d[CONTAINER[sport]]) ? d[CONTAINER[sport]] : [];
+            const items = CONTAINER[sport] === 'scoringPlays' ? raw : raw.filter(x => x.scoringPlay === true);
+            row.espn_ok = true;
+            row.scoring_items = items.length;
+            if (!items.length) { row.why = 'ESPN lists no scoring plays for this event'; evidence.push(row); continue; }
+
+            const teamWords = new Set([r.home_team, r.away_team]
+                .filter(Boolean).flatMap(t => String(t).split(/\s+/)));
+            const names = new Set();
+            for (const it of selectScoringPlays(items)) {
+                for (const tok of String(it.text || '').match(/\b[A-Z][a-z'\u00C0-\u024F]{3,}\b/g) || []) {
+                    if (!NOT_A_NAME.has(tok) && !teamWords.has(tok)) names.add(tok);
+                }
+            }
+            row.names_in_plays = [...names].slice(0, 25);
+            const text = String(r.brief_text || '');
+            row.names_in_brief = [...names].filter(n => text.includes(n));
+            row.grounded = row.names_in_brief.length > 0;
+            if (!row.grounded) row.why = 'brief names nobody who scored in this game';
+        } catch (e) { row.why = `ESPN fetch failed: ${String(e.message || e)}`; }
+        evidence.push(row);
+    }
+
+    // Only rows where ESPN actually had scoring plays can testify. A 0-0 draw
+    // and a fetch failure are both "no evidence", not "the fix is broken" —
+    // the same PENDING-is-not-PASS discipline the other three checks use, and
+    // for the same reason: a check that fails on absent data gets ignored.
+    const testable = evidence.filter(e => e.espn_ok && e.scoring_items > 0);
+    const named = testable.filter(e => e.grounded);
+    let meStatus;
+    if (!recapRows.length) meStatus = 'PENDING — no game_recap in the six sports since match_events deployed';
+    else if (!testable.length) meStatus =
+        `PENDING — ${recapRows.length} recap(s), none testable (no ESPN scoring plays or no usable event id)`;
+    else if (!named.length) meStatus =
+        `FAIL — 0/${testable.length} recap(s) name anyone who scored in the game they describe`;
+    else if (named.length < testable.length) meStatus =
+        `PARTIAL — ${named.length}/${testable.length} recap(s) name a real scorer; see the rest in evidence`;
+    else meStatus = `PASS — ${named.length}/${named.length} recap(s) name someone who actually scored`;
+
+    add({
+        id: 'recap_names_a_scoring_play',
+        what: 'game_recap briefs written since match_events deployed name a player who appears in that game\'s ESPN scoring plays',
+        qualifying_rows: recapRows.length,
+        testable_rows: testable.length,
+        status: meStatus,
+        method: 'per-row join: ESPN scoring plays for the brief\'s own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.',
+        note: 'PARTIAL is expected on some slates and is not a regression by itself: a recap can legitimately lead on something other than a scorer. Read the evidence rows — 0/N is the signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.',
+        evidence,
+    });
+
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }
 
 m.summary = m.checks.map(c => `${c.id}: ${c.status}`);
-m.all_passed = m.query_ok && m.checks.length === 3 && m.checks.every(c => String(c.status).startsWith('PASS'));
+// Named, not a literal. This was `=== 3` and would have silently reported
+// all_passed:false forever the moment a fourth check was added — a probe that
+// can never say PASS is a probe everyone stops reading.
+m.all_passed = m.query_ok && m.checks.length === EXPECTED_CHECKS
+    && m.checks.every(c => String(c.status).startsWith('PASS'));
 m.any_failed = m.checks.some(c => String(c.status).startsWith('FAIL'));
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
@@ -351,7 +480,7 @@ console.log(`\nwrote ${out}`);
 console.log('\n── SUMMARY ──');
 for (const line of m.summary) console.log('  ' + line);
 
-if (!m.query_ok) { console.error('\nD1 QUERIES FAILED — this says nothing about any of the three.'); process.exit(1); }
+if (!m.query_ok) { console.error(`\nD1 QUERIES FAILED — this says nothing about any of the ${EXPECTED_CHECKS} items.`); process.exit(1); }
 // A real regression fails the run. PENDING does not: nothing has been proved
 // wrong, only not yet proved right, and failing on that would train the habit
 // of ignoring this probe's exit code.

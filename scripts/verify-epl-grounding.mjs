@@ -20,6 +20,11 @@
 //   3. The archive, for briefs generated through the cron path.
 //
 // Read-only apart from the artifact it writes.
+//
+// Stage 3 overlaps scripts/verify-staged-items.mjs check 3, on purpose. Stages 1
+// and 2 do not and cannot: they call the builder directly and compare the club
+// dictionary to bootstrap-static's live team list, which a D1 read cannot do.
+// The redundancy in stage 3 is cheaper than losing those.
 
 import { writeFileSync } from 'node:fs';
 import { buildFPLMatchEventsContext, _FPL_SHORT_TO_ESPN_ABBR } from '../src/context-assembler.js';

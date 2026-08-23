@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Diagnostic for the two FAILs reported by scripts/verify-staged-2026-08-22.mjs
+// Diagnostic for the two FAILs reported by scripts/verify-staged-items.mjs
 // on 2026-08-22:
 //
 //   closing_after_opening   FAIL — every pair is still non-sequenced

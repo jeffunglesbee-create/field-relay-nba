@@ -1,15 +1,22 @@
-name: Staged verification (2026-08-22 items)
+name: Staged verification
 
-# Verifies the three items left STAGED on 2026-08-21/22, all of which needed a
-# real fixture before they could be proved:
+# Verifies the repo's open STAGED items, each of which needed a real fixture
+# before it could be proved:
 #
 #   1. closing_odds now lands AFTER opening_odds  (fix 887c843)
 #   2. soccer opening-odds coverage above baseline (fixes e4ad440 → bb04fc8)
 #   3. an EPL brief is no longer a season-stat template (fix eb02ac7)
+#   4. a game_recap names someone who actually scored (fix 644d7f6, added
+#      2026-08-23) — a per-row join against that game's own ESPN scoring
+#      plays, not a scoring-verb grep, since a season-stat template contains
+#      scoring verbs too
 #
-# Run this on any matchday. It answers all three in one go, which is the point —
-# three separate "check it next time" notes is how staged items rot into
+# Run this on any matchday. It answers all of them in one go, which is the
+# point — separate "check it next time" notes is how staged items rot into
 # orphans (Rule 74).
+#
+# The title and script name lost their 2026-08-22 date on 2026-08-23: staged
+# items keep arriving, so the thing that verifies them is standing, not dated.
 #
 # SCHEDULE ADDED 2026-08-22, reversing this file's original "no schedule:".
 #
@@ -54,8 +61,8 @@ jobs:
       # Exits non-zero only on a genuine REGRESSION. PENDING is not a failure:
       # nothing has been disproved, only not yet proved, and failing the run on
       # that would train everyone to ignore this workflow's status.
-      - name: Verify the three staged items
-        run: node scripts/verify-staged-2026-08-22.mjs
+      - name: Verify the staged items
+        run: node scripts/verify-staged-items.mjs
 
       - name: Commit the manifest
         if: always()
