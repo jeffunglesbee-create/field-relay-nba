@@ -62,20 +62,16 @@ try {
   // calls every club on the EPL scoreboard, so the missing rows are copied from
   // evidence. Guessing club identifiers is the failure this whole file exists
   // to stop repeating.
+  // Through the relay's own /espn-standings passthrough, not ESPN directly:
+  // a direct fetch from the runner returns an HTML block page. The standings
+  // response lists every club in the division at once, which a scoreboard for
+  // one day does not.
   try {
-    const espnAbbrs = new Set();
-    for (let back = 0; back < 10 && espnAbbrs.size < 20; back++) {
-      const d = new Date(Date.now() - back * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
-      const sb = await (await fetch(
-        `https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=${d}`,
-        { headers: { 'User-Agent': UA } })).json();
-      for (const ev of sb.events || []) {
-        for (const c of ev.competitions?.[0]?.competitors || []) {
-          if (c.team?.abbreviation) espnAbbrs.add(`${c.team.abbreviation} (${c.team.displayName})`);
-        }
-      }
-    }
-    out.stage1_dictionary.espn_abbreviations_observed = [...espnAbbrs].sort();
+    const st = await get('/espn-standings/soccer/eng.1/standings');
+    const entries = (st.children?.[0]?.standings?.entries || st.standings?.entries || []);
+    out.stage1_dictionary.espn_abbreviations_observed = entries
+      .map(e => `${e.team?.abbreviation} (${e.team?.displayName})`)
+      .filter(s => !s.startsWith('undefined')).sort();
   } catch (e) { out.stage1_dictionary.espn_abbreviations_observed = `unavailable: ${e.message}`; }
 
   // ── 2. the builder, on a real fixture ─────────────────────────────────────
