@@ -168,6 +168,16 @@ jobs:
       - name: the live recap path assembles context
         run: node scripts/check-recap-assembles-context.mjs --self-test && node scripts/check-recap-assembles-context.mjs
 
+      # The stale-data sentinel asked two questions -- does the key exist, is it
+      # recent -- and never whether the file contained anything. On 2026-06-22
+      # FBref started 403ing GH runner IPs; the workflow parsed 0 squads, wrote
+      # {"teams": {}} to R2, uploaded fine and exited 0. /health/sources read
+      # `soccer_fbref_wc | ok | stale: False` for two weeks while every soccer
+      # prompt assembled empty context. `entries` was already being computed and
+      # read by nothing. The empty-but-fresh case is the negative control here.
+      - name: a fresh but empty source is stale
+        run: node scripts/sentinel-content-check.mjs
+
       # SCORING_ERAS' own header says to add an entry BEFORE deploying any
       # scoreProse change that moves scores. Nothing enforced it, and the one
       # time it was skipped (6aed3bb, 2026-07-16) the mlb_game mean fell
@@ -983,6 +993,35 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 25  # git log -20 in confidence-gate step requires ≥20 commits
+
+      - name: /health/sources content readout — entries per source, not just freshness
+        run: |
+          OUT="outbox/health-sources-${{ github.run_id }}.json"
+          mkdir -p outbox
+          curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/health/sources" -o "$OUT" || {
+            echo "REQUEST FAILED"; exit 1; }
+          node -e '
+            const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            for (const s of d.sources) {
+              if (s.skipped) { console.log(`  skip ${s.key} (out of season)`); continue; }
+              console.log(`  ${s.stale ? "STALE" : "ok   "} ${s.key} entries=${s.entries ?? "-"} floor=${s.minEntries ?? "-"} empty=${!!s.empty} ${s.reason || ""}`);
+            }
+            console.log(`\ntotal=${d.total} stale=${d.stale} empty=${d.empty} healthy=${d.healthy} skipped=${d.skipped}`);
+
+            // Asserted, not eyeballed (Rule 89). Two things must hold on any
+            // live data. (1) The summary carries `empty` -- if it is undefined
+            // the deployed build predates this change and the readout above is
+            // describing a sentinel that still only checks freshness.
+            if (typeof d.empty !== "number")
+              throw new Error("no `empty` count in /health/sources — deployed build is not the one that reads content");
+            // (2) No in-season source reports an unreadable count. Real data
+            // being stale or genuinely empty is an operations problem and must
+            // not block a deploy; a count this code cannot READ is a defect in
+            // this code, and does.
+            const broken = d.sources.filter(s => s.reason === "entry count unreadable");
+            if (broken.length)
+              throw new Error("container read failed for: " + broken.map(s => s.key).join(", "));
+          ' "$OUT"
 
       - name: Live-check endpoints
         run: |
