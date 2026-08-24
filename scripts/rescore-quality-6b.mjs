@@ -139,23 +139,65 @@ const scoreUnder = (dims, W) => Object.entries(DIM_TO_SCALE)
 // against every threshold already in the codebase (240, 196, 110). A candidate
 // that changed the total would move every bar at once and make the before/after
 // unreadable -- a different change wearing this one's clothes.
-const CANDIDATES = {
-    current: { ...SCALE },
-    // Shift weight off the two dimensions that discriminate backwards and onto
-    // the three that discriminate correctly. Conservative: voice and density
-    // keep enough weight to still do their own jobs.
-    shift_moderate: { spec: 30, statDepth: 38, variety: 30, density: 10, fresh: 36,
-                      arc: 55, ctx: 32, temporal: 25, voice: 20, matchup: 24 },
-    // The same move, harder.
-    shift_aggressive: { spec: 28, statDepth: 34, variety: 26, density: 8, fresh: 30,
-                        arc: 68, ctx: 40, temporal: 30, voice: 16, matchup: 20 },
-    // The ceiling of this approach: everything on the three forward dimensions.
-    // Not a proposal -- it is here to show how much reweighting alone can EVER
-    // buy, so the decision to add a real finality dimension is made against a
-    // number rather than a feeling.
-    forward_only_bound: { spec: 0, statDepth: 0, variety: 0, density: 0, fresh: 0,
-                          arc: 150, ctx: 90, temporal: 60, voice: 0, matchup: 0 },
-};
+// Candidates are DELTAS from SCALE, not standalone tables.
+//
+// They used to be hand-written full tables carrying a `matchup` key and no
+// `margin` or `finality`, and they still summed to the pre-era-4 300. After eras
+// 5 and 6 that meant every candidate silently evaluated a rubric missing 50 of
+// 294 points while reporting `nominal_total` as though it had them -- the same
+// laundering DIM_TO_SCALE was doing one line up, and it survived era 4, era 5
+// and era 6 because nothing required a candidate to be complete.
+//
+// A delta cannot omit a dimension: what is not mentioned keeps its SCALE weight.
+// The assertion below then requires every candidate to hold NOMINAL_TOTAL, so a
+// candidate that quietly measures a smaller or larger rubric fails at import
+// rather than producing a gap that looks comparable to the others.
+const CANDIDATES = (() => {
+    const from = (delta) => {
+        const w = { ...SCALE };
+        for (const [k, v] of Object.entries(delta)) {
+            if (!(k in SCALE)) throw new Error(
+                `candidate delta names ${k}, which is not a SCALE key — a rename left it pointing at nothing`);
+            w[k] = v;
+        }
+        return w;
+    };
+    return {
+        current: { ...SCALE },
+        // Move weight off the two dimensions that discriminate BACKWARDS (voice,
+        // density) onto the three that discriminate correctly (arc, ctx,
+        // temporal). +25 funded by -25; margin and finality are untouched
+        // because they read facts rather than prose and are not part of this
+        // trade.
+        shift_moderate: from({ arc: 45, ctx: 25, temporal: 25,      // +12 +8 +5
+                               voice: 15, density: 5, variety: 25 }), // -15 -5 -5
+        // The same move, harder. +55 funded by -55.
+        shift_aggressive: from({ arc: 60, ctx: 35, temporal: 30,    // +27 +18 +10
+                                 voice: 8, density: 2, variety: 18, spec: 17 }), // -22 -8 -12 -13
+        // The ceiling of PROSE reweighting: everything on the three forward
+        // dimensions, nothing on any other -- including the two fact-agreement
+        // dims, deliberately, because the question it answers is what
+        // reweighting alone can buy WITHOUT them. Era 5 has since answered that
+        // question by shipping Dim 11; this is kept as the comparison point that
+        // decision was made against.
+        forward_only_bound: from({ spec: 0, statDepth: 0, variety: 0, density: 0,
+                                   fresh: 0, voice: 0, margin: 0, finality: 0,
+                                   arc: 150, ctx: 90, temporal: 54 }),
+    };
+})();
+{
+    // Every candidate must cover every dimension and hold the nominal total. A
+    // candidate that moves the total shifts every threshold at once and
+    // disguises that as the change being measured.
+    const nominal = Object.values(SCALE).reduce((a, b) => a + b, 0);
+    for (const [name, w] of Object.entries(CANDIDATES)) {
+        const missing = Object.keys(SCALE).filter((k) => typeof w[k] !== 'number');
+        if (missing.length) throw new Error(`candidate ${name} declares no weight for: ${missing.join(', ')}`);
+        const sum = Object.keys(SCALE).reduce((a, k) => a + w[k], 0);
+        if (sum !== nominal) throw new Error(
+            `candidate ${name} totals ${sum}, not the nominal ${nominal} — gaps across candidates would not be comparable`);
+    }
+}
 
 const mean = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 // Reported beside every mean. Run 1 produced a 5.4-point difference on n=16 and
