@@ -1,5 +1,119 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-24 (six queue items, eras 5 and 6, nine new gates)
+
+**HEAD:** `95bf3c0` → `555a604` · **Branch:** main throughout
+**Deploys:** 869-873 all green. Live verification on 873: `quality-source=fresh`,
+journalism generating, both 400 validations correct.
+
+**Session docs (Rule 67)** — `outbox/cc-session-2026-08-24-*`:
+`recap-window-generated-vs-touched`, `scale-declared-vs-implemented`,
+`era-6-margin-agreement`, `scorethreshold-fossil`,
+`aggregate-launders-unknowns`, `soccer-attempt-enrichment`, `name-graph`,
+`negative-examples`, `style-gating`, `cite-golf-analytics`, `voice-exemplars`.
+
+### The six-item queue, all closed
+
+| # | item | outcome |
+|---|------|---------|
+| 1 | `finality-dimension` | **era 5** — Dim 11 reads game state |
+| 2 | `matchup-note-starvation` | **era 6** — Dim 10 reads the result, not a note |
+| 3 | `scoreThreshold` 110 → 196 | **deleted** — read by nothing for 39 days |
+| 4 | `n: null` in `/quality/report` | **fixed** — it was publishing `briefs_counted: 0` beside `cleared_196: 66` |
+| 5 | `soccer-near-miss-enrichment` | **built** — woodwork and attempts, labelled separately |
+| 6 | `prompt-numeral-mining` | **fixed** — plus the STYLE lines the ask ruled out |
+
+### Eras 5 and 6
+
+```
+era 5  Dim 11 finality agreement, 20 pts, funded from arc 45->33 and ctx 25->17
+       LIVE_LANG gap  -14.1 (4.4x se)  ->  -0.2 (0.1x)  — one instrument, both runs
+
+era 6  Dim 10 re-pointed from matchupNote ECHO to margin agreement, 30 pts
+       rows judged  0/190  ->  17/128 (13.3%), first real defect caught
+       repeated byte-identical across two runs
+```
+
+### Three recorded figures corrected
+
+- **Era 4's `+11.5`** was a simulation, not a measurement. The live gap is
+  **4.5 and is noise**. Half the SCALE table was documentation: dims 6-10 carried
+  their ceilings as literals and the declared weights were read by nothing.
+- **Era 5's headline `-11.1`** was taken from the AFTER run's `candidates` block
+  while `-0.2` came from the same run's `rescored` block — two instruments read as
+  a before/after. `DIM_TO_SCALE` still named `matchupDepth`/`matchup` and had no
+  `finality` entry, so that block rebuilt a **244-point rubric and reported 294**.
+- **Era 2 recorded one of its commit's two changes.** `6aed3bb` is era 2's
+  boundary commit; its `change` field notes the scoring half and omits the
+  retry-gate removal named in its own subject line — which is what orphaned
+  `scoreThreshold`.
+
+### Nine new deploy gates
+
+```
+check-scale-matches-implementation             declared weight = code ceiling
+check-slate-caps-are-derived                   caps derived by calling the functions
+check-opts-keys-are-read                       a passed key must be read by its callee
+check-aggregate-launders-unknowns              no ?? / || between a missing field and a sum
+check-name-graph                               every name resolves to a name that exists
+check-negative-examples-are-not-instantiable   a forbidden example must not be copyable prose
+check-no-foreign-league-in-prompt              no sport's prompt names another sport's league
+finality-agreement-check / margin-agreement-check   the two new dimensions' 2x2s
+```
+
+All nine are unconditional `run:` steps — none can skip silently. 15 guards green.
+
+### Contamination: the structural cause, and the number
+
+Sport content was **universal by default and scoped by exception**, so every
+addition reached every sport until someone gated it — silently. Four instances in
+one day. The worst: `voiceRegisterFor` gave any sport with no segment of its own
+**all** of them, live on **905 of 1322 finalized games (68.5%)**, MLB alone 830.
+
+Closed by authoring exemplars **H (baseball), I (football), J (golf), K (tennis)**
+and classifying CFL and atp/wta. Every briefed sport now has a class and its own
+exemplar; the keep-everything fallback survives only for the mixed-sport slate.
+
+Figures in H-K are `##`, unlike A-G — A-G's real numbers are precisely the
+literals layer 2f exists to catch the model mining.
+
+### The recurring defect class, named
+
+A value whose name and measurement disagree. Eight instances this session, from
+`docs/history-boundary.txt` pointing at a rebased-away sha to `scoreThreshold`
+being a whole subsystem with only its consumer removed. `check-name-graph` is the
+registry the six single-edge guards were each written instead of: run against
+real pre-fix source it reports all three of era 6's rename breaks at once, which
+took three separate days to find by hand.
+
+### Open, with unblock criteria
+
+- **No post-deploy EPL sample** for either the recap-context wiring or the
+  attempt enrichment. Unblocks on the next EPL matchday; verify via
+  `staged-verification.yml` check 4 with an EPL row carrying `generated: true`.
+- **Dim 10's separation is UNDERPOWERED** — 16 agrees against 1 disagree.
+  Unblocks at `margin_census.separation.n_disagrees >= 2`; the weekly cron
+  (`0 6 * * 1`) reaches it or does not on its own.
+- **34 rows make no closeness claim, 24 have a game row with a null
+  `home_score`.** Both counted in every `rescore-quality-6b` manifest.
+- **Five positive exemplars still carry real figures** (`29.0 PPG`, `48 minutes`,
+  …). They are sport-gated now, so each reaches only its own sport, and 2f
+  catches a leak. Neutralising them is content authoring.
+
+### Security items still awaiting a decision
+
+- Rotate `field-relay-cron-2026` and drop the relay's compiled-in literals
+  (27 in `src/index.js`, 1 in `analytics-engine.js`, 5 workflows, 8 docs).
+- Rotate/redact the `GITHUB_PAT` found in plaintext in a Drive doc — repo+workflow
+  scope, can write secrets into all four repos. The value has never been
+  reproduced in chat and must not be.
+
+**Closed from the previous entry's "unchanged" list:** `scoreThreshold` 110 → 196
+and `n: null` in `/quality/report`. Both turned out to be defects rather than
+tuning: one inert, one publishing an arithmetic impossibility.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-23b (ask 6b, scoring era 4)
 
 **HEAD:** `7c75dad` → `95bf3c0` · **Branch:** main throughout
