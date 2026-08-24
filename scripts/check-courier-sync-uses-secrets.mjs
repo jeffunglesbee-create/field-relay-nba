@@ -22,8 +22,16 @@
 // fail on the thing it names.
 
 import { readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 
-const WF = '.github/workflows/deploy.yml'
+// Every workflow that calls the Courier, not just the first one. Added
+// bootstrap-relay-secret.yml on 2026-08-24: it makes the same POST and was
+// invisible to this check, which is the coverage gap that lets the next literal
+// land in the file nobody scans.
+const WFS = [
+  '.github/workflows/deploy.yml',
+  '.github/workflows/bootstrap-relay-secret.yml',
+]
 const COURIER = 'field-deploy.jeffunglesbee.workers.dev/secret'
 
 /**
@@ -50,7 +58,16 @@ const check = (name, cond, detail = '') => {
   else { fail++; console.log(`  FAIL ${name}${detail ? '\n       ' + detail : ''}`) }
 }
 
-const yaml = readFileSync(WF, 'utf8')
+// Concatenated: the invariant is over the set of Courier calls in the repo, and
+// which file each lives in does not change whether it may carry a literal.
+const yaml = WFS.map(f => readFileSync(f, 'utf8')).join('\n')
+
+// Every workflow naming the Courier must be in WFS, or a new one can add an
+// unscanned call. This is the check that keeps WFS honest.
+const unscanned = execSync(
+  `grep -rl ${JSON.stringify(COURIER)} .github/workflows/ || true`, { encoding: 'utf8' })
+  .split('\n').map(x => x.trim()).filter(Boolean)
+  .filter(f => !WFS.includes(f))
 
 if (process.argv.includes('--self-test')) {
   console.log('self-test: the check rejects its own negative controls')
@@ -77,6 +94,8 @@ if (process.argv.includes('--self-test')) {
     `literals=${JSON.stringify(c.literal)} relaySync=${c.hasRelaySync}`)
   check('and it found the syncs at all',
     c.total >= 4, `parsed ${c.total} Courier sync(s) — the pattern stopped matching`)
+  check('and every workflow calling the Courier is in WFS',
+    unscanned.length === 0, `unscanned: ${unscanned.join(', ')}`)
 } else {
   console.log('Courier secret syncs carry variables, not values')
   const v = verdict(syncs(yaml))
@@ -86,6 +105,8 @@ if (process.argv.includes('--self-test')) {
     v.literal.map(s => `${s.name} → ${s.repo} sends a literal`).join('\n       '))
   check('RELAY_SHARED_SECRET still syncs to field-laboratory', v.hasRelaySync,
     'without it check:sport-vocabulary there is permanently blind')
+  check('every workflow calling the Courier is scanned', unscanned.length === 0,
+    `not in WFS: ${unscanned.join(', ')} — its Courier calls are unchecked`)
   if (!yaml.includes(COURIER)) { fail++; console.log('  FAIL the Courier endpoint is gone from this workflow') }
 }
 
