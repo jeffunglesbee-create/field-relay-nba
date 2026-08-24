@@ -57,7 +57,7 @@ export const SCORING_ERAS = [
     // on identical prose rather than two samples that could differ for their own
     // reasons. scoreProse's total is linear in the per-dimension fractions, so
     // both weightings were evaluated from one scoring pass.
-    measuredEffect: 'in-progress vs reads-as-final gap 6.4 -> 11.5 pts (1.8x), n=95 per class, 2.8x -> 4.2x the standard error of the difference; class means 175.3/181.7 -> 175.5/187.0. Reweighting ceiling measured at 41.6 (all weight on arc+ctx+temporal), so this takes ~13% of what reweighting alone could ever buy.',
+    measuredEffect: 'RECORDED AS 6.4 -> 11.5 pts; THE LIVE EFFECT IS 4.5 pts at 1.8x the standard error, which the script itself calls INDISTINGUISHABLE from noise (n=80/class, 2026-08-24, outbox/rescore-quality-6b-20260824T051526Z.json). The 11.5 was a candidate weighting evaluated arithmetically as sum(dim_k * SCALE_k), and scoreProse does not read SCALE for dims 6-10, so it simulated an instrument that was never deployed. Proof in one file: the 04:58 manifest reports current gap 4.5 from scoreProse and 8.6 from the same-named candidate; after SCALE was corrected the 05:15 manifest reports 4.5 for both. Only density 16->10 was ever applied, density being a dim 1-5. Reweighting ceiling is 38.2 against the real scale (was quoted 41.6 against the declared one).',
     recordedRetroactively: false,
     // Added 2026-08-24, and it corrects this entry rather than superseding it.
     //

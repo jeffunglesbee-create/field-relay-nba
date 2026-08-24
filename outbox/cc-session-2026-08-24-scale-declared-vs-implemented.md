@@ -157,3 +157,80 @@ A value declared and never consumed.
 - `scripts/check-scale-matches-implementation.mjs` — new
 - `scripts/check-scoring-era-recorded.mjs` — fingerprint, 294, correction rule
 - `.github/workflows/deploy.yml` — new gate step
+
+---
+
+## Addendum — verified by a second instrument, and one claim above was wrong
+
+### The convergence
+
+Two `rescore-quality-6b` runs, seventeen minutes apart, either side of the
+correction:
+
+| manifest | `scale` dims 6-10 | `rescored.gap_rescored` | `candidate_summary` "current" |
+|---|---|---|---|
+| `045804Z` (before) | 55, 32, 25, 20, 24 | 4.5 (1.8x) | **8.6** (2.9x) |
+| `051526Z` (after) | 45, 25, 20, 30, 30 | 4.5 (1.8x) | **4.5** (1.8x) |
+
+Those two columns are computed by different code. `gap_rescored` comes from
+`scoreProse()` totals — the real scorer, which reads literals. `candidate_summary`
+computes `Σ(dim_k × SCALE_k)` — the declared table. They disagreed by 4.1 points
+and now agree exactly.
+
+That is the disconnect measured from outside, and its repair verified from
+outside. Nothing in this change shares code with the thing that checked it.
+
+### The claim above that was wrong
+
+This document said: *"The measured effect stands — it came from rescoring 190
+real rows, not from reading constants."*
+
+Real prose, simulated instrument. The rows were real; the weighting applied to
+them was `Σ(dim_k × SCALE_k)`, which production never computes for dims 6-10. So
+era 4's recorded **+11.5 was never a production number**, and neither was the
+6.4 it improved on.
+
+**The live effect of era 4 is 4.5 points at 1.8× the standard error** — a figure
+the script's own verdict calls *"INDISTINGUISHABLE from noise at this n"*.
+`density 16->10` was the only change that reached the scorer, and it did not move
+the gap out of noise.
+
+`SCORING_ERAS[4].measuredEffect` now says this, with both manifests cited.
+
+### Third correction: the reweighting ceiling
+
+`forward_only_bound` — all weight on the three forward dimensions — is **38.2**
+against the real scale. The CC-CMD and era 4 both quote 41.6, computed against
+the declared one. The bound was always real; the number was 8% high.
+
+### What this does to the finality ask
+
+It removes the floor the ask was measured against. Finality is not "adding to
+11.5" — it would be the first change to move the number at all, from a baseline
+that is statistically zero.
+
+It also exposes a contradiction inside the ask, independent of any of the above:
+
+- `LIVE_LANG` classifies **by prose alone** — `'%at halftime%'`,
+  `'%through 4_ minutes%'`. The done condition therefore measures the gap between
+  prose that hedges and prose that does not.
+- The ask's §2 requires scoring the disagreement **both ways**: a correctly
+  hedged brief on a genuinely live game must score HIGH.
+
+Build §2 and that gap can narrow. The done condition would report failure for a
+dimension working exactly as specified.
+
+**Replacement metric, same data, one extra join:** the 2×2 of
+`regular_season_games.finalized_at` × reads-as-final, scoring the agreeing
+diagonal. It measures what the dimension does rather than what correlates with
+it, and it is the only split under which "score the disagreement both ways" can
+show a gain.
+
+## Status after the addendum
+
+| | |
+|---|---|
+| step 1 | verified by an independent instrument; two runs, converged |
+| era 4 record | corrected to the live 4.5 / 1.8x, both manifests cited |
+| reweighting ceiling | 41.6 -> 38.2 against the real scale |
+| step 2 | **blocked on a metric decision, not on code.** The dimension is designable (fund from real ceilings: arc 45->33, ctx 25->17, finality 20, total held at 294); its done condition is not usable as written. |
