@@ -50,6 +50,7 @@ export const LEAGUES = {
   football:   ['NFL', 'CFL'],
   soccer:     ['Premier League', 'EPL', 'La Liga', 'MLS', 'Serie A', 'Ligue 1', 'Bundesliga'],
   golf:       ['PGA Tour', 'PGA'],
+  tennis:     ['ATP', 'WTA'],
 }
 
 // LEAGUE BOUNDARIES is the one legitimate exception and is exempt BY NAME. It
@@ -72,7 +73,8 @@ export const foreignLeagues = (rawText, cls) => {
 }
 
 // The sports this relay briefs, one per class plus the classes' second leagues.
-const SPORTS = ['EPL', 'MLS', 'La Liga', 'NBA', 'WNBA', 'NHL', 'MLB', 'NFL', 'CFL', 'golf']
+const SPORTS = ['EPL', 'MLS', 'La Liga', 'NBA', 'WNBA', 'NHL', 'MLB', 'NFL', 'CFL', 'golf',
+                'atp', 'wta']
 
 if (process.argv.includes('--self-test')) {
   console.log('self-test: the pre-fix ungated prompt goes red')

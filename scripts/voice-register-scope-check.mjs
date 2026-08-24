@@ -11,7 +11,7 @@
 //      subset-vs-joined-string hazard fixed for the style block.
 //
 // Run: node scripts/voice-register-scope-check.mjs
-import {
+import { checkSportVocab,
   voiceRegisterFor, proseStyleFor, FIELD_VOICE_REGISTER,
   VOICE_REGISTER_SEGMENTS, promptExampleLeaks, PROMPT_EXAMPLE_LITERALS,
 } from '../src/journalism-quality.js';
@@ -49,6 +49,10 @@ const CASES = [
   // fallback and saw ABCDEFG -- eight of another sport's exemplars each, on
   // 905 of 1322 finalized games.
   ['MLB', 'H'], ['NFL', 'I'], ['CFL', 'I'], ['golf', 'J'],
+  // Tennis added 2026-08-24 WITH its exemplar, never before it -- a class with
+  // no exemplar takes the keep-everything fallback and looks classified while
+  // receiving every other sport's.
+  ['atp', 'K'], ['wta', 'K'],
 ];
 for (const [sport, want] of CASES) {
   const got = exemplars(voiceRegisterFor(sport));
@@ -117,7 +121,8 @@ ok('2f stays silent when the figure is real game context',
 const scopedIn = (t) => VOICE_REGISTER_SEGMENTS
   .filter(x => x.sport !== null && t.includes(x.lines.join('\n'))).map(x => x.sport);
 for (const [sport, want] of [['MLB', 'baseball'], ['NFL', 'football'],
-                             ['CFL', 'football'], ['golf', 'golf']]) {
+                             ['CFL', 'football'], ['golf', 'golf'],
+                             ['atp', 'tennis'], ['wta', 'tennis']]) {
   const got = scopedIn(voiceRegisterFor(sport));
   ok(`${sport} receives only its own exemplar (${want})`,
     got.length > 0 && got.every(g => g === want),
@@ -126,14 +131,14 @@ for (const [sport, want] of [['MLB', 'baseball'], ['NFL', 'football'],
 // The four sports that used to be contaminated must not have LOST the voice
 // model in the process. That is the failure a narrowing fix produced when it
 // was tried without exemplars, and it is caught here.
-for (const sport of ['MLB', 'NFL', 'CFL', 'golf'])
+for (const sport of ['MLB', 'NFL', 'CFL', 'golf', 'atp', 'wta'])
   ok(`${sport} still sees at least one exemplar`,
     /— Exemplar [A-Z]/.test(voiceRegisterFor(sport)),
     'a brief with no exemplar has no model of the voice at all');
 
 // The authored prose must obey the rules it sits beside. Checked, not eyeballed.
 const authored = VOICE_REGISTER_SEGMENTS
-  .filter(x => ['baseball', 'football', 'golf'].includes(x.sport))
+  .filter(x => ['baseball', 'football', 'golf', 'tennis'].includes(x.sport))
   .flatMap(x => x.lines).join('\n');
 ok('the authored exemplars carry no banned journalism phrase',
   !['punch their ticket', 'the stage is set', 'make a statement', 'stunned', 'shocked',
@@ -147,6 +152,12 @@ ok('the authored exemplars use no wire-copy construction',
 ok('the authored exemplars add no new mineable figure',
   !/\d/.test(authored.replace(/#+/g, '').replace(/~\d+ words/g, '')),
   'three exemplars in A-G\'s style would have added ~15 new mineable literals');
+// Tennis has no clock, which is the hazard its vocab entry names and the one a
+// model trained on ball sports is likeliest to violate.
+ok('tennis vocabulary forbids a clock and an overtime',
+  ['overtime', 'fourth quarter', 'period'].every(t2 =>
+    checkSportVocab(`the ${t2} decided it`, 'atp').length > 0),
+  'a tied set goes to a TIEBREAK, and nothing in tennis happens "late in the fourth"');
 ok('golf\'s exemplar teaches that thru means unfinished',
   /still being played, not a result/.test(authored) && /at E/.test(authored),
   'the two hazards CITE GOLF ANALYTICS names must be shown, not only stated');

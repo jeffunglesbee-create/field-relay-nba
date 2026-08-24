@@ -269,6 +269,25 @@ export const SPORT_VOCAB_VIOLATIONS = {
     units: 'points',
     extra_period: 'overtime'
   },
+  // TENNIS added 2026-08-24 alongside Exemplar K. The forbidden list is the
+  // union of the other five sports' own units -- a tennis match has no innings,
+  // quarters, periods or downs, and crucially NO CLOCK, so "with a minute left"
+  // and "late in the fourth" are impossible rather than merely wrong. `overtime`
+  // is the sharp one: a tied set goes to a TIEBREAK, and a deciding set may go
+  // on indefinitely where no tiebreak is played.
+  tennis: {
+    forbidden: [
+      'inning','innings','at-bat','strikeout','home run',
+      'quarter','quarters','first quarter','fourth quarter',
+      'three-pointer','free throw','rebound','in the paint',
+      'touchdown','first down','red zone',
+      'period','periods','overtime','stoppage time','extra innings',
+      'halftime','power play','penalty kill','clean sheet',
+    ],
+    sport: 'tennis',
+    units: 'games and sets (a point is not a unit of score you report on its own)',
+    extra_period: 'a tiebreak (never overtime, extra time, extra innings or a fifth quarter). There is no clock: nothing happens "late in the fourth" or "with a minute left".',
+  },
   soccer: {
     forbidden: [
       'inning','innings','at-bat','strikeout','home run',
@@ -302,6 +321,13 @@ export function detectSportClass(sport) {
   // the keep-everything fallback before this branch existed and still does. See
   // that function's own comment for why narrowing it is not the right fix.
   if (s.includes('golf') || s.includes('pga')) return 'golf';
+  // Tennis. `atp` and `wta` are the relay's own keys (_SPORT_NORMALIZE maps
+  // 'atp tour' and 'wta tour'), and assembleContext promotes atp -> wta when the
+  // league signals women's tennis -- both reach here as separate labels, so both
+  // are matched. Added WITH Exemplar K, not before it: a class with no exemplar
+  // takes voiceRegisterFor's keep-everything fallback, which is how golf came to
+  // receive basketball and hockey exemplars while looking classified.
+  if (s.includes('tennis') || s.includes('atp') || s.includes('wta')) return 'tennis';
   return null;
 }
 
@@ -1412,6 +1438,9 @@ export const VOICE_REGISTER_SEGMENTS = [
   { sport: 'football', lines: ['',
     '— Exemplar I (NFL regular-season result, ~110 words):',
     "The Bills are ##-# and the record is the least interesting thing about them. Buffalo ran ## times in the second half, which for a team built around Allen's arm is either an adjustment or an admission, and the tape says adjustment — Miami's safeties were sitting ## yards off and daring them to. The Dolphins' defense did not collapse; it got asked a question it had already answered wrong in September. Special teams decided the middle third of this game and will appear in no recap tomorrow. Buffalo travels to Kansas City next, which is where a season like this becomes something or does not."] },
+  { sport: 'tennis', lines: ['',
+    '— Exemplar K (ATP/WTA main-draw match result, ~110 words):',
+    "Sabalenka came through in ## sets and the scoreline flatters her. She was broken twice in the opener and won it anyway, which is the sort of thing that happens when a returner reads a second serve early and keeps doing it. The second set turned on a tiebreak that lasted ## points, most of them ending at the net — neither player wanted a baseline rally by then, and neither was going to admit it. Rybakina served at ##% and lost; that number is the argument for watching a match rather than reading its stats. The draw opens up from here, which is a sentence that has ruined many players' fortnights."] },
   { sport: 'golf', lines: ['',
     '— Exemplar J (PGA Tour round in progress, ~115 words):',
     "Clark is -## through ## and the number that matters is the one he made on the ninth, where a drive into the trees turned into a par that played like a birdie. The leaderboard is bunched inside ## shots, which at this course means the wind decides it — Saturday afternoon at ## miles an hour rewrites every read on these greens. Two players sit at E, which here is not a poor round; it is a round that survived. Nobody has finished. A score with 'thru' beside it is a round still being played, not a result, and the afternoon wave has the harder half of the draw."] },
