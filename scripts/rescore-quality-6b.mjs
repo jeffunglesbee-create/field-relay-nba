@@ -219,10 +219,38 @@ try {
     // regular_season_games.note was empty on every joined game. That is a data
     // gap, not a runtime limitation, and the two have different fixes -- so
     // measure how empty the column actually is rather than inferring it.
-    m.matchup_note_coverage = await d1(
+    //
+    // PER SPORT, not just the total. CC-CMD-2026-08-23-matchup-note-starvation
+    // says to read the split FIRST, and it is right: a gap concentrated in one
+    // sport is a broken adapter, a gap spread evenly is a missing producer, and
+    // those are different builds. The aggregate cannot tell them apart.
+    //
+    // The aggregate does say one thing on its own. It read 36/1284 on 2026-08-23
+    // and 36/1321 on 2026-08-24 -- 37 more finalized games, zero more notes. A
+    // producer that runs rarely still moves; one that never runs does not.
+    const coverageTotal = await d1(
         `SELECT COUNT(*) AS total,
                 SUM(CASE WHEN note IS NOT NULL AND LENGTH(TRIM(note)) > 10 THEN 1 ELSE 0 END) AS with_note
          FROM regular_season_games WHERE finalized_at IS NOT NULL`);
+    const coverageBySport = await d1(
+        `SELECT sport, COUNT(*) AS total,
+                SUM(CASE WHEN note IS NOT NULL AND LENGTH(TRIM(note)) > 10 THEN 1 ELSE 0 END) AS with_note
+         FROM regular_season_games WHERE finalized_at IS NOT NULL
+         GROUP BY sport ORDER BY total DESC`);
+    // A sample of what a populated note actually CONTAINS. "The column is
+    // populated" is explicitly not a done condition for that CC-CMD: the column
+    // can hold strings no brief would ever echo, and Dim 10 would still score
+    // zero. Reading five real values costs nothing and answers whether the 36
+    // are usable editorial context or leftovers.
+    const notesSample = await d1(
+        `SELECT sport, id, SUBSTR(note, 1, 160) AS note_head
+         FROM regular_season_games
+         WHERE finalized_at IS NOT NULL AND note IS NOT NULL AND LENGTH(TRIM(note)) > 10
+         ORDER BY finalized_at DESC LIMIT 5`);
+    m.matchup_note_coverage = {
+        total: coverageTotal, by_sport: coverageBySport, sample: notesSample,
+        reading: 'concentrated in one or two sports -> a broken adapter for those. Spread evenly at near-zero -> no producer writes this column at all.',
+    };
 
     const scored = [];
     for (const r of rows) {
