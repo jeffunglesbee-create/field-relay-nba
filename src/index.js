@@ -102,6 +102,7 @@ import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
+import { drawPriceFrom } from './odds-shape.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -6048,7 +6049,21 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, captu
   if (h2h) {
     const h = h2h.outcomes.find(o => o.name === home);
     const a = h2h.outcomes.find(o => o.name === away);
-    if (h && a) out.moneyline = { home: h.price, away: a.price };
+    if (h && a) {
+      out.moneyline = { home: h.price, away: a.price };
+      // ── The draw, for association football only ─────────────────────────
+      //
+      // CC-CMD-2026-08-23-soccer-three-way-odds. Soccer h2h prices THREE
+      // outcomes and this function matched exactly two, so the draw was dropped
+      // here and every soccer card downstream rendered "three-way market; no
+      // draw price served" rather than a win probability. Measured 2026-08-23
+      // on fifteen MLS games: all fifteen served {home, away}, none a draw.
+      //
+      // The selection rule lives in src/odds-shape.js so a deploy gate can
+      // exercise it without importing this worker's puppeteer dependency.
+      const draw = drawPriceFrom(h2h.outcomes, h, a);
+      if (draw !== null) out.moneyline.draw = draw;
+    }
   }
   if (spreads) {
     const h = spreads.outcomes.find(o => o.name === home);

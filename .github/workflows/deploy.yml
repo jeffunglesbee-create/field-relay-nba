@@ -295,6 +295,15 @@ jobs:
       - name: no sport's prompt names another sport's league
         run: node scripts/check-no-foreign-league-in-prompt.mjs --self-test && node scripts/check-no-foreign-league-in-prompt.mjs
 
+      # Association football prices THREE outcomes and extractOddsForGame matched
+      # two, so the draw was never asked for and every soccer card downstream
+      # rendered "three-way market; no draw price served". The rule identifies the
+      # draw by POSITION, not by the string "Draw" — a renamed selection would
+      # otherwise drop the price again, which is the defect class that emptied
+      # UNREACHABLE_DIMS the same day.
+      - name: soccer h2h yields a draw, and no other market gains one
+        run: node scripts/three-way-odds-check.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
