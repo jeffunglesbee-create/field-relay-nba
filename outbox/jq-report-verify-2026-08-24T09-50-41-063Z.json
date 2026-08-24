@@ -1,0 +1,383 @@
+{
+  "ts": "2026-08-24T09:50:41.063Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "days": 30,
+  "httpStatus": 200,
+  "alertCount": 23,
+  "alerts": [
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA Tour",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 161,
+      "threshold_source": "brief_type_p25(n=675,mixed_eras)",
+      "avg_score": 133,
+      "failure_pct": 100,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "EPL",
+      "alert": "high_failure_rate",
+      "threshold": 113,
+      "threshold_source": "brief_type_p25(n=51,mixed_eras)",
+      "avg_score": 134.7,
+      "failure_pct": 21,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 125,
+      "threshold_source": "brief_type_p25(n=235,mixed_eras)",
+      "avg_score": 136.1,
+      "failure_pct": 25,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "slate",
+      "sport": "all",
+      "alert": "high_failure_rate",
+      "threshold": 125,
+      "threshold_source": "brief_type_p25(n=59,mixed_eras)",
+      "avg_score": 136.5,
+      "failure_pct": 22,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "PGA Tour",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 160,
+      "threshold_source": "brief_type_p25(n=181,mixed_eras)",
+      "avg_score": 140,
+      "failure_pct": 100,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL Cup",
+      "alert": "high_failure_rate",
+      "threshold": 137,
+      "threshold_source": "brief_type_p25(n=98,mixed_eras)",
+      "avg_score": 141.3,
+      "failure_pct": 27,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLS",
+      "alert": "high_failure_rate",
+      "threshold": 137,
+      "threshold_source": "brief_type_p25(n=98,mixed_eras)",
+      "avg_score": 143.8,
+      "failure_pct": 27,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "AFL",
+      "alert": "high_failure_rate",
+      "threshold": 137,
+      "threshold_source": "brief_type_p25(n=98,mixed_eras)",
+      "avg_score": 145.6,
+      "failure_pct": 40,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_brief",
+      "sport": "MLS",
+      "alert": "avg_below_calibrated_p25",
+      "threshold": 146,
+      "threshold_source": "brief_type_p25(n=32,mixed_eras)",
+      "avg_score": 145.9,
+      "failure_pct": 36,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "alert": "high_failure_rate",
+      "threshold": 160,
+      "threshold_source": "brief_type_p25(n=181,mixed_eras)",
+      "avg_score": 160,
+      "failure_pct": 33,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "wnba",
+      "alert": "high_failure_rate",
+      "threshold": 160,
+      "threshold_source": "brief_type_p25(n=181,mixed_eras)",
+      "avg_score": 164.1,
+      "failure_pct": 22,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 160,
+      "threshold_source": "brief_type_p25(n=181,mixed_eras)",
+      "avg_score": 168,
+      "failure_pct": 26,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLS",
+      "alert": "high_failure_rate",
+      "threshold": 160,
+      "threshold_source": "brief_type_p25(n=181,mixed_eras)",
+      "avg_score": 168.1,
+      "failure_pct": 27,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "FIFA World Cup",
+      "alert": "high_failure_rate",
+      "threshold": 161,
+      "threshold_source": "brief_type_p25(n=675,mixed_eras)",
+      "avg_score": 169.1,
+      "failure_pct": 21,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 161,
+      "threshold_source": "brief_type_p25(n=675,mixed_eras)",
+      "avg_score": 171.1,
+      "failure_pct": 29,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "alert": "high_failure_rate",
+      "threshold": 161,
+      "threshold_source": "brief_type_p25(n=675,mixed_eras)",
+      "avg_score": 171.2,
+      "failure_pct": 22,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NFL",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 171.9,
+      "failure_pct": 50,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "WNBA",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 174.5,
+      "failure_pct": 30,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EPL",
+      "alert": "high_failure_rate",
+      "threshold": 161,
+      "threshold_source": "brief_type_p25(n=675,mixed_eras)",
+      "avg_score": 177,
+      "failure_pct": 22,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EPL",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 177.3,
+      "failure_pct": 33,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLB",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 178.2,
+      "failure_pct": 22,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "La Liga",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 179.7,
+      "failure_pct": 29,
+      "below_flat_240_pct": 100
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Ligue 1",
+      "alert": "high_failure_rate",
+      "threshold": 169,
+      "threshold_source": "brief_type_p25(n=118,mixed_eras)",
+      "avg_score": 180.1,
+      "failure_pct": 33,
+      "below_flat_240_pct": 100
+    }
+  ],
+  "selfContradictory": [],
+  "stillUsingFlat240": 21,
+  "alertCountLegacyPredicate": 38,
+  "legacyBaselinePresent": true,
+  "calibration": [
+    {
+      "brief_type": "epl_match",
+      "p25": 113,
+      "count": 51,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 51
+    },
+    {
+      "brief_type": "game_brief",
+      "p25": 146,
+      "count": 32,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 32
+    },
+    {
+      "brief_type": "game_live",
+      "p25": 169,
+      "count": 118,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 118
+    },
+    {
+      "brief_type": "game_recap",
+      "p25": 161,
+      "count": 675,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 675
+    },
+    {
+      "brief_type": "mlb_game",
+      "p25": 125,
+      "count": 235,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 235
+    },
+    {
+      "brief_type": "narrative_context",
+      "p25": 133,
+      "count": 6,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 6
+    },
+    {
+      "brief_type": "night_owl",
+      "p25": 137,
+      "count": 98,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 98
+    },
+    {
+      "brief_type": "pre_game",
+      "p25": 160,
+      "count": 181,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 181
+    },
+    {
+      "brief_type": "slate",
+      "p25": 125,
+      "count": 59,
+      "era_scoped": false,
+      "era": null,
+      "window_count": 59
+    }
+  ],
+  "eraScopedCount": 0,
+  "mixedEraCount": 9,
+  "thresholdSources": [
+    "brief_type_p25(n=675,mixed_eras)",
+    "brief_type_p25(n=51,mixed_eras)",
+    "brief_type_p25(n=235,mixed_eras)",
+    "brief_type_p25(n=59,mixed_eras)",
+    "brief_type_p25(n=181,mixed_eras)",
+    "brief_type_p25(n=98,mixed_eras)",
+    "brief_type_p25(n=32,mixed_eras)",
+    "brief_type_p25(n=118,mixed_eras)"
+  ],
+  "scoringEras": [
+    {
+      "era": 2,
+      "from": "2026-07-16T01:36:49Z",
+      "deploy": "6aed3bb",
+      "change": "Dim 1 redefined per-sentence; Dim 4 clamped to [0,1] (was unbounded)",
+      "measuredEffect": "mlb_game stored mean 203.2 -> 135.4 (n=325 pre / 267 post); rescored delta +0.9",
+      "recordedRetroactively": true
+    },
+    {
+      "era": 3,
+      "from": "2026-08-13T03:20:00Z",
+      "deploy": "CC-CMD-2026-08-13-jq-density-unit-fix",
+      "change": "Dim 4 ratio unit: (properNouns+numbers)/sent -> numbers/sent, matching the FIELD_PROSE_STYLE rule it cites",
+      "measuredEffect": "Dim 4 floored 91.2% -> 7.9% of briefs; mean contribution 0.35 -> 9.89 of 16 pts (n=592)",
+      "recordedRetroactively": false
+    },
+    {
+      "era": 4,
+      "from": "2026-08-23T15:00:00Z",
+      "deploy": "CC-CMD-2026-08-20-brief-data-quality ask 6b",
+      "change": "SCALE reweighted toward the dimensions that separate finished prose from in-progress prose: arc 45->55, ctx 25->32, temporal 20->25, funded by voice 30->20, density 16->10, matchup 30->24. Nominal total unchanged at 300.",
+      "measuredEffect": "RECORDED AS 6.4 -> 11.5 pts; THE LIVE EFFECT IS 4.5 pts at 1.8x the standard error, which the script itself calls INDISTINGUISHABLE from noise (n=80/class, 2026-08-24, outbox/rescore-quality-6b-20260824T051526Z.json). The 11.5 was a candidate weighting evaluated arithmetically as sum(dim_k * SCALE_k), and scoreProse does not read SCALE for dims 6-10, so it simulated an instrument that was never deployed. Proof in one file: the 04:58 manifest reports current gap 4.5 from scoreProse and 8.6 from the same-named candidate; after SCALE was corrected the 05:15 manifest reports 4.5 for both. Only density 16->10 was ever applied, density being a dim 1-5. Reweighting ceiling is 38.2 against the real scale (was quoted 41.6 against the declared one).",
+      "recordedRetroactively": false,
+      "correctedOn": "2026-08-24T04:00:00Z",
+      "correction": "SCALE dims 6-10 were documentation, not weights: arc 55->45, ctx 32->25, temporal 25->20, voice 20->30, matchup 24->30, restoring the values the code actually reaches. Declared total 300->294. No score changes -- scoreProse reads SCALE only for dims 1-5. Guarded from here by scripts/check-scale-matches-implementation.mjs."
+    },
+    {
+      "era": 5,
+      "from": "2026-08-24T05:45:00Z",
+      "deploy": "CC-CMD-2026-08-23-finality-dimension",
+      "change": "Dim 11 added: finality agreement, 20 points, the first dimension that reads game state. Funded entirely from the two proxies it replaces -- arc 45->33 (literals 10/10/10/15 -> 8/8/8/9), ctx 25->17 (8/8/9 -> 6/6/5). Nominal total unchanged at 294. Scores prose-vs-fact AGREEMENT both ways: a recap reading as final on a finished game and a brief hedging about a live one both score 20; either mismatch scores 0; self-contradicting prose scores 0 under its own verdict; unknown finality and no-finality-reading abstain at 10.",
+      "measuredEffect": "BEFORE: over 128 real briefs, fact-stratified, the ten-dimension rubric separated correct finality readings from incorrect ones by -4.0 points at 0.9x the standard error (n=13 agrees vs 33 disagrees) -- no separation, wrong sign, three samples all under 1.0x. The dominant defect is the MIRRORED one the parent ask named: 28 of 128 briefs hedge about games that had already finished, against 1 that calls a live game final. Dim 11 scores non-zero on both sides of the fact (mean 6.9 on finalized rows, 10.0 on live ones), which is the test Dim 10 failed silently for two months at zero on 190 of 190. Also measured: the LIVE_LANG prose-only gap REVERSES under fact-stratified sampling, +4.5 (1.8x) to -14.1 (4.4x), so era 4 and the parent CC-CMD were both reasoning from a sign that was an artifact of taking the newest rows. AFTER: pending the first post-deploy rescore-quality-6b run; artifacts outbox/rescore-quality-6b-20260824T053829Z.json (before) and the next scheduled or dispatched run.",
+      "recordedRetroactively": false
+    }
+  ],
+  "windowStraddlesEra": [
+    {
+      "era": 3,
+      "from": "2026-08-13T03:20:00Z",
+      "deploy": "CC-CMD-2026-08-13-jq-density-unit-fix"
+    },
+    {
+      "era": 4,
+      "from": "2026-08-23T15:00:00Z",
+      "deploy": "CC-CMD-2026-08-20-brief-data-quality ask 6b"
+    },
+    {
+      "era": 5,
+      "from": "2026-08-24T05:45:00Z",
+      "deploy": "CC-CMD-2026-08-23-finality-dimension"
+    }
+  ],
+  "era3Recorded": true
+}
