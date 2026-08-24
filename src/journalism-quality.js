@@ -36,7 +36,7 @@ export const SCORING_ERAS = [
     era: 2,
     from: '2026-07-16T01:36:49Z',
     deploy: '6aed3bb',
-    change: 'Dim 1 redefined per-sentence; Dim 4 clamped to [0,1] (was unbounded)',
+    change: 'Dim 1 redefined per-sentence; Dim 4 clamped to [0,1] (was unbounded). AMENDED 2026-08-24: this entry recorded one of 6aed3bb\'s two changes. The commit\'s own subject line names the other -- "replace 3b\'s numeric retry-accept gate with a qualitative voice judge" -- which deleted `const THRESHOLD = opts.scoreThreshold || 240` and the `score < THRESHOLD` retry trigger. That was right; the composite it gated scored this file\'s labeled anti-exemplar 214 and its real Exemplar A 136. But it orphaned ten call sites still passing scoreThreshold, plus getQualityTarget and loadQualityCalibration upstream of them, and nothing noticed for 39 days: measured 2026-08-24, a floor of 999 accepted a score of 126 with zero retries. AN ERA ENTRY MUST RECORD WHAT A COMMIT DID TO THE RETRY PATH, not only to the score, because a scoring change and a gating change are both changes to what quality means. Removed in 3536aca along with the guard that would have caught it, scripts/check-opts-keys-are-read.mjs.',
     measuredEffect: 'mlb_game stored mean 203.2 -> 135.4 (n=325 pre / 267 post); rescored delta +0.9',
     recordedRetroactively: true,
   },
