@@ -88,5 +88,51 @@ check('the dimension cannot be satisfied by copying the prompt',
   marginAgreement('35 10', R(35, 10)).score === MARGIN_MAX / 2,
   'reciting the scoreline is not a closeness claim, and must not score as one')
 
+// ── THE SIX BRIEFS THAT MADE THE VOCABULARY CHANGE. ─────────────────────────
+//
+// Verbatim from outbox/rescore-quality-6b-20260824T141752Z.json, which is the
+// run that carried real prose instead of a count. Each scored
+// `no-clear-reading` before the vocabulary widened, on a row where a verdict
+// existed. Corpus-drawn, not invented: a regex tested only against phrases its
+// own author thought of is tested against its own blind spot.
+console.log('\nthe corpus rows that scored no-clear-reading before the vocabulary widened')
+
+const CORPUS = [
+  { why: 'break the deadlock, 0-0',
+    text: 'Lillestrom and Egnatia finished their first leg at Arena Egnatia with a 0-0 draw tonight. Neither side managed to break the deadlock during this UEFA Europa League qualifying match.',
+    r: R(0, 0) },
+  { why: 'scoreless stalemate, 0-0',
+    text: 'Veritas Stadion hosted a scoreless stalemate as København and Inter Turku finished 0-0 in this 1st leg of the UEFA Europa Conference League qualifying round.',
+    r: R(0, 0) },
+  { why: 'scoreless draw + failing to break the deadlock, 0-0',
+    text: 'Tromso held Brighton to 0 goals tonight at Romssa Arena. Brighton recorded 3 shots tonight while failing to break the deadlock. This scoreless draw leaves the aggregate tied at 0 goals.',
+    r: R(0, 0) },
+  { why: 'dominated, 3-0',
+    text: 'Brentford dominated their season opener at Gtech Community Stadium, shutting out Spurs 3-0 tonight. Brentford closed as +110 favorites.',
+    r: R(3, 0) },
+]
+for (const c of CORPUS) {
+  const got = marginAgreement(c.text, c.r)
+  check(`corpus: ${c.why} now agrees`,
+    got.score === MARGIN_MAX && got.verdict === 'agrees',
+    `${JSON.stringify({ fact: got.fact, reading: got.reading, verdict: got.verdict })} — this brief scored no-clear-reading in run 18`)
+}
+
+// ── The two exclusions, each with the false penalty it prevents. ────────────
+check('"dominated possession" on a ONE-GOAL win is not a rout claim',
+  marginAgreement('Arsenal dominated possession throughout but needed a late goal to win 1-0.', R(1, 0)).verdict
+    === 'no-clear-reading',
+  'a tight game accurately described as one-sided in POSSESSION must not be scored calls-a-tight-game-a-rout')
+check('...while "dominated" about the scoreline still reads lopsided',
+  marginAgreement('Brentford dominated, shutting out Spurs 3-0.', R(3, 0)).reading === 'lopsided',
+  'the lookahead must exclude the possession collocation only, not the word')
+check('"an emphatic late winner sealed it 1-0" is not a contradiction',
+  marginAgreement('an emphatic late winner sealed it 1-0', R(1, 0)).verdict === 'agrees',
+  '`emphatic` was tried in the lopsided list and dropped: it modifies one goal\'s manner, not the margin, so it read as BOTH and scored accurate prose zero')
+check('"level at halftime" in a blowout recap does not manufacture a contradiction',
+  marginAgreement('It was level at halftime before Arsenal ran away with it, 4-1.', R(4, 1)).verdict
+    === 'agrees',
+  'a margin that changed during the game is a game, not a self-contradiction — which is why `level` and bare `tied` are deliberately not closeness terms')
+
 console.log(fail ? `\n${fail} failed` : '\nall passed')
 process.exit(fail ? 1 : 0)

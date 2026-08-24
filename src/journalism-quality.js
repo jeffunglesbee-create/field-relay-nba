@@ -886,8 +886,49 @@ export const MARGIN_MAX = 30;
 //   lopsided - the loser finished at <= 60% of the winner's score, which is
 //              one-sided in every sport this relay carries (8-3, 120-70, 35-10)
 //   ordinary - everything between, where no honest verdict exists, so it abstains
-const _READS_CLOSE   = /\b(narrow(ly)?|nail-?biter|one-run|one-score|one-possession|overtime|extra innings|walk-?off|edged|held on|held off|survived|late winner|down to the wire|clinched it late)\b/i;
-const _READS_LOPSIDED = /\b(rout(ed)?|blowout|cruised|comfortabl[ey]|dominant(ly)?|ran away|never in doubt|coasted|thrashed|hammered|romp(ed)?|one-sided)\b/i;
+// ── THE THRESHOLDS WERE MADE SPORT-FREE. THE VOCABULARY WAS NOT. ───────────
+//
+// Era 6 shipped with 4 of 128 rows judged and 47 `no-clear-reading` on rows
+// where a real verdict existed. The manifest was made to carry the actual prose
+// of six of them rather than leave the cause to inference
+// (outbox/rescore-quality-6b-20260824T141752Z.json), because the two candidate
+// causes have different fixes and the old Dim 10 spent two months fixed the
+// wrong way. Five of the six say it outright, in words neither regex held:
+//
+//   "Neither side managed to break the deadlock"          0-0, fact tight
+//   "a scoreless stalemate ... finished 0-0"              0-0, fact tight
+//   "This scoreless draw leaves the aggregate tied at 0"  0-0, fact tight
+//   "Brentford dominated ... shutting out Spurs 3-0"      3-0, fact lopsided
+//   "the visitors dominate possession"                    3-0, fact lopsided
+//
+// So: blind regex, not silent prose. And the pattern in the misses is one thing
+// -- one-run, one-possession, walk-off, extra innings. The list was written for
+// American sports and the corpus is mostly European soccer, where a tight game
+// is a deadlock, a stalemate or a goalless draw. Half of "sport-free" got done.
+//
+// TWO DELIBERATE EXCLUSIONS, both about not manufacturing a contradiction:
+//
+// `level`, `tied` and bare `draw` describe an IN-GAME state as often as a final
+// margin ("level at halftime before Arsenal ran away with it"). Reading that as
+// a closeness claim on a game that finished 4-1 makes it `mixed`, which scores
+// zero -- so a correctly narrated blowout would be penalised for describing its
+// own first half. Finality can treat mixed as a contradiction because "at
+// halftime" and "held on to win" genuinely cannot both be true of one brief.
+// A margin that changed during the game is not a contradiction, it is a game.
+//
+// `emphatic` was tried and dropped. It modifies the manner of a single goal as
+// often as the size of a win, so "an emphatic late winner sealed it 1-0" read as
+// BOTH close and lopsided and scored 0 as a self-contradiction -- accurate prose
+// punished for being accurate. Same conservative call as soccer 2-0 counting as
+// ordinary: when a word is ambiguous the dimension abstains rather than guesses.
+//
+// `dominated possession` is a possession claim, not a margin claim. A 1-0 win
+// where one side dominated possession is a TIGHT game described accurately, and
+// scoring it `calls-a-tight-game-a-rout` would punish the truth. Excluded by
+// lookahead rather than by dropping `dominate`, which is the ordinary English
+// word for winning big and appears in the sample above doing exactly that.
+const _READS_CLOSE   = /\b(narrow(ly)?|nail-?biter|one-run|one-score|one-possession|one-goal|overtime|extra innings|extra time|walk-?off|penalty shoot-?out|edged|held on|held off|hung on|survived|late winner|down to the wire|clinched it late|deadlock|stalemate|scoreless draw|goalless|all square|shared the spoils|slender)\b/i;
+const _READS_LOPSIDED = /\b(rout(ed)?|blowout|cruised|breezed|comfortabl[ey]|dominant(ly)?|ran away|ran riot|never in doubt|coasted|thrashed|hammered|romp(ed)?|one-sided|outclassed|brushed aside|swept aside|demolished|overwhelmed|whitewash(ed)?)\b|\bdominat(?:e|ed|es|ing|ion)\b(?!\s+(?:possession|the ball|territory|midfield|play))/i;
 
 /**
  * @param {string} text
