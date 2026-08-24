@@ -252,6 +252,16 @@ jobs:
       - name: every key passed in an options literal is read by its callee
         run: node scripts/check-opts-keys-are-read.mjs --self-test && node scripts/check-opts-keys-are-read.mjs
 
+      # briefs_counted: 0 beside cleared_196: 66, published twice, both with
+      # all_passed: true. `n: x.n ?? x.count ?? null` guessed at two field names
+      # /quality/report has never served, `Number(null) || 0` made the miss
+      # arithmetic, and a sum over 48 erased unknowns is indistinguishable from a
+      # real zero. The replay half feeds both published artifacts through the
+      # invariants and requires them to go red, so "this would have caught it"
+      # stays a demonstrated fact rather than a claim about code nobody ran.
+      - name: no aggregate launders an unknown into a number
+        run: node scripts/check-aggregate-launders-unknowns.mjs --self-test && node scripts/check-aggregate-launders-unknowns.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

@@ -79,14 +79,61 @@ const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at h
 // arc, ctx and temporal are the three dimensions where finished-game prose
 // genuinely scores higher; voice and density run the OTHER way, so weight spent
 // on them actively narrows the gap ask 6b exists to widen.
+// breakdown key -> SCALE key. The names differ on both sides, so this cannot be
+// derived; it CAN be checked, and it was not.
+//
+// WHAT THIS COST. Until 2026-08-24 this map read `matchupDepth: 'matchup'` and
+// had no entry for `finality` at all. Era 5 added Dim 11 (finality, 20 points)
+// and era 6 renamed the Dim 10 breakdown key matchupDepth -> marginAgreement and
+// the SCALE key matchup -> margin. After both, `dims.matchupDepth` and
+// `W.matchup` were undefined -- and `(dims[k] || 0) * (W[k] ?? 0)` turned each
+// missing name into a silent zero, so scoreUnder reconstructed a 294-point
+// rubric out of 244 points and reported it under `nominal_total: 294`.
+//
+// It shows up as the candidate block disagreeing with the rescored means it
+// sits beside, in the same manifest:
+//
+//   20260824T053829Z   rescored -14.0   candidate -14.1   agree (pre-era-5)
+//   20260824T121117Z   rescored  -0.2   candidate -11.1   disagree by 10.9
+//
+// AND ERA 5's RECORDED HEADLINE WAS BUILT ACROSS THAT SEAM: it cited -11.1 as
+// the BEFORE and -0.2 as the AFTER, but both numbers come from the same
+// 121117Z run -- one from the broken candidate block, one from the real
+// rescored block. Corrected in SCORING_ERAS[era 5] with a consistent
+// instrument. Exactly the defect this file has been finding all session, in
+// the file doing the finding.
+//
+// So the map is asserted complete against both sides at import, and a missing
+// name is now a thrown error rather than a zero. A weight that cannot be found
+// is an unknown, and an unknown must not be summed.
 const DIM_TO_SCALE = {
     specificity: 'spec', statDepth: 'statDepth', variety: 'variety',
     density: 'density', freshness: 'fresh', arcScore: 'arc',
     contextAnchoring: 'ctx', temporalScore: 'temporal',
-    voiceScore: 'voice', matchupDepth: 'matchup',
+    voiceScore: 'voice', marginAgreement: 'margin', finality: 'finality',
 };
+{
+    const mapped = new Set(Object.values(DIM_TO_SCALE));
+    const missing = Object.keys(SCALE).filter((k) => !mapped.has(k));
+    if (missing.length) throw new Error(
+        `DIM_TO_SCALE does not cover SCALE key(s): ${missing.join(', ')}. ` +
+        `Every declared weight must reach scoreUnder, or candidates silently ` +
+        `evaluate a smaller rubric and report it under the full nominal total.`);
+    const dupes = Object.values(DIM_TO_SCALE).filter((v, i, a) => a.indexOf(v) !== i);
+    if (dupes.length) throw new Error(`DIM_TO_SCALE maps two dims to ${dupes.join(', ')}`);
+}
 const scoreUnder = (dims, W) => Object.entries(DIM_TO_SCALE)
-    .reduce((sum, [dimKey, wKey]) => sum + (dims[dimKey] || 0) * (W[wKey] ?? 0), 0);
+    .reduce((sum, [dimKey, wKey]) => {
+        // No coalescing. A dim the breakdown does not carry, or a weight the
+        // candidate does not declare, is a BUG in this map or that candidate --
+        // never a zero-point contribution that still totals to nominal_total.
+        const frac = dims[dimKey], w = W[wKey];
+        if (typeof frac !== 'number' || !Number.isFinite(frac))
+            throw new Error(`scoreUnder: breakdown has no numeric ${dimKey} (got ${JSON.stringify(frac)})`);
+        if (typeof w !== 'number' || !Number.isFinite(w))
+            throw new Error(`scoreUnder: candidate weighting has no numeric ${wKey} (got ${JSON.stringify(w)})`);
+        return sum + frac * w;
+    }, 0);
 
 // Every candidate keeps the 300-point nominal total, so a score stays readable
 // against every threshold already in the codebase (240, 196, 110). A candidate

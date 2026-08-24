@@ -18,6 +18,7 @@
 // /quality/report and GET /archive/query only.
 
 import { writeFileSync } from 'node:fs';
+import { total } from './lib/summary-invariants.mjs';
 import { PROMPT_EXAMPLE_LITERALS } from '../src/journalism-quality.js';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -50,7 +51,18 @@ try {
   //    is measurable rather than assumed.
   const report = await get(`/quality/report?days=${DAYS}`);
   const summary = report.summary || [];
-  out.corpus.expected = summary.reduce((n, r) => n + (r.total || 0), 0);
+  // `total()` rather than `n + (r.total || 0)`: the coalescing form turns a row
+  // missing `total` into a zero contribution, and a denominator built that way
+  // is indistinguishable from a genuinely small corpus. That exact shape
+  // published `briefs_counted: 0` beside `cleared_196: 66` twice
+  // (outbox/quality-scale-verify-2026082{2,3}*.json, both all_passed: true).
+  // `skipped` is asserted on below so a short read is a finding, not a number.
+  const expectedTot = total(summary, 'total');
+  out.corpus.expected = expectedTot.sum;
+  out.corpus.expected_rows_unreadable = expectedTot.skipped;
+  if (expectedTot.skipped > 0) throw new Error(
+    `/quality/report returned ${expectedTot.skipped} of ${summary.length} summary rows with no numeric \`total\` — ` +
+    `the corpus denominator cannot be computed and must not be guessed`);
   const types = [...new Set(summary.map(r => r.brief_type).filter(Boolean))];
 
   // Walk the report's OWN window, not a locally derived one. /quality/report

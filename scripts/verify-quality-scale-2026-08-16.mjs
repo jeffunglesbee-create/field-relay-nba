@@ -41,6 +41,9 @@ import {
   FOUR_FIFTHS_REACHABLE, FOUR_FIFTHS_REACHABLE_GAME,
   UNREACHABLE_DIMS_GAME, NOMINAL_TOTAL,
 } from '../src/journalism-quality.js';
+// One implementation, and this time nothing to pass it wrong: it takes the rows.
+import { CONTRACT, missingContractFields, total, invariants }
+  from './lib/summary-invariants.mjs';
 const PCT = (bar, ceil) => Math.round(bar / ceil * 10000) / 100;
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -88,7 +91,11 @@ try {
     assert(`game reachable_ceiling === ${REACHABLE_CEILING_GAME}`,
            g?.reachable_ceiling === REACHABLE_CEILING_GAME,
            `got ${JSON.stringify(g?.reachable_ceiling)}`);
-    assert('game shape drops only matchup',
+    // Era 6 emptied this list: Dim 10 stopped reading a note 99.5% of non-golf
+    // rows lack and started reading the result, so a game brief now reaches every
+    // dimension. The assertion is unchanged because both sides derive from
+    // source; only its NAME was wrong once "matchup" stopped being a SCALE key.
+    assert(`game shape drops ${UNREACHABLE_DIMS_GAME.length ? UNREACHABLE_DIMS_GAME.join(', ') : 'nothing'}`,
            JSON.stringify(g?.unreachable_dims) === JSON.stringify(UNREACHABLE_DIMS_GAME),
            `got ${JSON.stringify(g?.unreachable_dims)}`);
     assert(`game four_fifths === ${FOUR_FIFTHS_REACHABLE_GAME}`,
@@ -107,26 +114,69 @@ try {
     assert('every row carries numeric cleared_196', rows.length > 0 && missing196.length === 0,
            missing196.length ? `${missing196.length} row(s) missing it` : `all ${rows.length} rows`);
 
-    // ── The 110-vs-240 evidence ────────────────────────────────────────────
-    // Reported, never asserted on: this probe cannot know what the bar SHOULD be.
-    // It reports what briefs actually score so the question stops being a guess.
-    out.summary = rows.map(x => ({
-        brief_type: x.brief_type, sport: x.sport, n: x.n ?? x.count ?? null,
-        avg: x.avg_score ?? x.avg ?? null,
+    // ── What briefs actually score ─────────────────────────────────────────
+    //
+    // THIS BLOCK PUBLISHED AN ARITHMETIC IMPOSSIBILITY TWICE, AND PASSED:
+    //
+    //   quality-scale-verify-20260822T234307Z  briefs_counted: 0  cleared_196: 61  all_passed: true
+    //   quality-scale-verify-20260823T145535Z  briefs_counted: 0  cleared_196: 66  all_passed: true
+    //
+    // Zero briefs counted, and sixty-six of them cleared 196. The cause was one
+    // line:
+    //
+    //   n: x.n ?? x.count ?? null          // then Number(n) || 0, then summed
+    //
+    // /quality/report serves `total` and `scored`. It has never served `n` or
+    // `count`, so both guesses missed and `n` was null on all 48 rows. `??`
+    // dressed the unknown as a deliberate value; `|| 0` made it arithmetic; the
+    // sum over 48 erased unknowns is indistinguishable from a real zero.
+    //
+    // THE NULL WAS THE ONLY HONEST THING IN THE BLOCK. `n: null` correctly said
+    // "I do not know". Two operators laundered it into a confident 0, and none
+    // of the eleven assertions read the field, so nothing objected for two days.
+    //
+    // Worse, this is the probe that was meant to decide the 110-vs-240 question
+    // -- its own note said so -- and it informed that judgement with a
+    // denominator of zero. That question was ultimately settled by measuring
+    // runQualityChain directly (scoreThreshold turned out to be read by nothing
+    // and was deleted 2026-08-24), which is the only reason this did not bite.
+    //
+    // So: no coalescing between a missing field and an aggregate. The contract
+    // is asserted, the read is direct, and the totals must reconcile.
+    // Rule 60: the relay owns these names. If one moves, this must go RED, not
+    // silently null -- which is the entire defect above, stated as an assertion.
+    const missingFields = missingContractFields(rows);
+    assert('every summary row carries the fields this probe reads',
+           missingFields.length === 0,
+           missingFields.length ? `absent from at least one row: ${missingFields.join(', ')}`
+                                : `all of ${CONTRACT.join(', ')}`);
+
+    out.summary = rows.map((x) => ({
+        brief_type: x.brief_type, sport: x.sport,
+        // `scored` is the right denominator: briefs that HAVE a quality_score.
+        // `total` includes unscored rows, which cannot clear any bar.
+        scored: x.scored, total: x.total,
+        avg: x.avg_score,
         cleared_196: x.cleared_196, above_240: x.above_240, below_240: x.below_240,
     }));
-    const tot = (k) => out.summary.reduce((s, x) => s + (Number(x[k]) || 0), 0);
-    const n = tot('n');
+    const tot = (k) => total(out.summary, k);
+    const scored = tot('scored'), c196 = tot('cleared_196'), a240 = tot('above_240');
     out.score_reality = {
         rows: out.summary.length,
-        briefs_counted: n,
-        cleared_196: tot('cleared_196'),
-        above_240: tot('above_240'),
-        // The point of the comparison: if briefs cluster far below even 196, a
-        // 110 threshold is not obviously wrong — it may be the only bar the
-        // queue path can clear. If they cluster above it, 110 is doing nothing.
-        note: 'Reported only. Whether scoreThreshold 110 at src/index.js:8855 is deliberate or a fossil is a judgement this probe informs, not one it makes.',
+        briefs_counted: scored.sum,
+        cleared_196: c196.sum,
+        above_240: a240.sum,
+        // Every total says how many rows it could not read. `0 (48 skipped)` and
+        // `0 (0 skipped)` are different findings and used to look identical.
+        skipped: { scored: scored.skipped, cleared_196: c196.skipped, above_240: a240.skipped },
+        note: 'Reported, not asserted on: this probe cannot know what the bar SHOULD be. It reports what briefs actually score.',
     };
+
+    // ── The invariants that would have caught it on day one. ───────────────
+    // Same function scripts/check-aggregate-launders-unknowns.mjs replays the
+    // two published artifacts through, so "these would have caught it" is a
+    // demonstrated fact rather than a claim about code nobody ran.
+    for (const inv of invariants(out.summary)) assert(inv.name, inv.pass, inv.detail);
 } catch (e) { out.error = String(e.message || e); }
 
 out.all_passed = out.fetch_ok && out.assertions.length > 0 && out.assertions.every(a => a.pass);
