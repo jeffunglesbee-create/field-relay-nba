@@ -291,6 +291,12 @@ export function detectSportClass(sport) {
   if (s.includes('basketball') || s.includes('nba') || s.includes('wnba') || s.includes('ncaa-mb')) return 'basketball';
   if (s.includes('soccer') || s.includes('epl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
   if (s.includes('nfl') || s.includes('football')) return 'football';
+  // Added 2026-08-24 so a golf rule can be scoped TO golf. Knock-ons checked:
+  // checkSportVocab returns [] for a class with no SPORT_VOCAB_VIOLATIONS entry.
+  // voiceRegisterFor is UNCHANGED by this: golf has no voice segment, so it took
+  // the keep-everything fallback before this branch existed and still does. See
+  // that function's own comment for why narrowing it is not the right fix.
+  if (s.includes('golf') || s.includes('pga')) return 'golf';
   return null;
 }
 
@@ -1041,6 +1047,17 @@ export const PROSE_STYLE_RULES = [
   '- CITE HOCKEY ANALYTICS: if [PP/PK] or [GOALIE] context appears in the game data, cite the specific figure verbatim — not a paraphrase. "93.5% penalty kill" not "elite penalty killing".',
   '- CITE BASEBALL ANALYTICS: if [PARK] or [UMPIRE] context appears in the game data, cite the specific figure verbatim rather than calling a park "hitter-friendly" or an umpire "tight".',
   '- CITE SOCCER ANALYTICS: if [POSSESSION] context appears in the game data, cite the specific figure verbatim — not a paraphrase such as "dominated the ball".',
+  // AUTHORED 2026-08-24. Every figure named here is read from the block
+  // buildGolfLeaderboardContext actually emits -- "[GOLF CONTEXT]", then
+  // `pos. name toPar (thru N)` -- not from general golf knowledge. `E` is what
+  // src/index.js renders when toPar is null (`p.toPar != null ? String(p.toPar)
+  // : 'E'`), so a model treating it as missing drops a real score.
+  //
+  // The example uses ## rather than a real figure. Every positive exemplar in
+  // this file that carries a real number is a literal the model has been
+  // measured mining, and there is no reason to add a new one to a rule written
+  // today.
+  '- CITE GOLF ANALYTICS: if [GOLF CONTEXT] appears in the game data, cite the leaderboard verbatim — the position, the to-par score WITH its sign, and the holes completed. Write "leads at -## through ##" rather than "holds a commanding lead". "E" is even par, a real score and not a missing value. A player shown "thru" a number has NOT finished the round: never present that score as final.',
   '- CITE NBA ANALYTICS: if [SLOW GRIND], [FAST PACE], [ELITE D BOTH], [CHESS MATCH], [CLUTCH], or [GAME TYPE] appears, cite specific DRTG, pace, or clutch figures verbatim. "107.7 DRTG, best in the NBA" not "elite defense".',
   '- CITE CHAMPION: if [CHAMPION] appears in game context, reference the team as "defending champions" or "reigning NBA champions" in the first paragraph — never omit this when present.',
   '- FEATURED STAT: if a [FEATURED STAT] line appears for a game, that exact figure MUST appear in your brief for that game.',
@@ -1078,6 +1095,7 @@ const SPORT_SCOPED_RULES = {
   '- CITE HOCKEY ANALYTICS:':   'hockey',
   '- CITE BASEBALL ANALYTICS:': 'baseball',
   '- CITE SOCCER ANALYTICS:':   'soccer',
+  '- CITE GOLF ANALYTICS:':     'golf',
 };
 
 // ── Scoping the EXAMPLE, not the rule ───────────────────────────────────────
@@ -1458,6 +1476,32 @@ export const VOICE_REGISTER_SEGMENTS = [
 // Baseball and football have no exemplar of their own. Filtering strictly would
 // hand them an empty register and delete the voice teaching outright, so when a
 // sport matches no exemplar it keeps all of them -- the pre-2026-08-23 behavior.
+// THE FALLBACK HERE IS NOT THE SAME SHAPE AS proseStyleFor's, AND THE
+// DIFFERENCE IS LOAD-BEARING. Measured 2026-08-24, then reverted.
+//
+// A sport with no segment of its own receives ALL of them: MLB, NFL, golf and
+// CFL each get the basketball, hockey and soccer exemplars. MLB is 830 of 1322
+// finalized games in the archive, so the biggest sport in the system is the
+// most contaminated, and that is real.
+//
+// The obvious fix -- "a named sport keeps the universal segments and nobody
+// else's", which is exactly right for proseStyleFor -- was tried here and is
+// WRONG. It left MLB and NFL with ZERO exemplars, caught by this file's own
+// assertion. The two functions carry different kinds of content:
+//
+//   proseStyleFor    scoped items are RULES that apply to one sport only.
+//                    CITE NBA ANALYTICS means nothing to MLB; dropping it costs
+//                    nothing.
+//   voiceRegisterFor scoped items are EXEMPLARS that teach a UNIVERSAL thing --
+//                    what the FIELD voice sounds like -- through a
+//                    sport-specific instance. Drop them all and the lesson goes
+//                    with them; a brief with no exemplar has no model of the
+//                    voice at all.
+//
+// So the contamination stands as a MEASURED, NAMED trade rather than being
+// "fixed" into a worse state. Resolving it properly means an exemplar for each
+// uncovered sport, which is content authoring and its own decision -- not a
+// predicate change. Recorded in the outbox with the per-sport measurement.
 export function voiceRegisterFor(sport) {
   const cls = detectSportClass(sport);
   const scoped = VOICE_REGISTER_SEGMENTS.filter(s => s.sport !== null);

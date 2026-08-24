@@ -130,6 +130,34 @@ ok('basketball keeps the Wembanyama example, baseball keeps Jung Hoo Lee',
   && proseStyleFor('MLB').includes('5-for-6') && !proseStyleFor('MLB').includes('28.2 PPG'),
   'the first version scoped both together and baseball lost its own correct example');
 // The split of CITE ANALYTICS, which the file flagged as a carry-forward.
+// 8 — CITE GOLF ANALYTICS, authored 2026-08-24.
+ok('golf receives its own analytics rule',
+  proseStyleFor('golf').includes('- CITE GOLF ANALYTICS:'),
+  'detectSportClass must classify golf for a golf-scoped rule to reach it');
+for (const other of ['EPL', 'NBA', 'NHL', 'MLB', 'NFL'])
+  ok(`${other} does not receive the golf rule`,
+    !proseStyleFor(other).includes('CITE GOLF ANALYTICS'));
+// Every figure it names is read from the block the assembler emits, not from
+// general golf knowledge. These three are the contract.
+ok('the golf rule names the block it reads and the three fields in it',
+  ['[GOLF CONTEXT]', 'position', 'to-par', 'thru']
+    .every(t => proseStyleFor('golf').includes(t)),
+  'a rule citing a tag the data never emits instructs the model to invent one');
+// E is what src/index.js renders when toPar is null. A model treating it as
+// missing drops a real score.
+ok('the golf rule says E is a score, not a missing value',
+  /"E" is even par, a real score and not a missing value/.test(proseStyleFor('golf')));
+// thru means the round is in progress. This is the golf equivalent of the
+// finality defect Dim 11 exists to catch.
+ok('the golf rule forbids presenting an unfinished round as final',
+  /has NOT finished the round/.test(proseStyleFor('golf')));
+// And it adds no new mineable figure — the reason every positive exemplar in
+// this file that carries a real number is a literal the model has been measured
+// mining.
+ok('the golf rule carries no real figure',
+  !/\d/.test(proseStyleFor('golf').split('\n').find(l => l.startsWith('- CITE GOLF ANALYTICS:')).replace(/#+/g, '')),
+  'a rule written today has no reason to add a new mineable literal');
+
 ok('CITE ANALYTICS is split and each half reaches only its sport',
   proseStyleFor('NHL').includes('CITE HOCKEY ANALYTICS')
   && !proseStyleFor('EPL').includes('CITE HOCKEY ANALYTICS')
