@@ -1,0 +1,29 @@
+{
+  "probed_at": "2026-08-24T05:30:40.446Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 45,
+      "ctx": 25,
+      "temporal": 20,
+      "voice": 30,
+      "matchup": 30
+    },
+    "declared_unreachable": [
+      "ctx",
+      "matchup"
+    ],
+    "declared_reachable_ceiling": 239
+  },
+  "limit": 160,
+  "stored_baseline": null,
+  "matchup_note_coverage": null,
+  "rescored": null,
+  "finality_2x2": null,
+  "dim_reachability": null,
+  "error": "HTTP 403: Host not in allowlist: field-relay-nba.jeffunglesbee.workers.dev. Add this host to your network egress settings to allow access."
+}

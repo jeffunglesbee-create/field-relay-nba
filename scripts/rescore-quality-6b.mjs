@@ -162,8 +162,35 @@ try {
     // 5.4-point difference on n=16 is not a finding, it is a hint. Half the
     // sample now comes from each class, which puts the whole in-progress
     // population (95 rows table-wide) in scope instead of a tail of it.
-    const perClass = Math.max(1, Math.floor(LIMIT / 2));
-    const pick = (want) => d1(
+    //
+    // STRATIFIED ON THE FACT TOO, added 2026-08-24, and the run before it is why.
+    // Stratifying on LIVE_LANG alone balances the PROSE and lets the FACT follow
+    // whatever the date ordering hands over: every one of 150 scoreable rows came
+    // back finalized, `mean_finality_when_live` was null, and half the 2x2 had no
+    // rows to be measured on. Widening brief_type changed nothing because the
+    // newest 160 rows per prose-class are still all recaps -- the ordering
+    // dominated the filter.
+    //
+    // That is the same defect this script already carries a comment about one
+    // paragraph up: a sample drawn on a dimension unrelated to what is being
+    // measured. It was fixed for the prose axis in run 1 and left unfixed for the
+    // fact axis, because nothing was reading the fact until Dim 11.
+    //
+    // Five strata, not four: rows with no joined game are `unknown-finality`, a
+    // real population member whose missing dims are a finding. Folding them into
+    // the not-final bucket would let "we have no game row" masquerade as "the
+    // game is still being played" in the sample, even though `is_final` keeps
+    // them apart afterwards.
+    const JOINED = 'g.espn_event_id IS NOT NULL';
+    const STRATA = [
+        { label: 'live-lang, not final',  where: `${LIVE_LANG} AND ${JOINED} AND g.finalized_at IS NULL` },
+        { label: 'live-lang, final',      where: `${LIVE_LANG} AND ${JOINED} AND g.finalized_at IS NOT NULL` },
+        { label: 'final-lang, not final', where: `NOT ${LIVE_LANG} AND ${JOINED} AND g.finalized_at IS NULL` },
+        { label: 'final-lang, final',     where: `NOT ${LIVE_LANG} AND ${JOINED} AND g.finalized_at IS NOT NULL` },
+        { label: 'no joined game',        where: `${JOINED.replace('IS NOT NULL', 'IS NULL')}` },
+    ];
+    const perCell = Math.max(1, Math.floor(LIMIT / STRATA.length));
+    const pick = (where) => d1(
         `SELECT b.id, b.sport, b.game_id, b.brief_type, b.date,
                 b.quality_score AS stored, b.scoring_version,
                 CASE WHEN ${LIVE_LANG} THEN 1 ELSE 0 END AS live_lang,
@@ -172,10 +199,20 @@ try {
          FROM briefs b
          LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
          WHERE b.brief_type IN ('game_recap','game_brief') AND b.quality_score IS NOT NULL
-           AND ${want ? '' : 'NOT '}${LIVE_LANG}
+           AND ${where}
          ORDER BY b.date DESC, b.id DESC
-         LIMIT ?`, [perClass]);
-    const rows = [...(await pick(true)), ...(await pick(false))];
+         LIMIT ?`, [perCell]);
+
+    // Per-stratum counts are reported. A cell that comes back empty is a finding
+    // about the corpus -- it says the corner cannot be measured from D1 as it
+    // stands -- and it must not look the same as a cell nobody asked for.
+    const strataCounts = {};
+    const rows = [];
+    for (const st of STRATA) {
+        const got = await pick(st.where);
+        strataCounts[st.label] = got.length;
+        rows.push(...got);
+    }
 
     // Dim 10 read zero on 160/160 rows in run 1, and the reason was NOT that the
     // dimension cannot run: 0 of those rows carried a matchupNote, because
@@ -234,6 +271,7 @@ try {
 
     m.finality_2x2 = {
         note: 'READ `blindness` FIRST — it is the only figure here computed without new weights. `gap_projected_definitional` restates FINALITY_MAX and is not evidence. Corpus widened 2026-08-24 to game_recap + game_brief: game_recap is finality-gated by ask 2, so on recaps alone `is_final` is true for every row and half the 2x2 cannot have rows at all. 2x2 of fact x reading, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension\'s metric.',
+        strata: strataCounts,
         n_scoreable: scoreable.length, n_agrees: agrees.length,
         n_disagrees: disagrees.length, n_abstained: abstains.length,
         by_verdict: Object.fromEntries([...new Set(scored.map(x => x.finality_verdict))]
