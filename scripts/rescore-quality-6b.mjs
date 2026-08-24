@@ -242,13 +242,32 @@ try {
     // can hold strings no brief would ever echo, and Dim 10 would still score
     // zero. Reading five real values costs nothing and answers whether the 36
     // are usable editorial context or leftovers.
+    //
+    // GOLF EXCLUDED, and that exclusion is the finding rather than a filter.
+    // The 2026-08-24 split came back golf 30/30, MLB 5/830, WNBA 2/177, and
+    // every other sport 0. The samples were "Wyndham Clark -17" and "Gary
+    // Woodland -6" -- leaderboard positions written by the golf adapter for its
+    // own purposes, not editorial matchup context.
+    //
+    // Golf has no matchup. This relay packs a tournament and a round into
+    // home/away, which is why field-laboratory's Sport registry declares golf an
+    // Omission rather than modelling a contest between two sides. So the one
+    // sport with full coverage is the one where Dim 10 could never score, and it
+    // inflated the headline coverage 5x: 37/1322 overall, but 7/1292 (0.54%)
+    // once the sport that cannot use the column is set aside.
     const notesSample = await d1(
         `SELECT sport, id, SUBSTR(note, 1, 160) AS note_head
          FROM regular_season_games
          WHERE finalized_at IS NOT NULL AND note IS NOT NULL AND LENGTH(TRIM(note)) > 10
-         ORDER BY finalized_at DESC LIMIT 5`);
+           AND sport NOT IN ('golf', 'PGA Tour')
+         ORDER BY finalized_at DESC LIMIT 10`);
+    const notesGolf = await d1(
+        `SELECT sport, COUNT(*) AS n FROM regular_season_games
+         WHERE finalized_at IS NOT NULL AND note IS NOT NULL AND LENGTH(TRIM(note)) > 10
+           AND sport IN ('golf', 'PGA Tour')`);
     m.matchup_note_coverage = {
-        total: coverageTotal, by_sport: coverageBySport, sample: notesSample,
+        total: coverageTotal, by_sport: coverageBySport,
+        sample_matchup_sports: notesSample, golf_rows_excluded_from_sample: notesGolf,
         reading: 'concentrated in one or two sports -> a broken adapter for those. Spread evenly at near-zero -> no producer writes this column at all.',
     };
 
