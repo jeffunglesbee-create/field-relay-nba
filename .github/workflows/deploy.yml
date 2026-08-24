@@ -262,6 +262,22 @@ jobs:
       - name: no aggregate launders an unknown into a number
         run: node scripts/check-aggregate-launders-unknowns.mjs --self-test && node scripts/check-aggregate-launders-unknowns.mjs
 
+      # THE REGISTRY THE SIX GUARDS ABOVE WERE EACH WRITTEN INSTEAD OF. Every one
+      # of them was authored after an incident and covers exactly one edge, and
+      # the pattern under all of them is the same: something names something
+      # else, the something else moves, nothing connects the two.
+      #
+      # SCALE.matchup -> SCALE.margin is the case study. One weight-preserving
+      # rename, invisible to the era fingerprint, no diff on the lines it broke,
+      # and it took out UNREACHABLE_DIMS (ceilings moved 245->277 and 270->294),
+      # DIM_TO_SCALE (a 244-point rubric reported as 294) and three candidate
+      # tables — found on three separate days by three separate investigations.
+      #
+      # Run against the real pre-fix source, committed as a fixture, the graph
+      # reports all three at once. Adding a dependency is now adding an edge.
+      - name: every name in the graph resolves to a name that exists
+        run: node scripts/check-name-graph.mjs --self-test && node scripts/check-name-graph.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
