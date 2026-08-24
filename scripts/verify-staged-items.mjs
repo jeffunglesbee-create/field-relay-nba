@@ -72,6 +72,13 @@ const T_FPL_EVENTS        = '2026-08-22 00:20:10';  // eb02ac7 fpl_match_events 
 // before the leak fix existed -- the identical error check 1 shipped with.
 const T_2F_LEAK_FIX       = '2026-08-22 18:36:10';  // 5f2fabb promptExampleLeaks corrected
 const T_MATCH_EVENTS      = '2026-08-23 06:12:03';  // 644d7f6 match_events context source
+// cd9b2e3, deploy run 32657982684, "Deploy to Cloudflare Workers" completed
+// 18:25:56Z. This is when assembleContext was first CALLED by the live recap
+// path. T_MATCH_EVENTS above is twelve hours earlier -- it marks when the
+// match_events SOURCE was registered, which is a different event and was the
+// wrong window for check 4: every recap written in that twelve-hour gap was
+// generated with no context at all and was being scored as though it had some.
+const T_RECAP_CONTEXT    = '2026-08-23 18:25:56';  // cd9b2e3 recap path assembles context
 
 // Measured pre-fix baselines, so "improved" is a comparison and not a vibe.
 const BASELINE = { EPL: 23.1, 'La Liga': 11.8 };
@@ -376,14 +383,29 @@ try {
     // died on `no such column: home_team`. Team names come from the ESPN summary
     // this check already fetches, via the header.competitions[0].competitors
     // shape src/index.js reads in two places.
+    //
+    // GENERATED vs TOUCHED. The first version selected
+    // `COALESCE(updated_at, created_at) AS written_at` and windowed on it, which
+    // collapses two different facts and then discards both components. A row
+    // whose prose was produced at 14:00 under the old prompt and whose row was
+    // TOUCHED at 02:16 -- a re-archive, a repair, a KV->D1 sync -- enters the
+    // window looking exactly like prose written fresh at 02:16, and is then
+    // scored as evidence about wiring that did not exist when its text was
+    // written. Both columns are selected and kept separate now; only rows whose
+    // created_at is after the deploy testify about the wiring.
+    //
+    // This is the same defect as the `entries` count in stale-data-sentinel.js
+    // and the rebased boundary sha: a value that looks like the answer while
+    // measuring something adjacent to it.
     const recapRows = await d1(
-        `SELECT id, sport, game_id, COALESCE(updated_at, created_at) AS written_at,
+        `SELECT id, sport, game_id, created_at, updated_at,
+                COALESCE(updated_at, created_at) AS written_at,
                 brief_text
          FROM briefs
          WHERE brief_type = 'game_recap'
            AND sport IN ('MLB','WNBA','NBA','NHL','NFL','EPL')
            AND COALESCE(updated_at, created_at) > ?
-         ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 12`, [T_MATCH_EVENTS]);
+         ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 12`, [T_RECAP_CONTEXT]);
 
     const SLUG = { MLB: 'sports/baseball/mlb', NBA: 'sports/basketball/nba',
                    WNBA: 'sports/basketball/wnba', NHL: 'sports/hockey/nhl',
@@ -402,7 +424,12 @@ try {
         // testable is its own flag, not derived from espn_ok. A successful fetch
         // that yields no team-word exclusion set is a row that must ABSTAIN, and
         // conflating that with "the fetch failed" hides why.
+        // `generated` is the whole point of carrying both columns: a row TOUCHED
+        // after the deploy carries prose written before it, and cannot testify
+        // either way about whether context reached the prompt.
         const row = { id: r.id, sport, game_id: gid, written_at: r.written_at,
+                      created_at: r.created_at ?? null, updated_at: r.updated_at ?? null,
+                      generated: String(r.created_at || '') > T_RECAP_CONTEXT,
                       espn_ok: false, testable: false, scoring_items: 0,
                       names_in_plays: [], team_words: [],
                       names_in_brief: [], grounded: false, why: null };
@@ -454,20 +481,28 @@ try {
     // and a fetch failure are both "no evidence", not "the fix is broken" —
     // the same PENDING-is-not-PASS discipline the other three checks use, and
     // for the same reason: a check that fails on absent data gets ignored.
-    const testable = evidence.filter(e => e.testable);
+    // Only rows GENERATED after the deploy are scored. A touched row is counted
+    // and reported, never folded into the ratio -- letting it in is how a check
+    // reports a failure of a build that had not shipped yet.
+    const generated = evidence.filter(e => e.generated);
+    const touched = evidence.filter(e => !e.generated);
+    const testable = generated.filter(e => e.testable);
     const named = testable.filter(e => e.grounded);
     const meStatus = recapNamesScoringPlay({
-        recapRows: recapRows.length, testable: testable.length, named: named.length,
+        recapRows: generated.length, testable: testable.length, named: named.length,
     });
 
     add({
         id: 'recap_names_a_scoring_play',
-        what: 'game_recap briefs written since match_events deployed name a player who appears in that game\'s ESPN scoring plays',
+        what: 'game_recap briefs GENERATED since the recap path began assembling context (cd9b2e3, 2026-08-23 18:25:56) name a player who appears in that game\'s ESPN scoring plays',
         qualifying_rows: recapRows.length,
+        generated_rows: generated.length,
+        touched_rows: touched.length,
+        touched_ids: touched.map(t => `${t.id} created ${t.created_at} updated ${t.updated_at}`),
         testable_rows: testable.length,
         status: meStatus,
         method: 'per-row join: ESPN scoring plays for the brief\'s own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.',
-        note: 'PARTIAL is expected on some slates and is not a regression by itself: a recap can legitimately lead on something other than a scorer. Read the evidence rows — 0/N is the signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.',
+        note: 'Scored over GENERATED rows only. A row whose created_at predates the deploy carries pre-deploy prose and is listed in touched_ids rather than counted — the 2026-08-24 run read 9/12 while windowing on COALESCE(updated_at, created_at) against the match_events deploy, twelve hours before the recap path assembled anything, so an unknown number of those 12 were being scored for a build that had not shipped when their text was written. PARTIAL over generated rows is still expected on some slates: a recap can legitimately lead on something other than a scorer. 0/N over generated rows is the real signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.',
         evidence,
     });
 

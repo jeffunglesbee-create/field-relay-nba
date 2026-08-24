@@ -73,8 +73,8 @@ eplBriefEventGrounded.mustFailOn = {
 
 /// Check 4 — a game_recap names someone who actually scored in that game.
 export const recapNamesScoringPlay = ({ recapRows, testable, named }) =>
-  !recapRows ? 'PENDING — no game_recap in the six sports since match_events deployed'
-  : !testable ? `PENDING — ${recapRows} recap(s), none testable (no ESPN scoring plays or no usable event id)`
+  !recapRows ? 'PENDING — no game_recap in the six sports GENERATED since the recap path began assembling context'
+  : !testable ? `PENDING — ${recapRows} generated recap(s), none testable (no ESPN scoring plays or no usable event id)`
   : !named ? `FAIL — 0/${testable} recap(s) name anyone who scored in the game they describe`
   : named < testable ? `PARTIAL — ${named}/${testable} recap(s) name a real scorer; see the rest in evidence`
   : `PASS — ${named}/${named} recap(s) name someone who actually scored`
