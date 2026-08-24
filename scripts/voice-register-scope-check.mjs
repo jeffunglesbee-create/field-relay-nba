@@ -21,20 +21,34 @@ const ok = (label, cond, detail = '') => {
   if (cond) { console.log(`PASS  ${label}`); pass++; }
   else { console.error(`FAIL  ${label}${detail ? ' — ' + detail : ''}`); fail++; }
 };
-const exemplars = t => (t.match(/— Exemplar ([A-G])/g) || []).map(m => m.slice(-1)).join('');
+// [A-Z], not [A-G]. The range was a hard-coded enumeration the content outgrew:
+// exemplars H, I and J were added 2026-08-24 and this helper reported MLB as
+// seeing NONE of them, because the letters were restated here rather than read.
+// Same shape as every other defect this session -- a list of names that stops
+// resolving when the thing it names moves.
+const exemplars = t => (t.match(/— Exemplar ([A-Z])/g) || []).map(m => m.slice(-1)).join('');
+// Derived from the segments, never restated. Adding an exemplar must not require
+// editing a literal in this file for the check to keep working.
+const ALL_EXEMPLARS = exemplars(VOICE_REGISTER_SEGMENTS.flatMap(s => s.lines).join('\n'));
 
 // a) segmentation is lossless — the ungated register is exactly the segments.
 ok('ungated register === every segment joined',
   FIELD_VOICE_REGISTER === VOICE_REGISTER_SEGMENTS.flatMap(s => s.lines).join('\n'));
-ok('ungated register carries all seven exemplars',
-  exemplars(FIELD_VOICE_REGISTER) === 'ABCDEFG', exemplars(FIELD_VOICE_REGISTER));
+ok(`ungated register carries every declared exemplar (${ALL_EXEMPLARS})`,
+  exemplars(FIELD_VOICE_REGISTER) === ALL_EXEMPLARS, exemplars(FIELD_VOICE_REGISTER));
+// The control: a derived expectation that read nothing would make the line above
+// trivially true.
+ok('there are exemplars to check', ALL_EXEMPLARS.length >= 7, ALL_EXEMPLARS);
 
 // b) per-sport scoping.
 const CASES = [
   ['EPL', 'DE'], ['La Liga', 'DE'], ['MLS', 'DE'], ['WC26', 'DE'],
   ['NBA', 'ABF'], ['WNBA', 'ABF'],
   ['NHL', 'CG'],
-  ['MLB', 'ABCDEFG'], ['NFL', 'ABCDEFG'],   // no exemplar of their own -> keep all
+  // Authored 2026-08-24. Before them these four took the keep-everything
+  // fallback and saw ABCDEFG -- eight of another sport's exemplars each, on
+  // 905 of 1322 finalized games.
+  ['MLB', 'H'], ['NFL', 'I'], ['CFL', 'I'], ['golf', 'J'],
 ];
 for (const [sport, want] of CASES) {
   const got = exemplars(voiceRegisterFor(sport));
@@ -94,6 +108,48 @@ ok('all six numbers-in-prose patterns and their wire/FIELD pairs survive',
 ok('2f stays silent when the figure is real game context',
   promptExampleLeaks(gated + '\nEverton have 37 goals this season',
     'Everton, a 37 goals side, held on.').length === 0);
+
+// f) EXEMPLARS H, I, J — authored 2026-08-24.
+//
+// Before them, voiceRegisterFor's "no segment for this class -> keep everything"
+// fallback gave MLB, NFL, golf and CFL all eight of the other sports' exemplars.
+// Measured: 905 of 1322 finalized games, 68.5%, on every brief.
+const scopedIn = (t) => VOICE_REGISTER_SEGMENTS
+  .filter(x => x.sport !== null && t.includes(x.lines.join('\n'))).map(x => x.sport);
+for (const [sport, want] of [['MLB', 'baseball'], ['NFL', 'football'],
+                             ['CFL', 'football'], ['golf', 'golf']]) {
+  const got = scopedIn(voiceRegisterFor(sport));
+  ok(`${sport} receives only its own exemplar (${want})`,
+    got.length > 0 && got.every(g => g === want),
+    `got ${JSON.stringify(got)} — an empty list is as wrong as a contaminated one`);
+}
+// The four sports that used to be contaminated must not have LOST the voice
+// model in the process. That is the failure a narrowing fix produced when it
+// was tried without exemplars, and it is caught here.
+for (const sport of ['MLB', 'NFL', 'CFL', 'golf'])
+  ok(`${sport} still sees at least one exemplar`,
+    /— Exemplar [A-Z]/.test(voiceRegisterFor(sport)),
+    'a brief with no exemplar has no model of the voice at all');
+
+// The authored prose must obey the rules it sits beside. Checked, not eyeballed.
+const authored = VOICE_REGISTER_SEGMENTS
+  .filter(x => ['baseball', 'football', 'golf'].includes(x.sport))
+  .flatMap(x => x.lines).join('\n');
+ok('the authored exemplars carry no banned journalism phrase',
+  !['punch their ticket', 'the stage is set', 'make a statement', 'stunned', 'shocked',
+    'thriller', 'instant classic', 'for the ages', 'must-watch', 'weather the storm']
+    .some(b => authored.toLowerCase().includes(b)));
+ok('the authored exemplars use no wire-copy construction',
+  !/\b(has|holds|carries|posts|leads with|brings|maintains|enters with|sits at|owns|averages)\s+[-#\d]/i.test(authored),
+  'the verb is the tell — this is the construction the FORBIDDEN section names');
+// The reason they use ## at all: A-G carry real figures, and those figures are
+// exactly the literals layer 2f exists to catch the model mining.
+ok('the authored exemplars add no new mineable figure',
+  !/\d/.test(authored.replace(/#+/g, '').replace(/~\d+ words/g, '')),
+  'three exemplars in A-G\'s style would have added ~15 new mineable literals');
+ok('golf\'s exemplar teaches that thru means unfinished',
+  /still being played, not a result/.test(authored) && /at E/.test(authored),
+  'the two hazards CITE GOLF ANALYTICS names must be shown, not only stated');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

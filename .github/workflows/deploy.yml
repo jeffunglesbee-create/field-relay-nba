@@ -287,6 +287,14 @@ jobs:
       - name: no forbidden example is copyable prose
         run: node scripts/check-negative-examples-are-not-instantiable.mjs --self-test && node scripts/check-negative-examples-are-not-instantiable.mjs
 
+      # THE ANSWER TO "WHY DOES EVERY BRIEF KEEP GETTING CONTAMINATED". Sport
+      # content here is universal BY DEFAULT and scoped BY EXCEPTION, so every
+      # addition reaches every sport until somebody remembers to gate it — and
+      # forgetting is silent. One check over every source, so a new context
+      # source is covered the day it is added rather than after its incident.
+      - name: no sport's prompt names another sport's league
+        run: node scripts/check-no-foreign-league-in-prompt.mjs --self-test && node scripts/check-no-foreign-league-in-prompt.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

@@ -290,7 +290,12 @@ export function detectSportClass(sport) {
   if (s.includes('hockey') || s.includes('nhl')) return 'hockey';
   if (s.includes('basketball') || s.includes('nba') || s.includes('wnba') || s.includes('ncaa-mb')) return 'basketball';
   if (s.includes('soccer') || s.includes('epl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
-  if (s.includes('nfl') || s.includes('football')) return 'football';
+  // CFL added 2026-08-24 with Exemplar I. It was unclassified, so it took the
+  // keep-everything fallback and received basketball and hockey exemplars in
+  // every brief. Canadian football is not American football, but it is far
+  // closer to it than to either of those -- the same call basketball already
+  // makes for NBA and WNBA.
+  if (s.includes('nfl') || s.includes('football') || s.includes('cfl')) return 'football';
   // Added 2026-08-24 so a golf rule can be scoped TO golf. Knock-ons checked:
   // checkSportVocab returns [] for a class with no SPORT_VOCAB_VIOLATIONS entry.
   // voiceRegisterFor is UNCHANGED by this: golf has no voice segment, so it took
@@ -1384,6 +1389,32 @@ export const VOICE_REGISTER_SEGMENTS = [
     '— Exemplar F (NBA playoff game result, ~115 words):',
     'Oklahoma City won Game 4 in the kind of fourth quarter that turns a series: 32-16 in the final 12 minutes, SGA (34 points, 8 assists) picking Murray\'s pocket on back-to-back possessions to end whatever fantasy Denver had of dragging this to Game 5. Jokić had 31 and the Nuggets led after three — this was a game that required losing; it wasn\'t handed to OKC. The Thunder\'s bench depth is the structural advantage that doesn\'t show up in the box score until it does, and Game 4 is when it did. The series is over. The bracket question is who gets to find out what OKC looks like when the ceiling matters.',
   ] },
+  // ── AUTHORED 2026-08-24 ────────────────────────────────────────────────
+  //
+  // Exemplars A-G cover basketball, hockey and soccer. Every other sport took
+  // voiceRegisterFor's "no segment for this class -> keep everything" fallback
+  // and received all eight of theirs. Measured: MLB 830, NFL 32, golf 30,
+  // CFL 13 -- 905 of 1322 finalized games, 68.5%, every brief.
+  //
+  // FIGURES ARE ## HERE, unlike A-G. Those carry real numbers (23.2, 26, 34,
+  // -2.5) and those numbers are precisely the literals layer 2f was built to
+  // catch the model mining. Adding three more exemplars in that style would add
+  // roughly fifteen new mineable figures to fix a contamination problem. The
+  // universal segments already use ## for this reason; these follow them.
+  //
+  // Each teaches its sport's own hazard, not just its vocabulary:
+  //   baseball  a number the box score cannot explain
+  //   football  the phase of the game no recap mentions
+  //   golf      no matchup, and `thru` means the round is unfinished
+  { sport: 'baseball', lines: ['',
+    '— Exemplar H (MLB regular-season result, ~110 words):',
+    "The Orioles won the kind of game that makes no highlight package and decides a division anyway. Baltimore's bullpen worked ## innings without a run, which says less about the bullpen than about a manager who trusted it in the sixth instead of waiting for the eighth. Rutschman's #-for-# night included two at-bats that ended in outs and still moved runners, and those are the ones a box score is worst at explaining. Cleveland's starter had good stuff and no command — a combination that survives four innings and rarely five. The standings move by a single game, which in August is worth more than it looks."] },
+  { sport: 'football', lines: ['',
+    '— Exemplar I (NFL regular-season result, ~110 words):',
+    "The Bills are ##-# and the record is the least interesting thing about them. Buffalo ran ## times in the second half, which for a team built around Allen's arm is either an adjustment or an admission, and the tape says adjustment — Miami's safeties were sitting ## yards off and daring them to. The Dolphins' defense did not collapse; it got asked a question it had already answered wrong in September. Special teams decided the middle third of this game and will appear in no recap tomorrow. Buffalo travels to Kansas City next, which is where a season like this becomes something or does not."] },
+  { sport: 'golf', lines: ['',
+    '— Exemplar J (PGA Tour round in progress, ~115 words):',
+    "Clark is -## through ## and the number that matters is the one he made on the ninth, where a drive into the trees turned into a par that played like a birdie. The leaderboard is bunched inside ## shots, which at this course means the wind decides it — Saturday afternoon at ## miles an hour rewrites every read on these greens. Two players sit at E, which here is not a poor round; it is a round that survived. Nobody has finished. A score with 'thru' beside it is a round still being played, not a result, and the afternoon wave has the harder half of the draw."] },
   { sport: 'hockey', lines: [
     '',
     '— Exemplar G (NHL playoff game result, ~110 words):',
@@ -1395,7 +1426,7 @@ export const VOICE_REGISTER_SEGMENTS = [
     '',
     'The following is the FAILURE mode — what FIELD writing must NOT be:',
     '',
-    '"Stanley Cup Final Game 1 begins tonight at Lenovo Center as the ##-##-## Golden Knights face the ##-##-## Hurricanes. Pavel Dorofeyev enters with ## goals this season, while Seth Jarvis has ## goals this season. In MLB, ##-## Steven Matz with a #.## ERA meets ##-## Jack Flaherty with a #.## ERA. ##-## Aaron Nola carries a #.## ERA against ##-## Randy Vasquez with a #.## ERA."',
+    '"The championship series begins tonight at the home arena as the ##-##-## home side face the ##-##-## visitors. Their leading scorer enters with ## goals this season, while the visiting winger has ## goals this season. Elsewhere, a ##-## starter with a #.## ERA meets a ##-## starter with a #.## ERA. A ##-## veteran carries a #.## ERA against a ##-## rookie with a #.## ERA."',
     '',
     'Why this fails:',
     '- Records and stats stacked without angle',
