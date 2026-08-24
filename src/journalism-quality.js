@@ -59,6 +59,31 @@ export const SCORING_ERAS = [
     // both weightings were evaluated from one scoring pass.
     measuredEffect: 'in-progress vs reads-as-final gap 6.4 -> 11.5 pts (1.8x), n=95 per class, 2.8x -> 4.2x the standard error of the difference; class means 175.3/181.7 -> 175.5/187.0. Reweighting ceiling measured at 41.6 (all weight on arc+ctx+temporal), so this takes ~13% of what reweighting alone could ever buy.',
     recordedRetroactively: false,
+    // Added 2026-08-24, and it corrects this entry rather than superseding it.
+    //
+    // Five of the six weights this era changed were never read by the scorer.
+    // The `change` string above says "arc 45->55, ctx 25->32, temporal 20->25,
+    // funded by voice 30->20, density 16->10, matchup 30->24" -- and every
+    // from-value is the code's real ceiling, which is the tell: the era wrote
+    // new numbers into a table scoreProse does not consult for dims 6-10.
+    // `density 16->10` is the one that landed, because density is a dim 1-5 and
+    // those ARE multiplied by SCALE.
+    //
+    // The measured effect above stands: it came from rescoring 190 real rows,
+    // not from the constants. What was wrong is the attribution -- the gap moved
+    // 6.4 -> 11.5 on the strength of the dims 1-5 changes alone.
+    //
+    // NO SCORE MOVED when SCALE was corrected on 2026-08-24, for the same reason
+    // the reweighting did not move one: nothing reads those five. So this is a
+    // correction to the record and NOT a new era. An era boundary fragments
+    // /quality/report's calibration window, and there is no instrument change
+    // here to justify one.
+    //
+    // The reweighting ceiling of 41.6 quoted above was computed against the
+    // declared weights, so its arithmetic needs redoing against the real scale
+    // before it is cited again. The bound is real; the number is not yet.
+    correctedOn: '2026-08-24T04:00:00Z',
+    correction: 'SCALE dims 6-10 were documentation, not weights: arc 55->45, ctx 32->25, temporal 25->20, voice 20->30, matchup 24->30, restoring the values the code actually reaches. Declared total 300->294. No score changes -- scoreProse reads SCALE only for dims 1-5. Guarded from here by scripts/check-scale-matches-implementation.mjs.',
   },
 ];
 
@@ -433,11 +458,40 @@ export function hasCrossSportHallucination(text) {
 // of reweighting — and it destroys every other purpose the rubric serves. A
 // dimension that reads finalized_at directly is not bounded that way, and is
 // filed as CC-CMD-2026-08-23-finality-dimension rather than smuggled in here.
+// TWO HALVES, AND ONLY ONE OF THEM IS AN INPUT. Corrected 2026-08-24.
+//
+// Dims 1-5 are multiplied by their weight in `base` (via the local W), so for
+// those five the declared number IS the ceiling, by construction.
+//
+// Dims 6-10 are summed RAW. Their ceilings are literals inside their own
+// computations, and `grep -n "SCALE\." src/journalism-quality.js` returns
+// exactly one hit -- the W above. Nothing read arc, ctx, temporal, voice or
+// matchup. They were documentation, and they had drifted from the code in both
+// directions: arc 55 vs 45, ctx 32 vs 25, temporal 25 vs 20, voice 20 vs 30,
+// matchup 24 vs 30.
+//
+// They are now the real ceilings. NOTHING ABOUT SCORING CHANGES -- these five
+// were never consulted, so writing the true numbers here moves no score and no
+// threshold. What changes is that the table stops lying, and
+// scripts/check-scale-matches-implementation.mjs fails the deploy if it starts
+// again: it reads each ceiling out of the expression that produces it and
+// requires the declared weight to equal it.
+//
+// The declared total is therefore 294, not 300 -- and 294 is what every score
+// ever computed was already on. `Math.min(300, ...)` in scoreProse has never
+// bound and cannot: base <= 144 (specificity is a mean of per-sentence values
+// each <= 1.0; statDepth, density are Math.min(1, ...); variety is
+// uniqueW.size / words.length; freshness is 0-100 applied as /100 * 36) plus
+// dims 6-10 <= 150. The 300 was a label, never the total.
 export const SCALE = {
-  // Dim 1-5, applied in `base` (mirrors the local W in scoreProse)
+  // Dim 1-5, APPLIED in `base` (mirrors the local W in scoreProse)
   spec: 30, statDepth: 38, variety: 30, density: 10, fresh: 36,
-  // Dim 6-10
-  arc: 55, ctx: 32, temporal: 25, voice: 20, matchup: 24,
+  // Dim 6-10, RAW ceilings read out of the code that produces them
+  arc: 45,        // (stakes?10:0)+(tension?10:0)+(resolution?10:0)+(bonus?15:0)
+  ctx: 25,        // dim7 += 8, += 8, += 9
+  temporal: 20,   // Math.round((anchored / statSentences) * 20)
+  voice: 30,      // Math.min(30, ...) in all four sport branches
+  matchup: 30,    // Math.min(30, hits * 10)
 };
 // Dimensions with no input — and WHICH dimensions those are depends on the
 // CALL SITE, not on the runtime. The original comment here, and the 2026-08-16
@@ -464,7 +518,11 @@ export const SCALE = {
 // 0-of-523 finding was drawn from.
 export const UNREACHABLE_DIMS = ['ctx', 'matchup'];          // slate / no-game shape
 export const UNREACHABLE_DIMS_GAME = ['matchup'];            // per-game shape
-export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 300
+// 294 as of 2026-08-24, and it was always 294 -- see the SCALE block for why the
+// 300 was a label rather than a total. Correcting it moved no score: every
+// threshold (240, 196, 110) reads against prose scored on this same scale before
+// and after.
+export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 294
 export const REACHABLE_CEILING = Object.entries(SCALE)                                // 245
   .filter(([k]) => !UNREACHABLE_DIMS.includes(k))
   .reduce((a, [, v]) => a + v, 0);

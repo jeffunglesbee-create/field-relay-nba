@@ -200,6 +200,18 @@ jobs:
       - name: a SCALE change is recorded as a scoring era
         run: node scripts/check-scoring-era-recorded.mjs
 
+      # Five of SCALE's ten entries were read by nothing. `grep -n "SCALE\."
+      # src/journalism-quality.js` returns one hit -- the W in `base`, which
+      # covers dims 1-5 only. Dims 6-10 are summed RAW with their ceilings as
+      # literals inside their own computations, and the two had drifted apart in
+      # both directions (arc 55 vs 45, ctx 32 vs 25, temporal 25 vs 20, voice 20
+      # vs 30, matchup 24 vs 30). Era 4 reweighted exactly those five, so five of
+      # its six changes were inert; only `density 16->10` landed, density being a
+      # dim 1-5. This reads each ceiling out of the expression that produces it,
+      # so a declared weight and its implementation cannot disagree again.
+      - name: declared weights equal implementation ceilings
+        run: node scripts/check-scale-matches-implementation.mjs --self-test && node scripts/check-scale-matches-implementation.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

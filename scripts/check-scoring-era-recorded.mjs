@@ -29,8 +29,19 @@ import { SCALE, SCORING_ERAS, CURRENT_SCORING_ERA, NOMINAL_TOTAL } from '../src/
 // Update this in the SAME commit that changes SCALE, alongside a new
 // SCORING_ERAS entry. The value is printed by this script when it fails.
 const EXPECTED_SCALE_FINGERPRINT =
-  'arc:55|ctx:32|density:10|fresh:36|matchup:24|spec:30|statDepth:38|temporal:25|variety:30|voice:20';
+  'arc:45|ctx:25|density:10|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
 // The era that the fingerprint above belongs to.
+//
+// Still 4 after the 2026-08-24 SCALE correction, and that is not an oversight.
+// A new era exists to separate two INSTRUMENTS, and no instrument changed: dims
+// 6-10 were never read by scoreProse, so writing their real ceilings into SCALE
+// moved no score. Minting era 5 for it would split /quality/report's calibration
+// window in half for a change that cannot move a percentile.
+//
+// So the rule below: a fingerprint change needs EITHER a new era OR a
+// `correctedOn` on the latest era saying why no score moved. Without that
+// escape hatch this check forces a fake era; without the requirement, a real
+// reweighting could hide behind the word "correction".
 const EXPECTED_ERA_FOR_FINGERPRINT = 4;
 
 const fingerprint = Object.keys(SCALE).sort()
@@ -64,6 +75,15 @@ check('the latest era states a measured effect',
   typeof latest?.measuredEffect === 'string' && /\d/.test(latest.measuredEffect),
   `era ${latest?.era} carries measuredEffect=${JSON.stringify(latest?.measuredEffect)} — an era entry with no number in it cannot answer "was the change or the prose responsible", which is the only question the table exists for.`);
 
+// A fingerprint change with no new era is legal ONLY as a declared correction.
+const latestEra = SCORING_ERAS[SCORING_ERAS.length - 1];
+const isCorrection = typeof latestEra?.correctedOn === 'string'
+  && typeof latestEra?.correction === 'string' && /\d/.test(latestEra.correction);
+check('a SCALE change without a new era is a declared correction',
+  CURRENT_SCORING_ERA > EXPECTED_ERA_FOR_FINGERPRINT || isCorrection,
+  `era ${CURRENT_SCORING_ERA} carries the fingerprint but no correctedOn/correction. `
+  + `A SCALE edit that moves no score must say so and say why; one that moves scores needs a new era.`);
+
 check('every era entry has era, from, change and measuredEffect',
   SCORING_ERAS.every(e => e.era != null && e.from && e.change && e.measuredEffect));
 
@@ -74,10 +94,18 @@ check('era `from` timestamps are ascending',
   SCORING_ERAS.every((e, i) => i === 0 || e.from > SCORING_ERAS[i - 1].from));
 
 // The nominal total is what every threshold in the codebase reads against —
-// 240, 196 and 110 all assume 300. A reweighting that changes it moves all
-// three at once while looking like a weighting change.
-check(`nominal total is still 300 (got ${NOMINAL_TOTAL})`, NOMINAL_TOTAL === 300,
-  'Every score threshold in the codebase reads against 300. Changing the total silently moves 240, 196 and 110 at the same time.');
+// 240, 196 and 110. A reweighting that changes it moves all three at once while
+// looking like a weighting change.
+//
+// 294, not 300, as of 2026-08-24 — and it was ALWAYS 294. scoreProse's
+// `Math.min(300, ...)` has never bound and cannot: base <= 144 and dims 6-10
+// <= 150. The old 300 was the sum of a table whose second half was
+// documentation. Correcting it moved no score; it corrected the description of
+// scores that already existed. See the SCALE block in src/journalism-quality.js
+// and scripts/check-scale-matches-implementation.mjs, which now makes the
+// declared half and the implemented half unable to disagree.
+check(`nominal total is still 294 (got ${NOMINAL_TOTAL})`, NOMINAL_TOTAL === 294,
+  'Every score threshold in the codebase reads against this total. Changing it silently moves 240, 196 and 110 at the same time.');
 
 console.log(fail ? `\n${fail} failed` : '\nall passed');
 process.exit(fail ? 1 : 0);
