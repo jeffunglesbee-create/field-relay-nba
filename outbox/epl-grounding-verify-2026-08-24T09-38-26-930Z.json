@@ -1,0 +1,66 @@
+{
+  "probed_at": "2026-08-24T09:38:26.930Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 1,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Saka (ARS), Ødegaard (ARS), Havertz (ARS)\nAssists: Calafiori (ARS), White (ARS), Tzolis (ARS)\nYellow cards: Gabriel (ARS), Yirenkyi (COV)\nSaves: Rushworth (COV) 2, Raya (ARS) 1\nFPL bonus: Ødegaard (ARS) +3, White (ARS) +2, Saka (ARS) +1\nTop BPS: Ødegaard (ARS) 41, White (ARS) 37, Saka (ARS) 36\nLeague table: Arsenal unplaced, no matches played yet | Coventry City unplaced, no matches played yet\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 9,
+    "briefs_governed": 3,
+    "briefs_predating_the_fix": 6,
+    "historical_findings": {
+      "cite_wdl": 6,
+      "banned_phrases": [
+        "game_recap_epl_401879322: stunned"
+      ]
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879319",
+      "game_recap_epl_401879320"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879319, game_recap_epl_401879320"
+}
