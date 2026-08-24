@@ -195,7 +195,7 @@ try {
                 b.quality_score AS stored, b.scoring_version,
                 CASE WHEN ${LIVE_LANG} THEN 1 ELSE 0 END AS live_lang,
                 b.brief_text,
-                g.home, g.away, g.home_score, g.away_score, g.note, g.finalized_at
+                g.home, g.away, g.home_score, g.away_score, g.note, g.finalized_at, g.went_to_ot
          FROM briefs b
          LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
          WHERE b.brief_type IN ('game_recap','game_brief') AND b.quality_score IS NOT NULL
@@ -284,7 +284,8 @@ try {
         // different input. Cross-checked per row below.
         const game = (r.home && r.away)
             ? { home: r.home, away: r.away, homeScore: r.home_score,
-                awayScore: r.away_score, finalizedAt: r.finalized_at ?? null }
+                awayScore: r.away_score, finalizedAt: r.finalized_at ?? null,
+                wentToOt: !!r.went_to_ot }
             : null;
         // Sequential, one brief at a time. scoreProse fires up to 5 Datamuse
         // lookups per call for Dim 5; a parallel map over 160 briefs is an 800-

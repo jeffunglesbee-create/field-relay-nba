@@ -97,6 +97,14 @@ export const SCORING_ERAS = [
     measuredEffect: 'BEFORE -> AFTER, same script, same 128 fact-stratified rows, artifacts outbox/rescore-quality-6b-20260824T053829Z.json and -20260824T121117Z.json. THE HEADLINE: the LIVE_LANG prose gap collapsed from -11.1 at 4.1x the standard error to -0.2 at 0.1x. Before era 5 the rubric paid briefs using in-progress language 11.1 points MORE than briefs reading as final, significantly; it now pays them the same. That is the correction era 4 set out to make and did not, because era 4 changed a table the scorer does not read for dims 6-10. Dim 11 charges 10-20 points on exactly the rows that were benefiting -- 28 of 128 briefs hedge about games that had already finished, against 1 that calls a live game final. SECONDARY, and largely definitional since Dim 11 defines the groups: agrees-vs-disagrees separation -4.0 (0.9x) -> +15.7 (3.6x). It is 15.7 rather than 20 because the arc 45->33 and ctx 25->17 refund costs 4.3 points back, which is the funding showing up rather than being asserted. Dim 11 scores non-zero on both sides of the fact (6.9 on finalized rows, 10.0 on live), the test Dim 10 failed silently for two months at zero on 190 of 190. CAVEAT ON THE FIRST ATTEMPT: run 20260824T062958Z showed no movement because the rescore script passed opts.game without finalizedAt, so the dimension abstained on all 128 rows; both paths now cross-check per row (path_disagreement, 0 in the run cited) and the workflow fails rather than publishing totals scored by an abstaining dimension.',
     recordedRetroactively: false,
   },
+  {
+    era: 6,
+    from: '2026-08-24T13:10:00Z',
+    deploy: 'CC-CMD-2026-08-23-matchup-note-starvation',
+    change: 'Dim 10 re-pointed from matchupNote ECHO to margin agreement. Same 30 points, no scatter, total unchanged at 294. SCALE key renamed matchup -> margin, deliberately: a weight-preserving semantic change is invisible to the era fingerprint, and renaming is what makes this era detectable at all. Sport-free thresholds: tight = went to extra time or decided by <=1; lopsided = margin >=3 AND loser <=60% of winner; everything between abstains.',
+    measuredEffect: 'BEFORE: Dim 10 scored zero on 128 of 128 re-scored rows, 30 of 294 points dark. Not for want of running -- regular_season_games.note is populated on 37 of 1322 finalized games, and 30 of those 37 are golf leaderboard strings ("Wyndham Clark -17") for a sport that has no matchup at all, so the headline 2.8% is 0.54% (7/1292) once the sport that cannot use the column is set aside. Of those 7, five are broadcast carriage ("Sunday Night Baseball on NBC/Peacock", "Local RSN blacked out") and two are real editorial hooks. POPULATING IT WOULD HAVE MADE THE DIMENSION WORSE: the note is injected into the prompt, so counting note words in the prose pays 30 points for parroting an input, which is the behaviour check-prompt-example-leak.mjs exists to catch one file over. Margin agreement reads a RELATION between two numbers that is present on ~100% of finalized rows and cannot be copied from the prompt. AFTER: pending the first post-deploy rescore-quality-6b run; the before figures are outbox/rescore-quality-6b-20260824T125155Z.json.',
+    recordedRetroactively: false,
+  },
 ];
 
 // Which scoring era a brief's stored score belongs to, from its `date`.
@@ -503,7 +511,7 @@ export const SCALE = {
   ctx: 17,        // era 5: was 25, funded Dim 11
   temporal: 20,   // Math.round((anchored / statSentences) * 20)
   voice: 30,      // Math.min(30, ...) in all four sport branches
-  matchup: 30,    // Math.min(30, hits * 10)
+  margin: 30,     // MARGIN_MAX — era 6: was `matchup`, an echo test with 0.54% data
   finality: 20,   // FINALITY_MAX — the 12 + 8 the two proxies released
 };
 // Dimensions with no input — and WHICH dimensions those are depends on the
@@ -779,24 +787,14 @@ export async function scoreProse(text, opts = {}) {
   // Dim 9: Voice Consistency (0-30)
   const voiceScore = _voiceConsistency(text, opts.sport || '');
 
-  // Dim 10: Matchup Depth (0→30) — brief demonstrates editorial knowledge
-  // beyond the final score. Key terms from matchupNote appear in prose.
-  // Data source: opts.matchupNote = string from game.note or topGame.matchupNote
-  let dim10 = 0;
-  if (opts.matchupNote && opts.matchupNote.length > 10) {
-    const stopWords = new Set(['the','and','for','with','that','this','from',
-      'they','have','been','will','their','into','which','when','also','more',
-      'than','some','over','each','only','most','made','like','what','were','then',
-      'but','not','are','was','had','his','her','its','our','has','him']);
-    const noteTerms = opts.matchupNote.toLowerCase()
-      .split(/\W+/)
-      .filter(w => w.length > 4 && !stopWords.has(w));
-    if (noteTerms.length > 0) {
-      const tl = text.toLowerCase();
-      const hits = noteTerms.filter(w => tl.includes(w)).length;
-      dim10 = Math.min(30, hits * 10);
-    }
-  }
+  // Dim 10: Margin Agreement (0→30) — era 6. Was matchupNote echo; see
+  // marginAgreement's own header for why an echo test could not be fixed by
+  // populating the column. Reads the RESULT, which is on every finalized row.
+  const dim10r = marginAgreement(text, opts.game && Number.isFinite(opts.game.homeScore)
+    ? { homeScore: opts.game.homeScore, awayScore: opts.game.awayScore,
+        wentToOt: !!opts.game.wentToOt }
+    : null);
+  const dim10 = dim10r.score;
 
   // Dim 11: Finality Agreement (0→20) — does the prose agree with whether the
   // game was actually over? The ONLY dimension that reads game state; arc and
@@ -843,13 +841,15 @@ export async function scoreProse(text, opts = {}) {
         contextAnchoring: Math.min(1, Math.max(0, dim7 / 17)),
         temporalScore:    Math.min(1, Math.max(0, temporalScore / 20)),
         voiceScore:       Math.min(1, Math.max(0, voiceScore / 30)),
-        matchupDepth:     Math.min(1, Math.max(0, dim10 / 30)),
+        marginAgreement:  Math.min(1, Math.max(0, dim10 / MARGIN_MAX)),
         finality:         Math.min(1, Math.max(0, dim11.score / FINALITY_MAX)),
       },
       // The verdict travels with the score. A 0.5 on this dimension is an
       // abstention, a 0 is a contradiction, and an aggregate that cannot tell
       // them apart is describing two different failures as one number.
       finality_verdict: dim11.verdict,
+      margin_verdict: dim10r.verdict,
+      margin_fact: dim10r.fact,
     };
   }
   return total;
@@ -882,6 +882,76 @@ export async function scoreProse(text, opts = {}) {
 // live game scores full marks, which is the whole point and is also why the
 // LIVE_LANG prose-only split cannot measure this dimension: under that split,
 // rewarding correct hedging looks like a regression.
+export const MARGIN_MAX = 30;
+
+// Dim 10, re-pointed in era 6. It used to score how many words from
+// `matchupNote` reappeared in the prose -- an ECHO test, not a depth test. The
+// note is injected into the prompt, so the dimension paid 30 points for
+// repeating an input back out, while `check-prompt-example-leak.mjs` two files
+// over exists to catch prose reproducing injected strings. Dim 10 sat on the
+// permitted side of that line by technicality rather than design.
+//
+// It also had no data: 7 of 1292 finalized non-golf games carry a note (0.54%),
+// and the 30 golf rows that inflated the headline to 2.8% hold leaderboard
+// positions like "Wyndham Clark -17" for a sport with no matchup at all.
+// Populating the column would have made the dimension WORSE -- a fully covered
+// echo test measures how obediently the generator parrots a hand-written hook.
+//
+// Margin agreement is the same 2x2 as Dim 11 against a fact that is on every
+// finalized row and cannot be copied out of the prompt, because it is a
+// RELATION between two numbers rather than a string.
+//
+// SPORT-FREE ON PURPOSE. A one-run MLB game and a one-point NBA game are not
+// comparable in absolute margin, so nothing here is tuned per sport:
+//   tight    - went to extra time, or decided by <= 1
+//   lopsided - the loser finished at <= 60% of the winner's score, which is
+//              one-sided in every sport this relay carries (8-3, 120-70, 35-10)
+//   ordinary - everything between, where no honest verdict exists, so it abstains
+const _READS_CLOSE   = /\b(narrow(ly)?|nail-?biter|one-run|one-score|one-possession|overtime|extra innings|walk-?off|edged|held on|held off|survived|late winner|down to the wire|clinched it late)\b/i;
+const _READS_LOPSIDED = /\b(rout(ed)?|blowout|cruised|comfortabl[ey]|dominant(ly)?|ran away|never in doubt|coasted|thrashed|hammered|romp(ed)?|one-sided)\b/i;
+
+/**
+ * @param {string} text
+ * @param {{homeScore:number, awayScore:number, wentToOt:boolean}|null} result
+ * @returns {{score:number, fact:string, reading:string, verdict:string}}
+ */
+export function marginAgreement(text, result) {
+  const t = String(text || '');
+  const close = _READS_CLOSE.test(t);
+  const wide  = _READS_LOPSIDED.test(t);
+  const reading = close && wide ? 'mixed' : close ? 'close' : wide ? 'lopsided' : 'neither';
+
+  const hs = result?.homeScore, as = result?.awayScore;
+  const known = Number.isFinite(hs) && Number.isFinite(as);
+  if (!known) return { score: MARGIN_MAX / 2, fact: 'unknown', reading, verdict: 'unknown-result' };
+
+  const hi = Math.max(hs, as), lo = Math.min(hs, as), diff = hi - lo;
+  // BOTH signals, because neither works alone across these sports. Ratio alone
+  // called 5-3 lopsided (3/5 = 0.6) when it is an ordinary baseball game; margin
+  // alone would call NBA 120-110 a rout. Requiring diff >= 3 AND the loser at or
+  // under 60% of the winner holds up on the real shapes: 8-3 (0.38, 5), 120-70
+  // (0.58, 50), 35-10 (0.29, 25), 3-0 soccer (0.00, 3) are all lopsided; 5-3
+  // (0.60, 2) and 2-0 soccer (0.00, 2) are not. Conservative on purpose -- an
+  // ordinary game abstains, and abstaining is not a failure.
+  const fact = (result.wentToOt || diff <= 1)          ? 'tight'
+             : (diff >= 3 && hi > 0 && lo / hi <= 0.6) ? 'lopsided'
+             : 'ordinary';
+
+  // Same precedent as Dim 11: prose that says both cannot be corrected by
+  // learning the fact, because the contradiction is already inside it.
+  if (reading === 'mixed')
+    return { score: 0, fact, reading, verdict: 'contradicts-itself' };
+  if (fact === 'ordinary' || reading === 'neither')
+    return { score: MARGIN_MAX / 2, fact, reading,
+             verdict: fact === 'ordinary' ? 'no-honest-verdict' : 'no-clear-reading' };
+
+  const agrees = (fact === 'tight' && reading === 'close')
+              || (fact === 'lopsided' && reading === 'lopsided');
+  return { score: agrees ? MARGIN_MAX : 0, fact, reading,
+           verdict: agrees ? 'agrees'
+                  : (fact === 'tight' ? 'calls-a-tight-game-a-rout' : 'calls-a-rout-close') };
+}
+
 export const FINALITY_MAX = 20;
 
 // Observed in real briefs. The hedge list is the same vocabulary as

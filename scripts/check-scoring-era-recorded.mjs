@@ -29,7 +29,7 @@ import { SCALE, SCORING_ERAS, CURRENT_SCORING_ERA, NOMINAL_TOTAL } from '../src/
 // Update this in the SAME commit that changes SCALE, alongside a new
 // SCORING_ERAS entry. The value is printed by this script when it fails.
 const EXPECTED_SCALE_FINGERPRINT =
-  'arc:33|ctx:17|density:10|finality:20|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
+  'arc:33|ctx:17|density:10|finality:20|fresh:36|margin:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
 // The era that the fingerprint above belongs to.
 //
 // Still 4 after the 2026-08-24 SCALE correction, and that is not an oversight.
@@ -42,7 +42,7 @@ const EXPECTED_SCALE_FINGERPRINT =
 // `correctedOn` on the latest era saying why no score moved. Without that
 // escape hatch this check forces a fake era; without the requirement, a real
 // reweighting could hide behind the word "correction".
-const EXPECTED_ERA_FOR_FINGERPRINT = 5;
+const EXPECTED_ERA_FOR_FINGERPRINT = 6;
 
 // The fingerprint this one REPLACED, and the era it belonged to. Without this
 // the file has no history and the correction rule below cannot fire: it compared
@@ -51,8 +51,8 @@ const EXPECTED_ERA_FOR_FINGERPRINT = 5;
 // a legitimate new era — while a SCALE edit that bumped only the fingerprint
 // would have sailed through, which is backwards from what it is for.
 const PREVIOUS_SCALE_FINGERPRINT =
-  'arc:45|ctx:25|density:10|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
-const PREVIOUS_ERA = 4;
+  'arc:33|ctx:17|density:10|finality:20|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
+const PREVIOUS_ERA = 5;
 
 const fingerprint = Object.keys(SCALE).sort()
   .map(k => `${k}:${SCALE[k]}`).join('|');

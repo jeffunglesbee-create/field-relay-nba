@@ -221,6 +221,16 @@ jobs:
       - name: finality agreement scores the 2x2, not the prose
         run: node scripts/finality-agreement-check.mjs
 
+      # Dim 10 after era 6. It used to count how many matchupNote words came
+      # back out of the prose -- an echo test the prompt itself supplied the
+      # answer to, on a column populated for 0.54% of finalized non-golf games.
+      # Margin agreement reads a relation between two numbers instead. The
+      # threshold cases are the load-bearing ones: neither margin nor ratio
+      # works alone across these sports, and the first version called MLB 5-3
+      # lopsided because 3/5 is exactly 0.6.
+      - name: margin agreement is sport-free and cannot be satisfied by copying
+        run: node scripts/margin-agreement-check.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

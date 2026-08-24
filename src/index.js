@@ -6715,7 +6715,7 @@ async function executeGameBriefBackfill(env, date) {
     const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
       sport,
       scoreThreshold: 240,
-      game: { home, away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null },
+      game: { home, away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null, wentToOt: !!game.went_to_ot },
       matchupNote: game.note || null,
     });
     const prose = stripMarkdown(qResult.text);
@@ -12849,7 +12849,7 @@ export default {
                         const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
                             sport: sportLabel,
                             scoreThreshold: 240,
-                            game: { home: game.home, away: game.away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null },
+                            game: { home: game.home, away: game.away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null, wentToOt: !!game.went_to_ot },
                             matchupNote: game.note || null,
                         });
                         const finalText = stripMarkdown(qResult.text);

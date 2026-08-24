@@ -81,9 +81,9 @@ const DIMS = [
     ceiling: (ns) => ns[0],
   },
   {
-    key: 'matchup',
-    where: 'Dim 10 matchupDepth — Math.min(N, hits * 10)',
-    find: /dim10 = Math\.min\((\d+), hits \* 10\)/g,
+    key: 'margin',
+    where: 'Dim 10 marginAgreement — MARGIN_MAX (era 6: was matchupNote echo)',
+    find: /export const MARGIN_MAX = (\d+);/g,
     expect: 1,
     ceiling: (ns) => ns[0],
   },
