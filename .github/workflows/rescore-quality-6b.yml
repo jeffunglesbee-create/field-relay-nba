@@ -93,6 +93,13 @@ jobs:
                         "| lang_disagreement", r.lang_disagreement && r.lang_disagreement.n);
             if (!r.census_agrees) throw new Error("a published mean does not match the rows it summarises");
             if (!r.totals_add_up) throw new Error("the strata do not sum to the scored population");
+            // scoreProse and the script both call finalityAgreement. If they
+            // disagree about a row, they were handed different inputs, and every
+            // total in the manifest was scored with a dimension that abstained.
+            const pd = r.path_disagreement;
+            if (pd && pd.n > 0) throw new Error(
+              `scoreProse and the rescore script disagree on ${pd.n} row(s) — opts.game is missing a field Dim 11 reads: `
+              + JSON.stringify(pd.sample));
           ' "$F"
 
       - name: Commit the manifest

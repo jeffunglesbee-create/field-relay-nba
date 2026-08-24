@@ -226,8 +226,18 @@ try {
 
     const scored = [];
     for (const r of rows) {
+        // finalizedAt is NOT optional. Without it scoreProse's Dim 11 reads
+        // `undefined`, calls the fact unknown, and abstains at the midpoint on
+        // every row -- which is exactly what happened on the first era-5 run:
+        // blindness moved 0.9 -> 1.0 instead of clearing 2, because the
+        // dimension contributed the same 10 points to every brief.
+        //
+        // The function was shared; the ARGUMENT was not. "One implementation,
+        // two consumers" does not prevent divergence if each consumer feeds it a
+        // different input. Cross-checked per row below.
         const game = (r.home && r.away)
-            ? { home: r.home, away: r.away, homeScore: r.home_score, awayScore: r.away_score }
+            ? { home: r.home, away: r.away, homeScore: r.home_score,
+                awayScore: r.away_score, finalizedAt: r.finalized_at ?? null }
             : null;
         // Sequential, one brief at a time. scoreProse fires up to 5 Datamuse
         // lookups per call for Dim 5; a parallel map over 160 briefs is an 800-
@@ -240,11 +250,20 @@ try {
         // merge two different things.
         const isFinal = game ? !!r.finalized_at : null;
         const fin11 = finalityAgreement(r.brief_text, isFinal);
+        // THE CROSS-CHECK. b.dims.finality is what scoreProse computed from
+        // opts.game; fin11.score is what this script computed from the same row.
+        // They read the same function and must therefore agree -- and when the
+        // game object was missing finalizedAt they did not, silently, for 128
+        // rows. Counted and surfaced rather than thrown: one disagreement is a
+        // finding to read, not a reason to lose the whole run.
+        const dim11InScore = Math.round((b.dims?.finality ?? 0) * FINALITY_MAX);
         scored.push({
             id: r.id, sport: r.sport, live_lang: !!r.live_lang,
             stored: r.stored, scoring_version: r.scoring_version,
             joined_game: !!game, has_note: !!r.note,
             is_final: isFinal, finality: fin11.score,
+            finality_in_score: dim11InScore,
+            paths_agree: dim11InScore === fin11.score,
             finality_reading: fin11.reading, finality_verdict: fin11.verdict,
             total: b.total, dims: b.dims,
         });
@@ -345,6 +364,16 @@ try {
                 // cited.
                 totals_add_up: scored.length ===
                     Object.values(strataCounts).reduce((a, b) => a + b, 0),
+                // Non-zero here means scoreProse and this script disagree about
+                // the SAME row's finality, which can only happen if they were
+                // handed different inputs. That is the era-5 first-run defect,
+                // and it is now a number rather than a silent flat gap.
+                path_disagreement: {
+                    n: scored.filter(x => !x.paths_agree).length,
+                    note: 'rows where scoreProse Dim 11 and this script disagree. Both call finalityAgreement, so a non-zero count means the ARGUMENT differs -- opts.game missing finalizedAt is the known cause.',
+                    sample: scored.filter(x => !x.paths_agree).slice(0, 5)
+                        .map(x => ({ id: x.id, in_score: x.finality_in_score, standalone: x.finality })),
+                },
                 lang_disagreement: {
                     n: disagree.length,
                     note: 'rows where the SQL LIVE_LANG predicate and the JS _READS_HEDGED regex disagree about whether the prose reads as in-progress. Non-zero is expected -- the regex is wider on purpose -- but it must be REPORTED, because it is why a stratum labelled `final-lang` can contain a row scored as a correct hedge.',
