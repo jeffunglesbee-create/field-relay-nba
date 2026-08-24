@@ -819,6 +819,67 @@ export async function scoreProse(text, opts = {}) {
   return total;
 }
 
+// ── Dim 11 candidate: finality agreement ────────────────────────────────────
+//
+// STAGED — consumed by scripts/rescore-quality-6b.mjs, which projects its effect
+// on real rows before it is wired into scoreProse. Not yet part of any score.
+// CC-CMD-2026-08-23-finality-dimension.
+//
+// WHY IT EXISTS. Nothing in scoreProse reads game state. arc and ctx correlate
+// with finality — a finished game produces resolution language, and a recap
+// names the final score — but a well-written preview produces resolution
+// language too, and an in-progress brief quoting a current score satisfies ctx's
+// score test. Reweighting proxies has a bound, measured at 38.2 against the real
+// scale, and reaching it zeroes every other dimension. Reading the fact does not
+// have that bound.
+//
+// ONE IMPLEMENTATION, TWO CONSUMERS, ON PURPOSE. Era 4's recorded effect was a
+// candidate simulation that scoreProse never applied, because the projection and
+// the scorer each had their own copy of the weights. The projection imports THIS
+// function; when it ships, scoreProse will call the same one. They cannot
+// diverge because there is nothing to diverge from.
+//
+// IT SCORES AGREEMENT, NOT FINALITY. A brief reading as final on a game that is
+// not final is the defect the parent ask named. A brief hedging — "at halftime",
+// "through 40 minutes" — about a game that finished hours ago is the same defect
+// mirrored, and is equally wrong. Both score zero. A correctly hedged brief on a
+// live game scores full marks, which is the whole point and is also why the
+// LIVE_LANG prose-only split cannot measure this dimension: under that split,
+// rewarding correct hedging looks like a regression.
+export const FINALITY_MAX = 20;
+
+// Observed in real briefs. The hedge list is the same vocabulary as
+// rescore-quality-6b's LIVE_LANG predicate, which was derived from live rows
+// rather than imagined, plus the innings/break forms that predicate misses.
+const _READS_HEDGED = /\b(scoreless|at halftime|at the half|at the break|through \d+ (?:minutes|innings)|(?:first|second)-half action|minutes into|innings into|currently|so far this (?:half|game)|remains? (?:tied|scoreless))\b/i;
+const _READS_FINAL  = /\b(final score|finished|held on|held off|closed out|survived|sealed|clinched|advanced|beat|defeated|edged|downed|swept|fell to|lost to|won \d+-\d+|wins? \d+-\d+)\b/i;
+
+/**
+ * @param {string} text
+ * @param {true|false|null} isFinal  true = game finalized, false = not, null = unknown
+ * @returns {{score:number, reading:string, verdict:string}}
+ *
+ * `null` scores the midpoint and says so. A slate brief covers many games and
+ * has no single finality; scoring it zero would repeat Dim 10's failure, where a
+ * dimension that was zero on 190 of 190 rows passed every aggregate test for two
+ * months while doing nothing.
+ */
+export function finalityAgreement(text, isFinal) {
+  const t = String(text || '');
+  const hedged = _READS_HEDGED.test(t);
+  const final_ = _READS_FINAL.test(t);
+  const reading = hedged && final_ ? 'mixed' : hedged ? 'hedged' : final_ ? 'final' : 'neither';
+
+  if (isFinal === null || isFinal === undefined)
+    return { score: FINALITY_MAX / 2, reading, verdict: 'unknown-finality' };
+  if (reading === 'mixed' || reading === 'neither')
+    return { score: FINALITY_MAX / 2, reading, verdict: 'no-clear-reading' };
+
+  const agrees = isFinal ? reading === 'final' : reading === 'hedged';
+  return { score: agrees ? FINALITY_MAX : 0, reading,
+           verdict: agrees ? 'agrees' : (isFinal ? 'hedges-a-finished-game' : 'calls-a-live-game-final') };
+}
+
 // ── Layer 1: style block (synced from FIELD_PROSE_STYLE) ────────────────────
 export const PROSE_STYLE_RULES = [
   '- STYLE: specificity over metaphor. "48 minutes from their first Finals since 1999" not "looking to punch their ticket."',

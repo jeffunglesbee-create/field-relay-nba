@@ -212,6 +212,15 @@ jobs:
       - name: declared weights equal implementation ceilings
         run: node scripts/check-scale-matches-implementation.mjs --self-test && node scripts/check-scale-matches-implementation.mjs
 
+      # Dim 11 candidate, STAGED: consumed by rescore-quality-6b.mjs, not yet by
+      # scoreProse. It scores prose-vs-fact AGREEMENT, so a correctly hedged
+      # brief on a live game gets full marks -- which is why the LIVE_LANG
+      # prose-only split cannot measure it and the 2x2 exists. All four corners
+      # are asserted as input/output pairs, plus both abstain cases, plus a
+      # control that the same prose scores differently against different facts.
+      - name: finality agreement scores the 2x2, not the prose
+        run: node scripts/finality-agreement-check.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

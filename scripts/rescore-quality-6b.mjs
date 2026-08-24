@@ -55,6 +55,12 @@ async function d1(sql, params = []) {
 }
 
 // VERBATIM from probe-ask5-ask6-prereqs.mjs. Do not "improve" it here.
+// Dim 11 candidate, imported rather than reimplemented. Era 4's recorded effect
+// was a projection scoreProse never applied, because the projection and the
+// scorer each carried their own weights. This file and scoreProse call the same
+// function, so there is nothing left to diverge.
+import { finalityAgreement, FINALITY_MAX } from '../src/journalism-quality.js';
+
 const LIVE_LANG = `( b.brief_text LIKE '%scoreless%' OR b.brief_text LIKE '%at halftime%'
    OR b.brief_text LIKE '%second-half action%' OR b.brief_text LIKE '%first-half action%'
    OR b.brief_text LIKE '%through 4_ minutes%' OR b.brief_text LIKE '%minutes into%' )`;
@@ -132,6 +138,7 @@ const m = {
     stored_baseline: null,
     matchup_note_coverage: null,
     rescored: null,
+    finality_2x2: null,
     dim_reachability: null,
     error: null,
 };
@@ -191,13 +198,55 @@ try {
         const b = await scoreProse(r.brief_text, {
             sport: r.sport || '', game, matchupNote: r.note || null, breakdown: true,
         });
+        // The FACT, three-valued. A joined game row with no finalized_at is
+        // KNOWN unfinished; no joined row at all is unknown, and a boolean would
+        // merge two different things.
+        const isFinal = game ? !!r.finalized_at : null;
+        const fin11 = finalityAgreement(r.brief_text, isFinal);
         scored.push({
             id: r.id, sport: r.sport, live_lang: !!r.live_lang,
             stored: r.stored, scoring_version: r.scoring_version,
             joined_game: !!game, has_note: !!r.note,
+            is_final: isFinal, finality: fin11.score,
+            finality_reading: fin11.reading, finality_verdict: fin11.verdict,
             total: b.total, dims: b.dims,
         });
     }
+
+    // ── The 2x2: fact x reading. THIS is the split that measures Dim 11.
+    //
+    // The live/fin split below classifies by PROSE ALONE (LIVE_LANG), so it
+    // cannot measure a dimension that rewards a correctly hedged brief on a live
+    // game -- under that split, getting that corner RIGHT looks like a
+    // regression. Reported alongside rather than instead, so the old number
+    // stays comparable to every prior run.
+    const scoreable = scored.filter(s => s.is_final !== null);
+    const agrees    = scoreable.filter(s => s.finality === FINALITY_MAX);
+    const disagrees = scoreable.filter(s => s.finality === 0);
+    const abstains  = scored.filter(s => s.finality === FINALITY_MAX / 2);
+
+    // Projected total under the funded weighting: arc 45->33, ctx 25->17, and
+    // the 20 those release becomes Dim 11. Nominal total unchanged at 294.
+    // dims.arcScore and dims.contextAnchoring are fractions of 45 and 25, so
+    // each loses its fraction times the points taken back.
+    const projected = (x) => x.total - x.dims.arcScore * 12 - x.dims.contextAnchoring * 8 + x.finality;
+    const meanFinality = (set) => set.length ? r1(mean(set.map(x => x.finality))) : null;
+
+    m.finality_2x2 = {
+        note: 'agrees vs disagrees on the fact x reading 2x2, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension\'s metric.',
+        n_scoreable: scoreable.length, n_agrees: agrees.length,
+        n_disagrees: disagrees.length, n_abstained: abstains.length,
+        by_verdict: Object.fromEntries([...new Set(scored.map(x => x.finality_verdict))]
+            .map(v => [v, scored.filter(x => x.finality_verdict === v).length])),
+        // Non-zero on BOTH sides is the done condition Dim 10 would have failed:
+        // it scored zero on 190 of 190 rows and passed every aggregate test.
+        mean_finality_when_final: meanFinality(scoreable.filter(x => x.is_final)),
+        mean_finality_when_live:  meanFinality(scoreable.filter(x => !x.is_final)),
+        gap_projected: (agrees.length && disagrees.length)
+            ? r1(mean(agrees.map(projected)) - mean(disagrees.map(projected))) : null,
+        gap_current_same_rows: (agrees.length && disagrees.length)
+            ? r1(mean(agrees.map(x => x.total)) - mean(disagrees.map(x => x.total))) : null,
+    };
 
     const live = scored.filter(s => s.live_lang);
     const fin  = scored.filter(s => !s.live_lang);

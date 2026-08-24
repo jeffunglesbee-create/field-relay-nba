@@ -234,3 +234,88 @@ show a gain.
 | era 4 record | corrected to the live 4.5 / 1.8x, both manifests cited |
 | reweighting ceiling | 41.6 -> 38.2 against the real scale |
 | step 2 | **blocked on a metric decision, not on code.** The dimension is designable (fund from real ceilings: arc 45->33, ctx 25->17, finality 20, total held at 294); its done condition is not usable as written. |
+
+---
+
+## Step 2, part one — the dimension exists, unwired, with the metric that can see it
+
+Recommendation taken: amend the done condition to the 2x2 rather than narrow the
+ask to one direction. The ask names both defects and the mirrored one is real; a
+metric that cannot see half of what a dimension does is the wrong metric, not a
+reason to build half a dimension.
+
+### Shipped, STAGED
+
+`finalityAgreement(text, isFinal)` in `src/journalism-quality.js`, exported,
+`FINALITY_MAX = 20`, **not wired into scoreProse**. Its consumer today is
+`scripts/rescore-quality-6b.mjs`, which projects its effect on real rows before
+it is allowed to change a score (Rule 63 — staged, marked, and with a caller).
+
+`isFinal` is three-valued. A joined game row with no `finalized_at` is KNOWN
+unfinished; no joined row at all is unknown. A boolean would merge two different
+facts, and the second one is not evidence about anything.
+
+| game | prose reads | score | verdict |
+|---|---|---|---|
+| final | final | **20** | `agrees` |
+| final | hedged | **0** | `hedges-a-finished-game` |
+| live | hedged | **20** | `agrees` |
+| live | final | **0** | `calls-a-live-game-final` |
+| unknown | — | 10 | `unknown-finality` |
+| either | neither / both | 10 | `no-clear-reading` |
+
+The two abstains score the midpoint and say which one they are. Zero would repeat
+Dim 10, which scored zero on 190 of 190 rows and passed every aggregate test for
+two months while doing nothing.
+
+### One implementation, two consumers, deliberately
+
+Era 4's recorded effect was a projection `scoreProse` never applied, because the
+projection and the scorer each carried their own copy of the weights. The
+rescore script now **imports** this function; when it ships, `scoreProse` calls
+the same one. There is nothing left to diverge.
+
+### The metric
+
+`m.finality_2x2` reports `n_agrees` / `n_disagrees` / `n_abstained`, a
+`by_verdict` census, `mean_finality_when_final` and `mean_finality_when_live`
+(both must be non-zero — the Dim 10 test), and two gaps on the same rows:
+
+- `gap_current_same_rows` — today's scorer, agrees vs disagrees
+- `gap_projected` — under the funded weighting, `arc 45->33`, `ctx 25->17`,
+  `finality 20`, total held at 294
+
+Funding is arithmetic, not assertion: `dims.arcScore` and
+`dims.contextAnchoring` are fractions of 45 and 25, so each row loses its own
+fraction times the points taken back. That is the CC-CMD's §3 — the answer to
+"is this just re-buying arc and ctx under a new name" is a subtraction anyone
+can check.
+
+The LIVE_LANG figures stay in `rescored`, unchanged, so every earlier run
+remains comparable.
+
+### Guard
+
+`scripts/finality-agreement-check.mjs`, gated in `deploy.yml`. Nine assertions,
+every one an input/output pair. Two are controls that matter more than the
+corners:
+
+- **the four corners are not all the same number** — a dimension whose corners
+  agree is a constant with extra steps
+- **the same prose scores differently against different facts** — if the fact
+  does not change the score, the dimension is reading the prose, which arc and
+  ctx already do
+
+### Still open, and it is the interesting half
+
+`gap_projected` is unmeasured — the run needs CI (`*.workers.dev` is 403 from
+this sandbox). The prediction, recorded before the number exists so it can be
+wrong: with the live baseline at **4.5 (1.8x noise)**, a dimension reading the
+fact should clear it comfortably, because the fact is not a proxy. If it does
+not, the reading vocabulary is too narrow and the `no-clear-reading` count will
+say so directly — that census is in the manifest for exactly this reason.
+
+**Unblocks part two:** a `gap_projected` with n >= 8 per side and both
+`mean_finality_when_*` non-zero. Then `scoreProse` gets the call, `SCALE` gets
+`arc: 33, ctx: 17, finality: 20`, and era 5 ships with a measured effect — a
+real one this time, confirmed post-deploy rather than projected and left there.
