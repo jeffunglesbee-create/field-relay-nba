@@ -1,0 +1,321 @@
+{
+  "ran_at": "2026-08-24T07:30:55.385Z",
+  "mode": "verify",
+  "error": null,
+  "slate": {
+    "columns_are_insert_only": true,
+    "evidence": "no ON CONFLICT(id) DO UPDATE on briefs sets sport or brief_type (src/index.js 5975, 8618, 12036, 12492, 18962) — verified 2026-08-23",
+    "rows_written_last_30min": 0,
+    "safe_to_apply": true,
+    "note": "A row inserted between scope and apply is NOT swept — it is absent from the measured id list and will be reported by verify."
+  },
+  "variants": [
+    {
+      "sport": "MLB",
+      "n": 2108,
+      "sample_id": "game_brief_MLB_MLB_2026-06-20_braves_brewers_2026-06-20"
+    },
+    {
+      "sport": "FIFA World Cup",
+      "n": 615,
+      "sample_id": "bracket_delta:espn:760516:2026-07-18T23:02:33.093Z"
+    },
+    {
+      "sport": "MLS",
+      "n": 279,
+      "sample_id": "debrief_MLS_2026-05-20_stlouiscitysc_houstondynamofc"
+    },
+    {
+      "sport": null,
+      "n": 187,
+      "sample_id": "compound_2026-07-04_all"
+    },
+    {
+      "sport": "WNBA",
+      "n": 185,
+      "sample_id": "debrief_2026-05-20-wnba-connec-portla"
+    },
+    {
+      "sport": "EPL",
+      "n": 95,
+      "sample_id": "epl_match_2026-07-16_espn:761659"
+    },
+    {
+      "sport": "EFL Cup",
+      "n": 61,
+      "sample_id": "game_recap_efl cup_401880596"
+    },
+    {
+      "sport": "NFL",
+      "n": 55,
+      "sample_id": "game_live_nfl_401873287"
+    },
+    {
+      "sport": "wnba",
+      "n": 35,
+      "sample_id": "game_recap_wnba_401857167"
+    },
+    {
+      "sport": "La Liga",
+      "n": 35,
+      "sample_id": "game_live_la liga_401882907"
+    },
+    {
+      "sport": "PGA Tour",
+      "n": 31,
+      "sample_id": "game_brief_PGA Tour_PGA Tour_2026-07-02_src401811954_2026-07-02"
+    },
+    {
+      "sport": "UEFA Europa Conference League Qualifying",
+      "n": 27,
+      "sample_id": "game_recap_uefa europa conference league qualifying_401909472"
+    },
+    {
+      "sport": "AFL",
+      "n": 23,
+      "sample_id": "game_brief_AFL_AFL_2026-03-12_carlton_richmond_2026-03-12"
+    },
+    {
+      "sport": "Serie A",
+      "n": 18,
+      "sample_id": "game_live_serie a_401874745"
+    },
+    {
+      "sport": "Ligue 1",
+      "n": 18,
+      "sample_id": "game_live_ligue 1_401876485"
+    },
+    {
+      "sport": "NBA",
+      "n": 17,
+      "sample_id": "debrief_nba-ecf-2026-g1"
+    },
+    {
+      "sport": "NHL",
+      "n": 14,
+      "sample_id": "game_brief_NHL_nhl-ecf-2026-g2_2026-05-23"
+    },
+    {
+      "sport": "UEFA Europa League Qualifying",
+      "n": 13,
+      "sample_id": "game_recap_uefa europa league qualifying_401909222"
+    },
+    {
+      "sport": "golf",
+      "n": 9,
+      "sample_id": "game_brief_golf_golf_2026-06-19_usopen_r2_2026-06-19"
+    },
+    {
+      "sport": "EFL Trophy",
+      "n": 7,
+      "sample_id": "game_recap_efl trophy_401906265"
+    },
+    {
+      "sport": "CFL",
+      "n": 6,
+      "sample_id": "night_owl_2026-07-05_cfl_13419691"
+    },
+    {
+      "sport": "wc",
+      "n": 1,
+      "sample_id": "bracket_delta:espn:760458:2026-08-24T03:00:30.822Z"
+    },
+    {
+      "sport": "UEFA Europa League",
+      "n": 1,
+      "sample_id": "debrief_2026-05-20-europa-scfreiburg-astonvilla"
+    },
+    {
+      "sport": "PGA TOUR",
+      "n": 1,
+      "sample_id": "game_recap_pga tour_golf_401811963_R4"
+    }
+  ],
+  "plan": [
+    {
+      "from": "wc",
+      "to": "FIFA World Cup",
+      "n": 1,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "bracket_delta:espn:760458:2026-08-24T03:00:30.822Z",
+          "to": "FIFA World Cup"
+        }
+      ]
+    },
+    {
+      "from": "PGA TOUR",
+      "to": "PGA Tour",
+      "n": 1,
+      "via": "explicit",
+      "rows": [
+        {
+          "id": "game_recap_pga tour_golf_401811963_R4",
+          "to": "PGA Tour"
+        }
+      ]
+    }
+  ],
+  "unclassified": [],
+  "mislabelled_recaps": {
+    "n": 0,
+    "ids": [],
+    "by_language_alone": 81,
+    "abstained": 81,
+    "predicate": "live language AND joined game row has finalized_at IS NULL",
+    "note": "The difference between these two counts is rows whose prose reads live but whose game is finished or unjoinable. Those are left alone deliberately."
+  },
+  "applied": null,
+  "verification": {
+    "distribution_after": [
+      {
+        "sport": "MLB",
+        "n": 2108
+      },
+      {
+        "sport": "FIFA World Cup",
+        "n": 615
+      },
+      {
+        "sport": "MLS",
+        "n": 279
+      },
+      {
+        "sport": null,
+        "n": 187
+      },
+      {
+        "sport": "WNBA",
+        "n": 185
+      },
+      {
+        "sport": "EPL",
+        "n": 95
+      },
+      {
+        "sport": "EFL Cup",
+        "n": 61
+      },
+      {
+        "sport": "NFL",
+        "n": 55
+      },
+      {
+        "sport": "wnba",
+        "n": 35
+      },
+      {
+        "sport": "La Liga",
+        "n": 35
+      },
+      {
+        "sport": "PGA Tour",
+        "n": 31
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "n": 27
+      },
+      {
+        "sport": "AFL",
+        "n": 23
+      },
+      {
+        "sport": "Serie A",
+        "n": 18
+      },
+      {
+        "sport": "Ligue 1",
+        "n": 18
+      },
+      {
+        "sport": "NBA",
+        "n": 17
+      },
+      {
+        "sport": "NHL",
+        "n": 14
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "n": 13
+      },
+      {
+        "sport": "golf",
+        "n": 9
+      },
+      {
+        "sport": "EFL Trophy",
+        "n": 7
+      },
+      {
+        "sport": "CFL",
+        "n": 6
+      },
+      {
+        "sport": "wc",
+        "n": 1
+      },
+      {
+        "sport": "UEFA Europa League",
+        "n": 1
+      },
+      {
+        "sport": "PGA TOUR",
+        "n": 1
+      }
+    ],
+    "non_conforming_remaining": [
+      {
+        "sport": "wc",
+        "n": 1
+      },
+      {
+        "sport": "PGA TOUR",
+        "n": 1
+      }
+    ],
+    "mislabelled_recaps_remaining": 0,
+    "clean": false
+  },
+  "revert_sql": [
+    "UPDATE briefs SET sport = \"wc\" WHERE id = \"bracket_delta:espn:760458:2026-08-24T03:00:30.822Z\";",
+    "UPDATE briefs SET sport = \"PGA TOUR\" WHERE id = \"game_recap_pga tour_golf_401811963_R4\";"
+  ],
+  "authority": [
+    "AFL",
+    "CFL",
+    "EFL Cup",
+    "EFL Trophy",
+    "EPL",
+    "FIFA World Cup",
+    "IPL",
+    "La Liga",
+    "Ligue 1",
+    "MLB",
+    "MLS",
+    "NBA",
+    "NFL",
+    "NHL",
+    "PGA Tour",
+    "Serie A",
+    "UEFA Champions League",
+    "UEFA Champions League Qualifying",
+    "UEFA Europa Conference League",
+    "UEFA Europa Conference League Qualifying",
+    "UEFA Europa League",
+    "UEFA Europa League Qualifying",
+    "UFL",
+    "WNBA",
+    "golf",
+    "wnba"
+  ],
+  "plan_summary": [
+    "\"wc\" -> FIFA World Cup (1 rows, explicit)",
+    "\"PGA TOUR\" -> PGA Tour (1 rows, explicit)"
+  ],
+  "not_mutated": {
+    "ordinal_gNN_ids": "left in place — render-order counter, no recoverable identity; new writes blocked by ask 4a/4b; deleting would lose real prose"
+  }
+}
