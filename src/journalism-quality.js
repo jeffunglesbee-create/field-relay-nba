@@ -1033,7 +1033,14 @@ export const PROSE_STYLE_RULES = [
   '- STYLE: one metaphor max per brief — if you use one, make it original.',
   '- STYLE: write like a well-prepared friend who watched every game, not like a press release.',
   '- STYLE: if a sentence would work in any game recap for any sport, it is too generic — rewrite with details specific to THIS game.',
-  '- CITE ANALYTICS: if [PP/PK], [POSSESSION], [PARK], [UMPIRE], or [GOALIE] context appears in the game data, cite the specific figure verbatim — not a paraphrase. "93.5% penalty kill" not "elite penalty killing". Cite the park figure the data gives you verbatim rather than calling a park "hitter-friendly".',
+  // SPLIT 2026-08-24. One rule named four sports' bracket tags, so a soccer
+  // prompt was told to cite [PP/PK] and shown a hockey penalty-kill figure. The
+  // comment below SPORT_SCOPED_RULES flagged this as needing a split before it
+  // could be scoped; this is that split. Each half keeps its own tags and its
+  // own example, and only reaches the sport it belongs to.
+  '- CITE HOCKEY ANALYTICS: if [PP/PK] or [GOALIE] context appears in the game data, cite the specific figure verbatim — not a paraphrase. "93.5% penalty kill" not "elite penalty killing".',
+  '- CITE BASEBALL ANALYTICS: if [PARK] or [UMPIRE] context appears in the game data, cite the specific figure verbatim rather than calling a park "hitter-friendly" or an umpire "tight".',
+  '- CITE SOCCER ANALYTICS: if [POSSESSION] context appears in the game data, cite the specific figure verbatim — not a paraphrase such as "dominated the ball".',
   '- CITE NBA ANALYTICS: if [SLOW GRIND], [FAST PACE], [ELITE D BOTH], [CHESS MATCH], [CLUTCH], or [GAME TYPE] appears, cite specific DRTG, pace, or clutch figures verbatim. "107.7 DRTG, best in the NBA" not "elite defense".',
   '- CITE CHAMPION: if [CHAMPION] appears in game context, reference the team as "defending champions" or "reigning NBA champions" in the first paragraph — never omit this when present.',
   '- FEATURED STAT: if a [FEATURED STAT] line appears for a game, that exact figure MUST appear in your brief for that game.',
@@ -1060,23 +1067,120 @@ export const PROSE_STYLE_RULES = [
 //
 // NOT scoped (deliberate, Rule 69): LEAGUE BOUNDARIES names every league, but it
 // is the rule that FORBIDS mixing them -- removing it from a soccer prompt would
-// delete the guardrail, not the contamination. CITE ANALYTICS spans four sports
-// in one string ([PP/PK] hockey, [PARK]/[UMPIRE] baseball, [POSSESSION] soccer)
-// and needs splitting before it can be scoped; it names no league, so it is not
-// this ask. Both carried forward in the outbox.
+// delete the guardrail, not the contamination.
+//
+// CITE ANALYTICS was the carry-forward this comment used to name: four sports'
+// bracket tags in one string. Split above 2026-08-24 into three rules, each
+// scoped here.
 const SPORT_SCOPED_RULES = {
-  '- CITE NBA ANALYTICS:': 'basketball',
-  '- CITE CHAMPION:':      'basketball',
+  '- CITE NBA ANALYTICS:':      'basketball',
+  '- CITE CHAMPION:':           'basketball',
+  '- CITE HOCKEY ANALYTICS:':   'hockey',
+  '- CITE BASEBALL ANALYTICS:': 'baseball',
+  '- CITE SOCCER ANALYTICS:':   'soccer',
 };
 
-// The style block for one sport. An unknown or absent sport (the mixed-sport
-// slate brief) gets every rule -- identical to the pre-2026-08-23 behavior.
+// ── Scoping the EXAMPLE, not the rule ───────────────────────────────────────
+//
+// Three rules are universal in their LESSON and basketball or baseball in their
+// EXAMPLE: "specificity over metaphor", "numbers over adjectives" and
+// TIME-PERIOD ANCHORING. Scoping the whole rule would delete a lesson every
+// sport needs in order to remove a figure only one sport should see -- the same
+// mistake the comment above avoids for LEAGUE BOUNDARIES.
+//
+// So the example clause is scoped instead. A prompt for the matching sport gets
+// the rule intact; every other sport gets the rule with the example clause
+// removed. This is pure SUBTRACTION: no sport-specific exemplar is authored,
+// which the parent CC-CMD rules out as content invention and a separate
+// decision. A rule minus its example still teaches; a rule carrying another
+// sport's figure is where "Everton maintains a 107.7 DRTG, best in the NBA"
+// came from.
+//
+// Every `drop` string must appear verbatim in its rule. Asserted at import --
+// a silent no-op here would leave the contamination in place while looking
+// fixed, which is the defect class this whole session has been closing.
+// EACH EXAMPLE CARRIES ITS OWN SPORT, not the rule. TIME-PERIOD ANCHORING holds
+// two: Wembanyama (basketball) and Jung Hoo Lee (baseball). Scoping them together
+// meant baseball lost its own correct example to remove basketball's — a rule is
+// not the right unit here, and the first version of this table got that wrong.
+const SPORT_SCOPED_EXAMPLES = [
+  { prefix: '- STYLE: specificity over metaphor.',
+    examples: [{ cls: 'basketball', text: ' "48 minutes from their first Finals since 1999" not "looking to punch their ticket."' }] },
+  { prefix: '- STYLE: numbers over adjectives.',
+    examples: [{ cls: 'basketball', text: ' "Brunson\'s 29.0 PPG this series" not "Brunson has been dominant."' }] },
+  { prefix: '- TIME-PERIOD ANCHORING',
+    examples: [
+      { cls: 'basketball', text: ' Example: write "Wembanyama\'s 28.2 PPG this postseason" not "Wembanyama\'s ## points."' },
+      { cls: 'baseball',   text: ' Write "Jung Hoo Lee\'s 5-for-6 night" not "Jung Hoo Lee went #-for-#" — the noun "night" anchors the number to one game.' },
+    ] },
+];
+{
+  // An example string that matches nothing removes nothing and reads as fixed.
+  for (const e of SPORT_SCOPED_EXAMPLES) {
+    const rule = PROSE_STYLE_RULES.find((r) => r.startsWith(e.prefix));
+    if (!rule) throw new Error(`SPORT_SCOPED_EXAMPLES: no rule starts with ${e.prefix}`);
+    for (const x of e.examples)
+      if (!rule.includes(x.text)) throw new Error(
+        `SPORT_SCOPED_EXAMPLES: ${e.prefix} does not contain its ${x.cls} example verbatim — the example moved`);
+  }
+}
+
+/// Every string proseStyleFor can emit for a rule: the full text, and the text
+/// with any combination of its scoped example clauses removed. Small by
+/// construction -- no rule carries more than two scoped examples, so at most
+/// four variants each -- and asserted against real proseStyleFor output by
+/// scripts/prose-style-scope-check.mjs, because a variant list that drifts from
+/// the emitter silently un-blinds layer 2f.
+export function styleRuleVariants() {
+  const out = [];
+  for (const rule of PROSE_STYLE_RULES) {
+    out.push(rule);
+    const e = SPORT_SCOPED_EXAMPLES.find((x) => rule.startsWith(x.prefix));
+    if (!e) continue;
+    const n = e.examples.length;
+    for (let mask = 1; mask < (1 << n); mask++) {
+      let v = rule;
+      for (let i = 0; i < n; i++) if (mask & (1 << i)) v = v.replace(e.examples[i].text, '');
+      out.push(v);
+    }
+  }
+  // Longest first: a shortened variant is a prefix of the full one, and
+  // subtracting the short form first would leave the example clause orphaned.
+  return out.sort((a, b) => b.length - a.length);
+}
+
+// The style block for one sport.
+//
+// ABSENT sport -> every rule. That is the mixed-sport slate brief, which covers
+// many games at once and legitimately needs all of them.
+//
+// NAMED but UNRECOGNISED sport -> universal rules only. This used to fall into
+// the same branch as the slate, so golf, CFL and tennis -- none of which
+// detectSportClass has a branch for -- received EVERY sport-scoped rule and
+// EVERY sport-scoped example. Measured 2026-08-24: a golf prompt carried all six
+// tracked figures, including "107.7 DRTG, best in the NBA", while EPL carried
+// none.
+//
+// The fix is the default rather than a branch per sport. Adding golf, CFL and
+// tennis to detectSportClass would have closed those three and left the next
+// unrecognised sport maximally contaminated -- the whack-a-mole this codebase
+// has spent the day replacing with guards. A sport the classifier does not know
+// is now SAFE by default: it gets the universal lesson and none of anyone else's
+// figures.
 export function proseStyleFor(sport) {
   const cls = detectSportClass(sport);
-  if (!cls) return PROSE_STYLE_RULES.join('\n');
+  // Genuinely absent: the slate brief.
+  if (!sport) return PROSE_STYLE_RULES.join('\n');
   return PROSE_STYLE_RULES.filter(rule => {
     const tag = Object.keys(SPORT_SCOPED_RULES).find(t => rule.startsWith(t));
     return !tag || SPORT_SCOPED_RULES[tag] === cls;
+  }).map(rule => {
+    // Each example clause, dropped for every sport it does not belong to. A
+    // basketball prompt keeps the Wembanyama example and loses the Jung Hoo Lee
+    // one; a baseball prompt does the reverse; soccer keeps neither.
+    const e = SPORT_SCOPED_EXAMPLES.find(x => rule.startsWith(x.prefix));
+    if (!e) return rule;
+    return e.examples.reduce((r, x) => x.cls === cls ? r : r.replace(x.text, ''), rule);
   }).join('\n');
 }
 
@@ -1173,7 +1277,17 @@ export function promptExampleLeaks(prompt, text) {
     // gone silent in the same commit that reduced the leaks. Per-rule
     // subtraction is subset-proof: it holds for the full block and for any
     // gated variant of it.
-    for (const rule of PROSE_STYLE_RULES) {
+    // EVERY VARIANT, not just the full text. Extended 2026-08-24: gating no
+    // longer only DROPS whole rules, it also SHORTENS them -- a universal rule
+    // reaches a soccer prompt with its basketball example clause removed. A
+    // shortened rule is not a member of PROSE_STYLE_RULES, so subtracting the
+    // full text alone missed it, the instruction stayed in what this function
+    // treats as game context, and 2f went silent on '##' in the same commit that
+    // extended the gating. Precisely the failure the paragraph above describes,
+    // reproduced by the next change to the gating -- so the subtraction now
+    // enumerates what proseStyleFor can actually emit rather than assuming a
+    // gated rule is a substring of the ungated one.
+    for (const rule of styleRuleVariants()) {
         if (rule) context = context.split(rule).join(' ');
     }
     // Same subset problem, same fix, for the voice register: a per-game prompt
