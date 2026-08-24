@@ -1,0 +1,178 @@
+{
+  "probed_at": "2026-08-24T23:48:50.743Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "sports": {
+    "soccer_usa_mls": {
+      "games_returned": 30,
+      "sampled": [
+        {
+          "game": "Chicago Fire @ Seattle Sounders FC",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Chicago Fire",
+            "Seattle Sounders FC",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Chicago Fire": 120,
+            "Seattle Sounders FC": 170,
+            "Draw": 285
+          }
+        },
+        {
+          "game": "Charlotte FC @ Atlanta United FC",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Atlanta United FC",
+            "Charlotte FC",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Atlanta United FC": 130,
+            "Charlotte FC": 170,
+            "Draw": 245
+          }
+        },
+        {
+          "game": "CF Montreal @ Inter Miami CF",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "CF Montreal",
+            "Inter Miami CF",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "CF Montreal": 425,
+            "Inter Miami CF": -240,
+            "Draw": 400
+          }
+        },
+        {
+          "game": "New England Revolution @ Columbus Crew SC",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Columbus Crew SC",
+            "New England Revolution",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Columbus Crew SC": -110,
+            "New England Revolution": 260,
+            "Draw": 245
+          }
+        },
+        {
+          "game": "Los Angeles FC @ D.C. United",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "D.C. United",
+            "Los Angeles FC",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "D.C. United": 230,
+            "Los Angeles FC": 100,
+            "Draw": 245
+          }
+        }
+      ]
+    },
+    "soccer_epl": {
+      "games_returned": 20,
+      "sampled": [
+        {
+          "game": "Manchester City @ Crystal Palace",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Crystal Palace",
+            "Manchester City",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Crystal Palace": 400,
+            "Manchester City": -165,
+            "Draw": 320
+          }
+        },
+        {
+          "game": "Nottingham Forest @ Liverpool",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Liverpool",
+            "Nottingham Forest",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Liverpool": -205,
+            "Nottingham Forest": 475,
+            "Draw": 360
+          }
+        },
+        {
+          "game": "Everton @ Bournemouth",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Bournemouth",
+            "Everton",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Bournemouth": 105,
+            "Everton": 245,
+            "Draw": 250
+          }
+        },
+        {
+          "game": "Hull City @ Coventry City",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Coventry City",
+            "Hull City",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Coventry City": -115,
+            "Hull City": 330,
+            "Draw": 245
+          }
+        },
+        {
+          "game": "Newcastle United @ Tottenham Hotspur",
+          "book": "draftkings",
+          "outcome_count": 3,
+          "outcome_names": [
+            "Newcastle United",
+            "Tottenham Hotspur",
+            "Draw"
+          ],
+          "third_selection": "Draw",
+          "prices": {
+            "Newcastle United": 200,
+            "Tottenham Hotspur": 120,
+            "Draw": 265
+          }
+        }
+      ]
+    }
+  },
+  "verdict": "PREMISE HOLDS — every one of 10 sampled soccer h2h markets prices three outcomes. drawPriceFrom will fire.",
+  "error": null
+}
