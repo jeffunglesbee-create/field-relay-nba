@@ -815,6 +815,76 @@ per-item id join across 6 fixtures. `keyEvents` uniquely holds substitutions and
 period markers; `commentary` uniquely holds near-misses. All goal items appear in
 both (0 missing across 6 fixtures), so the goal read path is unaffected.
 
+#### BUILT 2026-08-24 — the block shape, and one correction to the framing above
+
+**"Near miss" was the wrong name for most of this.** ESPN has exactly one type
+for a shot that missed — `Shot Off Target` — and it covers a tap-in skied over
+the bar and a speculative 35-yarder identically. Nothing in the type separates
+them. Only `Shot Hit Woodwork` is a genuine near miss. Pooling them under one
+heading licenses "they came close again and again" as a description of wild
+shooting: a claim invented by the label rather than supported by the source.
+
+The block therefore emits two labelled groups and says so in its own text:
+
+```
+[MATCH EVENTS]
+P1 12' — Goal! Arsenal 1, Chelsea 0. Saka.
+P2 58' — Goal! Arsenal 1, Chelsea 1. Palmer.
+P2 88' — Goal! Arsenal 2, Chelsea 1. Havertz.
+
+Hit the woodwork:
+34' — Rice hits the left post.
+90' — Havertz rattles the crossbar.
+Attempts off target:
+70' — Attempt missed. Saka shoots wide.
+(None of the above are goals. An off-target attempt is not a near miss — do not
+describe these as chances that nearly scored.)
+(3 of 16 attempts — woodwork first, then the latest.)
+```
+
+**Fouls are excluded** despite being in the same container. A foul is not an
+attempt, there are dozens per fixture, and the budget is better spent on the
+woodwork line.
+
+**Attempts never enter `selectScoringPlays`.** That selector ranks by running
+score and an attempt carries none, so a merged list falls to `items.slice(-8)`.
+Measured on a 3-goal, 16-attempt fixture that **dropped the opening goal** and
+labelled 19 items "scoring plays" when 16 were misses — strictly worse than
+goals-only. Attempts are a separate appended section; `formatMatchEvents(items)`
+with no second argument is byte-identical to its pre-enrichment self for every
+sport.
+
+**Cap 3, and it is measured, not chosen.** `match_events` declares 200 tokens and
+the assembler silently drops any block over `budget * 1.5` = 300 — which presents
+as a brief with no events at all, not a long one. Worst realistic fixture:
+
+| cap | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|
+| tokens | 167 | **214** | 255 | 297 | 338 (over) |
+
+`remaining` is decremented by ACTUAL tokens, so a 338-token block would leave
+`fpl_match_events` (~98 real tokens, authoritative for EPL goals/assists/cards/
+saves/bonus) unable to fit. Raising the declared budget was the wrong lever: it
+widens the drop ceiling without creating room in the 600-token total. The volume
+is carried by the count note instead — "(3 of 16 attempts)" costs four tokens
+where fourteen more lines of ESPN prose cost a hundred and twenty.
+
+**Every woodwork item survives the cap**, even past it. A fixture with five posts
+is the fixture most worth describing.
+
+**Tiering counts attempts directly, not `commentary.length >= 60`.** The length
+threshold is a correlate measured over 20 fixtures; the array is already in hand,
+so counting the thing itself cannot mis-tier when ESPN changes how chatty its
+commentary is. The raw item count is still reported in the note so the bimodal
+claim stays checkable against live data.
+
+**A fixture with no attempt data says so, as missing data**: "(No shot detail
+available for this fixture — goals only. This is missing data, not a quiet game:
+do not infer that few chances were created.)"
+
+Guard: `scripts/match-events-check.mjs`, 44 assertions (was 25, none removed).
+
+
 
 ### WNBA, and the EPL slug — second measurement, 2026-08-23
 

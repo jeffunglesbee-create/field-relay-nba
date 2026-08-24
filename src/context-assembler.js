@@ -1236,10 +1236,134 @@ export function selectScoringPlays(items, { enumerateMax = _ENUMERATE_MAX, cap =
     return (picked.length ? picked : items).slice(-cap);
 }
 
+// ── Near-misses (CC-CMD-2026-08-23-soccer-near-miss-enrichment) ─────────────
+//
+// A recap grounded only in goals describes a 1-0 as though nothing else
+// happened. CONTRACTS.md records that soccer `commentary` carries Shot Off
+// Target and Shot Hit Woodwork items that `keyEvents` does not contain at all,
+// and that neither container is a superset of the other.
+//
+// THEY MUST NOT GO THROUGH selectScoringPlays. That selector ranks by running
+// score, and a near-miss carries none:
+//
+//     if (scored.length !== items.length) return items.slice(-cap);   // cap 8
+//
+// Merged into `items`, a rich fixture (3 goals + 16 near-misses = 19 > the
+// enumerate max of 12) falls to "the last 8 things that happened". Measured on a
+// realistic Arsenal-Chelsea shape, that DROPPED THE OPENING GOAL and handed the
+// generator a 2-1 with two goals and no account of how the lead was taken --
+// strictly worse than goals-only, which is what this enrichment exists to
+// improve on. It also labelled 19 items "scoring plays" when 16 were misses.
+//
+// So near-misses are a separate section appended after the goals. The goal path
+// is untouched, which makes the five-sport byte-identity requirement structural
+// rather than something to test for: `formatMatchEvents(items)` with no second
+// argument produces exactly what it produced before.
+//
+// FOULS ARE DELIBERATELY EXCLUDED even though CONTRACTS.md lists them in the
+// same breath. A foul is not a near-miss, there are dozens per fixture, and
+// spending the block's budget on them would crowd out the woodwork item that is
+// the single most valuable line here.
+const _NEAR_MISS_TYPE = /^(shot off target|shot hit woodwork)$/i;
+const _WOODWORK = /woodwork/i;
+// MEASURED, not chosen. `match_events` declares 200 tokens and the assembler
+// silently drops any block over `budget * 1.5` = 300 -- which presents as a
+// brief with no events at all, not a long one. Worst realistic EPL fixture
+// (3 goals, 16 attempts, full ESPN prose), enriched block total:
+//
+//   cap 2 -> 167   cap 3 -> 214   cap 4 -> 255   cap 5 -> 297   cap 6 -> 338 OVER
+//
+// Cap 3 at 214 leaves room for `fpl_match_events`, which costs ~98 real tokens
+// and is authoritative for EPL goals, assists, cards, saves and bonus per
+// CONTRACTS.md. The assembler decrements `remaining` by ACTUAL tokens, so a
+// 338-token block would take the total to ~538 of 600 and leave that source
+// unable to fit -- funding this enrichment by dropping the better one.
+//
+// Raising the declared budget was the ask's suggestion and is the wrong lever:
+// it widens the drop ceiling without creating any room in the 600-token total.
+// The volume is carried by the count note instead -- "(3 of 16 attempts)" tells
+// the generator there were sixteen for four tokens, where fourteen more lines
+// of ESPN prose would cost a hundred and twenty.
+const _NEAR_MISS_CAP = 3;
+
+/// Which near-misses out of sixteen. Woodwork first -- hitting the post IS the
+/// story of a 1-0 -- then the latest, because a chance in the 89th minute
+/// carries more than one in the 12th. Chronological on the way out.
+export function selectNearMisses(items, { cap = _NEAR_MISS_CAP } = {}) {
+    const near = items.filter(i => _NEAR_MISS_TYPE.test(String(i?.play?.type?.text || i?.type?.text || '')));
+    if (near.length <= cap) return near;
+    const idx = new Map(near.map((n, i) => [n, i]));
+    const wood = near.filter(n => _WOODWORK.test(String(n?.play?.type?.text || n?.type?.text || '')));
+    const rest = near.filter(n => !wood.includes(n));
+    // EVERY woodwork item survives, even past the cap. Hitting the post is the
+    // one thing in this container that is genuinely a near miss, and a fixture
+    // with four of them is the fixture most worth describing -- capping it away
+    // to stay under budget would drop the signal and keep the noise.
+    // `slice(-0)` is `slice(0)` and returns EVERYTHING -- so a fixture with more
+    // woodwork than the cap kept all 10 off-target attempts instead of none.
+    // Caught by the five-woodwork case below, which is exactly why it is in the
+    // guard: the interesting fixture is the one that breaks the arithmetic.
+    const fill = cap - wood.length;
+    return [...wood, ...(fill > 0 ? rest.slice(-fill) : [])]
+        .sort((a, b) => idx.get(a) - idx.get(b));
+}
+
+/// TWO GROUPS, BECAUSE THEY ARE NOT THE SAME CLAIM — and labelling them as one
+/// is how a brief invents drama that did not happen.
+///
+/// ESPN has exactly one type for a shot that missed: `Shot Off Target`. It
+/// covers a tap-in skied over the bar and a speculative 35-yarder equally, and
+/// nothing in the type distinguishes them. Only `Shot Hit Woodwork` is a genuine
+/// near miss.
+///
+/// So the block says "hit the woodwork" for woodwork and "attempts off target"
+/// for the rest. Pooling them under one "near misses" heading would license
+/// "they came close again and again" as a description of wild shooting — an
+/// invented claim the source does not support (Rule 1), produced by a label
+/// rather than by the data. The volume of off-target attempts is still worth
+/// carrying; it is just a different sentence than a near miss.
+///
+/// TIERING COUNTS THE THING IT CARES ABOUT. CONTRACTS.md offers
+/// `commentary.length >= 60` as a rich-fixture proxy, measured over 20 fixtures
+/// as a clean bimodal split. It is a correlate, and the array is already in
+/// hand: counting the items directly cannot mis-tier when ESPN changes how
+/// chatty its commentary is. The raw item count is still reported so the
+/// bimodal claim stays checkable against live data.
+export function formatNearMisses(chosen, commentaryLength) {
+    if (!chosen.length) return '';
+    const line = (i) => {
+        const text = String(i.text || i.play?.text || '').trim();
+        if (!text) return '';
+        const clk = typeof i.clock === 'object' ? (i.clock?.displayValue || '') : (i.clock || '');
+        return clk ? `${clk} — ${text}` : text;
+    };
+    const isWood = (i) => _WOODWORK.test(String(i?.play?.type?.text || i?.type?.text || ''));
+    const wood = chosen.filter(isWood).map(line).filter(Boolean);
+    const off  = chosen.filter(i => !isWood(i)).map(line).filter(Boolean);
+    const lines = [];
+    if (wood.length) {
+        lines.push('Hit the woodwork:');
+        lines.push(...wood);
+    }
+    if (off.length) {
+        // Named for what it is. An off-target shot is an attempt that missed,
+        // not evidence the side came close.
+        lines.push('Attempts off target:');
+        lines.push(...off);
+    }
+    if (!lines.length) return '';
+    lines.push('(None of the above are goals. An off-target attempt is not a near miss —'
+             + ' do not describe these as chances that nearly scored.)');
+    return lines.join('\n');
+}
+
 /// The block itself, split out from the fetch so the guard script can exercise
 /// what the generator actually sees without a network round trip. Everything
 /// that decides what a brief can claim happens in here.
-export function formatMatchEvents(items) {
+///
+/// `opts.nearMisses` is optional and soccer-only. Omitted, this function is
+/// byte-identical to its pre-enrichment self for every sport.
+export function formatMatchEvents(items, opts = {}) {
     const chosen = selectScoringPlays(items);
     const lines = ['', '[MATCH EVENTS]'];
     for (const i of chosen) {
@@ -1257,6 +1381,27 @@ export function formatMatchEvents(items) {
         // different failure from one that admits its own scope — and the
         // generator has no other way to know the list was cut.
         lines.push(`(${chosen.length} of ${items.length} scoring plays — lead changes and the closing period.)`);
+    }
+    // Tier stated in the block, same as truncation is. A recap built from goals
+    // only, on a fixture where near-misses were simply unavailable, must not
+    // read as a full account -- and the generator has no other way to tell the
+    // difference between "nothing else happened" and "nothing else was fetched".
+    if (Array.isArray(opts.nearMisses)) {
+        const near = selectNearMisses(opts.nearMisses);
+        const block = formatNearMisses(near, opts.nearMisses.length);
+        if (block) {
+            lines.push('');
+            lines.push(block);
+            const totalNear = opts.nearMisses.filter(i =>
+                _NEAR_MISS_TYPE.test(String(i?.play?.type?.text || i?.type?.text || ''))).length;
+            if (near.length < totalNear) {
+                lines.push(`(${near.length} of ${totalNear} attempts — woodwork first, then the latest.)`);
+            }
+        } else {
+            lines.push('');
+            lines.push('(No shot detail available for this fixture — goals only. This is'
+                     + ' missing data, not a quiet game: do not infer that few chances were created.)');
+        }
     }
     return lines.join('\n');
 }
@@ -1283,7 +1428,17 @@ async function buildMatchEventsContext(env, game) {
         // NFL's container is scoring plays already; the rest need the filter.
         const items = container === 'scoringPlays' ? raw : raw.filter(x => x.scoringPlay === true);
         if (!items.length) return '';
-        return formatMatchEvents(items);
+        // FETCHES NOTHING EXTRA. `commentary` rides in the summary payload this
+        // builder already retrieved, so enrichment costs zero additional
+        // requests -- Rule 78, and the parent ask's cost analysis depends on one
+        // fetch per game at finalization.
+        //
+        // Soccer only, and only when the container is actually present.
+        // CONTRACTS.md: "`commentary` exists for soccer only. Do not read a
+        // container without checking the sport." Every other sport passes no
+        // second argument and gets a byte-identical block.
+        const nearMisses = (key === 'epl' && Array.isArray(d.commentary)) ? d.commentary : null;
+        return nearMisses ? formatMatchEvents(items, { nearMisses }) : formatMatchEvents(items);
     } catch (_) {
         return '';   // Rule 5: a context source can never break brief generation.
     }

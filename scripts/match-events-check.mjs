@@ -12,7 +12,8 @@
 // Negative tests carry the weight. A selection rule that returns everything
 // passes every positive assertion.
 
-import { selectScoringPlays, formatMatchEvents } from '../src/context-assembler.js';
+import { selectScoringPlays, formatMatchEvents, selectNearMisses, formatNearMisses }
+  from '../src/context-assembler.js';
 
 let pass = 0, fail = 0;
 const ok = (name, cond, detail = '') => {
@@ -167,6 +168,108 @@ ok('blank play text is dropped', bl.split('\n').length === 3 && bl.includes('Rea
 //     header with no plays under it must never reach a prompt.
 ok('all-blank input -> empty string',
    formatMatchEvents([{ period: { number: 1 }, text: '' }]) === '');
+
+// ── Near-miss enrichment (CC-CMD-2026-08-23-soccer-near-miss-enrichment) ────
+//
+// 20-31. The whole point is that this touches SOCCER and nothing else, and that
+// it does not damage the goal list it is meant to complement.
+
+const goal = (m, t, h, a) => ({ text: t, period: { number: m <= 45 ? 1 : 2 },
+                                clock: { displayValue: `${m}'` },
+                                homeScore: h, awayScore: a, scoringPlay: true });
+const cm = (m, type, t) => ({ text: t, clock: { displayValue: `${m}'` }, play: { type: { text: type } } });
+const GOALS = [goal(12, 'Goal! Arsenal 1, Chelsea 0. Saka.', 1, 0),
+               goal(58, 'Goal! Arsenal 1, Chelsea 1. Palmer.', 1, 1),
+               goal(88, 'Goal! Arsenal 2, Chelsea 1. Havertz.', 2, 1)];
+const RICH = [...Array.from({ length: 14 }, (_, i) => cm(5 + i * 5, 'Shot Off Target', `Attempt missed. Player ${i + 1} shoots wide.`)),
+              cm(34, 'Shot Hit Woodwork', 'Rice hits the left post.'),
+              cm(90, 'Shot Hit Woodwork', 'Havertz rattles the crossbar.')];
+const est = (t) => Math.ceil(t.length / 4);
+
+// 20. THE REGRESSION THIS EXISTS TO PREVENT. Merging near-misses into the goal
+//     list routes them through selectScoringPlays, which ranks by running score.
+//     A near-miss has none, so the selector bails to items.slice(-8) and the
+//     OPENING GOAL is dropped -- measured, and strictly worse than goals-only.
+const enriched = formatMatchEvents(GOALS, { nearMisses: RICH });
+ok('every goal survives enrichment',
+   GOALS.every(g => enriched.includes(g.text)),
+   `missing: ${GOALS.filter(g => !enriched.includes(g.text)).map(g => g.text).join(' | ')}`);
+ok('...including the FIRST goal, which naive merging drops',
+   enriched.includes('Goal! Arsenal 1, Chelsea 0. Saka.'));
+ok('the goal lines are byte-identical to the unenriched block',
+   formatMatchEvents(GOALS).split('\n').slice(2).every(l => enriched.includes(l)));
+
+// 21. Five other sports must be byte-identical. Structural, not incidental:
+//     with no second argument the function cannot reach the new code at all.
+for (const [sport, plays] of Object.entries({
+    mlb: [goal(3, 'Walker homered to center.', 1, 0)],
+    nba: [goal(3, 'Banchero makes driving layup.', 2, 0)],
+    wnba: [goal(3, 'Clark makes 3-pt shot.', 3, 0)],
+    nhl: [goal(3, 'Caufield Goal (22) Wrist Shot.', 1, 0)],
+    nfl: [goal(3, 'Marks 20 Yd Run.', 7, 0)],
+})) {
+    ok(`${sport} block is byte-identical with no nearMisses argument`,
+       formatMatchEvents(plays) === formatMatchEvents(plays, {}),
+       'passing an empty opts object must not change a single byte');
+}
+
+// 22. Woodwork and off-target are NOT the same claim. ESPN has one type for a
+//     shot that missed, covering a skied tap-in and a 35-yard punt equally, so
+//     pooling them under "near misses" would license "they came close again and
+//     again" as a description of wild shooting.
+ok('woodwork is labelled separately from off-target attempts',
+   /Hit the woodwork:/.test(enriched) && /Attempts off target:/.test(enriched));
+ok('the block states an off-target attempt is not a near miss',
+   /not a near miss/.test(enriched),
+   'without this the label itself invents the claim');
+ok('the block forbids describing any of them as goals',
+   /None of the above are goals/.test(enriched));
+
+// 23. Every woodwork item survives the cap. A fixture with more posts than the
+//     cap is the fixture most worth describing.
+const FIVE_WOOD = [...Array.from({ length: 5 }, (_, i) => cm(10 + i * 10, 'Shot Hit Woodwork', `Post ${i + 1}`)),
+                   ...Array.from({ length: 10 }, (_, i) => cm(60 + i * 3, 'Shot Off Target', `Miss ${i + 1}`))];
+const picked = FIVE_WOOD.length && selectNearMisses(FIVE_WOOD);
+ok('all five woodwork items survive a cap of three',
+   picked.filter(x => /woodwork/i.test(x.play.type.text)).length === 5);
+// `slice(-0)` is `slice(0)` and returns EVERYTHING. The first version kept all
+// ten off-target attempts here instead of none.
+ok('...and no off-target attempt rides along past the cap',
+   picked.filter(x => !/woodwork/i.test(x.play.type.text)).length === 0,
+   `kept ${picked.length} items total — slice(-0) returns the whole array`);
+
+// 24. Fouls are in the same container and are not attempts.
+ok('fouls are excluded',
+   selectNearMisses([cm(51, 'Foul', 'Foul by Caicedo.')]).length === 0);
+
+// 25. A fixture whose commentary carries no attempts says so, and says it is
+//     MISSING DATA rather than a quiet game.
+const sparse = formatMatchEvents(GOALS, { nearMisses: [cm(51, 'Foul', 'Foul by Caicedo.')] });
+ok('a sparse fixture emits no attempt lines',
+   !/Hit the woodwork:|Attempts off target:/.test(sparse));
+ok('...and says the absence is missing data, not a quiet game',
+   /missing data, not a quiet game/.test(sparse),
+   'silence about absence reads as an account of the match');
+
+// 26. THE BUDGET. `match_events` declares 200 and the assembler SILENTLY drops
+//     any block over budget * 1.5 — which presents as a brief with no events at
+//     all, not a long one. Worst realistic fixture must fit, with room left for
+//     fpl_match_events (~98 real tokens, authoritative for EPL per CONTRACTS.md).
+const LONG = 'Attempt missed. Bukayo Saka (Arsenal) right footed shot from outside the box is high and wide to the right. Assisted by Martin Odegaard following a fast break.';
+const WORST = [...Array.from({ length: 14 }, (_, i) => cm(5 + i * 5, 'Shot Off Target', LONG)),
+               cm(34, 'Shot Hit Woodwork', 'Declan Rice (Arsenal) hits the left post with a right footed shot from the centre of the box.'),
+               cm(90, 'Shot Hit Woodwork', 'Kai Havertz (Arsenal) rattles the crossbar from close range.')];
+const worstTokens = est(formatMatchEvents(GOALS, { nearMisses: WORST }));
+ok(`enriched worst case (${worstTokens} tokens) is under the 300 drop ceiling`,
+   worstTokens <= 300, 'over this the assembler drops the block silently');
+ok(`...and leaves room for fpl_match_events in the 600 total (${600 - 200 - worstTokens} after espn_summary)`,
+   600 - 200 - worstTokens >= 98,
+   'the assembler decrements `remaining` by ACTUAL tokens — funding this by starving fpl_match_events would drop the better source');
+
+// 27. The count note carries the volume the cap discards, as a number.
+ok('the truncation note reports how many attempts there were',
+   /\(3 of 16 attempts/.test(formatMatchEvents(GOALS, { nearMisses: WORST })),
+   'fourteen more lines of prose cost 120 tokens; the number costs four');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
