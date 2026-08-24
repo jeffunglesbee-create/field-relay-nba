@@ -57,10 +57,21 @@ const noReading = finalityAgreement(NEITHER, true)
 check('prose with no finality reading scores the midpoint and says so',
   noReading.score === FINALITY_MAX / 2 && noReading.verdict === 'no-clear-reading',
   JSON.stringify(noReading))
-check('prose reading BOTH ways is not scored as either',
-  finalityAgreement(BOTH, true).reading === 'mixed'
-  && finalityAgreement(BOTH, true).score === FINALITY_MAX / 2,
-  `a recap that names a halftime score is not hedging — ${JSON.stringify(finalityAgreement(BOTH, true))}`)
+// Self-contradiction scores ZERO, and specifically WORSE than saying nothing.
+// Four of these turned up in the live corpus. A brief that reads as final on a
+// live game is corrected by learning the fact; a brief that says both cannot be,
+// because the contradiction is already inside it.
+const contradicts = finalityAgreement(BOTH, true)
+check('prose reading BOTH ways scores zero, under its own verdict',
+  contradicts.reading === 'mixed' && contradicts.score === 0
+  && contradicts.verdict === 'contradicts-itself',
+  JSON.stringify(contradicts))
+check('...and scores WORSE than prose that says nothing about finality',
+  contradicts.score < finalityAgreement(NEITHER, true).score,
+  'saying both must not be treated as more informative than saying neither')
+check('...and its verdict is not folded into no-clear-reading',
+  contradicts.verdict !== finalityAgreement(NEITHER, true).verdict,
+  'the two have different fixes: `neither` wants richer prose, `contradicts-itself` wants a rewrite')
 
 // ── The controls. ───────────────────────────────────────────────────────────
 check('the four corners are not all the same number',

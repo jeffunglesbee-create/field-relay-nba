@@ -70,6 +70,31 @@ jobs:
           RESCORE_LIMIT: ${{ github.event.inputs.limit || '160' }}
         run: node scripts/rescore-quality-6b.mjs
 
+      # The reconciliation block is data in a JSON file, and data nobody reads is
+      # the defect this whole session keeps finding. This CONSUMES it: if a
+      # published mean cannot be rederived from the rows it summarises, or the
+      # strata do not sum to the scored population, the run fails. An aggregate
+      # that does not reconcile with its own evidence is describing a different
+      # population and must not be committed as though it were a measurement.
+      #
+      # lang_disagreement is REPORTED, never gated: the SQL sampler and the JS
+      # regex are deliberately different widths, so a non-zero count is expected
+      # and only becomes a problem if nobody can see it.
+      - name: The manifest reconciles with its own rows
+        run: |
+          F=$(ls -t outbox/rescore-quality-6b-*.json 2>/dev/null | head -1)
+          [ -n "$F" ] || { echo "no manifest produced — nothing to reconcile"; exit 0; }
+          node -e '
+            const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            if (d.error) { console.log("run errored, reconciliation not reached:", d.error); process.exit(0); }
+            const r = d.finality_2x2 && d.finality_2x2.reconciliation;
+            if (!r) throw new Error("no reconciliation block — the manifest cannot check itself");
+            console.log("census_agrees", r.census_agrees, "| totals_add_up", r.totals_add_up,
+                        "| lang_disagreement", r.lang_disagreement && r.lang_disagreement.n);
+            if (!r.census_agrees) throw new Error("a published mean does not match the rows it summarises");
+            if (!r.totals_add_up) throw new Error("the strata do not sum to the scored population");
+          ' "$F"
+
       - name: Commit the manifest
         if: always()
         run: |

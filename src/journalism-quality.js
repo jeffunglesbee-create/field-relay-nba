@@ -872,7 +872,23 @@ export function finalityAgreement(text, isFinal) {
 
   if (isFinal === null || isFinal === undefined)
     return { score: FINALITY_MAX / 2, reading, verdict: 'unknown-finality' };
-  if (reading === 'mixed' || reading === 'neither')
+
+  // `mixed` scores ZERO, not the midpoint. Changed 2026-08-24 after the live
+  // corpus produced four of them: briefs carrying BOTH hedging and resolution
+  // language -- "at halftime" and "held on to win" in the same prose.
+  //
+  // That is worse than committing to the wrong answer, not more ambiguous than
+  // it. A brief that reads as final on a live game is corrected the moment you
+  // know the fact; a brief that says both cannot be corrected by any fact,
+  // because it already contains its own contradiction. Scoring it the same as
+  // prose that simply says nothing about finality rewards self-contradiction for
+  // hedging its bets.
+  //
+  // Its own verdict, not folded into no-clear-reading: the two have different
+  // fixes. `neither` wants richer prose; `contradicts-itself` wants a rewrite.
+  if (reading === 'mixed')
+    return { score: 0, reading, verdict: 'contradicts-itself' };
+  if (reading === 'neither')
     return { score: FINALITY_MAX / 2, reading, verdict: 'no-clear-reading' };
 
   const agrees = isFinal ? reading === 'final' : reading === 'hedged';
