@@ -1,0 +1,184 @@
+{
+  "probed_at": "2026-08-24T05:22:34.244Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 45,
+      "ctx": 25,
+      "temporal": 20,
+      "voice": 30,
+      "matchup": 30
+    },
+    "declared_unreachable": [
+      "ctx",
+      "matchup"
+    ],
+    "declared_reachable_ceiling": 239
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 81,
+      "mean_stored": 181.9
+    },
+    {
+      "kind": "reads as final",
+      "n": 1477,
+      "mean_stored": 189.9
+    }
+  ],
+  "matchup_note_coverage": [
+    {
+      "total": 1320,
+      "with_note": 36
+    }
+  ],
+  "rescored": {
+    "n_total": 160,
+    "in_progress": {
+      "n": 80,
+      "mean_rescored": 168.7,
+      "sd_rescored": 17.6,
+      "mean_stored": 181.6,
+      "dims": {
+        "specificity": 0.285,
+        "statDepth": 0.986,
+        "variety": 0.64,
+        "density": 0.782,
+        "freshness": 0.891,
+        "arcScore": 0.232,
+        "contextAnchoring": 0.786,
+        "temporalScore": 0.683,
+        "voiceScore": 0.662,
+        "matchupDepth": 0
+      }
+    },
+    "reads_as_final": {
+      "n": 80,
+      "mean_rescored": 173.2,
+      "sd_rescored": 14.3,
+      "mean_stored": 186.5,
+      "dims": {
+        "specificity": 0.236,
+        "statDepth": 0.994,
+        "variety": 0.618,
+        "density": 0.638,
+        "freshness": 0.904,
+        "arcScore": 0.372,
+        "contextAnchoring": 0.932,
+        "temporalScore": 0.75,
+        "voiceScore": 0.528,
+        "matchupDepth": 0
+      }
+    },
+    "gap_rescored": 4.5,
+    "gap_stored_for_this_sample": 4.9,
+    "dim_separation": {
+      "specificity": -0.049,
+      "statDepth": 0.008,
+      "variety": -0.022,
+      "density": -0.144,
+      "freshness": 0.012,
+      "arcScore": 0.14,
+      "contextAnchoring": 0.146,
+      "temporalScore": 0.067,
+      "voiceScore": -0.134,
+      "matchupDepth": 0
+    },
+    "era_spread": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "null"
+    ],
+    "gap_se": 2.5,
+    "gap_ratio_to_noise": 1.8,
+    "gap_verdict": "difference is only 1.8x the standard error — INDISTINGUISHABLE from noise at this n"
+  },
+  "finality_2x2": {
+    "note": "agrees vs disagrees on the fact x reading 2x2, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension's metric.",
+    "n_scoreable": 150,
+    "n_agrees": 30,
+    "n_disagrees": 66,
+    "n_abstained": 64,
+    "by_verdict": {
+      "unknown-finality": 10,
+      "hedges-a-finished-game": 66,
+      "no-clear-reading": 54,
+      "agrees": 30
+    },
+    "mean_finality_when_final": 7.6,
+    "mean_finality_when_live": null,
+    "gap_projected": 18.1,
+    "gap_current_same_rows": -0.6
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 150,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 152,
+      "statDepth": 159,
+      "variety": 160,
+      "density": 153,
+      "freshness": 160,
+      "arcScore": 140,
+      "contextAnchoring": 147,
+      "temporalScore": 150,
+      "voiceScore": 160,
+      "matchupDepth": 0
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_matchup": "zero on every row in this sample"
+  },
+  "error": null,
+  "candidates": {
+    "current": {
+      "nominal_total": 294,
+      "in_progress_mean": 168.7,
+      "final_mean": 173.2,
+      "gap": 4.5,
+      "gap_se": 2.5,
+      "gap_ratio_to_noise": 1.8,
+      "mean_total_final": 173.2
+    },
+    "shift_moderate": {
+      "nominal_total": 300,
+      "in_progress_mean": 173.3,
+      "final_mean": 181.9,
+      "gap": 8.6,
+      "gap_se": 3,
+      "gap_ratio_to_noise": 2.9,
+      "mean_total_final": 181.9
+    },
+    "shift_aggressive": {
+      "nominal_total": 300,
+      "in_progress_mean": 169.4,
+      "final_mean": 182.2,
+      "gap": 12.8,
+      "gap_se": 3.5,
+      "gap_ratio_to_noise": 3.7,
+      "mean_total_final": 182.2
+    },
+    "forward_only_bound": {
+      "nominal_total": 300,
+      "in_progress_mean": 146.5,
+      "final_mean": 184.7,
+      "gap": 38.2,
+      "gap_se": 7.3,
+      "gap_ratio_to_noise": 5.2,
+      "mean_total_final": 184.7
+    }
+  },
+  "candidate_summary": [
+    "current: gap 4.5 (1.8x noise), 1x the current gap",
+    "shift_moderate: gap 8.6 (2.9x noise), 1.9x the current gap",
+    "shift_aggressive: gap 12.8 (3.7x noise), 2.8x the current gap",
+    "forward_only_bound: gap 38.2 (5.2x noise), 8.5x the current gap"
+  ]
+}
