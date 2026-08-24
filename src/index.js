@@ -79,6 +79,8 @@ import {
   NOMINAL_TOTAL,
   REACHABLE_CEILING,
   UNREACHABLE_DIMS,
+  SLATE_CAPS,
+  CAPPED_DIMS,
   FOUR_FIFTHS_REACHABLE,
   REACHABLE_CEILING_GAME,
   UNREACHABLE_DIMS_GAME,
@@ -13317,6 +13319,17 @@ export default {
                     flat_bar_pct_of_nominal: Math.round(240 / NOMINAL_TOTAL * 10000) / 100,
                     flat_bar_pct_of_reachable: Math.round(240 / REACHABLE_CEILING * 10000) / 100,
                     four_fifths_of_reachable: FOUR_FIFTHS_REACHABLE,
+                    // ADDED 2026-08-24 (era 6). `unreachable_dims` above is a
+                    // BINARY list and eras 5-6 broke that shape: Dim 10 and Dim
+                    // 11 no longer score a flat zero without a game object, they
+                    // ABSTAIN AT THE MIDPOINT -- 15 of 30 and 10 of 20. Neither
+                    // is unreachable, neither is fully reachable, and calling
+                    // them either one is wrong by 15 and 10 points. `slate_caps`
+                    // is the per-dimension ceiling the ratio above is actually
+                    // computed from; `capped_dims` names the partly-reachable
+                    // population the binary list had nowhere to put.
+                    slate_caps: SLATE_CAPS,
+                    capped_dims: CAPPED_DIMS,
                     // ADDED 2026-08-23, additive so no existing consumer moves.
                     // The fields above describe the SLATE shape, which has no
                     // single game object. Most briefs are game briefs, and for
@@ -13331,13 +13344,28 @@ export default {
                         unreachable_points: NOMINAL_TOTAL - REACHABLE_CEILING_GAME,
                         flat_bar_pct_of_reachable: Math.round(240 / REACHABLE_CEILING_GAME * 10000) / 100,
                         four_fifths_of_reachable: FOUR_FIFTHS_REACHABLE_GAME,
-                        // Dim 10 is zero on game briefs today, and the reason is
-                        // not that it cannot run: regular_season_games.note is
-                        // populated on 36 of 1284 finalized games. Starved, not
-                        // unreachable -- so it is listed above as unreachable
-                        // for honesty about today's scores, and named here so
-                        // nobody reads that as a structural limit.
-                        matchup_note_status: 'data-starved: note populated on 36/1284 finalized games (2.8%), measured 2026-08-23',
+                        // SUPERSEDED BY ERA 6 (2026-08-24). Dim 10 no longer
+                        // reads regular_season_games.note at all. It scored zero
+                        // on 190 of 190 rows because the note is populated on
+                        // 37 of 1322 finalized games -- and 30 of those 37 are
+                        // golf, a sport this relay packs a tournament and a
+                        // round into home/away, so it has no matchup to note.
+                        // Set golf aside and it is 7 of 1292 (0.54%), five of
+                        // them broadcast carriage. Populating the column would
+                        // have made it worse: the dimension counted how many
+                        // note words reappeared in the prose, so full coverage
+                        // would have measured how obediently the generator
+                        // parrots an injected string.
+                        //
+                        // Dim 10 now reads the RESULT -- whether the prose
+                        // agrees with how close the game actually was -- which
+                        // is present on ~100% of finalized rows and cannot be
+                        // copied out of the prompt, being a relation between two
+                        // numbers rather than a string. It is therefore no
+                        // longer listed as unreachable on the game shape, and
+                        // `unreachable_dims` above is now empty for that shape.
+                        matchup_note_status: 'RETIRED 2026-08-24 (era 6): Dim 10 no longer reads regular_season_games.note. Coverage at retirement was 37/1322 (2.8%), or 7/1292 (0.54%) excluding golf.',
+                        margin_status: 'era 6: Dim 10 scores prose-vs-result closeness agreement. Reachable on any row carrying a score.',
                     },
                 },
                 // Same-response baseline — see alertsLegacyPredicate above.

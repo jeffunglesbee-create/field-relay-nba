@@ -537,27 +537,6 @@ export const SCALE = {
 // note column is fed. Reporting one global 245 made a 97.96%-of-reachable
 // argument about the 240 bar using the wrong denominator for the very rows the
 // 0-of-523 finding was drawn from.
-export const UNREACHABLE_DIMS = ['ctx', 'matchup'];          // slate / no-game shape
-export const UNREACHABLE_DIMS_GAME = ['matchup'];            // per-game shape
-// 294 as of 2026-08-24, and it was always 294 -- see the SCALE block for why the
-// 300 was a label rather than a total. Correcting it moved no score: every
-// threshold (240, 196, 110) reads against prose scored on this same scale before
-// and after.
-export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 294
-export const REACHABLE_CEILING = Object.entries(SCALE)                                // 245
-  .filter(([k]) => !UNREACHABLE_DIMS.includes(k))
-  .reduce((a, [, v]) => a + v, 0);
-// Four-fifths OF THE REACHABLE SCALE — the bar stated on the scale it is applied
-// to, rather than a constant carried over from a total this runtime cannot reach.
-export const FOUR_FIFTHS_REACHABLE = Math.round(REACHABLE_CEILING * 0.8);             // 196
-
-// The same two numbers for a brief that HAS a game object — the majority shape.
-// Derived identically, from the same SCALE table, so they cannot drift apart
-// from it (ask 3 of CC-CMD-2026-08-15-quality-bar-scale).
-export const REACHABLE_CEILING_GAME = Object.entries(SCALE)                          // 270
-  .filter(([k]) => !UNREACHABLE_DIMS_GAME.includes(k))
-  .reduce((a, [, v]) => a + v, 0);
-export const FOUR_FIFTHS_REACHABLE_GAME = Math.round(REACHABLE_CEILING_GAME * 0.8);  // 216
 const _STOP_WORDS_RE = /^(their|about|would|could|which|should|after|before|against|during|while|other|first|since|still|being|where|these|those|there|every|until|under|again|from|with|this|that|have|will|they|been|were|what|when|into|than|then|also|each|over|more|most|such|both|some|only|very|just|like|well|even|back|game|team|play|year|time|week)$/i;
 
 async function _datamuseFreshness(words) {
@@ -1632,3 +1611,69 @@ export async function runQualityChain(prompt, initialText, callProxy, opts = {})
     ms: Date.now() - t0,
   };
 }
+
+// ── ERA 6 REOPENED THIS, AND THE NAME-LIST SHAPE DID NOT SURVIVE IT. ───────
+//
+// Two separate defects, both introduced by renaming SCALE.matchup -> SCALE.margin:
+//
+// 1. `'matchup'` stopped naming anything. Both lists filtered a key that is no
+//    longer in SCALE, so both filters matched NOTHING. REACHABLE_CEILING went
+//    245 -> 277 and REACHABLE_CEILING_GAME went 270 -> 294, silently, and the
+//    /quality endpoint published `unreachable_points: 0` for the game shape
+//    while still listing "matchup" as unreachable. A list of names is only as
+//    good as the guarantee that the names resolve, and there was none.
+//
+// 2. Even repaired, a BINARY list is the wrong shape now. Dim 10 used to score
+//    a flat zero without a note and Dim 7 a flat zero without a game, so
+//    "unreachable" was a fair description. Era 5 and era 6 replaced both of the
+//    game-fact dimensions with ones that ABSTAIN AT THE MIDPOINT when the fact
+//    is missing: marginAgreement(text, null) is 15 of 30, and
+//    finalityAgreement(text, null) is 10 of 20. Neither is unreachable and
+//    neither is fully reachable. Calling them either one is wrong by 15 and 10
+//    points respectively.
+//
+// So the cap is per-dimension, and it is DERIVED by asking the functions rather
+// than declared beside them. A second declaration is precisely how SCALE's
+// weights drifted from their implementation ceilings for two months.
+const _NO_TEXT = 'x';
+export const SLATE_CAPS = {
+  // Dim 7 needs home/away terms off opts.game; with no game it contributes 0.
+  // Declared, because dim7 is inline in scoreProse and cannot be called alone --
+  // and therefore guarded by check-slate-caps-are-derived.mjs against a real
+  // no-game scoreProse call rather than trusted.
+  ctx: 0,
+  // Derived. These two ARE callable, so nothing here restates them.
+  margin: marginAgreement(_NO_TEXT, null).score,
+  finality: finalityAgreement(_NO_TEXT, null).score,
+};
+// Kept for the /quality response and for anything reading "which dims does a
+// slate brief lose outright" -- now derived from the caps rather than hand-kept
+// in parallel with them.
+export const UNREACHABLE_DIMS = Object.keys(SLATE_CAPS).filter((k) => SLATE_CAPS[k] === 0);
+// Dims a slate brief can only partly reach. This is the population the old
+// binary list had nowhere to put, and reporting it as either extreme is what
+// made the 245 wrong in the first place.
+export const CAPPED_DIMS = Object.keys(SLATE_CAPS)
+  .filter((k) => SLATE_CAPS[k] > 0 && SLATE_CAPS[k] < SCALE[k]);
+// A brief WITH a game reaches every dimension: ctx has its terms, and both
+// agreement dims have a fact to agree with. Era 6 emptied this list by making
+// Dim 10 read the result instead of a note that 99.5% of non-golf rows lack.
+export const UNREACHABLE_DIMS_GAME = [];
+// 294 as of 2026-08-24, and it was always 294 -- see the SCALE block for why the
+// 300 was a label rather than a total. Correcting it moved no score: every
+// threshold (240, 196, 110) reads against prose scored on this same scale before
+// and after.
+export const NOMINAL_TOTAL = Object.values(SCALE).reduce((a, b) => a + b, 0);        // 294
+export const REACHABLE_CEILING = Object.entries(SCALE)                                // 252
+  .reduce((a, [k, v]) => a + (k in SLATE_CAPS ? SLATE_CAPS[k] : v), 0);
+// Four-fifths OF THE REACHABLE SCALE — the bar stated on the scale it is applied
+// to, rather than a constant carried over from a total this runtime cannot reach.
+export const FOUR_FIFTHS_REACHABLE = Math.round(REACHABLE_CEILING * 0.8);             // 202
+
+// The same two numbers for a brief that HAS a game object — the majority shape.
+// Derived identically, from the same SCALE table, so they cannot drift apart
+// from it (ask 3 of CC-CMD-2026-08-15-quality-bar-scale).
+export const REACHABLE_CEILING_GAME = Object.entries(SCALE)                          // 294
+  .filter(([k]) => !UNREACHABLE_DIMS_GAME.includes(k))
+  .reduce((a, [, v]) => a + v, 0);
+export const FOUR_FIFTHS_REACHABLE_GAME = Math.round(REACHABLE_CEILING_GAME * 0.8);  // 235

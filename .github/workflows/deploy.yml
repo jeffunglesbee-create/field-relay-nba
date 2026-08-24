@@ -231,6 +231,17 @@ jobs:
       - name: margin agreement is sport-free and cannot be satisfied by copying
         run: node scripts/margin-agreement-check.mjs
 
+      # The generalizable half of era 6, and the gap that era flagged in its own
+      # commit message. The rename SCALE.matchup -> SCALE.margin left two
+      # constants filtering on a string that no longer named anything, so both
+      # filters matched NOTHING and the reachable ceilings rose 245->277 and
+      # 270->294 in silence. Weight-preserving, so the era fingerprint could not
+      # see it; no diff on those lines, so review could not either. This asserts
+      # every name in those lists resolves to a live SCALE key, and that each
+      # cap equals what the dimension actually produces with the fact missing.
+      - name: slate caps resolve against SCALE and are derived, not declared twice
+        run: node scripts/check-slate-caps-are-derived.mjs --self-test && node scripts/check-slate-caps-are-derived.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
