@@ -66,9 +66,15 @@ for (const lit of atRisk) {
 // brief in every sport by design, so a real-looking figure sitting in them is
 // mineable by all of them. They now carry ## placeholders instead.
 //
-// This assertion is why the at-risk count above is allowed to fall: it dropped
-// from 34 to 30 assertions when four literals left the register, and without
-// this line that drop would look like coverage quietly shrinking.
+// This assertion is why the at-risk count above is allowed to fall: the count
+// dropped when four literals left the register, and without this line that drop
+// would look like coverage quietly shrinking.
+//
+// The figures this comment used to carry ("from 34 to 30") did not match either
+// the session that made the change -- its outbox records 33/33 -- or a
+// measurement at HEAD. Corrected 2026-08-24 to describe the mechanism rather
+// than to restate a count that drifts every time the literal list moves, which
+// is the same defect the assertion below exists to catch, one layer up.
 const universal = VOICE_REGISTER_SEGMENTS.filter(s => s.sport === null).flatMap(s => s.lines).join('\n');
 const stillThere = PROMPT_EXAMPLE_LITERALS.filter(l => l !== '##' && universal.includes(l));
 ok('no tracked literal survives in the universal segments', stillThere.length === 0,
