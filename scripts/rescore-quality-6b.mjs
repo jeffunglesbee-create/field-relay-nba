@@ -313,6 +313,7 @@ try {
             finality_in_score: dim11InScore,
             paths_agree: dim11InScore === fin11.score,
             finality_reading: fin11.reading, finality_verdict: fin11.verdict,
+            margin_verdict: b.margin_verdict, margin_fact: b.margin_fact,
             total: b.total, dims: b.dims,
         });
     }
@@ -506,10 +507,65 @@ try {
         verdict_ctx: scored.some(s => (s.dims.contextAnchoring || 0) > 0)
             ? 'REACHABLE — scored above zero on real rows'
             : 'zero on every row in this sample',
-        verdict_matchup: scored.some(s => (s.dims.matchupDepth || 0) > 0)
+        verdict_margin: scored.some(s => (s.dims.marginAgreement || 0) > 0)
             ? 'REACHABLE — scored above zero on real rows'
             : 'zero on every row in this sample',
     };
+
+    // ── Dim 10 after era 6, measured the way Dim 11 was. ────────────────────
+    //
+    // `nonzero_rows_per_dim.marginAgreement = 128` is a REACHABILITY claim and
+    // nothing more. A dimension that returns the abstain midpoint on every row
+    // satisfies it while separating nothing -- the same constant Dim 10 was
+    // before era 6, moved from 0 to 15. Run 16 is exactly that shape: mean
+    // 0.500 on in-progress rows and 0.521 on finals, which is 33 abstains and
+    // near-enough 95.
+    //
+    // So the census below is the actual measurement. It reports where the
+    // midpoints come from, because two of them mean opposite things:
+    // `no-honest-verdict` is the dimension declining to judge an ordinary
+    // game -- correct, by design -- while `unknown-result` is a row with no
+    // score to judge, which is missing input, not a judgement.
+    m.margin_census = (() => {
+        const cens = (rows) => {
+            const by = {};
+            for (const r of rows) by[r.margin_verdict || 'none'] = (by[r.margin_verdict || 'none'] || 0) + 1;
+            return by;
+        };
+        const withResult = scored.filter(s => s.margin_fact && s.margin_fact !== 'unknown');
+        const judged = scored.filter(s => s.margin_verdict === 'agrees'
+            || s.margin_verdict === 'calls-a-tight-game-a-rout'
+            || s.margin_verdict === 'calls-a-rout-close'
+            || s.margin_verdict === 'contradicts-itself');
+        const factBy = {};
+        for (const r of scored) factBy[r.margin_fact || 'none'] = (factBy[r.margin_fact || 'none'] || 0) + 1;
+        return {
+            by_verdict: cens(scored),
+            by_fact: factBy,
+            n_rows_with_a_result: withResult.length,
+            // The number that decides whether era 6 bought anything. A row is
+            // JUDGED only when the dimension took a position -- full marks or
+            // zero. Abstains are excluded on both sides.
+            n_judged: judged.length,
+            judged_share: r3(judged.length / scored.length),
+            // And the separation, carrying its error bar. Same form as
+            // `blindness`: a difference without one is how era 4's 11.5 survived.
+            separation: (() => {
+                const good = scored.filter(s => s.margin_verdict === 'agrees').map(s => s.total);
+                const bad  = scored.filter(s => s.margin_verdict === 'calls-a-tight-game-a-rout'
+                    || s.margin_verdict === 'calls-a-rout-close'
+                    || s.margin_verdict === 'contradicts-itself').map(s => s.total);
+                if (good.length < 2 || bad.length < 2)
+                    return { n_agrees: good.length, n_disagrees: bad.length,
+                             verdict: 'UNDERPOWERED — one side of the split has under 2 rows, so no claim is made' };
+                const se = Math.sqrt(sd(good) ** 2 / good.length + sd(bad) ** 2 / bad.length);
+                const gap = mean(good) - mean(bad);
+                return { n_agrees: good.length, n_disagrees: bad.length,
+                         gap: r1(gap), se: r1(se),
+                         ratio_to_noise: se > 0 ? r1(Math.abs(gap) / se) : null };
+            })(),
+        };
+    })();
 } catch (e) { m.error = String(e.message || e); }
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
