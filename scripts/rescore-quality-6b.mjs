@@ -171,7 +171,7 @@ try {
                 g.home, g.away, g.home_score, g.away_score, g.note, g.finalized_at
          FROM briefs b
          LEFT JOIN regular_season_games g ON g.espn_event_id = b.game_id
-         WHERE b.brief_type = 'game_recap' AND b.quality_score IS NOT NULL
+         WHERE b.brief_type IN ('game_recap','game_brief') AND b.quality_score IS NOT NULL
            AND ${want ? '' : 'NOT '}${LIVE_LANG}
          ORDER BY b.date DESC, b.id DESC
          LIMIT ?`, [perClass]);
@@ -233,7 +233,7 @@ try {
     const meanFinality = (set) => set.length ? r1(mean(set.map(x => x.finality))) : null;
 
     m.finality_2x2 = {
-        note: 'agrees vs disagrees on the fact x reading 2x2, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension\'s metric.',
+        note: 'READ `blindness` FIRST — it is the only figure here computed without new weights. `gap_projected_definitional` restates FINALITY_MAX and is not evidence. Corpus widened 2026-08-24 to game_recap + game_brief: game_recap is finality-gated by ask 2, so on recaps alone `is_final` is true for every row and half the 2x2 cannot have rows at all. 2x2 of fact x reading, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension\'s metric.',
         n_scoreable: scoreable.length, n_agrees: agrees.length,
         n_disagrees: disagrees.length, n_abstained: abstains.length,
         by_verdict: Object.fromEntries([...new Set(scored.map(x => x.finality_verdict))]
@@ -242,10 +242,34 @@ try {
         // it scored zero on 190 of 190 rows and passed every aggregate test.
         mean_finality_when_final: meanFinality(scoreable.filter(x => x.is_final)),
         mean_finality_when_live:  meanFinality(scoreable.filter(x => !x.is_final)),
-        gap_projected: (agrees.length && disagrees.length)
+        // THE FINDING, and it needs no new weights: does the CURRENT rubric already
+        // separate these rows? If it does, a finality dimension is redundant. If
+        // it does not, the rubric is blind to a distinction that matters, and
+        // that is measured rather than projected.
+        //
+        // Carries its error bar. A difference without one is how era 4's 11.5
+        // survived for a day.
+        blindness: (() => {
+            if (agrees.length < 2 || disagrees.length < 2) return null;
+            const a = agrees.map(x => x.total), b = disagrees.map(x => x.total);
+            const se = Math.sqrt(sd(a) ** 2 / a.length + sd(b) ** 2 / b.length);
+            const gap = mean(a) - mean(b);
+            return {
+                gap_current: r1(gap), se: r1(se),
+                ratio_to_noise: se > 0 ? r1(Math.abs(gap) / se) : null,
+                verdict: se > 0 && Math.abs(gap) / se >= 2
+                    ? 'the current rubric DOES separate these rows — a finality dimension may be redundant'
+                    : 'the current rubric CANNOT separate these rows — it scores a correct recap and a hedging one the same',
+                n_agrees: a.length, n_disagrees: b.length,
+            };
+        })(),
+        // DEFINITIONAL, not evidence. agrees score FINALITY_MAX and disagrees
+        // score 0 by construction, so this gap is ~FINALITY_MAX minus the arc/ctx
+        // funding difference. It states the size of the lever, not that the lever
+        // is pulling on anything real. The `blindness` figure above is the one
+        // that answers whether the lever is needed.
+        gap_projected_definitional: (agrees.length && disagrees.length)
             ? r1(mean(agrees.map(projected)) - mean(disagrees.map(projected))) : null,
-        gap_current_same_rows: (agrees.length && disagrees.length)
-            ? r1(mean(agrees.map(x => x.total)) - mean(disagrees.map(x => x.total))) : null,
     };
 
     const live = scored.filter(s => s.live_lang);
