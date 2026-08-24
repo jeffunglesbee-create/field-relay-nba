@@ -109,3 +109,58 @@ keep-everything path. Not live exposure: no ATP or WTA rows appear among the
 - Unblocks on: the first finalized tennis brief.
 - Verify: `detectSportClass('atp')` returns a class, and
   `check-no-foreign-league-in-prompt` lists `atp` among its sports.
+
+---
+
+## Addendum — tennis, 2026-08-24
+
+Closed the residual named above. **Three pieces, because fewer is a half-fix.**
+
+| piece | why it was required |
+|---|---|
+| classifier | `atp`, `wta`, `tennis` → class `tennis` |
+| **Exemplar K** | a class with **no** exemplar takes `voiceRegisterFor`'s keep-everything fallback — classified in name, contaminated in fact |
+| **vocabulary** | `SPORT_VOCAB_VIOLATIONS.tennis` did not exist, so `checkSportVocab` returned `[]` and layer 2b enforced nothing on tennis |
+
+Adding the classifier alone would have reproduced golf's exact state: looks
+handled, still receives basketball and hockey exemplars.
+
+### The vocabulary entry carries the real information
+
+A tennis match has no innings, quarters, periods or downs — and **no clock**.
+"Late in the fourth" and "with a minute left" are impossible, not merely wrong.
+`overtime` is the sharp one: a tied set goes to a **tiebreak**, and a deciding set
+may run on indefinitely where none is played.
+
+Verified firing:
+
+```
+checkSportVocab("Alcaraz scored a touchdown in the fourth quarter of overtime.", "atp")
+-> ["quarter", "fourth quarter", "touchdown", "overtime"]
+```
+
+### Guards extended, not left behind
+
+- `check-no-foreign-league-in-prompt` covers `atp`/`wta` and knows `ATP`/`WTA` as
+  league tokens
+- `voice-register-scope-check` gains the K cases and asserts the no-clock rule
+  directly — 38 → 45
+
+Exemplar K checked mechanically like H/I/J: no banned phrase, no wire-copy
+construction, no digit outside a `##` or a word-count annotation, zero new
+mineable literals.
+
+### Every briefed sport now has a class and its own exemplar
+
+```
+EPL / MLS / La Liga   soccer      D, E
+NBA / WNBA            basketball  A, B, F
+NHL                   hockey      C, G
+MLB                   baseball    H
+NFL / CFL             football    I
+golf                  golf        J
+atp / wta             tennis      K
+```
+
+No sport takes the keep-everything fallback any more. The fallback still exists
+for the mixed-sport slate, which is what it was for.
