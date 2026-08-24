@@ -29,7 +29,7 @@ import { SCALE, SCORING_ERAS, CURRENT_SCORING_ERA, NOMINAL_TOTAL } from '../src/
 // Update this in the SAME commit that changes SCALE, alongside a new
 // SCORING_ERAS entry. The value is printed by this script when it fails.
 const EXPECTED_SCALE_FINGERPRINT =
-  'arc:45|ctx:25|density:10|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
+  'arc:33|ctx:17|density:10|finality:20|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
 // The era that the fingerprint above belongs to.
 //
 // Still 4 after the 2026-08-24 SCALE correction, and that is not an oversight.
@@ -42,7 +42,17 @@ const EXPECTED_SCALE_FINGERPRINT =
 // `correctedOn` on the latest era saying why no score moved. Without that
 // escape hatch this check forces a fake era; without the requirement, a real
 // reweighting could hide behind the word "correction".
-const EXPECTED_ERA_FOR_FINGERPRINT = 4;
+const EXPECTED_ERA_FOR_FINGERPRINT = 5;
+
+// The fingerprint this one REPLACED, and the era it belonged to. Without this
+// the file has no history and the correction rule below cannot fire: it compared
+// CURRENT_SCORING_ERA against EXPECTED_ERA_FOR_FINGERPRINT, which are updated
+// together in the same commit and are therefore always equal. It failed era 5 —
+// a legitimate new era — while a SCALE edit that bumped only the fingerprint
+// would have sailed through, which is backwards from what it is for.
+const PREVIOUS_SCALE_FINGERPRINT =
+  'arc:45|ctx:25|density:10|fresh:36|matchup:30|spec:30|statDepth:38|temporal:20|variety:30|voice:30';
+const PREVIOUS_ERA = 4;
 
 const fingerprint = Object.keys(SCALE).sort()
   .map(k => `${k}:${SCALE[k]}`).join('|');
@@ -79,10 +89,16 @@ check('the latest era states a measured effect',
 const latestEra = SCORING_ERAS[SCORING_ERAS.length - 1];
 const isCorrection = typeof latestEra?.correctedOn === 'string'
   && typeof latestEra?.correction === 'string' && /\d/.test(latestEra.correction);
-check('a SCALE change without a new era is a declared correction',
-  CURRENT_SCORING_ERA > EXPECTED_ERA_FOR_FINGERPRINT || isCorrection,
-  `era ${CURRENT_SCORING_ERA} carries the fingerprint but no correctedOn/correction. `
-  + `A SCALE edit that moves no score must say so and say why; one that moves scores needs a new era.`);
+const fingerprintChanged = EXPECTED_SCALE_FINGERPRINT !== PREVIOUS_SCALE_FINGERPRINT;
+const eraWasMinted = EXPECTED_ERA_FOR_FINGERPRINT > PREVIOUS_ERA;
+check('a SCALE change either mints an era or is a declared correction',
+  !fingerprintChanged || eraWasMinted || isCorrection,
+  `the fingerprint moved from era ${PREVIOUS_ERA}'s and era ${EXPECTED_ERA_FOR_FINGERPRINT} `
+  + `is not newer, so this must be a correction — but era ${CURRENT_SCORING_ERA} carries no `
+  + `correctedOn/correction saying why no score moved.`);
+check('the previous fingerprint is not the current one',
+  fingerprintChanged,
+  'PREVIOUS_SCALE_FINGERPRINT was not updated when SCALE changed, so the rule above cannot fire.');
 
 check('every era entry has era, from, change and measuredEffect',
   SCORING_ERAS.every(e => e.era != null && e.from && e.change && e.measuredEffect));

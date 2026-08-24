@@ -74,6 +74,13 @@ const DIMS = [
     ceiling: (ns) => (new Set(ns).size === 1 ? ns[0] : null),
   },
   {
+    key: 'finality',
+    where: 'Dim 11 finalityAgreement — FINALITY_MAX',
+    find: /export const FINALITY_MAX = (\d+);/g,
+    expect: 1,
+    ceiling: (ns) => ns[0],
+  },
+  {
     key: 'matchup',
     where: 'Dim 10 matchupDepth — Math.min(N, hits * 10)',
     find: /dim10 = Math\.min\((\d+), hits \* 10\)/g,
@@ -171,7 +178,7 @@ if (process.argv.includes('--self-test')) {
   check('dims 1-5 are the applied half and are all present',
     APPLIED.every((k) => typeof SCALE[k] === 'number'),
     `missing: ${APPLIED.filter((k) => typeof SCALE[k] !== 'number').join(', ')}`)
-  check('SCALE declares exactly these ten dimensions',
+  check(`SCALE declares exactly these ${DIMS.length + APPLIED.length} dimensions`,
     Object.keys(SCALE).length === DIMS.length + APPLIED.length,
     `SCALE has ${Object.keys(SCALE).length} keys; a new one needs a ceiling reader here or it is unchecked`)
 }

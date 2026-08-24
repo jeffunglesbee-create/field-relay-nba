@@ -85,6 +85,18 @@ export const SCORING_ERAS = [
     correctedOn: '2026-08-24T04:00:00Z',
     correction: 'SCALE dims 6-10 were documentation, not weights: arc 55->45, ctx 32->25, temporal 25->20, voice 20->30, matchup 24->30, restoring the values the code actually reaches. Declared total 300->294. No score changes -- scoreProse reads SCALE only for dims 1-5. Guarded from here by scripts/check-scale-matches-implementation.mjs.',
   },
+  {
+    era: 5,
+    from: '2026-08-24T05:45:00Z',
+    deploy: 'CC-CMD-2026-08-23-finality-dimension',
+    change: 'Dim 11 added: finality agreement, 20 points, the first dimension that reads game state. Funded entirely from the two proxies it replaces -- arc 45->33 (literals 10/10/10/15 -> 8/8/8/9), ctx 25->17 (8/8/9 -> 6/6/5). Nominal total unchanged at 294. Scores prose-vs-fact AGREEMENT both ways: a recap reading as final on a finished game and a brief hedging about a live one both score 20; either mismatch scores 0; self-contradicting prose scores 0 under its own verdict; unknown finality and no-finality-reading abstain at 10.',
+    // THE JUSTIFICATION IS A MEASUREMENT OF THE OLD INSTRUMENT, not a projection
+    // of the new one. Era 4's recorded effect was the latter and described a
+    // weighting scoreProse never applied; this states what the rubric could not
+    // do, measured on real rows, before anything changed.
+    measuredEffect: 'BEFORE: over 128 real briefs, fact-stratified, the ten-dimension rubric separated correct finality readings from incorrect ones by -4.0 points at 0.9x the standard error (n=13 agrees vs 33 disagrees) -- no separation, wrong sign, three samples all under 1.0x. The dominant defect is the MIRRORED one the parent ask named: 28 of 128 briefs hedge about games that had already finished, against 1 that calls a live game final. Dim 11 scores non-zero on both sides of the fact (mean 6.9 on finalized rows, 10.0 on live ones), which is the test Dim 10 failed silently for two months at zero on 190 of 190. Also measured: the LIVE_LANG prose-only gap REVERSES under fact-stratified sampling, +4.5 (1.8x) to -14.1 (4.4x), so era 4 and the parent CC-CMD were both reasoning from a sign that was an artifact of taking the newest rows. AFTER: pending the first post-deploy rescore-quality-6b run; artifacts outbox/rescore-quality-6b-20260824T053829Z.json (before) and the next scheduled or dispatched run.',
+    recordedRetroactively: false,
+  },
 ];
 
 // Which scoring era a brief's stored score belongs to, from its `date`.
@@ -487,11 +499,12 @@ export const SCALE = {
   // Dim 1-5, APPLIED in `base` (mirrors the local W in scoreProse)
   spec: 30, statDepth: 38, variety: 30, density: 10, fresh: 36,
   // Dim 6-10, RAW ceilings read out of the code that produces them
-  arc: 45,        // (stakes?10:0)+(tension?10:0)+(resolution?10:0)+(bonus?15:0)
-  ctx: 25,        // dim7 += 8, += 8, += 9
+  arc: 33,        // era 5: was 45, funded Dim 11
+  ctx: 17,        // era 5: was 25, funded Dim 11
   temporal: 20,   // Math.round((anchored / statSentences) * 20)
   voice: 30,      // Math.min(30, ...) in all four sport branches
   matchup: 30,    // Math.min(30, hits * 10)
+  finality: 20,   // FINALITY_MAX — the 12 + 8 the two proxies released
 };
 // Dimensions with no input — and WHICH dimensions those are depends on the
 // CALL SITE, not on the runtime. The original comment here, and the 2026-08-16
@@ -743,7 +756,7 @@ export async function scoreProse(text, opts = {}) {
     /\bif\b/i.test(last) || /\?/.test(last) ||
     sentences.length >= 2 && /\b(will|could|may|might)\b/i.test(last);
   const bonus = stakes && tension && resolution;
-  const arcScore = (stakes?10:0) + (tension?10:0) + (resolution?10:0) + (bonus?15:0);
+  const arcScore = (stakes?8:0) + (tension?8:0) + (resolution?8:0) + (bonus?9:0);
 
   // Dim 7: Context Anchoring (0→25) — brief anchors to the actual matchup.
   // Awards points when team names and final score appear in prose.
@@ -754,11 +767,11 @@ export async function scoreProse(text, opts = {}) {
     const tl = text.toLowerCase();
     const homeTerm = (home || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
     const awayTerm = (away || '').toLowerCase().split(/\s+/).filter(Boolean).pop() || '';
-    if (homeTerm.length > 2 && tl.includes(homeTerm)) dim7 += 8;
-    if (awayTerm.length > 2 && tl.includes(awayTerm)) dim7 += 8;
+    if (homeTerm.length > 2 && tl.includes(homeTerm)) dim7 += 6;
+    if (awayTerm.length > 2 && tl.includes(awayTerm)) dim7 += 6;
     const hs = homeScore != null ? String(homeScore) : '';
     const as_ = awayScore != null ? String(awayScore) : '';
-    if ((hs && text.includes(hs)) || (as_ && text.includes(as_))) dim7 += 9;
+    if ((hs && text.includes(hs)) || (as_ && text.includes(as_))) dim7 += 5;
   }
 
   // Dim 8: Temporal Precision (0-20)
@@ -785,9 +798,27 @@ export async function scoreProse(text, opts = {}) {
     }
   }
 
-  // Full 300-point ceiling — all 10 dimensions active.
-  const total = Math.min(300, Math.max(0,
-    base + arcScore + temporalScore + voiceScore + dim7 + dim10
+  // Dim 11: Finality Agreement (0→20) — does the prose agree with whether the
+  // game was actually over? The ONLY dimension that reads game state; arc and
+  // ctx are proxies for it, and reweighting proxies is bounded at 38.2 against
+  // this scale while zeroing every other purpose the rubric serves.
+  //
+  // Funded from the two proxies it replaces, so the nominal total is unchanged
+  // at 294: arc 45->33, ctx 25->17. That funding is the honest answer to "is
+  // this just re-buying arc and ctx under a new name" — it is measurable, and
+  // the answer is no: over 128 real rows the current rubric separated correct
+  // from incorrect finality readings by -4.0 at 0.9x the standard error, which
+  // is to say not at all.
+  //
+  // Data source: opts.game.finalizedAt. Absent -> the dimension abstains at the
+  // midpoint and says so, rather than scoring zero. Dim 10 scored zero on 190 of
+  // 190 rows for two months and passed every aggregate test while doing nothing.
+  const dim11 = finalityAgreement(text,
+    opts.game ? (opts.game.finalizedAt ? true : (opts.game.finalizedAt === null ? false : null)) : null);
+
+  // Full 294-point ceiling — all 11 dimensions active.
+  const total = Math.min(294, Math.max(0,
+    base + arcScore + temporalScore + voiceScore + dim7 + dim10 + dim11.score
   ));
   if (opts.breakdown) {
     // Each dim normalized to its own ceiling as a 0-1 fraction, for
@@ -808,12 +839,17 @@ export async function scoreProse(text, opts = {}) {
         variety:          Math.min(1, Math.max(0, variety)),
         density:          Math.min(1, Math.max(0, density)),
         freshness:        Math.min(1, Math.max(0, freshness / 100)),
-        arcScore:         Math.min(1, Math.max(0, arcScore / 45)),
-        contextAnchoring: Math.min(1, Math.max(0, dim7 / 25)),
+        arcScore:         Math.min(1, Math.max(0, arcScore / 33)),
+        contextAnchoring: Math.min(1, Math.max(0, dim7 / 17)),
         temporalScore:    Math.min(1, Math.max(0, temporalScore / 20)),
         voiceScore:       Math.min(1, Math.max(0, voiceScore / 30)),
         matchupDepth:     Math.min(1, Math.max(0, dim10 / 30)),
+        finality:         Math.min(1, Math.max(0, dim11.score / FINALITY_MAX)),
       },
+      // The verdict travels with the score. A 0.5 on this dimension is an
+      // abstention, a 0 is a contradiction, and an aggregate that cannot tell
+      // them apart is describing two different failures as one number.
+      finality_verdict: dim11.verdict,
     };
   }
   return total;

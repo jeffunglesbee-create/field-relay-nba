@@ -319,3 +319,70 @@ say so directly — that census is in the manifest for exactly this reason.
 `mean_finality_when_*` non-zero. Then `scoreProse` gets the call, `SCALE` gets
 `arc: 33, ctx: 17, finality: 20`, and era 5 ships with a measured effect — a
 real one this time, confirmed post-deploy rather than projected and left there.
+
+---
+
+## Part two — era 5, the first instrument change since era 3
+
+Dim 11 is wired into `scoreProse`. 20 points, funded entirely from the two
+proxies it replaces: `arc 45->33` (literals `10/10/10/15 -> 8/8/8/9`),
+`ctx 25->17` (`8/8/9 -> 6/6/5`). Nominal total unchanged at 294.
+
+### The justification is a measurement of the OLD instrument
+
+Era 4's recorded effect was a projection of the new one, and it described a
+weighting the scorer never applied. This states what the rubric could not do,
+on real rows, before anything changed:
+
+```
+blindness   gap_current -4.0   se 4.7   ratio_to_noise 0.9
+            n_agrees 13   n_disagrees 33
+            "the current rubric CANNOT separate these rows"
+```
+
+Three samples, three different draws, never above 1.0x. The ten-dimension rubric
+scores a recap that correctly reports a finished game and one that hedges about
+it the same.
+
+**The dominant defect is the mirrored one**, which nothing was measuring:
+28 of 128 briefs hedge about games that had already finished, against 1 that
+calls a live game final.
+
+**Both sides non-zero** — `mean_finality_when_final 6.9`,
+`mean_finality_when_live 10.0`. That is the parent ask's done-condition #3, and
+the test Dim 10 failed silently for two months at zero on 190 of 190 rows.
+
+**And the sign of the old metric reverses under fact-stratified sampling:**
+LIVE_LANG gap `+4.5 (1.8x) -> -14.1 (4.4x)`. Era 4 and the parent CC-CMD were
+both reasoning from a direction that was an artifact of taking the newest rows.
+
+### Two guards, both fixed by trying to use them
+
+**`check-scale-matches-implementation`** learned Dim 11: its ceiling is read from
+`export const FINALITY_MAX = 20`, so the declared weight and the constant cannot
+drift apart. 11 dimensions, self-test green.
+
+**The correction rule could not fire.** It compared `CURRENT_SCORING_ERA` against
+`EXPECTED_ERA_FOR_FINGERPRINT` — two values updated together in the same commit,
+so always equal. It failed era 5, a legitimate new era, while a SCALE edit that
+bumped only the fingerprint would have passed. Exactly backwards.
+
+Fixed by giving the file real history: `PREVIOUS_SCALE_FINGERPRINT` and
+`PREVIOUS_ERA`. A fingerprint change is now legal only if it mints an era or
+carries a `correctedOn`, and a second assertion fails if the previous fingerprint
+was not updated — otherwise the rule silently stops firing again.
+
+### Plumbing
+
+`finalizedAt` added to `opts.game` at the two games-table call sites (`~6715`,
+`~12849`). Sites without it pass `undefined`, which the dimension reads as
+unknown and abstains at 10 rather than scoring zero.
+
+### Status
+
+| | |
+|---|---|
+| era 5 | shipped, `measuredEffect` carries the BEFORE measurement with artifacts named |
+| AFTER | pending the first post-deploy `rescore-quality-6b` run |
+| guards | 6/6 green, including the two repaired this commit |
+| scores | **every brief's score moves.** First real instrument change since era 3 — era 4 moved nothing. |
