@@ -1,0 +1,94 @@
+name: Odds API h2h shape (soccer three-way)
+
+# Does the Odds API price three outcomes for association football?
+#
+# CC-CMD-2026-08-23-soccer-three-way-odds states that it does and that the draw
+# "is being dropped somewhere between the feed and opening_odds.moneyline". The
+# relay fix (5a2bacc, drawPriceFrom in src/odds-shape.js) was built on that
+# sentence and it has never been measured. Rule 72: an inherited claim is a
+# hypothesis until probed.
+#
+# If the premise is FALSE -- if this account's soccer h2h returns two outcomes --
+# then drawPriceFrom is correct and will simply never fire, and the ask needs a
+# different market key or region. The follow-up in field-laboratory would read
+# "not yet" indefinitely without ever saying why. One dispatch answers it.
+#
+# CI because the sandbox 403s *.workers.dev (confirmed again writing this).
+#
+# COST (Rule 78), and this repo has a scar: a June session shipped two Odds API
+# helpers with no caching and burned 19,999 of 20,000 credits in one sitting.
+# This probe never touches api.the-odds-api.com directly. It goes through the
+# relay's own /odds proxy, which serves from a 3600s edge cache (ODDS_TTL_ODDS),
+# so a sport key any cron already fetched within the hour costs ZERO credits and
+# a cold one costs a single credit. One region, one market, one bookmaker, two
+# sport keys, five games sampled each.
+#
+# NO SCHEDULE. This answers a question about the upstream feed's shape, which
+# changes when the provider changes it -- not daily. Dispatch it when the
+# follow-up reports "not yet" on a slate that should have landed.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-odds-h2h-shape'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: odds-h2h-shape-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # NOT continue-on-error. A fetch failure here is a failed probe, and the
+      # script already refuses to emit a verdict about the feed when it could
+      # not read the feed -- "PROBE FAILED, nothing above is established".
+      # A red step next to an absent artifact is the honest signal.
+      - name: Probe the h2h outcome shape
+        run: node scripts/odds-h2h-shape-probe.mjs
+
+      # The verdict is the artifact (Rule 89). Printed as a notice so it is
+      # visible in the run summary without opening the JSON, and the three
+      # states are distinguishable: PREMISE HOLDS / PREMISE FALSE / MIXED /
+      # NOT OBSERVABLE. "Not observable" is never read as "premise false".
+      - name: Surface the verdict
+        if: always()
+        run: |
+          F=$(ls -t outbox/odds-h2h-shape-*.json 2>/dev/null | head -1)
+          [ -n "$F" ] || { echo "::warning::no artifact produced — the probe did not reach the feed"; exit 0; }
+          node -e '
+            const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            if (d.error) { console.log(`::warning::probe failed: ${d.error}`); process.exit(0); }
+            console.log(`::notice::${d.verdict}`);
+            for (const [sport, s] of Object.entries(d.sports)) {
+              console.log(`${sport}: ${s.games_returned} games, ${s.sampled.length} sampled`);
+              for (const r of s.sampled)
+                console.log(`  ${r.outcome_count} outcomes  third=${JSON.stringify(r.third_selection)}  ${r.game}`);
+            }
+          ' "$F"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-h2h-shape-*.json || { echo "no artifact produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: odds h2h shape probe [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin main; then
+              echo "Pushed artifact on attempt $i."; exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          echo "::warning::could not push the artifact"; exit 0
