@@ -29,6 +29,20 @@ on:
   push:
     paths:
       - 'outbox/.trigger-rescore-quality-6b'
+  # Weekly, added 2026-08-24. Until now this ran only when someone remembered to
+  # dispatch it, which is how era 4's recorded effect went a day without anyone
+  # noticing it described a weighting the scorer never applied, and how
+  # `mean_finality_when_live` reported 10.0 where the row census says 9.7.
+  #
+  # The manifest now reconciles its own aggregates against the rows and reports
+  # where the SQL sampler and the JS scorer disagree about the same concept. That
+  # check is worth nothing on a schedule of "when a human is curious".
+  #
+  # Cost (Rule 78): Datamuse is ~5 calls per row, LIMIT defaults to 160, so ~800
+  # calls once a week. The workflow already carries `concurrency` so a scheduled
+  # run and a dispatch cannot overlap.
+  schedule:
+    - cron: '0 6 * * 1'
 
 permissions:
   contents: write

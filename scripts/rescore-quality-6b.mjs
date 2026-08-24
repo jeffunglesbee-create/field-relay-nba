@@ -306,6 +306,53 @@ try {
         // funding difference. It states the size of the lever, not that the lever
         // is pulling on anything real. The `blindness` figure above is the one
         // that answers whether the lever is needed.
+        // ── The manifest checks its own arithmetic. ─────────────────────────
+        //
+        // mean_finality_when_live read exactly 10.0 on 2026-08-24 while the
+        // census said 31 rows at 10 and one at 0, which is 9.7. Reconciling it
+        // by hand found a real defect: LIVE_LANG is a SQL predicate and
+        // _READS_HEDGED is a JS regex, the regex is WIDER (at the break, through
+        // N innings, innings into, currently, remains tied), and a brief the
+        // regex calls hedged can sit in the `final-lang` stratum. One did. It
+        // scored 20 as a correct hedge on a live game, and 20+0+30*10 over 32
+        // rows is exactly 10.
+        //
+        // TWO DEFINITIONS OF "READS AS IN-PROGRESS", NOTHING FORCING THEM TO
+        // AGREE -- the same shape as SCALE's declared weights versus its
+        // implementation ceilings, one layer up. SQL cannot run the regex, so
+        // they cannot be collapsed into one definition; what they can do is
+        // report their disagreement instead of hiding it, and refuse to publish
+        // aggregates that do not reconcile with the row census.
+        //
+        // This runs every time. Nobody has to notice a 10 that should be a 9.7.
+        reconciliation: (() => {
+            const cell = (rows) => rows.length
+                ? { n: rows.length, mean: r1(mean(rows.map(x => x.finality))),
+                    from_census: r1(rows.reduce((a, x) => a + x.finality, 0) / rows.length) }
+                : { n: 0, mean: null, from_census: null };
+            const liveRows = scoreable.filter(x => !x.is_final);
+            const finalRows = scoreable.filter(x => x.is_final);
+            const live = cell(liveRows), fin = cell(finalRows);
+            // SQL says in-progress language; the regex disagrees, or the reverse.
+            const disagree = scored.filter(x =>
+                !!x.live_lang !== (x.finality_reading === 'hedged'));
+            return {
+                live, final: fin,
+                census_agrees: live.mean === live.from_census && fin.mean === fin.from_census,
+                // Every reported aggregate must be derivable from the rows. If
+                // this is false the numbers above are describing a different
+                // population than the evidence rows, and none of them can be
+                // cited.
+                totals_add_up: scored.length ===
+                    Object.values(strataCounts).reduce((a, b) => a + b, 0),
+                lang_disagreement: {
+                    n: disagree.length,
+                    note: 'rows where the SQL LIVE_LANG predicate and the JS _READS_HEDGED regex disagree about whether the prose reads as in-progress. Non-zero is expected -- the regex is wider on purpose -- but it must be REPORTED, because it is why a stratum labelled `final-lang` can contain a row scored as a correct hedge.',
+                    ids: disagree.slice(0, 10).map(x => ({ id: x.id, sql_live: !!x.live_lang,
+                                                           regex_reading: x.finality_reading })),
+                },
+            };
+        })(),
         gap_projected_definitional: (agrees.length && disagrees.length)
             ? r1(mean(agrees.map(projected)) - mean(disagrees.map(projected))) : null,
     };
