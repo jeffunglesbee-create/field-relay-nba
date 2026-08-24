@@ -314,6 +314,7 @@ try {
             paths_agree: dim11InScore === fin11.score,
             finality_reading: fin11.reading, finality_verdict: fin11.verdict,
             margin_verdict: b.margin_verdict, margin_fact: b.margin_fact,
+            brief_text: r.brief_text,
             total: b.total, dims: b.dims,
         });
     }
@@ -548,6 +549,38 @@ try {
             // zero. Abstains are excluded on both sides.
             n_judged: judged.length,
             judged_share: r3(judged.length / scored.length),
+            // ── WHY 47 ROWS SAID NOTHING. ──────────────────────────────
+            //
+            // Run 17: 4 of 128 rows judged, 47 `no-clear-reading` on rows that
+            // HAD a real verdict available (17 lopsided + 34 tight). Two very
+            // different causes hide behind that one count, and they need
+            // different fixes:
+            //
+            //   PROSE IS SILENT   the generator never characterises the margin.
+            //                     Fix is the prompt.
+            //   REGEX IS BLIND    it does say so, in words _READS_CLOSE and
+            //                     _READS_LOPSIDED do not contain. Fix is here.
+            //
+            // Guessing between them is how the old Dim 10 spent two months
+            // labelled "unreachable in the Worker runtime" when it was actually
+            // data-starved -- same count, wrong diagnosis, wrong fix. So the
+            // manifest carries the actual prose. A human reads five briefs and
+            // the ambiguity is gone.
+            silent_prose_sample: scored
+                .filter(s => s.margin_verdict === 'no-clear-reading')
+                .slice(0, 6)
+                .map(s => ({ id: s.id, sport: s.sport, fact: s.margin_fact,
+                             text: (s.brief_text || '').slice(0, 240) })),
+            // And the other abstain that is NOT a design choice: a joined game
+            // row whose scores are missing. 56 unknown-result against 32 rows
+            // with no game row at all means ~24 rows HAVE a game and no usable
+            // score, which is a data gap, not the dimension declining.
+            unknown_result_breakdown: {
+                n_unknown: scored.filter(s => s.margin_fact === 'unknown').length,
+                n_with_no_game_row: scored.filter(s => !s.joined_game).length,
+                n_joined_but_scoreless: scored.filter(s => s.joined_game && s.margin_fact === 'unknown').length,
+                note: 'n_joined_but_scoreless rows have a regular_season_games row whose home_score/away_score is null or non-finite. Dim 10 cannot judge them and the cause is the row, not the prose.',
+            },
             // And the separation, carrying its error bar. Same form as
             // `blindness`: a difference without one is how era 4's 11.5 survived.
             separation: (() => {
