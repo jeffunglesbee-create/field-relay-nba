@@ -62,5 +62,39 @@ ok('2f stays silent when the figure is real game context',
   promptExampleLeaks(gatedPrompt + '\nEverton have 37 goals this season',
     'Everton, a 37 goals side, held on.').length === 0);
 
+// 5 — CC-CMD-2026-08-23-prompt-numeral-mining, retargeted.
+//
+// That ask aimed at FIELD_VOICE_REGISTER's universal segments. Measured at HEAD
+// they carry no mineable figure at all -- an earlier session had already
+// converted them to ## -- and 10 of the 11 tracked literals reaching a gated EPL
+// prompt came from proseStyleFor instead. Worse than the ask assumed: the
+// register's numbers sat in a block labelled AVOID THIS, while these sat in
+// blocks the model is told to emulate.
+//
+// THIS ASSERTION IS WHY THE at-risk COUNT ABOVE IS ALLOWED TO FALL. It dropped
+// from 23 to 19 when five literals left the style block, and the voice-register
+// check carries the same note for the same reason at 34 -> 30. Without a line
+// asserting the REMOVAL, a per-literal loop shrinking looks identical to
+// coverage quietly disappearing -- and 0 failed either way.
+const negIn = (block) => {
+  const out = [];
+  for (const line of String(block).split('\n')) {
+    for (const m of line.matchAll(/"([^"]+)"\s+is not\b/g)) out.push(m[1]);
+    const span = /Bare numbers like(.*?)ARE FORBIDDEN/s.exec(line);
+    if (span) for (const m of span[1].matchAll(/"([^"]+)"/g)) out.push(m[1]);
+    for (const m of line.matchAll(/\bnot\s+"([^"]+)"/g)) out.push(m[1]);
+  }
+  return out;
+};
+for (const sport of ['EPL', 'NBA', 'NHL', 'MLB']) {
+  const bad = negIn(proseStyleFor(sport)).filter(x => /\d/.test(x.replace(/#+/g, '')));
+  ok(`${sport}: no forbidden example in the style block carries a real figure`,
+    bad.length === 0, bad.map(b => `"${b}"`).join(' '));
+}
+// And the extractor must find something, or the four lines above are vacuous.
+ok('the forbidden-example extractor found examples to check',
+  negIn(proseStyleFor('EPL')).length > 0,
+  'zero means the constructs moved and this stopped checking anything');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

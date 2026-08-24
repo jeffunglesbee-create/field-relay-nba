@@ -278,6 +278,15 @@ jobs:
       - name: every name in the graph resolves to a name that exists
         run: node scripts/check-name-graph.mjs --self-test && node scripts/check-name-graph.mjs
 
+      # A rule that teaches by printing the broken sentence is its own attack
+      # surface. The measured leak — an EPL brief reading "Spurs' 3 shots this
+      # match trail Brentford's 37 goals this season" — is VERBATIM the
+      # counter-example inside ONE WINDOW PER COMPARISON, the rule shipped to
+      # stop cross-window comparisons. Real clubs plus a real-looking figure made
+      # the copy read as plausible EPL prose instead of obvious garbage.
+      - name: no forbidden example is copyable prose
+        run: node scripts/check-negative-examples-are-not-instantiable.mjs --self-test && node scripts/check-negative-examples-are-not-instantiable.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
