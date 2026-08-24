@@ -5030,15 +5030,44 @@ async function handleCron(env) {
 const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 const JOURNALISM_TTL_SECS = 900; // 15 min — matches cron frequency
 
-// ── Per-sport quality calibration (data-driven scoreThreshold) ───────────────
-// Loaded once per cron tick. Primary source: Phase 8 KV snapshot at
-// field:quality_calibration (refreshed by the daily 09:00 UTC analytics
-// cron). Fallback: D1 percentile computation, preserved unchanged so a
-// stale/missing/malformed KV value silently degrades to live percentiles.
-// Calibration failure is silent and never blocks journalism delivery (Rule 5).
-let _qualityCalibration = null;
-let _qualityCalibrationSource = null; // 'analytics-cron' | 'd1-live' | null
-
+// ── Phase 8 quality-calibration freshness (observability only) ──────────────
+//
+// WHAT WAS HERE, AND WHY IT IS NOT. This block used to be a per-sport adaptive
+// retry floor: `loadQualityCalibration(env)` read the Phase 8 KV snapshot (or
+// fell back to a live D1 percentile query), cached it per isolate, and
+// `getQualityTarget(sport)` returned that sport's p25 so a weak brief would be
+// regenerated against a bar calibrated to its own sport.
+//
+// It never ran. `getQualityTarget` had ZERO call sites from the day it was
+// written (2026-06-17) -- its own comment said so -- and on 2026-07-16 commit
+// 6aed3bb removed the only thing that could ever have consumed its output:
+//
+//   -  const THRESHOLD = opts.scoreThreshold || 240;
+//   -  if (score < THRESHOLD && retries < maxRetries) {
+//
+// That removal was correct. The composite that gate ran on scored this file's
+// own labeled ANTI-exemplar 214/300 and its real Exemplar A 136/300, and layer
+// 3b now asks a qualitative voice judge instead. What the commit did not do was
+// remove the producer, the transport, or the ten call sites still passing
+// `scoreThreshold:` into a chain that stopped reading it. Measured 2026-08-24
+// against deliberately weak prose, one stub proxy, four floors:
+//
+//   threshold   0 -> proxyCalls 1, score 126, layers ""
+//   threshold 110 -> proxyCalls 1, score 126, layers ""
+//   threshold 240 -> proxyCalls 1, score 126, layers ""
+//   threshold 999 -> proxyCalls 1, score 126, layers ""
+//
+// A floor of 999 accepted a 126 without one retry. The queue item that sent
+// someone here read "raise scoreThreshold 110 -> 196", which would have changed
+// nothing -- era 4's mistake exactly, writing new numbers into a table the
+// scorer does not consult.
+//
+// WHAT SURVIVES, AND WHY. Phase 8 in src/analytics-engine.js still computes the
+// snapshot and writes `field:quality_calibration`, and that is a LIVE producer
+// with a real consumer: `/analytics/quality_feedback/{date}` serves it, and
+// `/health` reports whether it is fresh. Those two constants and this predicate
+// are what `/health` reads. Deleting them would have taken an observability
+// signal about a running cron along with a retry floor nobody ran.
 const QUALITY_CALIBRATION_KV_KEY = 'field:quality_calibration';
 const QUALITY_CALIBRATION_MAX_AGE_MS = 36 * 60 * 60 * 1000; // 36 hours
 
@@ -5048,82 +5077,6 @@ function isCalibrationFresh(calibration) {
   if (!ts) return false;
   const age = Date.now() - new Date(ts).getTime();
   return Number.isFinite(age) && age >= 0 && age < QUALITY_CALIBRATION_MAX_AGE_MS;
-}
-
-async function loadQualityCalibration(env) {
-  // Primary: Phase 8 KV recommendation
-  if (env.FIELD_JOURNALISM) {
-    try {
-      const kv = await env.FIELD_JOURNALISM.get(QUALITY_CALIBRATION_KV_KEY, 'json');
-      if (isCalibrationFresh(kv)) {
-        // Strip the meta field so getQualityTarget() sees only sport keys.
-        const { _last_updated, last_updated, ...sports } = kv;
-        _qualityCalibration = sports;
-        _qualityCalibrationSource = 'analytics-cron';
-        console.log(`[QUALITY] calibration source=analytics-cron sports=${Object.keys(sports).length} updated=${_last_updated || last_updated}`);
-        return;
-      }
-    } catch (e) {
-      console.log(`[QUALITY] KV read failed, falling back to D1: ${e.message}`);
-    }
-  }
-
-  // Fallback: existing D1 live percentile computation — preserved unchanged.
-  try {
-    if (!env.ARCHIVE_DB) return;
-    const rows = await env.ARCHIVE_DB.prepare(
-      `SELECT sport, quality_score FROM briefs
-       WHERE quality_score IS NOT NULL AND sport IS NOT NULL
-       AND date >= date('now', '-30 days')
-       ORDER BY sport, quality_score`
-    ).all();
-    const bySport = {};
-    for (const row of (rows.results || [])) {
-      if (!bySport[row.sport]) bySport[row.sport] = [];
-      bySport[row.sport].push(row.quality_score);
-    }
-    _qualityCalibration = {};
-    for (const [sport, scores] of Object.entries(bySport)) {
-      if (scores.length < 5) continue; // not enough data, keep hardcoded fallback
-      scores.sort((a, b) => a - b);
-      _qualityCalibration[sport] = {
-        p25: scores[Math.floor(scores.length * 0.25)],
-        p50: scores[Math.floor(scores.length * 0.50)],
-        p75: scores[Math.floor(scores.length * 0.75)],
-        count: scores.length,
-      };
-    }
-    _qualityCalibrationSource = 'd1-live';
-    console.log(`[QUALITY] calibration source=d1-live sports=${Object.keys(_qualityCalibration).length}`);
-  } catch(e) {
-    console.error("[QUALITY] D1 fallback failed:", e.message);
-    /* calibration failure never breaks journalism */
-  }
-}
-
-// Returns the quality retry threshold for a sport. Uses p25 from calibration
-// when ≥ 5 samples exist; falls back to hardcoded sport-specific defaults.
-// Initial calibration is anchored on slate briefs (game_recap rows have
-// quality_score=NULL until a future session adds per-game scoring).
-function getQualityTarget(sport) {
-  if (_qualityCalibration?.[sport]?.count >= 5) {
-    return _qualityCalibration[sport].p25;
-  }
-  // hardcoded fallback — sport-specific if defined, generic otherwise.
-  // Recalibrated 2026-07-09 (CC-CMD-2026-07-09-getqualitytarget-fallback-fix):
-  // original values (nba:160, nhl:155, mlb:145, wnba:150, default:150) were
-  // set 2026-06-17 against the then-current 245-point relay ceiling (JQ v3,
-  // RELAY_CEILING=245, see git history of journalism-quality.js), *before*
-  // the 2026-06-23 change to the full 300-point scale (Dims 7+10 wired in,
-  // excellence threshold raised 175->240). These are p25-style retry floors,
-  // not the 240 excellence bar, so they're rescaled proportionally
-  // (x * 300/245) to preserve the same relative position on the new scale,
-  // not flattened to 240: 160->196, 155->190, 145->178, 150->184.
-  // This function remains genuinely unused (zero call sites, confirmed by
-  // probe) — this fix does not activate it. A future session wiring it in
-  // must re-verify these numbers are still current before relying on them.
-  const HARDCODED = { nba: 196, nhl: 190, mlb: 178, wnba: 184 };
-  return HARDCODED[sport?.toLowerCase()] || 184;
 }
 
 // ── Layer 1: banned phrases (mirrors index.html BANNED_PHRASES) ───────────────
@@ -6591,7 +6544,6 @@ async function executeSeriesPreviewBackfill(env) {
 
     const qResult = await runQualityChain(seriesPrompt, initial, callProxy, {
       sport,
-      scoreThreshold: 240,
       game:        { home: higherSeed, away: lowerSeed },
       matchupNote: series.narrative || null,
     });
@@ -6716,7 +6668,6 @@ async function executeGameBriefBackfill(env, date) {
 
     const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
       sport,
-      scoreThreshold: 240,
       game: { home, away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null, wentToOt: !!game.went_to_ot },
       matchupNote: game.note || null,
     });
@@ -6809,7 +6760,6 @@ async function executeBackfill(env, date) {
 
   const qResult = await runQualityChain(prompt, initial, callProxy, {
     sport: null,
-    scoreThreshold: 240,
   });
   const prose = qResult.text;
   const score = qResult.score;
@@ -7363,7 +7313,6 @@ async function runWCMorningBrief(env, dateKey, now) {
       sport: 'soccer',
       briefType: 'wc-morning',
       max_tokens: 600,
-      scoreThreshold: 110,
       enqueuedAt: now,
     });
 
@@ -7384,9 +7333,6 @@ async function runWCMorningBrief(env, dateKey, now) {
 
 async function handleJournalismCycle(env, opts = {}) {
   if (!env.FIELD_JOURNALISM) return {ok:false, reason:'KV not configured'};
-  // Load per-sport quality calibration once per cron tick. Lightweight D1
-  // read; failure is silent (Rule 5 — never blocks journalism delivery).
-  await loadQualityCalibration(env);
   const now = Date.now();
   const dateKey = getFieldDateKey();
   // ESPN scoreboard endpoint accepts ?dates=YYYYMMDD to return ONLY events for
@@ -8570,7 +8516,6 @@ async function handleJournalismCycle(env, opts = {}) {
     // identical quality enforcement.
     const qualityResult = await runQualityChain(buildPrompt(), prose, callProxy, {
       sport: null, // slate brief covers multiple sports
-      scoreThreshold: 240,
     });
     prose = qualityResult.text;
     const finalScore   = qualityResult.score;
@@ -8881,7 +8826,6 @@ async function handleJournalismCycle(env, opts = {}) {
               cycleId,
               prompt:     gamePrompt,
               max_tokens: 400,
-              scoreThreshold: 110,
               enqueuedAt: now,
             });
             gameBriefResults.push(eventId);
@@ -9569,16 +9513,23 @@ export default {
 
 
         if (pathname === '/health') {
-            // Surface the active quality calibration source. _qualityCalibrationSource
-            // is module-scoped (per-isolate); a /health request usually hits a
-            // different isolate than the cron, so peek KV directly here so the
-            // observable answer is consistent regardless of routing.
-            let qSource = 'unloaded';
+            // Is the Phase 8 calibration snapshot fresh? This used to report
+            // which of two SOURCES had populated a per-isolate cache, and the
+            // 'd1-live' arm meant a live D1 percentile fallback had run. Both
+            // the cache and that fallback were deleted 2026-08-24 with the
+            // unreachable retry floor they served, so a value of 'd1-live'
+            // would now name a code path that does not exist -- a label
+            // outliving its mechanism, which is the same defect the deletion
+            // was about. It reads the KV directly, as it already did: the old
+            // module global was per-isolate and a /health request usually lands
+            // on a different isolate than the cron, so this was never reading
+            // the cache anyway.
+            let qSource = 'unavailable';
             if (env.FIELD_JOURNALISM) {
                 try {
                     const kv = await env.FIELD_JOURNALISM.get(QUALITY_CALIBRATION_KV_KEY, 'json');
-                    qSource = isCalibrationFresh(kv) ? 'analytics-cron' : 'd1-live';
-                } catch (e) { console.error("[QUALITY] health-check calibration source lookup failed:", e.message); /* leave 'unloaded' */ }
+                    qSource = kv ? (isCalibrationFresh(kv) ? 'fresh' : 'stale') : 'absent';
+                } catch (e) { console.error("[QUALITY] health-check calibration freshness lookup failed:", e.message); /* leave 'unavailable' */ }
             }
 
             return new Response(`RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-wp + cfl-odds + r2-mlb + r2-nfl + r2-nfl-b + soccer-fbref + nhl-series + nba-clutch + nhl-gsax + bracket-do + ambient-do + v2-cache + analytics-cron + tts, quality-source=${qSource}`, {
@@ -12070,7 +12021,6 @@ export default {
                         const scoringPrompt = `Score this sports brief for journalism quality:\n\n${brief_text}`;
                         const qResult = await runQualityChain(scoringPrompt, brief_text, callProxy, {
                             sport: sport || null,
-                            scoreThreshold: 240,
                             maxRetries: 1,
                             game: _archiveGameCtx,
                             matchupNote: _archiveMatchupNote,
@@ -12850,7 +12800,6 @@ export default {
 
                         const qResult = await runQualityChain(gamePrompt, initial, callProxy, {
                             sport: sportLabel,
-                            scoreThreshold: 240,
                             game: { home: game.home, away: game.away, homeScore: game.home_score, awayScore: game.away_score, finalizedAt: game.finalized_at ?? null, wentToOt: !!game.went_to_ot },
                             matchupNote: game.note || null,
                         });
@@ -12970,7 +12919,6 @@ export default {
                     const scoringPrompt = `Score this sports brief for journalism quality:\n\n${row.brief_text}`;
                     const qResult = await runQualityChain(scoringPrompt, row.brief_text, callProxy, {
                         sport: row.sport || null,
-                        scoreThreshold: 90,
                         maxRetries: 1,
                     });
                     const score = qResult?.score ?? null;
@@ -13126,9 +13074,12 @@ export default {
             // builder) -- a single flat 240 bar flags types that can
             // structurally never reach it as permanently "failing" even
             // when they're performing at their own real ceiling. Extends
-            // (does not replace) the existing loadQualityCalibration() p25
-            // pattern already used for sport-level retry floors -- same
-            // empirical method (p25 of the type's own real recent scores),
+            // (does not replace) the p25 pattern that loadQualityCalibration()
+            // once used for sport-level retry floors -- that function and its
+            // consumer getQualityTarget() were deleted 2026-08-24, having never
+            // had a call site, but the METHOD is sound and this calibration is
+            // genuinely read. Same empirical method (p25 of the type's own
+            // real recent scores),
             // just keyed by brief_type instead of sport, and requiring the
             // same >=5-sample floor before trusting it over the flat 240
             // fallback used everywhere else in this file.
@@ -15754,15 +15705,6 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             const sport       = body.sport || null;
             const briefType   = body.briefType || 'generic';
             const max_tokens  = Math.min(Math.max(body.max_tokens || 1500, 200), 5000);
-            // Fallback when a caller doesn't pass an explicit scoreThreshold.
-            // 240/300 (80%) is the real, current "excellence" standard,
-            // established by the 2026-06-24 session that wired full game
-            // context through and confirmed Dims 7/10 are reachable at the
-            // relay after all. 130 (this fallback's value until now) was a
-            // fossil from before the 300-point scale existed at all --
-            // never revisited by either later correction. See
-            // CC-CMD-2026-07-09-jq-threshold-240-migration.
-            const scoreFloor  = body.scoreThreshold || 240;
             const game        = body.game        || null;
             const matchupNote = body.matchupNote || null;
 
@@ -15846,7 +15788,6 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             // Run full quality chain
             const result = await runQualityChain(promptWithVoice, initial, callProxy, {
               sport,
-              scoreThreshold: scoreFloor,
               game,
               matchupNote,
             });
@@ -15958,7 +15899,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         }
 
         // ── /journalism/enqueue — WOW 8 async pipeline producer ────────────────
-        // Browser sends: { prompt, sport?, briefType?, max_tokens?, scoreThreshold? }
+        // Browser sends: { prompt, sport?, briefType?, max_tokens? }
         // Worker enqueues to JOURNALISM_QUEUE, returns { jobId } immediately (202).
         // Consumer (queue handler below) drains at upstream-permitted rate with
         // 429-aware retry. Replaces the 400/700/1000ms synchronous stagger.
@@ -15982,14 +15923,13 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
               sport: body.sport || null,
               briefType: body.briefType || 'queued',
               max_tokens: body.max_tokens || 1000,
-              scoreThreshold: body.scoreThreshold || null,
               // Game/matchup context, added CC-CMD-2026-07-09-enqueue-context-gap:
               // the queue consumer has always read job.home/away/homeScore/
               // awayScore/matchupNote correctly (see the two runQualityChain
               // call sites downstream) -- these were simply never stored here,
               // making Dims 7+10 (Context Anchoring + Matchup Depth, 55/300)
               // structurally unreachable for every job enqueued through this
-              // route, independent of scoreThreshold. Purely forwarding
+              // route. Purely forwarding
               // caller-supplied data, not fetching anything new.
               home: body.home || null,
               away: body.away || null,
@@ -19037,7 +18977,6 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             // Full quality chain — matches backfill + cron slate pipeline
             const qResult = await runQualityChain(jobPrompt, initial, callProxy, {
               sport: job.sport || null,
-              scoreThreshold: 240,
               game: (job.home && job.away)
                 ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
                 : null,
@@ -19200,7 +19139,6 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
           if (!initial) throw new Error('proxy returned no prose');
           const result = await runQualityChain(job.prompt, initial, callProxy, {
             sport: job.sport,
-            scoreThreshold: job.scoreThreshold || 240,
             game: (job.home && job.away)
               ? { home: job.home, away: job.away, homeScore: job.homeScore, awayScore: job.awayScore }
               : null,

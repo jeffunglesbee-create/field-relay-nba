@@ -242,6 +242,16 @@ jobs:
       - name: slate caps resolve against SCALE and are derived, not declared twice
         run: node scripts/check-slate-caps-are-derived.mjs --self-test && node scripts/check-slate-caps-are-derived.mjs
 
+      # A caller says something and the callee stopped listening. On 2026-07-16
+      # commit 6aed3bb deleted `const THRESHOLD = opts.scoreThreshold || 240`
+      # -- correctly, the composite it gated scored this repo's own labeled
+      # anti-exemplar 214 and its real exemplar 136 -- and left TEN call sites
+      # passing scoreThreshold into a chain that no longer read it. Measured:
+      # a floor of 999 accepted a score of 126 with zero retries. It survived 39
+      # days, and the queue item that found it proposed changing 110 to 196.
+      - name: every key passed in an options literal is read by its callee
+        run: node scripts/check-opts-keys-are-read.mjs --self-test && node scripts/check-opts-keys-are-read.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
