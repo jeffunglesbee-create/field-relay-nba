@@ -1164,6 +1164,17 @@ jobs:
                 echo
               done
             done
+            # /health carries quality-source, relabelled 2026-08-24 when the
+            # unread retry floor was deleted: unloaded|analytics-cron|d1-live ->
+            # unavailable|absent|fresh|stale. "d1-live" named a live-D1 fallback
+            # that no longer exists, and a label outliving its mechanism is the
+            # defect that deletion was about. Captured here so the value is an
+            # artifact rather than a claim (Rule 89) -- the sandbox 403s
+            # *.workers.dev, so CI is the only place this can be read.
+            echo "## /health — quality-source must NOT read d1-live"
+            curl -sf "https://field-relay-nba.jeffunglesbee.workers.dev/health" \
+              | tr ',' '\n' | grep -i "quality-source" || echo "REQUEST FAILED"
+            echo
             echo "## Validation checks"
             echo "### bogus phase (expect 400)"
             curl -s -w "\nHTTP:%{http_code}\n" "https://field-relay-nba.jeffunglesbee.workers.dev/circadian/bogus/$DATE"
