@@ -1,0 +1,245 @@
+{
+  "probed_at": "2026-08-24T05:38:29.984Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 45,
+      "ctx": 25,
+      "temporal": 20,
+      "voice": 30,
+      "matchup": 30
+    },
+    "declared_unreachable": [
+      "ctx",
+      "matchup"
+    ],
+    "declared_reachable_ceiling": 239
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 81,
+      "mean_stored": 181.9
+    },
+    {
+      "kind": "reads as final",
+      "n": 1477,
+      "mean_stored": 189.9
+    }
+  ],
+  "matchup_note_coverage": [
+    {
+      "total": 1320,
+      "with_note": 36
+    }
+  ],
+  "rescored": {
+    "n_total": 128,
+    "in_progress": {
+      "n": 33,
+      "mean_rescored": 172.9,
+      "sd_rescored": 14.4,
+      "mean_stored": 174.8,
+      "dims": {
+        "specificity": 0.305,
+        "statDepth": 1,
+        "variety": 0.656,
+        "density": 0.806,
+        "freshness": 0.891,
+        "arcScore": 0.253,
+        "contextAnchoring": 0.899,
+        "temporalScore": 0.652,
+        "voiceScore": 0.637,
+        "matchupDepth": 0
+      }
+    },
+    "reads_as_final": {
+      "n": 95,
+      "mean_rescored": 158.9,
+      "sd_rescored": 20,
+      "mean_stored": 174,
+      "dims": {
+        "specificity": 0.32,
+        "statDepth": 0.938,
+        "variety": 0.661,
+        "density": 0.744,
+        "freshness": 0.884,
+        "arcScore": 0.264,
+        "contextAnchoring": 0.542,
+        "temporalScore": 0.611,
+        "voiceScore": 0.563,
+        "matchupDepth": 0
+      }
+    },
+    "gap_rescored": -14.1,
+    "gap_stored_for_this_sample": -0.8,
+    "dim_separation": {
+      "specificity": 0.015,
+      "statDepth": -0.062,
+      "variety": 0.005,
+      "density": -0.061,
+      "freshness": -0.007,
+      "arcScore": 0.012,
+      "contextAnchoring": -0.357,
+      "temporalScore": -0.041,
+      "voiceScore": -0.075,
+      "matchupDepth": 0
+    },
+    "era_spread": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "null"
+    ],
+    "gap_se": 3.2,
+    "gap_ratio_to_noise": 4.4,
+    "gap_verdict": "difference is 4.4x the standard error of the difference — larger than sample noise"
+  },
+  "finality_2x2": {
+    "note": "READ `blindness` FIRST — it is the only figure here computed without new weights. `gap_projected_definitional` restates FINALITY_MAX and is not evidence. Corpus widened 2026-08-24 to game_recap + game_brief: game_recap is finality-gated by ask 2, so on recaps alone `is_final` is true for every row and half the 2x2 cannot have rows at all. 2x2 of fact x reading, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension's metric.",
+    "strata": {
+      "live-lang, not final": 0,
+      "live-lang, final": 32,
+      "final-lang, not final": 32,
+      "final-lang, final": 32,
+      "no joined game": 32
+    },
+    "n_scoreable": 96,
+    "n_agrees": 13,
+    "n_disagrees": 33,
+    "n_abstained": 82,
+    "by_verdict": {
+      "hedges-a-finished-game": 28,
+      "contradicts-itself": 4,
+      "no-clear-reading": 50,
+      "agrees": 13,
+      "calls-a-live-game-final": 1,
+      "unknown-finality": 32
+    },
+    "mean_finality_when_final": 6.9,
+    "mean_finality_when_live": 10,
+    "blindness": {
+      "gap_current": -4,
+      "se": 4.7,
+      "ratio_to_noise": 0.9,
+      "verdict": "the current rubric CANNOT separate these rows — it scores a correct recap and a hedging one the same",
+      "n_agrees": 13,
+      "n_disagrees": 33
+    },
+    "reconciliation": {
+      "live": {
+        "n": 32,
+        "mean": 10,
+        "from_census": 10
+      },
+      "final": {
+        "n": 64,
+        "mean": 6.9,
+        "from_census": 6.9
+      },
+      "census_agrees": true,
+      "totals_add_up": true,
+      "lang_disagreement": {
+        "n": 5,
+        "note": "rows where the SQL LIVE_LANG predicate and the JS _READS_HEDGED regex disagree about whether the prose reads as in-progress. Non-zero is expected -- the regex is wider on purpose -- but it must be REPORTED, because it is why a stratum labelled `final-lang` can contain a row scored as a correct hedge.",
+        "ids": [
+          {
+            "id": "game_recap_uefa europa league qualifying_401909636",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_uefa europa conference league qualifying_401909622",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401816583",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401816374",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_760429_2026-07-15",
+            "sql_live": false,
+            "regex_reading": "hedged"
+          }
+        ]
+      }
+    },
+    "gap_projected_definitional": 15.6
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 96,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 125,
+      "statDepth": 128,
+      "variety": 128,
+      "density": 123,
+      "freshness": 128,
+      "arcScore": 99,
+      "contextAnchoring": 93,
+      "temporalScore": 104,
+      "voiceScore": 128,
+      "matchupDepth": 0
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_matchup": "zero on every row in this sample"
+  },
+  "error": null,
+  "candidates": {
+    "current": {
+      "nominal_total": 294,
+      "in_progress_mean": 173,
+      "final_mean": 158.9,
+      "gap": -14.1,
+      "gap_se": 3.2,
+      "gap_ratio_to_noise": 4.4,
+      "mean_total_final": 158.9
+    },
+    "shift_moderate": {
+      "nominal_total": 300,
+      "in_progress_mean": 178.7,
+      "final_mean": 162.8,
+      "gap": -15.9,
+      "gap_se": 3.9,
+      "gap_ratio_to_noise": 4.1,
+      "mean_total_final": 162.8
+    },
+    "shift_aggressive": {
+      "nominal_total": 300,
+      "in_progress_mean": 175.7,
+      "final_mean": 157.5,
+      "gap": -18.1,
+      "gap_se": 4.7,
+      "gap_ratio_to_noise": 3.9,
+      "mean_total_final": 157.5
+    },
+    "forward_only_bound": {
+      "nominal_total": 300,
+      "in_progress_mean": 157.9,
+      "final_mean": 125.1,
+      "gap": -32.8,
+      "gap_se": 10.4,
+      "gap_ratio_to_noise": 3.2,
+      "mean_total_final": 125.1
+    }
+  },
+  "candidate_summary": [
+    "current: gap -14.1 (4.4x noise), 1x the current gap",
+    "shift_moderate: gap -15.9 (4.1x noise), 1.1x the current gap",
+    "shift_aggressive: gap -18.1 (3.9x noise), 1.3x the current gap",
+    "forward_only_bound: gap -32.8 (3.2x noise), 2.3x the current gap"
+  ]
+}
