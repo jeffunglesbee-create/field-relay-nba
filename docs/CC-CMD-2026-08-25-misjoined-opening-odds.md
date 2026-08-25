@@ -51,9 +51,16 @@ explanation, no cross-sport contamination anywhere.
 
 ### The window
 
-Every flagged row falls in **2026-06-23 → 2026-07-11**, a continuous block, plus
-a single CFL row on 2026-08-15. Nothing before, nothing between, nothing after
-except that one.
+Flagged rows appear on **14 dates spanning 2026-06-23 → 2026-07-11** — of 19
+calendar dates in that span — plus a single CFL row on 2026-08-15, and nothing
+else in 90 days. Per-date counts climb 1 → 2 → 5 → 10 and then sit at 9–17.
+
+**Corrected 2026-08-25:** an earlier line here called this "a continuous block".
+It is not. There are no flagged rows on 06-25, 06-26, 06-29, 06-30 or 07-01, and
+whether those dates were clean or simply absent from the census corpus is NOT
+established — the census only reads games that already carry a comparable
+moneyline and handicap, so an empty date is ambiguous. That ambiguity is the
+same in-window-denominator question as step 1.
 
 ### Why it matters more than three rows did
 
