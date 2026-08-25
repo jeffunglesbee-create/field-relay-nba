@@ -69,7 +69,7 @@ export function literalSecretWrite(line) {
 }
 
 if (SELF_TEST) {
-  const bad = `          echo "de44fdf870b3a4b5ee9d46993b2e1038" | wrangler secret put ODDS_API_KEY --name field-relay-nba`;
+  const bad = `          echo "deadbeefdeadbeefdeadbeefdeadbeef" | wrangler secret put ODDS_API_KEY --name field-relay-nba`;
   check('the deleted workflow\'s line is caught',
     literalSecretWrite(bad)?.what === 'wrangler secret put', JSON.stringify(literalSecretWrite(bad)));
   check('a single-quoted literal is caught too',
@@ -84,7 +84,7 @@ if (SELF_TEST) {
     ['an Actions expression', 'echo "${{ secrets.ODDS_API_KEY }}" | wrangler secret put X'],
     ['a heredoc or file', 'wrangler secret put X < /tmp/value'],
     ['a body-file', 'gh secret set X --body-file /tmp/v'],
-    ['a step that installs nothing', 'echo "de44fdf870b3a4b5ee9d46993b2e1038" > /tmp/notasecret'],
+    ['a step that installs nothing', 'echo "deadbeefdeadbeefdeadbeefdeadbeef" > /tmp/notasecret'],
   ]) check(`${label} is allowed`, literalSecretWrite(line) === null, `flagged: ${line}`);
 
   // A short quoted flag value must not read as a credential.
