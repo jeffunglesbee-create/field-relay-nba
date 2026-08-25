@@ -363,6 +363,22 @@ jobs:
       - name: HANDOFF still describes this repository
         run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
 
+      # `.github/workflows/update-odds-key.yml`, deleted 2026-08-25, was named
+      # "Set ODDS_API_KEY to 20K plan key" and piped the EXHAUSTED free-tier key
+      # into `wrangler secret put`. One dispatch would have replaced the working
+      # production key with a dead one and printed a green checkmark.
+      #
+      # The tempting rule -- a step's name must match what it does -- was
+      # measured before being written: over 828 steps in three repos it produced
+      # 73 hits, essentially all section labels and subject nouns. That
+      # signal-to-noise gets a check deleted, so this checks the MECHANISM
+      # instead. A command installing a secret must take its value from a
+      # variable or a secrets.* expression, never a quoted literal. No judgement
+      # in it: a literal cannot be rotated, cannot be audited, and is in git
+      # history the moment it is written.
+      - name: no workflow installs a credential from a literal
+        run: node scripts/check-no-literal-secret-writes.mjs --self-test && node scripts/check-no-literal-secret-writes.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
