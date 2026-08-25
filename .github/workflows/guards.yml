@@ -1,0 +1,59 @@
+name: Repo guards
+
+# WHY THIS EXISTS, and why it is not just more steps in deploy.yml.
+#
+# deploy.yml carries 35 guard steps, and fires on `src/**`, `wrangler.toml`
+# and `workers/**` only. Four of those guards read files OUTSIDE those paths:
+#
+#   check-exposed-secrets.mjs        the whole repository
+#   check-doc-citations.mjs          docs/ and outbox/
+#   check-handoff-current.mjs        HANDOFF.md and git log
+#   check-no-literal-secret-writes   .github/workflows/
+#
+# So the guard set's trigger did not cover the guard set's inputs, and the
+# gap was not theoretical. Commit 26c2507 shipped
+# check-no-literal-secret-writes.mjs with the real (exhausted) Odds API key
+# pasted twice into its own self-test fixture — in the script whose single
+# purpose is to stop credentials being written from literals. It touched only
+# scripts/ and .github/workflows/, deploy.yml never ran, and the
+# exposed-secrets ratchet that would have failed it never fired. It was found
+# by running the checks by hand two commits later.
+#
+# `paths-ignore` here mirrors deploy.yml's `paths`, so on a src-only push this
+# job does not run and deploy.yml's copies do. A mixed push runs both; that is
+# ~20 seconds and worth it.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'src/**'
+      - 'wrangler.toml'
+      - 'workers/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth matters: check-handoff-current.mjs reads commit dates from
+      # git log, and a shallow clone makes "no commits since HANDOFF" and
+      # "commits exist but were not fetched" indistinguishable.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: no known-exposed credential appears more often than declared
+        run: node scripts/check-exposed-secrets.mjs --self-test && node scripts/check-exposed-secrets.mjs
+
+      - name: no workflow installs a credential from a literal
+        run: node scripts/check-no-literal-secret-writes.mjs --self-test && node scripts/check-no-literal-secret-writes.mjs
+
+      - name: every anchored citation still resolves
+        run: node scripts/check-doc-citations.mjs --self-test && node scripts/check-doc-citations.mjs
+
+      - name: HANDOFF.md is not stale
+        run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
