@@ -349,6 +349,20 @@ jobs:
       - name: doc citations are anchored, not just numbered
         run: node scripts/check-doc-citations.mjs --self-test && node scripts/check-doc-citations.mjs
 
+      # CLAUDE.md's session protocol opens with "Read HANDOFF.md first". On
+      # 2026-08-25 that document had zero mentions of the date after ten
+      # substantive commits -- a deleted workflow, three new deploy gates, a
+      # credential removal -- so a session following the protocol exactly would
+      # have seen none of it. Nothing noticed, because a document going stale
+      # produces no error.
+      #
+      # Measured in DAYS, not commits. A count bar low enough to catch a day of
+      # unwritten work fires partway through a busy session, and a check that
+      # goes red on normal work gets deleted. One day of grace: a session's own
+      # same-day commits never trip it; work still unrecorded tomorrow does.
+      - name: HANDOFF still describes this repository
+        run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.
@@ -1196,7 +1210,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 25  # git log -20 in confidence-gate step requires ≥20 commits
+          # 25 was enough for the confidence gate's `git log -20`. It is not
+          # enough for check-handoff-current, which walks back to the commit
+          # HANDOFF names: this repo produced 21 commits on 2026-08-25 alone, so
+          # 25 is under a day and a one-day-old handoff would fall outside the
+          # checkout. That check degrades to a warning when it does, so the
+          # depth is what decides whether it can verify anything at all.
+          fetch-depth: 200
 
       - name: /health/sources content readout — entries per source, not just freshness
         run: |

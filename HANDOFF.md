@@ -1,5 +1,96 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-25 (golf modelled, two credentials, four guards)
+
+**HEAD:** `9f6bbbb` → `ccc39ce` · **Branch:** main throughout
+**Deploys:** 875 (`218ede4`) and 876 (`0607526`), both green. Odds verified live
+after the key removal: `/cfl/odds-probs` returned four games at 18-19 bookmakers
+with `"remaining":"47407"` — a real call through the changed code path.
+
+**Session docs (Rule 67)** — `outbox/2026-08-25-*`:
+`non-contest-probe`, `odds-key-removal`, `doc-citations`.
+
+### What shipped
+
+| commit | change |
+|---|---|
+| `218ede4` | a tour is not a sport — golf stops being archived through the team-sport walker |
+| `0607526` | the Odds API key removed; `update-odds-key.yml` **deleted**; secrets ratchet gate |
+| `94679a4` | the shared-secret CC-CMD corrected against HEAD |
+| `5a962f6` | three holes in the secret scanner; the count it published was low |
+| `6ce3bc4` | a doc citation must be anchored, because line numbers rot |
+| `cf88ac0`, `ccc39ce` | two odds CC-CMDs, both with census evidence behind them |
+
+### The golf fix, and why it was flagged on the ENTRY
+
+`src/index.js`'s LEAGUES table now carries `individual:true` on the golf row,
+carried into `gameMeta` and gated at the catch-up write.
+
+Two rows existed for ESPN event 401811963 — the BMW Championship. One correct
+(`sport='golf'`, `home='BMW Championship'`, `away='R4'`,
+`note='Wyndham Clark -17'`) from the golf-aware `[GOLF-BRIEF]` path. One from
+this walker: `sport='PGA Tour'`, both names null, `home_score=away_score=-6`.
+
+**That `-6/-6` was never a tie.** The walker derives sides with
+`teams.find(t => t.homeAway === 'home') || teams[0]` — a fallback for
+neutral-site fixtures that cannot tell a neutral site from a leaderboard. On a
+golf event it returns the first two PLAYERS, whose `.team` is undefined because
+a golf competitor carries `.athlete`. Round one's leaders, names stripped.
+
+Flagged on the entry rather than tested as `sport === 'golf'` at the use site,
+so Korn Ferry, Champions, LPGA and DP World carry the fact with them instead of
+needing the gate widened four more times.
+
+### Two credentials, and three published counts that were all low
+
+The Odds API key is gone from four files, and
+`.github/workflows/update-odds-key.yml` was **deleted rather than edited**: its
+only job was `wrangler secret put ODDS_API_KEY` from a repo literal, under a
+step named "Set ODDS_API_KEY to 20K plan key" — while writing the **exhausted**
+key. One dispatch would have replaced the working production key and printed a
+green checkmark.
+
+The shared secret's exposure was published three times in one day and each
+figure was low: **~41** (from grepping `src/`), then **114** (a scanner with a
+hole), now **115**. And "the Odds key is out of the repo" meant out of ONE repo
+— jubilant-bassoon still had it in three files, with its own ratchet now.
+
+That is the argument for the ratchet in `docs/exposed-secrets.sha256`: the
+number is a floor that may only come down, not a fact.
+
+### Four new deploy gates
+
+| gate | what it refuses |
+|---|---|
+| `check-individual-sports-not-archived` | a golf-shaped event reaching the catch-up write |
+| `check-exposed-secrets` | a known credential appearing more often than declared |
+| `check-doc-citations` | a document quoting a fragment that is not in the file |
+| `three-way-odds-check` | (2026-08-24) a soccer h2h without its draw |
+
+### Open, with the human named
+
+1. **Rotate `RELAY_SHARED_SECRET`** — `docs/CC-CMD-2026-08-25-rotate-relay-secret.md`.
+   The order is **source-first**, and that is not the obvious order:
+   `bootstrap-relay-secret.yml` extracts the value FROM `src/index.js`, so
+   rotating first leaves a dispatchable job that reinstalls the old one. Steps
+   1, 2, 4, 5 are automatable; step 3 needs Cloudflare and GitHub credentials.
+2. **The PGA Tour archive rows** — recommended against deleting; they are inert
+   and are the reason `Unnamed` exists. Proposal kept with its exact predicate.
+3. **Three CC-CMDs awaiting a session:** `golf-slate-line` (the same broken
+   derivation feeds the journalism prompt, and `buildGolfCronContext` has no
+   caller at all), `spread-price-capture`, `misjoined-opening-odds`.
+
+### What the laboratory measured about this relay
+
+- **The band `favouriteAgreement` declines to judge is empty.** 143 games,
+  47.6% agreement — a coin flip, twice measured.
+- **Its disagreements are one-sided.** 9 of 143 home-favourite games, **0 of 80**
+  away-favourite. That is a feed or adapter artefact, not market behaviour.
+- **Three MLB rows on 2026-06-28 hold another sport's odds.** Total 3.5 where
+  MLB runs 7-11, `captured_at` equal to `finalized_at`, no `_oddsProof`.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-08-24 (seven asks, eras 5 and 6, ten new gates)
 
 **HEAD:** `95bf3c0` → `021c43c` · **Branch:** main throughout
