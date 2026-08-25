@@ -304,6 +304,23 @@ jobs:
       - name: soccer h2h yields a draw, and no other market gains one
         run: node scripts/three-way-odds-check.mjs
 
+      # The archive catch-up walks an ESPN scoreboard per LEAGUES row and derives
+      # two sides with `teams.find(homeAway === 'home') || teams[0]`. That
+      # fallback exists for neutral-site fixtures where ESPN omits `homeAway`,
+      # and cannot tell a neutral site from a leaderboard: on the one golf row in
+      # that table it returned the first two PLAYERS, whose `.team` is undefined,
+      # and archived `sport='PGA Tour' home=null away=null home_score=away_score=-6`
+      # -- the BMW Championship's round-one leaders presented as a tie between
+      # sides that do not exist, duplicating a correct `sport='golf'` row for the
+      # same ESPN event. PGA Tour is a LEAGUE within golf.
+      #
+      # The check is a three-link chain because the realistic failure is a
+      # half-applied fix: flag on the table, gate in the loop, and nothing
+      # carrying the value between them reads `undefined` and passes everything.
+      # Each link is mutated independently in the self-test.
+      - name: no individual-competitor event reaches the archive catch-up
+        run: node scripts/check-individual-sports-not-archived.mjs --self-test && node scripts/check-individual-sports-not-archived.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

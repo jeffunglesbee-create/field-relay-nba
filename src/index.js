@@ -7723,7 +7723,29 @@ async function handleJournalismCycle(env, opts = {}) {
     // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).
     // isLiveHours gate (UTC 10-2) covers all WC group-stage kickoffs (UTC 17-01).
     {sport:'soccer',    league:'fifa.world', label:'FIFA World Cup'},
-    {sport:'golf',      league:'pga',        label:'PGA Tour'},
+    // `individual: true` — the competitors of this event are PLAYERS, not two
+    // sides. Every other entry in this table is a team sport, and the per-event
+    // handling below derives home/away with
+    //   teams.find(t => t.homeAway === 'home') || teams[0]
+    // whose fallback exists for neutral-site fixtures where ESPN omits
+    // `homeAway`. It cannot tell a neutral site from a leaderboard, so on a
+    // golf event it silently returns the first two PLAYERS.
+    //
+    // Measured 2026-08-25 (field-laboratory
+    // docs/CC-CMD-2026-08-25-golf-sport-label.md): that produced archive rows
+    // `sport='PGA Tour'` with home=null, away=null (a golf competitor carries
+    // `athlete`, not `team`, so both names resolve to '') and
+    // home_score=away_score=-6 — the top two players of the BMW Championship's
+    // first round, stripped of their names. PGA Tour is a LEAGUE within golf,
+    // alongside the Korn Ferry, Champions, LPGA and DP World tours; writing it
+    // into the `sport` column is a category error, and the same rows already
+    // exist correctly as `sport='golf'` from the golf-aware [GOLF-BRIEF] path
+    // below (same ESPN event 401811963 on both).
+    //
+    // Flagged on the ENTRY rather than tested as `sport === 'golf'` at the use
+    // site, so the next individual-competitor league added here carries the
+    // fact with it instead of needing the gate widened.
+    {sport:'golf',      league:'pga',        label:'PGA Tour', individual:true},
   ];
   // computeWentToOT is now module-scoped (see above handleJournalismCycle) --
   // CC-CMD-2026-07-12-completion-field-parity hoisted it so /archive/score-by-id
@@ -7735,7 +7757,7 @@ async function handleJournalismCycle(env, opts = {}) {
   // in the archive without re-parsing the line string.
   const gameMeta = [];
   try {
-    for (const {sport,league,label} of LEAGUES) {
+    for (const {sport,league,label,individual} of LEAGUES) {
       try {
         const r = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
         if (!r.ok) continue;
@@ -7762,6 +7784,9 @@ async function handleJournalismCycle(env, opts = {}) {
               : {};
             gameMeta.push({
               sport,
+              // Carried through so the archive catch-up below can refuse this
+              // event. See the LEAGUES entry that sets it.
+              individual,
               home: homeName,
               away: awayName,
               ...mlsIds,
@@ -7796,6 +7821,14 @@ async function handleJournalismCycle(env, opts = {}) {
       const relayBase = `https://field-relay-nba.${env.WORKER_DOMAIN || 'jeffunglesbee.workers.dev'}`;
       for (const gm of gameMeta) {
         if (!gm.isFinal || !gm.eventId) continue;
+        // An individual-competitor event has no two sides to archive, and this
+        // path cannot tell that — it would write home=null, away=null and the
+        // top two players' scores as if they were a tie. The golf-aware
+        // [GOLF-BRIEF] path already archives these events under sport='golf'
+        // with the event, the round and the named leader, so this is not a
+        // coverage gap: it is the removal of a duplicate that is also wrong.
+        // See the LEAGUES entry's comment for the measurement.
+        if (gm.individual) continue;
         let existing;
         try {
           existing = await env.ARCHIVE_DB.prepare(
