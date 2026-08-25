@@ -1,9 +1,9 @@
 # FIELD Relay — HANDOFF
 
-## SESSION CLOSE-OUT — 2026-08-24 (six queue items, eras 5 and 6, nine new gates)
+## SESSION CLOSE-OUT — 2026-08-24 (seven asks, eras 5 and 6, ten new gates)
 
-**HEAD:** `95bf3c0` → `555a604` · **Branch:** main throughout
-**Deploys:** 869-873 all green. Live verification on 873: `quality-source=fresh`,
+**HEAD:** `95bf3c0` → `021c43c` · **Branch:** main throughout
+**Deploys:** 869-874 all green. Live verification on 873: `quality-source=fresh`,
 journalism generating, both 400 validations correct.
 
 **Session docs (Rule 67)** — `outbox/cc-session-2026-08-24-*`:
@@ -12,7 +12,7 @@ journalism generating, both 400 validations correct.
 `aggregate-launders-unknowns`, `soccer-attempt-enrichment`, `name-graph`,
 `negative-examples`, `style-gating`, `cite-golf-analytics`, `voice-exemplars`.
 
-### The six-item queue, all closed
+### The six-item queue, all closed — plus the one open CC-CMD found after
 
 | # | item | outcome |
 |---|------|---------|
@@ -22,6 +22,56 @@ journalism generating, both 400 validations correct.
 | 4 | `n: null` in `/quality/report` | **fixed** — it was publishing `briefs_counted: 0` beside `cleared_196: 66` |
 | 5 | `soccer-near-miss-enrichment` | **built** — woodwork and attempts, labelled separately |
 | 6 | `prompt-numeral-mining` | **fixed** — plus the STYLE lines the ask ruled out |
+
+### The seventh: soccer three-way odds
+
+`CC-CMD-2026-08-23-soccer-three-way-odds` was the only OPEN command left in
+field-laboratory after the queue closed. Built as relay `5a2bacc`.
+
+```
+"moneyline": { "home": 125, "away": 180, "draw": 240 }
+```
+
+**The draw was never dropped — it was never asked for.** `extractOddsForGame`
+matched h2h outcomes against `home` and `away` and nothing else; soccer prices
+three, and the third matched neither predicate. Fifteen MLS games measured
+2026-08-23, every one two-way, so field-laboratory rendered "three-way market;
+no draw price served" on every soccer card.
+
+Identified **by position, not by name** — `o.name === 'Draw'` is an unverifiable
+literal and a renamed selection would drop the price again, the same class that
+emptied `UNREACHABLE_DIMS` the same day. No sport check: a two-outcome market has
+no third entry, so the SHAPE enforces "non-soccer gains no null draw".
+
+**PREMISE VERIFIED 2026-08-24T23:48Z**, and it had not been when the fix shipped.
+The command asserts the feed prices three outcomes; that was inherited (Rule 72)
+and the sandbox 403s `*.workers.dev`, so it went to CI:
+
+```
+PREMISE HOLDS — 10 of 10 sampled soccer h2h markets price three outcomes
+soccer_usa_mls  30 games  Chicago Fire @ Seattle  {home 170, away 120, Draw 285}
+soccer_epl      20 games  Man City @ C Palace     {home 400, away -165, Draw 320}
+```
+
+`outcome_count: 3`, `third_selection: "Draw"` on every one. The feed **does** call
+it "Draw" today, so a name match would have worked — position costs nothing extra
+and survives a rename. Routed through the relay's `/odds` proxy and its 3600s
+cache: at most two credits, zero on a hit (Rule 78 — this repo burned 19,999 of
+20,000 in one June sitting).
+
+Artifact `outbox/odds-h2h-shape-20260824T234850Z.json`, workflow
+`odds-h2h-shape-probe.yml`, probe `df64b28`.
+
+**Awaiting the artifact, and the wait is structural.** field-laboratory's
+`cc-cmd-followup.mjs` probes `/context/date/${yesterdayUTC()}` and `opening_odds`
+freeze at capture (~10:01Z on the game date), so the first slate captured against
+the deployed adapter becomes "yesterday" for the **2026-08-26 02:30Z**
+drift-sentinel run. Runs #46 (13:02Z) and #47 (23:21Z) on the 24th both read
+pre-deploy rows — a `false` from either is arithmetic, not evidence. A check-in
+is scheduled for 2026-08-26 03:15Z (`trig_01H5WvdFB2EzsMJroVF92BAA`).
+
+If that run reads `false` on a post-deploy slate, the premise is no longer a
+candidate — the fault is between the adapter and `/context/date`.
 
 ### Eras 5 and 6
 
@@ -48,7 +98,7 @@ era 6  Dim 10 re-pointed from matchupNote ECHO to margin agreement, 30 pts
   retry-gate removal named in its own subject line — which is what orphaned
   `scoreThreshold`.
 
-### Nine new deploy gates
+### Ten new deploy gates
 
 ```
 check-scale-matches-implementation             declared weight = code ceiling
@@ -59,9 +109,10 @@ check-name-graph                               every name resolves to a name tha
 check-negative-examples-are-not-instantiable   a forbidden example must not be copyable prose
 check-no-foreign-league-in-prompt              no sport's prompt names another sport's league
 finality-agreement-check / margin-agreement-check   the two new dimensions' 2x2s
+three-way-odds-check                           soccer h2h yields a draw, no other market does
 ```
 
-All nine are unconditional `run:` steps — none can skip silently. 15 guards green.
+All ten are unconditional `run:` steps — none can skip silently. 16 guards green.
 
 ### Contamination: the structural cause, and the number
 
