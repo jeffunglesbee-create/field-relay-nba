@@ -22,6 +22,25 @@ is the same shape and is what started this.
 
 **None of them can be adjudicated from what the relay stores.**
 
+## Run 2 made the case harder to dismiss
+
+Extended to 60 days, 779 games, and the census now reports the disagreement
+rate by which side is favoured, among judged games inside 3x the vig:
+
+```
+home favourite    143 game(s), 9 disagree (6.3%)
+away favourite     80 game(s), 0 disagree (0.0%)
+```
+
+**Nine on one side, zero on the other.** If the book's choice of which side lays
+`-1.5` were near-arbitrary near an even market, both sides would show it. Eighty
+away-favourite games producing zero disagreements is not that. One-sided is the
+signature of a feed or adapter artefact.
+
+All nine sit between `-114` and `-126` on the home moneyline, holding `+1.5`.
+The spread price is what separates "a favourite's normal alternate line" from "a
+contradiction," and it is the only thing that does.
+
 ## What is discarded
 
 `extractOddsForGame` — `src/index.js`, `out.spread = { home: h.point, away: a.point }`:
