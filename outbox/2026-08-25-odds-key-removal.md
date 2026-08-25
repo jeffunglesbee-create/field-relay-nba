@@ -122,3 +122,60 @@ first buys nothing — the value is in git history either way — and
 binding turns the gate into `undefined === undefined`. There is an order, and
 `docs/CC-CMD-2026-08-25-rotate-relay-secret.md` writes it down. Step 1 needs a
 human with dashboard credentials.
+
+---
+
+## Correction: the shared-secret CC-CMD was filed from a summary, not from HEAD
+
+Asked whether this had already been resolved, checked the repo, and it had been
+— partly, and not the part the CC-CMD described. Two errors, both from writing
+the document without probing first. That is Rule 87 §1, in a document whose own
+step 1 says "Probe first. Do not write from this document."
+
+**Error 1 — the distribution problem was already solved.** Relay `d540e99`
+(2026-08-24) built the whole path:
+
+- `bootstrap-relay-secret.yml` writes `RELAY_SHARED_SECRET` into this repo's
+  Actions secrets
+- `deploy.yml` forwards it to field-laboratory
+- `sync-secret-to-worker.yml` pushes a GH Actions secret to the Worker binding
+- field-laboratory's `sport-vocabulary-check.mjs` reads
+  `process.env.RELAY_SHARED_SECRET` with no fallback
+
+The CC-CMD listed "add it as a GitHub Actions secret" as step 2. It is done, and
+following the document would have been redoing finished work.
+
+**Error 2 — eleven auth gates, not one.** The document named `src/index.js:3997`
+as "the AUTH CHECK". Parsed from HEAD: 3997 (the only `===` form), 13496, 13944,
+14734, 14758, 14778, 14807, 14833, 15012, 15076. Plus ~13 outbound self-call
+headers and one site already reading `env.RELAY_SHARED_SECRET || '<literal>'`.
+
+This is the second estimate-instead-of-a-parse in one session — the golf CC-CMD
+said "21 of 22 entries" against a real 21.
+
+## And the check found a hazard that reverses the order
+
+`bootstrap-relay-secret.yml` derives the secret **from `src/index.js`**:
+
+```bash
+mapfile -t FOUND < <(grep -ao "X-FIELD-Relay') !== '[^']*'" src/index.js \
+  | sed "s/.*!== '//; s/'$//" | sort -u)
+```
+
+Rotating in Cloudflare and then dispatching bootstrap **overwrites the new
+Actions secret with the old source literal.** That is the same mechanism as
+`update-odds-key.yml`, deleted hours earlier in this session for doing exactly
+this to `ODDS_API_KEY`: a workflow that installs a credential from a repo
+literal, under a name that says it is installing the current one.
+
+It is dispatch-only, so it will not fire by itself. It is still pointed at the
+rotation the CC-CMD exists to sequence.
+
+**The order is now source-first**, and that is better on its own merits, not
+only because of the hazard. While the value is unchanged, replacing a literal
+with a binding holding the same value is a runtime no-op — every gate and every
+self-call keeps working, and it can be verified against a live relay before
+anything rotates. Rotate-first makes all 114 sites wrong simultaneously.
+
+The original rotate-first reasoning is kept in the CC-CMD, marked wrong, rather
+than quietly replaced.
