@@ -101,8 +101,14 @@ pointed at the rotation this document exists to sequence.
 ## The order
 
 1. **Replace the literals in source FIRST**, while the value is still the live
-   one, so nothing breaks mid-flight. `src/index.js` (27), `src/analytics-engine.js`
-   (1), `workers/field-claude-proxy` (1), ~40 `scripts/*.mjs`, 6 workflows.
+   one, so nothing breaks mid-flight. `src/index.js` (27),
+   `src/analytics-engine.js` (1), `workers/field-claude-proxy` (1), ~40
+   `scripts/*.mjs`, 6 workflows — **115 sites here, and 9 more in
+   jubilant-bassoon**, four of which are live code:
+   `workers/field-claude-proxy/src/index.js:105` (an auth comparison),
+   `retry_telemetry_probe.js:37`, `scripts/seed-mls-return-2026.py:17` and
+   `scripts/seed-mls-tournaments-2026.py:21` (all POSTing to `/d1/execute`).
+   Both repos must land before step 3, or rotation breaks whichever lags.
 
    - The eleven inbound gates read `env.RELAY_SHARED_SECRET` and must **fail
      closed** when the binding is unset. An unset binding otherwise turns

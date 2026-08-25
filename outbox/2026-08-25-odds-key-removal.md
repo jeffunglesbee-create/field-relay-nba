@@ -179,3 +179,46 @@ anything rotates. Rotate-first makes all 114 sites wrong simultaneously.
 
 The original rotate-first reasoning is kept in the CC-CMD, marked wrong, rather
 than quietly replaced.
+
+---
+
+## Correction: "out of the repo" meant out of ONE repo, and the scanner had three holes
+
+A cross-repo scan later the same day:
+
+| repo | RELAY_SHARED_SECRET | ODDS_API_KEY |
+|---|---|---|
+| field-relay-nba | **115** | 0 |
+| jubilant-bassoon | 9 | **3** |
+| field-laboratory | 0 | 0 |
+| field-playground | 0 | 0 |
+
+**The Odds API key was still in jubilant-bassoon**, in three places, while this
+document said it was out of the repo and the ratchet said 0. Both statements
+were true of field-relay-nba and neither said so. Fixed in jubilant-bassoon
+`797ae29`; that repo now has its own copy of the gate, wired into
+`smoke-and-verify.yml`, which runs on every push.
+
+**And the count here moved 114 → 115**, because the scanner published this
+morning had three defects. All three are fixed in both copies, each with a
+self-test case:
+
+1. **Nested quotes.** A secret inside a code span — an outer backtick pair
+   around an inner single-quoted literal — was invisible. The quote-pair regex
+   matched the outer span and consumed the inner literal; the token pass then
+   stripped one quote from each end and left a trailing apostrophe. A file
+   scanned clean while carrying the secret, and a code span is exactly how a
+   secret appears in prose. Quote characters are delimiters now, not decoration
+   to trim.
+2. **Whole-file pre-check.** An unbalanced quote on an earlier line shifted
+   where later matches began. Line-by-line only now.
+3. **Import purity.** Importing the module ran a whole-tree scan and printed a
+   report — the defect field-laboratory's `check:import-purity` exists for.
+
+115 is the third figure published for this one value today. The first was ~41,
+from grepping `src/`. The second was 114, from a scanner with a hole. Each was
+reported as the exposure and each was low, which is the argument for the
+ratchet: the number is a floor that may only come down, not a fact.
+
+Remaining gap: **field-playground is clean and unguarded** — filed as
+jubilant-bassoon `docs/CC-CMD-2026-08-25-playground-secret-gate.md`.

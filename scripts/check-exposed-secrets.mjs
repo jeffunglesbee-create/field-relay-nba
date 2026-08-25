@@ -62,7 +62,26 @@ export function digestsIn(text) {
   for (const m of text.matchAll(/'([^'\n]{8,200})'|"([^"\n]{8,200})"|`([^`\n]{8,200})`/g)) {
     add(m[1] ?? m[2] ?? m[3]);
   }
-  for (const tok of text.split(/[\s,;()[\]{}<>]+/)) add(tok.replace(/^['"`]|['"`]$/g, ''));
+  // Quote characters are DELIMITERS, not decoration to be trimmed.
+  //
+  // The first version split on whitespace and punctuation, then stripped ONE
+  // leading and ONE trailing quote. It missed this, measured 2026-08-25 in
+  // jubilant-bassoon docs/journalism-root-cause-2026-05-29.md:24:
+  //
+  //     `relayAuth === RELAY_SHARED_SECRET || 'field-relay-cron-2026'`
+  //
+  // Two failures at once. The quote-pair pass above matched the OUTER backtick
+  // span first and consumed the inner literal, so the single-quoted secret
+  // never got its own match. The token pass then produced
+  // `'field-relay-cron-2026'\`` and the single strip left a trailing
+  // apostrophe, so the hash missed. The file scanned clean while carrying the
+  // secret — and a secret inside a code span is exactly how one appears in
+  // prose.
+  //
+  // Splitting ON quotes fixes both: no credential contains a quote character,
+  // so nothing is lost, and nesting stops mattering. The quote-pair pass stays
+  // for values that contain spaces, which the token split would break apart.
+  for (const tok of text.split(/[\s,;()[\]{}<>'"`]+/)) add(tok);
   return found;
 }
 
@@ -99,9 +118,40 @@ if (SELF_TEST) {
   }
   check('the scanner does not report a value that is absent',
     !digestsIn('const K = process.env.X;').has(h), 'a false positive');
+
+  // The nested-quote form, and the one that actually got past this scanner.
+  // A secret inside a code span: an outer backtick pair around an inner
+  // single-quoted literal. Both of this function's passes failed on it.
+  check('a secret nested inside an outer quote span is found',
+    digestsIn("copy (`relayAuth === RELAY_SHARED_SECRET || '" + probe + "'` skipped)").has(h),
+    'the nested form is still invisible');
+
+  // The defect that made this scanner miss a real hit, 2026-08-25.
+  //
+  // An unbalanced quote on an earlier line shifts where the quote-pair regex
+  // resumes, so a later backtick-quoted secret can be swallowed when the whole
+  // file is scanned in one pass. Asserted as the DIFFERENCE between the two
+  // strategies: whole-file must be allowed to miss it; line-by-line must not.
+  const awkward = [
+    "After 1042 cleared, the proxy rejected it: `ALLOWED_ORIGINS.includes('')` fails.",
+    "It's the wrong copy — that's two apostrophes and no closing quote",
+    `const isRelay = relayAuth === (env.X || '${probe}');`,
+  ].join('\n');
+  const byLine = awkward.split('\n').some(l => digestsIn(l).has(h));
+  check('line-by-line finds a hit that a whole-file scan can miss',
+    byLine, 'the line-bounded scan missed it too — the fix does not work');
+  check('...and the whole-file scan is the one that was unreliable',
+    true, `whole-file found it: ${digestsIn(awkward).has(h)} (either value is a pass; ` +
+    'this line records which strategy was measured, it does not assert the bug still exists)');
   process.exit(failed === 0 ? 0 : 1);
 }
 
+// Everything below runs only when this file is EXECUTED, never when it is
+// imported. `digestsIn` and `parseManifest` are exported for testing, and an
+// import that silently ran a whole-tree scan is the defect field-laboratory's
+// `check:import-purity` gate exists for -- hit for real on 2026-08-25 when a
+// one-line diagnostic import printed a full report instead.
+if (process.argv[1] && process.argv[1].endsWith('check-exposed-secrets.mjs')) {
 const entries = parseManifest(readFileSync(MANIFEST, 'utf8'));
 if (!entries.length) { console.error(`FAIL: ${MANIFEST} declares nothing`); process.exit(1); }
 
@@ -110,12 +160,26 @@ const where = new Map(entries.map(e => [e.sha, []]));
 for (const f of files('.')) {
   if (f.endsWith(MANIFEST) || f.endsWith('check-exposed-secrets.mjs')) continue;
   let text; try { text = readFileSync(f, 'utf8'); } catch { continue; }
-  const digests = digestsIn(text);
+  // LINE BY LINE, never whole-file, and this is not a style choice.
+  //
+  // The first version pre-checked `digestsIn(text)` over the whole file and
+  // only counted lines when that passed. Quote pairing is not anchored: the
+  // alternation `'...'|"..."|`...`` consumes as it scans, so an unbalanced
+  // quote on an EARLIER line shifts where later matches begin and a real hit
+  // can be swallowed. Measured 2026-08-25 on
+  // docs/journalism-root-cause-2026-05-29.md:24 — that line carries the shared
+  // secret inside backticks and `digestsIn(line)` finds it, while
+  // `digestsIn(wholeFile)` did not. The file scanned as clean.
+  //
+  // A guard that can silently fail to guard is worse than no guard. Bounding
+  // every regex to one line makes consumption unable to cross a line boundary.
+  const lines = text.split(/\r?\n/);
+  const perLine = lines.map(l => digestsIn(l));
   for (const e of entries) {
-    if (!digests.has(e.sha)) continue;
+    const n = perLine.filter(d => d.has(e.sha)).length;
+    if (!n) continue;
     // Occurrences, not files: a second hard-coded use in an already-listed file
     // must fail too.
-    const n = text.split(/\r?\n/).filter(l => digestsIn(l).has(e.sha)).length;
     counts.set(e.sha, counts.get(e.sha) + n);
     where.get(e.sha).push(`${f} (${n})`);
   }
@@ -132,3 +196,4 @@ for (const e of entries) {
 }
 
 process.exit(failed === 0 ? 0 : 1);
+}
