@@ -334,6 +334,21 @@ jobs:
       - name: no known-exposed credential appears more often than declared
         run: node scripts/check-exposed-secrets.mjs --self-test && node scripts/check-exposed-secrets.mjs
 
+      # Line numbers rot. Six citations were published into CC-CMDs on the
+      # morning of 2026-08-25 and five were wrong by the afternoon -- because
+      # the same session then edited the file it had cited, and an insertion
+      # above a line moves every line below it. A stale citation is worse than
+      # none: it points confidently at unrelated code and the reader trusts it
+      # because it is specific.
+      #
+      # The fix is a better IDENTITY, not a better number. A document that
+      # quotes a distinctive fragment beside its citation can be checked, and
+      # the fragment finds the current line by itself. That convention also
+      # cannot be satisfied from memory -- which is the real defect, since every
+      # wrong figure published that day came from recall rather than a probe.
+      - name: doc citations are anchored, not just numbered
+        run: node scripts/check-doc-citations.mjs --self-test && node scripts/check-doc-citations.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

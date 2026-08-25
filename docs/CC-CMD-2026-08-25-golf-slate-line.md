@@ -35,7 +35,7 @@ line — but what that line reads is not observed.
 
 ## And the fix has no caller
 
-`buildGolfCronContext(espnDate, env)` at `src/index.js:6903` builds exactly the
+`buildGolfCronContext(espnDate, env)` — `src/index.js`, `async function buildGolfCronContext` builds exactly the
 right thing — event name, round, top-10 leaderboard with position, to-par,
 today and thru:
 
