@@ -10,7 +10,8 @@ journalism generating, both 400 validations correct.
 `recap-window-generated-vs-touched`, `scale-declared-vs-implemented`,
 `era-6-margin-agreement`, `scorethreshold-fossil`,
 `aggregate-launders-unknowns`, `soccer-attempt-enrichment`, `name-graph`,
-`negative-examples`, `style-gating`, `cite-golf-analytics`, `voice-exemplars`.
+`negative-examples`, `style-gating`, `cite-golf-analytics`, `voice-exemplars`,
+`soccer-three-way-odds`.
 
 ### The six-item queue, all closed — plus the one open CC-CMD found after
 
