@@ -321,6 +321,19 @@ jobs:
       - name: no individual-competitor event reaches the archive catch-up
         run: node scripts/check-individual-sports-not-archived.mjs --self-test && node scripts/check-individual-sports-not-archived.mjs
 
+      # A ratchet, not a ban, and the difference is why it can be green today.
+      # Two credentials have been hard-coded here. The Odds API key is removed
+      # and its count is 0 -- it may never come back. The shared secret is
+      # load-bearing: 114 occurrences across 70 files, including the auth
+      # comparison that gates POST /d1/execute, and removing the literals before
+      # ROTATING the value buys nothing (it is in git history either way) while
+      # risking an auth check that compares a header against `undefined`.
+      #
+      # A check demanding 0 for both would be red from the moment it shipped,
+      # and a red check nobody can make green is a check that gets deleted.
+      - name: no known-exposed credential appears more often than declared
+        run: node scripts/check-exposed-secrets.mjs --self-test && node scripts/check-exposed-secrets.mjs
+
       # Ported from field-laboratory 2026-08-23, both halves of one idea: a
       # claim that nothing checks, and a check that has never been shown to
       # fail, are the same defect wearing different clothes.

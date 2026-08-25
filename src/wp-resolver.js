@@ -39,7 +39,9 @@ const KALI_BASE = 'https://kaliaflstats.com/api/afl/v1';
 
 // ── Odds API (keep in sync with index.js) ──────────────────────────────────
 const ODDS_BASE             = 'https://api.the-odds-api.com';
-const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038';
+// The hard-coded key was REMOVED 2026-08-25 -- see src/index.js's
+// `_oddsPrimaryKey` for the reasoning and the /budget/odds measurement that
+// showed it was never reached. A missing key is its own state here too.
 const ODDS_HARD_LIMIT       = 85000;
 const ODDS_THRESHOLDS       = [
     { pct: 50, label: '50%' },
@@ -262,7 +264,8 @@ async function consumeOddsCredit(env, units) {
 }
 
 async function fetchSportOddsLive(env, sportKey) {
-    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    const key = env.ODDS_API_KEY || env.ODDS_API_KEY_FALLBACK || null;
+    if (!key) console.error('[wp-resolver] ODDS_API_KEY is not set — this is a missing credential, not an API outage');
     if (!key) return { games: [], quotaRemaining: 0, ok: false };
     if (!(await consumeOddsCredit(env, 3))) {
         return { games: [], quotaRemaining: 0, ok: false, guarded: true };

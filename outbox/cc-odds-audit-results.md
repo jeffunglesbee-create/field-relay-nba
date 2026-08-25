@@ -137,4 +137,4 @@ Burn timeline matches: pre-`a1c4d74` was within budget; post-`a1c4d74` burns ~7K
   - Add `cacheEverything: true` + 24 h TTL on `fetchSportOddsHistorical`.
   - Bump `_fetchLiveOdds` cf TTL ≥ medium-tier cooldown (60 s).
   - Track failed/converged dates in KV `odds:backfill:tried:{date}` so the dead-hour cron skips dates with no further progress to make.
-- **F3** — Starter-key fallback via `env.ODDS_API_KEY_FALLBACK` (Cloudflare dashboard var). On 401/429 from the primary key, retry once with the fallback for WC-only / live-only paths. Replace the hard-coded fallback constant (`de44fdf870b3a4b5ee9d46993b2e1038` — the already-exhausted key).
+- **F3** — Starter-key fallback via `env.ODDS_API_KEY_FALLBACK` (Cloudflare dashboard var). On 401/429 from the primary key, retry once with the fallback for WC-only / live-only paths. Replace the hard-coded fallback constant (the already-exhausted key; its literal value was REDACTED from this file on 2026-08-25 when the constant was removed from source — see outbox/2026-08-25-odds-key-removal.md).

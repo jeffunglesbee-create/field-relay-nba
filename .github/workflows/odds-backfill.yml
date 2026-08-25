@@ -24,6 +24,11 @@ jobs:
 
       - name: Run odds backfill
         env:
-          ODDS_API_KEY:          ${{ secrets.ODDS_API_KEY || 'de44fdf870b3a4b5ee9d46993b2e1038' }}
+          # No literal fallback (removed 2026-08-25). It was a live credential in
+          # a tracked file, and it made an unset secret indistinguishable from a
+          # rejected one: both give a 401 from the Odds API, and only one is
+          # fixable by setting a variable. An unset secret now sends an empty
+          # key and the 401 names the real cause.
+          ODDS_API_KEY:          ${{ secrets.ODDS_API_KEY }}
           RELAY_BASE:            ${{ secrets.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev' }}
         run: node .github/scripts/odds-backfill.js

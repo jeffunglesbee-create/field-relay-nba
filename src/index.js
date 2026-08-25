@@ -567,14 +567,38 @@ const ODDS_BASE    = 'https://api.the-odds-api.com';
 //   ODDS_API_KEY_FALLBACK   Starter-tier key (500 credits / month) — used as a
 //                           runtime fallback when the primary returns 401/429
 //                           (exhausted or rate-limited). Set via dashboard.
-// The hard-coded constant below is the original exhausted free-tier key,
-// retained ONLY as a last-resort fallback when neither env var is set.
-const ODDS_API_KEY_FALLBACK = 'de44fdf870b3a4b5ee9d46993b2e1038';
-
-// Pick the primary key with a graceful fallback to the env-configured Starter
-// key (and finally the hard-coded constant). The env fallback is meant for the
-// quota-exhaustion recovery path — see oddsFetchWithFallback().
-function _oddsPrimaryKey(env)  { return (env && env.ODDS_API_KEY)          || ODDS_API_KEY_FALLBACK; }
+// THE HARD-CODED KEY WAS REMOVED 2026-08-25.
+//
+// It was a live API credential in a tracked file, and it was the THIRD level of
+// a fallback chain — over the two-level cap this project sets, and a fallback
+// to a key its own comment described as already exhausted. That is not a
+// fallback, it is a way for "the key is not configured" to look identical to
+// "the key was rejected": both produce a 401 from the Odds API, and only one of
+// them is fixable by setting a variable.
+//
+// Removing it is safe and that was MEASURED, not assumed. GET /budget/odds on
+// 2026-08-25 reported 42,102 credits used this month and 192 today against an
+// 85,000 limit, so `env.ODDS_API_KEY` is set and working in production and this
+// constant was never reached. See outbox/2026-08-25-odds-key-removal.md.
+//
+// An unset key is now its own state, logged once by name, rather than a silent
+// substitution. It does NOT throw: this runs inside the journalism cron, and
+// Rule 5 forbids an enhancement path breaking a primary function.
+let _oddsKeyWarned = false;
+function _oddsPrimaryKey(env) {
+    // Primary only. The Starter key stays where it belongs -- in
+    // oddsFetchWithFallback's 401/429 retry -- rather than being collapsed into
+    // this one, which would make the retry a no-op against the same key.
+    const k = (env && env.ODDS_API_KEY) || null;
+    if (!k && !_oddsKeyWarned) {
+        _oddsKeyWarned = true;
+        console.error('[odds] ODDS_API_KEY is not set. ' +
+            'Odds calls will fail. Set it: Cloudflare dashboard > Workers > field-relay-nba > ' +
+            'Settings > Variables, or `wrangler secret put ODDS_API_KEY`. This is a missing ' +
+            'credential, not an API outage.');
+    }
+    return k;
+}
 function _oddsFallbackKey(env) { return (env && env.ODDS_API_KEY_FALLBACK) || null; }
 
 // Wraps a fetch to api.the-odds-api.com. If the primary key returns 401/429
@@ -622,7 +646,14 @@ function oddsCacheTtl(path) {
 }
 // Inject apiKey as query param (server-side only)
 function oddsUrl(cleanPath, search, envKey) {
-    const apiKey = envKey || ODDS_API_KEY_FALLBACK;
+    // The caller passes the key -- its ONE call site (the /odds proxy route)
+    // already reads `env?.ODDS_API_KEY`. There is no `env` in this scope, so
+    // the removed `|| ODDS_API_KEY_FALLBACK` could not become
+    // `|| _oddsPrimaryKey(env)`: that compiles and throws a ReferenceError at
+    // request time. An unset key now yields `apiKey=` and a 401 from the Odds
+    // API naming the real cause, which is the state the module-level warning
+    // above also reports.
+    const apiKey = envKey || '';
     const qs  = search ? search + `&apiKey=${apiKey}` : `?apiKey=${apiKey}`;
     return `${ODDS_BASE}${cleanPath}${qs}`;
 }
@@ -1037,7 +1068,7 @@ async function getWCPregameLambdas(env) {
     if (_wcLambdaCache && (Date.now() - _wcLambdaCacheTs) < WC_LAMBDA_CACHE_TTL_MS) {
         return _wcLambdaCache;
     }
-    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    const key = _oddsPrimaryKey(env);
     if (!key) return null;
     try {
         const r = await fetch(
@@ -2997,7 +3028,7 @@ async function handleWCThirdPlace(env) {
 // binary-search lambdaFromTotalsAndH2H resolves λ_home/λ_away without iteration.
 // Budget: 2 credits per call (markets=h2h,totals). CF edge-cached 5 min.
 async function handleWCOddsProbs(env) {
-    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    const key = _oddsPrimaryKey(env);
     if (!key) {
         return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -3105,7 +3136,7 @@ async function handleWCOddsProbs(env) {
 // CFL has no draw market — h2h is home/away only. Includes spread + total lines.
 // Budget: 2 credits per call (markets=h2h,spreads,totals). CF edge-cached 2 min.
 async function handleCFLOddsProbs(env) {
-    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    const key = _oddsPrimaryKey(env);
     if (!key) {
         return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -3176,7 +3207,7 @@ async function handleCFLOddsProbs(env) {
 // Tests that the WC sport key exists and returns active markets.
 // Safe to call any time — read-only, no writes.
 async function handleWCWPVerify(env) {
-    const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+    const key = _oddsPrimaryKey(env);
     try {
         const resp = await fetch(
             `https://api.the-odds-api.com/v4/sports?apiKey=${key}`,
@@ -6148,7 +6179,7 @@ async function consumeOddsCredit(env, units) {
 
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
 async function fetchSportOddsLive(env, sportKey) {
-  const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
   // 3 markets (h2h,spreads,totals) → ~3 credits/call
   if (!(await consumeOddsCredit(env, 3))) {
@@ -6240,7 +6271,7 @@ async function snapshotCronOdds(env, dateKey) {
 // The Odds API charges 10 quota units per historical call (vs 1 for current),
 // so callers MUST check the quota_remaining return field before iterating.
 async function fetchSportOddsHistorical(env, sportKey, isoDate) {
-  const key = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
   // Historical = 10× live cost; 3 markets → ~30 credits per call.
   if (!(await consumeOddsCredit(env, 30))) {
@@ -6285,7 +6316,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
 // touches rows where opening_odds IS NULL.
 async function runOddsBackfillForDate(env, isoDate) {
   if (!env.ARCHIVE_DB) return { ok: false, reason: 'ARCHIVE_DB not bound', date: isoDate };
-  const apiKey = env.ODDS_API_KEY || ODDS_API_KEY_FALLBACK;
+  const apiKey = _oddsPrimaryKey(env);
   if (!apiKey) return { ok: false, reason: 'ODDS_API_KEY not configured', date: isoDate };
 
   const rs = await env.ARCHIVE_DB.prepare(
