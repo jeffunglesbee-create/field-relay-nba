@@ -2,7 +2,10 @@
 
 **Filed from:** field-laboratory, after a 45-day census.
 **Ask to:** field-relay-nba, `extractOddsForGame`.
-**Status:** OPEN.
+**Status:** BUILT AND DEPLOYED 2026-08-26. Relay `c2ef28a` (capture) +
+`b3aae99` (a gate fix that blocked it), deploy run 878 green including the new
+guard. The done condition below is NOT yet met and needs no human: it needs one
+opening-odds capture cycle, and the laboratory sentinel now watches for it.
 
 ## The evidence, which did not exist when this was first suggested
 
@@ -61,6 +64,41 @@ and thrown away. With it, each row above answers itself:
 
 Without it, the laboratory's `favouriteAgreement` can never be better than
 "these two numbers look odd together," which is what it currently is.
+
+## Step 1 answered, and it changed step 4 and one earlier conclusion
+
+`scripts/odds-spread-shape-probe.mjs`, run 2026-08-26 through the relay's own
+`/odds` proxy (artifact `outbox/odds-spread-shape-20260826T002201Z.json`).
+DraftKings, one region, one market. Raw outcomes, verbatim:
+
+```json
+[{"name":"Boston Red Sox","price":262,"point":-1.5},
+ {"name":"Miami Marlins","price":-371,"point":1.5}]
+```
+
+**PRICE — premise holds.** All 13 matched spread markets carried a finite price
+on both sides. Nothing was missing upstream.
+
+**And the point alone does not say who is favoured:**
+
+```
+Red Sox @ Marlins   home +1.5 at -371   home is the FAVOURITE
+Brewers @ Mets      home +1.5 at  +101  home is the UNDERDOG
+```
+
+Same handicap, opposite meaning. Four of eight sampled MLB games had home at
+`+1.5`, at prices from `-371` to `+101`.
+
+**This corrects the document above.** It argued the one-sided disagreement rate
+was "the signature of a feed or adapter artefact." A book listing the slight
+favourite at `+1.5` with a favourite's price is ordinary market behaviour — the
+alternate run line — and it produces exactly the flagged shape. The asymmetry
+stands as a measurement; the inference about its cause does not.
+
+**A second, inherited claim also fell.** A Drive doc (*FIELD — "Gumbo" Odds API
+Savings Analysis*, 2026-05-26) says MLB spreads are "always -1.5 ... DEAD WEIGHT
+for MLB", and recommends dropping the market to save credits. One of eight
+sampled MLB handicaps was `±5.5`. MLB varies its run line.
 
 ## The ask
 
