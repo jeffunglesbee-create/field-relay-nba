@@ -218,8 +218,10 @@ closing_odds: JSON string
     draw?: number        // soccer only
   }
   spread?: {
-    home: number
+    home: number         // the handicap, e.g. +1.5 / -1.5
     away: number
+    homePrice?: number   // American format. OMITTED, never null, when the book
+    awayPrice?: number   // serves no price — absent and captured must differ.
   }
   total?: {
     over: number
@@ -232,6 +234,24 @@ Note: historical backfill writes the SAME data to both columns
 (one snapshot serves as both opening and closing for completed games).
 Live capture (future) will write opening on first sight, closing at
 game start.
+
+Note on `spread`: **the point does not say who is favoured — the price does.**
+Measured 2026-08-26 through the relay's `/odds` proxy
+(`scripts/odds-spread-shape-probe.mjs`, artifact
+`outbox/odds-spread-shape-20260826T002201Z.json`), DraftKings MLB:
+
+```
+Red Sox @ Marlins   home +1.5 at -371   home is the FAVOURITE
+Brewers @ Mets      home +1.5 at  +101  home is the UNDERDOG
+```
+
+Any consumer inferring a favourite from the sign of `spread.home` alone is
+wrong on the first of those. `homePrice` / `awayPrice` were added by
+CC-CMD-2026-08-25-spread-price-capture and are additive: `home` and `away` keep
+their exact meaning and position, so every existing reader is unaffected.
+
+Rows written before that deploy carry no price keys. Absent is not zero and not
+even money — it is "not captured", and the three states must stay distinct.
 
 ---
 

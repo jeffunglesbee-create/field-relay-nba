@@ -304,6 +304,25 @@ jobs:
       - name: soccer h2h yields a draw, and no other market gains one
         run: node scripts/three-way-odds-check.mjs
 
+      # The spread's point does not say who is favoured, and that was measured
+      # rather than argued. Through the relay's own /odds proxy on 2026-08-26
+      # (scripts/odds-spread-shape-probe.mjs, artifact
+      # outbox/odds-spread-shape-20260826T002201Z.json):
+      #
+      #   Red Sox @ Marlins   home +1.5 at -371   home is the FAVOURITE
+      #   Brewers @ Mets      home +1.5 at  +101  home is the UNDERDOG
+      #
+      # Same handicap, opposite meaning. extractOddsForGame stored the point and
+      # discarded the price, so field-laboratory's favouriteAgreement found ten
+      # one-sided disagreements it could not adjudicate — the relay had kept the
+      # half of the market carrying no answer. All 13 matched markets in that
+      # probe served a finite price on both sides.
+      #
+      # The guard exercises the real spreadFrom and mutation-proves itself: it
+      # goes red on the pre-fix inline construction, so a revert cannot pass it.
+      - name: the spread carries the price that gives its point a meaning
+        run: node scripts/check-spread-price-captured.mjs --self-test && node scripts/check-spread-price-captured.mjs
+
       # The archive catch-up walks an ESPN scoreboard per LEAGUES row and derives
       # two sides with `teams.find(homeAway === 'home') || teams[0]`. That
       # fallback exists for neutral-site fixtures where ESPN omits `homeAway`,

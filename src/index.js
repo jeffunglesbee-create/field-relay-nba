@@ -102,7 +102,7 @@ import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
-import { drawPriceFrom } from './odds-shape.js';
+import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -6099,7 +6099,10 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, captu
   if (spreads) {
     const h = spreads.outcomes.find(o => o.name === home);
     const a = spreads.outcomes.find(o => o.name === away);
-    if (h && a) out.spread = { home: h.point, away: a.point };
+    // The price beside the point, without which the point does not say who is
+    // favoured — measured, not assumed. See spreadFrom in src/odds-shape.js.
+    const sp = spreadFrom(h, a);
+    if (sp) out.spread = sp;
   }
   if (totals) {
     const over  = totals.outcomes.find(o => o.name === 'Over');

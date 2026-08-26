@@ -36,3 +36,41 @@ export function drawPriceFrom(outcomes, homeOutcome, awayOutcome) {
   const d = outcomes.find(o => o !== homeOutcome && o !== awayOutcome);
   return d && Number.isFinite(d.price) ? d.price : null;
 }
+
+/// The spread, with the price that gives its `point` a meaning.
+///
+/// Split out here for the same reason as drawPriceFrom: src/index.js imports
+/// @cloudflare/puppeteer, which deploy.yml does not install, so a gate that
+/// imported the worker could not run. One implementation, imported by both.
+///
+/// CC-CMD-2026-08-25-spread-price-capture. extractOddsForGame read `o.point`
+/// and discarded `o.price`, and MEASURED 2026-08-26 (scripts/odds-spread-shape-probe.mjs,
+/// artifact outbox/odds-spread-shape-20260826T002201Z.json) the point alone
+/// does not say who is favoured:
+///
+///   Red Sox @ Marlins   home +1.5 at -371   home is the FAVOURITE
+///   Brewers @ Mets      home +1.5 at  +101  home is the UNDERDOG
+///
+/// Same handicap, opposite meaning, and only the price separates them. That is
+/// the whole ask: field-laboratory's favouriteAgreement compares the moneyline's
+/// favourite against the handicap's and found ten one-sided disagreements it
+/// could not adjudicate, because the relay stored the half of the market that
+/// carries no answer. All 13 matched markets in that probe served a finite price
+/// on both sides.
+///
+/// ADDITIVE, deliberately. `home` and `away` keep their exact meaning and
+/// position; field-laboratory's Odds decoder, src/odds-story.js, the
+/// analytics-engine spread reads and the client all consume those two and are
+/// untouched.
+///
+/// A price is OMITTED, not nulled, when it is not finite. An absent key and a
+/// captured one are then distinguishable in the archive, which a null cannot be:
+/// null would read as "the book served no price" and as "we did not look" at
+/// once. Same three-state discipline drawPriceFrom uses.
+export function spreadFrom(homeOutcome, awayOutcome) {
+  if (!homeOutcome || !awayOutcome) return null;
+  const out = { home: homeOutcome.point, away: awayOutcome.point };
+  if (Number.isFinite(homeOutcome.price)) out.homePrice = homeOutcome.price;
+  if (Number.isFinite(awayOutcome.price)) out.awayPrice = awayOutcome.price;
+  return out;
+}
