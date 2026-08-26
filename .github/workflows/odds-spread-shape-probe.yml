@@ -1,0 +1,87 @@
+name: Odds API spread shape (price beside point)
+
+# Two questions, one response, and neither is written from a document.
+#
+# 1. CC-CMD-2026-08-25-spread-price-capture asks the relay to store
+#    spread.homePrice / spread.awayPrice, because extractOddsForGame reads
+#    `o.point` and discards `o.price`. Rule 72: that is a hypothesis until
+#    probed, and the CC-CMD's own step 1 says probe first.
+#
+# 2. A Drive doc ("FIELD — 'Gumbo' Odds API Savings Analysis", 2026-05-26) says
+#    MLB spreads are "always -1.5 ... DEAD WEIGHT for MLB". If that holds, the
+#    laboratory's ten one-sided favouriteAgreement disagreements are not a feed
+#    artefact — they are a rubric comparing a moneyline against a handicap
+#    baseball does not vary. That reframing is worth one dispatch.
+#
+# CI because the sandbox 403s *.workers.dev.
+#
+# COST (Rule 78): never touches api.the-odds-api.com directly. It goes through
+# the relay's /odds proxy and its 3600s edge cache, so a sport key any cron
+# fetched within the hour costs ZERO credits and a cold one costs a single
+# credit. One region, one market, one bookmaker, two sport keys.
+#
+# NO SCHEDULE. This is a question about the upstream feed's shape.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'outbox/.trigger-odds-spread-shape'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: odds-spread-shape-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # NOT continue-on-error. A fetch failure is a failed probe, and the script
+      # refuses to emit a verdict about the feed when it could not read the feed.
+      - name: Probe the spread outcome shape
+        run: node scripts/odds-spread-shape-probe.mjs
+
+      # The verdicts are the artifact (Rule 89), printed as notices so both are
+      # visible in the run summary without opening the JSON. Four states each,
+      # and NOT OBSERVABLE is never read as PREMISE FALSE.
+      - name: Surface the verdicts
+        if: always()
+        run: |
+          F=$(ls -t outbox/odds-spread-shape-*.json 2>/dev/null | head -1)
+          [ -n "$F" ] || { echo "::warning::no artifact produced — the probe did not reach the feed"; exit 0; }
+          node -e '
+            const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            if (d.error) { console.log(`::warning::probe failed: ${d.error}`); process.exit(0); }
+            console.log(`::notice::PRICE: ${d.price_verdict}`);
+            console.log(`::notice::POINT: ${d.point_verdict}`);
+            for (const [sport, s] of Object.entries(d.sports)) {
+              console.log(`${sport}: ${s.games_returned} games, ${s.sampled.length} sampled`);
+              for (const r of s.sampled)
+                console.log(`  point ${r.home_point}/${r.away_point}  price ${r.home_price}/${r.away_price}  ${r.game}`);
+            }
+          ' "$F"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-spread-shape-*.json || { echo "no artifact produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: odds spread shape probe [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main && git push origin main; then
+              echo "Pushed artifact on attempt $i."; exit 0
+            fi
+            sleep $((2 ** i))
+          done
+          echo "::warning::could not push the artifact"; exit 0
