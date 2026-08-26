@@ -1,0 +1,697 @@
+{
+  "probed_at": "2026-08-26T06:43:27.893Z",
+  "query_ok": true,
+  "checks": [
+    {
+      "id": "closing_after_opening",
+      "what": "closing_odds.captured_at > opening_odds.captured_at on games priced after the date gate",
+      "qualifying_rows": 38,
+      "status": "PARTIAL — 37/38 sequenced",
+      "sequenced": 37,
+      "sample": [
+        {
+          "id": "La Liga_2026-08-25_valencia_betis",
+          "sport": "La Liga",
+          "open": "2026-08-25T10:01:30.082Z",
+          "close": "2026-08-25T19:02:04.648Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "WNBA_2026-08-25_wings_fire",
+          "sport": "WNBA",
+          "open": "2026-08-25T10:01:29.395Z",
+          "close": "2026-08-25T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        },
+        {
+          "id": "WNBA_2026-08-25_sun_sky",
+          "sport": "WNBA",
+          "open": "2026-08-25T10:01:29.395Z",
+          "close": "2026-08-25T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": true
+        },
+        {
+          "id": "MLB_2026-08-25_cardinals_orioles",
+          "sport": "MLB",
+          "open": "2026-08-25T10:01:28.759Z",
+          "close": "2026-08-25T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "MLB_2026-08-25_braves_dodgers",
+          "sport": "MLB",
+          "open": "2026-08-25T10:01:28.759Z",
+          "close": "2026-08-25T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        },
+        {
+          "id": "MLB_2026-08-25_mets_brewers",
+          "sport": "MLB",
+          "open": "2026-08-25T10:01:28.759Z",
+          "close": "2026-08-25T11:55:38Z",
+          "sequenced": true,
+          "identical_moneyline": false
+        }
+      ]
+    },
+    {
+      "id": "soccer_opening_coverage",
+      "what": "EPL / La Liga opening-odds coverage above the pre-fix baseline (23.1% / 11.8%)",
+      "qualifying_rows": 41,
+      "min_games_for_rate": 4,
+      "below_floor": [],
+      "status": "PASS — improved for EPL, La Liga",
+      "per_sport": [
+        {
+          "sport": "EPL",
+          "games": 9,
+          "with_open": 8,
+          "pct": 88.9,
+          "baseline_pct": 23.1
+        },
+        {
+          "sport": "La Liga",
+          "games": 9,
+          "with_open": 4,
+          "pct": 44.4,
+          "baseline_pct": 11.8
+        },
+        {
+          "sport": "Ligue 1",
+          "games": 8,
+          "with_open": 5,
+          "pct": 62.5,
+          "baseline_pct": null
+        },
+        {
+          "sport": "MLS",
+          "games": 15,
+          "with_open": 13,
+          "pct": 86.7,
+          "baseline_pct": null
+        }
+      ]
+    },
+    {
+      "id": "epl_brief_event_grounded",
+      "what": "EPL briefs since fpl_match_events deployed: not a season-stat template (all types) AND free of prompt-example literals (game_recap only — see asserted_on)",
+      "qualifying_rows": 10,
+      "status": "PASS — 6/10 not the season template, and no prompt-example literal in any of the 6 recap(s) written since the 2f fix | live: 0/4 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+      "literals_checked": 17,
+      "recaps_since_leak_fix": 6,
+      "live_briefs_sampled": 4,
+      "live_briefs_leaking_now": [],
+      "asserted_on": "game_recap only — live briefs are rewritten every cycle, so a snapshot cannot prove leak-freedom for them",
+      "historical_leaks_before_fix": [],
+      "note": "Player-name-against-fixture-stats is NOT asserted here: that join needs the FPL payload, which this D1-only probe does not fetch. Read the excerpts. The literal check drops Layer 2f's \"absent from context\" condition because D1 stores briefs, not prompts — so it is stricter than 2f, not equivalent to it.",
+      "sample": [
+        {
+          "id": "game_live_epl_401879318",
+          "created_at": "2026-08-24 10:01:28",
+          "written_at": "2026-08-25 02:36:06",
+          "len": 302,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Chelsea secured a 3-2 victory over Fulham at Craven Cottage tonight, overcoming the hosts after opening as -120 away favorites. Chelsea recorded 3 shots on target during this match to secure their 1-0-0 record this seaso"
+        },
+        {
+          "id": "game_recap_epl_401879318",
+          "created_at": "2026-08-24 21:00:31",
+          "written_at": "2026-08-25 02:31:49",
+          "len": 302,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Chelsea secured a 3-2 victory over Fulham at Craven Cottage tonight, overcoming the hosts after opening as -120 away favorites. Chelsea recorded 3 shots on target during this match to secure their 1-0-0 record this seaso"
+        },
+        {
+          "id": "game_live_epl_401879320",
+          "created_at": "2026-08-23 10:01:45",
+          "written_at": "2026-08-24 02:20:27",
+          "len": 297,
+          "brief_type": "game_live",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Manchester City secured a 2-1 win over Bournemouth at the Etihad Stadium tonight. Bournemouth fell to 0-0-1 this season, while Manchester City moved to 1-0-0 this season. Closing odds favored the hosts at -205 compared t"
+        },
+        {
+          "id": "game_live_epl_401879319",
+          "created_at": "2026-08-23 10:01:49",
+          "written_at": "2026-08-24 02:20:27",
+          "len": 294,
+          "brief_type": "game_live",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "St. James' Park hosted a 2-2 draw between Liverpool and Newcastle today, as both sides moved to 0-1-0 records this season. The betting market favored Liverpool at -120 closing odds, yet the visitors managed only 0 points"
+        },
+        {
+          "id": "game_live_epl_401879297",
+          "created_at": "2026-08-23 10:01:44",
+          "written_at": "2026-08-24 02:20:26",
+          "len": 310,
+          "brief_type": "game_live",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Brighton dominated the 4-0 result tonight at American Express Stadium, leaving Aston Villa with 0 points through this match. Brighton’s 4 goals tonight contrast with Aston Villa’s 0 goals tonight. Betting markets favored"
+        },
+        {
+          "id": "game_recap_epl_401879319",
+          "created_at": "2026-08-23 17:30:19",
+          "written_at": "2026-08-24 02:16:26",
+          "len": 294,
+          "brief_type": "game_recap",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "St. James' Park hosted a 2-2 draw between Liverpool and Newcastle today, as both sides moved to 0-1-0 records this season. The betting market favored Liverpool at -120 closing odds, yet the visitors managed only 0 points"
+        },
+        {
+          "id": "game_recap_epl_401879320",
+          "created_at": "2026-08-23 15:00:20",
+          "written_at": "2026-08-24 02:16:24",
+          "len": 297,
+          "brief_type": "game_recap",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Manchester City secured a 2-1 win over Bournemouth at the Etihad Stadium tonight. Bournemouth fell to 0-0-1 this season, while Manchester City moved to 1-0-0 this season. Closing odds favored the hosts at -205 compared t"
+        },
+        {
+          "id": "game_recap_epl_401879297",
+          "created_at": "2026-08-23 15:00:18",
+          "written_at": "2026-08-24 02:16:07",
+          "len": 310,
+          "brief_type": "game_recap",
+          "season_template": true,
+          "leaked_literals": [],
+          "excerpt": "Brighton dominated the 4-0 result tonight at American Express Stadium, leaving Aston Villa with 0 points through this match. Brighton’s 4 goals tonight contrast with Aston Villa’s 0 goals tonight. Betting markets favored"
+        },
+        {
+          "id": "epl_match_2026-08-23_espn:761753",
+          "created_at": "2026-08-23 18:47:56",
+          "written_at": "2026-08-23 18:47:56",
+          "len": 227,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "New York City FC travels to face the New England Revolution in this MLS matchup. Both sides look to improve their standing in the Eastern Conference table as they navigate the tactical challenges of this regular season f"
+        },
+        {
+          "id": "epl_match_2026-08-23_espn:761754",
+          "created_at": "2026-08-23 18:47:55",
+          "written_at": "2026-08-23 18:47:55",
+          "len": 415,
+          "brief_type": "epl_match",
+          "season_template": false,
+          "leaked_literals": [],
+          "excerpt": "Sporting Kansas City travels to Mercedes-Benz Stadium to face Atlanta United FC in a matchup between two sides currently sitting outside the playoff positions in their respective conferences. Atlanta United enters the fi"
+        }
+      ]
+    },
+    {
+      "id": "recap_names_a_scoring_play",
+      "what": "game_recap briefs GENERATED since the recap path began assembling context (cd9b2e3, 2026-08-23 18:25:56) name a player who appears in that game's ESPN scoring plays",
+      "qualifying_rows": 12,
+      "generated_rows": 12,
+      "touched_rows": 0,
+      "touched_ids": [],
+      "testable_rows": 12,
+      "status": "PARTIAL — 11/12 recap(s) name a real scorer; see the rest in evidence",
+      "method": "per-row join: ESPN scoring plays for the brief's own game_id -> capitalised name tokens minus team words -> substring test against brief_text. A brief passes only by naming a real scorer in the game it is about; scoring VERBS are deliberately not accepted, since a season-stat template contains them too.",
+      "note": "Scored over GENERATED rows only. A row whose created_at predates the deploy carries pre-deploy prose and is listed in touched_ids rather than counted — the 2026-08-24 run read 9/12 while windowing on COALESCE(updated_at, created_at) against the match_events deploy, twelve hours before the recap path assembled anything, so an unknown number of those 12 were being scored for a build that had not shipped when their text was written. PARTIAL over generated rows is still expected on some slates: a recap can legitimately lead on something other than a scorer. 0/N over generated rows is the real signal that the block is not reaching the prompt, and the assembler budget skip is the first thing to check, not ESPN.",
+      "evidence": [
+        {
+          "id": "game_recap_mlb_401816672",
+          "sport": "MLB",
+          "game_id": "401816672",
+          "written_at": "2026-08-26 02:47:00",
+          "created_at": "2026-08-26 02:46:03",
+          "updated_at": "2026-08-26 02:47:00",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 10,
+          "names_in_plays": [
+            "Alonso",
+            "Taveras",
+            "Holliday",
+            "Encarnacion",
+            "Strand",
+            "Church",
+            "Mayo",
+            "Henderson",
+            "Beavers",
+            "Franklin"
+          ],
+          "team_words": [
+            "St.",
+            "Louis",
+            "Cardinals",
+            "Baltimore",
+            "Orioles"
+          ],
+          "names_in_brief": [
+            "Alonso",
+            "Church"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_wnba_401857173",
+          "sport": "WNBA",
+          "game_id": "401857173",
+          "written_at": "2026-08-26 02:31:41",
+          "created_at": "2026-08-26 01:16:04",
+          "updated_at": "2026-08-26 02:31:41",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 95,
+          "names_in_plays": [
+            "Azura",
+            "Stevens",
+            "Courtney",
+            "Vandersloot",
+            "Gabriela",
+            "Jaquez",
+            "Diamond",
+            "Miller",
+            "Aaliyah",
+            "Edwards",
+            "Charlisse",
+            "Leger",
+            "Walker",
+            "Sydney",
+            "Taylor",
+            "Kennedy",
+            "Burke"
+          ],
+          "team_words": [
+            "Connecticut",
+            "Sun",
+            "Chicago",
+            "Sky"
+          ],
+          "names_in_brief": [
+            "Courtney",
+            "Vandersloot",
+            "Aaliyah",
+            "Edwards",
+            "Charlisse",
+            "Leger",
+            "Walker"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816671",
+          "sport": "MLB",
+          "game_id": "401816671",
+          "written_at": "2026-08-26 02:31:30",
+          "created_at": "2026-08-26 01:16:03",
+          "updated_at": "2026-08-26 02:31:30",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 4,
+          "names_in_plays": [
+            "Caminero",
+            "Clark",
+            "Báez",
+            "Torres",
+            "Aranda"
+          ],
+          "team_words": [
+            "Detroit",
+            "Tigers",
+            "Tampa",
+            "Bay",
+            "Rays"
+          ],
+          "names_in_brief": [
+            "Clark"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816670",
+          "sport": "MLB",
+          "game_id": "401816670",
+          "written_at": "2026-08-26 02:16:45",
+          "created_at": "2026-08-26 02:16:05",
+          "updated_at": "2026-08-26 02:16:45",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 5,
+          "names_in_plays": [
+            "Lara",
+            "Contreras",
+            "Lindor",
+            "Robert",
+            "Yelich",
+            "Bauers",
+            "Morel",
+            "Hamilton",
+            "Benge"
+          ],
+          "team_words": [
+            "New",
+            "York",
+            "Mets",
+            "Milwaukee",
+            "Brewers"
+          ],
+          "names_in_brief": [
+            "Contreras",
+            "Lindor"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816668",
+          "sport": "MLB",
+          "game_id": "401816668",
+          "written_at": "2026-08-26 02:16:41",
+          "created_at": "2026-08-26 02:16:04",
+          "updated_at": "2026-08-26 02:16:41",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 7,
+          "names_in_plays": [
+            "Perez",
+            "Jensen",
+            "Pasquantino",
+            "Witt",
+            "Sánchez",
+            "Bateman",
+            "Isbel",
+            "Loftin",
+            "Guerrero",
+            "Rave",
+            "Tolbert",
+            "Lukes",
+            "Cameron"
+          ],
+          "team_words": [
+            "Toronto",
+            "Blue",
+            "Jays",
+            "Kansas",
+            "City",
+            "Royals"
+          ],
+          "names_in_brief": [
+            "Perez",
+            "Lukes"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816667",
+          "sport": "MLB",
+          "game_id": "401816667",
+          "written_at": "2026-08-26 02:16:38",
+          "created_at": "2026-08-26 02:16:04",
+          "updated_at": "2026-08-26 02:16:38",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 12,
+          "names_in_plays": [
+            "Diaz",
+            "Varsho",
+            "Altuve",
+            "Bellinger",
+            "Grisham",
+            "García",
+            "Alvarez",
+            "Paredes",
+            "Rice",
+            "Peña",
+            "Chisholm",
+            "Jones",
+            "Smith"
+          ],
+          "team_words": [
+            "New",
+            "York",
+            "Yankees",
+            "Houston",
+            "Astros"
+          ],
+          "names_in_brief": [
+            "Diaz"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816665",
+          "sport": "MLB",
+          "game_id": "401816665",
+          "written_at": "2026-08-26 02:16:34",
+          "created_at": "2026-08-26 02:16:02",
+          "updated_at": "2026-08-26 02:16:34",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 8,
+          "names_in_plays": [
+            "Gasper",
+            "Navarreto",
+            "Jiménez",
+            "Ruiz",
+            "Conine",
+            "Hernández",
+            "Wong",
+            "Sanoja",
+            "Olds",
+            "Lopez",
+            "Duran",
+            "Contreras",
+            "Jones",
+            "Monasterio"
+          ],
+          "team_words": [
+            "Miami",
+            "Marlins",
+            "Boston",
+            "Red",
+            "Sox"
+          ],
+          "names_in_brief": [
+            "Gasper",
+            "Duran"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_wnba_401857174",
+          "sport": "WNBA",
+          "game_id": "401857174",
+          "written_at": "2026-08-26 02:02:11",
+          "created_at": "2026-08-26 02:01:04",
+          "updated_at": "2026-08-26 02:02:11",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 88,
+          "names_in_plays": [
+            "Yueru",
+            "Paige",
+            "Bueckers",
+            "Maddy",
+            "Siegrist",
+            "Okonkwo",
+            "Jordan",
+            "Harrison"
+          ],
+          "team_words": [
+            "Dallas",
+            "Wings",
+            "Portland",
+            "Fire"
+          ],
+          "names_in_brief": [
+            "Paige",
+            "Bueckers"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816669",
+          "sport": "MLB",
+          "game_id": "401816669",
+          "written_at": "2026-08-26 02:01:43",
+          "created_at": "2026-08-26 02:01:03",
+          "updated_at": "2026-08-26 02:01:43",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 7,
+          "names_in_plays": [
+            "Dubón",
+            "Baldwin",
+            "Olson",
+            "Harris",
+            "Albies",
+            "Thomas",
+            "Edman",
+            "Tucker",
+            "Feduccia",
+            "Call"
+          ],
+          "team_words": [
+            "Atlanta",
+            "Braves",
+            "Los",
+            "Angeles",
+            "Dodgers"
+          ],
+          "names_in_brief": [
+            "Olson",
+            "Albies",
+            "Call"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816666",
+          "sport": "MLB",
+          "game_id": "401816666",
+          "written_at": "2026-08-26 01:46:34",
+          "created_at": "2026-08-26 01:46:02",
+          "updated_at": "2026-08-26 01:46:34",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 4,
+          "names_in_plays": [
+            "Goodman",
+            "Norby",
+            "Castro",
+            "Lile",
+            "Carrigg",
+            "Beck",
+            "Alvarez"
+          ],
+          "team_words": [
+            "Washington",
+            "Nationals",
+            "Colorado",
+            "Rockies"
+          ],
+          "names_in_brief": [
+            "Goodman",
+            "Lile",
+            "Beck"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_mlb_401816657",
+          "sport": "MLB",
+          "game_id": "401816657",
+          "written_at": "2026-08-25 02:46:24",
+          "created_at": "2026-08-25 01:31:28",
+          "updated_at": "2026-08-25 02:46:24",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 5,
+          "names_in_plays": [
+            "Caminero",
+            "Díaz",
+            "Aranda",
+            "Vilade",
+            "Simpson",
+            "Mateo",
+            "Callahan"
+          ],
+          "team_words": [
+            "Detroit",
+            "Tigers",
+            "Tampa",
+            "Bay",
+            "Rays"
+          ],
+          "names_in_brief": [
+            "Aranda"
+          ],
+          "grounded": true,
+          "why": null
+        },
+        {
+          "id": "game_recap_epl_401879318",
+          "sport": "EPL",
+          "game_id": "401879318",
+          "written_at": "2026-08-25 02:31:49",
+          "created_at": "2026-08-24 21:00:31",
+          "updated_at": "2026-08-25 02:31:49",
+          "generated": true,
+          "espn_ok": true,
+          "testable": true,
+          "scoring_items": 5,
+          "names_in_plays": [
+            "João",
+            "Pedro",
+            "Assisted",
+            "Cole",
+            "Palmer",
+            "Josh",
+            "King",
+            "Timothy",
+            "Castagne",
+            "Morgan",
+            "Rogers",
+            "Maxence",
+            "Lacroix",
+            "Gonzalo",
+            "García"
+          ],
+          "team_words": [
+            "Fulham",
+            "Chelsea"
+          ],
+          "names_in_brief": [],
+          "grounded": false,
+          "why": "brief names nobody who scored in this game"
+        }
+      ]
+    },
+    {
+      "id": "thread_notes_cleanup",
+      "what": "the 30 * * * * cron deletes game_thread_notes rows past expires_at",
+      "qualifying_rows": 0,
+      "status": "PENDING — no thread notes in the table, so the sweep has nothing to prove",
+      "grace_window": "1 hour — the sweep fires at :30, so a just-expired row proves nothing",
+      "expired_beyond_grace": 0,
+      "note": "STAGED in cc-session-2026-07-20-game-thread-relay.md since 2026-07-20 with no executor. The cron has fired ~816 times since; this is the first thing that asks whether any of them worked."
+    }
+  ],
+  "error": null,
+  "summary": [
+    "closing_after_opening: PARTIAL — 37/38 sequenced",
+    "soccer_opening_coverage: PASS — improved for EPL, La Liga",
+    "epl_brief_event_grounded: PASS — 6/10 not the season template, and no prompt-example literal in any of the 6 recap(s) written since the 2f fix | live: 0/4 leaking right now (sampled, not asserted — live briefs are rewritten every cycle)",
+    "recap_names_a_scoring_play: PARTIAL — 11/12 recap(s) name a real scorer; see the rest in evidence",
+    "thread_notes_cleanup: PENDING — no thread notes in the table, so the sweep has nothing to prove"
+  ],
+  "all_passed": false,
+  "any_failed": false
+}
