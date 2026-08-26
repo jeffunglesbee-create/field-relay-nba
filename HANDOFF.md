@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## LANDED 2026-08-26 — the soccer draw price reached a client
+
+`5a2bacc` (deploy 874, 2026-08-24) made `extractOddsForGame` project the h2h
+draw into `opening_odds.moneyline` via `drawPriceFrom` in `src/odds-shape.js`,
+identifying it by POSITION — the outcome that is neither team — so a renamed
+selection cannot silently drop it again.
+
+**Observed live 2026-08-26**, field-laboratory drift-sentinel run 32923712900,
+probing `/context/date/2026-08-25` — the first slate captured against the
+deployed adapter, since `opening_odds` freeze at capture (~10:01Z on the game
+date). That slate carried EFL Cup 17, UCL Qualifying 3, EFL Trophy 2, La Liga 1,
+MLS 1.
+
+The laboratory has promoted the ask from open to landed, which makes a
+regression here fatal on their side: a soccer moneyline that stops carrying a
+draw sends `winProbability` back to `ThreeWayDrawMissing`. Their off-day case is
+`null`, not a failure.
+
+Filed there as `docs/CC-CMD-2026-08-23-soccer-three-way-odds.md` (CLOSED) and
+`outbox/2026-08-26-soccer-draw-landed.md`.
+
+
 ## SESSION CLOSE-OUT — 2026-08-25 (golf modelled, two credentials, four guards)
 
 **HEAD:** `9f6bbbb` → `ccc39ce` · **Branch:** main throughout
