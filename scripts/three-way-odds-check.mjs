@@ -82,8 +82,15 @@ check('a one-outcome or empty market yields no draw',
 
 // ── The wiring. This module is only worth testing if src/index.js uses it.
 const src = readFileSync('src/index.js', 'utf8')
+// WIDENED 2026-08-26, and the reason is the defect class this repo keeps
+// finding. This matched `import { drawPriceFrom } from './odds-shape.js'`
+// literally, so its NAME said "imports the rule" while it MEASURED "imports
+// exactly one name from that module". Adding spreadFrom to the same import
+// turned it red (deploy 877) with drawPriceFrom still correctly imported and
+// correctly used. It now matches the name inside the brace list however many
+// names share it, which is what the assertion always claimed to test.
 check('src/index.js imports the rule rather than reimplementing it',
-  /import \{ drawPriceFrom \} from '\.\/odds-shape\.js'/.test(src),
+  /import \{[^}]*\bdrawPriceFrom\b[^}]*\} from '\.\/odds-shape\.js'/.test(src),
   'a second implementation is how one concept comes to have two that disagree')
 check('...and applies it to the h2h outcomes inside extractOddsForGame',
   /drawPriceFrom\(h2h\.outcomes, h, a\)/.test(src))
