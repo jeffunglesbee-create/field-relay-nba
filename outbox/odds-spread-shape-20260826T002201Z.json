@@ -1,0 +1,305 @@
+{
+  "probed_at": "2026-08-26T00:22:01.990Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "sports": {
+    "baseball_mlb": {
+      "games_returned": 28,
+      "sampled": [
+        {
+          "game": "Boston Red Sox @ Miami Marlins",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Boston Red Sox",
+              "price": 262,
+              "point": -1.5
+            },
+            {
+              "name": "Miami Marlins",
+              "price": -371,
+              "point": 1.5
+            }
+          ],
+          "home_point": 1.5,
+          "home_price": -371,
+          "away_point": -1.5,
+          "away_price": 262,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Tampa Bay Rays @ Detroit Tigers",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Detroit Tigers",
+              "price": -180,
+              "point": -1.5
+            },
+            {
+              "name": "Tampa Bay Rays",
+              "price": 137,
+              "point": 1.5
+            }
+          ],
+          "home_point": -1.5,
+          "home_price": -180,
+          "away_point": 1.5,
+          "away_price": 137,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Colorado Rockies @ Washington Nationals",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Colorado Rockies",
+              "price": 110,
+              "point": -1.5
+            },
+            {
+              "name": "Washington Nationals",
+              "price": -143,
+              "point": 1.5
+            }
+          ],
+          "home_point": 1.5,
+          "home_price": -143,
+          "away_point": -1.5,
+          "away_price": 110,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Kansas City Royals @ Toronto Blue Jays",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Kansas City Royals",
+              "price": -291,
+              "point": 1.5
+            },
+            {
+              "name": "Toronto Blue Jays",
+              "price": 212,
+              "point": -1.5
+            }
+          ],
+          "home_point": -1.5,
+          "home_price": 212,
+          "away_point": 1.5,
+          "away_price": -291,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Houston Astros @ New York Yankees",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Houston Astros",
+              "price": -118,
+              "point": 1.5
+            },
+            {
+              "name": "New York Yankees",
+              "price": -110,
+              "point": -1.5
+            }
+          ],
+          "home_point": -1.5,
+          "home_price": -110,
+          "away_point": 1.5,
+          "away_price": -118,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Milwaukee Brewers @ New York Mets",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Milwaukee Brewers",
+              "price": -132,
+              "point": -1.5
+            },
+            {
+              "name": "New York Mets",
+              "price": 101,
+              "point": 1.5
+            }
+          ],
+          "home_point": 1.5,
+          "home_price": 101,
+          "away_point": -1.5,
+          "away_price": -132,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Los Angeles Dodgers @ Atlanta Braves",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Atlanta Braves",
+              "price": -206,
+              "point": 1.5
+            },
+            {
+              "name": "Los Angeles Dodgers",
+              "price": 155,
+              "point": -1.5
+            }
+          ],
+          "home_point": 1.5,
+          "home_price": -206,
+          "away_point": -1.5,
+          "away_price": 155,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Texas Rangers @ Chicago White Sox",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Chicago White Sox",
+              "price": -104,
+              "point": -5.5
+            },
+            {
+              "name": "Texas Rangers",
+              "price": -125,
+              "point": 5.5
+            }
+          ],
+          "home_point": -5.5,
+          "home_price": -104,
+          "away_point": 5.5,
+          "away_price": -125,
+          "abs_point": 5.5
+        }
+      ]
+    },
+    "basketball_wnba": {
+      "games_returned": 6,
+      "sampled": [
+        {
+          "game": "Chicago Sky @ Connecticut Sun",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Chicago Sky",
+              "price": -105,
+              "point": 10.5
+            },
+            {
+              "name": "Connecticut Sun",
+              "price": -125,
+              "point": -10.5
+            }
+          ],
+          "home_point": -10.5,
+          "home_price": -125,
+          "away_point": 10.5,
+          "away_price": -105,
+          "abs_point": 10.5
+        },
+        {
+          "game": "Portland Fire @ Dallas Wings",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Dallas Wings",
+              "price": -105,
+              "point": -12.5
+            },
+            {
+              "name": "Portland Fire",
+              "price": -125,
+              "point": 12.5
+            }
+          ],
+          "home_point": -12.5,
+          "home_price": -105,
+          "away_point": 12.5,
+          "away_price": -125,
+          "abs_point": 12.5
+        },
+        {
+          "game": "Washington Mystics @ Phoenix Mercury",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Phoenix Mercury",
+              "price": -105,
+              "point": 1.5
+            },
+            {
+              "name": "Washington Mystics",
+              "price": -115,
+              "point": -1.5
+            }
+          ],
+          "home_point": 1.5,
+          "home_price": -105,
+          "away_point": -1.5,
+          "away_price": -115,
+          "abs_point": 1.5
+        },
+        {
+          "game": "Golden State Valkyries @ Connecticut Sun",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Connecticut Sun",
+              "price": -112,
+              "point": 13.5
+            },
+            {
+              "name": "Golden State Valkyries",
+              "price": -108,
+              "point": -13.5
+            }
+          ],
+          "home_point": 13.5,
+          "home_price": -112,
+          "away_point": -13.5,
+          "away_price": -108,
+          "abs_point": 13.5
+        },
+        {
+          "game": "Toronto Tempo @ Seattle Storm",
+          "book": "draftkings",
+          "matched_both": true,
+          "raw_outcomes": [
+            {
+              "name": "Seattle Storm",
+              "price": -105,
+              "point": -5.5
+            },
+            {
+              "name": "Toronto Tempo",
+              "price": -115,
+              "point": 5.5
+            }
+          ],
+          "home_point": -5.5,
+          "home_price": -105,
+          "away_point": 5.5,
+          "away_price": -115,
+          "abs_point": 5.5
+        }
+      ]
+    }
+  },
+  "price_verdict": "PREMISE HOLDS — all 13 matched spread markets carry a finite price on BOTH sides beside point. The capture is safe to write.",
+  "point_verdict": "GUMBO CLAIM DOES NOT HOLD — 1 of 8 sampled MLB handicaps are not |1.5| (1.5, 5.5). MLB does vary its run line.",
+  "error": null
+}
