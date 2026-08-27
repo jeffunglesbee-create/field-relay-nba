@@ -1,0 +1,67 @@
+name: NFL per-play EPA route matches the client
+
+# Done conditions 1 and 2 of CC-CMD-2026-08-27-relay-per-play-epa.
+#
+# scripts/nfl-epa-transcription-check.mjs (blocking, in deploy.yml) asserts the
+# relay MODULE matches the client's code offline. This asserts the DEPLOYED
+# ROUTE does, on a real game's bytes — which the offline check cannot see, and
+# which the sandbox cannot run because it 403s *.workers.dev and gets HTTP 000
+# to ESPN.
+#
+# NO SCHEDULE. This answers "did the move preserve the numbers", once per change
+# to either side, not every day. The enumerated relay-vs-client table it commits
+# is the artifact (Rule 89).
+#
+# A run that finds no NFL game with plays EXITS 1 and says NOT OBSERVABLE. It
+# does not report green on an assertion it never made.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/nfl-epa.js'
+      - 'scripts/nfl-epa-route-probe.mjs'
+      - 'outbox/.trigger-nfl-epa-route'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfl-epa-route-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # NOT continue-on-error. A route that disagrees with the client is the
+      # two-model problem this whole change exists to prevent.
+      - name: Probe the deployed route against the client
+        run: node scripts/nfl-epa-route-probe.mjs
+
+      - name: Surface the verdict
+        if: always()
+        run: |
+          F=$(ls -t outbox/nfl-epa-route-probe-*.json 2>/dev/null | head -1)
+          [ -n "$F" ] || { echo "::warning::no artifact — the probe did not reach the route"; exit 0; }
+          node -e '
+            const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            console.log(`::notice::${d.verdict} — ${d.route_plays} route plays, ${d.client_plays} client plays, ${d.disagreements} disagreement(s)`);
+            console.log(`game: ${d.game.name} (${d.game.id}, ${d.game.state})`);
+          ' "$F"
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.name  "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/nfl-epa-route-probe-*.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "probe: nfl per-play EPA route vs client [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
