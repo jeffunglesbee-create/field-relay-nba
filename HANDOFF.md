@@ -1,5 +1,55 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-27 (the NFL EP model moved here)
+
+**HEAD:** `ccc39ce` → this commit · **Branch:** main throughout
+**Deploys:** 7d95d2f green. Live probe run 33123265487, post-deploy:
+Seahawks at Titans, **149 route plays / 149 client plays / 0 disagreements**,
+12 enumerated pairs all non-zero.
+
+**Client landed the same day:** jubilant-bassoon `7f6fab4`, smoke 986/0,
+SW_VERSION `2026-08-27a`. `_computeESPNPlayEPA` is deleted there.
+
+### What shipped
+
+| commit | change |
+|---|---|
+| earlier | `GET /nfl/epa/plays?event=` + `src/nfl-epa.js` + transcription check + live probe |
+| `7d95d2f` | the situation inputs, and a `currentDrive` that answers its own name |
+| this one | the probe manifest records its checks by name; CONTRACTS.md synced |
+
+### Three defects found, all the same shape
+
+**The route passed the whole `epa_table.json` document to the lookup.** The
+1120 EP entries live under `.ep`. Every key missed, `?? 0` came back, and the
+live probe reported "ROUTE MATCHES CLIENT — 0 disagreements" — both sides
+agreeing on a field of zeros, because only the client had unwrapped. The tell
+was a touchdown scoring exactly 6.96. `epTableFrom` plus four shape assertions
+plus three non-vacuity assertions now stand where that agreement did.
+
+**`currentDrive` was named for one thing and measured another.** It read
+`drives.current ? all.length-1 : (all.length ? all.length-1 : null)` — two arms,
+one expression. It meant "the drive in progress" and computed "the index of the
+last drive", going null only on a game with no drives at all. Its only consumer
+needs to know whether a drive is live. It answers that now, and `driveCount`
+carries what it used to.
+
+**Both "verbatim" copies of the client reference had silently dropped its
+`downs`/`sit` lines.** Nothing compared `situation`, so the omission cost
+nothing and stayed invisible — until a new check read `ref.situation` and got
+the string `"undefined"` for all 305 plays. A reference pruned to what is
+currently checked is not a reference; it agrees with whatever it was pruned to
+match. Restored in both, and both now assert the label rebuilds from the three
+served numbers byte for byte.
+
+### Follow-up, automated
+
+`.github/workflows/nfl-epa-route-probe.yml` fires on `workflow_run` after a
+successful **Deploy RELAY Worker**, and now also on a daily cron — the client is
+a live consumer of this route as of today, so drift needs to break a check
+without a session being open to notice it. A run that finds no NFL game with
+plays exits 1 with `NOT OBSERVABLE`, which is a real answer, not a pass.
+
 ## LANDED 2026-08-26 — the soccer draw price reached a client
 
 `5a2bacc` (deploy 874, 2026-08-24) made `extractOddsForGame` project the h2h

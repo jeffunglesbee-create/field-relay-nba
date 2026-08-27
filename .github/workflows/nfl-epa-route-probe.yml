@@ -8,12 +8,31 @@ name: NFL per-play EPA route matches the client
 # which the sandbox cannot run because it 403s *.workers.dev and gets HTTP 000
 # to ESPN.
 #
-# NO SCHEDULE. This answers "did the move preserve the numbers", once per change
-# to either side, not every day. The enumerated relay-vs-client table it commits
-# is the artifact (Rule 89).
+# SCHEDULE ADDED 2026-08-27, reversing this file's original "NO SCHEDULE", on
+# the day the reason for it stopped being true.
 #
-# A run that finds no NFL game with plays EXITS 1 and says NOT OBSERVABLE. It
-# does not report green on an assertion it never made.
+# The original argument was that this answers "did the move preserve the
+# numbers" once per change to either side, so a cron would burn runs on days
+# nobody edited it -- the waste pattern audited in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+#
+# What changed: jubilant-bassoon 7f6fab4 DELETED its own EP model and now renders
+# NFL EPA from this route. The route is no longer a thing we moved and verified;
+# it is a live dependency of a shipped feature. An upstream ESPN shape change
+# needs neither a relay push nor a client push to break it, and nothing else
+# would notice -- the transcription check is offline and the deploy trigger only
+# fires on our own deploys. One run a day, ~1 minute, against a 90%-consumed
+# budget: worth it for a feature that would otherwise fail silently.
+#
+# The enumerated relay-vs-client table it commits is the artifact (Rule 89), and
+# each run now records its checks BY NAME so the artifact says which assertions
+# ran, not just that the run was green.
+#
+# NOT OBSERVABLE is fatal on a deploy and neutral on the heartbeat. A deploy must
+# PROVE the route still works, so a deploy that cannot be checked has not been
+# checked; a daily heartbeat cannot summon an NFL game, and a red every
+# off-season day trains people to stop reading the red. Same words either way --
+# only the exit code differs, because only the question differs.
 
 # TRIGGERED BY THE DEPLOY, NOT BY THE PUSH.
 #
@@ -29,6 +48,8 @@ name: NFL per-play EPA route matches the client
 # DEPLOYED route must wait for the deploy, so this waits for it.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *'   # daily, an hour after the undocumented-API health check
   workflow_run:
     workflows: ["Deploy RELAY Worker"]
     types: [completed]
@@ -56,6 +77,10 @@ jobs:
       # NOT continue-on-error. A route that disagrees with the client is the
       # two-model problem this whole change exists to prevent.
       - name: Probe the deployed route against the client
+        env:
+          # Only the cron is a heartbeat. workflow_run (a deploy) and a manual
+          # dispatch both have to prove the route works.
+          EPA_PROBE_HEARTBEAT: ${{ github.event_name == 'schedule' && '1' || '0' }}
         run: node scripts/nfl-epa-route-probe.mjs
 
       - name: Surface the verdict

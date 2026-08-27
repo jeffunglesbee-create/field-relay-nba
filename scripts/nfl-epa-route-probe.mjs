@@ -24,8 +24,15 @@ const SB = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboar
 const TS = new Date().toISOString().replace(/[:.]/g, '-');
 
 let pass = 0, fail = 0;
+// Every assertion is recorded BY NAME, and the manifest carries the list.
+// "0 disagreements" and a green run say a probe passed; they do not say WHICH
+// checks it ran, so a manifest without them cannot distinguish a probe that
+// asserted six things from the same probe after two were added. Rule 89: the
+// artifact has to prove the specific claim, not the run's exit code.
+const checks = [];
 const A = (label, ok, detail = '') => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok || !detail ? '' : ` :: ${detail}`}`);
+  checks.push({ check: label, ok: !!ok, detail: detail || undefined });
   ok ? pass++ : fail++;
 };
 const getJSON = async (url) => {
@@ -89,13 +96,32 @@ async function findGameWithPlays() {
   return null;
 }
 
+// A deploy must PROVE the route still works, so "no game to test against" is a
+// failure there -- a deploy that cannot be checked has not been checked. A daily
+// heartbeat cannot summon a game, so the same state is neutral on the cron: it
+// exits 0 and records the verdict, rather than going red every off-season day
+// until nobody reads the red any more.
+//
+// The distinction is the trigger, not the result. Both runs report the same
+// words; only the exit code differs, and it differs because the QUESTION
+// differs.
+const HEARTBEAT = process.env.EPA_PROBE_HEARTBEAT === '1';
+
 const game = await findGameWithPlays();
 if (!game) {
   // NOT a pass. No game is "not observable", and the run says so rather than
   // reporting green on an assertion it never made.
   console.log('::warning::no in/post NFL game in the last 14 days — the route was NOT exercised');
   console.log('\nNOT OBSERVABLE  0 checks run');
-  process.exit(1);
+  const { writeFileSync: wf, mkdirSync: mk } = await import('node:fs');
+  mk('outbox', { recursive: true });
+  wf(`outbox/nfl-epa-route-probe-${TS}.json`, JSON.stringify({
+    probed_at: new Date().toISOString(),
+    trigger: HEARTBEAT ? 'heartbeat' : 'deploy',
+    verdict: 'NOT OBSERVABLE',
+    checks_passed: 0, checks_failed: 0, checks: [],
+  }, null, 2));
+  process.exit(HEARTBEAT ? 0 : 1);
 }
 console.log(`Game: ${game.name} (id=${game.id}, ${game.date}, state=${game.state})\n`);
 
@@ -216,6 +242,10 @@ const out = {
   route_plays: plays.length, client_plays: reference.length,
   disagreements, pairs,
   verdict: fail === 0 ? 'ROUTE MATCHES CLIENT' : 'FAILED',
+  trigger: HEARTBEAT ? 'heartbeat' : 'deploy',
+  checks_passed: pass,
+  checks_failed: fail,
+  checks,
 };
 const { writeFileSync, mkdirSync } = await import('node:fs');
 mkdirSync('outbox', { recursive: true });
