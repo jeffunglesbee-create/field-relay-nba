@@ -1,0 +1,112 @@
+{
+  "probed_at": "2026-08-27T22:25:29.324Z",
+  "game": {
+    "id": "401873297",
+    "name": "Seattle Seahawks at Tennessee Titans",
+    "date": "20260823",
+    "state": "post"
+  },
+  "route": "https://field-relay-nba.jeffunglesbee.workers.dev/nfl/epa/plays?event=401873297",
+  "route_plays": 149,
+  "client_plays": 149,
+  "disagreements": 0,
+  "pairs": [
+    {
+      "i": 0,
+      "id": "40187329762",
+      "drive": 0,
+      "relay": -0.17,
+      "client": -0.17,
+      "agree": true
+    },
+    {
+      "i": 1,
+      "id": "40187329784",
+      "drive": 0,
+      "relay": 1.08,
+      "client": 1.08,
+      "agree": true
+    },
+    {
+      "i": 2,
+      "id": "401873297109",
+      "drive": 0,
+      "relay": -0.47,
+      "client": -0.47,
+      "agree": true
+    },
+    {
+      "i": 3,
+      "id": "401873297131",
+      "drive": 0,
+      "relay": 0.8,
+      "client": 0.8,
+      "agree": true
+    },
+    {
+      "i": 4,
+      "id": "401873297167",
+      "drive": 0,
+      "relay": 0.1,
+      "client": 0.1,
+      "agree": true
+    },
+    {
+      "i": 5,
+      "id": "401873297192",
+      "drive": 0,
+      "relay": 0.18,
+      "client": 0.18,
+      "agree": true
+    },
+    {
+      "i": 6,
+      "id": "401873297219",
+      "drive": 0,
+      "relay": 1.31,
+      "client": 1.31,
+      "agree": true
+    },
+    {
+      "i": 7,
+      "id": "401873297252",
+      "drive": 0,
+      "relay": 3.43,
+      "client": 3.43,
+      "agree": true
+    },
+    {
+      "i": 8,
+      "id": "401873297339",
+      "drive": 1,
+      "relay": 0.86,
+      "client": 0.86,
+      "agree": true
+    },
+    {
+      "i": 9,
+      "id": "401873297364",
+      "drive": 1,
+      "relay": -0.02,
+      "client": -0.02,
+      "agree": true
+    },
+    {
+      "i": 10,
+      "id": "401873297393",
+      "drive": 1,
+      "relay": 0.06,
+      "client": 0.06,
+      "agree": true
+    },
+    {
+      "i": 11,
+      "id": "401873297418",
+      "drive": 1,
+      "relay": -0.65,
+      "client": -0.65,
+      "agree": true
+    }
+  ],
+  "verdict": "ROUTE MATCHES CLIENT"
+}
