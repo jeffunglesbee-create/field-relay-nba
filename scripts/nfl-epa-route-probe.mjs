@@ -54,18 +54,23 @@ function _computeESPNPlayEPA(play) {
   const down = play.start.down, ytg = play.start.distance, yl100 = play.start.yardsToEndzone;
   if (!down || !ytg || !yl100) return null;
   const epStart = _epLookup(down, ytg, yl100);
+  // `downs`/`sit` were missing from this copy until 2026-08-27 -- see the same
+  // note in nfl-epa-transcription-check.mjs. Nothing read `situation`, so their
+  // absence cost nothing and stayed invisible.
+  const downs = ['1st', '2nd', '3rd', '4th'];
+  const sit = `${downs[down - 1] || down} & ${ytg} @ ${yl100 <= 50 ? 'OPP ' + yl100 : 'OWN ' + (100 - yl100)}`;
   if (play.scoringPlay) {
     const lc = ptext.toLowerCase();
     const epEnd = (lc.includes('field goal') && !lc.includes('miss')) ? 3 : 6.96;
-    return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd };
+    return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd, situation: sit };
   }
   if (play.isTurnover) {
     const epEnd = -_epLookup(1, 10, Math.max(1, Math.min(99, 100 - yl100)));
-    return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd };
+    return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd, situation: sit };
   }
   if (!play.end || play.end.yardsToEndzone === undefined || play.end.yardsToEndzone === null) return null;
   const epEnd = _epLookup(play.end.down, play.end.distance, play.end.yardsToEndzone);
-  return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd };
+  return { epa: Math.round((epEnd - epStart) * 100) / 100, ep_start: epStart, ep_end: epEnd, situation: sit };
 }
 
 // ── find a game that actually has plays ─────────────────────────────────────
@@ -110,6 +115,19 @@ A('every entry has a boolean scoringPlay',
 A('every entry carries its drive index',
   plays.length > 0 && plays.every(p => Number.isInteger(p.drive)),
   `currentDrive=${body?.currentDrive}`);
+A('every entry carries the three lookup inputs, in range',
+  plays.length > 0 && plays.every(p =>
+    Number.isInteger(p.down) && p.down >= 1 && p.down <= 4
+    && Number.isFinite(p.distance) && p.distance >= 1
+    && Number.isFinite(p.yardsToEndzone) && p.yardsToEndzone >= 1 && p.yardsToEndzone <= 99),
+  `${plays.filter(p => !(p.down >= 1 && p.down <= 4)).length} bad down`);
+// `currentDrive` is the index of a drive still IN PROGRESS, so it is either the
+// last index or null -- never some earlier drive, and never a number on a
+// finished game. The first version of this field could not return null at all.
+A('currentDrive is the last drive index or null, and driveCount agrees',
+  Number.isInteger(body?.driveCount) && body.driveCount >= 1
+  && (body.currentDrive === null || body.currentDrive === body.driveCount - 1),
+  `currentDrive=${body?.currentDrive} driveCount=${body?.driveCount}`);
 
 // ── done condition 2: it equals the client, enumerated ──────────────────────
 const tableRes = await getJSON(`${RELAY}/nflverse/epa_table.json`);
@@ -151,6 +169,26 @@ for (let i = 0; i < Math.min(plays.length, reference.length); i++) {
 }
 A('at least 10 pairs are available to enumerate', pairs.length >= 10, `${pairs.length}`);
 A('every play agrees with the client to 2dp', disagreements === 0, `${disagreements} of ${plays.length} differ`);
+
+// The route serves down/distance/yardsToEndzone INSTEAD of the client's
+// situation string. On live data, rebuilding the string from those three
+// numbers must reproduce the client's byte for byte, or the drop lost
+// information.
+const _sit = (down, ytg, yl100) => {
+  const downs = ['1st', '2nd', '3rd', '4th'];
+  return `${downs[down - 1] || down} & ${ytg} @ ${yl100 <= 50 ? 'OPP ' + yl100 : 'OWN ' + (100 - yl100)}`;
+};
+const liveLabels = new Set();
+let sitDiffs = 0;
+for (let i = 0; i < Math.min(plays.length, reference.length); i++) {
+  const rebuilt = _sit(plays[i].down, plays[i].distance, plays[i].yardsToEndzone);
+  liveLabels.add(rebuilt);
+  if (rebuilt !== reference[i].situation) sitDiffs++;
+}
+A('every situation label rebuilds from the served numbers, on live data',
+  sitDiffs === 0, `${sitDiffs} of ${plays.length} differ`);
+A('...across distinct labels, not one repeated', liveLabels.size >= 5,
+  `${liveLabels.size} distinct label(s)`);
 
 // NON-VACUITY, and it is the assertion this probe was missing.
 //

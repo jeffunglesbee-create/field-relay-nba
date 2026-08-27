@@ -43,22 +43,31 @@ function _computeESPNPlayEPA(play) {
     const down = play.start.down, ytg = play.start.distance, yl100 = play.start.yardsToEndzone;
     if (!down || !ytg || !yl100) return null;
     const epStart = _epLookup(down, ytg, yl100);
+    // These two lines were MISSING from this "verbatim" copy until 2026-08-27.
+    // They were dropped when the reference was transcribed, because the route
+    // did not serve `situation` and nothing compared it -- so the omission cost
+    // nothing and stayed invisible. It stopped being invisible the moment a
+    // check read `ref.situation` and got the string "undefined" for all 305
+    // plays. A reference that silently omits what nobody is checking is not a
+    // reference; it agrees with whatever it was pruned to match.
+    const downs = ['1st', '2nd', '3rd', '4th'];
+    const sit = `${downs[down - 1] || down} & ${ytg} @ ${yl100 <= 50 ? 'OPP ' + yl100 : 'OWN ' + (100 - yl100)}`;
     if (play.scoringPlay) {
         const lc = ptext.toLowerCase();
         const isFG = lc.includes('field goal') && !lc.includes('miss');
         const epEnd = isFG ? 3 : 6.96;
         const epa = Math.round((epEnd - epStart) * 100) / 100;
-        return { epa, ep_start: epStart, ep_end: epEnd };
+        return { epa, ep_start: epStart, ep_end: epEnd, situation: sit };
     }
     if (play.isTurnover) {
         const epEnd = -_epLookup(1, 10, Math.max(1, Math.min(99, 100 - yl100)));
         const epa = Math.round((epEnd - epStart) * 100) / 100;
-        return { epa, ep_start: epStart, ep_end: epEnd };
+        return { epa, ep_start: epStart, ep_end: epEnd, situation: sit };
     }
     if (!play.end || play.end.yardsToEndzone === undefined || play.end.yardsToEndzone === null) return null;
     const epEnd = _epLookup(play.end.down, play.end.distance, play.end.yardsToEndzone);
     const epa = Math.round((epEnd - epStart) * 100) / 100;
-    return { epa, ep_start: epStart, ep_end: epEnd };
+    return { epa, ep_start: epStart, ep_end: epEnd, situation: sit };
 }
 
 // ── a table with real structure, so a bucket error cannot hide ──────────────
@@ -103,7 +112,18 @@ push({ id: 'no-down', type: { text: 'Pass Reception' }, start: { distance: 10, y
 push({ id: 'no-end', type: { text: 'Pass Reception' }, start: { down: 1, distance: 10, yardsToEndzone: 40 } });
 push({ id: 'end-null-yte', type: { text: 'Pass Reception' }, start: { down: 1, distance: 10, yardsToEndzone: 40 }, end: { down: 1, distance: 10, yardsToEndzone: null } });
 
-let mismatches = [], nulls = 0, values = 0;
+// The client's situation label, transcribed verbatim from the two lines of
+// `_computeESPNPlayEPA` that build it. The relay does NOT serve this string --
+// it serves the three numbers it is built from -- so this is the check that the
+// numbers are sufficient: the client must be able to rebuild the exact same
+// label from the route's `down`, `distance` and `yardsToEndzone` and nothing
+// else. If it could not, dropping the string would have lost information.
+const _sit = (down, ytg, yl100) => {
+    const downs = ['1st', '2nd', '3rd', '4th'];
+    return `${downs[down - 1] || down} & ${ytg} @ ${yl100 <= 50 ? 'OPP ' + yl100 : 'OWN ' + (100 - yl100)}`;
+};
+
+let mismatches = [], sitMismatches = [], labels = new Set(), nulls = 0, values = 0;
 for (const p of plays) {
     const ref = _computeESPNPlayEPA(p);
     const got = playEpa(TABLE, p);
@@ -116,6 +136,10 @@ for (const p of plays) {
     values++;
     if (ref.epa !== got.epa || ref.ep_start !== got.ep_start || ref.ep_end !== got.ep_end)
         mismatches.push(`${p.id}: ref ${JSON.stringify(ref)} vs relay ${JSON.stringify({epa:got.epa,ep_start:got.ep_start,ep_end:got.ep_end})}`);
+    const rebuilt = _sit(got.down, got.distance, got.yardsToEndzone);
+    labels.add(rebuilt);
+    if (rebuilt !== ref.situation)
+        sitMismatches.push(`${p.id}: client "${ref.situation}" vs rebuilt "${rebuilt}"`);
 }
 
 console.log(`\n  ${plays.length} synthetic play(s): ${values} with an EPA, ${nulls} correctly null\n`);
@@ -126,6 +150,13 @@ A('the grid actually produced EPA values', values > 100, `${values} value(s)`);
 A('...and exercised the null branches too', nulls >= 12, `${nulls} null(s)`);
 A('every play agrees with the client, exactly',
   mismatches.length === 0, mismatches.slice(0, 5).join('\n        '));
+
+// The relay drops the client's `situation` STRING and serves its three inputs.
+// That is only lossless if the string is recoverable from them, byte for byte.
+A('every situation label rebuilds from the served numbers, exactly',
+  sitMismatches.length === 0, sitMismatches.slice(0, 5).join('\n        '));
+A('...across many distinct labels, not one repeated', labels.size > 20,
+  `${labels.size} distinct label(s) — one label proves nothing about the rest`);
 
 // The check must be able to fail. Break the lookup and confirm it objects.
 const broken = { ...TABLE, '1_10_41': (TABLE['1_10_41'] ?? 0) + 1 };

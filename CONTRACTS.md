@@ -1088,3 +1088,51 @@ two feeds disagreeing inside one brief:
 
 ESPN owns the match story; FPL adds the fantasy layer ESPN does not carry. A
 brief must never name the same goal from both.
+
+## GET /nfl/epa/plays?event={espnGameId} (relay route)
+
+Per-play Expected Points Added for one NFL game. Producer: `src/nfl-epa.js` +
+the route in `src/index.js`. Consumers: jubilant-bassoon `_fetchNFLGameEpa`
+(`src/legacy/field.js`), and field-laboratory.
+
+```json
+{
+  "event": "401873282",
+  "currentDrive": 12,
+  "driveCount": 13,
+  "plays": [
+    { "id": "4018732821234", "epa": -0.17, "ep_start": 2.11, "ep_end": 1.94,
+      "scoringPlay": false, "drive": 12,
+      "down": 2, "distance": 7, "yardsToEndzone": 41 }
+  ]
+}
+```
+
+| field | meaning |
+|-------|---------|
+| `currentDrive` | index into the drive sequence of the drive still IN PROGRESS, or **`null`** when none is. A finished game has drives and no current one. |
+| `driveCount` | number of drives in the sequence. `currentDrive`, when non-null, is always `driveCount - 1`. |
+| `plays[].drive` | the play's drive index, comparable to `currentDrive`. |
+| `plays[].epa` | rounded to 2dp. Absent plays (kickoffs, XPs, timeouts, period ends, snaps missing down/distance/field position) are omitted entirely, not served with a null EPA. |
+| `plays[].down`, `.distance`, `.yardsToEndzone` | the three EP-lookup inputs, under ESPN's own names. `yardsToEndzone` IS `yardline_100` — no conversion. |
+
+**The route does not serve a situation string.** The client renders
+`"3rd & 7 @ OPP 22"` from `down`/`distance`/`yardsToEndzone`; an English word
+list and an OWN/OPP viewpoint are a display choice, and a second consumer
+wanting a different label would otherwise have to un-format this one. Both
+`scripts/nfl-epa-transcription-check.mjs` (317 synthetic plays) and
+`scripts/nfl-epa-route-probe.mjs` (live) assert the label rebuilds from those
+three numbers byte for byte, so the drop is lossless rather than assumed to be.
+
+**The route does not serve scores.** `_fetchNFLGameEpa` used to stash
+`homePts`/`awayPts` on its state object; nothing in the client ever read them
+(verified by grep at 2026-08-27 — the only readers of that state are
+`_buildUFLEpaHTML`, which reads `lastPlay`, `driveEpa` and `drivePlayCount`, and
+the card renderer's `_epaLive?.lastPlay` guard). Rule 63: they are not carried
+into this contract. If a consumer ever needs them, they come from
+`/espn-summary`, and this table gets a row.
+
+**One model, one owner.** EPA used to be computed in the browser. It is computed
+here now so field-laboratory and the PWA cannot drift into two EP models of the
+same quantity. `scripts/nfl-epa-transcription-check.mjs` holds the client's
+former code verbatim and blocks the deploy if the two ever disagree.

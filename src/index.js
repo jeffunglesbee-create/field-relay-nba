@@ -16391,9 +16391,18 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 if (row) plays.push({ ...row, drive: i });
             }));
 
+            // `currentDrive` is the index of the drive still IN PROGRESS, and
+            // null when there is none -- a completed game has drives but no
+            // current one. The first version wrote
+            // `drives.current ? all.length-1 : (all.length ? all.length-1 : null)`,
+            // whose two arms are the same expression: it was named
+            // currentDrive and measured "index of the last drive", going null
+            // only on a game with no drives at all. The consumer's question is
+            // "is a drive live", so it now answers that question.
             return new Response(JSON.stringify({
                 event,
-                currentDrive: drives.current ? all.length - 1 : (all.length ? all.length - 1 : null),
+                currentDrive: drives.current ? all.length - 1 : null,
+                driveCount: all.length,
                 plays,
             }), { headers: { 'Content-Type': 'application/json',
                              'Cache-Control': `public, max-age=${ESPN_SUMMARY_TTL}`,

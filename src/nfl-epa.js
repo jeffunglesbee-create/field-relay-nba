@@ -103,5 +103,18 @@ export function playEpa(table, play) {
         ep_start: epStart,
         ep_end: epEnd,
         scoringPlay: play.scoringPlay === true,
+        // The three lookup inputs, passed through under ESPN's own names.
+        //
+        // The client renders a situation label from exactly these ("3rd & 7 @
+        // OPP 22"). Serving that STRING instead would put an English word list
+        // and an OWN/OPP viewpoint choice in the relay, and a second consumer
+        // wanting a different label would have to un-format it. A neutral data
+        // vendor publishes down, distance and field position; whoever displays
+        // them writes the sentence. Rule 60 is satisfied by serving the inputs
+        // the consumer reads -- formatting numbers into a label is rendering,
+        // not the normalization layer Rule 64 forbids.
+        down,
+        distance: ytg,
+        yardsToEndzone: yl100,
     };
 }
