@@ -15,13 +15,23 @@ name: NFL per-play EPA route matches the client
 # A run that finds no NFL game with plays EXITS 1 and says NOT OBSERVABLE. It
 # does not report green on an assertion it never made.
 
+# TRIGGERED BY THE DEPLOY, NOT BY THE PUSH.
+#
+# The first version fired on `push` to src/nfl-epa.js and raced deploy.yml,
+# which starts from the same push. Run 33122300358 is the evidence: the .ep
+# unwrap fix landed at 22:23:22, deploy was still in_progress, and the probe
+# read the OLD route at 22:23:37 and reported 149 disagreements of 149. The
+# probe was right and the verdict was meaningless — it tested bytes the fix had
+# not reached yet.
+#
+# That is the same confound that cost field-laboratory two wrong readings today
+# (verify tests the deployed site; deploy runs after verify). A probe against a
+# DEPLOYED route must wait for the deploy, so this waits for it.
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'src/nfl-epa.js'
-      - 'scripts/nfl-epa-route-probe.mjs'
-      - 'outbox/.trigger-nfl-epa-route'
+  workflow_run:
+    workflows: ["Deploy RELAY Worker"]
+    types: [completed]
 
 permissions:
   contents: write
@@ -34,6 +44,9 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # A failed deploy left the old route live; probing it would report on bytes
+    # nobody shipped. workflow_dispatch has no upstream conclusion, so it passes.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
