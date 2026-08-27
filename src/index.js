@@ -103,6 +103,7 @@ import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
+import { playEpa } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -16320,7 +16321,82 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
           }
         }
 
-// ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
+// ── GET /nfl/epa/plays?event={espnGameId} → per-play Expected Points Added ──
+        //
+        // STAGED — consumer is jubilant-bassoon `_fetchNFLGameEpa`, switched in the
+        // same change per CC-CMD-2026-08-27-relay-per-play-epa (field-laboratory
+        // docs/). Rule 70: the relay deploys first, the client matches.
+        //
+        // WHY THIS EXISTS. EPA is computed in the BROWSER today: field.js pulls
+        // /nflverse/epa_table.json plus this relay's own /espn-summary and runs
+        // `_computeESPNPlayEPA` per play. field-laboratory needs the same numbers
+        // and must not build a second EP model — a second measurement is free to
+        // disagree with the first, which is the divergence class CONTRACTS.md
+        // exists to prevent. One model, one owner, two consumers.
+        //
+        // ADR-002, both tests independently, per the 2026-08-02 RUWT baseline audit
+        // ("passing one doesn't clear the other"):
+        //   Rule F — nflfastR publishes EPA and the EP model is theirs. A neutral
+        //            data vendor could serve this. Permitted.
+        //   Rule A — GET, served on pull. No cron, no push, nothing stored in a
+        //            binding. Permitted.
+        // This computes no drama score, no watch value and no volatility label.
+        //
+        // A TRANSCRIPTION, not a reinterpretation. The computation lives in
+        // src/nfl-epa.js so that scripts/nfl-epa-transcription-check.mjs can hold
+        // the CLIENT's code verbatim as its reference and assert the two agree —
+        // a transcription nothing can compare against the original is a claim,
+        // not a fact. Every ESPN field it reads was verified live
+        // against a real game by scripts/nfl-epa-shape-probe.mjs (14/14, artifact
+        // outbox/nfl-epa-shape-probe-20260815T013003Z.log): start.{down,distance,
+        // yardsToEndzone}, type.text, scoringPlay, isTurnover, end.{...}. In
+        // particular `yardsToEndzone` IS yardline_100 — no conversion — which the
+        // probe asserts by name because guessing it wrong is silent.
+        //
+        // Rule 78: both upstreams go through relayFetch, at the TTLs their own
+        // routes already use (25s live summary, 86400s table). No hand-rolled
+        // fetch, so the caching cannot drift from the routes it borrows from.
+        if (pathname === '/nfl/epa/plays' && request.method === 'GET') {
+            const event = url.searchParams.get('event');
+            if (!event || !/^[0-9]+$/.test(event))
+                return new Response(JSON.stringify({ error: 'event must be a numeric ESPN game id' }),
+                    { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+
+            const tableRes = await relayFetch(`${NFLVERSE_RAW_BASE}/epa_table.json`,
+                { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
+            if (!tableRes.ok) return tableRes;
+            const epTable = await tableRes.json();
+
+            const summaryRes = await relayFetch(
+                `${ESPN_SUMMARY_BASE}/sports/football/nfl/summary?event=${event}`,
+                ESPN_SUMMARY_HEADERS, ESPN_SUMMARY_TTL, 'espn-summary', ctx);
+            if (!summaryRes.ok) return summaryRes;
+            const summary = await summaryRes.json();
+
+            // Every drive, tagged with its index, plus which one is current.
+            // The client takes the current drive (or the last completed one) and
+            // that is a DISPLAY choice — serving only that drive would put the
+            // choice in the relay and leave a second consumer unable to make a
+            // different one. Rule 60: the relay owns the contract, not the view.
+            const drives = summary.drives || {};
+            const prev = Array.isArray(drives.previous) ? drives.previous : [];
+            const all = drives.current ? prev.concat([drives.current]) : prev;
+            const plays = [];
+            all.forEach((d, i) => (d?.plays || []).forEach(p => {
+                const row = playEpa(epTable, p);
+                if (row) plays.push({ ...row, drive: i });
+            }));
+
+            return new Response(JSON.stringify({
+                event,
+                currentDrive: drives.current ? all.length - 1 : (all.length ? all.length - 1 : null),
+                plays,
+            }), { headers: { 'Content-Type': 'application/json',
+                             'Cache-Control': `public, max-age=${ESPN_SUMMARY_TTL}`,
+                             'X-FIELD-Proxy': 'relay-nfl-epa', ...CORS } });
+        }
+
+        // ── /nflverse/{file} → raw.githubusercontent.com/jubilant-bassoon/outbox/nfl ─
         // Serves pre-computed analytics JSON committed by GitHub Action pipelines.
         // Primary: epa_table.json (EPA lookup, 16KB) — built by build-epa-table.yml
         if (pathname.startsWith('/nflverse/')) {

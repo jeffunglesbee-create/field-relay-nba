@@ -83,6 +83,14 @@ jobs:
         continue-on-error: true
         run: node scripts/check-route-shadowing.mjs src/index.js
 
+      # The relay's EPA must stay the client's EPA. CC-CMD-2026-08-27-relay-per-play-epa
+      # moved the EP model here so there is ONE model rather than two free to
+      # disagree; this asserts that across a 317-play synthetic grid, against the
+      # client's code held verbatim as the reference. Offline — no network, so it
+      # costs nothing and cannot flake on a third party.
+      - name: The relay's EPA is the client's EPA
+        run: node scripts/nfl-epa-transcription-check.mjs
+
       # Static, pre-deploy, and deliberately BLOCKING (no continue-on-error).
       # The "Soccer league label contract check" further down is a live check
       # against /v2/games -- it verified V2_LEAGUES <-> SOCCER_LEAGUE_LABELS and
