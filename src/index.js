@@ -103,7 +103,7 @@ import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
-import { playEpa } from './nfl-epa.js';
+import { playEpa, epTableFrom } from './nfl-epa.js';
 import { runMLBSavantUpdate } from './mlb-savant-r2.js';
 import { runNFLR2Update } from './nfl-r2.js';
 import { runNHLSeriesUpdate } from './nhl-series-r2.js';
@@ -16365,7 +16365,11 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             const tableRes = await relayFetch(`${NFLVERSE_RAW_BASE}/epa_table.json`,
                 { 'Accept': 'application/json' }, 86400, 'nflverse', ctx);
             if (!tableRes.ok) return tableRes;
-            const epTable = await tableRes.json();
+            // .ep, not the whole document — see epTableFrom's comment. Passing
+            // the document made every lookup miss and return 0, and the live
+            // probe still reported agreement, because the client was being
+            // compared against a table only it had unwrapped.
+            const epTable = epTableFrom(await tableRes.json());
 
             const summaryRes = await relayFetch(
                 `${ESPN_SUMMARY_BASE}/sports/football/nfl/summary?event=${event}`,

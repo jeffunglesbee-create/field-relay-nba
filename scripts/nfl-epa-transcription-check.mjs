@@ -15,7 +15,8 @@
 // Offline. No network, no fixtures — a synthetic grid over every branch, which
 // is what makes it runnable in CI and in a sandbox alike.
 
-import { playEpa, epLookup } from '../src/nfl-epa.js';
+import { playEpa, epLookup, epTableFrom } from '../src/nfl-epa.js';
+import { readFileSync, existsSync } from 'node:fs';
 
 let pass = 0, fail = 0;
 const A = (label, ok, detail = '') => {
@@ -139,6 +140,37 @@ A('epLookup clamps out-of-range distance and field position like the client',
   epLookup(TABLE, 1, 99, 250) === _epLookup(1, 99, 250)
   && epLookup(TABLE, 1, -5, -5) === _epLookup(1, -5, -5),
   `${epLookup(TABLE, 1, 99, 250)} vs ${_epLookup(1, 99, 250)}`);
+
+// ── the unwrap, against the REAL document shape ─────────────────────────────
+//
+// The grid above proves the COMPUTATION matches the client given a table. It
+// says nothing about getting the table, and that is exactly where the route was
+// wrong: it passed the whole `epa_table.json` document to the lookup, every key
+// missed, `?? 0` came back, and the live probe still reported "ROUTE MATCHES
+// CLIENT — 0 disagreements". Both sides agreed on zero.
+//
+// So the shape is asserted here, not assumed. Not a hand-written stub of the
+// document — a stub is a guess about the file — but the real one when it is on
+// disk, and a faithful minimal one when it is not.
+const REAL = '../jubilant-bassoon/outbox/nfl/epa_table.json';
+const doc = existsSync(REAL)
+    ? JSON.parse(readFileSync(REAL, 'utf8'))
+    : { generated: 'stub', ytg_buckets: [], yl100_buckets: [],
+        ep: { '1_10_41': 3.21 }, turnover_ep: { '41': -2.1 } };
+A(`the EP document is nested under .ep (${existsSync(REAL) ? 'real file' : 'minimal stub'})`,
+  doc.ep && typeof doc.ep === 'object' && Object.keys(doc.ep).length > 0,
+  `top-level keys: ${Object.keys(doc).join(', ')}`);
+A('epTableFrom unwraps .ep rather than returning the document',
+  epTableFrom(doc) === doc.ep,
+  'passing the document itself is what made every lookup return 0');
+A('...and a real key resolves to a NON-ZERO expected-points value',
+  Number.isFinite(epLookup(epTableFrom(doc), 1, 10, 41)) && epLookup(epTableFrom(doc), 1, 10, 41) !== 0,
+  `1_10_41 -> ${epLookup(epTableFrom(doc), 1, 10, 41)}`);
+A('the UNWRAPPED document is what the client uses, and the document is not',
+  epLookup(doc, 1, 10, 41) === 0 && epLookup(epTableFrom(doc), 1, 10, 41) !== 0,
+  'if both were non-zero this check could not tell the two apart');
+A('a flat table still works, preserving the client\'s `|| d` fallback',
+  epTableFrom({ '1_10_41': 2.5 })['1_10_41'] === 2.5);
 
 console.log(`\n${fail === 0 ? 'PASS' : 'FAIL'}  ${pass}/${pass + fail} checks passed`);
 process.exit(fail === 0 ? 0 : 1);

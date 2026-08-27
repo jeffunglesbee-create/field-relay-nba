@@ -30,6 +30,28 @@ const YL100_BUCKETS = [1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56, 61, 66, 71,
 
 const nearest = (v, arr) => arr.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b));
 
+/// The lookup table, unwrapped from what the relay serves.
+///
+/// `epa_table.json` is NOT the table. It is
+/// `{generated, method, description, inputs, ytg_buckets, yl100_buckets, ep,
+/// turnover_ep}` — the 1120 EP entries live under `.ep`. The client unwraps it
+/// (`_epTable = d.ep || d`) and so must this.
+///
+/// This function exists because getting it wrong was silent. The route's first
+/// version passed the whole document to `epLookup`, every key missed, `?? 0`
+/// returned, and the live probe reported "ROUTE MATCHES CLIENT — 149 route
+/// plays, 149 client plays, 0 disagreements" — because both sides were being
+/// compared on a table only one of them had unwrapped. Agreement on zero is
+/// still agreement. `?? json` preserves the client's `|| d` fallback so a flat
+/// table still works.
+///
+/// `turnover_ep` is deliberately unused: the client's turnover branch computes
+/// `-epLookup(1, 10, 100 - yl100)` rather than reading that table, and this is a
+/// transcription, not an improvement.
+export function epTableFrom(json) {
+    return json?.ep ?? json;
+}
+
 /// Expected points at a down/distance/field position, bucketed.
 ///
 /// Returns 0 for a key the table does not carry — and 0 is a REAL expected-points

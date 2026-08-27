@@ -114,7 +114,14 @@ A('every entry carries its drive index',
 // ── done condition 2: it equals the client, enumerated ──────────────────────
 const tableRes = await getJSON(`${RELAY}/nflverse/epa_table.json`);
 A('the EP table is readable through the relay', tableRes.status === 200, `HTTP ${tableRes.status}`);
-_epTable = tableRes.body;
+// .ep, not the document. The client does `_epTable = d.ep || d`, and the first
+// version of the ROUTE skipped that unwrap — every lookup missed, `?? 0` came
+// back, and this probe reported agreement because both sides were compared on a
+// table only the client had unwrapped.
+_epTable = tableRes.body?.ep ?? tableRes.body;
+A('the EP table unwraps to a populated lookup',
+  _epTable && Object.keys(_epTable).length > 100,
+  `${_epTable ? Object.keys(_epTable).length : 0} key(s) — the document has ~8 top-level keys, the table ~1120`);
 
 const sumRes = await getJSON(`${RELAY}/espn-summary/sports/football/nfl/summary?event=${game.id}`);
 A('the summary is readable through the relay', sumRes.status === 200, `HTTP ${sumRes.status}`);
@@ -144,6 +151,22 @@ for (let i = 0; i < Math.min(plays.length, reference.length); i++) {
 }
 A('at least 10 pairs are available to enumerate', pairs.length >= 10, `${pairs.length}`);
 A('every play agrees with the client to 2dp', disagreements === 0, `${disagreements} of ${plays.length} differ`);
+
+// NON-VACUITY, and it is the assertion this probe was missing.
+//
+// The first run reported "ROUTE MATCHES CLIENT — 149 route plays, 149 client
+// plays, 0 disagreements" while every epa was 0, because the route had not
+// unwrapped the EP table and `?? 0` is a real number that compares equal to
+// itself. "Finite" and "agrees" are both true of all-zeros. A route that
+// returns zero for every play is not serving EPA, whatever it agrees with.
+const nonZero = plays.filter(p => p.epa !== 0).length;
+const startsSet = plays.filter(p => p.ep_start !== 0).length;
+A('the route returns real EPA, not a field of zeros',
+  nonZero > plays.length * 0.5,
+  `${nonZero} of ${plays.length} plays have a non-zero epa`);
+A('...and ep_start is a looked-up value, not the `?? 0` miss',
+  startsSet > plays.length * 0.9,
+  `${startsSet} of ${plays.length} plays have a non-zero ep_start`);
 
 console.log('\n  Enumerated pairs (the artifact):');
 console.log('  idx  drive  play id            relay epa   client epa   agree');
