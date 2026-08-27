@@ -1,0 +1,112 @@
+{
+  "probed_at": "2026-08-27T22:23:38.389Z",
+  "game": {
+    "id": "401873297",
+    "name": "Seattle Seahawks at Tennessee Titans",
+    "date": "20260823",
+    "state": "post"
+  },
+  "route": "https://field-relay-nba.jeffunglesbee.workers.dev/nfl/epa/plays?event=401873297",
+  "route_plays": 149,
+  "client_plays": 149,
+  "disagreements": 149,
+  "pairs": [
+    {
+      "i": 0,
+      "id": "40187329762",
+      "drive": 0,
+      "relay": 0,
+      "client": -0.17,
+      "agree": false
+    },
+    {
+      "i": 1,
+      "id": "40187329784",
+      "drive": 0,
+      "relay": 0,
+      "client": 1.08,
+      "agree": false
+    },
+    {
+      "i": 2,
+      "id": "401873297109",
+      "drive": 0,
+      "relay": 0,
+      "client": -0.47,
+      "agree": false
+    },
+    {
+      "i": 3,
+      "id": "401873297131",
+      "drive": 0,
+      "relay": 0,
+      "client": 0.8,
+      "agree": false
+    },
+    {
+      "i": 4,
+      "id": "401873297167",
+      "drive": 0,
+      "relay": 0,
+      "client": 0.1,
+      "agree": false
+    },
+    {
+      "i": 5,
+      "id": "401873297192",
+      "drive": 0,
+      "relay": 0,
+      "client": 0.18,
+      "agree": false
+    },
+    {
+      "i": 6,
+      "id": "401873297219",
+      "drive": 0,
+      "relay": 0,
+      "client": 1.31,
+      "agree": false
+    },
+    {
+      "i": 7,
+      "id": "401873297252",
+      "drive": 0,
+      "relay": 6.96,
+      "client": 3.43,
+      "agree": false
+    },
+    {
+      "i": 8,
+      "id": "401873297339",
+      "drive": 1,
+      "relay": 0,
+      "client": 0.86,
+      "agree": false
+    },
+    {
+      "i": 9,
+      "id": "401873297364",
+      "drive": 1,
+      "relay": 0,
+      "client": -0.02,
+      "agree": false
+    },
+    {
+      "i": 10,
+      "id": "401873297393",
+      "drive": 1,
+      "relay": 0,
+      "client": 0.06,
+      "agree": false
+    },
+    {
+      "i": 11,
+      "id": "401873297418",
+      "drive": 1,
+      "relay": 0,
+      "client": -0.65,
+      "agree": false
+    }
+  ],
+  "verdict": "FAILED"
+}
