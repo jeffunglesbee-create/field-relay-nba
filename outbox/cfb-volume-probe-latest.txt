@@ -1,0 +1,16 @@
+
+  date        unscoped   groups=80   delta   what the delta is
+  ------------------------------------------------------------------
+  20260829         8          8       0   nothing — the default already scopes
+  20260905        68         68       0   nothing — the default already scopes
+  20260912        80         80       0   nothing — the default already scopes
+  20260919        71         71       0   nothing — the default already scopes
+
+  Peak FBS slate measured: 80 game(s).
+  The cron fires every 15 min, so a seed row walks that many events
+  ~96 times on such a day, per archive-write site.
+
+  groups=80 changed nothing on the dates measured. The V2_LEAGUES comment
+  holds today. It is still an undocumented default the relay relies on and
+  the client does not — jubilant-bassoon appends the param explicitly.
+
