@@ -1,0 +1,467 @@
+{
+  "ts": "2026-08-28T20:45:04.955Z",
+  "days": 7,
+  "since": "2026-08-21",
+  "byDay": [
+    {
+      "date": "2026-08-21",
+      "total": 62,
+      "scored": 62,
+      "unscored": 0,
+      "era3": 38
+    },
+    {
+      "date": "2026-08-22",
+      "total": 138,
+      "scored": 138,
+      "unscored": 0,
+      "era3": 106
+    },
+    {
+      "date": "2026-08-23",
+      "total": 101,
+      "scored": 101,
+      "unscored": 0,
+      "era3": 36
+    },
+    {
+      "date": "2026-08-24",
+      "total": 36,
+      "scored": 36,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-08-25",
+      "total": 100,
+      "scored": 100,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-08-26",
+      "total": 86,
+      "scored": 86,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-08-27",
+      "total": 143,
+      "scored": 143,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-08-28",
+      "total": 50,
+      "scored": 50,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-08-29",
+      "total": 3,
+      "scored": 3,
+      "unscored": 0,
+      "era3": 0
+    }
+  ],
+  "byType": [
+    {
+      "brief_type": "game_live",
+      "sport": "MLB",
+      "total": 107,
+      "scored": 107,
+      "unscored": 0
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "total": 84,
+      "scored": 84,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "total": 64,
+      "scored": 64,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NFL",
+      "total": 28,
+      "scored": 28,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "total": 24,
+      "scored": 24,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "total": 24,
+      "scored": 24,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Cup",
+      "total": 23,
+      "scored": 23,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "WNBA",
+      "total": 23,
+      "scored": 23,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EFL Cup",
+      "total": 23,
+      "scored": 23,
+      "unscored": 0
+    },
+    {
+      "brief_type": "slate",
+      "sport": null,
+      "total": 19,
+      "scored": 19,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLS",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "La Liga",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLS",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "La Liga",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLB",
+      "total": 14,
+      "scored": 14,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "La Liga",
+      "total": 14,
+      "scored": 14,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "NFL",
+      "total": 13,
+      "scored": 13,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLB",
+      "total": 13,
+      "scored": 13,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL Cup",
+      "total": 13,
+      "scored": 13,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Europa League Qualifying",
+      "total": 12,
+      "scored": 12,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "NFL",
+      "total": 12,
+      "scored": 12,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "UEFA Europa League Qualifying",
+      "total": 12,
+      "scored": 12,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "WNBA",
+      "total": 11,
+      "scored": 11,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Serie A",
+      "total": 11,
+      "scored": 11,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EPL",
+      "total": 11,
+      "scored": 11,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Serie A",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EPL",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Ligue 1",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Ligue 1",
+      "total": 9,
+      "scored": 9,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_brief",
+      "sport": "MLB",
+      "total": 9,
+      "scored": 9,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Champions League Qualifying",
+      "total": 7,
+      "scored": 7,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "UEFA Champions League Qualifying",
+      "total": 7,
+      "scored": 7,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "EPL",
+      "total": 4,
+      "scored": 4,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "UEFA Europa League Qualifying",
+      "total": 3,
+      "scored": 3,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": null,
+      "total": 3,
+      "scored": 3,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "Serie A",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "EPL",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "PGA Tour",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EFL Trophy",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "MLS",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "WNBA",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "UEFA Europa Conference League Qualifying",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "PGA Tour",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "AFL",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "wnba",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA Tour",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA TOUR",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "FIFA World Cup",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Trophy",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Bundesliga",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Bundesliga",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "bracket_delta",
+      "sport": "wc",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    }
+  ],
+  "era3ByType": [
+    {
+      "brief_type": "game_live",
+      "n": 118
+    },
+    {
+      "brief_type": "game_recap",
+      "n": 62
+    },
+    {
+      "brief_type": "pre_game",
+      "n": 1
+    }
+  ],
+  "era3Total": 181,
+  "reportUnscoredTypes": [],
+  "reportUnscoredCount": 0,
+  "totals": {
+    "total": 719,
+    "scored": 719,
+    "unscored": 0
+  },
+  "scoredPct": 100,
+  "scoringHealthy": true
+}
