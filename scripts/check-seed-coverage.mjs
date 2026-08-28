@@ -197,7 +197,26 @@ if (process.argv.includes('--live')) {
   const ctxRes = await fetch(`${RELAY}/context/date/${date}`)
   check('the archive answers for that date', ctxRes.ok, `HTTP ${ctxRes.status}`)
   const ctx = ctxRes.ok ? await ctxRes.json() : {}
-  const games = Array.isArray(ctx.games) ? ctx.games : (Array.isArray(ctx) ? ctx : [])
+
+  // `games` is an OBJECT of two arrays, not an array. Run 33134550309 read it
+  // as `Array.isArray(ctx.games) ? ctx.games : []`, got [], and reported six
+  // competitions as gaps -- MLB, WNBA, La Liga, EFL Cup, EFL Trophy and UCL
+  // Qualifying, all of which had rows. A check that misreads its input reports
+  // a universal failure and looks like a discovery.
+  //
+  // The shape is read from two existing consumers rather than guessed a second
+  // time: field-laboratory `scripts/brief-join-capture.mjs:84`
+  // (`[...(j.games?.regular ?? []), ...(j.games?.postseason ?? [])]`) and
+  // `scripts/drift-check.mjs:100` (`n(j?.games?.regular) + n(j?.games?.postseason)`).
+  const games = [...(ctx.games?.regular ?? []), ...(ctx.games?.postseason ?? [])]
+
+  // The shape assertion, so a payload change fails BY NAME instead of arriving
+  // as every competition simultaneously going missing.
+  check('the payload carries games.regular / games.postseason, not a bare array',
+    ctx.games !== undefined && !Array.isArray(ctx.games) && typeof ctx.games === 'object',
+    `games is ${Array.isArray(ctx.games) ? 'an array' : typeof ctx.games} — ` +
+    'the shape changed, and every "gap" below is this check misreading it')
+
   const archived = new Map()
   for (const g of games) archived.set(g.sport, (archived.get(g.sport) || 0) + 1)
 
