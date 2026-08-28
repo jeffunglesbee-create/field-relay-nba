@@ -44,6 +44,22 @@ const date = process.argv[2] && /^\d{4}-\d{2}-\d{2}$/.test(process.argv[2])
   ? process.argv[2]
   : new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
+// NOT OBSERVABLE is neutral on the daily cron and fatal on a dispatch, for the
+// same reason it is in nfl-epa-route-probe.mjs -- and this file did NOT have it
+// until 2026-08-28, which was an inconsistency I introduced by writing the rule
+// for one probe and not the other.
+//
+// Measured cost of that omission: CFB opens with a SINGLE 8-game slate on
+// 2026-08-29 and nothing on 08-27, 08-28 or 08-30 (ESPN, scripts/cfb-volume-probe.mjs,
+// artifact outbox/cfb-volume-probe-latest.txt). A cron that exits 1 on an empty
+// slate would have gone red at 16:00 today and again tomorrow, before it had
+// ever said anything real -- twice teaching the reader that this workflow's red
+// means nothing, in the two days before the one run that matters.
+//
+// A dispatch still fails: asking the question on purpose and getting no answer
+// is a failed check, not a quiet day.
+const HEARTBEAT = process.env.CFB_SLATE_HEARTBEAT === '1'
+
 let pass = 0, fail = 0
 const A = (label, ok, detail = '') => {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}${ok || !detail ? '' : `\n        → ${detail}`}`)
@@ -53,12 +69,31 @@ const A = (label, ok, detail = '') => {
 console.log(`\n  CFB first-slate check — ${date}\n`)
 
 // ── ESPN: was there a slate at all? ─────────────────────────────────────────
-const sb = await (await fetch(`${ESPN}?dates=${date.replace(/-/g, '')}`)).json().catch(() => null)
+// "ESPN did not answer" and "ESPN answered with no games" are different facts
+// and must not report identically. Found by running this locally on 2026-08-28:
+// the sandbox gets HTTP 000 to ESPN, so BOTH paths printed "lists no CFB events"
+// and the run looked like a quiet day instead of an unreachable upstream. An
+// unreachable upstream is never neutral -- it fails even on the heartbeat,
+// because a heartbeat that cannot see is not a quiet heartbeat.
+let sb = null, reachErr = null
+try {
+  const r = await fetch(`${ESPN}?dates=${date.replace(/-/g, '')}`)
+  if (!r.ok) reachErr = `HTTP ${r.status}`
+  else sb = await r.json()
+} catch (e) { reachErr = e.message }
+
+if (reachErr) {
+  console.log(`  UNREACHABLE — ESPN did not answer: ${reachErr}`)
+  console.log('  This is not an empty slate. Nothing is concluded, and this')
+  console.log('  fails on the heartbeat too: a check that cannot see is not quiet.\n')
+  process.exit(1)
+}
+
 const events = sb?.events || []
 if (!events.length) {
-  console.log('  NOT OBSERVABLE — ESPN lists no CFB events for this date.')
+  console.log('  NOT OBSERVABLE — ESPN answered, and lists no CFB events for this date.')
   console.log('  Nothing is concluded. Re-run on a date with a slate.\n')
-  process.exit(1)
+  process.exit(HEARTBEAT ? 0 : 1)
 }
 console.log(`  ESPN lists ${events.length} CFB event(s).`)
 

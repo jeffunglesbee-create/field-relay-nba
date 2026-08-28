@@ -53,6 +53,10 @@ jobs:
         with: { node-version: '22' }
 
       - name: Did the first CFB slate reach the archive under the declared label
+        env:
+          # Only the cron is a heartbeat. A dispatch asked the question on
+          # purpose and an unanswerable question is a failed check.
+          CFB_SLATE_HEARTBEAT: ${{ github.event_name == 'schedule' && '1' || '0' }}
         run: |
           node scripts/cfb-first-slate-check.mjs ${{ inputs.date }} 2>&1 | tee outbox/cfb-first-slate-latest.txt
           exit ${PIPESTATUS[0]}
