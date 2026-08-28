@@ -83,3 +83,29 @@ deployed (`bad7971`, deploy run `33136950160`), the laboratory models
 played and the cron has ticked through it.
 
 First real answer: **2026-08-30 16:00 UTC.**
+
+---
+
+## Defect 2 was in this file twice
+
+`scripts/fetch-silently-empty-probe.mjs` (field-laboratory) swept 265 scripts
+across three repos for the same shape and returned two sites. **One of them was
+the relay fetch on line 101 of this very file** — the line below the ESPN fetch
+I had just fixed, with the identical `.json().catch(() => ({}))`.
+
+Its assertion:
+
+```js
+A('the archive answered with rows for this date', rows.length > 0, `${rows.length}`)
+```
+
+Named **answered**, measuring **returned rows**. A relay outage produced
+`rows = []` and failed it reporting `0` — an empty archive for a relay that
+never replied.
+
+Fixed the same way: `!r.ok` → `UNREACHABLE`, exit 1 unconditionally, never
+folded into the row count.
+
+**Fixing one instance of a defect and leaving its twin one line below is the
+argument for sweeping rather than patching.** I read that line while editing the
+file and did not see it.

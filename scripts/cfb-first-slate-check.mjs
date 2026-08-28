@@ -98,7 +98,25 @@ if (!events.length) {
 console.log(`  ESPN lists ${events.length} CFB event(s).`)
 
 // ── the archive ─────────────────────────────────────────────────────────────
-const ctx = await (await fetch(`${RELAY}/context/date/${date}`)).json().catch(() => ({}))
+// The SAME defect as the ESPN fetch above, one line down, and it survived the
+// commit that fixed that one. Found by scripts/fetch-silently-empty-probe.mjs
+// in field-laboratory, which swept 265 scripts across three repos and returned
+// exactly two sites -- this and one other.
+//
+// `A('the archive answered with rows for this date', rows.length > 0)` names
+// ANSWERED and measures RETURNED ROWS. With the swallow, a relay outage
+// produced `rows = []` and that assertion failed reading `0` -- reporting an
+// empty archive for a relay that never replied.
+let ctx = {}
+{
+  const r = await fetch(`${RELAY}/context/date/${date}`).catch(e => ({ ok: false, status: 0, _err: e.message }))
+  if (!r.ok) {
+    console.log(`  UNREACHABLE — the archive did not answer: ${r._err ?? `HTTP ${r.status}`}`)
+    console.log('  Not an empty archive. Nothing is concluded.\n')
+    process.exit(1)
+  }
+  ctx = await r.json()
+}
 const rows = [...(ctx.games?.regular ?? []), ...(ctx.games?.postseason ?? [])]
 const labels = [...new Set(rows.map(g => g.sport))].sort()
 const cfbRows = rows.filter(g => g.sport === 'CFB')
