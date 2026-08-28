@@ -1,0 +1,71 @@
+name: CFB first slate — the seed row and the staged rank chain
+
+# TWO THINGS UNBLOCK ON 2026-08-29 AND NEITHER HAS EVER BEEN OBSERVED.
+#
+# 1. The seed row (c52f496, 2026-08-27) added CFB to the journalism cron's
+#    LEAGUES table with label 'CFB', two days before the first FBS slate.
+#    Before it, /context/date had never carried a college game. The label was
+#    declared before any row was written; if the archive serves something else,
+#    every consumer keyed on 'CFB' is wrong -- including field-laboratory's
+#    Sport.CFB, added the same day -- and nothing else would say so.
+#
+# 2. The curatedRank chain, STAGED SINCE 2026-07-15 and never live-tested.
+#    Drive, "FIELD — Sports Data Infrastructure, 2026-07-15", first line:
+#    "All pieces done and verified, except cfb-curatedrank-relay's downstream
+#    consumer chain, which is staged but not yet live-tested against a real
+#    slate (season doesn't start until Aug 29)."
+#
+#    Rule 74 says a STAGED feature must carry the exact command that verifies
+#    it when its block lifts. That command has existed as a sentence in a Drive
+#    doc for six weeks. This is it as a runnable job.
+#
+# DAILY THROUGH THE OPENING WEEKEND, then it should be deleted or narrowed --
+# this answers a question that stops being open once answered. A cron left
+# running past its question is the waste pattern audited in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md. The schedule below
+# is deliberately not open-ended: see the DELETE-BY note in the probe artifact.
+#
+# It checks YESTERDAY by default, so the cron has had a full day of ticks to
+# seed. First meaningful run: 2026-08-30, reading the 08-29 slate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'YYYY-MM-DD to check. Default: yesterday.'
+        required: false
+  schedule:
+    - cron: '0 16 * * *'   # daily 16:00 UTC, after every seeding tick for the prior day
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cfb-first-slate
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Did the first CFB slate reach the archive under the declared label
+        run: |
+          node scripts/cfb-first-slate-check.mjs ${{ inputs.date }} 2>&1 | tee outbox/cfb-first-slate-latest.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/cfb-first-slate-latest.txt 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "probe: cfb first slate $(date -u +%Y-%m-%d) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
