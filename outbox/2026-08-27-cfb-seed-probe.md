@@ -64,3 +64,52 @@ a materially larger change to a live cron path than the ask implies.
 
 Writing the row first and measuring after would be picking the shape before
 knowing which one is right.
+
+---
+
+## ANSWERED 2026-08-27, and CFB is seeded
+
+Probe run, artifact `outbox/cfb-volume-probe-latest.txt`:
+
+```
+  date        unscoped   groups=80   delta
+  20260829         8          8       0
+  20260905        68         68       0
+  20260912        80         80       0
+  20260919        71         71       0
+```
+
+**Delta 0 on all four dates.** The V2_LEAGUES comment's claim holds in season, so
+the plain URL is correct today and a plain `LEAGUES` row is safe. The asymmetry
+remains real — the relay relies on an undocumented ESPN default that
+jubilant-bassoon does not — and closing it means threading a per-row query
+parameter through four loops over `LEAGUES`. That is its own change, not a
+hitchhiker on a seed row (Rule 69).
+
+**Peak slate: 80 games**, against ~15 for MLB. The largest single slate any row
+in that table adds. Recorded in the row's own comment so the next reader does not
+have to re-measure it.
+
+### The label, declared before any row lands
+
+`'CFB'`. The archive writes `sport: gm.league` from this field, so a label chosen
+after the fact orphans rows already written (`CC-CMD-2026-08-20-brief-data-quality`
+ask 3). `'CFB'` matches the table's short-name register (NBA/NHL/MLB/NFL) and
+jubilant-bassoon's own `FETCH_LEAGUES` `section:"CFB"`. The client's
+`'College Football'` is a section **heading**, not a sport key — its `_sport` is
+the lowercase slug `cfb`.
+
+### A defect in my own self-test, found by this change
+
+The seed-coverage self-test asserted `classify('cfb', …) === 'undecided'` against
+the **live manifest**. Seeding CFB moved `cfb` out of `UNDECIDED` and the test
+failed — for a change that was correct.
+
+It was reaching into production data for a fixture, so it tested the manifest's
+contents rather than the classifier's logic. `classify` now takes the two maps as
+parameters defaulting to the module's, and the self-test passes its own. A third
+assertion was added while the seam was open: a key that appears in a manifest map
+AND gets seeded must read as `seeded`, which is exactly the transition CFB just
+made and nothing had covered.
+
+10 self-tests, was 9.

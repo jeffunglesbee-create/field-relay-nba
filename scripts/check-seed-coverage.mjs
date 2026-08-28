@@ -94,8 +94,18 @@ const V2_LEAGUES = {
     classify('ghost', 'kabaddi', seeded) === 'undeclared',
     'a fetchable competition in no list must not classify as anything else')
   check('...and a seeded one is not flagged', classify('mlb', 'mlb', seeded) === 'seeded')
-  check('...and an excluded one is not flagged', classify('atp', 'atp', seeded) === 'excluded')
-  check('...and an undecided one is not flagged', classify('cfb', 'college-football', seeded) === 'undecided')
+  // Fixture maps, not the live manifest. Asserting against real keys made this
+  // test fail when `cfb` was correctly seeded -- it was measuring a coverage
+  // decision, not the classifier.
+  const EX = { fixture_excluded: { reason: 'x'.repeat(30) } }
+  const UN = { fixture_undecided: { question: 'y'.repeat(30) } }
+  check('...and an excluded one is not flagged',
+    classify('fixture_excluded', 'nope', seeded, EX, UN) === 'excluded')
+  check('...and an undecided one is not flagged',
+    classify('fixture_undecided', 'nope', seeded, EX, UN) === 'undecided')
+  check('seeded wins over a key that also appears in a manifest map',
+    classify('fixture_excluded', 'mlb', seeded, EX, UN) === 'seeded',
+    'a competition that got seeded after being excluded must read as seeded')
   check('a seeded-but-individual row still classifies as seeded, not excluded',
     classify('pga', 'pga', seeded) === 'seeded',
     'golf is archived through a golf-aware path; individual:true is not an exclusion')

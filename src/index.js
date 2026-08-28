@@ -7753,6 +7753,47 @@ async function handleJournalismCycle(env, opts = {}) {
     {sport:'soccer',    league:'uefa.europa_qual',      label:'UEFA Europa League Qualifying'},
     {sport:'soccer',    league:'uefa.europa.conf_qual', label:'UEFA Europa Conference League Qualifying'},
     {sport:'football',  league:'nfl',        label:'NFL'},
+    // College football -- CC-CMD-2026-08-21-archive-seed-coverage, the `cfb`
+    // UNDECIDED entry, decided 2026-08-27.
+    //
+    // CFB was in V2_LEAGUES since 2026-07-03 and in no LEAGUES row, so
+    // /v2/games?sport=cfb answered on demand and /context/date never carried a
+    // single college game. jubilant-bassoon renders it as a first-class section
+    // (injectV2SportSection('cfb', 'College Football'), shipped 2026-07-15, with
+    // real curatedRank poll badges and a featured tier) off the LIVE route --
+    // so the client had CFB and the archive did not.
+    //
+    // That closed a loop in field-laboratory: its Sport registry models a
+    // competition on FIRST OBSERVATION (EPL's own case reads "First observed
+    // live on 2026-08-21"; UFL stays unmodelled because "nothing here has ever
+    // seen a UFL fixture"). With no archive rows there was nothing to observe,
+    // so CFB could never be modelled there. This row is what breaks it.
+    //
+    // LABEL: 'CFB', declared here BEFORE any row lands, because the archive
+    // writes `sport: gm.league` from this field and a label chosen after the
+    // fact orphans the rows already written (CC-CMD-2026-08-20-brief-data-quality
+    // ask 3). 'CFB' matches this table's short-name register (NBA/NHL/MLB/NFL)
+    // and jubilant-bassoon's own FETCH_LEAGUES `section:"CFB"`. Its
+    // 'College Football' is a section HEADING, not a sport key -- the client's
+    // own `_sport` is the lowercase slug 'cfb'.
+    //
+    // VOLUME, measured not assumed (scripts/cfb-volume-probe.mjs, artifact
+    // outbox/cfb-volume-probe-latest.txt, run 2026-08-27): the 2026 Saturdays
+    // 08-29/09-05/09-12/09-19 returned 8, 68, 80 and 71 events. Peak 80, against
+    // ~15 for MLB. This is the largest single slate any row in this table adds.
+    //
+    // groups=80 IS NOT APPENDED, and that is deliberate here rather than
+    // overlooked. V2_LEAGUES:1212 says the param scopes college-football to FBS
+    // and that "the default returns the same count today" -- a claim from
+    // 2026-07-03, out of season, and the only occurrence of the string in this
+    // repository. The probe re-verified it IN SEASON: unscoped and groups=80
+    // returned identical counts on all four dates, delta 0. So the plain URL is
+    // correct today. It still relies on an undocumented ESPN default that
+    // jubilant-bassoon does not rely on -- it appends the param explicitly --
+    // and closing that asymmetry means threading a per-row query parameter
+    // through four loops over this table, which is its own change, not a
+    // hitchhiker on a seed row (Rule 69).
+    {sport:'football',  league:'college-football', label:'CFB'},
     // Gap C: WC added Jun 10 2026 — label must contain 'FIFA World Cup'
     // so slateHasWorldCup() / buildWCTeamContextBlock() trigger correctly.
     // Slug 'fifa.world' confirmed via html_probe (CF worker IP, 200 OK).

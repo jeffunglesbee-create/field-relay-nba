@@ -48,13 +48,6 @@ export const EXCLUDED = {
 }
 
 export const UNDECIDED = {
-    cfb: {
-        question:
-            'College football is a team sport with real fixtures and an ESPN scoreboard the ' +
-            'relay already fetches (`groups=80`, FBS-scoped). Nothing about it resembles the ' +
-            'individual-sport exclusion. Should it be seeded like NFL, and if not, why not?',
-        decidedBy: 'a human — this is a coverage decision, not a technical one',
-    },
     afl: {
         question:
             'Australian rules is a team sport with two sides and a scoreboard, so the walker ' +
@@ -80,10 +73,18 @@ export const UNDECIDED = {
 export const SEEDED_BUT_INDIVIDUAL = ['pga']
 
 /** Which of the three declared states a V2_LEAGUES key is in, given the set of
- *  ESPN league slugs the cron actually seeds. `undeclared` is the bug. */
-export function classify (key, espnLeague, seededSlugs) {
+ *  ESPN league slugs the cron actually seeds. `undeclared` is the bug.
+ *
+ *  The two maps are PARAMETERS, defaulting to this module's. They were read
+ *  from module scope until 2026-08-27, when seeding CFB moved `cfb` out of
+ *  UNDECIDED and broke a self-test asserting
+ *  `classify('cfb', …) === 'undecided'`. That test was reaching into live data
+ *  for a fixture, so it was testing the manifest's contents rather than the
+ *  classifier's logic -- and it failed for a change that was correct. A pure
+ *  function can be exercised against a fixture that no coverage decision moves. */
+export function classify (key, espnLeague, seededSlugs, excluded = EXCLUDED, undecided = UNDECIDED) {
     if (seededSlugs.has(espnLeague)) return 'seeded'
-    if (EXCLUDED[key]) return 'excluded'
-    if (UNDECIDED[key]) return 'undecided'
+    if (excluded[key]) return 'excluded'
+    if (undecided[key]) return 'undecided'
     return 'undeclared'
 }
