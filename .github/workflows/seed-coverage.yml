@@ -1,0 +1,79 @@
+name: Seed coverage — every fetchable competition is declared
+
+# CC-CMD-2026-08-21-archive-seed-coverage, asks 1 and 2.
+#
+# TWO HALVES, TWO TRIGGERS, because they answer different questions.
+#
+# The OFFLINE half needs no network and runs in deploy.yml's gate, blocking, on
+# every push that touches src/**. It answers "is every fetchable competition
+# declared" — a question only the source can change, so a push is the only event
+# that can create the problem.
+#
+# The LIVE half is this workflow. It answers "did every seeded competition with
+# fixtures actually reach the archive", which the source cannot tell you and
+# which changes without any push at all: an upstream ESPN slug change, a cron
+# that silently stopped writing, a D1 failure swallowed by Rule 5's try/catch.
+# Nothing else would notice.
+#
+# DAILY, AND ON A PAST DATE. The date constraint is the ask's own correction and
+# the script enforces it. The original artifact said "on 2026-08-22 the check
+# flags EPL" — a false positive that would have fired every day forever, because
+# EPL was seeded and the author was reading a FUTURE date. Most competitions seed
+# on the game day; only MLS pre-seeds ahead. MLB, indisputably seeded and
+# playing, was present 3/3 past days and 0/2 future days, exactly like EPL.
+#
+# COST: one run a day, ~1 minute. The ESPN scoreboard is public and unmetered,
+# and /context/date is a cached archive read. 21 scoreboard GETs plus one relay
+# GET per run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'A PAST date, YYYY-MM-DD. Default: 3 days ago.'
+        required: false
+  schedule:
+    - cron: '30 15 * * *'   # daily, well after every competition's seeding tick
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seed-coverage
+  cancel-in-progress: false
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The self-test runs here too. A parser that stopped matching would report
+      # zero gaps and pass; the fixtures make that failure land here instead.
+      - name: The detector still has teeth
+        run: node scripts/check-seed-coverage.mjs --self-test
+
+      - name: Every fetchable competition is declared
+        run: node scripts/check-seed-coverage.mjs
+
+      - name: Every seeded competition with fixtures reached the archive
+        run: |
+          node scripts/check-seed-coverage.mjs --live ${{ inputs.date }} 2>&1 | tee outbox/seed-coverage-latest.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/seed-coverage-latest.txt 2>/dev/null || true
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "seed-coverage: $(date -u +%Y-%m-%d) [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done

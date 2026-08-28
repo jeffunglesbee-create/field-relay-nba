@@ -101,6 +101,19 @@ jobs:
       - name: Soccer three-table contract — LEAGUES vs SOCCER_LEAGUE_LABELS vs V2_LEAGUES
         run: node scripts/check-leagues-label-contract.mjs
 
+      # The generalisation of the step above. That one checks the three SOCCER
+      # tables agree with each other; this one checks that every competition the
+      # relay can FETCH is declared as seeded, excluded-with-a-reason, or
+      # undecided-with-the-question. A competition in V2_LEAGUES and in none of
+      # those is reachable on demand, never persisted, and nothing anywhere says
+      # whether that is deliberate -- the state that hid six UEFA competitions
+      # from /context/date while the config looked correct.
+      # CC-CMD-2026-08-21-archive-seed-coverage ask 1. The live half (ask 2)
+      # cannot run here -- it needs the deployed archive -- and runs daily in
+      # seed-coverage.yml against a PAST date.
+      - name: Every fetchable competition is declared, none silently absent
+        run: node scripts/check-seed-coverage.mjs --self-test && node scripts/check-seed-coverage.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);
