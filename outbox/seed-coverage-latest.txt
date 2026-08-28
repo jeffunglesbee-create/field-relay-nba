@@ -1,0 +1,45 @@
+  PASS  the cron LEAGUES table parsed to real rows
+  PASS  V2_LEAGUES parsed to real rows
+  PASS  the two tables are not the same table
+
+  25 fetchable competition(s): 18 seeded, 2 excluded, 5 undecided
+
+    UNDECIDED  eflchamp (eng.2)
+    UNDECIDED  eflone (eng.3)
+    UNDECIDED  efltwo (eng.4)
+    UNDECIDED  afl (afl)
+    UNDECIDED  cfb (college-football)
+
+  PASS  no competition is fetchable and declared nowhere
+  PASS  no manifest entry names a competition the relay cannot fetch
+  PASS  every exclusion states a reason
+  PASS  every undecided entry states the question that decides it
+  /integrity/games covers 7 of 21 seeded competition(s).
+  Blind to 14: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, PGA Tour
+  Tracked by CC-CMD-2026-08-27-integrity-leagues-drift. Not failed here.
+
+  PASS  LEAGUES_LOCAL contains nothing the cron does not seed
+
+  Live half, 2026-08-25 (3 day(s) ago)
+
+  PASS  the archive answers for that date
+  competition            ESPN  archive
+  MLB                      15        0   GAP
+  WNBA                      3        0   GAP
+  La Liga                   1        0   GAP
+  EFL Cup                  17        0   GAP
+  EFL Trophy                2        0   GAP
+  UEFA Champions League Qualifying    3        0   GAP
+
+  PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
+  FAIL  the archive returned rows for that date
+        → 0 game(s)
+  FAIL  every seeded competition with fixtures reached the archive
+        → MLB — 15 fixture(s) on ESPN mlb, 0 rows in /context/date
+        → WNBA — 3 fixture(s) on ESPN wnba, 0 rows in /context/date
+        → La Liga — 1 fixture(s) on ESPN esp.1, 0 rows in /context/date
+        → EFL Cup — 17 fixture(s) on ESPN eng.league_cup, 0 rows in /context/date
+        → EFL Trophy — 2 fixture(s) on ESPN eng.trophy, 0 rows in /context/date
+        → UEFA Champions League Qualifying — 3 fixture(s) on ESPN uefa.champions_qual, 0 rows in /context/date
+
+FAIL  10/12 checks passed
