@@ -116,7 +116,12 @@ if (!rows || !rows.length) process.exit(1);
 
 // Enumerated, not sampled: an entry silently dropped from the table would
 // otherwise pass every assertion below by not being there.
-const EXPECTED = 21;
+// 21 -> 22 on 2026-08-27: CFB seeded (c52f496,
+// CC-CMD-2026-08-21-archive-seed-coverage's `cfb` UNDECIDED entry, decided).
+// It is a team sport and carries no `individual` flag, so the two assertions
+// this file actually exists for are unchanged -- the ratchet fired on the count
+// alone, which is the point of a ratchet.
+const EXPECTED = 22;
 check(`the table still has ${EXPECTED} entries`,
   rows.length === EXPECTED,
   `${rows.length} entries — if this is a deliberate add or removal, update EXPECTED in the same commit`);
