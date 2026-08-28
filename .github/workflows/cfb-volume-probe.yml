@@ -1,0 +1,43 @@
+name: CFB volume probe
+
+# Dispatch-only, NO schedule. This answers a scoping question once: what does
+# seeding CFB cost per cron tick, and does groups=80 change the result. A cron on
+# it would repeat the waste pattern documented in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+#
+# CI because the sandbox gets HTTP 000 to ESPN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: 'Space-separated YYYYMMDD dates. Default: four 2026 Saturdays.'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Measure
+        run: |
+          node scripts/cfb-volume-probe.mjs ${{ inputs.dates }} 2>&1 | tee outbox/cfb-volume-probe-latest.txt
+          exit ${PIPESTATUS[0]}
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/cfb-volume-probe-latest.txt 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "probe: cfb volume + groups=80 [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
