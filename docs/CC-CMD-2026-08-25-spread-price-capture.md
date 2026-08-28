@@ -2,10 +2,24 @@
 
 **Filed from:** field-laboratory, after a 45-day census.
 **Ask to:** field-relay-nba, `extractOddsForGame`.
-**Status:** BUILT AND DEPLOYED 2026-08-26. Relay `c2ef28a` (capture) +
-`b3aae99` (a gate fix that blocked it), deploy run 878 green including the new
-guard. The done condition below is NOT yet met and needs no human: it needs one
-opening-odds capture cycle, and the laboratory sentinel now watches for it.
+**Status:** **CLOSED 2026-08-28 — LANDED on two distinct probe dates.** Relay
+`c2ef28a` (capture) + `b3aae99` (a gate fix that blocked it), deploy run 878.
+
+The done condition needed a real opening-odds capture cycle, and it got two:
+
+| observation | drift-sentinel run | probe date |
+|---|---|---|
+| first | `33035197618` | `/context/date/2026-08-26` |
+| second | `33173538945` | `/context/date/2026-08-27` |
+
+**Two runs would not have been two observations.** `cc-cmd-followup.mjs` probes
+`yesterdayUTC()`, so the 01:30Z and 12:00Z runs on one day re-read the same
+frozen snapshot — recorded in field-laboratory
+`outbox/2026-08-26-two-runs-is-one-observation.md`. The first LANDED reading was
+deliberately left open because 2026-08-26 is the first date the relay could
+serve `homePrice`/`awayPrice` at all: one observation of a fact one day old.
+Promoted from `ASKS` to `LANDED` in field-laboratory only once a second DATE
+agreed, which makes a later regression fatal there rather than merely noted.
 
 ## The evidence, which did not exist when this was first suggested
 
