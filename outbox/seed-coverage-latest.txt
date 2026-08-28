@@ -23,23 +23,17 @@
   Live half, 2026-08-25 (3 day(s) ago)
 
   PASS  the archive answers for that date
+  PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  MLB                      15        0   GAP
-  WNBA                      3        0   GAP
-  La Liga                   1        0   GAP
-  EFL Cup                  17        0   GAP
-  EFL Trophy                2        0   GAP
-  UEFA Champions League Qualifying    3        0   GAP
+  MLB                      15       15
+  WNBA                      3        3
+  La Liga                   1        1
+  EFL Cup                  17       17
+  EFL Trophy                2        2
+  UEFA Champions League Qualifying    3        3
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
-  FAIL  the archive returned rows for that date
-        → 0 game(s)
-  FAIL  every seeded competition with fixtures reached the archive
-        → MLB — 15 fixture(s) on ESPN mlb, 0 rows in /context/date
-        → WNBA — 3 fixture(s) on ESPN wnba, 0 rows in /context/date
-        → La Liga — 1 fixture(s) on ESPN esp.1, 0 rows in /context/date
-        → EFL Cup — 17 fixture(s) on ESPN eng.league_cup, 0 rows in /context/date
-        → EFL Trophy — 2 fixture(s) on ESPN eng.trophy, 0 rows in /context/date
-        → UEFA Champions League Qualifying — 3 fixture(s) on ESPN uefa.champions_qual, 0 rows in /context/date
+  PASS  the archive returned rows for that date
+  PASS  every seeded competition with fixtures reached the archive
 
-FAIL  10/12 checks passed
+PASS  13/13 checks passed
