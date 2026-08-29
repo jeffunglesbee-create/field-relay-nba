@@ -1,0 +1,41 @@
+name: CFB brief contamination — how many were written unscoped
+
+# Dispatch-only, NO schedule. This answers a bounded historical question: how
+# many CFB briefs were written between the first slate (2026-08-29 ~12:00 UTC)
+# and the classifier fix (7a0caad, 15:37 UTC), during which
+# detectSportClass('CFB') returned null and voiceRegisterFor's fallback drafted
+# them against every sport's exemplars at once.
+#
+# The window is closed. A cron on a closed window is the waste pattern audited in
+# jubilant-bassoon outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Count and inspect
+        run: |
+          node scripts/cfb-brief-contamination-probe.mjs 2>&1 | tee outbox/cfb-brief-contamination-latest.txt
+          exit ${PIPESTATUS[0]}
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/cfb-brief-contamination-latest.txt 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "probe: cfb brief contamination [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done

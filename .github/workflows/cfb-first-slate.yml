@@ -19,6 +19,21 @@ name: CFB first slate — the seed row and the staged rank chain
 #    it when its block lifts. That command has existed as a sentence in a Drive
 #    doc for six weeks. This is it as a runnable job.
 #
+# SCHEDULE REMOVED 2026-08-29, on the run that answered the question.
+#
+# The DELETE-BY below was written into this file and into
+# outbox/2026-08-27-cfb-first-slate-staged.md before the first run, precisely so
+# retiring it would not depend on anyone remembering. Run 33251392427 came back
+# 4/4 on the first FBS slate -- CFB rows present under the declared label, #14
+# USC a real poll rank -- and that is the whole question this workflow existed
+# to ask.
+#
+# It stays DISPATCHABLE. The standing version of the question now lives in
+# seed-coverage.yml, which already asserts every seeded competition with fixtures
+# reaches the archive, CFB included since 2026-08-27. Two workflows asking one
+# question is one too many.
+#
+# The original note, kept because it is the reasoning:
 # DAILY THROUGH THE OPENING WEEKEND, then it should be deleted or narrowed --
 # this answers a question that stops being open once answered. A cron left
 # running past its question is the waste pattern audited in jubilant-bassoon
@@ -34,8 +49,6 @@ on:
       date:
         description: 'YYYY-MM-DD to check. Default: yesterday.'
         required: false
-  schedule:
-    - cron: '0 16 * * *'   # daily 16:00 UTC, after every seeding tick for the prior day
 
 permissions:
   contents: write

@@ -1137,3 +1137,40 @@ into this contract. If a consumer ever needs them, they come from
 here now so field-laboratory and the PWA cannot drift into two EP models of the
 same quantity. `scripts/nfl-epa-transcription-check.mjs` holds the client's
 former code verbatim and blocks the deploy if the two ever disagree.
+
+## The `CFB` archive label (relay-owned, three consumers)
+
+College football is seeded into the journalism cron's `LEAGUES` table as
+`{sport:'football', league:'college-football', label:'CFB'}` (field-relay-nba
+`c52f496`, 2026-08-27). The archive writes `sport: gm.league` from that `label`,
+so **`CFB` is the string that lands in the `sport` column and is served by
+`/context/date`**.
+
+It was declared before any row was written, because a label chosen after the
+fact orphans the rows already there (`CC-CMD-2026-08-20-brief-data-quality`
+ask 3). Three parties consume it, and each matches it differently:
+
+| consumer | how it matches | breaks if the label changes |
+|---|---|---|
+| field-laboratory `sportOfString` (`src/Desk.fs`) | **verbatim**, no case fold, no alias | the desk renders `CFB · UNMODELLED SPORT` and the drift sentinel files an issue within a day |
+| field-relay-nba `detectSportClass` (`src/journalism-quality.js`) | **substring** — `s.includes('cfb')` | the class goes null and `voiceRegisterFor` drafts every CFB brief against EVERY sport's exemplars, silently |
+| field-relay-nba `seed-manifest.js` / `check-seed-coverage.mjs` | by V2_LEAGUES key `cfb`, not by label | unaffected |
+
+**`College Football` is not this label.** It is jubilant-bassoon's section
+*heading* (`injectV2SportSection('cfb', 'College Football')`); the client's own
+`_sport` is the lowercase slug `cfb`. Neither string reaches the archive.
+
+**The substring consumer is the dangerous one, and it failed once already.**
+`detectSportClass` matched `nfl`, `football` and `cfl`, and `'cfb'` contains none
+of them — so `NFL`, `CFL` and `College Football` all classified while the one
+string the archive actually serves did not. Fixed 2026-08-29 (`7a0caad`), along
+with `EFL Cup` and `EFL Trophy`, which had the same defect for weeks because
+`'efl cup'` does not contain `'epl'`.
+
+`scripts/check-seeded-labels-classify.mjs` now blocks the deploy on any seeded
+label that classifies to null. It asserts nothing about WHICH class — that is a
+judgement, and a linter guessing it would be worse than none.
+
+**Adding a competition to `LEAGUES` is therefore a three-repo act**: pick the
+label, add a `Sport` case matching it verbatim in field-laboratory, and make sure
+`detectSportClass` recognises it. The third was invisible until it wasn't.
