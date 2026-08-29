@@ -11977,8 +11977,9 @@ export default {
             // interpolation), so SQL injection is not possible.
             //
             // Query string params: date, sport, team (LIKE search on brief_text),
-            //                      brief_type, source, limit (default 10, max 50)
-            // Returns: { ok:true, count, results: [...] }
+            //                      brief_type, source, limit (default 10, max 50),
+            //                      offset (default 0)
+            // Returns: { ok:true, count, total, offset, hasMore, results: [...] }
             if (pathname === '/archive/query' && request.method === 'GET') {
                 const sp = url.searchParams;
                 const date       = sp.get('date');
@@ -11988,6 +11989,14 @@ export default {
                 const source     = sp.get('source');
                 const rawLimit   = parseInt(sp.get('limit') || '10', 10);
                 const limit      = Math.max(1, Math.min(50, isNaN(rawLimit) ? 10 : rawLimit));
+                // offset ADDED 2026-08-29. The 50 cap is not the problem; the
+                // absence of a way past it is. field-laboratory's brief capture
+                // sent limit=100 and got 50, and jq-density-census.mjs:94 still
+                // does -- both were reading a truncated page and reporting it as
+                // a day's briefs. Six of seven captured dates came back at
+                // exactly 50, and nothing in the response said so.
+                const rawOffset  = parseInt(sp.get('offset') || '0', 10);
+                const offset     = Math.max(0, isNaN(rawOffset) ? 0 : rawOffset);
 
                 const clauses = ['1=1'];
                 const binds = [];
@@ -12017,15 +12026,42 @@ export default {
                                     quality_score, word_count, source, created_at, updated_at
                              FROM briefs
                              WHERE ${clauses.join(' AND ')}
-                             ORDER BY date DESC, created_at DESC
-                             LIMIT ?`;
-                binds.push(limit);
+                             ORDER BY date DESC, created_at DESC, id ASC
+                             LIMIT ? OFFSET ?`;
+
+                // id ASC IS LOAD-BEARING, not tidiness. (date, created_at) is not
+                // unique -- the 2026-08-23..29 capture holds 50 briefs sharing one
+                // date, and created_at is second-granular -- so without a total
+                // order SQLite may return tied rows in a different order for each
+                // page, and paging then duplicates some rows and skips others.
+                // A pager built on a non-total ORDER BY loses rows silently, which
+                // is the same failure this whole change exists to end.
+
+                // The total, under the SAME predicate. A caller cannot otherwise
+                // tell a complete page from a truncated one: a 50-row response is
+                // identical whether the day held 50 briefs or 300. One extra D1
+                // read per request, on a route no cron calls -- its callers are
+                // the client's archive panels and this project's probe scripts.
+                const countSql = `SELECT COUNT(*) AS n FROM briefs WHERE ${clauses.join(' AND ')}`;
+                const totalRow = await env.ARCHIVE_DB.prepare(countSql).bind(...binds).first();
+                const total = totalRow?.n ?? null;
+
+                binds.push(limit, offset);
 
                 const r = await env.ARCHIVE_DB.prepare(sql).bind(...binds).all();
+                const results = r.results || [];
                 return new Response(JSON.stringify({
                     ok: true,
-                    count: (r.results || []).length,
-                    results: r.results || [],
+                    count: results.length,
+                    // All three ADDED 2026-08-29, additive: every existing consumer
+                    // reads `results` and passes its own limit.
+                    total,
+                    offset,
+                    // Explicit rather than inferable. `count === limit` is the
+                    // arithmetic a caller would have to remember to do, and the
+                    // capture that prompted this did not do it for seven days.
+                    hasMore: total !== null && (offset + results.length) < total,
+                    results,
                 }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
