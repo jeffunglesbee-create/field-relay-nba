@@ -1,0 +1,16 @@
+
+  /archive/query?sport=CFB returned 14 brief(s)
+
+  written BEFORE the fix (unscoped):  12
+  written AFTER  the fix (scoped):    2
+
+  PASS  the archive returned CFB briefs to examine
+  PASS  the classifier now scopes CFB
+  PASS  no CFB brief carries another sport's vocabulary
+
+  12 brief(s) were written unscoped. A clean vocabulary result
+  above does NOT clear them: an exemplar governs register, not word
+  choice, and no detector here measures register. Regenerating them is
+  a separate decision, and one that costs LLM calls.
+
+PASS  3/3 checks passed
