@@ -1,5 +1,53 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-08-29 (CFB landed, and three labels were unscoped)
+
+**Deploys:** `bad7971` green (CFB seeded), `7a0caad` in flight.
+**Live proof, first FBS slate, 2026-08-29:** `cfb-first-slate` run 33251392427,
+**4/4** — 8 ESPN events, CFB rows present in `/context/date` under the declared
+label, and `#14 USC` a real poll rank rather than the unranked sentinel 99. That
+last one closes a STAGED item open since 2026-07-15.
+
+### What shipped
+
+| commit | change |
+|---|---|
+| `c52f496` | CFB seeded — label `CFB` declared before any row landed |
+| `bad7971` | the LEAGUES count ratchet the seed row tripped |
+| `41140b6` | the CFB checker: `NOT OBSERVABLE` neutral on the cron, `UNREACHABLE` never neutral |
+| `ba8fe22` | the archive fetch had the same defect as the ESPN one above it |
+| `7a0caad` | three seeded labels classified to null; the check that connects the two tables |
+
+### The finding: null is not "no exemplars", it is all of them
+
+`detectSportClass('CFB')` returned **null**. `'cfb'` matches none of `nfl`,
+`football`, `cfl` — `NFL`, `CFL` and `College Football` all classify, and the one
+string the archive serves does not.
+
+`voiceRegisterFor`'s fallback keeps EVERY segment, so an unclassified sport is
+written against basketball, hockey, soccer, football, tennis and golf exemplars
+at once, while looking classified. This file's own comments already record that
+happening to CFL and to golf before 2026-08-24.
+
+**A census over all 22 seeded labels found three.** CFB, plus `EFL Cup` and
+`EFL Trophy` — `'efl cup'` does not contain `'epl'`, one transposed letter, and
+those two have been unscoped for weeks through every review they have had.
+
+`cfb` → football, sharing Exemplar I; `efl` → soccer. `LEAGUES` declares a label
+and `detectSportClass` must recognise it, and nothing connected those two:
+`scripts/check-seeded-labels-classify.mjs` now does, blocking in `deploy.yml`.
+
+### Residual, measurable and dated
+
+- **Peak volume, 2026-09-05.** 8 games measured opening day; a September Saturday
+  is 80, against a shared odds ceiling that now includes
+  `cfb: 'americanfootball_ncaaf'`.
+- **`groups=80` still unappended**, re-verified only on dates carrying 0 or 8
+  games. Week 1 Saturday is when FCS games exist to be excluded.
+- **Two soccer-odds asks regressed** on 2026-08-27 and stay fatal in
+  field-laboratory: 42 soccer games, 9 spreads, none soccer. Three candidates,
+  none measured.
+
 ## SESSION CLOSE-OUT — 2026-08-27 (the NFL EP model moved here)
 
 **HEAD:** `ccc39ce` → this commit · **Branch:** main throughout
