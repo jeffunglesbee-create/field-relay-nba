@@ -114,6 +114,15 @@ jobs:
       - name: Every fetchable competition is declared, none silently absent
         run: node scripts/check-seed-coverage.mjs --self-test && node scripts/check-seed-coverage.mjs
 
+      # The seed table declares a label; detectSportClass has to recognise it,
+      # and nothing connected those two. An unclassified label does not get NO
+      # voice exemplars -- voiceRegisterFor's fallback gives it EVERY sport's,
+      # while looking classified. That has now happened five times: golf and CFL
+      # (both fixed 2026-08-24), then CFB, EFL Cup and EFL Trophy, found by
+      # census on 2026-08-29. 'efl cup' does not contain 'epl'.
+      - name: Every seeded label classifies to a sport class
+        run: node scripts/check-seeded-labels-classify.mjs --self-test && node scripts/check-seeded-labels-classify.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

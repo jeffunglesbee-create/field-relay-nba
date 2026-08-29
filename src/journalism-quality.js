@@ -308,13 +308,35 @@ export function detectSportClass(sport) {
   if (s.includes('baseball') || s.includes('mlb')) return 'baseball';
   if (s.includes('hockey') || s.includes('nhl')) return 'hockey';
   if (s.includes('basketball') || s.includes('nba') || s.includes('wnba') || s.includes('ncaa-mb')) return 'basketball';
-  if (s.includes('soccer') || s.includes('epl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
+  // `efl` added 2026-08-29. EFL Cup and EFL Trophy are seeded competitions and
+  // classified to NULL from the day they were added: 'efl cup' contains none of
+  // the tokens above -- notably NOT 'epl', which differs by one transposed
+  // letter and is the reason nobody spotted it by eye. Both took the
+  // keep-everything fallback and received basketball, hockey, tennis and golf
+  // exemplars in every brief, exactly as CFL did before 2026-08-24.
+  if (s.includes('soccer') || s.includes('epl') || s.includes('efl') || s.includes('premier') || s.includes('mls') || s.includes('uefa') || s.includes('ucl') || s.includes('serie') || s.includes('liga') || s.includes('bundesliga') || s.includes('ligue') || s.includes('wc26') || s.includes('wc') || /world.cup|fifa/i.test(s)) return 'soccer';
   // CFL added 2026-08-24 with Exemplar I. It was unclassified, so it took the
   // keep-everything fallback and received basketball and hockey exemplars in
   // every brief. Canadian football is not American football, but it is far
   // closer to it than to either of those -- the same call basketball already
   // makes for NBA and WNBA.
-  if (s.includes('nfl') || s.includes('football') || s.includes('cfl')) return 'football';
+  // `cfb` added 2026-08-29, the day after the label was seeded and the day its
+  // first briefs were written. It is AMERICAN football and shares Exemplar I
+  // (NFL) rather than getting its own, for the reason the CFL line above gives
+  // and more strongly: CFL is Canadian football borrowing an American exemplar,
+  // CFB is the same code of football.
+  //
+  // An exemplar governs REGISTER -- connective prose, numbers subordinated into
+  // claims -- not subject matter. CFB's real differences from the NFL (polls,
+  // conference races, 130 teams, blowout margins) are content, and content is
+  // scoped by SPORT_VOCAB_VIOLATIONS and the prose-style rules, not by adding a
+  // second voice exemplar. A CFB-specific voice exemplar would also be a SCALE
+  // change requiring its own scoring era; nothing measured says one is needed.
+  //
+  // 'College Football' already matched via 'football'. 'CFB' is what the
+  // archive actually serves -- see field-relay-nba c52f496, which declared that
+  // label before any row landed -- and it matched nothing.
+  if (s.includes('nfl') || s.includes('football') || s.includes('cfl') || s.includes('cfb')) return 'football';
   // Added 2026-08-24 so a golf rule can be scoped TO golf. Knock-ons checked:
   // checkSportVocab returns [] for a class with no SPORT_VOCAB_VIOLATIONS entry.
   // voiceRegisterFor is UNCHANGED by this: golf has no voice segment, so it took
