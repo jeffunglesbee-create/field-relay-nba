@@ -2,35 +2,34 @@
   PASS  V2_LEAGUES parsed to real rows
   PASS  the two tables are not the same table
 
-  25 fetchable competition(s): 18 seeded, 2 excluded, 5 undecided
+  25 fetchable competition(s): 19 seeded, 2 excluded, 4 undecided
 
     UNDECIDED  eflchamp (eng.2)
     UNDECIDED  eflone (eng.3)
     UNDECIDED  efltwo (eng.4)
     UNDECIDED  afl (afl)
-    UNDECIDED  cfb (college-football)
 
   PASS  no competition is fetchable and declared nowhere
   PASS  no manifest entry names a competition the relay cannot fetch
   PASS  every exclusion states a reason
   PASS  every undecided entry states the question that decides it
-  /integrity/games covers 7 of 21 seeded competition(s).
-  Blind to 14: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, PGA Tour
+  /integrity/games covers 7 of 22 seeded competition(s).
+  Blind to 15: La Liga, Serie A, Bundesliga, Ligue 1, EFL Cup, EFL Trophy, UEFA Champions League, UEFA Europa League, UEFA Europa Conference League, UEFA Champions League Qualifying, UEFA Europa League Qualifying, UEFA Europa Conference League Qualifying, NFL, CFB, PGA Tour
   Tracked by CC-CMD-2026-08-27-integrity-leagues-drift. Not failed here.
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-08-25 (3 day(s) ago)
+  Live half, 2026-08-26 (3 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
   MLB                      15       15
-  WNBA                      3        3
+  WNBA                      2        2
   La Liga                   1        1
-  EFL Cup                  17       17
-  EFL Trophy                2        2
-  UEFA Champions League Qualifying    3        3
+  EFL Cup                   4        4
+  UEFA Champions League Qualifying    4        4
+  UEFA Europa Conference League Qualifying    1        1
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
