@@ -1,6 +1,14 @@
 
-  CFB first-slate check — 2026-08-28
+  CFB first-slate check — 2026-08-29
 
-  NOT OBSERVABLE — ESPN answered, and lists no CFB events for this date.
-  Nothing is concluded. Re-run on a date with a slate.
+  ESPN lists 8 CFB event(s).
+  /context/date carries 78 row(s) across: Bundesliga, CFB, CFL, EPL, La Liga, Ligue 1, MLB, MLS, NFL, Serie A, WNBA
 
+  PASS  the archive answered with rows for this date
+  PASS  the archive serves college football under the declared label "CFB"
+  PASS  the seed carried a real share of the slate, not one stray row
+
+  1 ranked competitor(s) on the slate: #14 USC
+  PASS  ESPN serves real poll ranks (1-25), not just the unranked sentinel 99
+
+PASS  4/4 checks passed
