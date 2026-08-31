@@ -1,0 +1,480 @@
+{
+  "probed_at": "2026-08-31T11:55:05.895Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 33,
+      "ctx": 17,
+      "temporal": 20,
+      "voice": 30,
+      "margin": 30,
+      "finality": 20
+    },
+    "declared_unreachable": [
+      "ctx"
+    ],
+    "declared_reachable_ceiling": 252
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 86,
+      "mean_stored": 182.1
+    },
+    {
+      "kind": "reads as final",
+      "n": 1699,
+      "mean_stored": 189.9
+    }
+  ],
+  "matchup_note_coverage": {
+    "total": [
+      {
+        "total": 1601,
+        "with_note": 40
+      }
+    ],
+    "by_sport": [
+      {
+        "sport": "MLB",
+        "total": 921,
+        "with_note": 5
+      },
+      {
+        "sport": "WNBA",
+        "total": 196,
+        "with_note": 2
+      },
+      {
+        "sport": "MLS",
+        "total": 112,
+        "with_note": 0
+      },
+      {
+        "sport": "EFL Cup",
+        "total": 57,
+        "with_note": 0
+      },
+      {
+        "sport": "NFL",
+        "total": 48,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "total": 48,
+        "with_note": 0
+      },
+      {
+        "sport": "golf",
+        "total": 33,
+        "with_note": 33
+      },
+      {
+        "sport": "La Liga",
+        "total": 28,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "total": 24,
+        "with_note": 0
+      },
+      {
+        "sport": "EPL",
+        "total": 19,
+        "with_note": 0
+      },
+      {
+        "sport": "Ligue 1",
+        "total": 18,
+        "with_note": 0
+      },
+      {
+        "sport": "Serie A",
+        "total": 18,
+        "with_note": 0
+      },
+      {
+        "sport": "CFL",
+        "total": 17,
+        "with_note": 0
+      },
+      {
+        "sport": "wnba",
+        "total": 14,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "total": 11,
+        "with_note": 0
+      },
+      {
+        "sport": "Bundesliga",
+        "total": 9,
+        "with_note": 0
+      },
+      {
+        "sport": "CFB",
+        "total": 8,
+        "with_note": 0
+      },
+      {
+        "sport": "EFL Trophy",
+        "total": 8,
+        "with_note": 0
+      },
+      {
+        "sport": "PGA Tour",
+        "total": 8,
+        "with_note": 0
+      },
+      {
+        "sport": "FIFA World Cup",
+        "total": 4,
+        "with_note": 0
+      }
+    ],
+    "sample_matchup_sports": [
+      {
+        "sport": "WNBA",
+        "id": "wnba_2026-06-09_chicagosky_atlantadre",
+        "note_head": "Angel Reese returns to Chicago vs former team. ESPN national."
+      },
+      {
+        "sport": "WNBA",
+        "id": "wnba_2026-06-22_losangeles_newyorklib",
+        "note_head": "Inaugural game anniversary — 29 years. ESPN national."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-08_clevelandg_newyorkyan",
+        "note_head": "NYY @ CLE on FS1."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-09_athletics_milwaukeeb",
+        "note_head": "A's at Las Vegas Ballpark (temp home)."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-07_chicagocub_sanfrancis",
+        "note_head": "Sunday Night Baseball on NBC/Peacock."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-02_philadelph_sandiegopa",
+        "note_head": "TBS Tuesday — SD @ PHI, 6:40pm ET."
+      },
+      {
+        "sport": "MLB",
+        "id": "2026-05-25-mlb-sandi-philad",
+        "note_head": "ESPN App GOTD — PHI @ SD, 6:40pm ET. ESPN Unlimited exclusive. Local RSN blacked out."
+      }
+    ],
+    "golf_rows_excluded_from_sample": [
+      {
+        "sport": "golf",
+        "n": 33
+      }
+    ],
+    "reading": "concentrated in one or two sports -> a broken adapter for those. Spread evenly at near-zero -> no producer writes this column at all."
+  },
+  "rescored": {
+    "n_total": 128,
+    "in_progress": {
+      "n": 33,
+      "mean_rescored": 182.5,
+      "sd_rescored": 14.3,
+      "mean_stored": 177.8,
+      "dims": {
+        "specificity": 0.316,
+        "statDepth": 1,
+        "variety": 0.654,
+        "density": 0.791,
+        "freshness": 0.887,
+        "arcScore": 0.265,
+        "contextAnchoring": 0.909,
+        "temporalScore": 0.652,
+        "voiceScore": 0.614,
+        "marginAgreement": 0.652,
+        "finality": 0.015
+      }
+    },
+    "reads_as_final": {
+      "n": 95,
+      "mean_rescored": 179.8,
+      "sd_rescored": 18.2,
+      "mean_stored": 175.4,
+      "dims": {
+        "specificity": 0.315,
+        "statDepth": 0.947,
+        "variety": 0.658,
+        "density": 0.77,
+        "freshness": 0.885,
+        "arcScore": 0.289,
+        "contextAnchoring": 0.54,
+        "temporalScore": 0.605,
+        "voiceScore": 0.564,
+        "marginAgreement": 0.532,
+        "finality": 0.568
+      }
+    },
+    "gap_rescored": -2.6,
+    "gap_stored_for_this_sample": -2.5,
+    "dim_separation": {
+      "specificity": -0.001,
+      "statDepth": -0.053,
+      "variety": 0.004,
+      "density": -0.021,
+      "freshness": -0.002,
+      "arcScore": 0.024,
+      "contextAnchoring": -0.369,
+      "temporalScore": -0.046,
+      "voiceScore": -0.05,
+      "marginAgreement": -0.12,
+      "finality": 0.553
+    },
+    "era_spread": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "6",
+      "null"
+    ],
+    "gap_se": 3.1,
+    "gap_ratio_to_noise": 0.8,
+    "gap_verdict": "difference is only 0.8x the standard error — INDISTINGUISHABLE from noise at this n"
+  },
+  "finality_2x2": {
+    "note": "READ `blindness` FIRST — it is the only figure here computed without new weights. `gap_projected_definitional` restates FINALITY_MAX and is not evidence. Corpus widened 2026-08-24 to game_recap + game_brief: game_recap is finality-gated by ask 2, so on recaps alone `is_final` is true for every row and half the 2x2 cannot have rows at all. 2x2 of fact x reading, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension's metric.",
+    "strata": {
+      "live-lang, not final": 0,
+      "live-lang, final": 32,
+      "final-lang, not final": 32,
+      "final-lang, final": 32,
+      "no joined game": 32
+    },
+    "n_scoreable": 96,
+    "n_agrees": 14,
+    "n_disagrees": 33,
+    "n_abstained": 81,
+    "by_verdict": {
+      "hedges-a-finished-game": 26,
+      "contradicts-itself": 6,
+      "no-clear-reading": 49,
+      "agrees": 14,
+      "calls-a-live-game-final": 1,
+      "unknown-finality": 32
+    },
+    "mean_finality_when_final": 7,
+    "mean_finality_when_live": 10,
+    "blindness": {
+      "gap_current": 14.3,
+      "se": 4.7,
+      "ratio_to_noise": 3,
+      "verdict": "the current rubric DOES separate these rows — a finality dimension may be redundant",
+      "n_agrees": 14,
+      "n_disagrees": 33
+    },
+    "reconciliation": {
+      "live": {
+        "n": 32,
+        "mean": 10,
+        "from_census": 10
+      },
+      "final": {
+        "n": 64,
+        "mean": 7,
+        "from_census": 7
+      },
+      "census_agrees": true,
+      "totals_add_up": true,
+      "path_disagreement": {
+        "n": 0,
+        "note": "rows where scoreProse Dim 11 and this script disagree. Both call finalityAgreement, so a non-zero count means the ARGUMENT differs -- opts.game missing finalizedAt is the known cause.",
+        "sample": []
+      },
+      "lang_disagreement": {
+        "n": 7,
+        "note": "rows where the SQL LIVE_LANG predicate and the JS _READS_HEDGED regex disagree about whether the prose reads as in-progress. Non-zero is expected -- the regex is wider on purpose -- but it must be REPORTED, because it is why a stratum labelled `final-lang` can contain a row scored as a correct hedge.",
+        "ids": [
+          {
+            "id": "game_recap_epl_401879312",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_uefa europa conference league qualifying_401910955",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_uefa europa league qualifying_401909636",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_uefa europa conference league qualifying_401909622",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401816583",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401816374",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_760429_2026-07-15",
+            "sql_live": false,
+            "regex_reading": "hedged"
+          }
+        ]
+      }
+    },
+    "gap_projected_definitional": 32.7
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 96,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 127,
+      "statDepth": 126,
+      "variety": 128,
+      "density": 127,
+      "freshness": 128,
+      "arcScore": 98,
+      "contextAnchoring": 93,
+      "temporalScore": 107,
+      "voiceScore": 128,
+      "marginAgreement": 127,
+      "finality": 95
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_margin": "REACHABLE — scored above zero on real rows"
+  },
+  "error": null,
+  "candidates": {
+    "current": {
+      "nominal_total": 294,
+      "in_progress_mean": 182.4,
+      "final_mean": 179.8,
+      "gap": -2.6,
+      "gap_se": 3.1,
+      "gap_ratio_to_noise": 0.8,
+      "mean_total_final": 179.8
+    },
+    "shift_moderate": {
+      "nominal_total": 294,
+      "in_progress_mean": 179.7,
+      "final_mean": 175,
+      "gap": -4.7,
+      "gap_se": 3.8,
+      "gap_ratio_to_noise": 1.2,
+      "mean_total_final": 175
+    },
+    "shift_aggressive": {
+      "nominal_total": 294,
+      "in_progress_mean": 180.7,
+      "final_mean": 172.8,
+      "gap": -7.9,
+      "gap_se": 4.8,
+      "gap_ratio_to_noise": 1.7,
+      "mean_total_final": 172.8
+    },
+    "forward_only_bound": {
+      "nominal_total": 294,
+      "in_progress_mean": 156.8,
+      "final_mean": 124.7,
+      "gap": -32.1,
+      "gap_se": 10.3,
+      "gap_ratio_to_noise": 3.1,
+      "mean_total_final": 124.7
+    }
+  },
+  "candidate_summary": [
+    "current: gap -2.6 (0.8x noise), 1x the current gap",
+    "shift_moderate: gap -4.7 (1.2x noise), 1.8x the current gap",
+    "shift_aggressive: gap -7.9 (1.7x noise), 3x the current gap",
+    "forward_only_bound: gap -32.1 (3.1x noise), 12.3x the current gap"
+  ],
+  "margin_census": {
+    "by_verdict": {
+      "agrees": 17,
+      "no-honest-verdict": 20,
+      "no-clear-reading": 34,
+      "unknown-result": 56,
+      "calls-a-tight-game-a-rout": 1
+    },
+    "by_fact": {
+      "tight": 33,
+      "ordinary": 20,
+      "lopsided": 19,
+      "unknown": 56
+    },
+    "n_rows_with_a_result": 72,
+    "n_judged": 18,
+    "judged_share": 0.141,
+    "silent_prose_sample": [
+      {
+        "id": "game_recap_uefa europa league qualifying_401910972",
+        "sport": "UEFA Europa League Qualifying",
+        "fact": "lopsided",
+        "text": "Anderlecht secured a 3-0 win over Kairat Almaty at Almaty Ortalyk Stadium tonight in this first leg of UEFA Europa League qualifying. Broadcast on ESPN+, the match saw the visitors dominate possession. Anderlecht’s 3 goals tonight effective"
+      },
+      {
+        "id": "game_recap_uefa europa conference league qualifying_401909630",
+        "sport": "UEFA Europa Conference League Qualifying",
+        "fact": "tight",
+        "text": "Hibernian and KAA Gent played to a 0-0 draw tonight at Ghelamco Arena in the UEFA Europa Conference League qualifying first leg. Hibernian recorded 0 goals tonight while failing to register 3 shots tonight. This result leaves both clubs sco"
+      },
+      {
+        "id": "game_recap_mls_761739",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "Houston and Vancouver remain scoreless five minutes into their match at BC Place. Houston enters this contest with an 11-2-6 record this season, while Vancouver holds an 11-4-3 record this season. Apple TV broadcasts this Western Conference"
+      },
+      {
+        "id": "game_recap_mls_761738",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "San Jose and LA Galaxy remain scoreless five minutes into this FS1 broadcast at Dignity Health Sports Park. San Jose enters this match with a 10-3-6 record this season, while the LA Galaxy hold a 5-7-8 mark through the current season. Both "
+      },
+      {
+        "id": "game_recap_mls_761736",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "Seattle and Austin remain scoreless at Lumen Field through 46 minutes of play. Seattle enters this match with a 7-3-8 record this season, while Austin holds a 4-5-10 record this season. Apple TV broadcasts this second-half action as both cl"
+      },
+      {
+        "id": "game_recap_mls_761735",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "Dallas leads Salt Lake 3-1 at halftime tonight at America First Field in this Apple TV broadcast. Dallas enters this match with an 8-6-5 record this season, while Salt Lake holds an 8-4-6 record this season. The visitors secured three goals"
+      }
+    ],
+    "unknown_result_breakdown": {
+      "n_unknown": 56,
+      "n_with_no_game_row": 32,
+      "n_joined_but_scoreless": 24,
+      "note": "n_joined_but_scoreless rows have a regular_season_games row whose home_score/away_score is null or non-finite. Dim 10 cannot judge them and the cause is the row, not the prose."
+    },
+    "separation": {
+      "n_agrees": 17,
+      "n_disagrees": 1,
+      "verdict": "UNDERPOWERED — one side of the split has under 2 rows, so no claim is made"
+    }
+  }
+}
