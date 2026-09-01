@@ -11639,6 +11639,27 @@ export default {
                 }
 
                 const shortify = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                // A source_id that is a BARE ESPN EVENT ID and nothing else.
+                //
+                // CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key. Golf's
+                // `golf_401811962` is a per-TOURNAMENT synthetic key covering R1..R4
+                // as separate rows -- keying the archive id on it would merge two
+                // real games and destroy a scored row. That is this repo's own
+                // convention, not a defect: the [GOLF-BRIEF] path builds its id as
+                // `golf_${eventId}_R${roundNum}` and deliberately stores the
+                // TOURNAMENT as espn_event_id.
+                //
+                // Measured 2026-09-01 over 30 days / 1085 rows of public
+                // /context/date: 13 collision groups, 3 of them different fixtures,
+                // ALL THREE golf_*. Zero among bare numeric ids. The filter IS the
+                // safety result, not a guess about what ids look like.
+                //
+                // NOTE THE FIELD NAME. This route's body has no `espn_event_id` --
+                // the column is written from `source_id` at both bind sites. The
+                // issue that proposed this change said "when espn_event_id is
+                // present"; code written to that wording reads undefined on every
+                // call and the guard silently never fires.
+                const isEspnEventId = v => /^\d+$/.test(String(v ?? ''));
                 const homeShort = shortify(home);
                 const awayShort = shortify(away);
                 const idTail = (homeShort && awayShort)
@@ -11705,9 +11726,26 @@ export default {
                 // (briefs.game_id joins games.id in src/analytics-engine.js). The
                 // stale rows are identifiable and a bounded cleanup is written up in
                 // outbox/cc-session-2026-08-08-confirm-duplicate-fixture-mechanism.md.
+                // CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key: a write
+                // carrying a bare numeric ESPN event id keys on THAT rather than on
+                // team names, so `Dream` and `Atlanta Dream` upsert onto one row
+                // instead of inserting a second. Non-numeric and absent source_ids
+                // keep the exact prior name-based id, unchanged.
+                //
+                // ORDER IS LOAD-BEARING. series_key stays first: a postseason leg
+                // that also carries a numeric source_id must keep the series scheme,
+                // or the 2026-07-15 fix is silently reverted for exactly the rows it
+                // was written for.
+                //
+                // The `e` prefix cannot collide with a name tail. The argument is
+                // structural, not a claim about team names: the name tail is
+                // `${homeShort}_${awayShort}` and therefore always contains an
+                // underscore, while `e401857186` contains none.
                 const id = series_key
                     ? `${sport}_${series_key}_${shortify(round) || 'r'}_${date}`
-                    : `${sport}_${date}_${idTail}`;
+                    : isEspnEventId(source_id)
+                        ? `${sport}_${date}_e${source_id}`
+                        : `${sport}_${date}_${idTail}`;
                 sport = canonicalizeWC26Sport(sport);
 
                 // CC-CMD-2026-07-12-completion-field-parity TASK 2: while building
