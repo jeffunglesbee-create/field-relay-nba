@@ -1,0 +1,80 @@
+{
+  "probed_at": "2026-09-01T13:49:57.786Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 2,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Cherki (MNC) 2, Haaland (MNC) 2\nAssists: Foden (MNC) 2, Yeremy (CRY), Gvardiol (MNC), Semenyo (MNC)\nOwn goals: Donnarumma (MNC)\nYellow cards: Khalaili (CRY), Cherki (MNC), Anderson (MNC)\nSaves: Henderson (CRY) 4, Donnarumma (MNC) 1\nFPL bonus: Cherki (MNC) +3, Haaland (MNC) +3, Foden (MNC) +1\nTop BPS: Cherki (MNC) 60, Haaland (MNC) 60, Foden (MNC) 38\nLeague table: Crystal Palace 18th on 0 points from 0 | Man City 1st on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 14,
+    "briefs_predating_the_fix": 6,
+    "historical_findings": {
+      "cite_wdl": 6,
+      "banned_phrases": [
+        "game_recap_epl_401879322: stunned"
+      ]
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879295",
+      "game_recap_epl_401879293",
+      "game_recap_epl_401879315",
+      "game_recap_epl_401879317",
+      "game_recap_epl_401879312",
+      "game_recap_epl_401879316",
+      "game_recap_epl_401879296",
+      "game_recap_epl_401879314",
+      "game_recap_epl_401879294",
+      "game_recap_epl_401879318",
+      "game_recap_epl_401879319",
+      "game_recap_epl_401879320"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879293: overcome the",
+      "game_recap_epl_401879293: to overcome",
+      "game_recap_epl_401879294: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879295, game_recap_epl_401879293, game_recap_epl_401879315 | archived briefs use a banned phrase: game_recap_epl_401879293: overcome the, game_recap_epl_401879293: to overcome, game_recap_epl_401879294: extended their"
+}
