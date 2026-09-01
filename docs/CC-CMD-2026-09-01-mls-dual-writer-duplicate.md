@@ -6,7 +6,7 @@ finding it.
 **Relationship:** the second CC-CMD required by Rule 87 (4) before
 `CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key` can be closed, and
 before field-relay-nba#1 can be closed.
-**Status:** OPEN.
+**Status:** OPEN. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
 
 ## The defect
 
@@ -77,15 +77,70 @@ Writing a fix before knowing which would be guessing at the mechanism, which is
 the failure `CC-CMD-2026-08-09` recorded when a route was asked for something it
 was never built to do.
 
+## Task 1 RESULT — `live-writer`, and the writer is outside this repo
+
+`scripts/probe-dash-scheme-writer.mjs` (field-laboratory), 30 days of public
+`/context/date`, artifact `outbox/dash-scheme-writer-2026-09-01T16-06-43-389Z.txt`:
+
+```
+dash-scheme rows: 105, 105 carrying created_at
+distinct created_at DAYS among them: 4
+    2026-06-30  60 row(s)
+    2026-07-06  43 row(s)
+    2026-08-03   1 row(s)
+    2026-08-31   1 row(s)
+for contrast, composite rows span 29 created_at day(s)
+VERDICT: live-writer
+```
+
+### The two singletons are the finding
+
+```
+2026-08-30 slate   9 dash rows   created 2026-07-06, 2026-08-31
+2026-08-02 slate   8 dash rows   created 2026-07-06, 2026-08-03
+```
+
+**A dash-scheme row is INSERTED the day after the game it covers**, twice, a
+month apart. `created_at` moving means an INSERT, not an UPDATE of a seeded row.
+So this is not two bulk imports and nothing since; something is still writing,
+and it wrote yesterday.
+
+That conclusion rests on `stampsAfter > 0`, which fires independently of the
+`distinctStamps > 3` count — so it does not depend on where that threshold was
+drawn.
+
+### A hypothesis from one capture was wrong, and the sweep is why
+
+`data/context-2026-08-29.json` shows all 15 dash rows at `2026-06-30 17:13:24`,
+a single instant, which read as a clean `stale-bulk`. It was recorded as a
+hypothesis rather than an answer precisely because a capture is a copy. The
+sweep found the two later writes the capture could not contain.
+
+### Explanation (2) is eliminated. The writer is not in this repo.
+
+`grep` across `src/`, `.github/scripts/` and `scripts/` finds **no code that
+constructs a dash-separated id**, and exactly one
+`INSERT INTO regular_season_games`, whose id is underscore-separated. A live
+writer producing a shape no code here builds is external by elimination.
+
+Which endpoint it reaches D1 through is **not determinable from outside**, and
+is deliberately not asserted. `/d1/execute` accepts non-SELECT statements and
+remains the leading candidate; confirming it needs relay-side evidence, which is
+Task 2.
+
 ## Tasks
 
-1. **Probe the writer.** For one known pair, read both rows' `created_at` from
-   D1 and compare against the deploy that introduced the current id scheme.
-   Determine which of the three explanations holds. **Report and stop if it is
-   (2)** — stale rows are a cleanup, not a code change, and need their own spec.
-2. Only if (1) or (3): map the caller, then propose a single upsert key both
-   writers can agree on. `espn_event_id` cannot be it — one side has none.
-3. Do NOT rename existing ids. `briefs.game_id` joins `games.id`
+1. ~~**Probe the writer.**~~ **DONE** — `live-writer`, result above. Explanation
+   (2) is eliminated, so the "report and stop" branch does not apply.
+2. **Map the caller.** The writer is external to this repo and INSERTs the day
+   after a game. Identify it from the relay side — request logs, or a
+   short-lived log line at the D1 write paths recording caller and statement
+   shape. Do NOT guess the endpoint from the id shape; that is what Task 1
+   refused to do and the refusal was correct.
+3. Then propose one upsert key both writers can agree on. `espn_event_id` cannot
+   be it — one side has none, and that is exactly why the shipped numeric key
+   does not merge these rows.
+4. Do NOT rename existing ids. `briefs.game_id` joins `games.id`
    (`src/analytics-engine.js`) and the 2026-07-15 refusal to backfill applies
    here unchanged.
 
