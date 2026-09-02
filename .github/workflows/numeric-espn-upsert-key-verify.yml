@@ -1,0 +1,21 @@
+# The two done conditions for the numeric-id upsert key, against the DEPLOYED
+# worker. Dispatch-only: it writes and deletes synthetic 2099-dated rows.
+name: numeric espn upsert key verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Assert both done conditions
+        run: node scripts/numeric-espn-upsert-key-verify.mjs
