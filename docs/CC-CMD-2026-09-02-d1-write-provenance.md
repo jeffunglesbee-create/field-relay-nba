@@ -5,7 +5,22 @@
 **Relationship:** `CC-CMD-2026-09-01-mls-dual-writer-duplicate` Task 2, split out
 per Rule 87 (4). That CC-CMD's Task 1 is DONE and eliminated explanation (2);
 this one answers what Task 1 could not reach from outside.
-**Status:** OPEN.
+**Status:** OPEN. **Task 1 DONE 2026-09-02 — and it narrows what Task 2 can
+claim.** `scripts/d1-write-sites.mjs` enumerates 285 `prepare()` sites, 87 of
+them writes, 0 unreadable. Exactly one path INSERTs into `regular_season_games`
+(`src/index.js:11801`, `/archive/game`); `src/index.js:17557` is a fully dynamic
+`INSERT OR IGNORE INTO ${table}` that no grep could find, and it is excluded by
+`_SYNC_TABLE_SCHEMAS`, whose allowlist holds only `pitcher_expected_stats`.
+
+So no code path here can INSERT a dash-scheme row, and instrumenting all 87
+sites will produce the control entry and never a `dash` entry — the NOT OBSERVED
+row of the decision table below, permanently. **The instrumentation proves the
+write is not ours; it cannot name an external writer.** Naming one needs a
+different instrument. See `outbox/2026-09-02-d1-write-enumeration.md`.
+
+The verifier for this document's staged claim shipped 2026-09-02 (`ce32eaa`):
+`d1_write_provenance` in `staged-verdicts.mjs`, check 6 in
+`verify-staged-items.mjs`, running daily at 06:00 UTC.
 
 ## What Task 1 established, and what it could not
 

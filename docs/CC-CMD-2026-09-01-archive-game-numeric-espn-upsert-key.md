@@ -4,7 +4,24 @@
 **Ask to:** field-relay-nba, `POST /archive/game`, the id composition at
 `src/index.js:11641`.
 **Settles:** field-relay-nba#1, both of its Rule 39 open items.
-**Status:** OPEN.
+**Status:** **CLOSED 2026-09-02 — deployed and both done conditions asserted
+against the live worker.** Commit `ce32eaa` (contains `d253209`), deploy run 888
+/ `33655153163`, assertion run `33655821329`.
+
+```
+A. one numeric source_id, two spellings
+   MLB_2099-03-01_e999000111 twice  ->  1 row
+   PASS  A1: exactly ONE row       PASS  A2: its id ends _e<digits>
+B. golf_999999999, two spellings
+   MLB_2099-03-02_testalpha_dream + MLB_2099-03-02_testalphafc_atlantadream
+   PASS  B1: still TWO rows        PASS  B2: neither id ends _e<digits>
+ALL ASSERTIONS PASSED
+```
+
+Held from 2026-09-01 to 2026-09-02 because the exposure probe read
+`quiet-window`; released when it read `clear` (116 forward rows, 0 exposed).
+Manifest: `outbox/cc-session-2026-09-02-numeric-espn-upsert-key-deploy.md`.
+Residual disclosed there: 197 rows (18.2%) keep the team-name key.
 
 ## What #1 asked for, and why that exact shape must not ship
 
