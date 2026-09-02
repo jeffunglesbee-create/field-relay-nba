@@ -61,7 +61,16 @@ const CAN_PASS = {
   },
   recap_names_a_scoring_play: { recapRows: 6, testable: 6, named: 6 },
   thread_notes_cleanup: { total: 40, expiredBeyondGrace: 0 },
+  d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2 },
 }
+// EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
+// remembered. This loop iterated CAN_PASS rather than VERDICTS, so a verdict
+// added without an entry here was silently exempt from the one check that says
+// it can ever go green — the same shape as a `mustFailOn` nobody wrote, which
+// the block above already refuses to allow.
+for (const id of Object.keys(VERDICTS))
+  check(`${id}: declares a clean payload`, Object.prototype.hasOwnProperty.call(CAN_PASS, id),
+    'without one, "can this verdict ever say PASS" is never asked of it')
 for (const [id, payload] of Object.entries(CAN_PASS)) {
   const out = VERDICTS[id](payload)
   check(`${id}: CAN reach PASS on a clean payload`, String(out).startsWith('PASS'),

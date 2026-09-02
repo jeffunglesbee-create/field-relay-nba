@@ -104,10 +104,49 @@ export const threadNotesCleanup = ({ total, expiredBeyondGrace }) =>
 // Rows long past expiry and still there: the cron never fired, or it throws.
 threadNotesCleanup.mustFailOn = { total: 40, expiredBeyondGrace: 37 }
 
+/// Has the D1 write provenance instrumentation named the second writer?
+///
+/// FOUR STATES, and the middle two are the point. The CC-CMD's own decision
+/// table says a window that contains no dash-scheme INSERT is "NOT OBSERVED —
+/// neither a pass nor a failure", so this must never return FAIL for it: the
+/// second writer may simply not have written during the window, and calling
+/// that a regression would train everyone to ignore the probe.
+///
+/// The CONTROL is what separates "nothing wrote" from "the instrument is
+/// broken", and it is the only condition here that can fail. A run with no
+/// control entry has measured nothing at all, and reporting that as "no second
+/// writer found" would be the loudest possible false negative.
+///
+/// `gameDaysInWindow` is required rather than assumed: the two observed writes
+/// landed the day after a game, so a window containing no such day proves
+/// nothing and must not be counted as evidence of absence.
+export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, windowHours, gameDaysInWindow }) => {
+  for (const [k, v] of Object.entries({ everEntries, controlEntries, dashEntries, windowHours, gameDaysInWindow }))
+    if (typeof v !== 'number') throw new TypeError(`d1WriteProvenance: ${k} is required`)
+  // NEVER WROTE is not WENT SILENT, and collapsing them would make this
+  // permanently red until the instrumentation ships — which is precisely the
+  // "can never pass, so everyone ignores it" defect the verdict checker exists
+  // to catch. The dataset held 0 d1-write entries when this was written.
+  if (everEntries === 0)
+    return 'PENDING — the provenance instrumentation has never written an entry; it is not deployed yet'
+  if (controlEntries === 0)
+    return 'FAIL — entries exist historically but none in the window; the instrument wrote before and has gone silent'
+  if (dashEntries > 0)
+    return `PASS — ${dashEntries} dash-scheme INSERT(s) recorded with provenance; the caller is named`
+  if (gameDaysInWindow === 0)
+    return `PENDING — ${windowHours}h window contains no day-after-game, and both observed writes landed on one; nothing to observe yet`
+  return `PENDING — NOT OBSERVED: ${windowHours}h window over ${gameDaysInWindow} qualifying day(s), control present, no dash-scheme INSERT. Extend the window; do not close`
+}
+// The control missing is the ONE condition that is a failure: the instrument is
+// silent, and a silent instrument reporting "no second writer" is the false
+// negative this whole item exists to avoid.
+d1WriteProvenance.mustFailOn = { everEntries: 12, controlEntries: 0, dashEntries: 0, windowHours: 48, gameDaysInWindow: 2 }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
   epl_brief_event_grounded: eplBriefEventGrounded,
   recap_names_a_scoring_play: recapNamesScoringPlay,
   thread_notes_cleanup: threadNotesCleanup,
+  d1_write_provenance: d1WriteProvenance,
 }
