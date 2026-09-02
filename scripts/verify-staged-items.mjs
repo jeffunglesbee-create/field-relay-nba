@@ -40,7 +40,7 @@ import { selectScoringPlays } from '../src/context-assembler.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup } from './staged-verdicts.mjs';
+         threadNotesCleanup, d1WriteProvenance } from './staged-verdicts.mjs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -93,6 +93,32 @@ async function get(path) {
     return r.json();
 }
 
+// Analytics Engine, read with the same token this repo deploys with.
+//
+// PROVEN AVAILABLE, not assumed: `ae-read-scope-probe.yml` asked for a count on
+// 2026-09-02 and got HTTP 200. The CC-CMD it unblocks had said "no session
+// credential covers" this read, which was written from reading rather than from
+// trying.
+//
+// Returns null rather than throwing. A missing credential must not take down
+// the five D1-backed checks that share this run — it is its own PENDING, and
+// the reason travels with it.
+async function ae(sql) {
+    const token = process.env.CLOUDFLARE_API_TOKEN;
+    const account = process.env.CLOUDFLARE_ACCOUNT_ID;
+    if (!token || !account) return { rows: null, why: 'no CLOUDFLARE_API_TOKEN/ACCOUNT_ID in this run' };
+    try {
+        const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/analytics_engine/sql`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'User-Agent': UA },
+            body: sql,
+        });
+        if (!r.ok) return { rows: null, why: `AE HTTP ${r.status}` };
+        const j = await r.json();
+        return { rows: j.data ?? [], why: null };
+    } catch (e) { return { rows: null, why: `AE ${String(e.message || e).slice(0, 80)}` }; }
+}
+
 async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
         method: 'POST',
@@ -106,7 +132,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 5;
+const EXPECTED_CHECKS = 6;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -531,6 +557,55 @@ try {
         expired_beyond_grace: beyond,
         note: 'STAGED in cc-session-2026-07-20-game-thread-relay.md since 2026-07-20 with no executor. The cron has fired ~816 times since; this is the first thing that asks whether any of them worked.',
     });
+
+    // ── 6. Has the D1 write provenance instrumentation named the second writer? ─
+    // CC-CMD-2026-09-02-d1-write-provenance carries the STAGED claim this
+    // answers. The window is 48h because both observed dash-scheme writes landed
+    // the day AFTER a game, so a window without such a day proves nothing — which
+    // is why gameDaysInWindow is measured rather than assumed.
+    //
+    // THE BLOB CONTRACT IS SET HERE, because the instrumentation does not exist
+    // yet: every provenance write puts index1 = 'd1-write' and blob1 = the id
+    // scheme it observed ('control' for the deliberate control write, 'dash' for
+    // a dash-scheme INSERT). Task 2 of that CC-CMD must write to match, and the
+    // document says so.
+    const WINDOW_H = 48;
+    const everQ = await ae(`SELECT count() AS n FROM field_jq_analytics WHERE index1 = 'd1-write' FORMAT JSON`);
+    const winQ = await ae(
+        `SELECT countIf(blob1 = 'control') AS control, countIf(blob1 = 'dash') AS dash
+         FROM field_jq_analytics
+         WHERE index1 = 'd1-write' AND timestamp > NOW() - INTERVAL '${WINDOW_H}' HOUR FORMAT JSON`);
+
+    if (everQ.rows === null || winQ.rows === null) {
+        add({
+            id: 'd1_write_provenance',
+            what: 'the provenance call names the second writer of dash-scheme rows',
+            status: `PENDING — the Analytics Engine read did not run (${everQ.why || winQ.why}); nothing was measured`,
+            note: 'Not a failure of the instrumentation — a failure to look. The read is permitted with CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID, measured HTTP 200 on 2026-09-02 by ae-read-scope-probe.yml.',
+        });
+    } else {
+        const num = (rows, k) => Number(rows?.[0]?.[k] ?? 0);
+        // Days in the window that actually had a game. `date` is the column this
+        // table is queried on everywhere else in src/index.js.
+        const since = new Date(Date.now() - WINDOW_H * 3600 * 1000).toISOString().slice(0, 10);
+        const days = await d1(
+            `SELECT COUNT(DISTINCT date) AS n FROM regular_season_games WHERE date >= ?`, [since]);
+        const gameDays = Number(days.rows?.[0]?.n ?? days[0]?.n ?? 0);
+        const everEntries = num(everQ.rows, 'n');
+        const controlEntries = num(winQ.rows, 'control');
+        const dashEntries = num(winQ.rows, 'dash');
+        add({
+            id: 'd1_write_provenance',
+            what: 'the provenance call names the second writer of dash-scheme rows',
+            window_hours: WINDOW_H,
+            ever_entries: everEntries,
+            control_entries: controlEntries,
+            dash_entries: dashEntries,
+            game_days_in_window: gameDays,
+            status: d1WriteProvenance({ everEntries, controlEntries, dashEntries, windowHours: WINDOW_H, gameDaysInWindow: gameDays }),
+            note: 'blob1 carries the id scheme observed: control | dash. The dataset held zero d1-write entries when this check was written, so PENDING is the expected reading until the instrumentation deploys.',
+        });
+    }
 
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }

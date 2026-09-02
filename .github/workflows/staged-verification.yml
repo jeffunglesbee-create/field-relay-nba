@@ -61,7 +61,14 @@ jobs:
       # Exits non-zero only on a genuine REGRESSION. PENDING is not a failure:
       # nothing has been disproved, only not yet proved, and failing the run on
       # that would train everyone to ignore this workflow's status.
+      # THE ANALYTICS ENGINE READ, for check 6 only. Measured permitted on
+      # 2026-09-02 by ae-read-scope-probe.yml (HTTP 200) with this same token —
+      # the CC-CMD it verifies had claimed no credential covered it. The five
+      # D1-backed checks do not use these and run unchanged without them.
       - name: Verify the staged items
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/verify-staged-items.mjs
 
       - name: Commit the manifest

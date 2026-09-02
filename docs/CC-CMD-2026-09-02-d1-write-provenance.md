@@ -113,18 +113,38 @@ the instrument is broken and nothing downstream means anything.
 game, and the window must contain at least one such day. A window with no game
 in it proves nothing and must not be counted.
 
-## Reading the data needs a credential this session does not hold
+## Reading the data is automated, and the sentence that said otherwise was wrong
 
-The Analytics Engine SQL API is account-scoped. Writing the data is in scope
-here; **querying it is the operator's step**, and this is stated rather than
-discovered later:
+This section previously read "Reading the data needs a credential this session
+does not hold" and stated the blocker as "an account-scoped AE read, which no
+session credential covers". That was written from reading rather than from
+trying, and it is false. `ae-read-scope-probe.yml` asked Analytics Engine for a
+count on 2026-09-02 with this repo's existing `CLOUDFLARE_API_TOKEN` and got
+**HTTP 200**. The token already deploys the worker and also carries Account
+Analytics Read.
 
-- **Staged:** the caller's identity.
-- **Blocked by:** an account-scoped AE read, which no session credential covers.
-- **Unblocked when:** an operator queries `field_jq_analytics` for
-  `index1 = 'd1-write'` over the window.
-- **Verify:** the control entries appear first; a dash-scheme INSERT entry names
-  a UA and ASN.
+The consequence is that this claim has an executor rather than an operator, and
+`deploy.yml`'s `staged-verifier-check` was right to refuse the commit while it
+did not:
+
+- **STAGED** (verifier: d1_write_provenance @ relay/staged-verification.yml)
+- **What:** the caller's identity for dash-scheme INSERTs.
+- **Blocked by:** 48 hours of data the instrumentation has not produced yet. The
+  dataset held **zero** `d1-write` entries when this was written.
+- **Unblocked when:** the instrumentation deploys and a window elapses that
+  contains at least one day-after-game.
+- **Verify:** `staged-verification.yml` runs daily at 06:00 UTC and reports one
+  of five states — never wrote, went silent, no game day in window, not
+  observed, or named.
+
+### The blob contract, set here because the instrumentation does not exist yet
+
+The verifier reads `index1 = 'd1-write'` and splits on `blob1`, which carries the
+id scheme observed: `control` for the deliberate control write, `dash` for a
+dash-scheme INSERT. **Task 2 below must write to match.** The verifier and the
+instrumentation are being written in the wrong order out of necessity, so the
+contract is stated rather than left to be discovered by a run that reports zero
+of everything.
 
 Everything the session can do — the instrumentation, the control write, the
 control assertion — happens inside the session (Rule 87 §3). Nothing here is a
