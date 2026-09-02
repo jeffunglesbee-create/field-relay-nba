@@ -1,0 +1,70 @@
+# Can a runner read Analytics Engine with the token this repo already has?
+#
+# WHY THIS BLOCKS A DEPLOY. `deploy.yml` runs `staged-verifier-check`, which
+# refuses any live STAGED claim that does not name a verifier that exists and
+# runs. `docs/CC-CMD-2026-09-02-d1-write-provenance.md` carries one:
+#
+#     - **Staged:** the caller's identity.
+#     - **Blocked by:** an account-scoped AE read, which no session credential covers.
+#
+# That sentence asserts a credential limit, and it was written from reading
+# rather than from trying. `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`
+# are already in this repo's secrets and already deploy the worker. Whether that
+# token also carries Account Analytics Read is a fact one request answers.
+#
+# The answer decides which fix is honest:
+#
+#   permitted  -> a verifier is writable, the staged claim gets a real owner,
+#                 and the gate clears for the right reason
+#   refused    -> nothing can verify the claim, so it is not a STAGED item at
+#                 all; it is an operator step and the document should say so
+#
+# Reports either way and NEVER prints the token or a row of data.
+name: AE read scope probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask Analytics Engine for one row
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "VERDICT: not-observable — a required secret is absent, so nothing was asked"
+            exit 1
+          fi
+          # The narrowest possible query. It asks for the dataset's shape, not
+          # its contents, so a permitted read prints no telemetry.
+          SQL="SELECT count() AS n FROM field_jq_analytics WHERE index1 = 'd1-write' FORMAT JSON"
+          CODE=$(curl -s -o /tmp/ae.json -w '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/analytics_engine/sql" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            --data "$SQL")
+          echo "http: $CODE"
+          # The BODY is printed only on a refusal, where it names the missing
+          # permission and contains no telemetry. On success only the row COUNT
+          # is echoed — never a row.
+          case "$CODE" in
+            200)
+              echo "VERDICT: permitted — a verifier can be written and scheduled"
+              # Only the COUNT is echoed, never a row of telemetry.
+              python3 -c "import json,sys; d=json.load(open('/tmp/ae.json')); r=d.get('data') or []; print('rows returned:', len(r)); print('d1-write entries in the dataset:', r[0].get('n')) if r else None"
+              ;;
+            401|403)
+              echo "VERDICT: refused — the token does not carry Account Analytics Read"
+              cat /tmp/ae.json
+              ;;
+            *)
+              echo "VERDICT: not-observable — neither a permit nor a refusal"
+              cat /tmp/ae.json
+              ;;
+          esac
