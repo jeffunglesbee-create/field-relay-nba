@@ -1,5 +1,82 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-03 (the duplicate MLS rows, and who writes them)
+
+Covers 2026-09-01 through 2026-09-03.
+
+**HEAD:** `ccc39ce` → this commit · **Branch:** main throughout
+**Deploys:** 888 / `33655153163` green (`ce32eaa`, carrying `d253209`).
+
+Three CC-CMDs, one closed, one open with two tasks done, one open at Task 1.
+
+### The question
+
+51 MLS fixtures exist twice in `regular_season_games`, under two id schemes:
+`MLS_2026-08-29_dcunited_lafc` (ours) and `2026-08-29-mls-dc-lafc` (not ours).
+`created_at` moves on the second, the day AFTER the game it covers — measured
+twice, a month apart, most recently 2026-08-31. That is an INSERT, not an update
+of a seeded row.
+
+### What shipped
+
+| commit | change |
+|---|---|
+| `d253209` (deployed in `ce32eaa`) | `/archive/game`'s id keys on a bare numeric ESPN event id when one is present, so two spellings of one club upsert onto one row |
+| `ca00ee9` | probe: can this repo's token read Analytics Engine? **HTTP 200.** The CC-CMD had said no session credential covers that read — written from reading, not from trying |
+| `47c27f3` | `d1_write_provenance` verdict, five states; and the hole that let it in — the "can reach PASS" loop iterated `CAN_PASS`, so a verdict with no entry there was exempt from the one check saying it can ever go green |
+| `ce32eaa` | check 6 in `verify-staged-items.mjs`, reading AE over 48h; the deploy's `staged-verifier-check` gate clears |
+| `3635050` | the numeric-key done conditions, asserted against the DEPLOYED worker |
+| `9ece38e` | `scripts/d1-write-sites.mjs` — **285 `prepare()` sites, 87 writes, 0 unreadable** |
+| `42c2f30` | the verify script's relay gate moved to `process.env`; the exposed-secrets ratchet had gone 115 → 116 and it was right |
+| this commit | the provenance instrumentation: `src/d1-provenance.js` and ten call sites |
+
+### The findings
+
+**A grep could never have answered Task 1.** The SQL is written as multi-line
+template literals, so `grep -n 'INSERT INTO'` finds the line a word is on and
+nothing about which binding it runs against. The enumerator balances parens and
+tracks string state. Its first run reported one UNREADABLE — `CREATE TRIGGER`
+behind a twelve-line indented comment, a write that would have been silently
+missing. And it found `src/index.js:17571`,
+`INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`,
+reached from `POST /savant/sync` — a fully dynamic INSERT that no search for
+`INSERT INTO regular_season_games` could ever have found. It is excluded by an
+allowlist holding one table, `pitcher_expected_stats`.
+
+**So no path in this repository can INSERT a dash-scheme row**, and that is now a
+measurement rather than the result of not finding something.
+
+**Which narrows what the instrument can claim, and the CC-CMD says so.** It
+proves the write is not ours; it cannot name an external writer. That needs
+Cloudflare's own D1 audit or an origin column stamped at insert time, neither
+reachable from a route the writer does not call. Recorded before Task 2's edits
+rather than discovered after them.
+
+**Scope: 10 sites, not 87.** 20 of the 87 are schema statements and 57 target
+tables the question does not concern. The instrumented set is every runtime write
+to `regular_season_games` and `postseason_games`. Task 1 answers the "an
+unwatched door" objection by reading, permanently, at zero runtime cost.
+
+**Golf is the assertion that mattered.** `golf_<eventId>` is a per-TOURNAMENT key
+covering R1..R4 as separate rows. A numeric-key change that passed "two spellings
+collapse to one row" and failed "a golf key still yields two" would be data loss
+wearing a success. Both are asserted.
+
+### Residual, disclosed
+
+- **197 rows (18.2%)** of the 1085-row census keep the team-name key — non-numeric,
+  non-`golf_` source ids or none at all. Outside `d253209`'s reach; not claimed.
+- **The 51 duplicate pairs remain.** A single upsert key both writers can agree on
+  cannot be designed until the second writer has a name.
+- **`d1_write_provenance` reports PENDING daily** until the instrumentation deploys
+  and a 48h window containing a day-after-game elapses.
+- **`/d1/execute` is gated by a hardcoded string literal**, not an env binding, in a
+  public repo. Recorded in `docs/CC-CMD-2026-09-02-d1-write-provenance.md`
+  deliberately rather than as a public issue. The fix has an order: source first,
+  then retire `bootstrap-relay-secret.yml`, then rotate.
+- **`guards.yml` had been red since 2026-09-01** on a stale HANDOFF, which is what
+  this section fixes, and since 2026-09-02 on the ratchet, fixed in `42c2f30`.
+
 ## SESSION CLOSE-OUT — 2026-08-29 (CFB landed, and three labels were unscoped)
 
 **Deploys:** `bad7971` green (CFB seeded), `7a0caad` in flight.
