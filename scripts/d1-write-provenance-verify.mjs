@@ -272,9 +272,49 @@ async function control() {
         `${leftBriefs.length} brief(s) remain`);
 }
 
-const only = process.argv.find(a => a === '--census' || a === '--control');
-if (only !== '--control') await census();
-if (only !== '--census') await control();
+// ─── READBACK ─────────────────────────────────────────────────────────────────
+// Read what Analytics Engine actually holds, with no writes and a wide window.
+//
+// WHY THIS IS ITS OWN MODE. The first control run saw 5 of 9 sites and plateaued
+// there for eight consecutive polls, which has two readings that produce
+// identical output at minute three: the instrument dropped four writes, or AE had
+// not ingested them yet. Polling harder inside the same run cannot separate
+// those — only looking later can, and a mode that does nothing but look keeps the
+// second reading testable without issuing more writes to confuse the count.
+async function readback() {
+    console.log('\n=== readback — every d1-write entry in the last 6 hours, ungrouped ===');
+    const rows = await ae(`SELECT timestamp, blob1 AS scheme, blob2 AS site, blob3 AS verb, blob4 AS tbl,
+                                  blob5 AS ua, blob6 AS country, blob7 AS asn, _sample_interval AS si
+                           FROM field_jq_analytics
+                           WHERE index1 = '${D1_WRITE_INDEX}' AND timestamp > NOW() - INTERVAL '6' HOUR
+                           ORDER BY timestamp FORMAT JSON`);
+    console.log(`  ${rows.length} entr(ies)`);
+    for (const r of rows)
+        console.log(`    ${r.timestamp}  ${String(r.site).padEnd(38)} ${r.scheme.padEnd(10)} ${r.verb} ${r.tbl} si=${r.si} ${r.country}/${r.asn}`);
+
+    const seen = new Set(rows.map(r => r.site));
+    console.log('');
+    for (const site of D1_WRITE_SITES) {
+        const n = rows.filter(r => r.site === site).length;
+        console.log(`    ${String(n).padStart(3)}  ${site}`);
+    }
+    const missing = Object.keys(EXPECTED).filter(s => !seen.has(s));
+    if (missing.length) {
+        console.log(`\n  STILL ABSENT after the wider window: ${missing.join(', ')}`);
+        console.log('  Latency is ruled out at this range; these writes did not reach the dataset.');
+    } else {
+        console.log('\n  every controllable site is present — the control run\'s 3-minute poll was short,');
+        console.log('  not the instrument short of writes.');
+    }
+    return rows;
+}
+
+const only = process.argv.find(a => a === '--census' || a === '--control' || a === '--readback');
+if (only === '--readback') { await readback(); }
+else {
+    if (only !== '--control') await census();
+    if (only !== '--census') await control();
+}
 
 console.log(`\n${failed === 0 ? 'ALL ASSERTIONS PASSED' : `${failed} ASSERTION(S) FAILED`}`);
 process.exit(failed === 0 ? 0 : 1);

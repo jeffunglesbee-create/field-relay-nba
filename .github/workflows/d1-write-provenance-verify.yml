@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       phase:
-        description: 'census | control | both'
+        description: 'census | control | readback | both'
         required: false
         default: 'both'
 
@@ -42,5 +42,6 @@ jobs:
           case "${{ inputs.phase }}" in
             census)  node scripts/d1-write-provenance-verify.mjs --census ;;
             control) node scripts/d1-write-provenance-verify.mjs --control ;;
+            readback) node scripts/d1-write-provenance-verify.mjs --readback ;;
             *)       node scripts/d1-write-provenance-verify.mjs ;;
           esac
