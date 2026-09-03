@@ -39,18 +39,21 @@ shape has its own self-test. 16/16.
 
 ## The finding: the dynamic INSERT a grep can never see
 
-Six write sites interpolate their target:
+Six write sites interpolate their target. Line numbers below are from HEAD
+after the Task 2 instrumentation landed and are re-derivable at any time with
+`node scripts/d1-write-sites.mjs`; each carries its statement so the citation
+survives the number moving:
 
-```
-src/index.js:11199        UPDATE ${table} SET drama_peak = ?, drama_arc = ? ...
-src/index.js:11584        UPDATE ${tbl} SET home = COALESCE(home, ?) ...
-src/index.js:11965        UPDATE ${oddsTable} SET closing_odds = ? WHERE id = ?
-src/index.js:17557        INSERT OR IGNORE INTO ${table} (${cols}) VALUES (${placeholders})
-src/sync-reconciler.js:139 UPDATE ${target} SET ${setClause} WHERE id = ?
-src/sync-reconciler.js:220 UPDATE change_log SET consumed = 1 WHERE id IN (...)
-```
+| site | statement |
+|---|---|
+| src/index.js:11205 | `UPDATE ${table} SET drama_peak = ?, drama_arc = ?` |
+| src/index.js:11596 | `UPDATE ${tbl} SET home = COALESCE(home, ?), away = COALESCE(away, ?)` |
+| src/index.js:11979 | `UPDATE ${oddsTable} SET closing_odds = ? WHERE id = ?` |
+| src/index.js:17571 | `INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})` |
+| src/sync-reconciler.js:139 | `UPDATE ${target} SET ${setClause} WHERE id = ?` |
+| src/sync-reconciler.js:220 | `UPDATE change_log SET consumed = 1 WHERE id IN (${placeholders})` |
 
-`17557` is the one that matters. It is a fully dynamic INSERT — table AND columns
+`17571` is the one that matters. It is a fully dynamic INSERT — table AND columns
 — reached from `POST /savant/sync`. **No search for `INSERT INTO
 regular_season_games` could ever have found it**, and the prior claim that
 exactly one code path inserts into that table was true of the literal string
@@ -65,13 +68,20 @@ guard on scope, not only on injection, and the route says so in its own comment.
 
 Eight sites name it directly:
 
-| line | verb |
-|---|---|
-| 5757, 5774 | ALTER (schema) |
-| 5809, 10870, 11310, 11465, 11474 | UPDATE |
-| **11801** | **INSERT** — the only one |
+| line | verb | statement |
+|---|---|---|
+| 5758 | ALTER | `ALTER TABLE regular_season_games ADD COLUMN finalized_at TEXT DEFAULT NULL` |
+| 5775 | ALTER | `ALTER TABLE regular_season_games ADD COLUMN importance TEXT DEFAULT NULL` |
+| 5813 | UPDATE | `UPDATE regular_season_games SET importance = ? WHERE id = ?` |
+| 10875 | UPDATE | `UPDATE regular_season_games SET went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?` |
+| 11316 | UPDATE | `UPDATE regular_season_games SET drama_peak = ?, drama_arc = ?` |
+| 11473 | UPDATE | `UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?)` |
+| 11484 | UPDATE | `UPDATE regular_season_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime('now'))` |
+| **11814** | **INSERT** | `INSERT INTO regular_season_games (id, sport, league, date, home, away,` — **the only one** |
 
-`11801` is the `/archive/game` route. `sync-reconciler.js:139`'s
+The two ALTERs are schema statements that run once at boot; the five UPDATEs and
+the INSERT are the runtime writes Task 2 instruments. `11814` is the
+`/archive/game` route. `sync-reconciler.js:139`'s
 `UPDATE ${target}` could reach the table but cannot create a row.
 
 **So no code path in this repository can INSERT a dash-scheme row into

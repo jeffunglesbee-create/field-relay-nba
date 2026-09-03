@@ -98,6 +98,7 @@ import { buildWCTeamContextBlock, slateHasWorldCup, loadWCPatches, applyWCPatch,
          WC_NAME_TO_CODE, WC_TEAM_CONTEXT } from './wc-team-context.js';
 import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
+import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
@@ -5803,12 +5804,16 @@ function detectMLBSeriesOutcome(home, away, homeScore, awayScore, seriesRecord) 
 
 // Write the series outcome: UPDATE importance on the clinching game row and
 // INSERT a brief for journalism context. Called fire-and-forget from /archive/game.
-async function writeMLBSeriesResult(env, gameId, sport, date, seriesResult) {
+// `request` is threaded in for provenance only (CC-CMD-2026-09-02-d1-write-
+// provenance). It is never read for anything but user-agent/country/asn, and
+// this function has exactly one caller — checked, not assumed.
+async function writeMLBSeriesResult(env, gameId, sport, date, seriesResult, request) {
   const { outcome, winner, loser, wins, losses } = seriesResult;
   await ensureImportanceColumn(env);
   await env.ARCHIVE_DB.prepare(
     `UPDATE regular_season_games SET importance = ? WHERE id = ?`
   ).bind(outcome, gameId).run();
+  recordD1Write(env, request, { site: 'writeMLBSeriesResult:regular', verb: 'UPDATE', table: 'regular_season_games', id: gameId });
   await ensureBriefsTable(env);
   const briefId = `mlb_series_result_${date}_${gameId}`;
   const label = outcome === 'sweep' ? `sweep (${wins}-${losses})` : `series win (${wins}-${losses})`;
@@ -10870,6 +10875,7 @@ export default {
                             const result = await env.ARCHIVE_DB.prepare(
                                 'UPDATE regular_season_games SET went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
                             ).bind(wentToOt, row.id).run();
+                            recordD1Write(env, request, { site: '/admin/archive/backfill-went-to-ot:regular', verb: 'UPDATE', table: 'regular_season_games', id: row.id });
                             if (result.meta?.changes > 0) resolved++;
                             else unresolved.push({ id: row.id, reason: 'UPDATE matched 0 rows' });
                         } catch (e) {
@@ -11310,10 +11316,12 @@ export default {
                     let result = await env.ARCHIVE_DB.prepare(
                         'UPDATE regular_season_games SET drama_peak = ?, drama_arc = ? WHERE id = ? AND drama_peak IS NULL'
                     ).bind(drama_peak, drama_arc, id).run();
+                    recordD1Write(env, request, { site: '/archive/drama-by-id:regular', verb: 'UPDATE', table: 'regular_season_games', id: id });
                     if (!result.success || result.meta?.changes === 0) {
                         result = await env.ARCHIVE_DB.prepare(
                             'UPDATE postseason_games SET drama_peak = ?, drama_arc = ? WHERE id = ? AND drama_peak IS NULL'
                         ).bind(drama_peak, drama_arc, id).run();
+                        recordD1Write(env, request, { site: '/archive/drama-by-id:postseason', verb: 'UPDATE', table: 'postseason_games', id: id });
                     }
                     if ((result.meta?.changes ?? 0) === 0) {
                         const alreadyScored = await env.ARCHIVE_DB.prepare(
@@ -11465,19 +11473,23 @@ export default {
                         result = await env.ARCHIVE_DB.prepare(
                             'UPDATE regular_season_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
                         ).bind(home_score, away_score, String(newEspnId), wentToOtValue, id).run();
+                        recordD1Write(env, request, { site: '/archive/score-by-id:regular-espn', verb: 'UPDATE', table: 'regular_season_games', id: id });
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
                                 'UPDATE postseason_games SET home_score = ?, away_score = ?, espn_event_id = COALESCE(espn_event_id, ?), finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
                             ).bind(home_score, away_score, String(newEspnId), wentToOtValue, id).run();
+                            recordD1Write(env, request, { site: '/archive/score-by-id:postseason-espn', verb: 'UPDATE', table: 'postseason_games', id: id });
                         }
                     } else {
                         result = await env.ARCHIVE_DB.prepare(
                             'UPDATE regular_season_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
                         ).bind(home_score, away_score, wentToOtValue, id).run();
+                        recordD1Write(env, request, { site: '/archive/score-by-id:regular', verb: 'UPDATE', table: 'regular_season_games', id: id });
                         if (!result.success || result.meta?.changes === 0) {
                             result = await env.ARCHIVE_DB.prepare(
                                 'UPDATE postseason_games SET home_score = ?, away_score = ?, finalized_at = COALESCE(finalized_at, datetime(\'now\')), went_to_ot = COALESCE(?, went_to_ot) WHERE id = ?'
                             ).bind(home_score, away_score, wentToOtValue, id).run();
+                            recordD1Write(env, request, { site: '/archive/score-by-id:postseason', verb: 'UPDATE', table: 'postseason_games', id: id });
                         }
                     }
                     return new Response(JSON.stringify({ ok: true, id, changes: result.meta?.changes ?? 0, went_to_ot: wentToOtValue }),
@@ -11797,6 +11809,7 @@ export default {
                             start_time || null,
                             home_score ?? null
                         ).run();
+                        recordD1Write(env, request, { site: '/archive/game:postseason', verb: 'INSERT', table: 'postseason_games', id: id });
                     } else {
                         await env.ARCHIVE_DB.prepare(
                             `INSERT INTO regular_season_games
@@ -11828,6 +11841,7 @@ export default {
                             start_time || null,
                             home_score ?? null
                         ).run();
+                        recordD1Write(env, request, { site: '/archive/game:regular', verb: 'INSERT', table: 'regular_season_games', id: id });
                     }
                 } catch (e) {
                     return new Response(JSON.stringify({ ok: false, error: e.message }),
@@ -11994,7 +12008,7 @@ export default {
                     try {
                         const seriesResult = detectMLBSeriesOutcome(home, away, home_score, away_score, series_record);
                         if (seriesResult) {
-                            await writeMLBSeriesResult(env, id, sport, date, seriesResult);
+                            await writeMLBSeriesResult(env, id, sport, date, seriesResult, request);
                         }
                     } catch (e) { console.error("[ARCHIVE-GAME] MLB series detection failed:", e.message); /* never breaks core response */ }
                 }

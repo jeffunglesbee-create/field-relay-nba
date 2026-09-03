@@ -1,0 +1,46 @@
+# Task 3 of CC-CMD-2026-09-02-d1-write-provenance: the id-scheme census and the
+# control write, against the DEPLOYED worker.
+#
+# Dispatch-only. It writes and then deletes synthetic 2099-dated rows, and issues
+# one deliberate write through each instrumented site so the instrument can be
+# told apart from a quiet system.
+name: d1 write provenance verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'census | control | both'
+        required: false
+        default: 'both'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: The instrumentation is wired to every site it declares
+        run: node scripts/d1-provenance-check.mjs --self-test && node scripts/d1-provenance-check.mjs
+
+      - name: Census and control
+        env:
+          # Variables, never values. check-no-literal-secret-writes.mjs exists
+          # because a workflow once installed a credential from a literal.
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          case "${{ inputs.phase }}" in
+            census)  node scripts/d1-write-provenance-verify.mjs --census ;;
+            control) node scripts/d1-write-provenance-verify.mjs --control ;;
+            *)       node scripts/d1-write-provenance-verify.mjs ;;
+          esac

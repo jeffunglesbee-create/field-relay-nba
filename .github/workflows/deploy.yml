@@ -441,6 +441,9 @@ jobs:
       # cc-session-2026-07-20-game-thread-relay.md had read "STAGED -- fires at
       # next :30 mark post-deploy" for 34 days, during which that cron fired
       # roughly 816 times unobserved. It is check 5 now.
+      - name: the D1 provenance instrumentation is wired to every site it declares
+        run: node scripts/d1-provenance-check.mjs --self-test && node scripts/d1-provenance-check.mjs
+
       - name: every staged verdict can fail, and can pass
         run: node scripts/staged-verdicts-check.mjs
 

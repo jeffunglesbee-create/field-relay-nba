@@ -5,8 +5,8 @@
 **Relationship:** `CC-CMD-2026-09-01-mls-dual-writer-duplicate` Task 2, split out
 per Rule 87 (4). That CC-CMD's Task 1 is DONE and eliminated explanation (2);
 this one answers what Task 1 could not reach from outside.
-**Status:** OPEN. **Task 1 DONE 2026-09-02 — and it narrows what Task 2 can
-claim.** `scripts/d1-write-sites.mjs` enumerates 285 `prepare()` sites, 87 of
+**Status:** OPEN — Tasks 1 and 2 DONE, Task 3 (deploy + control) in flight.
+**Task 1 DONE 2026-09-02 — and it narrows what Task 2 can claim.** `scripts/d1-write-sites.mjs` enumerates 285 `prepare()` sites, 87 of
 them writes, 0 unreadable. Exactly one path INSERTs into `regular_season_games`
 (`src/index.js:11801`, `/archive/game`); `src/index.js:17557` is a fully dynamic
 `INSERT OR IGNORE INTO ${table}` that no grep could find, and it is excluded by
@@ -38,13 +38,15 @@ Task 1 deliberately refused to infer it from the id shape.
 | fact | HEAD |
 |---|---|
 | the analytics binding | `JQ_ANALYTICS` → dataset `field_jq_analytics`, `wrangler.toml:138-140` |
-| the established call shape | `env.JQ_ANALYTICS.writeDataPoint({ indexes, blobs, doubles })`, `src/index.js:8660`, inside `try { if (env.JQ_ANALYTICS) … }` |
-| the arbitrary-SQL route | `pathname === '/d1/execute' && request.method === 'POST'`, `src/index.js:14061` |
-| its method-gate exemption | `src/index.js:12533` |
+| the established call shape | `env.JQ_ANALYTICS.writeDataPoint({` — `src/index.js:8665`, inside `try { if (env.JQ_ANALYTICS) … }` |
+| the arbitrary-SQL route | `if (pathname === '/d1/execute' && request.method === 'POST') {` — `src/index.js:14075` |
+| its method-gate exemption | `&& !(pathname === '/d1/execute' && request.method === 'POST')` — `src/index.js:12547` |
 
-`/d1/execute` was at `14023` when the sibling CC-CMD was written and is at
-`14061` now. The sha moved; the route did not. **Re-read both line numbers
-before editing** — this table is a measurement with a date on it, not a fact.
+`/d1/execute` was at `14023` when the sibling CC-CMD was written, `14061` when
+this document was, and `14075` after Task 2's instrumentation landed. The route
+did not move; the file above it grew, three times, in nine days. **Re-read every
+line number before editing** — this table is a measurement with a date on it, not
+a fact, which is why each row now carries the text to search for instead.
 
 ## The central requirement: a positive control, first
 
@@ -59,17 +61,49 @@ deliberately through each instrumented path must produce exactly one entry
 naming that path. Until that passes, no observation window has started and a
 null result means nothing.
 
-## Instrument every non-SELECT path, not only `/d1/execute`
+## Scope: 10 sites, and Task 1 is why it could narrow
 
-`/d1/execute` is the leading candidate and is **not** the whole surface.
-`ARCHIVE_DB.prepare` appears 191 times in `src/index.js`; a single-line regex
-finds only one non-SELECT among them because the statements are multi-line
-template literals, so **the write-path enumeration is a task here, not a
-premise**.
+**This section replaces "Instrument every non-SELECT path, not only
+`/d1/execute`", which was right when it was written and has been answered.** Its
+argument was that watching only the suspected door makes a null result unable to
+separate "nothing wrote" from "it came through a door nobody was watching". That
+separation is real, and Task 1 makes it **by reading, permanently, at zero
+runtime cost** — enumerating all 285 `prepare()` sites and finding the one door a
+grep could never see (`src/index.js:17571`,
+`INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`,
+excluded by an allowlist holding one table). Instrumenting the other 77 writes
+adds no discriminating power for the question this document asks.
 
-If only the suspected door is watched, a null result cannot distinguish "nothing
-wrote" from "it came through a door nobody was watching" — which is the same
-two-states-collapsed failure as above, one level up.
+Of the 87 writes: 20 are schema statements (`CREATE`/`ALTER`, boot-time) and 57
+target tables the question does not concern (`briefs` 20, `codex` 8,
+`wc_results` 8, `change_log` 4, and a long tail). The instrumented set is every
+**runtime** write to the two game tables:
+
+| site | verb | table |
+|---|---|---|
+| `writeMLBSeriesResult:regular` | UPDATE | regular_season_games |
+| `/admin/archive/backfill-went-to-ot:regular` | UPDATE | regular_season_games |
+| `/archive/drama-by-id:regular` | UPDATE | regular_season_games |
+| `/archive/drama-by-id:postseason` | UPDATE | postseason_games |
+| `/archive/score-by-id:regular-espn` | UPDATE | regular_season_games |
+| `/archive/score-by-id:postseason-espn` | UPDATE | postseason_games |
+| `/archive/score-by-id:regular` | UPDATE | regular_season_games |
+| `/archive/score-by-id:postseason` | UPDATE | postseason_games |
+| `/archive/game:postseason` | INSERT | postseason_games |
+| `/archive/game:regular` | INSERT | regular_season_games |
+
+The name identifies the **write site**, not the route: `/archive/score-by-id`
+runs the regular UPDATE and, when it matches nothing, the postseason one — two
+doors behind one path. Naming them alike would make the control's "exactly one
+entry per site" satisfiable by a route that fired twice, which is the shape of
+collapse this project keeps finding.
+
+`D1_WRITE_SITES` in `src/d1-provenance.js` is the list, and
+`scripts/d1-provenance-check.mjs` (a deploy guard) fails if a call exists without
+a declaration, a declaration without a call, a duplicate name, or a site naming a
+route that does not exist at HEAD. That last check exists because the first draft
+of the list said `/archive/drama-peak` — written from the field name rather than
+probed. The route is `/archive/drama-by-id`.
 
 ## Security constraints — non-negotiable
 
@@ -156,10 +190,33 @@ did not:
 
 The verifier reads `index1 = 'd1-write'` and splits on `blob1`, which carries the
 id scheme observed: `control` for the deliberate control write, `dash` for a
-dash-scheme INSERT. **Task 2 below must write to match.** The verifier and the
-instrumentation are being written in the wrong order out of necessity, so the
-contract is stated rather than left to be discovered by a run that reports zero
-of everything.
+dash-scheme INSERT. The verifier and the instrumentation were written in the
+wrong order out of necessity, so the contract was stated rather than left to be
+discovered by a run that reports zero of everything.
+
+**Task 2 wrote to match, and added one rule the contract did not have: `dash`
+outranks `control`.** The control is marked by a request header
+(`X-FIELD-Provenance-Control: 1`), and if that header simply overrode the scheme,
+anyone sending it while inserting a dash-scheme row would relabel the exact
+observation this instrument exists to catch — and the verifier, which counts
+`blob1 = 'dash'`, would report NOT OBSERVED forever with the evidence sitting in
+the row beside it. So the header can only relabel a write that was not the thing
+being looked for. `provenanceScheme` in `src/d1-provenance.js` is four lines and
+this is what they are for.
+
+Full blob layout, all literals supplied at the call site — **no SQL text is
+passed to the recorder at all**, which is stricter than this document's original
+"parse the verb out of the statement":
+
+| blob | value |
+|---|---|
+| 1 | scheme — `control` / `dash` / `underscore` / `other` / `none` |
+| 2 | site — one of the ten names above |
+| 3 | verb — `INSERT` / `UPDATE` |
+| 4 | table |
+| 5 | `user-agent`, 64 bytes, and no other header |
+| 6 | `cf.country` |
+| 7 | `cf.asn` |
 
 Everything the session can do — the instrumentation, the control write, the
 control assertion — happens inside the session (Rule 87 §3). Nothing here is a
@@ -171,8 +228,17 @@ carry-forward disguised as a dependency.
    any D1 binding. Multi-line template literals defeat a single-line grep;
    confirm the count by reading, and record it. This is a task because 191
    `prepare` calls is not an enumeration.
-2. Add the provenance call to every one of them, under the security constraints.
-3. Deploy, then run the control against each path and paste the query output.
+2. **DONE.** Add the provenance call — to the 10 runtime writes against the two
+   game tables, under the security constraints, at the scope and for the reason
+   in "Scope: 10 sites" above. `src/d1-provenance.js` plus ten one-line call
+   sites in `src/index.js`; 20/20 in `scripts/d1-provenance-check.mjs`, proven by
+   mutation (removing one call site takes it to 8/10; a stale route name to
+   17/20).
+3. Deploy, then run the control against each site and paste the query output.
+   `.github/workflows/d1-write-provenance-verify.yml`, dispatch-only. Phase A is
+   a census that runs `idScheme` over every id in both tables — a falsification
+   attempt, because a predicate asserted only against strings that already pass
+   is not asserted at all. Phase B is the control.
 4. **Only if the control passes**, open the 48-hour window and report one of the
    three outcomes above. Do not report a null result without the control output
    beside it.
