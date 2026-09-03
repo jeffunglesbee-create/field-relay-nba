@@ -18,4 +18,8 @@ jobs:
         with:
           node-version: '22'
       - name: Assert both done conditions
+        env:
+          # The variable, never the value. check-no-literal-secret-writes.mjs
+          # exists because a workflow once installed a credential from a literal.
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/numeric-espn-upsert-key-verify.mjs

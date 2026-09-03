@@ -28,7 +28,21 @@
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-const RELAY_GATE = 'field-relay-cron-2026';
+// THE GATE COMES FROM THE ENVIRONMENT, WITH NO DEFAULT.
+//
+// This script originally compiled the value in, the way ~50 others in this repo
+// still do, and that made it the 116th occurrence against a declared maximum of
+// 115 — `guards.yml` failed on `check-exposed-secrets.mjs` at the commit that
+// added it, and the ratchet was right. `docs/exposed-secrets.sha256` prescribes
+// exactly this fix: `process.env.RELAY_SHARED_SECRET` with NO default, because a
+// default makes an unset secret indistinguishable from a set one until the relay
+// 401s and the run reports "the probe failed" instead of "the probe never ran".
+const RELAY_GATE = process.env.RELAY_SHARED_SECRET;
+if (!RELAY_GATE) {
+    console.error('RELAY_SHARED_SECRET is not set. This script cannot reach /d1/execute without it,');
+    console.error('and it will not guess: pass it from the workflow as an env, never as a literal.');
+    process.exit(1);
+}
 
 // Far enough out that no real fixture can share them.
 const DATE_A = '2099-03-01';
