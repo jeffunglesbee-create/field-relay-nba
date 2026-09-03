@@ -7,6 +7,12 @@ finding it.
 `CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key` can be closed, and
 before field-relay-nba#1 can be closed.
 **Status:** OPEN. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
+**SCOPE CORRECTED 2026-09-03 — the title is wrong and so is "every one MLS".**
+An archive-wide sweep (field-laboratory `probe-archive-scheme-duplicates.mjs`,
+run `33775532885`, 2777 rows read from D1 rather than from a 30-day
+`/context/date` window) found **53 mixed-scheme clusters in two sports: 51 MLS
+and 2 WNBA**. See the section below and
+`field-laboratory outbox/2026-09-03-archive-scheme-duplicates.md`.
 
 ## The defect
 
@@ -49,6 +55,66 @@ which is what `scripts/probe-fixture-identity-duplicates.mjs` does.
 
 Sweep result: 1064 rows, 170 with no event id (16.0%), 61 non-distinct groups,
 **51 invisible to the event-id watcher**, every one MLS.
+
+## Scope correction, 2026-09-03: 51 MLS is right, and it is not all of them
+
+The 51 below is **correct to the row**. "Every one MLS" is not — it is a fact
+about a 30-day served window being read as a fact about the archive. Reading both
+tables directly:
+
+| | MLS | WNBA |
+|---|---|---|
+| mixed-scheme clusters | 51 | 2 |
+| schemes | `provider-composite + unrecognised` | `provider-composite + sport-prefixed-external` |
+| `classifyPair` verdict | `indistinguishable` ×51 | **`duplicate` ×2** |
+
+```
+WNBA 2026-06-20 duplicate  provider-composite + sport-prefixed-external
+    wnba_2026-06-20_atlantadre_indianafev
+    WNBA_2026-06-20_dream_fever
+```
+
+**The WNBA pairs are a different defect wearing the same shape**, and three
+things separate them:
+
+1. **A third id scheme**, not the dash one this document hunts. Lowercase sport
+   prefix, underscore separators, ten-character team truncations. Task 1's writer
+   hunt was not looking for it and would not have found it.
+2. **They classify as `duplicate`, not `indistinguishable`.** `classifyPair`
+   returns `duplicate` only on evidence — two rows sharing an event id, or two
+   sharing a start time. The 51 MLS pairs carry neither and remain a question;
+   calling them duplicates would invent a bug. These two are answered.
+3. **They are fixable now.** Task 3 says a shared upsert key "cannot be designed
+   until the second writer has a name". That is true of the MLS 51. It is **not**
+   true of the WNBA 2, which carry the discriminator a merge needs.
+
+### And most `unrecognised` rows are not duplicates at all
+
+`unrecognised` spans **22 sports and 1007 rows** — MLS 520, FIFA World Cup 103,
+MLB 61, EFL Cup 57, and a long tail down to one row each for three UEFA
+competitions. **Only MLS produces mixed-scheme clusters.** For the other ~487
+rows the non-standard writer is the *only* writer for that fixture, so they are
+not duplicates and merging is not the question there. Nothing in this document
+distinguished those two situations before now.
+
+### Two counts that look contradictory and are not
+
+`CC-CMD-2026-09-02-d1-write-provenance`'s census reported **591 dash-scheme**;
+this sweep reports **1007 `unrecognised`**. Different predicates over the same
+rows: the relay's `idScheme` requires a leading ISO date AND no underscore
+anywhere; field-laboratory's `schemeOf` calls `unrecognised` everything matching
+none of seven known shapes. `unrecognised` ⊇ `dash`, and the 416-row difference
+is rows in neither the dash shape nor any recognised one — its own question.
+
+The table also grew **2750 → 2777 in twelve hours**, which is Task 1's "live
+writer" conclusion showing up again as a rate.
+
+### What this changes here
+
+- The title. Not MLS-only, and not one dual writer.
+- **Task 3 has two cases.** The WNBA one needs no writer identification.
+- `relay-duplicate-fixture-watch.mjs` is blind to both, for the reason already
+  given: it groups on `espn_event_id` and skips rows lacking one.
 
 ## A correction to field-relay-nba#1
 
