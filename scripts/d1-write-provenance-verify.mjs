@@ -50,7 +50,12 @@ const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
 
 const DATE_REG = '2099-04-01';   // /archive/game:regular + writeMLBSeriesResult
 const DATE_POST = '2099-04-02';  // /archive/game:postseason
-const GHOST = 'PROVENANCE_CONTROL_2099_no_such_row';  // an id that matches nothing
+// The postseason control row R2 creates. R3/R4/R5 target it ON PURPOSE rather
+// than a nonexistent id: the regular UPDATE then changes 0 rows, the postseason
+// UPDATE changes 1, and the route's OWN RESPONSE reports `changes: 1`. That is a
+// per-site execution proof that owes nothing to Analytics Engine — see PROOFS.
+const POST_ID = `MLB_PROVENANCE_CONTROL_SERIES_ctrl_${DATE_POST}`;
+const REG_ID = `MLB_${DATE_REG}_provenancehome_provenanceaway`;
 
 let failed = 0;
 const assert = (name, ok, detail) => {
@@ -172,12 +177,13 @@ async function ae(sql) {
 //
 //   1. `sum(_sample_interval)` equals the writes issued. Falsifiable per site —
 //      delete any one recordD1Write call and the total is short by one round.
-//   2. Every declared site is observed BY NAME at least once. A single round
-//      cannot promise that, so the request set is issued ROUNDS times and the
-//      names are unioned. At the ~60-78% per-write survival measured across the
-//      two runs, ten rounds put the chance of missing any given site near zero —
-//      and if one IS still missing, that is a finding with a name on it, not a
-//      silence.
+//   2. Every declared site EXECUTED — proven from the routes' own responses and
+//      from D1, not from Analytics Engine. Run 33712991908 settled why: 90 writes
+//      issued, AE's total exact at 90, and one site still zero rows across ten
+//      rounds while its sibling in the same request had two. `_sample_interval`
+//      came back 12 and 13 on two sites and 1 on two others, so it is a
+//      stream-level rate stamped at ingest, not a per-site count. Per-site
+//      survival cannot carry a claim; the routes' own output can. See PROOFS.
 //
 // WHAT IS GENUINELY LOST is which of two doors inside ONE request. Nothing the
 // CC-CMD turns on: both writes in every pair target the same row id, so they
@@ -217,32 +223,34 @@ async function control() {
     // ONE ROUND: the five requests that reach the nine controllable sites.
     // R1's series_record '3-0' with the home side winning is what
     // detectMLBSeriesOutcome reads as a clinching sweep — the only way to reach
-    // writeMLBSeriesResult. R3/R4/R5 use a GHOST id that matches nothing, so the
-    // regular UPDATE changes 0 rows and the postseason one runs after it: both
-    // sites fire from one request, which is the pairing the site names exist to
-    // keep apart.
+    // writeMLBSeriesResult. R3/R4/R5 address POST_ID, the postseason row R2
+    // creates earlier in the same round: the regular UPDATE changes 0 rows and
+    // the postseason one runs after it, so both sites fire from one request AND
+    // the route reports `changes: 1`, which is the per-site execution proof.
+    const seenResponses = {};
     const round = async (verbose) => {
         const say = (...a) => verbose && console.log(...a);
+        const keep = (k, r) => { if (!(k in seenResponses)) seenResponses[k] = r; return r; };
         say('  R1 /archive/game (MLB, clinching series_record) →',
-            JSON.stringify(await post('/archive/game', {
+            JSON.stringify(keep('R1', await post('/archive/game', {
                 sport: 'MLB', date: DATE_REG, home: 'Provenance Home', away: 'Provenance Away',
                 home_score: 5, away_score: 3, series_record: '3-0',
-            })));
+            }))));
         say('  R2 /archive/game (series_key) →',
-            JSON.stringify(await post('/archive/game', {
+            JSON.stringify(keep('R2', await post('/archive/game', {
                 sport: 'MLB', date: DATE_POST, series_key: 'PROVENANCE_CONTROL_SERIES',
                 round: 'CTRL', game_number: 1, home: 'Provenance Home', away: 'Provenance Away',
                 home_score: 2, away_score: 1,
-            })));
+            }))));
         say('  R3 /archive/score-by-id (with espn_event_id) →',
-            JSON.stringify(await post('/archive/score-by-id',
-                { id: GHOST, home_score: 1, away_score: 0, espn_event_id: '999000222' })));
+            JSON.stringify(keep('R3', await post('/archive/score-by-id',
+                { id: POST_ID, home_score: 1, away_score: 0, espn_event_id: '999000222' }))));
         say('  R4 /archive/score-by-id (no espn_event_id) →',
-            JSON.stringify(await post('/archive/score-by-id',
-                { id: GHOST, home_score: 1, away_score: 0 })));
+            JSON.stringify(keep('R4', await post('/archive/score-by-id',
+                { id: POST_ID, home_score: 1, away_score: 0 }))));
         say('  R5 /archive/drama-by-id →',
-            JSON.stringify(await post('/archive/drama-by-id',
-                { id: GHOST, drama_peak: 1, drama_arc: 'control' })));
+            JSON.stringify(keep('R5', await post('/archive/drama-by-id',
+                { id: POST_ID, drama_peak: 1, drama_arc: 'control' }))));
     };
 
     await round(true);
@@ -301,12 +309,54 @@ async function control() {
         `sum(_sample_interval) = ${siOf(rows)}. Short means a call site did not execute `
         + `(by ${ROUNDS} per missing site); over means an unaccounted write path fired.`);
 
-    // 2. EVERY SITE BY NAME. One round cannot promise this; ten can.
+    // 2. PER-SITE EXECUTION PROOF, OWING NOTHING TO ANALYTICS ENGINE.
+    //
+    // The previous version asserted every site appears by name in the dataset.
+    // Run 33712991908 issued 90 writes, AE's total came back exact at 90, and
+    // `/archive/score-by-id:postseason` still surfaced zero rows across ten
+    // rounds while its sibling in the SAME request surfaced two. Per-site
+    // survival is too noisy to carry a claim — `_sample_interval` came back as
+    // 12 and 13 on two sites and 1 on two others, so it is a stream-level rate
+    // stamped at ingest, not a per-site count.
+    //
+    // So the per-site claim moves off AE entirely and onto artifacts the routes
+    // produce themselves. R3/R4/R5 address the postseason control row rather
+    // than a nonexistent id, so the regular UPDATE changes 0 rows, the
+    // postseason UPDATE changes 1, and `changes: 1` in the response proves BOTH
+    // branches ran — the second is only reached when the first returns zero.
+    const body = (k) => { try { return JSON.parse(seenResponses[k]?.body ?? '{}'); } catch { return {}; } };
+    const importance = (await d1(`SELECT importance FROM regular_season_games WHERE id = ?`, [REG_ID]))[0]?.importance;
+    const PROOFS = [
+        ['/archive/game:regular', body('R1').ok === true && body('R1').table === 'regular_season_games',
+            `R1 response table=${body('R1').table}`],
+        ['writeMLBSeriesResult:regular', importance === 'sweep',
+            `regular_season_games.importance for the control row = ${importance ?? 'NULL'}; `
+            + 'only writeMLBSeriesResult sets it'],
+        ['/archive/game:postseason', body('R2').ok === true && body('R2').table === 'postseason_games',
+            `R2 response table=${body('R2').table}`],
+        ['/archive/score-by-id:regular-espn', body('R3').changes === 1,
+            `R3 changes=${body('R3').changes} — the postseason UPDATE is only reached when this one returns 0`],
+        ['/archive/score-by-id:postseason-espn', body('R3').changes === 1,
+            `R3 changes=${body('R3').changes} — 1 means the postseason UPDATE matched the control row`],
+        ['/archive/score-by-id:regular', body('R4').changes === 1, `R4 changes=${body('R4').changes}`],
+        ['/archive/score-by-id:postseason', body('R4').changes === 1, `R4 changes=${body('R4').changes}`],
+        ['/archive/drama-by-id:regular', body('R5').changes === 1, `R5 changes=${body('R5').changes} (round 1)`],
+        ['/archive/drama-by-id:postseason', body('R5').changes === 1, `R5 changes=${body('R5').changes} (round 1)`],
+    ];
+    console.log('\n  per-site execution proof, from the routes\' own responses:');
+    for (const [site, ok, why] of PROOFS)
+        console.log(`    ${ok ? 'ok  ' : 'MISS'}  ${site.padEnd(38)} ${why}`);
+    assert(`all ${PROOFS.length} controllable sites are proven to have executed`,
+        PROOFS.every(([, ok]) => ok),
+        `unproven: ${PROOFS.filter(([, ok]) => !ok).map(([s2]) => s2).join(', ')}`);
+
+    // Site names that survived sampling — REPORTED, never asserted, for the
+    // reason above. A site absent here after 90 writes is not evidence.
     const unseen = CONTROLLABLE.filter(x => !bySite.has(x));
-    assert(`every one of the ${CONTROLLABLE.length} controllable sites was observed by name`,
-        unseen.length === 0,
-        `never survived a single round: ${unseen.join(', ')}. At the measured survival rate `
-        + `that is not sampling — read it as a call site that did not fire.`);
+    console.log(unseen.length
+        ? `\n  survived sampling by name: ${CONTROLLABLE.length - unseen.length}/${CONTROLLABLE.length}. `
+          + `Absent this run: ${unseen.join(', ')} — sampling, not silence; see the proofs above.`
+        : `\n  survived sampling by name: all ${CONTROLLABLE.length}.`);
 
     // 3. THE SHAPE. A site wired to the wrong table would pass 1 and 2.
     const DECLARED = Object.fromEntries(
