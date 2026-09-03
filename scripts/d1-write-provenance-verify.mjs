@@ -13,12 +13,19 @@
 //    48 hours" and "the instrument never worked" produce identical output, and
 //    the thing being watched fires about once a day at an unpredictable time. So
 //    a deliberate write is issued through each instrumented site, carrying the
-//    control header, and each must produce exactly one Analytics Engine entry
-//    naming that site. Until that passes, no observation window has started and a
+//    control header. Until that passes, no observation window has started and a
 //    null result downstream means nothing.
 //
+//    The CC-CMD said "exactly one entry per path". The transport cannot deliver
+//    that and the dataset says so in its own column — see WRITES_PER_REQUEST for
+//    the measurement and for what the assertion became instead.
+//
+// C. READBACK — no writes, a wide window. It exists because "the instrument
+//    dropped writes" and "Analytics Engine has not ingested them yet" look
+//    identical at minute three, and only looking later separates them.
+//
 // THE ONE SITE THAT CANNOT BE CONTROLLED SYNTHETICALLY is reported as its own
-// state rather than folded into a pass or a failure — see EXPECTED below.
+// state rather than folded into a pass or a failure — see BEST_EFFORT below.
 //
 // Synthetic 2099 dates so no real slate is written to, and everything this
 // script creates is deleted at the end with emptiness asserted, not assumed.
@@ -26,6 +33,7 @@
 // Usage:  node scripts/d1-write-provenance-verify.mjs            both phases
 //         node scripts/d1-write-provenance-verify.mjs --census   read-only
 //         node scripts/d1-write-provenance-verify.mjs --control
+//         node scripts/d1-write-provenance-verify.mjs --readback  read-only, wide window
 
 import { idScheme, D1_WRITE_SITES, D1_WRITE_INDEX, CONTROL_HEADER } from '../src/d1-provenance.js';
 
@@ -136,22 +144,40 @@ async function ae(sql) {
     return (await r.json()).data ?? [];
 }
 
-// How many entries each site must produce from the requests below. The one at
-// zero is NOT a pass and NOT a failure: /admin/archive/backfill-went-to-ot only
-// writes when a real MLB/WNBA row with a NULL went_to_ot matches a real
-// /v2/games entry for its date, which a synthetic 2099 row can never do. It is
-// reported as its own state.
-const EXPECTED = {
-    'writeMLBSeriesResult:regular': 1,
-    '/archive/game:regular': 1,
-    '/archive/game:postseason': 1,
-    '/archive/score-by-id:regular-espn': 1,
-    '/archive/score-by-id:postseason-espn': 1,
-    '/archive/score-by-id:regular': 1,
-    '/archive/score-by-id:postseason': 1,
-    '/archive/drama-by-id:regular': 1,
-    '/archive/drama-by-id:postseason': 1,
-};
+// WHAT THE CONTROL CAN PROVE, AND WHY IT IS NOT "ONE ROW PER SITE".
+//
+// The CC-CMD asked for exactly one entry per instrumented path. The transport
+// cannot deliver that, and the dataset says so in its own column. MEASURED
+// 2026-09-03, run 33712204759 and its readback 33712493470: each request that
+// issued TWO provenance writes produced ONE row carrying `_sample_interval = 2`;
+// the one request that issued a single write produced a row with 1. Analytics
+// Engine keeps a subset of the data points written in one Worker invocation and
+// records, per surviving row, how many it stands for. Latency was ruled out —
+// the readback five minutes later found the same five rows.
+//
+// So the assertion moves to the quantity the transport does preserve:
+// `sum(_sample_interval)` across the run must equal the number of writes actually
+// issued. That is per-site proof in aggregate — remove any single call site and
+// the total drops by one — and it is paired with the static wiring check in
+// scripts/d1-provenance-check.mjs, which proves each site individually by reading
+// the source with mutation-proven teeth.
+//
+// WHAT IS GENUINELY LOST is which of two doors inside ONE request. Nothing else:
+// both writes in every pair target the same row id, so they carry the same
+// blob1, and the scheme — the column the whole CC-CMD turns on — survives
+// sampling intact.
+const WRITES_PER_REQUEST = [
+    ['R1 /archive/game (MLB, clinching)', 2, ['/archive/game:regular', 'writeMLBSeriesResult:regular']],
+    ['R2 /archive/game (series_key)', 1, ['/archive/game:postseason']],
+    ['R3 /archive/score-by-id (espn)', 2, ['/archive/score-by-id:regular-espn', '/archive/score-by-id:postseason-espn']],
+    ['R4 /archive/score-by-id (no espn)', 2, ['/archive/score-by-id:regular', '/archive/score-by-id:postseason']],
+    ['R5 /archive/drama-by-id', 2, ['/archive/drama-by-id:regular', '/archive/drama-by-id:postseason']],
+];
+const EXPECTED_SI = WRITES_PER_REQUEST.reduce((a, [, n]) => a + n, 0);       // 9
+const EXPECTED_ROWS = WRITES_PER_REQUEST.length;                              // 5
+// The only request that writes exactly one point, so the only site guaranteed
+// its own unsampled row. Everything else is provable in aggregate, not by name.
+const UNSAMPLED_SITE = '/archive/game:postseason';
 const BEST_EFFORT = '/admin/archive/backfill-went-to-ot:regular';
 
 async function control() {
@@ -218,43 +244,69 @@ async function control() {
     // Analytics Engine ingests asynchronously. Poll rather than sleep once and
     // conclude: a single early read would report zero and look exactly like a
     // dead instrument, which is the failure mode this whole task is about.
-    const q = `SELECT blob1 AS scheme, blob2 AS site, blob5 AS ua, blob6 AS country, blob7 AS asn, count() AS n
+    const q = `SELECT blob1 AS scheme, blob2 AS site, blob3 AS verb, blob4 AS tbl,
+                      blob5 AS ua, blob6 AS country, blob7 AS asn, _sample_interval AS si
                FROM field_jq_analytics
                WHERE index1 = '${D1_WRITE_INDEX}' AND timestamp > toDateTime('${since.slice(0, 19).replace('T', ' ')}')
-               GROUP BY scheme, site, ua, country, asn
                ORDER BY site FORMAT JSON`;
+    // Analytics Engine ingests asynchronously. Poll rather than read once and
+    // conclude: a single early read would report zero and look exactly like a
+    // dead instrument, which is the failure mode this whole task is about. The
+    // stop condition is the sample-interval total, not a site count, for the
+    // reason set out above WRITES_PER_REQUEST.
     let rows = [];
+    const siOf = (rs) => rs.reduce((a, r) => a + Number(r.si ?? 1), 0);
     for (let attempt = 1; attempt <= 12; attempt++) {
         rows = await ae(q);
-        const sites = new Set(rows.map(r => r.site));
-        if (Object.keys(EXPECTED).every(s => sites.has(s))) break;
-        console.log(`  attempt ${attempt}: ${sites.size}/${Object.keys(EXPECTED).length} site(s) visible, waiting 15s`);
+        if (siOf(rows) >= EXPECTED_SI) break;
+        console.log(`  attempt ${attempt}: ${siOf(rows)}/${EXPECTED_SI} write(s) visible, waiting 15s`);
         await new Promise(r => setTimeout(r, 15_000));
     }
 
-    console.log('\n  Analytics Engine, index1=d1-write, last 60s:');
+    console.log('\n  Analytics Engine, index1=d1-write, since this run began:');
     if (!rows.length) console.log('    (no rows)');
     for (const r of rows)
-        console.log(`    ${String(r.n).padStart(3)}  ${String(r.site).padEnd(38)} scheme=${r.scheme} country=${r.country} asn=${r.asn} ua=${r.ua}`);
+        console.log(`    si=${r.si}  ${String(r.site).padEnd(38)} scheme=${r.scheme} ${r.verb} ${r.tbl} ${r.country}/${r.asn} ${r.ua}`);
 
-    const count = new Map();
-    for (const r of rows) count.set(r.site, (count.get(r.site) ?? 0) + Number(r.n));
+    console.log('\n  requests issued, and the writes each made:');
+    for (const [label, n, sites] of WRITES_PER_REQUEST)
+        console.log(`    ${n}  ${label.padEnd(36)} ${sites.join(', ')}`);
 
-    for (const [site, want] of Object.entries(EXPECTED))
-        assert(`${site}: exactly ${want} entry`, (count.get(site) ?? 0) === want,
-            `saw ${count.get(site) ?? 0}`);
+    // THE ASSERTION THAT REPLACES "one entry per site". Falsifiable per site:
+    // delete any one recordD1Write call and this total is 8, not 9.
+    assert(`every one of the ${EXPECTED_SI} control writes reached the dataset`,
+        siOf(rows) === EXPECTED_SI,
+        `sum(_sample_interval) = ${siOf(rows)}. Below ${EXPECTED_SI} means a call site did not `
+        + `execute; above means an unaccounted write path fired.`);
 
-    // Three states, and the middle one is not a pass.
-    const best = count.get(BEST_EFFORT) ?? 0;
-    if (best > 0) console.log(`PASS  ${BEST_EFFORT}: ${best} entry — a real row resolved`);
-    else console.log(`NOT OBSERVABLE  ${BEST_EFFORT}: 0 entries. Not a failure and not a pass — the route\n`
-        + '      writes only when a real MLB/WNBA row with a NULL went_to_ot matches a live\n'
-        + '      /v2/games entry for its date, and no synthetic row can produce that. It is an\n'
-        + '      UPDATE, so it cannot create a row of any scheme; its silence does not weaken\n'
-        + '      the finding, and this line says so rather than omitting the site.');
+    assert(`${EXPECTED_ROWS} surviving row(s) — one per request`, rows.length === EXPECTED_ROWS,
+        `saw ${rows.length}; each Worker invocation keeps one point`);
+
+    assert(`${UNSAMPLED_SITE} is present by name`,
+        rows.some(r => r.site === UNSAMPLED_SITE),
+        'this is the only request that writes a single point, so it is the only site '
+        + 'whose row cannot be sampled away — if it is missing, the loss is not sampling');
+
+    assert('every surviving site is one this build declares',
+        rows.every(r => D1_WRITE_SITES.includes(r.site)),
+        `undeclared: ${rows.map(r => r.site).filter(x => !D1_WRITE_SITES.includes(x)).join(', ')}`);
 
     assert('every control entry carries scheme=control', rows.every(r => r.scheme === 'control'),
         `schemes seen: ${[...new Set(rows.map(r => r.scheme))].join(', ')}`);
+
+    assert('every control entry carries a country and an ASN, and no more',
+        rows.every(r => r.country && r.asn && r.ua && !/\d+\.\d+\.\d+\.\d+/.test(String(r.ua))),
+        'country/asn answer "which system"; an IP would identify a machine and must never appear');
+
+    // Three states, and the middle one is not a pass.
+    const best = rows.filter(r => r.site === BEST_EFFORT).length;
+    if (best > 0) console.log(`PASS  ${BEST_EFFORT}: present — a real row resolved`);
+    else console.log(`NOT OBSERVABLE  ${BEST_EFFORT}: absent. Not a failure and not a pass — the route\n`
+        + '      writes only when a real MLB/WNBA row with a NULL went_to_ot matches a live\n'
+        + '      /v2/games entry for its date, and no synthetic row can produce that (the run\n'
+        + '      above reports `no v2/games match` for the 2099 row it was handed). It is an\n'
+        + '      UPDATE, so it cannot create a row of any scheme; its silence does not weaken\n'
+        + '      the finding, and this line says so rather than omitting the site.');
 
     // ── cleanup ──────────────────────────────────────────────────────────────
     console.log('\n=== cleanup ===');
@@ -298,13 +350,16 @@ async function readback() {
         const n = rows.filter(r => r.site === site).length;
         console.log(`    ${String(n).padStart(3)}  ${site}`);
     }
-    const missing = Object.keys(EXPECTED).filter(s => !seen.has(s));
+    const si = rows.reduce((a, r) => a + Number(r.si ?? 1), 0);
+    console.log(`\n  rows ${rows.length}, sum(_sample_interval) ${si}`);
+    const missing = D1_WRITE_SITES.filter(s => !seen.has(s) && s !== BEST_EFFORT);
     if (missing.length) {
-        console.log(`\n  STILL ABSENT after the wider window: ${missing.join(', ')}`);
-        console.log('  Latency is ruled out at this range; these writes did not reach the dataset.');
+        console.log(`  absent BY NAME: ${missing.join(', ')}`);
+        console.log('  A site absent by name is NOT proof its call did not run: Analytics Engine keeps');
+        console.log('  one point per Worker invocation and reports the rest through _sample_interval.');
+        console.log('  Read the sum above against the writes the run issued — that is the measurement.');
     } else {
-        console.log('\n  every controllable site is present — the control run\'s 3-minute poll was short,');
-        console.log('  not the instrument short of writes.');
+        console.log('  every declared site appears by name.');
     }
     return rows;
 }

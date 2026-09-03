@@ -570,9 +570,19 @@ try {
     // a dash-scheme INSERT). Task 2 of that CC-CMD must write to match, and the
     // document says so.
     const WINDOW_H = 48;
-    const everQ = await ae(`SELECT count() AS n FROM field_jq_analytics WHERE index1 = 'd1-write' FORMAT JSON`);
+    const everQ = await ae(`SELECT sum(_sample_interval) AS n FROM field_jq_analytics WHERE index1 = 'd1-write' FORMAT JSON`);
     const winQ = await ae(
-        `SELECT countIf(blob1 = 'control') AS control, countIf(blob1 = 'dash') AS dash
+        // SUM THE SAMPLE INTERVAL, DO NOT COUNT ROWS. Measured 2026-09-03: a
+        // Worker invocation that wrote two provenance points produced ONE row
+        // carrying `_sample_interval = 2`; the invocation that wrote one produced
+        // a row with 1. Analytics Engine keeps a subset per invocation and records
+        // how many each surviving row stands for, so `countIf` undercounts by
+        // exactly the factor the dataset is already telling us about. The two
+        // writes in a pair always target the same row id and so carry the same
+        // blob1, which is why the SCHEME survives sampling even though the site
+        // name may not.
+        `SELECT sum(if(blob1 = 'control', _sample_interval, 0)) AS control,
+                sum(if(blob1 = 'dash', _sample_interval, 0)) AS dash
          FROM field_jq_analytics
          WHERE index1 = 'd1-write' AND timestamp > NOW() - INTERVAL '${WINDOW_H}' HOUR FORMAT JSON`);
 

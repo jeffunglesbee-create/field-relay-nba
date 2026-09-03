@@ -143,12 +143,65 @@ Add the call and the helper that derives `verb`/`table` from a statement. Change
 no route's behaviour, no response shape, no binding in `wrangler.toml`, and no
 existing `writeDataPoint` call.
 
+## The transport samples, and the done condition had to move (measured 2026-09-03)
+
+**"POST one harmless statement through each instrumented path and assert exactly
+one entry per path" is not satisfiable, and the reason is not the
+instrumentation.** Run `33712204759` issued nine provenance writes across five
+requests and Analytics Engine kept five rows:
+
+| request | writes issued | rows kept | `_sample_interval` |
+|---|---|---|---|
+| `/archive/game` with `series_key` | 1 | 1 | 1 |
+| the other four | 2 each | 1 each | 2 each |
+
+Analytics Engine keeps a subset of the data points written in one Worker
+invocation and records, per surviving row, how many it stands for. **Latency was
+ruled out rather than assumed:** readback `33712493470`, five minutes later over a
+six-hour window, found the same five rows and no more. That check exists as its
+own mode (`--readback`) precisely because "the writes were lost" and "AE has not
+ingested them yet" produce identical output at minute three.
+
+### What this costs, stated exactly
+
+**Nothing that this document turns on.** Both writes in every pair target the
+same row `id`, so they carry the same `blob1`. The scheme survives sampling
+intact; `blob1 = 'dash'` cannot be sampled into `blob1 = 'underscore'`.
+
+What is lost is **which of two doors inside one request**, and raw `count()`
+arithmetic. Two fixes shipped for the second:
+
+- `verify-staged-items.mjs` check 6 now reads
+  `sum(if(blob1 = 'dash', _sample_interval, 0))`. `countIf` undercounted by
+  exactly the factor the dataset was already reporting.
+- The control asserts `sum(_sample_interval) == 9`, the number of writes actually
+  issued. That is per-site proof in aggregate and it is falsifiable per site:
+  delete any one `recordD1Write` call and the total is 8. It is paired with
+  `scripts/d1-provenance-check.mjs`, which proves each site individually by
+  reading the source, with mutation-proven teeth.
+
+`/archive/game` with `series_key` is the only request that writes a single point,
+so `/archive/game:postseason` is the only site guaranteed an unsampled row of its
+own — and the control asserts it by name, so a loss that is NOT sampling still
+fails.
+
+### The residual, and what removing it would cost
+
+Per-request site attribution can only be made lossless by writing **one** data
+point per request instead of one per write — accumulating the sites touched and
+flushing once. Every mechanism for that (a `WeakMap` keyed on the request plus a
+flush before each `return`, or a wrapper around the handler) is a structural
+change to the fetch handler, which this repo's CLAUDE.md says requires explicit
+authorization. Not done, and not smuggled in under a telemetry commit.
+
 ## Done condition (Rule 87 §2, Rule 89) — three states, not two
 
 **Gate — the control.** POST one harmless statement through each instrumented
-path and assert **exactly one** entry per path, carrying that route's name.
-Artifact: the query output, pasted verbatim. If any path is silent, **STOP**:
-the instrument is broken and nothing downstream means anything.
+path and assert `sum(_sample_interval)` equals the number of writes issued, with
+`/archive/game:postseason` present by name. (Originally "exactly one entry per
+path"; see the section above for the measurement that moved it and for what did
+NOT move.) Artifact: the query output, pasted verbatim. If the total is short,
+**STOP**: a call site did not execute and nothing downstream means anything.
 
 **Then, one of three outcomes, and the middle one is not a pass:**
 
