@@ -7,8 +7,8 @@ finding it.
 `CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key` can be closed, and
 before field-relay-nba#1 can be closed.
 **Status:** OPEN. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
-**RESOLVED 2026-09-03 for the 51 — every one is a duplicate with an ESPN event id
-as its merge key; the merge itself awaits human approval. See below.**
+**MERGED 2026-09-03 — all 51 duplicates are gone, 157 references repointed or
+dropped, zero dangling, verified by an independent re-sweep. See below.**
 **SCOPE CORRECTED 2026-09-03 — the title is wrong and so is "every one MLS".**
 An archive-wide sweep (field-laboratory `probe-archive-scheme-duplicates.mjs`,
 run `33775532885`, 2777 rows read from D1 rather than from a 30-day
@@ -57,6 +57,66 @@ which is what `scripts/probe-fixture-identity-duplicates.mjs` does.
 
 Sweep result: 1064 rows, 170 with no event id (16.0%), 61 non-distinct groups,
 **51 invisible to the event-id watcher**, every one MLS.
+
+## MERGED 2026-09-03 — the 51 are gone, verified independently
+
+Run `33787185561` (field-laboratory `merge-mls-duplicate-pairs.mjs`, executed
+after five dry runs).
+
+```
+51/51 losers gone · 51/51 survivors present · ZERO dangling references
+157 reference actions: 112 repoint, 45 drop as redundant
+```
+
+**A merge, not a delete.** Each side held fields the other lacked, so the
+survivor absorbed what it was missing first, and no non-null survivor value was
+overwritten. Ids were NOT renamed — `briefs.game_id` joins on the games id, and
+renaming a survivor to the `${SPORT}_${date}_e${eventId}` shape would orphan
+every brief pointing at it.
+
+### The dry run earned its place three times
+
+1. **It blocked.** 47 of 51 rows about to be deleted were referenced elsewhere.
+2. **It found a table nobody named.** The referential check originally looked at
+   `briefs` and `change_log` — the two I could name. Rewritten to DISCOVER
+   referencing columns from `PRAGMA table_info`, it found `odds_history.game_id`,
+   22 rows, which the guess would have orphaned silently.
+3. **It inverted its own plan.** Sampling the rows rather than counting them
+   showed the loser's `change_log` entry was byte-identical to one the survivor
+   already held — same source, same field, same `captured_at` to the millisecond.
+   Repointing it would have filed one record twice. So each reference is
+   classified per row: repoint where the survivor has no matching record, drop
+   where it does. 112 and 45.
+
+### Verified by the instrument that found the defect
+
+Sweep `33787672483` — not the merge checking its own work:
+
+| | before | after | delta |
+|---|---|---|---|
+| mixed-scheme clusters | 53 | **2** | −51 |
+| by sport | MLS 51, WNBA 2 | **WNBA 2** | MLS gone |
+| `unrecognised` rows | 1007 | 956 | −51 |
+| rows in both game tables | 2777 | 2726 | −51 |
+| same-fixture clusters | 182 | 131 | −51 |
+
+**Every figure moves by exactly 51**, which is what rules out a merge that
+collapsed the right number of clusters by damaging something else.
+
+### What is left
+
+- **The 2 WNBA pairs**, untouched. Third id scheme, and they carry a real
+  discriminator so they need no slate lookup. The same machinery reaches them
+  with a scope change.
+- **The external writer is still running.** This merged the rows that existed;
+  nothing here stops the next dash-scheme insert. That is
+  `CC-CMD-2026-09-02-d1-write-provenance`'s question, and its instrumentation
+  went live in `17ec554`.
+- **Task 3's premise is now settled for MLS.** It said a shared upsert key could
+  not be designed until the second writer had a name. Every survivor now carries
+  the authoritative ESPN event id, and `d253209` keys `/archive/game` on a bare
+  numeric `source_id` — so a future write for one of these fixtures upserts onto
+  the survivor rather than creating a third row.
 
 ## RESOLVED 2026-09-03: the 51 are duplicates, and each has a merge key
 
