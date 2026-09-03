@@ -7,6 +7,8 @@ finding it.
 `CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key` can be closed, and
 before field-relay-nba#1 can be closed.
 **Status:** OPEN. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
+**RESOLVED 2026-09-03 for the 51 — every one is a duplicate with an ESPN event id
+as its merge key; the merge itself awaits human approval. See below.**
 **SCOPE CORRECTED 2026-09-03 — the title is wrong and so is "every one MLS".**
 An archive-wide sweep (field-laboratory `probe-archive-scheme-duplicates.mjs`,
 run `33775532885`, 2777 rows read from D1 rather than from a 30-day
@@ -55,6 +57,69 @@ which is what `scripts/probe-fixture-identity-duplicates.mjs` does.
 
 Sweep result: 1064 rows, 170 with no event id (16.0%), 61 non-distinct groups,
 **51 invisible to the event-id watcher**, every one MLS.
+
+## RESOLVED 2026-09-03: the 51 are duplicates, and each has a merge key
+
+**`indistinguishable` was the instrument, not the data.** `classifyPair` reads
+`espn_event_id` and `start_time`, and both are absent from exactly one side of
+every pair — so four fields could not see past the stub pattern. Two questions it
+never asked settle it.
+
+`field-laboratory scripts/probe-mls-pair-discriminators.mjs`, runs `33776839924`
+and `33777097281`:
+
+```
+  verdicts:            decided by:
+      51  duplicate        51  slate
+```
+
+**51 pairs, 51 `duplicate`, 51 distinct ESPN event ids**, across 8 dates
+(`2026-08-08` through `2026-08-30`). `slate_matches == 1` on every one: the relay
+already serves `/v2/games?sport=mls&date=...` with `espnEventId`, and it lists a
+single fixture between those clubs on that date. Not one `doubleheader`, not one
+`absent-from-slate`, not one `not-observable`.
+
+Distinct keys matter as much as the count: no two pairs resolve to the same event
+id, so a merge on this key cannot fold two real fixtures together.
+
+### The fields agree independently, and one of them nearly lied
+
+| field | agree | differ | one-null |
+|---|---|---|---|
+| venue | 46 | 5 | 0 |
+| home_score / away_score / start_time / streams | 0 | 0 | 51 each |
+
+The four `one-null` rows ARE the stub pattern this document describes. `venue`
+agrees on 46 — a second, independent line pointing the same way.
+
+**The five that disagree are why the slate outranks the fields:**
+
+```
+DICK'S Sporting Goods Park  ||  Dick's Sporting Goods Park    x2, Colorado
+Sports Illustrated Stadium  ||  Red Bull Arena                x3, Red Bull NY
+```
+
+Capitalisation, and one stadium under two names. Had the fields been allowed to
+win, five real duplicates would have been called two games on a capitalisation
+difference and a sponsorship change.
+
+### What this changes for Task 3
+
+Task 3 says a shared upsert key "cannot be designed until the second writer has a
+name". **For these 51, that is false.** Each pair carries an authoritative ESPN
+event id, and `d253209` already keys `/archive/game` on a bare numeric
+`source_id`. The key exists; the writer's identity is not needed to use it.
+
+Naming the writer stays the goal — the dash rows share one `created_at`
+(`2026-06-30 17:13:25` on every one sampled), which is a single-import signature
+and not a live one, and that is worth reconciling against Task 1's conclusion.
+
+### The merge is NOT taken
+
+It deletes 51 rows, and *do not delete archive rows without explicit human
+approval* is standing. What exists now is the evidence a merge needs:
+`field-laboratory outbox/mls-pair-discriminators-latest.json` carries each pair's
+two ids and its key.
 
 ## Scope correction, 2026-09-03: 51 MLS is right, and it is not all of them
 
