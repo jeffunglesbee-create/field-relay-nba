@@ -147,25 +147,42 @@ async function ae(sql) {
 // WHAT THE CONTROL CAN PROVE, AND WHY IT IS NOT "ONE ROW PER SITE".
 //
 // The CC-CMD asked for exactly one entry per instrumented path. The transport
-// cannot deliver that, and the dataset says so in its own column. MEASURED
-// 2026-09-03, run 33712204759 and its readback 33712493470: each request that
-// issued TWO provenance writes produced ONE row carrying `_sample_interval = 2`;
-// the one request that issued a single write produced a row with 1. Analytics
-// Engine keeps a subset of the data points written in one Worker invocation and
-// records, per surviving row, how many it stands for. Latency was ruled out —
-// the readback five minutes later found the same five rows.
+// cannot deliver that, and it took two runs to learn what it CAN deliver — the
+// first reading was wrong and is recorded here because the wrong model is the
+// instructive part.
 //
-// So the assertion moves to the quantity the transport does preserve:
-// `sum(_sample_interval)` across the run must equal the number of writes actually
-// issued. That is per-site proof in aggregate — remove any single call site and
-// the total drops by one — and it is paired with the static wiring check in
-// scripts/d1-provenance-check.mjs, which proves each site individually by reading
-// the source with mutation-proven teeth.
+// RUN 33712204759, nine writes across five requests: five rows. Every request
+// that issued two writes produced one row with `_sample_interval = 2`; the one
+// request that issued a single write produced a row with 1. Readback
+// 33712493470, five minutes later over six hours, found the same five rows, so
+// latency was ruled out rather than assumed. The obvious model — Analytics
+// Engine keeps ONE data point per Worker invocation — fits that run exactly.
 //
-// WHAT IS GENUINELY LOST is which of two doors inside ONE request. Nothing else:
-// both writes in every pair target the same row id, so they carry the same
-// blob1, and the scheme — the column the whole CC-CMD turns on — survives
-// sampling intact.
+// RUN 33712779159, the same nine writes: SEVEN rows, and the model was wrong.
+// `/archive/game:postseason`, the single-write request that cannot be sampled
+// under a per-invocation rule, was absent entirely; one two-write request
+// produced two rows. Which rows survive is not determined by the request that
+// wrote them.
+//
+// WHAT HELD BOTH TIMES, EXACTLY: `sum(_sample_interval)` = 9, the number of
+// writes issued. 5 rows summing to 9 and 7 rows summing to 9. AE samples the
+// stream and the interval it stamps on each survivor makes the total exact.
+//
+// So the control asserts two things and neither is a row count:
+//
+//   1. `sum(_sample_interval)` equals the writes issued. Falsifiable per site —
+//      delete any one recordD1Write call and the total is short by one round.
+//   2. Every declared site is observed BY NAME at least once. A single round
+//      cannot promise that, so the request set is issued ROUNDS times and the
+//      names are unioned. At the ~60-78% per-write survival measured across the
+//      two runs, ten rounds put the chance of missing any given site near zero —
+//      and if one IS still missing, that is a finding with a name on it, not a
+//      silence.
+//
+// WHAT IS GENUINELY LOST is which of two doors inside ONE request. Nothing the
+// CC-CMD turns on: both writes in every pair target the same row id, so they
+// carry the same blob1, and a dash-scheme write cannot be sampled into another
+// scheme.
 const WRITES_PER_REQUEST = [
     ['R1 /archive/game (MLB, clinching)', 2, ['/archive/game:regular', 'writeMLBSeriesResult:regular']],
     ['R2 /archive/game (series_key)', 1, ['/archive/game:postseason']],
@@ -173,11 +190,10 @@ const WRITES_PER_REQUEST = [
     ['R4 /archive/score-by-id (no espn)', 2, ['/archive/score-by-id:regular', '/archive/score-by-id:postseason']],
     ['R5 /archive/drama-by-id', 2, ['/archive/drama-by-id:regular', '/archive/drama-by-id:postseason']],
 ];
-const EXPECTED_SI = WRITES_PER_REQUEST.reduce((a, [, n]) => a + n, 0);       // 9
-const EXPECTED_ROWS = WRITES_PER_REQUEST.length;                              // 5
-// The only request that writes exactly one point, so the only site guaranteed
-// its own unsampled row. Everything else is provable in aggregate, not by name.
-const UNSAMPLED_SITE = '/archive/game:postseason';
+const WRITES_PER_ROUND = WRITES_PER_REQUEST.reduce((a, [, n]) => a + n, 0);   // 9
+const CONTROLLABLE = WRITES_PER_REQUEST.flatMap(([, , sites]) => sites);      // 9 names
+const ROUNDS = 10;
+// The one site no synthetic request can reach — reported as its own state.
 const BEST_EFFORT = '/admin/archive/backfill-went-to-ot:regular';
 
 async function control() {
@@ -198,52 +214,52 @@ async function control() {
 
     const since = new Date(Date.now() - 60_000).toISOString();
 
-    // R1 — /archive/game:regular AND writeMLBSeriesResult:regular. series_record
-    // '3-0' with the home side winning is what detectMLBSeriesOutcome reads as a
-    // clinching sweep, which is the only way to reach that function.
-    console.log('  R1 /archive/game (MLB, clinching series_record) →',
-        JSON.stringify(await post('/archive/game', {
-            sport: 'MLB', date: DATE_REG, home: 'Provenance Home', away: 'Provenance Away',
-            home_score: 5, away_score: 3, series_record: '3-0',
-        })));
+    // ONE ROUND: the five requests that reach the nine controllable sites.
+    // R1's series_record '3-0' with the home side winning is what
+    // detectMLBSeriesOutcome reads as a clinching sweep — the only way to reach
+    // writeMLBSeriesResult. R3/R4/R5 use a GHOST id that matches nothing, so the
+    // regular UPDATE changes 0 rows and the postseason one runs after it: both
+    // sites fire from one request, which is the pairing the site names exist to
+    // keep apart.
+    const round = async (verbose) => {
+        const say = (...a) => verbose && console.log(...a);
+        say('  R1 /archive/game (MLB, clinching series_record) →',
+            JSON.stringify(await post('/archive/game', {
+                sport: 'MLB', date: DATE_REG, home: 'Provenance Home', away: 'Provenance Away',
+                home_score: 5, away_score: 3, series_record: '3-0',
+            })));
+        say('  R2 /archive/game (series_key) →',
+            JSON.stringify(await post('/archive/game', {
+                sport: 'MLB', date: DATE_POST, series_key: 'PROVENANCE_CONTROL_SERIES',
+                round: 'CTRL', game_number: 1, home: 'Provenance Home', away: 'Provenance Away',
+                home_score: 2, away_score: 1,
+            })));
+        say('  R3 /archive/score-by-id (with espn_event_id) →',
+            JSON.stringify(await post('/archive/score-by-id',
+                { id: GHOST, home_score: 1, away_score: 0, espn_event_id: '999000222' })));
+        say('  R4 /archive/score-by-id (no espn_event_id) →',
+            JSON.stringify(await post('/archive/score-by-id',
+                { id: GHOST, home_score: 1, away_score: 0 })));
+        say('  R5 /archive/drama-by-id →',
+            JSON.stringify(await post('/archive/drama-by-id',
+                { id: GHOST, drama_peak: 1, drama_arc: 'control' })));
+    };
 
-    // R2 — /archive/game:postseason. series_key routes to the other table.
-    console.log('  R2 /archive/game (series_key) →',
-        JSON.stringify(await post('/archive/game', {
-            sport: 'MLB', date: DATE_POST, series_key: 'PROVENANCE_CONTROL_SERIES',
-            round: 'CTRL', game_number: 1, home: 'Provenance Home', away: 'Provenance Away',
-            home_score: 2, away_score: 1,
-        })));
+    await round(true);
+    for (let r = 2; r <= ROUNDS; r++) await round(false);
+    console.log(`  ...and ${ROUNDS - 1} more round(s) of the same five requests — ${ROUNDS * WRITES_PER_ROUND} writes in all.`);
+    console.log('  Rounds exist because survivor identity is not determined; see the note above WRITES_PER_REQUEST.');
 
-    // R3/R4 — /archive/score-by-id, both branches. A GHOST id matches nothing, so
-    // the regular UPDATE changes 0 rows and the postseason UPDATE runs after it:
-    // both sites fire from one request, which is exactly the pairing the site
-    // names exist to keep apart.
-    console.log('  R3 /archive/score-by-id (with espn_event_id) →',
-        JSON.stringify(await post('/archive/score-by-id',
-            { id: GHOST, home_score: 1, away_score: 0, espn_event_id: '999000222' })));
-    console.log('  R4 /archive/score-by-id (no espn_event_id) →',
-        JSON.stringify(await post('/archive/score-by-id',
-            { id: GHOST, home_score: 1, away_score: 0 })));
-
-    // R5 — /archive/drama-by-id, both branches, same GHOST reasoning.
-    console.log('  R5 /archive/drama-by-id →',
-        JSON.stringify(await post('/archive/drama-by-id',
-            { id: GHOST, drama_peak: 1, drama_arc: 'control' })));
-
-    // R6 — the best-effort one. Auth is real; the data condition may not hold.
+    // R6 — the best-effort one, issued ONCE. Auth is real; the data condition may
+    // not hold, and it touches real rows, so it is not repeated.
     if (MCP_SECRET) {
-        console.log('  R6 /admin/archive/backfill-went-to-ot (limit 1) →',
+        console.log('  R6 /admin/archive/backfill-went-to-ot (limit 1, once) →',
             JSON.stringify(await post('/admin/archive/backfill-went-to-ot', { limit: 1 },
                 { Authorization: `Bearer ${MCP_SECRET}` })));
     } else {
         console.log('  R6 SKIPPED — FIELD_MCP_SECRET not set');
     }
 
-    // ── read back ────────────────────────────────────────────────────────────
-    // Analytics Engine ingests asynchronously. Poll rather than sleep once and
-    // conclude: a single early read would report zero and look exactly like a
-    // dead instrument, which is the failure mode this whole task is about.
     const q = `SELECT blob1 AS scheme, blob2 AS site, blob3 AS verb, blob4 AS tbl,
                       blob5 AS ua, blob6 AS country, blob7 AS asn, _sample_interval AS si
                FROM field_jq_analytics
@@ -256,55 +272,72 @@ async function control() {
     // reason set out above WRITES_PER_REQUEST.
     let rows = [];
     const siOf = (rs) => rs.reduce((a, r) => a + Number(r.si ?? 1), 0);
-    for (let attempt = 1; attempt <= 12; attempt++) {
+    const WANT_SI = ROUNDS * WRITES_PER_ROUND;
+    for (let attempt = 1; attempt <= 14; attempt++) {
         rows = await ae(q);
-        if (siOf(rows) >= EXPECTED_SI) break;
-        console.log(`  attempt ${attempt}: ${siOf(rows)}/${EXPECTED_SI} write(s) visible, waiting 15s`);
+        if (siOf(rows) >= WANT_SI) break;
+        console.log(`  attempt ${attempt}: ${siOf(rows)}/${WANT_SI} write(s) visible, waiting 15s`);
         await new Promise(r => setTimeout(r, 15_000));
     }
 
+    const bySite = new Map();
+    for (const r of rows) {
+        const e = bySite.get(r.site) || { rows: 0, si: 0, verb: r.verb, tbl: r.tbl };
+        e.rows++; e.si += Number(r.si ?? 1);
+        bySite.set(r.site, e);
+    }
     console.log('\n  Analytics Engine, index1=d1-write, since this run began:');
-    if (!rows.length) console.log('    (no rows)');
-    for (const r of rows)
-        console.log(`    si=${r.si}  ${String(r.site).padEnd(38)} scheme=${r.scheme} ${r.verb} ${r.tbl} ${r.country}/${r.asn} ${r.ua}`);
+    for (const site of [...CONTROLLABLE, BEST_EFFORT]) {
+        const e = bySite.get(site);
+        console.log(e
+            ? `    rows=${String(e.rows).padStart(2)} si=${String(e.si).padStart(2)}  ${site.padEnd(38)} ${e.verb} ${e.tbl}`
+            : `    rows= 0 si= 0  ${site.padEnd(38)} —`);
+    }
+    console.log(`\n  total rows ${rows.length}, sum(_sample_interval) ${siOf(rows)}, writes issued ${WANT_SI}`);
 
-    console.log('\n  requests issued, and the writes each made:');
-    for (const [label, n, sites] of WRITES_PER_REQUEST)
-        console.log(`    ${n}  ${label.padEnd(36)} ${sites.join(', ')}`);
+    // 1. THE TOTAL. Falsifiable per site: delete any one recordD1Write call and
+    //    this is short by exactly ROUNDS.
+    assert(`all ${WANT_SI} control writes reached the dataset`, siOf(rows) === WANT_SI,
+        `sum(_sample_interval) = ${siOf(rows)}. Short means a call site did not execute `
+        + `(by ${ROUNDS} per missing site); over means an unaccounted write path fired.`);
 
-    // THE ASSERTION THAT REPLACES "one entry per site". Falsifiable per site:
-    // delete any one recordD1Write call and this total is 8, not 9.
-    assert(`every one of the ${EXPECTED_SI} control writes reached the dataset`,
-        siOf(rows) === EXPECTED_SI,
-        `sum(_sample_interval) = ${siOf(rows)}. Below ${EXPECTED_SI} means a call site did not `
-        + `execute; above means an unaccounted write path fired.`);
+    // 2. EVERY SITE BY NAME. One round cannot promise this; ten can.
+    const unseen = CONTROLLABLE.filter(x => !bySite.has(x));
+    assert(`every one of the ${CONTROLLABLE.length} controllable sites was observed by name`,
+        unseen.length === 0,
+        `never survived a single round: ${unseen.join(', ')}. At the measured survival rate `
+        + `that is not sampling — read it as a call site that did not fire.`);
 
-    assert(`${EXPECTED_ROWS} surviving row(s) — one per request`, rows.length === EXPECTED_ROWS,
-        `saw ${rows.length}; each Worker invocation keeps one point`);
-
-    assert(`${UNSAMPLED_SITE} is present by name`,
-        rows.some(r => r.site === UNSAMPLED_SITE),
-        'this is the only request that writes a single point, so it is the only site '
-        + 'whose row cannot be sampled away — if it is missing, the loss is not sampling');
+    // 3. THE SHAPE. A site wired to the wrong table would pass 1 and 2.
+    const DECLARED = Object.fromEntries(
+        [...WRITES_PER_REQUEST.flatMap(([, , sites]) => sites)].map(site => [site,
+            site.startsWith('/archive/game') ? 'INSERT' : 'UPDATE']));
+    const wrongVerb = [...bySite.entries()].filter(([site, e]) => DECLARED[site] && e.verb !== DECLARED[site]);
+    assert('every site records the verb its statement uses', wrongVerb.length === 0,
+        wrongVerb.map(([s2, e]) => `${s2} recorded ${e.verb}, expected ${DECLARED[s2]}`).join('; '));
+    const wrongTable = [...bySite.entries()].filter(([site, e]) =>
+        (site.includes(':postseason') ? 'postseason_games' : 'regular_season_games') !== e.tbl);
+    assert('every site records the table its name claims', wrongTable.length === 0,
+        wrongTable.map(([s2, e]) => `${s2} recorded ${e.tbl}`).join('; '));
 
     assert('every surviving site is one this build declares',
         rows.every(r => D1_WRITE_SITES.includes(r.site)),
-        `undeclared: ${rows.map(r => r.site).filter(x => !D1_WRITE_SITES.includes(x)).join(', ')}`);
+        `undeclared: ${[...new Set(rows.map(r => r.site).filter(x => !D1_WRITE_SITES.includes(x)))].join(', ')}`);
 
     assert('every control entry carries scheme=control', rows.every(r => r.scheme === 'control'),
         `schemes seen: ${[...new Set(rows.map(r => r.scheme))].join(', ')}`);
 
-    assert('every control entry carries a country and an ASN, and no more',
+    assert('country and ASN travel; an IP never does',
         rows.every(r => r.country && r.asn && r.ua && !/\d+\.\d+\.\d+\.\d+/.test(String(r.ua))),
-        'country/asn answer "which system"; an IP would identify a machine and must never appear');
+        'country/asn answer "which system"; an IP would identify a machine');
 
     // Three states, and the middle one is not a pass.
-    const best = rows.filter(r => r.site === BEST_EFFORT).length;
+    const best = bySite.get(BEST_EFFORT)?.rows ?? 0;
     if (best > 0) console.log(`PASS  ${BEST_EFFORT}: present — a real row resolved`);
     else console.log(`NOT OBSERVABLE  ${BEST_EFFORT}: absent. Not a failure and not a pass — the route\n`
         + '      writes only when a real MLB/WNBA row with a NULL went_to_ot matches a live\n'
         + '      /v2/games entry for its date, and no synthetic row can produce that (the run\n'
-        + '      above reports `no v2/games match` for the 2099 row it was handed). It is an\n'
+        + '      above reports `no v2/games match` for the 2099 row it was handed), and it is\n      issued ONCE rather than per round because it touches real rows. It is an\n'
         + '      UPDATE, so it cannot create a row of any scheme; its silence does not weaken\n'
         + '      the finding, and this line says so rather than omitting the site.');
 
