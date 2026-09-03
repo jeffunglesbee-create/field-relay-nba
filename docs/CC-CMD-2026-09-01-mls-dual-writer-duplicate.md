@@ -6,9 +6,10 @@ finding it.
 **Relationship:** the second CC-CMD required by Rule 87 (4) before
 `CC-CMD-2026-09-01-archive-game-numeric-espn-upsert-key` can be closed, and
 before field-relay-nba#1 can be closed.
-**Status:** OPEN. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
-**MERGED 2026-09-03 — all 51 duplicates are gone, 157 references repointed or
-dropped, zero dangling, verified by an independent re-sweep. See below.**
+**Status:** CLOSED 2026-09-03. **Task 1 DONE 2026-09-01 — the answer is NOT (2).**
+**CLOSED 2026-09-03 — all 53 duplicate pairs merged (51 MLS + 2 WNBA), 157
+references repointed or dropped, zero dangling. An independent re-sweep reports
+ZERO mixed-scheme clusters in the archive. See below.**
 **SCOPE CORRECTED 2026-09-03 — the title is wrong and so is "every one MLS".**
 An archive-wide sweep (field-laboratory `probe-archive-scheme-duplicates.mjs`,
 run `33775532885`, 2777 rows read from D1 rather than from a 30-day
@@ -57,6 +58,46 @@ which is what `scripts/probe-fixture-identity-duplicates.mjs` does.
 
 Sweep result: 1064 rows, 170 with no event id (16.0%), 61 non-distinct groups,
 **51 invisible to the event-id watcher**, every one MLS.
+
+## CLOSED 2026-09-03 — zero mixed-scheme clusters remain anywhere in the archive
+
+Both merges executed and verified by independent re-sweeps.
+
+| | start | after MLS | after WNBA |
+|---|---|---|---|
+| mixed-scheme clusters | 53 | 2 | **0** |
+| rows in both game tables | 2777 | 2726 | 2724 |
+| same-fixture clusters | 182 | 131 | 129 |
+| `unrecognised` | 1007 | 956 | **956** |
+| `sport-prefixed-external` | 158 | 158 | **156** |
+
+**The last two rows are the check that matters.** The WNBA losers were
+`sport-prefixed-external`, not the dash shape, so that count had to fall by 2 and
+`unrecognised` had to stay still. Both did. A merge that had deleted the wrong
+rows would have moved the wrong counter, and the totals alone would not have
+shown it.
+
+**WNBA, run `33788211815`.** 2/2 losers gone, 2/2 survivors present, zero
+dangling — and **nothing referenced either loser**, so the whole repoint/drop
+apparatus the MLS merge needed did nothing. Each survivor absorbed `streams` and
+`opening_odds`, and kept the one brief attached to it. Four writes, against 212.
+
+The machinery needed one scope change and no new logic: `mixedScheme` compares
+schemes without naming them, and `pickSurvivor` asks which row is
+`provider-composite` — the WNBA loser is lower-case-prefixed, so the upper-case
+row is still the only one. That is a self-test now, not a claim.
+`merge-mls-duplicate-pairs.mjs` became `merge-duplicate-pairs.mjs` with `--sport`
+required and no default.
+
+### What this document does NOT close
+
+- **956 `unrecognised` rows across 22 sports**, and they are not duplicates: only
+  MLS ever produced mixed-scheme clusters, so for those the non-standard writer
+  is the *only* writer for that fixture. Merging is not the question there, and
+  nothing in this document was ever about them.
+- **The external writer is still running.** This merged the rows that existed.
+  `CC-CMD-2026-09-02-d1-write-provenance`'s instrumentation went live in
+  `17ec554` and is watching for the next dash-scheme insert.
 
 ## MERGED 2026-09-03 — the 51 are gone, verified independently
 
