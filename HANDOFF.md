@@ -5,7 +5,9 @@
 Covers 2026-09-01 through 2026-09-03.
 
 **HEAD:** `ccc39ce` → this commit · **Branch:** main throughout
-**Deploys:** 888 / `33655153163` green (`ce32eaa`, carrying `d253209`).
+**Deploys:** 888 / `33655153163` green (`ce32eaa`, carrying `d253209`);
+889 / `33712050255` green (`17ec554`, the provenance instrumentation).
+**Session doc:** `outbox/2026-09-03-d1-write-provenance-control.md`
 
 Three CC-CMDs, one closed, one open with two tasks done, one open at Task 1.
 
@@ -28,7 +30,8 @@ of a seeded row.
 | `3635050` | the numeric-key done conditions, asserted against the DEPLOYED worker |
 | `9ece38e` | `scripts/d1-write-sites.mjs` — **285 `prepare()` sites, 87 writes, 0 unreadable** |
 | `42c2f30` | the verify script's relay gate moved to `process.env`; the exposed-secrets ratchet had gone 115 → 116 and it was right |
-| this commit | the provenance instrumentation: `src/d1-provenance.js` and ten call sites |
+| `17ec554` | the provenance instrumentation: `src/d1-provenance.js` and ten call sites |
+| `6f59058`, and two before it | the control, rebuilt twice as Analytics Engine's sampling was measured rather than assumed |
 
 ### The findings
 
@@ -74,8 +77,16 @@ wearing a success. Both are asserted.
   public repo. Recorded in `docs/CC-CMD-2026-09-02-d1-write-provenance.md`
   deliberately rather than as a public issue. The fix has an order: source first,
   then retire `bootstrap-relay-secret.yml`, then rotate.
-- **`guards.yml` had been red since 2026-09-01** on a stale HANDOFF, which is what
-  this section fixes, and since 2026-09-02 on the ratchet, fixed in `42c2f30`.
+- **`guards.yml` had been red since 2026-09-01** on three separate failures, two of
+  them mine: a stale HANDOFF (this section), the exposed-secrets ratchet at 116 of
+  115 (`42c2f30`), and three bare doc citations taking the count to 12 of 9. All
+  green now. `guards.yml` runs only on non-`src` pushes and reports separately from
+  `deploy.yml`, so a red job there blocks nothing and went unread for two days.
+- **Analytics Engine's `_sample_interval` is a stream-level rate, not a per-site
+  count.** Four control runs: 9 writes → 5 rows, 9 → 7, 90 → 20, 90 → 20, and the
+  sum exact every time. The first run fit "one point per invocation" perfectly and
+  that model was wrong. Per-site claims moved off AE onto the routes' own
+  responses. See `outbox/2026-09-03-d1-write-provenance-control.md`.
 
 ## SESSION CLOSE-OUT — 2026-08-29 (CFB landed, and three labels were unscoped)
 

@@ -5,7 +5,9 @@
 **Relationship:** `CC-CMD-2026-09-01-mls-dual-writer-duplicate` Task 2, split out
 per Rule 87 (4). That CC-CMD's Task 1 is DONE and eliminated explanation (2);
 this one answers what Task 1 could not reach from outside.
-**Status:** OPEN — Tasks 1 and 2 DONE, Task 3 (deploy + control) in flight.
+**Status:** OPEN — Tasks 1, 2 and 3 DONE. Task 4 is the 48-hour window, which
+`staged-verification.yml` opens and reports daily at 06:00 UTC without further
+intervention.
 **Task 1 DONE 2026-09-02 — and it narrows what Task 2 can claim.** `scripts/d1-write-sites.mjs` enumerates 285 `prepare()` sites, 87 of
 them writes, 0 unreadable. Exactly one path INSERTs into `regular_season_games`
 (`src/index.js:11801`, `/archive/game`); `src/index.js:17557` is a fully dynamic
@@ -143,47 +145,62 @@ Add the call and the helper that derives `verb`/`table` from a statement. Change
 no route's behaviour, no response shape, no binding in `wrangler.toml`, and no
 existing `writeDataPoint` call.
 
-## The transport samples, and the done condition had to move (measured 2026-09-03)
+## The transport samples, and it took three runs to learn how (measured 2026-09-03)
 
-**"POST one harmless statement through each instrumented path and assert exactly
-one entry per path" is not satisfiable, and the reason is not the
-instrumentation.** Run `33712204759` issued nine provenance writes across five
-requests and Analytics Engine kept five rows:
+**"Assert exactly one entry per instrumented path" is not satisfiable, and the
+reason is not the instrumentation.** The first model of why was wrong, and that
+is the instructive part.
 
-| request | writes issued | rows kept | `_sample_interval` |
+| run | writes issued | rows kept | `sum(_sample_interval)` |
 |---|---|---|---|
-| `/archive/game` with `series_key` | 1 | 1 | 1 |
-| the other four | 2 each | 1 each | 2 each |
+| `33712204759` | 9 | 5 | 9 |
+| `33712779159` | 9 | 7 | 9 |
+| `33712991908` | 90 | 20 | 90 |
+| `33713216975` | 90 | 20 | 90 |
 
-Analytics Engine keeps a subset of the data points written in one Worker
-invocation and records, per surviving row, how many it stands for. **Latency was
-ruled out rather than assumed:** readback `33712493470`, five minutes later over a
-six-hour window, found the same five rows and no more. That check exists as its
-own mode (`--readback`) precisely because "the writes were lost" and "AE has not
-ingested them yet" produce identical output at minute three.
+Run 1 fit "Analytics Engine keeps one data point per Worker invocation" exactly:
+every two-write request produced one row with `_sample_interval = 2`, and the
+single-write request produced a row with 1. Readback `33712493470`, five minutes
+later over a six-hour window, found the same five rows — **latency ruled out
+rather than assumed**, which is why `--readback` exists as its own mode.
+
+Run 2 disproved it. Same nine writes, seven rows, and `/archive/game:postseason`
+— the single-write request that cannot be sampled under a per-invocation rule —
+absent entirely.
+
+Run 3 settled what the column is. Ninety writes: `_sample_interval` came back 12
+and 13 on two sites and 1 on two others. **It is a stream-level rate stamped at
+ingest, not a per-site count.** It makes the total exact and says nothing
+reliable about any one site. `/archive/score-by-id:postseason` surfaced zero rows
+across ten rounds while its sibling in the same request surfaced four — and no
+number of rounds fixes that, because per-site survival is not what the column
+measures.
 
 ### What this costs, stated exactly
 
-**Nothing that this document turns on.** Both writes in every pair target the
-same row `id`, so they carry the same `blob1`. The scheme survives sampling
-intact; `blob1 = 'dash'` cannot be sampled into `blob1 = 'underscore'`.
+**Nothing this document turns on.** Both writes in every pair target the same row
+`id`, so they carry the same `blob1`. A dash-scheme write cannot be sampled into
+another scheme.
 
-What is lost is **which of two doors inside one request**, and raw `count()`
-arithmetic. Two fixes shipped for the second:
+What is lost is which of two doors inside one request, and raw `count()`
+arithmetic. Three things changed and the instrumentation was not one of them:
 
-- `verify-staged-items.mjs` check 6 now reads
-  `sum(if(blob1 = 'dash', _sample_interval, 0))`. `countIf` undercounted by
-  exactly the factor the dataset was already reporting.
-- The control asserts `sum(_sample_interval) == 9`, the number of writes actually
-  issued. That is per-site proof in aggregate and it is falsifiable per site:
-  delete any one `recordD1Write` call and the total is 8. It is paired with
-  `scripts/d1-provenance-check.mjs`, which proves each site individually by
-  reading the source, with mutation-proven teeth.
+1. `verify-staged-items.mjs` check 6 reads
+   `sum(if(blob1 = 'dash', _sample_interval, 0))`. `countIf` undercounted by
+   exactly the factor the dataset was already reporting.
+2. The control asserts `sum(_sample_interval)` equals the writes issued —
+   **exact on all four runs**, and falsifiable per site: delete one
+   `recordD1Write` call and the total is short by one per round.
+3. **The per-site claim moved off Analytics Engine entirely**, onto artifacts the
+   routes produce themselves. `R3`/`R4`/`R5` address the postseason control row
+   rather than a nonexistent id, so the regular UPDATE changes 0 rows, the
+   postseason UPDATE changes 1, and `changes: 1` in the response proves BOTH
+   branches ran — the second is only reached when the first returns zero.
+   `writeMLBSeriesResult` is proven by reading `importance` off the control row,
+   which nothing else sets.
 
-`/archive/game` with `series_key` is the only request that writes a single point,
-so `/archive/game:postseason` is the only site guaranteed an unsampled row of its
-own — and the control asserts it by name, so a loss that is NOT sampling still
-fails.
+Site names that survive sampling are now **reported, never asserted**, and the
+report says why an absence there is not evidence.
 
 ### The residual, and what removing it would cost
 
@@ -192,16 +209,25 @@ point per request instead of one per write — accumulating the sites touched an
 flushing once. Every mechanism for that (a `WeakMap` keyed on the request plus a
 flush before each `return`, or a wrapper around the handler) is a structural
 change to the fetch handler, which this repo's CLAUDE.md says requires explicit
-authorization. Not done, and not smuggled in under a telemetry commit.
+authorization. Not done, and not smuggled in under a telemetry commit. It is also
+not needed for this document's question — see "What this costs" above.
 
 ## Done condition (Rule 87 §2, Rule 89) — three states, not two
 
-**Gate — the control.** POST one harmless statement through each instrumented
-path and assert `sum(_sample_interval)` equals the number of writes issued, with
-`/archive/game:postseason` present by name. (Originally "exactly one entry per
-path"; see the section above for the measurement that moved it and for what did
-NOT move.) Artifact: the query output, pasted verbatim. If the total is short,
-**STOP**: a call site did not execute and nothing downstream means anything.
+**Gate — the control. PASSED 2026-09-03, run `33713216975`.** Two artifacts, not
+one: `sum(_sample_interval)` equals the writes issued (90/90), and each of the
+nine controllable sites carries a deterministic execution proof from the routes'
+own responses. (Originally "exactly one entry per path"; see the section above
+for the three runs that moved it and for what did NOT move.) If the total is
+short, **STOP**: a call site did not execute and nothing downstream means
+anything.
+
+The tenth site, `/admin/archive/backfill-went-to-ot:regular`, is **NOT
+OBSERVABLE** and is reported as its own state: it writes only when a real
+MLB/WNBA row with a NULL `went_to_ot` matches a live `/v2/games` entry for its
+date, which no synthetic row can produce — the run reports `no v2/games match`
+for the 2099 row it was handed. It is an UPDATE and so cannot create a row of any
+scheme; its silence does not weaken the finding.
 
 **Then, one of three outcomes, and the middle one is not a pass:**
 
@@ -287,11 +313,15 @@ carry-forward disguised as a dependency.
    sites in `src/index.js`; 20/20 in `scripts/d1-provenance-check.mjs`, proven by
    mutation (removing one call site takes it to 8/10; a stale route name to
    17/20).
-3. Deploy, then run the control against each site and paste the query output.
-   `.github/workflows/d1-write-provenance-verify.yml`, dispatch-only. Phase A is
-   a census that runs `idScheme` over every id in both tables — a falsification
-   attempt, because a predicate asserted only against strings that already pass
-   is not asserted at all. Phase B is the control.
+3. **DONE 2026-09-03.** Deploy (889 / `33712050255`, `17ec554`), then the census
+   and the control. `.github/workflows/d1-write-provenance-verify.yml`,
+   dispatch-only, three phases. Census: `idScheme` over all 2750 ids in both
+   tables — a falsification attempt, because a predicate asserted only against
+   strings that already pass is not asserted at all. Control: run `33713216975`,
+   ALL ASSERTIONS PASSED. Readback: a fourth phase that writes nothing, added
+   when "the writes were lost" and "AE has not ingested them yet" produced
+   identical output. Output verbatim in
+   `outbox/2026-09-03-d1-write-provenance-control.md`.
 4. **Only if the control passes**, open the 48-hour window and report one of the
    three outcomes above. Do not report a null result without the control output
    beside it.
