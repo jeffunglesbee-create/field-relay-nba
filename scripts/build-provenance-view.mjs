@@ -13,6 +13,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const census  = JSON.parse(readFileSync('outbox/provenance-census-latest.json', 'utf8'));
 let history = [];
 try { history = JSON.parse(readFileSync('outbox/provenance-census-history.json', 'utf8')); } catch (_) {}
+// The store layer, read from the live worker rather than from source. Absent
+// until the runtime probe has run at least once, and the panel says so instead
+// of rendering zeros that look like a measurement.
+let runtime = null;
+try { runtime = JSON.parse(readFileSync('outbox/provenance-runtime-probe-latest.json', 'utf8')); } catch (_) {}
+const kvSurvey = runtime && (runtime.readings || []).find(r => r.kv && r.body && r.body.ok);
 
 const STATES = {
   none:          { label: 'bare',        rank: 0, blurb: 'no source, no age' },
@@ -213,6 +219,22 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
       <tr><td class="n">${eff.readsNothing}</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
       <tr><td class="n">${eff.undeclared}</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
     </table>
+  </section>
+
+  <section class="panel">
+    <h2>The store layer &mdash; what a value knows about itself</h2>
+    <p>Headers describe a response in flight and are gone the moment it is saved. This is
+    what the values in KV carry: which route or cron wrote each key, and when. Recorded at
+    the two entry points rather than at the 62 write sites, in KV metadata so the stored
+    bytes are untouched &mdash; 16 of those writes store the bare string <code>1</code> and
+    would have broken under a value envelope.</p>
+    ${kvSurvey ? `<table class="vers">
+      <tr><td class="n">${kvSurvey.body.counts.stamped}</td><td class="w">stamped</td><td class="why">keys carrying a writer and a timestamp, prefix <code>${esc(kvSurvey.body.prefix || '')}</code></td></tr>
+      <tr><td class="n">${kvSurvey.body.counts.unstamped}</td><td class="w">not yet</td><td class="why">written before the wrap shipped, or by a Durable Object &mdash; these expire on their own TTL, and watching this to zero is the done condition</td></tr>
+      ${Object.entries(kvSurvey.body.writers || {}).map(([w, n]) => `<tr><td class="n">${n}</td><td class="w">writer</td><td class="why"><code>${esc(w)}</code></td></tr>`).join('\n      ')}
+    </table>
+    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at ${esc(kvSurvey.body.checked_at || runtime.checked_at)}. Never returns a stored value &mdash; keys, ages and writers only.</p>`
+    : `<p>No runtime reading yet. This panel stays empty rather than rendering zeros that would look like a measurement.</p>`}
   </section>
 
   <div class="barwrap">
