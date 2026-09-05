@@ -141,6 +141,15 @@ jobs:
       - name: Route provenance manifest matches the code, and the stamp is safe
         run: node scripts/check-route-provenance.mjs
 
+      # Blocking. The KV wrap sits on env at the two entry points, so it is
+      # invisible at the 62 put sites it covers -- which is what makes it cheap,
+      # and also what makes it easy to delete by accident: nothing at a call site
+      # would look wrong afterwards and nothing would fail, writes would just
+      # quietly stop recording anything. Four mutations proven to fail this,
+      # including wrapping env and then passing the raw one on.
+      - name: Every KV write records who wrote it, and the wrap cannot lose a write
+        run: node scripts/check-kv-provenance.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

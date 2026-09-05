@@ -1,17 +1,17 @@
 [
   {
     "date": "2026-09-05",
-    "dispatch_lines": 221,
-    "distinct_paths": 193,
-    "data_surfaces": 185,
-    "self_describing": 6,
+    "dispatch_lines": 222,
+    "distinct_paths": 194,
+    "data_surfaces": 186,
+    "self_describing": 7,
     "protocol": 8,
     "none": 132,
     "passthrough": 23,
     "source-only": 7,
-    "both": 6,
+    "both": 7,
     "age-only": 17,
-    "eff_named": 144,
-    "eff_stamped": 185
+    "eff_named": 145,
+    "eff_stamped": 186
   }
 ]

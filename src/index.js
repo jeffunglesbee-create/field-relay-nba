@@ -103,6 +103,7 @@ import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
+import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
@@ -9111,6 +9112,9 @@ export default {
     //   */5  * * * * → push notification heartbeat (drama threshold)
     //   */15 * * * * → journalism cycle (O(1) Newspaper — Layer 2)
     async scheduled(event, env, ctx) {
+        // Cron writes record their trigger, so a key written at 03:00 can be
+        // told apart from the same key written by a request minutes later.
+        env = withKvProvenance(env, `cron:${event && event.cron ? event.cron : 'unknown'}`);
         // Anomaly-to-draft watcher — fully isolated 4th cron trigger. This
         // MUST be an early return, not just an added branch: everything
         // below this point runs unconditionally on every cron tick
@@ -9328,7 +9332,13 @@ export default {
     // The one exit every response passes through. Routing is unchanged and lives
     // in _fetch below, exactly as it was; this only stamps what comes back.
     async fetch(request, env, ctx) {
-        const resp = await this._fetch(request, env, ctx);
+        // Every KV write beneath this call records the route that caused it.
+        // Wrapping env here rather than editing 62 put sites -- same choke-point
+        // move as the response stamp, and it yields better provenance than a
+        // hand-written label would: "which route wrote this" is the question
+        // someone staring at a stale key actually has.
+        const _env = withKvProvenance(env, `route:${new URL(request.url).pathname}`);
+        const resp = await this._fetch(request, _env, ctx);
         return stampProvenance(request, resp);
     },
 
@@ -13308,6 +13318,54 @@ export default {
         // 60s (see oddsProviderQuota). The KV counters say what this relay
         // spent; only the provider says what is left, and the gap between them
         // is the reason this route now makes that call.
+        // GET /provenance/kv?prefix=... — read the write provenance back out.
+        //
+        // The read half of the KV wrap, and the only way to prove it works: a
+        // write that records provenance nothing can retrieve has not been
+        // verified, it has been asserted. list() returns metadata for a whole
+        // prefix in one call without reading a single value, so this is cheap
+        // and cannot leak stored content -- it returns keys, ages and writers,
+        // never a value.
+        //
+        // `writer` is the route or cron that wrote the key. `unstamped` counts
+        // keys written before the wrap shipped, or by a Durable Object, which
+        // holds its own env and is not covered. That count going to zero as old
+        // keys expire is the done condition.
+        if (pathname === '/provenance/kv' && request.method === 'GET') {
+            if (!env.FIELD_JOURNALISM) {
+                return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const prefix = (url.searchParams.get('prefix') || '').slice(0, 128);
+            const limit  = Math.min(parseInt(url.searchParams.get('limit') || '100', 10) || 100, 500);
+            try {
+                const listed = await env.FIELD_JOURNALISM.list({ prefix, limit });
+                const now = Date.now();
+                let stamped = 0, unstamped = 0;
+                const writers = {};
+                const keys = listed.keys.map(k => {
+                    const m = k.metadata || null;
+                    if (m && m._at) { stamped++; writers[m._src || 'unknown'] = (writers[m._src || 'unknown'] || 0) + 1; }
+                    else unstamped++;
+                    return {
+                        key: k.name,
+                        writer: m && m._src ? m._src : null,
+                        written_at: m && m._at ? m._at : null,
+                        age_seconds: m && m._at ? Math.round((now - Date.parse(m._at)) / 1000) : null,
+                    };
+                });
+                return new Response(JSON.stringify({
+                    ok: true, prefix, source: 'kv:FIELD_JOURNALISM',
+                    checked_at: new Date().toISOString(),
+                    counts: { stamped, unstamped, listed: keys.length, complete: !!listed.list_complete },
+                    writers, keys,
+                }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+            } catch (e) {
+                return new Response(JSON.stringify({ ok: false, error: String(e && e.message || e) }),
+                    { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+        }
+
         if (pathname === '/budget/odds' && request.method === 'GET') {
             if (!env.FIELD_JOURNALISM) {
                 return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),

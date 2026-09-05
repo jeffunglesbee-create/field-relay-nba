@@ -24,6 +24,7 @@ const TARGETS = [
   { path: '/budget/odds',      why: 'store-backed, and the route that started all of this' },
   { path: '/wc/odds-probs',    why: 'upstream — cached, so no credit is spent' },
   { path: '/odds/v4/sports',   why: 'proxy: the response comes back FROZEN from fetch(), the rebuild branch' },
+  { path: '/provenance/kv?prefix=odds', why: 'the write half: KV metadata read back out of the store', kv: true },
   { path: '/nothing/here',     why: 'unmapped: must say so rather than guess', expectUnmapped: true },
 ];
 
@@ -48,7 +49,11 @@ for (const t of TARGETS) {
     servedAt: r && r.headers.get('x-field-served-at'),
     manifest: r && r.headers.get('x-field-manifest'),
     exposed:  r && r.headers.get('access-control-expose-headers'),
+    body:     null,
   });
+  // The KV target is the only one whose BODY is the finding. Headers prove the
+  // response wrapper runs; only the body proves a WRITE recorded anything.
+  if (t.kv && r && r.ok) { try { readings[readings.length - 1].body = await r.json(); } catch (_) {} }
 }
 
 mkdirSync('outbox', { recursive: true });
@@ -98,6 +103,29 @@ const ts = answered.map(r => r.servedAt).filter(Boolean);
 check('Served-At is a real timestamp, not a placeholder',
   ts.length > 0 && ts.every(v => Math.abs(Date.now() - Date.parse(v)) < 600000),
   `values: ${ts.join(', ')}`);
+
+// ── The write half ──────────────────────────────────────────────────────────
+// A stamp on a response proves the wrapper runs. It proves nothing about
+// whether a VALUE sitting in the store knows where it came from, and that is
+// the half that survives being saved, logged or read back tomorrow.
+const kv = readings.find(r => r.kv);
+if (kv && kv.body && kv.body.ok) {
+  const c = kv.body.counts || {};
+  console.log(`\n  kv:FIELD_JOURNALISM prefix="odds" — ${c.stamped} stamped, ${c.unstamped} unstamped of ${c.listed} listed`);
+  for (const [wr, n] of Object.entries(kv.body.writers || {})) console.log(`         ${String(n).padStart(3)}  ${wr}`);
+  // Deliberately NOT "stamped > 0". Every key written before the wrap shipped is
+  // legitimately unstamped and expires on its own TTL, so a fresh deploy would
+  // fail that assertion while being completely correct. What must hold is that
+  // the survey works and reports both states distinguishably, so unstamped can
+  // be watched down to zero instead of asserted away on day one.
+  check('the survey reports stamped and unstamped as distinct numbers',
+    typeof c.stamped === 'number' && typeof c.unstamped === 'number',
+    'a survey that cannot say "not recorded yet" reports absence as success');
+  check('no stored value appears in the survey', !JSON.stringify(kv.body).includes('"value"'),
+    'the survey returns keys, ages and writers - never content');
+} else if (kv) {
+  check('the KV survey answers', false, `status ${kv.status}: ${JSON.stringify(kv.body)}`);
+}
 
 console.log(`\n  ${Object.keys(ROUTE_PROVENANCE).length} routes in the committed manifest`);
 console.log(failed === 0 ? '  PASS — the deployed worker stamps what the code says it stamps' : `  FAIL — ${failed}`);

@@ -62,9 +62,14 @@ check('every declared source appears in the source', bogus.length === 0,
 
 // ── 4. The wrapper is wired, and wired the right way round ───────────────────
 const idx = readFileSync('src/index.js', 'utf8');
-check('fetch delegates to _fetch and stamps the result',
-  /async fetch\(request, env, ctx\) \{[\s\S]{0,300}?this\._fetch\(request, env, ctx\)[\s\S]{0,200}?stampProvenance\(request, resp\)/.test(idx),
-  'the export no longer wraps the router — routing would be unstamped, or gone');
+// _env, not env: the fetch export now wraps the environment for KV write
+// provenance before calling the router. This check failed on correct code when
+// that shipped, which is the right failure -- the shape it guards did change,
+// and it should notice. It is updated deliberately, not loosened: the router
+// must still receive a wrapped env and the result must still be stamped.
+check('fetch delegates to _fetch with the wrapped env and stamps the result',
+  /async fetch\(request, env, ctx\) \{[\s\S]{0,600}?this\._fetch\(request, _env, ctx\)[\s\S]{0,200}?stampProvenance\(request, resp\)/.test(idx),
+  'the export no longer wraps the router — routing would be unstamped, or the raw env would reach it');
 check('the router itself still exists', /async _fetch\(request, env, ctx\) \{/.test(idx));
 
 // ── 5. What the stamp must never do. The real function, not a re-implementation.

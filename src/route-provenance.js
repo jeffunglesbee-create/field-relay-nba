@@ -4,14 +4,14 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 185 routes describe themselves without 185 hand edits.
+// 186 routes describe themselves without 186 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-05T03:05:23.376Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-05T03:13:22.269Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB + field-relay-nba.jeffunglesbee.workers.dev" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: null },
@@ -138,6 +138,7 @@ export const ROUTE_PROVENANCE = {
   "/odds/history/": { k: "store", s: "d1:ARCHIVE_DB", p: 1 },
   "/pin/game/": { k: "upstream", s: "do.internal + do:GAME_DO", p: 1 },
   "/pl/": { k: "proxy", s: "footballapi.pulselive.com", p: 1 },
+  "/provenance/kv": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/push/game-final": { k: "store", s: "kv:PUSH_SUBS" },
   "/push/subscribe": { k: "store", s: "kv:PUSH_SUBS" },
   "/push/unsubscribe": { k: "store", s: "kv:PUSH_SUBS" },
