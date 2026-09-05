@@ -8,15 +8,21 @@ name: Provenance Census
 # Odds API spend. Non-blocking -- this reports, it does not gate. When a class of
 # route is fixed for good, the gate for that class earns its own step in
 # deploy.yml, the way the odds ledger did.
+# NO push TRIGGER, deliberately, and this is a fix rather than an omission.
+# It used to run on every src/** push. It regenerates four artifacts and commits
+# them, so it raced every push that also regenerated them -- three rebase
+# conflicts on generated files in one session, each resolved by regenerating,
+# which is pure churn with a chance of resolving wrong.
+#
+# Nothing is lost by removing it. deploy.yml's route-provenance gate regenerates
+# the manifest and fails when the committed one is stale, so a src/** change that
+# forgets to regenerate is caught at the blocking gate rather than papered over
+# by a follow-up commit from a bot. The daily run keeps the census and the view
+# current on their own schedule.
 on:
   workflow_dispatch:
   schedule:
     - cron: '25 6 * * *'
-  push:
-    paths:
-      - 'src/**'
-      - 'scripts/provenance-census.mjs'
-      - 'scripts/build-provenance-view.mjs'
 
 permissions:
   contents: write
