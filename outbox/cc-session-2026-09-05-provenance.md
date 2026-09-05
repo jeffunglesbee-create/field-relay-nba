@@ -83,6 +83,42 @@ the same: make the third state say its own name.
   deployed manifest and the committed one
 - `provenance-census.yml` — daily, regenerates census, manifest and view
 
+## Late addition: the ledger over-counted, having under-counted this morning
+
+Measured 03:26:20Z from the probe's own output: `/wc/odds-probs` reported
+provider `cost: "0"` against `charged: 4`. Out of season the request returns
+nothing, the provider bills nothing, and the counter recorded four credits of
+spend that never happened — the mirror image of the morning's defect, where the
+same counter under-counted real spend by half across five sites.
+
+`reconcileOddsCredit` now adjusts both counters by the difference between the
+estimate and the provider's `X-Requests-Last` receipt. Nine charging sites, nine
+reconciled. Confirmed live at 09:47:41Z:
+
+```
+cf-cache-status: "EXPIRED"
+reconciled: { estimated: 4, actual: 0, delta: -4, state: "reconciled" }
+```
+
+The cache hit was the case that would have made this worse than not doing it: a
+hit replays the ORIGINAL response's headers, so the receipt describes a
+different call. `cf-cache-status` separates them.
+
+**Residual, and it is a measurement gap not a bug.** That live reading came back
+`EXPIRED`, which is outside the two values I reasoned about. It fell through to
+the receipt path correctly — expired means the entry was stale and the request
+did reach the provider — but it shows the vocabulary is wider than `HIT`/`MISS`,
+and only `HIT` is special-cased. `STALE` and `UPDATING` also serve from cache
+without waiting on the origin, and would currently be charged the replayed
+receipt rather than zero.
+
+That over-charges, which is the safe direction, so it is not urgent. It is
+deliberately NOT fixed from memory: adding cache statuses I have not observed
+here is the exact defect this session kept finding. The probe records `cached`
+on every run, so the vocabulary this worker actually produces accumulates in
+`outbox/provenance-runtime-probe-*.json`. Resolve it once the observed set is
+known, not before.
+
 ## Open, with unblock criteria (Rule 74)
 
 1. **Durable Objects are not covered.** AmbientDO and GameDO hold their own
@@ -94,8 +130,14 @@ the same: make the third state say its own name.
 3. **The body layer is 7 of 186** and is the half that survives being saved,
    logged or cached. Not started.
 4. **One route undeclared** — `/odds`, URL assembled in a helper. On a ratchet.
-5. **Germany v Ecuador is still live.** Full context searched and recorded
-   earlier today; deletion specced and not executed — it needs its own commit.
+5. ~~**Germany v Ecuador is still live.**~~ CLOSED. Deleted in `db2540c` after
+   72 days; `/wc/odds-probs` confirmed serving 0 rows at 03:26:20Z, and
+   `check-no-fabricated-values.mjs` plus a permanent runtime assertion now
+   guard both the source and the served response.
+6. **`cf-cache-status` vocabulary is partly unmeasured.** Only `HIT` is treated
+   as zero-cost. *Unblocked by:* enough probe runs to enumerate the values this
+   worker really produces. *Verify:* `grep -h '"cached"'
+   outbox/provenance-runtime-probe-*.json | sort -u`.
 
 ## Carry-forwards
 
