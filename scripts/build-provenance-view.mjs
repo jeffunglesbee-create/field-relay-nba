@@ -29,6 +29,10 @@ const rows = census.routes
   .sort((a, b) => (STATES[a.state]?.rank ?? 9) - (STATES[b.state]?.rank ?? 9) || a.path.localeCompare(b.path));
 
 const t = census.tally;
+// Two layers. The header layer is what a caller receives today; the body layer is
+// what survives being saved, logged or cached. Reporting only the body number is
+// how this page came to say 3.2% while production stamped 185 of 185.
+const eff = census.effective || { stamped: 0, of: 0, named: 0, readsNothing: 0, undeclared: 0 };
 const total = rows.length;
 const order = ['none', 'passthrough', 'age-only', 'source-only', 'both'];
 const pct = n => (100 * n / total);
@@ -101,6 +105,11 @@ h1{margin:8px 0 0;font-size:29px;font-weight:600;letter-spacing:-.015em;text-wra
 .big{font:600 54px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:-.03em;
   font-variant-numeric:tabular-nums;color:var(--bad)}
 .big small{font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0}
+.big-ok{color:var(--ok)}
+.headline.second{margin-top:2px}
+.headline.second .big{font-size:34px}
+.barlabel{font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint)}
 .headline p{margin:0;color:var(--muted);max-width:44ch}
 
 .barwrap{display:flex;flex-direction:column;gap:8px}
@@ -175,16 +184,39 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   <header>
     <div class="eyebrow">field-relay-nba &middot; src/index.js</div>
     <h1>What this relay serves, and whether it says where any of it came from</h1>
-    <p class="sub">Every route that answers with data, classified by whether its response
-    names a source and a time. Read worst-first. Generated from the census, never written by hand.</p>
+    <p class="sub">Every route that answers with data, in two layers: what the response
+    now carries in its headers, and what it carries in its body. Read worst-first.
+    Generated from the census, never written by hand.</p>
     <div class="headline">
+      <div class="big big-ok">${eff.stamped}<small> of ${eff.of}</small></div>
+      <p>responses now arrive stamped with the route and the kind of surface it is.
+      ${eff.named} name a source outright, ${eff.readsNothing} declare that they read
+      nothing, ${eff.undeclared} say the URL is built somewhere this parser cannot follow.
+      One wrapper at the fetch exit, not ${total} edits.</p>
+    </div>
+    <div class="headline second">
       <div class="big">${t.both}<small> of ${total}</small></div>
-      <p>routes a reader can judge without opening the source. The other
-      ${total - t.both} require reading ${census.file} to know what you are looking at.</p>
+      <p>carry it in the <em>body</em>, which is the number that was ${t.both} before any
+      of this and is still worth moving. A header is lost the moment a response is saved
+      to a file, logged, cached or piped into a script; a body keeps its provenance.</p>
     </div>
   </header>
 
+  <section class="panel">
+    <h2>The header layer, live since the response wrapper shipped</h2>
+    <p>Every response passes through one exit, so provenance goes on there rather than
+    into ${total} response bodies one at a time. Verified against the deployed worker,
+    not the source that describes it: <code>outbox/provenance-runtime-probe-latest.json</code>.</p>
+    <table class="vers">
+      <tr><td class="n">${eff.stamped}</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
+      <tr><td class="n">${eff.named}</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
+      <tr><td class="n">${eff.readsNothing}</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
+      <tr><td class="n">${eff.undeclared}</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
+    </table>
+  </section>
+
   <div class="barwrap">
+    <div class="barlabel">The body layer &mdash; what survives being saved, logged or cached</div>
     <div class="bar">${bar}</div>
     <div class="key">
       ${order.map(k => `<span><i class="s-${k}"></i><b>${STATES[k].label}</b> &mdash; ${STATES[k].blurb}</span>`).join('\n      ')}

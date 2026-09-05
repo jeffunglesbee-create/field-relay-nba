@@ -1,6 +1,14 @@
 {
-  "generated_at": "2026-09-05T03:00:44.759Z",
+  "generated_at": "2026-09-05T03:03:51.029Z",
   "file": "src/index.js",
+  "effective": {
+    "named": 144,
+    "readsNothing": 40,
+    "undeclared": 1,
+    "unmapped": 0,
+    "stamped": 185,
+    "of": 185
+  },
   "method": "static parse of the route table and each answering function; not a live probe",
   "totals": {
     "dispatch_lines": 221,

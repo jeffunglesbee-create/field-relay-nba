@@ -43,6 +43,11 @@ h1{margin:8px 0 0;font-size:29px;font-weight:600;letter-spacing:-.015em;text-wra
 .big{font:600 54px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:-.03em;
   font-variant-numeric:tabular-nums;color:var(--bad)}
 .big small{font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0}
+.big-ok{color:var(--ok)}
+.headline.second{margin-top:2px}
+.headline.second .big{font-size:34px}
+.barlabel{font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint)}
 .headline p{margin:0;color:var(--muted);max-width:44ch}
 
 .barwrap{display:flex;flex-direction:column;gap:8px}
@@ -117,16 +122,39 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   <header>
     <div class="eyebrow">field-relay-nba &middot; src/index.js</div>
     <h1>What this relay serves, and whether it says where any of it came from</h1>
-    <p class="sub">Every route that answers with data, classified by whether its response
-    names a source and a time. Read worst-first. Generated from the census, never written by hand.</p>
+    <p class="sub">Every route that answers with data, in two layers: what the response
+    now carries in its headers, and what it carries in its body. Read worst-first.
+    Generated from the census, never written by hand.</p>
     <div class="headline">
+      <div class="big big-ok">185<small> of 185</small></div>
+      <p>responses now arrive stamped with the route and the kind of surface it is.
+      144 name a source outright, 40 declare that they read
+      nothing, 1 say the URL is built somewhere this parser cannot follow.
+      One wrapper at the fetch exit, not 185 edits.</p>
+    </div>
+    <div class="headline second">
       <div class="big">6<small> of 185</small></div>
-      <p>routes a reader can judge without opening the source. The other
-      179 require reading src/index.js to know what you are looking at.</p>
+      <p>carry it in the <em>body</em>, which is the number that was 6 before any
+      of this and is still worth moving. A header is lost the moment a response is saved
+      to a file, logged, cached or piped into a script; a body keeps its provenance.</p>
     </div>
   </header>
 
+  <section class="panel">
+    <h2>The header layer, live since the response wrapper shipped</h2>
+    <p>Every response passes through one exit, so provenance goes on there rather than
+    into 185 response bodies one at a time. Verified against the deployed worker,
+    not the source that describes it: <code>outbox/provenance-runtime-probe-latest.json</code>.</p>
+    <table class="vers">
+      <tr><td class="n">185</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
+      <tr><td class="n">144</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
+      <tr><td class="n">40</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
+      <tr><td class="n">1</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
+    </table>
+  </section>
+
   <div class="barwrap">
+    <div class="barlabel">The body layer &mdash; what survives being saved, logged or cached</div>
     <div class="bar"><div class="seg s-none" style="width:71.35135135135135%" title="132 bare"><span>132</span></div><div class="seg s-passthrough" style="width:12.432432432432432%" title="23 passthrough"><span>23</span></div><div class="seg s-age-only" style="width:9.18918918918919%" title="17 age only"><span>17</span></div><div class="seg s-source-only" style="width:3.7837837837837838%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.2432432432432434%" title="6 complete"><span>6</span></div></div>
     <div class="key">
       <span><i class="s-none"></i><b>bare</b> &mdash; no source, no age</span>
@@ -1654,7 +1682,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <footer>
-    <span>census 2026-09-05T03:00:44.759Z</span>
+    <span>census 2026-09-05T03:03:51.029Z</span>
     <span>221 dispatch lines &rarr; 193 distinct paths</span>
     <span>static read; runtime responses not probed</span>
     <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>

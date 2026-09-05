@@ -33,6 +33,9 @@
 // Routes still unresolved are reported as `unread` -- unknown, never as fine.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+// The wrapper stamps every response from this manifest, so a census that reads
+// only response BODIES now measures a layer that is no longer the whole answer.
+import { ROUTE_PROVENANCE } from '../src/route-provenance.js';
 
 
 // Helpers are not all in index.js. /health/sources -- the Stale Data Sentinel,
@@ -153,7 +156,37 @@ if (tally.protocol) console.log(`    ${String(tally.protocol).padStart(3)}      
 
 console.log(`\n  SELF-DESCRIBING: ${selfDescribing} of ${dataSurfaces.length} (${pct(selfDescribing)})\n`);
 
-const out = { generated_at: new Date().toISOString(), file: SRC, method: 'static parse of the route table and each answering function; not a live probe',
+// ── Two layers, and they answer different questions ──────────────────────────
+// BODY: does the response itself carry its provenance? Still worth measuring —
+// a body keeps its provenance when it is saved to a file, logged, piped into a
+// script, or read back out of a cache. Headers do not survive any of that.
+//
+// EFFECTIVE: what a caller holding the HTTP response can actually see, which
+// since the wrapper shipped is the header on every route plus whatever the body
+// adds.
+//
+// Reporting only the body number is now wrong in the direction that matters:
+// this census said 3.2% while production stamped 185 of 185, which is an
+// instrument confidently describing a state that no longer exists. That is the
+// defect this whole exercise exists to catch, found in the instrument itself.
+const eff = { named: 0, readsNothing: 0, undeclared: 0, unmapped: 0 };
+for (const r of dataSurfaces) {
+  const e = ROUTE_PROVENANCE[r.path];
+  if (!e) eff.unmapped++;
+  else if (e.s === null) eff.readsNothing++;
+  else if (String(e.s).startsWith('undeclared')) eff.undeclared++;
+  else eff.named++;
+}
+console.log(`  EFFECTIVE, what a caller receives since the response wrapper shipped:`);
+console.log(`    ${String(dataSurfaces.length - eff.unmapped).padStart(3)}  of ${dataSurfaces.length} carry X-FIELD-Route and X-FIELD-Kind`);
+console.log(`    ${String(eff.named).padStart(3)}         name a source`);
+console.log(`    ${String(eff.readsNothing).padStart(3)}         declare that they read nothing`);
+console.log(`    ${String(eff.undeclared).padStart(3)}         declare undeclared — URL built in a helper`);
+if (eff.unmapped) console.log(`    ${String(eff.unmapped).padStart(3)}         UNMAPPED — served but absent from the manifest`);
+console.log('');
+
+const out = { generated_at: new Date().toISOString(), file: SRC,
+  effective: { ...eff, stamped: dataSurfaces.length - eff.unmapped, of: dataSurfaces.length }, method: 'static parse of the route table and each answering function; not a live probe',
   totals: { dispatch_lines: routes.length, distinct_paths: uniq.length, data_surfaces: dataSurfaces.length, self_describing: selfDescribing }, tally,
   self_tests: st,
   routes: uniq.map(({ path, match, line, method, via, state, age, source, followed }) => ({ path, match, line, method, via, state, age: !!age, source: !!source, helpers_followed: followed ?? 0 })) };
@@ -169,7 +202,7 @@ let hist = [];
 try { hist = JSON.parse(readFileSync(HIST, 'utf8')); } catch (_) { hist = []; }
 const day = out.generated_at.slice(0, 10);
 hist = hist.filter(h => h.date !== day);
-hist.push({ date: day, ...out.totals, ...tally });
+hist.push({ date: day, ...out.totals, ...tally, eff_named: eff.named, eff_stamped: dataSurfaces.length - eff.unmapped });
 hist.sort((a, b) => a.date.localeCompare(b.date));
 writeFileSync(HIST, JSON.stringify(hist, null, 2));
 console.log(`  history:  ${HIST} (${hist.length} reading${hist.length === 1 ? '' : 's'})`);
