@@ -119,27 +119,73 @@ on every run, so the vocabulary this worker actually produces accumulates in
 `outbox/provenance-runtime-probe-*.json`. Resolve it once the observed set is
 known, not before.
 
-## Open, with unblock criteria (Rule 74)
+## The five open items, all closed
 
-1. **Durable Objects are not covered.** AmbientDO and GameDO hold their own
-   `env` and write through their own bindings. *Unblocked by:* wrapping in each
-   DO constructor. *Verify:* `/provenance/kv?prefix=` shows a `do:` writer.
-2. **`unstamped` is 5 of 8 on `prefix=odds`.** Expected — keys written before
-   the wrap expire on their own TTL. *Done when:* it reaches zero. Deliberately
-   not asserted as `stamped > 0`, which would fail on a correct fresh deploy.
-3. **The body layer is 7 of 186** and is the half that survives being saved,
-   logged or cached. Not started.
-4. **One route undeclared** — `/odds`, URL assembled in a helper. On a ratchet.
-5. ~~**Germany v Ecuador is still live.**~~ CLOSED. Deleted in `db2540c` after
-   72 days; `/wc/odds-probs` confirmed serving 0 rows at 03:26:20Z, and
-   `check-no-fabricated-values.mjs` plus a permanent runtime assertion now
-   guard both the source and the served response.
-6. **`cf-cache-status` vocabulary is partly unmeasured.** Only `HIT` is treated
-   as zero-cost. *Unblocked by:* enough probe runs to enumerate the values this
-   worker really produces. *Verify:* `grep -h '"cached"'
-   outbox/provenance-runtime-probe-*.json | sort -u`.
+| # | item | outcome |
+|---|---|---|
+| 1 | Durable Objects uncovered | all four wrap their own `env` and name themselves (`dde1dc4`) |
+| 2 | watch `unstamped` to zero | now a ratchet: it may never increase (`dde1dc4`) |
+| 3 | body layer 7/186 | **the item was wrong** — see below (`e35a703`) |
+| 4 | `/odds` undeclared | zero undeclared; URL-builders followed (`b4038fe`) |
+| 6 | `cf-cache-status` vocabulary | accumulated from real runs, fails on a mis-priced status (`dde1dc4`) |
+
+**Item 2 was only assertable because of item 1.** With every write path wrapped,
+a new key is stamped by construction, so unstamped can only fall as TTLs expire.
+A rise means something writes outside every wrap. Before the DOs were wrapped
+that check would have tripped constantly and been disabled rather than believed.
+
+**Item 3 was the wrong target, and measuring it said so.** Adding provenance to
+132 response bodies reaches nobody: the client's `setCached` stores an assembled
+structure, not the relay payload, and the relay's own KV caches have carried
+writer and time in metadata since this morning. 132 edits, no reader.
+
+What the measurement found instead was a correctness bug in something shipped
+earlier the same day: `X-FIELD-Served-At` is set from the clock, which is true of
+the response and silent about its contents. A payload read from a KV cache could
+be an hour old while that header read "now". Reads are now recorded at the same
+choke point as writes — `.get()` served by `getWithMetadata()`, the same KV
+operation, type argument passed through, caller unaffected — and the response
+carries `X-FIELD-Data-Written-At` and `X-FIELD-Data-Age-Seconds`. Oldest read
+wins; absent, never zero.
+
+## Two more instrument defects, both caught by mutation
+
+`functionBody` had over-captured since it was written: it walked to the next
+`function` declaration, so a 9-line `oddsUrl` read as 31 lines and handed
+`/odds` two ESPN hosts it never contacts. The census reads through the same
+function and was over-capturing too.
+
+Fixing that surfaced the worse one. **`/health/sources` — the Stale Data
+Sentinel, whose entire job is reporting where data came from — was claiming
+`s: null`, "reads nothing"**, while delegating everything to `checkAllSources`.
+Twelve more routes did the same. The census called that route `both`; the
+manifest called it `null`; the manifest is the one stamped onto live responses.
+They now read `undeclared (kind; delegated to <fn>)`.
+
+And the test for "oldest read wins" used a mock returning the same `_at` for
+every key, so oldest and newest were identical and it passed with the comparison
+inverted.
+
+**Running count: fifteen of seventeen defects today were in the measuring
+apparatus, not the product.** Every wrapper worked first time. Separating
+*unresolved* from *empty* has now turned a confident falsehood into an honest
+answer five separate times.
 
 ## Carry-forwards
 
-None that lack unblock criteria. Items 1–5 above are each stated with what
-unblocks them and how to verify.
+None. All five open items are closed.
+
+Standing guards, all blocking in `deploy.yml`:
+
+| gate | proven mutations |
+|---|---|
+| `check-route-provenance.mjs` | 7 |
+| `check-kv-provenance.mjs` | 9 |
+| `check-odds-calls-guarded.mjs` | 4 |
+| `check-odds-reconciled.mjs` | 4 |
+| `check-no-fabricated-values.mjs` | 3 |
+
+Plus `provenance-runtime-probe.mjs` on every successful deploy and daily,
+asserting manifest drift, no fabricated row in the served response, that
+`unstamped` never rises, and that no observed `cf-cache-status` is one the
+reconciler mis-prices.
