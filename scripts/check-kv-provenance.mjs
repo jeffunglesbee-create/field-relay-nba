@@ -29,6 +29,22 @@ check('scheduled wraps env before any cron work',
   /async scheduled\(event, env, ctx\) \{[\s\S]{0,400}?env = withKvProvenance\(env,/.test(idx),
   'cron writes would go unrecorded');
 
+// ── 1b. Durable Objects hold their own env and must wrap it too ──────────────
+// The worker's two entry points cover every write beneath a request or a cron
+// tick. A DO is neither -- it is handed an env at construction and keeps it --
+// so an unwrapped DO is the one remaining way an unstamped key can still appear
+// in KV, which is exactly what made "unstamped never increases" unassertable.
+const DOS = ['src/ambient-do.js', 'src/game-do.js', 'src/bracket-do.js', 'src/user-do.js'];
+const unwrapped = DOS.filter(f => {
+  const t = readFileSync(f, 'utf8');
+  return !/this\.env = withKvProvenance\(env, 'do:\w+'\)/.test(t);
+});
+check('every Durable Object wraps its own env', unwrapped.length === 0,
+  `${unwrapped.join(', ')} — writes from these go out unattributed`);
+check('each DO names itself, so writers stay distinguishable',
+  new Set(DOS.map(f => (readFileSync(f, 'utf8').match(/withKvProvenance\(env, '(do:\w+)'\)/) || [])[1])).size === DOS.length,
+  'two objects sharing a writer label makes the survey unable to tell them apart');
+
 // ── 2. The value is what matters and must not change ─────────────────────────
 const calls = [];
 const kv = {

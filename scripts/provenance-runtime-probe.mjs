@@ -13,7 +13,7 @@
 //
 // Cost: zero. Every route chosen is cached or free; none spends Odds API credit.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { ROUTE_PROVENANCE, provenanceFor } from '../src/route-provenance.js';
 
 const BASE = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -149,8 +149,69 @@ if (kv && kv.body && kv.body.ok) {
     'a survey that cannot say "not recorded yet" reports absence as success');
   check('no stored value appears in the survey', !JSON.stringify(kv.body).includes('"value"'),
     'the survey returns keys, ages and writers - never content');
+
+  // UNSTAMPED MUST NEVER INCREASE, and this only became assertable once the
+  // Durable Objects wrapped their own env. The worker's two entry points cover
+  // every write beneath a request or a cron tick; a DO holds its own env and was
+  // the one remaining way an unstamped key could still be created. With all of
+  // them covered, every new key is stamped by construction, so the unstamped
+  // count can only fall as old keys reach their TTL.
+  //
+  // A rise means something is writing outside every wrap -- a new entry point, a
+  // new DO, or a binding nobody added to KV_BINDINGS -- which is a finding, not
+  // drift. Compared against the previous committed reading rather than a
+  // hardcoded number, so it needs no maintenance and cannot go stale.
+  let prev = null;
+  try {
+    const older = readdirSync(OUT).filter(f => /^provenance-runtime-probe-\d/.test(f)).sort();
+    for (let i = older.length - 1; i >= 0; i--) {
+      const j = JSON.parse(readFileSync(`${OUT}/${older[i]}`, 'utf8'));
+      const k = (j.readings || []).find(r => r.kv && r.body && r.body.ok && r.body.prefix === kv.body.prefix);
+      if (k) { prev = { at: j.checked_at, ...k.body.counts }; break; }
+    }
+  } catch (_) {}
+  if (prev) {
+    console.log(`         previous reading ${prev.at}: ${prev.stamped} stamped, ${prev.unstamped} unstamped`);
+    check('unstamped never increases', c.unstamped <= prev.unstamped,
+      `${prev.unstamped} -> ${c.unstamped}. Every write path is wrapped, so a rise means one is not: a new entry point, a new Durable Object, or a binding missing from KV_BINDINGS.`);
+  } else {
+    console.log('         no previous reading to compare against — the trend starts here');
+  }
 } else if (kv) {
   check('the KV survey answers', false, `status ${kv.status}: ${JSON.stringify(kv.body)}`);
+}
+
+// ── The cf-cache-status vocabulary, accumulated rather than assumed ─────────
+// reconcileOddsCredit treats exactly one status -- HIT -- as zero-cost, because
+// a hit replays the original call's receipt. The first live reading came back
+// EXPIRED, a value outside the two that were reasoned about, which behaved
+// correctly but showed the vocabulary is wider than assumed.
+//
+// STALE and UPDATING would also serve from cache without waiting on the origin
+// and would currently be charged a replayed receipt rather than zero. That
+// over-charges, which is the safe direction, and it is deliberately not "fixed"
+// by adding statuses from memory -- writing a cross-boundary fact from memory is
+// the defect this session kept finding. So the set is accumulated here from what
+// this worker actually produces, and the constant is widened once the observed
+// set says to.
+const statuses = new Map();
+try {
+  for (const f of readdirSync(OUT).filter(f => /^provenance-runtime-probe-\d/.test(f))) {
+    const j = JSON.parse(readFileSync(`${OUT}/${f}`, 'utf8'));
+    for (const r of j.readings || []) {
+      const v = r.body && r.body.cached;
+      if (v) statuses.set(v, (statuses.get(v) || 0) + 1);
+    }
+  }
+} catch (_) {}
+const here = readings.map(r => r.body && r.body.cached).filter(Boolean);
+for (const v of here) statuses.set(v, (statuses.get(v) || 0) + 1);
+if (statuses.size) {
+  console.log(`\n  cf-cache-status seen across all runs: ${[...statuses.entries()].map(([k, n]) => `${k}(${n})`).join(', ')}`);
+  const ZERO_COST = new Set(['HIT']);
+  const undecided = [...statuses.keys()].filter(v => !ZERO_COST.has(v) && ['STALE', 'UPDATING'].includes(v));
+  check('no observed status is one the reconciler mis-prices', undecided.length === 0,
+    `${undecided.join(', ')} observed. These serve from cache without contacting the provider, so they are worth zero, but reconcileOddsCredit only treats HIT that way and charges them the replayed receipt. Widen ZERO_COST_STATUSES in src/budget-helpers.js now that they have been seen.`);
 }
 
 console.log(`\n  ${Object.keys(ROUTE_PROVENANCE).length} routes in the committed manifest`);

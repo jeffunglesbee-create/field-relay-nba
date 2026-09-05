@@ -130,6 +130,18 @@ export class AmbientDO {
     constructor(ctx, env) {
         this.ctx = ctx;
         this.env = env;
+    // KV writes from inside this Durable Object record that they came from here.
+    //
+    // The worker wraps env at its fetch and scheduled exports, which covers every
+    // write beneath a request or a cron tick. A DO is neither: it holds its own
+    // env, handed to it at construction, so its writes went out unattributed --
+    // stated as a known boundary when the wrap shipped rather than discovered
+    // later, and closed here.
+    //
+    // It matters beyond tidiness: with the worker covered, a DO was the only
+    // remaining way for an UNSTAMPED key to appear in KV, which is what made
+    // "unstamped never increases" unassertable. Now it is.
+    this.env = withKvProvenance(env, 'do:AmbientDO');
         // SSE clients: Map<id → {writer, controller, sport_filter}>
         this._clients   = new Map();
         this._clientSeq = 0;
