@@ -1,5 +1,128 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-05 (provenance: 6 of 186 routes could be judged, now 182)
+
+**HEAD:** `18bc9d2` → `afff86c` · **Branch:** main throughout · 26 substantive commits
+**Deploys:** 890–900, all green.
+**Session doc:** `outbox/cc-session-2026-09-05-provenance.md`
+**View:** https://claude.ai/code/artifact/a1afea94-e7d5-4848-82f8-a03a4cbf00d0 — regenerates daily from the census
+
+### Why
+
+Five defects earlier in the session were each found by a probe pointed at
+something else: five odds call sites spending unaccounted, every `us,eu` call
+charged half, a fabricated odds row served for 72 days, 48 stale `mlbRaw`
+entries, an F# build read as its own source.
+
+One shape every time — **a value is served and nothing says where it came from
+or how old it is.** A census put a number on it: **6 of 186 data surfaces** could
+be judged without opening `src/index.js`.
+
+### The answer was two choke points, not 132 edits
+
+| | mechanism | cost |
+|---|---|---|
+| responses | `fetch` → `_fetch` → `stampProvenance` at the single exit | 1 edit, 186 routes |
+| stored values | `env` wrapped at `fetch` and `scheduled`, plus each Durable Object | 6 edits, 62 KV writes |
+
+Headers, not bodies, so response bytes are unchanged and no consumer broke —
+Rules 60 and 70 never came into it. It also covers the 23 proxy routes, the class
+that cannot be fixed in a body at all because we never construct theirs.
+
+**KV metadata, not a value envelope.** 16 of the 62 writes store the bare string
+`'1'` as a warn flag, read back as `if (await KV.get(k))`; others store a bare
+number. Wrapping those would not have failed — they would have silently stopped
+meaning what they mean.
+
+### What is live
+
+| layer | state |
+|---|---|
+| header | 186/186 stamped: route, kind, source, served-at, **data age** |
+| store | every KV write attributed to `route:`, `cron:` or `do:` |
+| manifest | **182 of 186 name a real source**, generated from the code, gated against drift |
+| ledger | reconciled against the provider's `X-Requests-Last`, both directions |
+
+The 4 that do not name a source say why: `/rss-proxy` fetches a caller-supplied
+URL, `/health/sources` reads through a dispatch table no static parser follows,
+and two `/test/*` routes are genuinely pure.
+
+### Standing guards, all blocking in `deploy.yml`
+
+| gate | proven mutations |
+|---|---|
+| `check-route-provenance.mjs` | 7 |
+| `check-kv-provenance.mjs` | 9 |
+| `check-odds-calls-guarded.mjs` | 4 |
+| `check-odds-reconciled.mjs` | 4 |
+| `check-no-fabricated-values.mjs` | 3 |
+
+`provenance-runtime-probe.mjs` runs on every successful deploy and daily. Its
+load-bearing assertion is **drift**: deployed `X-FIELD-Source` against the
+committed manifest, because a stale worker answering from a map of code that no
+longer exists is indistinguishable from a correct answer unless something
+compares.
+
+### The odds ledger was wrong in both directions in one day
+
+Morning: five call sites spent provider quota and charged nothing, and every
+`us,eu` call was charged half — measured, not assumed, from
+`X-Requests-Last: 6` on a 3-market call over 2 regions. Evening: the corrected
+ledger charged 4 for a call the provider billed 0. Both make `ODDS_HARD_LIMIT`
+mean something other than what it says. Now reconciled against the receipt, with
+cache hits worth zero regardless of the header they replay.
+
+### Germany v Ecuador, closed after 72 days
+
+`/wc/odds-probs` pushed a hand-entered row — pHome 0.56, lambdas off a screenshot
+— whenever the Odds API did not list the fixture. A defensible two-week bridge on
+2026-06-12 whose own exit condition ("once the Odds API lists this game") became
+unreachable at kickoff on 06-25. Measured 09-05: `probs: 1` with provider cost
+`0`, meaning zero WC events listed and the single row was the fabrication.
+Deleted, not corrected — the fixture is complete and its real closing line was
+never captured. `check-no-fabricated-values.mjs` guards the source; a permanent
+runtime assertion guards the served response.
+
+### The finding that governs the rest
+
+**Seventeen defects, and fifteen were in the measuring apparatus.** Every wrapper
+— response stamp, KV write, KV read — worked first time and needed no correction.
+What failed repeatedly were the census, the manifest generator, the gates, the
+tests, the probes, and once the mutation harness itself.
+
+Two rules were written from that count, not from principle:
+
+- **Rule 90 (MUTATE-FIRST-A)** — an assertion is not trusted until it has failed
+  on purpose. Six defects are tabulated in `CLAUDE.md` with why each passed.
+- **Rule 91 (SAMPLE-COVERAGE-A)** — a sampling probe states its coverage where
+  the result is read. The runtime probe checks 6 routes of 186 and said PASS;
+  status reports then claimed "186/186 verified live" for hours.
+
+The audit of the 21 routes labelled "reads nothing" is the case study: **19 were
+reading something the parser could not see**, across six distinct blind spots —
+an else-if chain that truncated the body to two lines, a block longer than the
+scan window, a constant declared inside a function, a binding name too short to
+match, a constant whose name lacked "BASE", and a child route whose prefix parent
+knew more than it did.
+
+### Residual, disclosed
+
+- **The body layer is 6 of 186 and should be retired as a target.** Adding
+  provenance to 132 response bodies reaches nobody: the client stores a
+  transformed structure, and the relay's own KV caches carry writer and time in
+  metadata. Measured, not assumed.
+- **`unstamped` is 5 of 8 on `prefix=odds`.** Expected — keys written before the
+  wrap expire on their own TTL. The probe now fails if it RISES, which is only
+  assertable because every write path is wrapped.
+- **`cf-cache-status` vocabulary is partly unmeasured.** Only `HIT` is treated as
+  zero-cost. Observed so far: `EXPIRED`, `HIT`. `STALE` and `UPDATING` would be
+  charged a replayed receipt; that over-charges, the safe direction. The probe
+  tallies what this worker actually produces and fails once it sees one the
+  reconciler mis-prices. Deliberately not fixed from memory.
+- **`/d1/execute` is still gated by a hardcoded string literal**, not an env
+  binding, in a public repo. Unchanged from 2026-09-03. Fix order: source first,
+  then retire `bootstrap-relay-secret.yml`, then rotate.
+
 ## SESSION CLOSE-OUT — 2026-09-03 (the duplicate MLS rows, and who writes them)
 
 Covers 2026-09-01 through 2026-09-03.
