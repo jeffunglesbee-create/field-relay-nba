@@ -25,7 +25,23 @@ for (const f of ALL_FILES) {
   }
 }
 
-const host = u => { try { return new URL(u).host; } catch (_) { return null; } };
+// A host, or nothing. The URL literals here are template strings, and the
+// extractor stops at the first `${` -- so `https://field-relay-nba.${env}` was
+// yielding the host "field-relay-nba.", which went into the manifest as a source
+// and would have been stamped onto live responses. A truncated hostname is a
+// WRONG source, and the whole rule for this file is that a wrong source is worse
+// than none. Anything that is not a plausible hostname is dropped rather than
+// guessed at: it needs a dot, a real last label, and no trailing dot.
+const host = u => {
+    try {
+        const h = new URL(u).host;
+        if (!h || h.endsWith('.') || !h.includes('.')) return null;
+        if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(h)) return null;
+        return h;
+    } catch (_) {
+        return null;
+    }
+};
 
 function sourcesOf(text) {
   const found = new Set();
@@ -89,7 +105,18 @@ for (const r of routes) {
   const urlBuilders = [...new Set([...own.matchAll(/\b([a-z_$][\w$]*[Uu]rl)\s*\(/g)].map(m => m[1]))]
     .filter(n => !/^(new|fetch|encodeURI)/.test(n));
   const builderText = urlBuilders.map(n => decomment(functionBody(n) || '')).join('\n');
-  const srcs = sourcesOf(own + '\n' + builderText);
+  // EXPERIMENT, kept because it measured clean: also follow the functions the
+  // route delegates to, one level. This was rejected earlier in the session
+  // because it attributed statsapi.mlb.com to /nba-stats -- but that was
+  // functionBody over-capturing, reading a 9-line function as 31 by walking to
+  // the next declaration. With that fixed, re-running the same experiment
+  // produced no false attributions on any of the routes it previously broke.
+  // The old conclusion was true of the old bug, not of the approach.
+  const delegatesOf = [...new Set([...own.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)].map(m => m[1]))]
+    .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI)$/.test(n))
+    .filter(n => functionBody(n));
+  const delegateText = delegatesOf.map(n => decomment(functionBody(n))).join('\n');
+  const srcs = sourcesOf(own + '\n' + builderText + '\n' + delegateText);
   const kind = kindOf(r.path, own, srcs);
   // THREE STATES, NOT TWO. `s: null` has to mean "reads nothing" -- a trigger
   // returning an acknowledgement, a pure computation. It must NOT also mean "we
@@ -112,19 +139,37 @@ for (const r of routes) {
   // responses. Restricting to the own body is still right -- following helpers
   // is what produced statsapi.mlb.com for /nba-stats -- but the answer for a
   // delegating route is "we did not look that far", not "there is nothing there".
+  // `json` is a response formatter, not a data source; naming it as a delegate
+  // buries the one that matters behind noise.
   const delegates = [...new Set([...own.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)].map(m => m[1]))]
-    .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI)$/.test(n))
+    .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI|json|text|html)$/.test(n))
     .filter(n => functionBody(n));
   const declared = srcs.length ? srcs.join(' + ')
     : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
     : (kind === 'trigger' || kind === 'computed') ? null
     : `undeclared (${kind}; URL built in a helper)`;
+  // 26 paths have more than one dispatch line -- GET and POST variants, a guard
+  // list plus the real handler. The first rule here kept whichever reading found
+  // the MOST sources, which under-reports: if GET /journalism/run reads D1 and
+  // POST reads KV, the path reads both and the manifest named one. Union.
+  //
+  // Safe because a guard-list mention has no sources to contribute, so merging
+  // cannot pull in something the path does not do.
   const prev = seen.get(r.path);
-  // Several dispatch lines can name the same path (method variants, a guard
-  // list). Keep the reading that found the most, not the first one seen.
-  if (!prev || srcs.length > prev.sources.length) {
-    seen.set(r.path, { sources: srcs, declared, kind, line: r.line, match: r.match });
-  }
+  const merged = [...new Set([...(prev ? prev.sources : []), ...srcs])].sort();
+  const mergedDeclared = merged.length ? merged.join(' + ')
+    : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
+    : (kind === 'trigger' || kind === 'computed') ? null
+    : `undeclared (${kind}; URL built in a helper)`;
+  seen.set(r.path, {
+    sources: merged,
+    declared: mergedDeclared,
+    // Kind stays the most specific one seen: a path answered by both a guard and
+    // a real handler is what the handler does.
+    kind: prev && prev.kind !== 'computed' && prev.kind !== 'trigger' ? prev.kind : kind,
+    line: prev ? prev.line : r.line,
+    match: prev && prev.match === 'prefix' ? 'prefix' : r.match,
+  });
 }
 
 const entries = [...seen.entries()].sort((a, b) => a[0].localeCompare(b[0]));

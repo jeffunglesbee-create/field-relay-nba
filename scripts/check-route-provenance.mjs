@@ -177,6 +177,14 @@ console.log(`\n  ${undeclared.length} route(s) undeclared — the URL is built i
 for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // A ratchet, not a gate: undeclared is honest, but it should not grow quietly.
 //
+// It went 1 -> 13 -> 3. The 13 were routes claiming `s: null` while delegating;
+// naming that honestly was the improvement. Then following the delegate one
+// level -- an approach rejected earlier in the session for attributing
+// statsapi.mlb.com to /nba-stats -- was re-tested after functionBody stopped
+// over-capturing, produced no false attributions, and closed 16 of them. The old
+// conclusion had been true of the old bug, not of the approach.
+//
+// The original note follows, because the reasoning still governs the 3 left.
 // It went 1 -> 13 deliberately, and the direction is an improvement. Those 13
 // were previously claiming `s: null` -- "reads nothing" -- while delegating
 // their entire job to a helper. /health/sources, the Stale Data Sentinel itself,
@@ -187,7 +195,7 @@ for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // Lowering this number means naming the source in the handler or teaching the
 // generator to follow that specific shape -- never relabelling a delegating
 // route as reading nothing.
-const UNDECLARED_BUDGET = 13;
+const UNDECLARED_BUDGET = 3;
 check(`undeclared routes stay within budget (${UNDECLARED_BUDGET})`, undeclared.length <= UNDECLARED_BUDGET,
   `${undeclared.length} now. Name the host in the handler, or raise the budget in this file deliberately.`);
 

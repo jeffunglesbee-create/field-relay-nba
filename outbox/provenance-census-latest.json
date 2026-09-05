@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-05T10:44:28.380Z",
+  "generated_at": "2026-09-05T10:46:17.773Z",
   "file": "src/index.js",
   "effective": {
-    "named": 146,
-    "readsNothing": 27,
-    "undeclared": 13,
+    "named": 162,
+    "readsNothing": 21,
+    "undeclared": 3,
     "unmapped": 0,
     "stamped": 186,
     "of": 186
