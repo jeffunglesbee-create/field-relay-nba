@@ -50,10 +50,17 @@ if (census) {
 // the Germany v Ecuador row was.
 const src = readFileSync('src/index.js', 'utf8') + readFileSync('src/ambient-do.js', 'utf8');
 const bogus = [];
+// The label vocabulary grew, and this check caught every new form -- which is
+// what it is for. Each is admitted deliberately, not by loosening the match:
+//   ai:      a Workers AI binding, same shape as kv:/d1:/r2:/do:
+//   (inherited from the enclosing block)  an annotation on real sources, which
+//            are verified after it is stripped
+//   caller-supplied / undeclared          not claims about a host at all
 for (const [path, v] of Object.entries(ROUTE_PROVENANCE)) {
-  if (!v.s || v.s.startsWith('undeclared')) continue;
-  for (const part of v.s.split(' + ')) {
-    const bare = part.replace(/^(kv|d1|r2|do):/, '');
+  if (!v.s || v.s.startsWith('undeclared') || v.s.startsWith('caller-supplied')) continue;
+  const cleaned = v.s.replace(/\s*\(inherited from the enclosing block\)\s*$/, '');
+  for (const part of cleaned.split(' + ')) {
+    const bare = part.replace(/^(kv|d1|r2|do|ai):/, '');
     if (!src.includes(bare)) bogus.push(`${path} -> ${part}`);
   }
 }
@@ -207,7 +214,7 @@ for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // Lowering this number means naming the source in the handler or teaching the
 // generator to follow that specific shape -- never relabelling a delegating
 // route as reading nothing.
-const UNDECLARED_BUDGET = 2;
+const UNDECLARED_BUDGET = 1;
 check(`undeclared routes stay within budget (${UNDECLARED_BUDGET})`, undeclared.length <= UNDECLARED_BUDGET,
   `${undeclared.length} now. Name the host in the handler, or raise the budget in this file deliberately.`);
 

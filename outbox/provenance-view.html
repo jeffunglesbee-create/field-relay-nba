@@ -128,8 +128,8 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     <div class="headline">
       <div class="big big-ok">186<small> of 186</small></div>
       <p>responses now arrive stamped with the route and the kind of surface it is.
-      163 name a source outright, 21 declare that they read
-      nothing, 2 say the URL is built somewhere this parser cannot follow.
+      183 name a source outright, 2 declare that they read
+      nothing, 1 say the URL is built somewhere this parser cannot follow.
       One wrapper at the fetch exit, not 186 edits.</p>
     </div>
     <div class="headline second">
@@ -147,9 +147,9 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     not the source that describes it: <code>outbox/provenance-runtime-probe-latest.json</code>.</p>
     <table class="vers">
       <tr><td class="n">186</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
-      <tr><td class="n">163</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
-      <tr><td class="n">21</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
-      <tr><td class="n">2</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
+      <tr><td class="n">183</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
+      <tr><td class="n">2</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
+      <tr><td class="n">1</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
     </table>
   </section>
 
@@ -160,12 +160,18 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     the two entry points rather than at the 62 write sites, in KV metadata so the stored
     bytes are untouched &mdash; 16 of those writes store the bare string <code>1</code> and
     would have broken under a value envelope.</p>
-    <p>No runtime reading yet. This panel stays empty rather than rendering zeros that would look like a measurement.</p>
+    <table class="vers">
+      <tr><td class="n">3</td><td class="w">stamped</td><td class="why">keys carrying a writer and a timestamp, prefix <code>odds</code></td></tr>
+      <tr><td class="n">5</td><td class="w">not yet</td><td class="why">written before the wrap shipped, or by a Durable Object &mdash; these expire on their own TTL, and watching this to zero is the done condition</td></tr>
+      <tr><td class="n">2</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
+      <tr><td class="n">1</td><td class="w">writer</td><td class="why"><code>cron:*/15 * * * *</code></td></tr>
+    </table>
+    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-09-05T10:48:36.841Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
   </section>
 
   <div class="barwrap">
     <div class="barlabel">The body layer &mdash; what survives being saved, logged or cached</div>
-    <div class="bar"><div class="seg s-none" style="width:70.96774193548387%" title="132 bare"><span>132</span></div><div class="seg s-passthrough" style="width:12.365591397849462%" title="23 passthrough"><span>23</span></div><div class="seg s-age-only" style="width:9.67741935483871%" title="18 age only"><span>18</span></div><div class="seg s-source-only" style="width:3.763440860215054%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.225806451612903%" title="6 complete"><span>6</span></div></div>
+    <div class="bar"><div class="seg s-none" style="width:69.89247311827957%" title="130 bare"><span>130</span></div><div class="seg s-passthrough" style="width:12.903225806451612%" title="24 passthrough"><span>24</span></div><div class="seg s-age-only" style="width:10.21505376344086%" title="19 age only"><span>19</span></div><div class="seg s-source-only" style="width:3.763440860215054%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.225806451612903%" title="6 complete"><span>6</span></div></div>
     <div class="key">
       <span><i class="s-none"></i><b>bare</b> &mdash; no source, no age</span>
       <span><i class="s-passthrough"></i><b>passthrough</b> &mdash; upstream bytes, unstamped by us</span>
@@ -194,9 +200,9 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     <h2>186 data surfaces</h2>
     <div class="filters" role="group" aria-label="Filter by state">
       <button aria-pressed="true" data-f="all">all &middot; 186</button>
-      <button aria-pressed="false" data-f="none">bare &middot; 132</button>
-      <button aria-pressed="false" data-f="passthrough">passthrough &middot; 23</button>
-      <button aria-pressed="false" data-f="age-only">age only &middot; 18</button>
+      <button aria-pressed="false" data-f="none">bare &middot; 130</button>
+      <button aria-pressed="false" data-f="passthrough">passthrough &middot; 24</button>
+      <button aria-pressed="false" data-f="age-only">age only &middot; 19</button>
       <button aria-pressed="false" data-f="source-only">source only &middot; 7</button>
       <button aria-pressed="false" data-f="both">complete &middot; 6</button>
     </div>
@@ -312,14 +318,6 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 </tr>
 <tr data-state="none">
 <td><span class="chip c-none">bare</span></td>
-<td class="path">/archive/<span class="pfx">*</span></td>
-<td class="num">11083</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">bare</span></td>
 <td class="path">/archive/backfill</td>
 <td class="num">11188</td>
 <td class="tick">&#9675;</td>
@@ -420,7 +418,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <td class="num">11819</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
-<td class="via">inline</td>
+<td class="via">inline<span class="hf">+13</span></td>
 </tr>
 <tr data-state="none">
 <td><span class="chip c-none">bare</span></td>
@@ -842,14 +840,6 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <td><span class="chip c-none">bare</span></td>
 <td class="path">/live/ambient</td>
 <td class="num">12544</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">bare</span></td>
-<td class="path">/mcp</td>
-<td class="num">9406</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1352,6 +1342,14 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 </tr>
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/mcp</td>
+<td class="num">17990</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+7</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/mlb-stats<span class="pfx">*</span></td>
 <td class="num">14832</td>
 <td class="tick">&#9675;</td>
@@ -1445,6 +1443,14 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/archive/<span class="pfx">*</span></td>
+<td class="num">11083</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+21</span></td>
 </tr>
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
@@ -1700,7 +1706,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <footer>
-    <span>census 2026-09-05T10:52:34.881Z</span>
+    <span>census 2026-09-05T11:17:05.180Z</span>
     <span>222 dispatch lines &rarr; 194 distinct paths</span>
     <span>static read; runtime responses not probed</span>
     <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>

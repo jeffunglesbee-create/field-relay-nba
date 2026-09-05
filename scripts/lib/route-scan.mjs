@@ -112,13 +112,38 @@ function bodyOf(startLine) {
     }
   }
   // Inline: brace-balance from the dispatch line.
-  let depth = 0, started = false, end = startLine;
-  for (let k = startLine - 1; k < Math.min(startLine + 400, lines.length); k++) {
-    for (const ch of lines[k]) {
+  //
+  // THE FIRST CHARACTER MATTERS. A dispatch line in an else-if chain reads
+  // `} else if (pathname === '/cfl/standings') {`: the counter saw the CLOSING
+  // brace of the previous branch first, went to -1, then the opening brace
+  // brought it back to 0, and the loop terminated on the same line. Nine routes
+  // came back with a 2-line body -- /cfl/* and /archive/* -- and were reported
+  // as reading nothing, because nothing of them had been read. The census reads
+  // through this function too.
+  //
+  // A leading `}` belongs to the branch above, not this one, so it is skipped.
+  // AND THE WINDOW HAS TO BE BIG ENOUGH, or the failure is silent and looks like
+  // success. /archive/ is a prefix block over 400 lines long; the scan ran out
+  // before the braces balanced, `end` kept its initial value, and the function
+  // returned a ONE-LINE body -- the dispatch line itself. Which contains no
+  // sources, so the route was reported as reading nothing. An unbalanced block
+  // must say it did not parse, not hand back an empty answer that reads as fact.
+  const WINDOW = 1500;
+  let depth = 0, started = false, end = startLine, balanced = false;
+  for (let k = startLine - 1; k < Math.min(startLine + WINDOW, lines.length); k++) {
+    let line = lines[k];
+    if (k === startLine - 1) line = line.replace(/^(\s*)\}/, '$1');
+    for (const ch of line) {
       if (ch === '{') { depth++; started = true; }
       else if (ch === '}') depth--;
     }
-    if (started && depth <= 0) { end = k + 1; break; }
+    if (started && depth <= 0) { end = k + 1; balanced = true; break; }
+  }
+  if (!balanced) {
+    // Everything the window did see, plus the flag. Partial and labelled beats
+    // empty and confident.
+    return { text: lines.slice(startLine - 1, Math.min(startLine + WINDOW, lines.length)).join('\n'),
+             via: 'inline', resolved: true, truncated: true };
   }
   return { text: lines.slice(startLine - 1, end).join('\n'), via: 'inline', resolved: true };
 }

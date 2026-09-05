@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-05T10:52:34.881Z",
+  "generated_at": "2026-09-05T11:17:05.180Z",
   "file": "src/index.js",
   "effective": {
-    "named": 163,
-    "readsNothing": 21,
-    "undeclared": 2,
+    "named": 183,
+    "readsNothing": 2,
+    "undeclared": 1,
     "unmapped": 0,
     "stamped": 186,
     "of": 186
@@ -18,11 +18,11 @@
   },
   "tally": {
     "protocol": 8,
-    "none": 132,
-    "passthrough": 23,
+    "none": 130,
+    "age-only": 19,
+    "passthrough": 24,
     "source-only": 7,
-    "both": 6,
-    "age-only": 18
+    "both": 6
   },
   "self_tests": {
     "pass": 10,
@@ -211,10 +211,10 @@
       "line": 11083,
       "method": "ANY",
       "via": "inline",
-      "state": "none",
-      "age": false,
+      "state": "age-only",
+      "age": true,
       "source": false,
-      "helpers_followed": 0
+      "helpers_followed": 21
     },
     {
       "path": "/archive/backfill",
@@ -357,7 +357,7 @@
       "state": "none",
       "age": false,
       "source": false,
-      "helpers_followed": 0
+      "helpers_followed": 13
     },
     {
       "path": "/archive/last-meeting",
@@ -1220,13 +1220,13 @@
     {
       "path": "/mcp",
       "match": "exact",
-      "line": 9406,
-      "method": "ANY",
+      "line": 17990,
+      "method": "POST",
       "via": "inline",
-      "state": "none",
+      "state": "passthrough",
       "age": false,
       "source": false,
-      "helpers_followed": 0
+      "helpers_followed": 7
     },
     {
       "path": "/mlb-savant-update",

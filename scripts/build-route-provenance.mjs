@@ -12,15 +12,26 @@
 // (scripts/check-route-provenance.mjs) fails the deploy when the committed
 // manifest no longer matches the code.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { routes, bodyOf, decomment, lines, ALL_FILES, functionBody } from './lib/route-scan.mjs';
 
 // `${ODDS_BASE}/v4/...` has to resolve to a host, or the manifest names a
 // variable instead of a source. Collected from every module, not assumed.
+const DOC_LINE = /\b(description|example|examples|placeholder|hint|usage|docs?)\s*:|\be\.g\.|@example/i;
+
 const BASES = {};
 for (const f of ALL_FILES) {
   for (const l of f.lines) {
-    const m = l.match(/^const\s+(\w*BASE\w*)\s*=\s*['"`](https?:\/\/[^'"`]+)['"`]/);
+    // Not anchored at column 0: BSD_BASE is declared INSIDE a function, so a
+    // ^const collector never saw it and four /bsd/* routes read as sourceless
+    // while plainly fetching `${BSD_BASE}/api/v2/events/live/`.
+    // ANY constant holding a URL, not just ones named *BASE*. The name was
+    // deciding whether a URL counted, so JOURNALISM_CLAUDE_PROXY -- which
+    // /test/combined-generate-judge fetches by name -- was invisible and the
+    // route read as sourceless. What matters is that the constant holds a URL,
+    // not what someone called it.
+    if (DOC_LINE.test(l)) continue;
+    const m = l.match(/\bconst\s+([A-Za-z_][\w]*)\s*=\s*['"`](https?:\/\/[^'"`${]+)['"`]/);
     if (m) BASES[m[1]] = m[2];
   }
 }
@@ -32,32 +43,93 @@ for (const f of ALL_FILES) {
 // WRONG source, and the whole rule for this file is that a wrong source is worse
 // than none. Anything that is not a plausible hostname is dropped rather than
 // guessed at: it needs a dot, a real last label, and no trailing dot.
+// BINDINGS COME FROM wrangler.toml, not from a regex guessing at capitalisation.
+// The previous rule required [A-Z][A-Z0-9_]{2,} -- three characters or more --
+// and so silently excluded `env.AI` (Workers AI) and `env.DB` (the shared D1
+// binding, which is listed in this repo's own CLAUDE.md bindings table). Two
+// routes read those and were reported as reading nothing.
+//
+// wrangler.toml declares every binding this worker has. Reading it makes the
+// detection exact instead of heuristic, and a binding added there without being
+// used shows up as absent rather than as a guess.
+const WRANGLER = (() => {
+  try {
+    const t = readFileSync('wrangler.toml', 'utf8');
+    const names = new Set();
+    // Two shapes, and missing the second cost every Durable Object. KV, D1, R2,
+    // Queues and AI declare `binding = "NAME"`; durable_objects.bindings declares
+    // `name = "NAME"`. Reading only the first dropped GAME_DO, USER_DO,
+    // BRACKET_DO and AMBIENT_DO, and /user/ went from do:USER_DO back to null --
+    // a regression introduced by the fix for a different miss.
+    for (const m of t.matchAll(/^\s*binding\s*=\s*['"]([A-Za-z_][\w]*)['"]/gm)) names.add(m[1]);
+    for (const m of t.matchAll(/^\s*name\s*=\s*['"]([A-Z][A-Z0-9_]*)['"]/gm)) names.add(m[1]);
+    return names;
+  } catch (_) {
+    return new Set();
+  }
+})();
+
+// The worker's own hostname is not a source. Several routes reference a RELAY
+// constant holding this worker's URL -- correctly, they do call back through it
+// -- but "reads itself" is true of 38 routes and tells a reader nothing they did
+// not already know. Excluded as noise, not as an error: the attribution was
+// right, it was just vacuous.
+const SELF_HOSTS = (() => {
+  try {
+    const t = readFileSync('wrangler.toml', 'utf8');
+    const n = (t.match(/^\s*name\s*=\s*['"]([\w-]+)['"]/m) || [])[1];
+    return n ? [new RegExp(`^${n}\\.[\\w-]+\\.workers\\.dev$`), /\.internal$/] : [/\.internal$/];
+  } catch (_) {
+    return [/\.internal$/];
+  }
+})();
+
 const host = u => {
     try {
         const h = new URL(u).host;
         if (!h || h.endsWith('.') || !h.includes('.')) return null;
         if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(h)) return null;
+        if (SELF_HOSTS.some(re => re.test(h))) return null;
         return h;
     } catch (_) {
         return null;
     }
 };
 
+// A URL in a doc string is not a source. /mcp's handler carries a tool schema
+// whose `description` reads `Full URL to fetch, e.g.
+// "https://aah.wd5.myworkdayjobs.com/..."` -- an example for the caller, not
+// something this route reads. It was being attributed as an upstream, twice,
+// which is how a sports relay came to claim a jobs board.
+//
+// Lines that are documenting rather than fetching are dropped before extraction.
+// Narrow: a description/example/placeholder key, or an inline "e.g.".
+
 function sourcesOf(text) {
+  text = text.split('\n').filter(l => !DOC_LINE.test(l)).join('\n');
   const found = new Set();
   // Literal upstreams.
   for (const m of text.matchAll(/['"`](https?:\/\/[^'"`\s$]+)/g)) {
     const h = host(m[1]); if (h) found.add(h);
   }
   // ${SOME_BASE}/path — resolved through the constant map above.
-  for (const m of text.matchAll(/\$\{(\w*BASE\w*)\}/g)) {
+  for (const m of text.matchAll(/\$\{([A-Za-z_][\w]*)\}/g)) {
     const h = BASES[m[1]] && host(BASES[m[1]]); if (h) found.add(h);
+  }
+  // A constant referenced bare, as in fetch(JOURNALISM_CLAUDE_PROXY, {...}).
+  for (const name in BASES) {
+    if (new RegExp(`\\b${name}\\b`).test(text)) { const h = host(BASES[name]); if (h) found.add(h); }
   }
   // Storage bindings, named individually: "a KV read" is not a source, but
   // "FIELD_JOURNALISM" tells a reader which key space to go look in.
-  for (const m of text.matchAll(/\benv\.([A-Z][A-Z0-9_]{2,})\b/g)) {
+  for (const m of text.matchAll(/\benv\??\.([A-Za-z_][\w]*)\b/g)) {
     const b = m[1];
-    if (/DB$/.test(b))                       found.add(`d1:${b}`);
+    // Declared in wrangler.toml, or it is not a binding. When the file cannot be
+    // read the old heuristic stands in, so this degrades rather than blanks.
+    if (WRANGLER.size ? !WRANGLER.has(b) : !/^[A-Z][A-Z0-9_]{2,}$/.test(b)) continue;
+    if (/SECRET|TOKEN|KEY|PASSWORD/i.test(b)) continue;  // a credential is not a data source
+    if (b === 'AI')                          found.add('ai:AI');
+    else if (/DB$/.test(b) || b === 'DB')    found.add(`d1:${b}`);
     else if (b === 'FIELD_DATA')             found.add(`r2:${b}`);
     else if (/_DO$/.test(b))                 found.add(`do:${b}`);
     else if (/KV|PUSH_SUBS|JOURNALISM|OAUTH/.test(b)) found.add(`kv:${b}`);
@@ -185,7 +257,14 @@ for (const r of routes) {
   // identifiers will reach it. "Delegated to checkAllSources" invites someone to
   // go looking; "reads via a dispatch table" tells them not to bother.
   const dynamicDispatch = delegatesOf.some(n => /\.\w+\(\s*env\s*[,)]/.test(decomment(functionBody(n) || '')));
+  // A route that fetches whatever the CALLER names has no fixed upstream, and
+  // that is an answer rather than an absence. /rss-proxy fetches feedUrl, taken
+  // from the query string; saying it "reads nothing" is false, and naming a host
+  // would be a fiction. It reads whatever it is pointed at.
+  const callerSupplied = /fetch\(\s*(feedUrl|targetUrl|remoteUrl|userUrl|proxyUrl|upstreamUrl)\b/.test(own)
+    && /searchParams\.get|request\.url|url\.search/.test(own);
   const label = (list) => list.length ? list.join(' + ')
+    : callerSupplied ? `caller-supplied (${kind}; fetches the URL given in the request)`
     : dynamicDispatch ? `undeclared (${kind}; reads via a dispatch table, not statically followable)`
     : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
     : (kind === 'trigger' || kind === 'computed') ? null
@@ -210,6 +289,31 @@ for (const r of routes) {
     line: prev ? prev.line : r.line,
     match: prev && prev.match === 'prefix' ? 'prefix' : r.match,
   });
+}
+
+// INHERIT FROM THE ENCLOSING BLOCK. /user/event sits inside the /user/ prefix
+// block, whose body creates the USER_DO stub it forwards to -- so /user/ knew
+// `do:USER_DO` while /user/event, the entry that WINS at runtime because exact
+// beats prefix, said it reads nothing. The more specific answer was the less
+// informed one, which is the worst possible arrangement: the manifest had the
+// truth and served the blank.
+//
+// A child inside a parent's block does what that block does, at minimum. Only
+// sourceless children inherit, and only from the longest matching prefix, so a
+// child that found its own sources always keeps them.
+for (const [path, v] of seen) {
+  if (v.sources.length) continue;
+  let best = null, bestLen = -1;
+  for (const [p2, v2] of seen) {
+    if (p2 === path || !v2.sources.length) continue;
+    if (v2.match !== 'prefix' && !p2.endsWith('/')) continue;
+    if (path.startsWith(p2) && p2.length > bestLen) { best = v2; bestLen = p2.length; }
+  }
+  if (best) {
+    v.sources = [...best.sources];
+    v.declared = `${best.sources.join(' + ')} (inherited from the enclosing ${bestLen === -1 ? '' : ''}block)`;
+    v.inherited = true;
+  }
 }
 
 const entries = [...seen.entries()].sort((a, b) => a[0].localeCompare(b[0]));
