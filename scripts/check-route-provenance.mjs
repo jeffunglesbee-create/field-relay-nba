@@ -51,10 +51,10 @@ if (census) {
 const src = readFileSync('src/index.js', 'utf8') + readFileSync('src/ambient-do.js', 'utf8');
 const bogus = [];
 for (const [path, v] of Object.entries(ROUTE_PROVENANCE)) {
-  if (!v.s) continue;
+  if (!v.s || v.s.startsWith('undeclared')) continue;
   for (const part of v.s.split(' + ')) {
     const bare = part.replace(/^(kv|d1|r2|do):/, '');
-    if (!src.includes(bare)) bogus.push(`${path} → ${part}`);
+    if (!src.includes(bare)) bogus.push(`${path} -> ${part}`);
   }
 }
 check('every declared source appears in the source', bogus.length === 0,
@@ -148,6 +148,32 @@ check('every manifest value is header-safe ASCII', nonAscii.length === 0,
 // ── 6. Prefix resolution, since most routes are matched by prefix ────────────
 check('an exact entry wins over a prefix', provenanceFor('/wc/odds-probs') === ROUTE_PROVENANCE['/wc/odds-probs']);
 check('an unknown path under no prefix resolves to null', provenanceFor('/zzz/nope') === null);
+
+// A prefix entry has to be reachable from a path a client would actually ask
+// for. 13 of the 50 prefix routes have no trailing slash -- /fd, /fpl, /odds,
+// /nba-stats and nine more -- and the first matcher required one, so every real
+// request under them stamped "unmapped" in production while the census counted
+// them mapped. A gap that reports as covered is the worst kind. Found by the
+// runtime probe; this is the static check that would have found it first.
+const unreachable = Object.entries(ROUTE_PROVENANCE)
+  .filter(([, v]) => v.p)
+  .filter(([p]) => provenanceFor(`${p.replace(/\/$/, '')}/probe/subpath`) === null);
+check('every prefix route resolves from a real sub-path', unreachable.length === 0,
+  `${unreachable.length} unreachable: ${unreachable.slice(0, 6).map(e => e[0]).join(', ')}`);
+
+// "reads nothing" and "we could not tell" must not collapse into each other.
+const nulls = Object.entries(ROUTE_PROVENANCE).filter(([, v]) => v.s === null);
+check('only triggers and pure computations claim to read nothing',
+  nulls.every(([, v]) => v.k === 'trigger' || v.k === 'computed'),
+  `a route that reads something claims otherwise: ${nulls.filter(([, v]) => v.k !== 'trigger' && v.k !== 'computed').slice(0, 4).map(e => `${e[0]} (${e[1].k})`).join(', ')}`);
+
+const undeclared = Object.entries(ROUTE_PROVENANCE).filter(([, v]) => v.s && v.s.startsWith('undeclared'));
+console.log(`\n  ${undeclared.length} route(s) undeclared — the URL is built in a helper this parser does not follow:`);
+for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
+// A ratchet, not a gate: undeclared is honest, but it should not grow quietly.
+const UNDECLARED_BUDGET = 1;
+check(`undeclared routes stay within budget (${UNDECLARED_BUDGET})`, undeclared.length <= UNDECLARED_BUDGET,
+  `${undeclared.length} now. Name the host in the handler, or raise the budget in this file deliberately.`);
 
 console.log(`\n  ${Object.keys(ROUTE_PROVENANCE).length} routes mapped, ` +
             `${Object.values(ROUTE_PROVENANCE).filter(v => v.s).length} with a declared source`);

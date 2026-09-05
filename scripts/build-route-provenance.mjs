@@ -13,7 +13,7 @@
 // manifest no longer matches the code.
 
 import { writeFileSync } from 'node:fs';
-import { routes, bodyOf, withHelpers, decomment, lines, ALL_FILES } from './lib/route-scan.mjs';
+import { routes, bodyOf, decomment, lines, ALL_FILES } from './lib/route-scan.mjs';
 
 // `${ODDS_BASE}/v4/...` has to resolve to a host, or the manifest names a
 // variable instead of a source. Collected from every module, not assumed.
@@ -63,22 +63,48 @@ for (const r of routes) {
   if (/^\/(\.well-known|oauth)\//.test(r.path)) continue;
   const b = bodyOf(r.line);
   if (!b.resolved) continue;
-  const text = withHelpers(decomment(b.text)).text;
-  const srcs = sourcesOf(text);
-  const kind = kindOf(r.path, decomment(b.text), srcs);
+  // THE ROUTE'S OWN BODY, NOT ITS HELPERS. The first version followed helpers
+  // the way the census does, and the manifest came out confidently wrong:
+  // /nba-stats claimed statsapi.mlb.com, /fpl claimed kaliaflstats.com, /odds
+  // claimed two ESPN hosts. Following a shared helper drags in every host every
+  // OTHER caller of that helper contacts.
+  //
+  // The census can afford breadth because it asks a yes/no question -- does this
+  // route say anything about provenance. The manifest is a claim about WHERE
+  // data comes from, stamped onto live responses, and a wrong source is worse
+  // than none: it is the Germany v Ecuador failure with a different payload.
+  // Narrow and true beats broad and plausible.
+  const own = decomment(b.text);
+  const srcs = sourcesOf(own);
+  const kind = kindOf(r.path, own, srcs);
+  // THREE STATES, NOT TWO. `s: null` has to mean "reads nothing" -- a trigger
+  // returning an acknowledgement, a pure computation. It must NOT also mean "we
+  // could not tell", which is what /odds was about to say: its own body calls
+  // oddsUrl(), so no host literal appears there, and it would have stamped
+  // "none (reads nothing)" onto a route that proxies the Odds API.
+  //
+  // Same discipline as the odds provider quota and the cost-model verdict
+  // earlier today. Unresolved and empty are different answers and a reader has
+  // to be able to tell them apart, or the instrument reports absence of evidence
+  // as evidence of absence.
+  const declared = srcs.length ? srcs.join(' + ')
+    : (kind === 'trigger' || kind === 'computed') ? null
+    : `undeclared (${kind}; URL built in a helper)`;
   const prev = seen.get(r.path);
   // Several dispatch lines can name the same path (method variants, a guard
   // list). Keep the reading that found the most, not the first one seen.
   if (!prev || srcs.length > prev.sources.length) {
-    seen.set(r.path, { sources: srcs, kind, line: r.line, match: r.match });
+    seen.set(r.path, { sources: srcs, declared, kind, line: r.line, match: r.match });
   }
 }
 
 const entries = [...seen.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-const withSource = entries.filter(([, v]) => v.sources.length).length;
+const withSource   = entries.filter(([, v]) => v.sources.length).length;
+const readsNothing = entries.filter(([, v]) => v.declared === null).length;
+const undeclared   = entries.filter(([, v]) => v.declared && v.declared.startsWith('undeclared')).length;
 
 const body = entries.map(([path, v]) =>
-  `  ${JSON.stringify(path)}: { k: ${JSON.stringify(v.kind)}, s: ${JSON.stringify(v.sources.join(' + ') || null)} },`
+  `  ${JSON.stringify(path)}: { k: ${JSON.stringify(v.kind)}, s: ${JSON.stringify(v.declared)}${v.match === 'prefix' ? ', p: 1' : ''} },`
 ).join('\n');
 
 const out = `// GENERATED FILE — do not edit by hand.
@@ -102,21 +128,29 @@ ${body}
 // Exact match first, then the longest matching prefix, so /wc/odds-probs beats
 // /wc/ and a route added under an existing prefix inherits rather than falls
 // through to nothing.
+//
+// \`p: 1\` marks an entry the router matches with startsWith. The first version
+// inferred that from a trailing slash instead, and 13 of the 50 prefix routes
+// do not have one -- /fd, /fpl, /nba-stats, /odds and nine more. Every real
+// request under them stamped "unmapped" in production while the census counted
+// them as mapped, which is the worst of both: a gap that reports as covered.
+// Caught by the runtime probe, not by any static check, because /odds is in the
+// manifest and /odds/v4/sports is what a client actually asks for.
 export function provenanceFor(pathname) {
   const exact = ROUTE_PROVENANCE[pathname];
   if (exact) return exact;
   let best = null, bestLen = -1;
   for (const p in ROUTE_PROVENANCE) {
-    if (p.endsWith('/') && pathname.startsWith(p) && p.length > bestLen) {
-      best = ROUTE_PROVENANCE[p]; bestLen = p.length;
-    }
+    const e = ROUTE_PROVENANCE[p];
+    if (!e.p && !p.endsWith('/')) continue;
+    if (pathname.startsWith(p) && p.length > bestLen) { best = e; bestLen = p.length; }
   }
   return best;
 }
 `;
 
 writeFileSync('src/route-provenance.js', out);
-console.log(`  src/route-provenance.js: ${entries.length} routes, ${withSource} with a declared source`);
+console.log(`  src/route-provenance.js: ${entries.length} routes — ${withSource} named, ${readsNothing} read nothing, ${undeclared} undeclared (URL built in a helper)`);
 const byKind = {};
 for (const [, v] of entries) byKind[v.kind] = (byKind[v.kind] || 0) + 1;
 for (const [k, n] of Object.entries(byKind).sort((a, b) => b[1] - a[1])) console.log(`    ${String(n).padStart(3)}  ${k}`);
