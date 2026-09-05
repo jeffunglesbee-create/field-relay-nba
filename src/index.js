@@ -3195,27 +3195,41 @@ async function handleWCOddsProbs(env) {
                 bookmakers:   h2h.n,
             });
         }
-        // ── Inject Germany vs Ecuador final matchday odds (June 25, 2026)
-        // Market consensus from screenshot data. Once Odds API lists this game,
-        // this entry is skipped (deduped by game key). Provides immediate calibration.
-        if (!probs.find(p => 
-          (p.home_team === 'Germany' && p.away_team === 'Ecuador') ||
-          (p.home_team === 'Ecuador' && p.away_team === 'Germany')
-        )) {
-          probs.push({
-            home_team:    'Germany',
-            away_team:    'Ecuador',
-            commence:     '2026-06-25T16:00:00Z',  // Final matchday kickoff
-            pHome:        0.5600,  // -135/-150 ML (screenshot)
-            pDraw:        0.2500,  // +290/+300 ML (screenshot)
-            pAway:        0.1900,  // +410 ML (screenshot)
-            lambdaHome:   1.75,    // From O/U 2.5 (screenshot)
-            lambdaAway:   0.35,
-            lambdaTotal:  2.10,
-            lambdaSource: 'market-consensus-injected',
-            bookmakers:   1,
-          });
-        }
+        // REMOVED 2026-09-05: a hand-entered Germany v Ecuador row used to be
+        // pushed here when the Odds API did not list that fixture.
+        //
+        // It was a defensible two-week bridge when it shipped on 2026-06-12. The
+        // Odds API listed 71 of 72 group games, the missing one was the fixture
+        // where Ecuador is a heavy underdog, and without it Ecuador's attack
+        // average came from a Curaçao blowout and ranked it #1 for the
+        // tournament. Its own commit said the entry would be skipped "once Odds
+        // API lists Germany vs Ecuador (June 25)".
+        //
+        // THAT CONDITION COULD NEVER FIRE AGAIN. The match was played on
+        // 2026-06-25. The Odds API lists upcoming and live events, never
+        // completed ones, so the dedupe it relied on to expire itself stopped
+        // being reachable the moment the game kicked off. It ran for 72 more
+        // days.
+        //
+        // Measured on 2026-09-05, not inferred: /wc/odds-probs returned probs:1
+        // with the provider reporting X-Requests-Last: 0, meaning the Odds API
+        // listed zero World Cup events and the single row in that response was
+        // this one. The endpoint was serving fabricated market data as 100% of
+        // its payload, into deriveTeamStrengths, BracketDO, /wc/match-wp and the
+        // client's WC bars -- none of which filter on lambdaSource, and the
+        // freshness weight gave a 72-day-old row a full 1.0 because it only
+        // down-weights FUTURE fixtures.
+        //
+        // DELETED RATHER THAN CORRECTED. There is no source to correct it from:
+        // the fixture is complete and its real closing line was never captured.
+        // Inventing a better number is the same defect with fresher digits.
+        //
+        // Nothing replaces it because the model already handles a thin or empty
+        // market four separate ways, all shipped after this row and all in
+        // wc-tournament-projections.js: missing-fixture padding toward a rank
+        // prior, cross-match triangulation through shared opponents, rank-derived
+        // per-team priors, and an explicit empty-odds fallback. Removing this
+        // lands on the last of those, which is the state it was built for.
         return new Response(JSON.stringify({
             ok: true,
             probs,

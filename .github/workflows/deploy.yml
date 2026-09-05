@@ -150,6 +150,15 @@ jobs:
       - name: Every KV write records who wrote it, and the wrap cannot lose a write
         run: node scripts/check-kv-provenance.mjs
 
+      # Blocking. From 2026-06-12 to 2026-09-05 /wc/odds-probs pushed a
+      # hand-entered Germany v Ecuador row into its response -- a defensible
+      # two-week bridge whose own exit condition ("once the Odds API lists this
+      # game") became unreachable the moment the match was played. It ran 72 more
+      # days, and by the end it was not one row among 71, it was the only row.
+      # Nothing caught it because nothing was looking.
+      - name: Every market value comes from a market
+        run: node scripts/check-no-fabricated-values.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);
