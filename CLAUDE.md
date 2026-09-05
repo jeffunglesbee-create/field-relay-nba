@@ -249,3 +249,57 @@ a CC execution failure when satisfied loosely.
 See jubilant-bassoon CLAUDE.md Rule 90 (VERIFY-ARTIFACT-A) for the full
 rationale, historical citations, and the visual/rendering Playwright
 corollary (client-specific, does not apply to this relay).
+
+## Rule 90 — An assertion is not trusted until it has failed on purpose (MUTATE-FIRST-A)
+
+A check that has only ever passed has proven nothing. It may be asserting the
+right thing; it may also be unable to match the code it is aimed at, and those
+two look identical from the outside.
+
+**Write the mutation before the check, not after.** Break the thing the check
+exists to catch, watch the check go red, then restore. A check that cannot be
+made to fail does not go in.
+
+**This rule is written from a count, not a principle.** On 2026-09-05, building
+the provenance layer produced seventeen defects. Fifteen were in the measuring
+apparatus rather than the product: every wrapper — response stamp, KV write, KV
+read — worked first time and needed no correction. What failed, repeatedly, were
+the census, the manifest generator, the gates, the tests, the probes, and once
+the mutation harness itself.
+
+The ones that shipped were all written before this rule was being followed, and
+trusted because they passed:
+
+| defect | why it passed |
+|---|---|
+| an em-dash in a header value | `Headers.set()` throws above U+00FF; the catch swallowed it and 23 routes would have shipped unstamped, while every store-backed test passed |
+| the WebSocket guard test | asserted object identity against a mock with mutable headers, so it passed with the guard deleted |
+| the oldest-read test | its mock returned the same `_at` for every key, so oldest and newest were identical and it passed with the comparison inverted |
+| the census's `BILLED` regex | required a `${template}` sport key and saw none of the three literal-key sites the file existed for |
+| a probe | printed PASS while its own committed output showed the defect in plain text |
+| the mutation harness | printed NOT CAUGHT when its anchor was not unique, so nothing was mutated and the gate passed on clean source |
+
+Every one was caught by mutation once mutation was applied. None was caught by
+review, by reading, or by the check passing.
+
+**The corollary for the harness:** a mutation script must assert its own anchor
+is unique and applied before reporting a result. NOT CAUGHT with no mutation
+applied is worse than no test.
+
+## Rule 91 — A sampling probe reports its coverage in its own output (SAMPLE-COVERAGE-A)
+
+A probe that checks a subset must say so where the result is read, in the same
+breath as PASS. Otherwise every reader — including the author, in the same
+session — infers completeness from a green result.
+
+Measured on 2026-09-05: the provenance runtime probe checks **6 routes of 186**.
+Its output said PASS. Session status reports then said "186/186 verified live"
+for hours. The mechanism was verified on six routes and the other 180 were
+inferred — the same source-versus-copy substitution this repo's rules already
+prohibit, made while building the gates that enforce them.
+
+**Required form:** the coverage appears in the probe's own printed result and in
+its committed artifact — `checked 6 of 186 routes` — not in a comment, not in a
+commit message, not in the reader's head. A PASS whose denominator is invisible
+is a claim about everything.
+

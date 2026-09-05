@@ -227,6 +227,14 @@ if (statuses.size) {
     `${undecided.join(', ')} observed. These serve from cache without contacting the provider, so they are worth zero, but reconcileOddsCredit only treats HIT that way and charges them the replayed receipt. Widen ZERO_COST_STATUSES in src/budget-helpers.js now that they have been seen.`);
 }
 
-console.log(`\n  ${Object.keys(ROUTE_PROVENANCE).length} routes in the committed manifest`);
-console.log(failed === 0 ? '  PASS — the deployed worker stamps what the code says it stamps' : `  FAIL — ${failed}`);
+// Rule 91: the denominator goes where the result is read. This probe checks a
+// handful of routes and printed PASS; status reports then claimed "186/186
+// verified live" for hours, because a PASS with an invisible denominator is a
+// claim about everything.
+const coverage = `checked ${TARGETS.length} of ${Object.keys(ROUTE_PROVENANCE).length} routes`;
+manifest.coverage = { checked: TARGETS.length, of: Object.keys(ROUTE_PROVENANCE).length };
+writeFileSync(`${OUT}/provenance-runtime-probe-${STAMP}.json`, JSON.stringify(manifest, null, 2));
+writeFileSync('outbox/provenance-runtime-probe-latest.json', JSON.stringify(manifest, null, 2));
+console.log(`\n  ${coverage} — this is a SAMPLE. A pass here says the mechanism works on those ${TARGETS.length}, not that the other ${Object.keys(ROUTE_PROVENANCE).length - TARGETS.length} were tested.`);
+console.log(failed === 0 ? `  PASS (${coverage}) — the deployed worker stamps what the code says it stamps, on the routes sampled` : `  FAIL — ${failed}`);
 process.exit(failed === 0 ? 0 : 1);
