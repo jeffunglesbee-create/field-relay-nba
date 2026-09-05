@@ -147,6 +147,27 @@ STAGED — one item, with unblock criteria (Rule 74):
   same interval. Equal deltas mean the windows agree and the remaining gap is
   historical; unequal means the window differs.
 
+## Done condition, met
+
+`outbox/odds-cost-model-probe-2026-09-05T02-04-46.json`, run against deploy 893:
+
+```
+/cfl/odds-probs   cost=6  charged=6   probs=4   remaining 76375 -> 76369
+/wc/odds-probs    cost=0  charged=4   probs=1   set aside, not a reading
+verdict: regions-multiply — matches the deployed model
+```
+
+`charged` equals `cost` on the one route that billed. That is the artifact
+(Rule 89): not "the fix looks right" but the provider and our ledger stating the
+same number for the same call. `remaining` fell exactly 6 for a second time,
+independently of the header.
+
+The WC reading demonstrates the probe's own repair working: it billed 0, the
+verdict named it as set aside rather than folding it in, and the model was
+decided on the route that measured something. Note `probs: 1` against a provider
+cost of 0 — the single entry is the injected Germany v Ecuador row, which is the
+Rule 2 concern recorded below showing up in a measurement.
+
 ## Carry-forwards
 
 None. The one open question above is STAGED with its unblock criteria and costs
