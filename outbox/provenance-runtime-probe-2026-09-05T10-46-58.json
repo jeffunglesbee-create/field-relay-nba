@@ -1,6 +1,6 @@
 {
   "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
-  "checked_at": "2026-09-05T10:47:39.250Z",
+  "checked_at": "2026-09-05T10:46:58.467Z",
   "readings": [
     {
       "path": "/health",
@@ -95,9 +95,5 @@
       "dataAt": null,
       "body": null
     }
-  ],
-  "coverage": {
-    "checked": 6,
-    "of": 186
-  }
+  ]
 }

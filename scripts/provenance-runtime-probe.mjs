@@ -174,15 +174,25 @@ if (kv && kv.body && kv.body.ok) {
   // new DO, or a binding nobody added to KV_BINDINGS -- which is a finding, not
   // drift. Compared against the previous committed reading rather than a
   // hardcoded number, so it needs no maintenance and cannot go stale.
+  // NOT a silent catch. The first version of this block referenced an undefined
+  // OUT constant, and the try swallowed the ReferenceError -- so it reported "no
+  // previous reading" on every run and compared nothing, while printing ok. A
+  // check that cannot see reports clean, which is the failure this whole probe
+  // exists to prevent. A missing-file case is expected and quiet; anything else
+  // is surfaced.
   let prev = null;
   try {
-    const older = readdirSync(OUT).filter(f => /^provenance-runtime-probe-\d/.test(f)).sort();
+    const older = readdirSync('outbox').filter(f => /^provenance-runtime-probe-\d/.test(f)).sort();
     for (let i = older.length - 1; i >= 0; i--) {
-      const j = JSON.parse(readFileSync(`${OUT}/${older[i]}`, 'utf8'));
+      const j = JSON.parse(readFileSync(`outbox/${older[i]}`, 'utf8'));
       const k = (j.readings || []).find(r => r.kv && r.body && r.body.ok && r.body.prefix === kv.body.prefix);
       if (k) { prev = { at: j.checked_at, ...k.body.counts }; break; }
     }
-  } catch (_) {}
+  } catch (e) {
+    if (!/ENOENT/.test(String(e && e.message))) {
+      check('the previous-reading comparison is able to run', false, String(e && e.message || e));
+    }
+  }
   if (prev) {
     console.log(`         previous reading ${prev.at}: ${prev.stamped} stamped, ${prev.unstamped} unstamped`);
     check('unstamped never increases', c.unstamped <= prev.unstamped,
@@ -209,14 +219,18 @@ if (kv && kv.body && kv.body.ok) {
 // set says to.
 const statuses = new Map();
 try {
-  for (const f of readdirSync(OUT).filter(f => /^provenance-runtime-probe-\d/.test(f))) {
-    const j = JSON.parse(readFileSync(`${OUT}/${f}`, 'utf8'));
+  for (const f of readdirSync('outbox').filter(f => /^provenance-runtime-probe-\d/.test(f))) {
+    const j = JSON.parse(readFileSync(`outbox/${f}`, 'utf8'));
     for (const r of j.readings || []) {
       const v = r.body && r.body.cached;
       if (v) statuses.set(v, (statuses.get(v) || 0) + 1);
     }
   }
-} catch (_) {}
+} catch (e) {
+  if (!/ENOENT/.test(String(e && e.message))) {
+    check('the cache-status tally is able to run', false, String(e && e.message || e));
+  }
+}
 const here = readings.map(r => r.body && r.body.cached).filter(Boolean);
 for (const v of here) statuses.set(v, (statuses.get(v) || 0) + 1);
 if (statuses.size) {
@@ -233,7 +247,7 @@ if (statuses.size) {
 // claim about everything.
 const coverage = `checked ${TARGETS.length} of ${Object.keys(ROUTE_PROVENANCE).length} routes`;
 manifest.coverage = { checked: TARGETS.length, of: Object.keys(ROUTE_PROVENANCE).length };
-writeFileSync(`${OUT}/provenance-runtime-probe-${STAMP}.json`, JSON.stringify(manifest, null, 2));
+writeFileSync(`outbox/provenance-runtime-probe-${STAMP}.json`, JSON.stringify(manifest, null, 2));
 writeFileSync('outbox/provenance-runtime-probe-latest.json', JSON.stringify(manifest, null, 2));
 console.log(`\n  ${coverage} — this is a SAMPLE. A pass here says the mechanism works on those ${TARGETS.length}, not that the other ${Object.keys(ROUTE_PROVENANCE).length - TARGETS.length} were tested.`);
 console.log(failed === 0 ? `  PASS (${coverage}) — the deployed worker stamps what the code says it stamps, on the routes sampled` : `  FAIL — ${failed}`);
