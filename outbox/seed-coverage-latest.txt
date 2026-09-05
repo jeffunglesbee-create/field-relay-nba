@@ -19,12 +19,12 @@
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-09-01 (4 day(s) ago)
+  Live half, 2026-09-02 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
-  MLB                      15       15
+  MLB                      15       30
 
   FAIL  the date carried fixtures somewhere — otherwise a clean run is vacuous
         → 1 competition(s) with fixtures
