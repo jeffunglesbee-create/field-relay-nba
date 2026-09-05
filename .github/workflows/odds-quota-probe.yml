@@ -1,0 +1,24 @@
+name: Odds Quota Probe
+
+# One question: what does the Odds API itself say is left?
+#
+# This session concluded the client's win-probability chart may be quota-blocked,
+# on an inherited claim that src/index.js:568-583 contradicts. Rule 72 — an
+# inherited claim that influences a decision gets verified before it is acted on.
+#
+# Dispatch-only, deliberately. /budget/odds now answers this on demand and this
+# repo already carries 100 workflows; a daily job for a diagnostic nobody reads
+# is worse than no job. If the numbers turn out to warrant a gate, that gate
+# earns its own workflow then.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/odds-quota-probe.mjs
+      commit_message: "chore: odds quota probe result [skip ci]"
