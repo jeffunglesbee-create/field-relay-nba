@@ -69,20 +69,44 @@ for (const r of ROUTES) {
     remaining: body && body.remaining,
     guarded:   !!(body && body.guarded),
     ok:        !!(body && body.ok),
+    // Recorded because the first run needed it to explain itself. /wc/odds-probs
+    // came back cost "0" and the verdict said "neither", which was true and
+    // useless -- a sport with no listed events bills nothing, so the reading
+    // carried no information about the model rather than contradicting it.
+    probs:     body && Array.isArray(body.probs) ? body.probs.length : null,
   });
 }
 
 // The verdict is three-state on purpose. "Unresolved" and "wrong" are different
 // answers and a boolean would collapse them into the second.
+// A ZERO-COST ROUTE IS NOT A READING, which the first run had to teach this
+// function. /wc/odds-probs returned cost "0" -- soccer_fifa_world_cup has no
+// listed events today, and a call that returns no events bills nothing. The
+// verdict came back "neither", which was literally true and told nobody
+// anything: one route measured the model cleanly and the other measured
+// nothing, and lumping them together threw away the half that worked.
+//
+// So routes that billed zero are set aside as non-readings, named in the
+// verdict rather than silently dropped, and the model is decided on whatever
+// actually billed. If NOTHING billed, that is `unresolved` -- the probe says it
+// did not measure, instead of reporting the absence of evidence as a model.
 function verdict(rs) {
   if (rs.some(r => r.cost === undefined))         return { state: 'unresolved', why: 'a route did not return `cost` — the deployed worker predates this change' };
   if (rs.some(r => r.cost === null))              return { state: 'unresolved', why: 'the provider sends no X-Requests-Last header — this question needs another instrument' };
   if (rs.some(r => r.guarded))                    return { state: 'unresolved', why: 'the credit guard declined a call, so no provider reading was taken' };
   const n = rs.map(r => ({ ...r, n: Number(r.cost) }));
   if (n.some(r => !Number.isFinite(r.n)))         return { state: 'unresolved', why: `cost was not a number: ${n.map(r => JSON.stringify(r.cost)).join(', ')}` };
-  if (n.every(r => r.n === r.markets))            return { state: 'markets-only', why: 'cost equals the market count on both routes — oddsCreditCost is correct as written' };
-  if (n.every(r => r.n === r.markets * r.regions))return { state: 'regions-multiply', why: 'cost equals markets x regions on both routes — flip ODDS_REGIONS_MULTIPLY to true in src/budget-helpers.js' };
-  return { state: 'neither', why: `costs ${n.map(r => `${r.path}=${r.n}`).join(' ')} match neither markets-only nor markets x regions` };
+
+  const billed = n.filter(r => r.n > 0);
+  const idle   = n.filter(r => r.n === 0);
+  const aside  = idle.length ? ` (${idle.map(r => `${r.path} billed 0${r.probs === 0 ? ', no events listed' : ''}`).join('; ')} — set aside, not a reading)` : '';
+  if (!billed.length) return { state: 'unresolved', why: `no route billed anything${aside}. Nothing was measured; re-run when a listed competition is in season.` };
+
+  if (billed.every(r => r.n === r.markets))
+    return { state: 'markets-only', why: `cost equals the market count on ${billed.length} route(s) — oddsCreditCost is correct as written${aside}` };
+  if (billed.every(r => r.n === r.markets * r.regions))
+    return { state: 'regions-multiply', why: `cost equals markets x regions on ${billed.length} route(s) — ODDS_REGIONS_MULTIPLY must be true in src/budget-helpers.js${aside}` };
+  return { state: 'neither', why: `costs ${billed.map(r => `${r.path}=${r.n}`).join(' ')} match neither markets-only nor markets x regions${aside}` };
 }
 
 const v = verdict(readings);
@@ -93,7 +117,7 @@ console.log(JSON.stringify(manifest, null, 2));
 console.log('');
 
 for (const r of readings) {
-  console.log(`  ${r.path.padEnd(18)} http=${r.status} cost=${JSON.stringify(r.cost)} charged=${r.charged} remaining=${r.remaining}  ${r.label}`);
+  console.log(`  ${r.path.padEnd(18)} http=${r.status} cost=${JSON.stringify(r.cost)} charged=${r.charged} probs=${r.probs} remaining=${r.remaining}  ${r.label}`);
 }
 console.log(`\n  VERDICT: ${v.state} — ${v.why}\n`);
 
@@ -102,10 +126,14 @@ check('both routes answered', readings.every(r => r.status === 200),
 check('both routes charged themselves something', readings.every(r => Number(r.charged) >= 1),
   'a route reported charged<1 — a call that bills the provider must bill the ledger');
 check('the cost model is resolved', v.state !== 'unresolved', v.why);
-check('the deployed model matches the provider', v.state === 'markets-only',
-  v.state === 'regions-multiply'
-    ? 'ACT ON THIS: set ODDS_REGIONS_MULTIPLY = true in src/budget-helpers.js. Every site corrects at once.'
-    : v.why);
+// Read from the shipped module, not restated here. A probe that hardcodes what
+// it expects the code to say stops being able to catch the code changing.
+const { ODDS_REGIONS_MULTIPLY } = await import('../src/budget-helpers.js');
+const deployedModel = ODDS_REGIONS_MULTIPLY ? 'regions-multiply' : 'markets-only';
+check(`the deployed model (${deployedModel}) matches the provider`, v.state === deployedModel,
+  v.state === 'unresolved'
+    ? `nothing was measured this run: ${v.why}`
+    : `provider says ${v.state}. Set ODDS_REGIONS_MULTIPLY = ${v.state === 'regions-multiply'} in src/budget-helpers.js — every site corrects at once.`);
 check('no credential value appears in either response',
   !JSON.stringify(readings).match(/apiKey=|[a-f0-9]{24,}/i),
   'a response looks like it carries a key — it must never');

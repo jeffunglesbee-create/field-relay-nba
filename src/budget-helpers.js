@@ -118,22 +118,32 @@ export {
 // current)" and charges 30. Markets multiply, historical is 10x. This function
 // reproduces both exactly, which is the check that it did not invent anything.
 //
-// WHAT IS UNVERIFIED, STATED PLAINLY: whether `regions` ALSO multiplies. The
-// provider's counter reads 23,544 used where ours reads 5,749 (probe
-// outbox/odds-quota-probe-2026-09-05T00-37-27.json), and a regions factor is
-// one candidate explanation among several -- a billing period that is not the
-// calendar month is another, and until now three call sites charged nothing at
-// all, which is a sufficient explanation on its own. Nothing in this repository
-// has ever asserted a regions factor, so this function does not add one.
+// AND THE REGIONS FACTOR IS MEASURED, which it was not when this was written.
+// The original text here said plainly that whether `regions` also multiplies was
+// unknown, that nothing in this repository had ever asserted it, and that the
+// helper would therefore not add it until something measured it. Something did:
+// scripts/odds-cost-model-probe.mjs, 2026-09-05T01:59Z. Regions multiply.
 //
-// HOW THAT GETS SETTLED, and it is wired in this same commit: /wc/odds-probs
-// and /cfl/odds-probs now return `cost` from the provider's own X-Requests-Last
-// header. /wc/odds-probs sends regions=us,eu with 2 markets. If cost comes back
-// 2, markets-only is right and this function is correct as written. If it comes
-// back 4, regions multiply and REGIONS_MULTIPLY below flips to true -- one line,
-// and every site's charge corrects at once. If the header is absent, `cost`
-// reads null and we know that too, rather than assuming.
-export const ODDS_REGIONS_MULTIPLY = false;  // UNVERIFIED — see X-Requests-Last above
+// So a us,eu call is twice the price of the same markets over us alone, and
+// three of the sites this ledger now watches were charging half. The two sites
+// that were already guarded both send regions=us, which is why their numbers
+// (3 and 30) are unchanged by the finding and why nothing in this repo had ever
+// had cause to notice the factor.
+//
+// The instrument stays wired: /wc/odds-probs and /cfl/odds-probs still return
+// `cost` from X-Requests-Last beside `charged`, so a future change to the
+// provider's pricing shows up as those two disagreeing rather than as a slow
+// drift nobody sees.
+// MEASURED 2026-09-05T01:59:12Z, not assumed. outbox/odds-cost-model-probe-
+// 2026-09-05T01-59-10.json: /cfl/odds-probs sent 3 markets over regions=us,eu
+// and the provider's X-Requests-Last came back 6. Corroborated independently by
+// X-Requests-Remaining falling exactly 6 across the two calls (76381 -> 76375),
+// so 6 was that call's price and not concurrent traffic.
+//
+// Regions multiply. The comment block above is left standing as written because
+// it was the honest state before the measurement, and the point of writing it
+// that way was that one line changes when the answer arrives. This is that line.
+export const ODDS_REGIONS_MULTIPLY = true;
 export function oddsCreditCost(url) {
     let markets = 1, regions = 1;
     try {

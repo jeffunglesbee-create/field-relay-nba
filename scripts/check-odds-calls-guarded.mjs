@@ -164,11 +164,22 @@ async function costTests() {
         // If either of these moves, the helper has changed the ledger's meaning.
         [`${B}/v4/sports/x/odds?apiKey=K&markets=h2h,spreads,totals&regions=us&oddsFormat=american`, 3, 'fetchSportOddsLive, was the literal 3'],
         [`${B}/v4/historical/sports/x/odds?apiKey=K&date=D&markets=h2h,spreads,totals&regions=us&oddsFormat=american`, 30, 'fetchSportOddsHistorical, was the literal 30'],
-        // The four that were charging nothing.
-        [`${B}/v4/sports/soccer_fifa_world_cup/odds?apiKey=K&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`, 2, 'getWCPregameLambdas + /wc/odds-probs'],
-        [`${B}/v4/sports/americanfootball_cfl/odds?apiKey=K&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`, 3, '/cfl/odds-probs'],
-        [`${B}/v4/sports/x/odds-live?apiKey=K&regions=us,eu&markets=h2h&oddsFormat=decimal`, 1, 'AmbientDO live poll, was the literal 1'],
-        [`${B}/v4/sports/x/odds?apiKey=K&regions=us&markets=h2h,spreads,totals&oddsFormat=american`, 3, '_captureClosingOdds, was the literal 1'],
+        // The four that were charging nothing. Every one of them sends us,eu, and
+        // regions multiply -- MEASURED, not assumed: /cfl/odds-probs reported
+        // X-Requests-Last 6 for 3 markets over 2 regions on 2026-09-05T01:59Z
+        // (outbox/odds-cost-model-probe-2026-09-05T01-59-10.json), corroborated
+        // by X-Requests-Remaining falling exactly 6 across the two calls.
+        //
+        // These three expectations DOUBLED when ODDS_REGIONS_MULTIPLY flipped and
+        // the two above did not. That split is the check that the finding was
+        // applied correctly rather than broadly: the two long-guarded sites send
+        // regions=us, so their prices are untouched, which is also why nothing in
+        // this repo had ever had cause to notice the factor.
+        [`${B}/v4/sports/soccer_fifa_world_cup/odds?apiKey=K&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`, 4, 'getWCPregameLambdas + /wc/odds-probs — 2 markets x 2 regions'],
+        [`${B}/v4/sports/americanfootball_cfl/odds?apiKey=K&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`, 6, '/cfl/odds-probs — 3 x 2, and 6 is the number the provider itself reported'],
+        [`${B}/v4/sports/x/odds-live?apiKey=K&regions=us,eu&markets=h2h&oddsFormat=decimal`, 2, 'AmbientDO live poll — 1 market x 2 regions, was the literal 1'],
+        // regions=us: unchanged by the finding, and that is the point.
+        [`${B}/v4/sports/x/odds?apiKey=K&regions=us&markets=h2h,spreads,totals&oddsFormat=american`, 3, '_captureClosingOdds — 3 x 1, was the literal 1'],
         // A call can never be free by accident.
         [`${B}/v4/sports/x/odds`, 1, 'no markets param still costs at least 1'],
         ['not a url at all', 1, 'unparseable still costs at least 1'],
