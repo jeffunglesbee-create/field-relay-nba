@@ -1,0 +1,23 @@
+name: Odds Cost Model Probe
+
+# One question: does `regions` multiply the Odds API credit cost, or only
+# `markets`? oddsCreditCost() ships with markets-only, which is what this
+# repository's own guarded sites already asserted, and with the regions factor
+# left explicitly unverified rather than guessed.
+#
+# DISPATCH-ONLY, AND THIS ONE MUST STAY THAT WAY. It calls two billable routes
+# on purpose, to make the provider bill us and then report what it billed.
+# Under 10 credits per run. On a daily schedule that is ~300/month spent on a
+# question that only needs answering once.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/odds-cost-model-probe.mjs
+      commit_message: "chore: odds cost model probe result [skip ci]"
