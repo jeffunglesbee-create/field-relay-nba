@@ -1,0 +1,36 @@
+{
+  "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "checked_at": "2026-09-05T01:59:12.403Z",
+  "verdict": {
+    "state": "neither",
+    "why": "costs /wc/odds-probs=0 /cfl/odds-probs=6 match neither markets-only nor markets x regions"
+  },
+  "readings": [
+    {
+      "path": "/wc/odds-probs",
+      "markets": 2,
+      "regions": 2,
+      "label": "WC (h2h,totals over us,eu)",
+      "status": 200,
+      "error": null,
+      "cost": "0",
+      "charged": 2,
+      "remaining": "76381",
+      "guarded": false,
+      "ok": true
+    },
+    {
+      "path": "/cfl/odds-probs",
+      "markets": 3,
+      "regions": 2,
+      "label": "CFL (h2h,spreads,totals over us,eu)",
+      "status": 200,
+      "error": null,
+      "cost": "6",
+      "charged": 3,
+      "remaining": "76375",
+      "guarded": false,
+      "ok": true
+    }
+  ]
+}
