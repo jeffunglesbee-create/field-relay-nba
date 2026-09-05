@@ -21,8 +21,8 @@ try { runtime = JSON.parse(readFileSync('outbox/provenance-runtime-probe-latest.
 const kvSurvey = runtime && (runtime.readings || []).find(r => r.kv && r.body && r.body.ok);
 
 const STATES = {
-  none:          { label: 'bare',        rank: 0, blurb: 'no source, no age' },
-  passthrough:   { label: 'passthrough', rank: 1, blurb: "upstream bytes, unstamped by us" },
+  none:          { label: 'body bare',   rank: 0, blurb: 'the body carries neither; the headers do' },
+  passthrough:   { label: 'passthrough', rank: 1, blurb: 'upstream bytes — no body of ours to carry it' },
   'age-only':    { label: 'age only',    rank: 2, blurb: 'when, but not where' },
   'source-only': { label: 'source only', rank: 3, blurb: 'where, but not when' },
   both:          { label: 'complete',    rank: 4, blurb: 'source and age' },
@@ -202,9 +202,11 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     </div>
     <div class="headline second">
       <div class="big">${t.both}<small> of ${total}</small></div>
-      <p>carry it in the <em>body</em>, which is the number that was ${t.both} before any
-      of this and is still worth moving. A header is lost the moment a response is saved
-      to a file, logged, cached or piped into a script; a body keeps its provenance.</p>
+      <p>carry it in the <em>body</em> as well &mdash; <strong>retired as a target</strong>, not a
+      backlog. The client stores a transformed structure so relay body fields never reach it,
+      the relay's own caches already carry writer and time in metadata, and ${t.passthrough || 0}
+      passthrough routes have no body of ours to put anything in. Still counted because the
+      number is real and free.</p>
     </div>
   </header>
 
@@ -238,10 +240,11 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <div class="barwrap">
-    <div class="barlabel">The body layer &mdash; what survives being saved, logged or cached</div>
+    <div class="barlabel">The body layer &mdash; measured, not chased</div>
     <div class="bar">${bar}</div>
     <div class="key">
       ${order.map(k => `<span><i class="s-${k}"></i><b>${STATES[k].label}</b> &mdash; ${STATES[k].blurb}</span>`).join('\n      ')}
+      <span style="width:100%;color:var(--faint)">These describe the response <em>body</em> only. Every route in every band above also carries route, kind, source and age in its headers &mdash; verified against the deployed worker.</span>
     </div>
   </div>
 

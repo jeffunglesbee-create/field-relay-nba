@@ -143,18 +143,24 @@ const pct = n => `${(100 * n / dataSurfaces.length).toFixed(1)}%`;
 console.log(`\n  ${SRC}: ${routes.length} dispatch lines, ${uniq.length} distinct paths\n`);
 console.log(`  ${dataSurfaces.length} data surfaces (protocol routes excluded)\n`);
 const ORDER = ['both', 'source-only', 'age-only', 'none', 'passthrough', 'unread'];
+// LABELS DESCRIBE WHAT IS MEASURED, which is the response BODY and nothing else.
+// They used to describe the system: `none` read "a value with no visible origin".
+// That was true when this census was written and became false the day the
+// response wrapper shipped -- those routes all carry X-FIELD-Route, -Kind and
+// -Source. An instrument whose labels outlive the state they describe is the
+// defect this whole exercise is about, so they now say only what they check.
 const LABEL = {
-  both:          'source AND age — a reader can judge it without the source',
-  'source-only': 'says where, never when — cannot be judged stale',
-  'age-only':    'says when, never where — a timestamp on an anonymous number',
-  none:          'neither — a value with no visible origin',
-  passthrough:   "someone else's bytes, unstamped by us",
+  both:          'the body carries a source and a time',
+  'source-only': 'the body names a source, no time',
+  'age-only':    'the body carries a time, no source',
+  none:          'the body carries neither (the headers still do)',
+  passthrough:   "upstream bytes we do not construct, so no body of ours to carry it",
   unread:        'this script could not find the handler — counted as unknown, not as fine',
 };
 for (const k of ORDER) if (tally[k]) console.log(`    ${String(tally[k]).padStart(3)}  ${pct(tally[k]).padStart(6)}  ${k.padEnd(12)} ${LABEL[k]}`);
 if (tally.protocol) console.log(`    ${String(tally.protocol).padStart(3)}          protocol     OAuth/MCP transport — excluded, not a data surface`);
 
-console.log(`\n  SELF-DESCRIBING: ${selfDescribing} of ${dataSurfaces.length} (${pct(selfDescribing)})\n`);
+console.log(`\n  body layer: ${selfDescribing} of ${dataSurfaces.length} (${pct(selfDescribing)}) — RETIRED AS A TARGET, see below\n`);
 
 // ── Two layers, and they answer different questions ──────────────────────────
 // BODY: does the response itself carry its provenance? Still worth measuring —
@@ -177,12 +183,19 @@ for (const r of dataSurfaces) {
   else if (String(e.s).startsWith('undeclared')) eff.undeclared++;
   else eff.named++;
 }
-console.log(`  EFFECTIVE, what a caller receives since the response wrapper shipped:`);
+console.log(`  THE HEADLINE. What a caller actually receives:`);
 console.log(`    ${String(dataSurfaces.length - eff.unmapped).padStart(3)}  of ${dataSurfaces.length} carry X-FIELD-Route and X-FIELD-Kind`);
 console.log(`    ${String(eff.named).padStart(3)}         name a source`);
 console.log(`    ${String(eff.readsNothing).padStart(3)}         declare that they read nothing`);
 console.log(`    ${String(eff.undeclared).padStart(3)}         declare undeclared — URL built in a helper`);
 if (eff.unmapped) console.log(`    ${String(eff.unmapped).padStart(3)}         UNMAPPED — served but absent from the manifest`);
+console.log('');
+console.log(`  Why the body layer is retired rather than chased, in one line each:`);
+console.log(`    the client stores a TRANSFORMED structure, so relay body fields never reach it`);
+console.log(`    the relay's own KV caches carry writer and time in metadata already`);
+console.log(`    the 24 passthrough routes have no body of ours to put anything in`);
+console.log(`    every route already carries the same facts in headers, verified live`);
+console.log(`  It is still counted because the number is real and free. It is not a backlog.`);
 console.log('');
 
 const out = { generated_at: new Date().toISOString(), file: SRC,

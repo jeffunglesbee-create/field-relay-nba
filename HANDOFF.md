@@ -107,10 +107,15 @@ knew more than it did.
 
 ### Residual, disclosed
 
-- **The body layer is 6 of 186 and should be retired as a target.** Adding
-  provenance to 132 response bodies reaches nobody: the client stores a
-  transformed structure, and the relay's own KV caches carry writer and time in
-  metadata. Measured, not assumed.
+- **The body layer is RETIRED as a target**, not open. `outbox/decision-2026-09-05-body-layer-retired.md`
+  carries the evidence: the client stores a transformed structure so relay body
+  fields never reach it, the relay's own KV caches already carry writer and time
+  in metadata, 24 passthrough routes have no body of ours to put anything in, and
+  all 186 routes already carry the same facts in headers. The census still counts
+  it — the number is real and free — under a label that says it is retired.
+  The sharper reason was the old label: `none` read "a value with no visible
+  origin", which became false the day the response wrapper shipped. Labels now
+  describe only what they check.
 - **`unstamped` is 5 of 8 on `prefix=odds`.** Expected — keys written before the
   wrap expire on their own TTL. The probe now fails if it RISES, which is only
   assertable because every write path is wrapped.
