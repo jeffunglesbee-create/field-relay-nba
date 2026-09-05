@@ -39,10 +39,39 @@ const KV_BINDINGS = new Set(['FIELD_JOURNALISM', 'PUSH_SUBS', 'MCP_OAUTH']);
 // too big would be a self-inflicted outage.
 const MAX_SRC = 160;
 
-function wrapBinding(kv, src) {
+function wrapBinding(kv, src, reads) {
     return new Proxy(kv, {
         get(target, prop, receiver) {
             const v = Reflect.get(target, prop, target);
+
+            // READS, so the response can stop lying about the age of its data.
+            //
+            // stampProvenance sets X-FIELD-Served-At from the clock, which is
+            // true of the RESPONSE and false of what is in it: a payload read
+            // from a KV cache can be an hour old and the header said "now".
+            // Recording it here is the same choke-point move as the writes --
+            // one wrap instead of touching every read site.
+            //
+            // .get() is served by getWithMetadata(), which is the SAME KV
+            // operation and returns the metadata alongside the value at no extra
+            // read. The caller still receives exactly the value it asked for, so
+            // no reader changes; the metadata is diverted into `reads` for the
+            // stamp to summarise. The type argument is passed through, because
+            // .get(key, 'json') is a shape the callers here rely on.
+            if (prop === 'get' && typeof v === 'function' && typeof target.getWithMetadata === 'function') {
+                return async function get(key, options) {
+                    try {
+                        const r = await target.getWithMetadata(key, options);
+                        if (r && r.metadata && r.metadata._at) reads.push(r.metadata._at);
+                        return r ? r.value : null;
+                    } catch (_) {
+                        // Any doubt, take the plain read. A diagnostic must never
+                        // change what a caller receives, or fail to deliver it.
+                        return target.get(key, options);
+                    }
+                };
+            }
+
             if (prop !== 'put' || typeof v !== 'function') {
                 return typeof v === 'function' ? v.bind(target) : v;
             }
@@ -69,15 +98,39 @@ export function withKvProvenance(env, src) {
     if (!env) return env;
     try {
         const cache = new Map();
+        const reads = [];
         return new Proxy(env, {
             get(target, prop, receiver) {
+                // The reads collected under this request, for stampProvenance.
+                // Named with a symbol-ish prefix so it cannot collide with a
+                // real binding, and returning it never touches the store.
+                if (prop === '__kvReads') return reads;
                 const v = Reflect.get(target, prop, target);
                 if (!KV_BINDINGS.has(prop) || !v || typeof v.put !== 'function') return v;
-                if (!cache.has(prop)) cache.set(prop, wrapBinding(v, src));
+                if (!cache.has(prop)) cache.set(prop, wrapBinding(v, src, reads));
                 return cache.get(prop);
             },
         });
     } catch (_) {
         return env;
+    }
+}
+
+// The oldest thing this response was built from. Oldest rather than newest
+// because staleness is decided by the worst input, not the best: a response
+// mixing a fresh read with an hour-old one is an hour old.
+export function oldestRead(env) {
+    try {
+        const reads = env && env.__kvReads;
+        if (!Array.isArray(reads) || !reads.length) return null;
+        let oldest = null;
+        for (const at of reads) {
+            const t = Date.parse(at);
+            if (!Number.isFinite(t)) continue;
+            if (oldest === null || t < oldest) oldest = t;
+        }
+        return oldest === null ? null : new Date(oldest).toISOString();
+    } catch (_) {
+        return null;
     }
 }

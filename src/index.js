@@ -9369,7 +9369,9 @@ export default {
         // someone staring at a stale key actually has.
         const _env = withKvProvenance(env, `route:${new URL(request.url).pathname}`);
         const resp = await this._fetch(request, _env, ctx);
-        return stampProvenance(request, resp);
+        // _env, not env: the wrapped one carries the reads this request made, so
+        // the stamp can report how old the DATA is and not just the response.
+        return stampProvenance(request, resp, _env);
     },
 
     async _fetch(request, env, ctx) {

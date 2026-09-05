@@ -68,7 +68,7 @@ const idx = readFileSync('src/index.js', 'utf8');
 // and it should notice. It is updated deliberately, not loosened: the router
 // must still receive a wrapped env and the result must still be stamped.
 check('fetch delegates to _fetch with the wrapped env and stamps the result',
-  /async fetch\(request, env, ctx\) \{[\s\S]{0,600}?this\._fetch\(request, _env, ctx\)[\s\S]{0,200}?stampProvenance\(request, resp\)/.test(idx),
+  /async fetch\(request, env, ctx\) \{[\s\S]{0,900}?this\._fetch\(request, _env, ctx\)[\s\S]{0,400}?stampProvenance\(request, resp, _env\)/.test(idx),
   'the export no longer wraps the router — routing would be unstamped, or the raw env would reach it');
 check('the router itself still exists', /async _fetch\(request, env, ctx\) \{/.test(idx));
 

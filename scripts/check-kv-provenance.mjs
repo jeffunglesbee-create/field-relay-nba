@@ -8,7 +8,8 @@
 // nothing would fail. Writes would just quietly stop recording anything.
 
 import { readFileSync } from 'node:fs';
-import { withKvProvenance } from '../src/kv-provenance.js';
+import { withKvProvenance, oldestRead } from '../src/kv-provenance.js';
+import { stampProvenance } from '../src/provenance-stamp.js';
 
 let failed = 0;
 const check = (name, ok, detail = '') => {
@@ -100,6 +101,65 @@ check('a throw while building provenance still writes the value',
   'the write was lost to a diagnostic — the value is the point, provenance is the bonus');
 
 check('a null env does not explode', withKvProvenance(null, 'x') === null);
+
+// ── 4b. Reads: the response must not lie about the age of its data ───────────
+// X-FIELD-Served-At is true of the RESPONSE and says nothing about what is in
+// it. A payload read from a KV cache can be an hour old while that header reads
+// "now" -- our own header being confidently wrong, which is the defect the whole
+// exercise exists to catch.
+const R = p => new Request(`https://relay.test${p}`);
+const hour = new Date(Date.now() - 3600e3).toISOString();
+const mkKv = meta => ({
+  get: () => Promise.resolve('plain'),
+  getWithMetadata: (k, o) => Promise.resolve({ value: `v:${k}:${o || ''}`, metadata: meta }),
+  put: () => Promise.resolve(),
+});
+const wRead = withKvProvenance({ FIELD_JOURNALISM: mkKv({ _at: hour, _src: 'cron:x' }) }, 'route:/t');
+check('get returns the value, not the metadata envelope',
+  (await wRead.FIELD_JOURNALISM.get('k')) === 'v:k:',
+  'wrapping .get with getWithMetadata must be invisible to every existing reader');
+check('the type argument passes through',
+  (await wRead.FIELD_JOURNALISM.get('k', 'json')) === 'v:k:json',
+  '.get(key, "json") is a shape callers here rely on');
+// TWO reads with DIFFERENT ages, because the first version of this check used a
+// mock that returned the same _at for every key -- so oldest and newest were the
+// same value and the assertion passed with the comparison inverted. Mutation
+// caught it. Staleness is decided by the worst input: a response mixing a fresh
+// value with an hour-old one is an hour old.
+const recent = new Date(Date.now() - 60e3).toISOString();
+const wMixed = withKvProvenance({ FIELD_JOURNALISM: {
+  get: () => Promise.resolve('plain'),
+  getWithMetadata: k => Promise.resolve({ value: 'v', metadata: { _at: k === 'old' ? hour : recent } }),
+  put: () => Promise.resolve(),
+} }, 'route:/t');
+await wMixed.FIELD_JOURNALISM.get('fresh');
+await wMixed.FIELD_JOURNALISM.get('old');
+await wMixed.FIELD_JOURNALISM.get('fresh2');
+check('the OLDEST read decides the age, not the newest', oldestRead(wMixed) === hour,
+  `got ${oldestRead(wMixed)}; a response is as stale as its worst input`);
+
+check('a single read is its own age', oldestRead(wRead) === hour);
+
+const aged = await stampProvenance(R('/health'), new Response('{}'), wRead);
+check('the response reports how old its data is',
+  aged.headers.get('X-FIELD-Data-Age-Seconds') === '3600' &&
+  aged.headers.get('X-FIELD-Data-Written-At') === hour);
+check('the age headers are exposed cross-origin',
+  (aged.headers.get('Access-Control-Expose-Headers') || '').includes('X-FIELD-Data-Age-Seconds'));
+
+// Absent, not zero. A route that read nothing has no data age, and an unstamped
+// key has an unknown one; reporting either as 0 would claim freshness it cannot
+// know -- the same collapse of "unresolved" into "empty" this session keeps hitting.
+const wNone = withKvProvenance({ FIELD_JOURNALISM: mkKv(null) }, 'route:/t');
+await wNone.FIELD_JOURNALISM.get('k');
+const noAge = await stampProvenance(R('/health'), new Response('{}'), wNone);
+check('an unstamped read reports no age rather than zero',
+  noAge.headers.get('X-FIELD-Data-Age-Seconds') === null && oldestRead(wNone) === null);
+check('a route that read nothing reports no age',
+  (await stampProvenance(R('/health'), new Response('{}'), withKvProvenance({ FIELD_JOURNALISM: mkKv(null) }, 'x')))
+    .headers.get('X-FIELD-Data-Written-At') === null);
+check('a stamp without an env still works', !!(await stampProvenance(R('/health'), new Response('{}'))).headers.get('X-FIELD-Route'),
+  'the age is an enhancement; its absence must not cost the rest of the stamp');
 
 // ── 5. The read path exists, or the write is asserted rather than verified ───
 check('/provenance/kv exists to read the metadata back',

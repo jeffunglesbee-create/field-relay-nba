@@ -49,6 +49,8 @@ for (const t of TARGETS) {
     servedAt: r && r.headers.get('x-field-served-at'),
     manifest: r && r.headers.get('x-field-manifest'),
     exposed:  r && r.headers.get('access-control-expose-headers'),
+    dataAge:  r && r.headers.get('x-field-data-age-seconds'),
+    dataAt:   r && r.headers.get('x-field-data-written-at'),
     body:     null,
   });
   // The KV target is the only one whose BODY is the finding. Headers prove the
@@ -85,6 +87,17 @@ check('an unmapped path is labelled unmapped',
 const wronglyUnmapped = answered.filter(r => !r.expectUnmapped && r.kind === 'unmapped');
 check('every real route resolves in the manifest', wronglyUnmapped.length === 0,
   `${wronglyUnmapped.length} served but unmapped: ${wronglyUnmapped.map(r => r.path).join(', ')} - the manifest cannot see a route the router answers`);
+// A store-backed route reads from KV, so it can say how old its data is. That
+// the header is ABSENT on a route that read nothing is the correct answer, not a
+// gap -- so this asserts only where an age must exist.
+const stores = answered.filter(r => r.kind === 'store' && !r.expectUnmapped);
+if (stores.length) {
+  for (const r of stores) console.log(`         ${r.path.padEnd(30)} data age ${r.dataAge === null ? '(none recorded yet)' : r.dataAge + 's'}`);
+  check('a store-backed route reports an age or says it has none',
+    stores.every(r => r.dataAge === null || Number.isFinite(Number(r.dataAge))),
+    'an age that is neither a number nor absent is a third thing nobody can read');
+}
+
 check('the headers are exposed to a browser',
   answered.every(r => (r.exposed || '').includes('X-FIELD-Source')));
 

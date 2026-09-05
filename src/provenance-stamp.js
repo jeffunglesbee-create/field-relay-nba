@@ -6,6 +6,7 @@
 // got it wrong.
 
 import { provenanceFor, ROUTE_PROVENANCE_GENERATED_AT } from './route-provenance.js';
+import { oldestRead } from './kv-provenance.js';
 
 // ── Response provenance stamp ────────────────────────────────────────────────
 // Every response this worker returns passes through one place: the fetch export
@@ -35,7 +36,7 @@ import { provenanceFor, ROUTE_PROVENANCE_GENERATED_AT } from './route-provenance
 // Headers are opaque to a cross-origin reader unless exposed, so
 // Access-Control-Expose-Headers names them -- otherwise the client sees the
 // stamp arrive and cannot read it, which is the same as not sending it.
-export const PROV_HEADERS = 'X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest';
+export const PROV_HEADERS = 'X-FIELD-Route, X-FIELD-Source, X-FIELD-Kind, X-FIELD-Served-At, X-FIELD-Manifest, X-FIELD-Data-Written-At, X-FIELD-Data-Age-Seconds';
 export // Header VALUES are ByteStrings -- latin-1, not Unicode. `set()` throws on
 // anything above U+00FF. The first draft of this file used an em-dash in
 // "none - reads nothing", every trigger and computed route threw, the catch
@@ -45,7 +46,7 @@ export // Header VALUES are ByteStrings -- latin-1, not Unicode. `set()` throws 
 // but ASCII, and the gate asserts it for every entry in the manifest.
 const ascii = v => String(v).replace(/[^\x20-\x7E]/g, '?');
 
-export function stampProvenance(request, resp) {
+export function stampProvenance(request, resp, env) {
     try {
         // A 101 carries a live socket. Anything else here would end the call.
         if (!resp || resp.webSocket || resp.status === 101) return resp;
@@ -57,9 +58,23 @@ export function stampProvenance(request, resp) {
             // null is a real answer: a trigger or a pure computation reads
             // nothing, and saying so differs from not knowing.
             ['X-FIELD-Source',     entry ? (entry.s || 'none (reads nothing)') : 'unmapped'],
+            // Served-At is true of the RESPONSE and says nothing about what is
+            // in it. A payload read from a KV cache can be an hour old and this
+            // header still reads "now" -- our own header lying about age, which
+            // is the defect this whole exercise exists to catch.
             ['X-FIELD-Served-At',  new Date().toISOString()],
             ['X-FIELD-Manifest',   ROUTE_PROVENANCE_GENERATED_AT],
         ];
+
+        // So the age of the DATA travels beside it. Oldest read wins: a response
+        // mixing a fresh value with an hour-old one is an hour old. Absent when
+        // the route read nothing from KV, or read only keys written before the
+        // provenance wrap -- which is a real distinction, not a zero.
+        const written = oldestRead(env);
+        if (written) {
+            stamp.push(['X-FIELD-Data-Written-At', written]);
+            stamp.push(['X-FIELD-Data-Age-Seconds', String(Math.max(0, Math.round((Date.now() - Date.parse(written)) / 1000)))]);
+        }
 
         // Mutate in place when the headers allow it, and only rebuild when they
         // do not. Responses this worker CONSTRUCTS have mutable headers, which
