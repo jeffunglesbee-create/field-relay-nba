@@ -8,7 +8,7 @@
 // If a constant changes in index.js, update it here too.
 
 import { resolveTeamKey } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, oddsCreditCost } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
@@ -267,11 +267,15 @@ async function fetchSportOddsLive(env, sportKey) {
     const key = env.ODDS_API_KEY || env.ODDS_API_KEY_FALLBACK || null;
     if (!key) console.error('[wp-resolver] ODDS_API_KEY is not set — this is a missing credential, not an API outage');
     if (!key) return { games: [], quotaRemaining: 0, ok: false };
-    if (!(await consumeOddsCredit(env, 3))) {
+    // Derived, not hardcoded 3. oddsCreditCost returns 3 for this exact URL, so
+    // today's behaviour is unchanged; the point is that a markets= edit here can
+    // no longer keep charging the old price.
+    const _url = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_url)))) {
         return { games: [], quotaRemaining: 0, ok: false, guarded: true };
     }
     const r = await fetch(
-        `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`,
+        _url,
         { cf: { cacheTtl: 900, cacheEverything: true } }
     );
     const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;

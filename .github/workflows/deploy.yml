@@ -123,6 +123,16 @@ jobs:
       - name: Every seeded label classifies to a sport class
         run: node scripts/check-seeded-labels-classify.mjs --self-test && node scripts/check-seeded-labels-classify.mjs
 
+      # Blocking. On 2026-09-05 the provider reported 23,544 credits used where
+      # our own counter reported 5,749, and the cause was five call sites that
+      # spent provider quota and contributed nothing to the counter
+      # ODDS_HARD_LIMIT reads -- one of them the public /odds/* proxy. The
+      # emergency floor that exists to prevent another quota wipeout was blind
+      # to most of the ways this worker spends money. This is the gate that
+      # keeps it from going blind again.
+      - name: Every odds call is charged to the monthly ledger
+        run: node scripts/check-odds-calls-guarded.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

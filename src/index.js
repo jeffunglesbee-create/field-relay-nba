@@ -101,7 +101,7 @@ import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } f
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost } from './budget-helpers.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
@@ -714,6 +714,12 @@ function oddsAllowed(path) {
 function oddsCacheTtl(path) {
     return path === '/v4/sports' ? ODDS_TTL_SPORTS : ODDS_TTL_ODDS;
 }
+// Which proxied paths cost credits. The sports LIST does not (see the ODDS-FREE
+// note on handleWCWPVerify for what would disprove that); everything the prefix
+// allow-list admits does.
+function oddsBillablePath(path) {
+    return path !== '/v4/sports' && path !== '/v4/usage';
+}
 // Inject apiKey as query param (server-side only)
 function oddsUrl(cleanPath, search, envKey) {
     // The caller passes the key -- its ONE call site (the /odds proxy route)
@@ -1140,9 +1146,17 @@ async function getWCPregameLambdas(env) {
     }
     const key = _oddsPrimaryKey(env);
     if (!key) return null;
+    // Charged, where it previously was not. This is a real odds call on the
+    // live WP path and it spent from the same provider quota as every other
+    // site, while contributing nothing to the counter ODDS_HARD_LIMIT reads.
+    // Returning null on veto is the function's existing miss path -- !key and
+    // !r.ok both already take it, and the caller at the wcLambdas line handles
+    // null -- so the guard adds no new failure mode, only an accounted one.
+    const _wcUrl = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`;
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl)))) return null;
     try {
         const r = await fetch(
-            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`,
+            _wcUrl,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
         if (!r.ok) return null;
@@ -3103,9 +3117,20 @@ async function handleWCOddsProbs(env) {
         return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
+    // Charged, where it previously was not. A public route that spends provider
+    // quota per uncached request and was invisible to the monthly ledger.
+    // 503 + guarded:true is deliberately distinguishable from the 500 the catch
+    // below returns: the caller must be able to tell "we declined to spend" from
+    // "the provider or our parsing failed".
+    const _wcProbsUrl = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`;
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcProbsUrl)))) {
+        return new Response(JSON.stringify({ ok: false, probs: [], guarded: true,
+            error: 'odds credit guard declined this call' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
     try {
         const resp = await fetch(
-            `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`,
+            _wcProbsUrl,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
         if (!resp.ok) {
@@ -3193,6 +3218,15 @@ async function handleWCOddsProbs(env) {
             ok: true,
             probs,
             remaining: resp.headers.get('x-requests-remaining') || 'unknown',
+            // The provider's own statement of what THIS call cost. It is the
+            // artifact that settles whether `regions` multiplies: this URL sends
+            // regions=us,eu with markets=h2h,totals, so cost 2 means markets-only
+            // (oddsCreditCost is correct as written) and cost 4 means regions
+            // multiply (flip ODDS_REGIONS_MULTIPLY). null means the provider sends
+            // no such header and the question needs a different instrument.
+            // Deliberately not parseInt: null and 0 are different answers.
+            cost: resp.headers.get('x-requests-last'),
+            charged: oddsCreditCost(_wcProbsUrl),
             ts: Date.now(),
         }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } });
     } catch (e) {
@@ -3211,9 +3245,16 @@ async function handleCFLOddsProbs(env) {
         return new Response(JSON.stringify({ ok: false, probs: [], error: 'ODDS_API_KEY not configured' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
     }
+    // Charged, where it previously was not. Same shape as /wc/odds-probs above.
+    const _cflUrl = `https://api.the-odds-api.com/v4/sports/americanfootball_cfl/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`;
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_cflUrl)))) {
+        return new Response(JSON.stringify({ ok: false, probs: [], guarded: true,
+            error: 'odds credit guard declined this call' }),
+            { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
     try {
         const resp = await fetch(
-            `https://api.the-odds-api.com/v4/sports/americanfootball_cfl/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`,
+            _cflUrl,
             { cf: { cacheTtl: 120, cacheEverything: true } }
         );
         if (!resp.ok) {
@@ -3265,6 +3306,12 @@ async function handleCFLOddsProbs(env) {
             ok: true,
             probs,
             remaining: resp.headers.get('x-requests-remaining') || 'unknown',
+            // Second reading of the same question with a DIFFERENT market count:
+            // regions=us,eu with 3 markets. Under markets-only this is 3, under
+            // regions-multiply it is 6. Two routes disagreeing about the model
+            // would itself be the finding, which one route alone cannot show.
+            cost: resp.headers.get('x-requests-last'),
+            charged: oddsCreditCost(_cflUrl),
             ts: Date.now(),
         }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=120' } });
     } catch (e) {
@@ -3279,6 +3326,12 @@ async function handleCFLOddsProbs(env) {
 async function handleWCWPVerify(env) {
     const key = _oddsPrimaryKey(env);
     try {
+        // ODDS-FREE: the sports LIST is not charged to the monthly ledger. This
+        // is a belief, labelled rather than assumed, and it has a disproof wired
+        // in this same commit: /wc/odds-probs and /cfl/odds-probs now return
+        // `cost` from the provider's X-Requests-Last header. If a /v4/sports call
+        // ever shows a non-zero cost by that instrument, this annotation is wrong
+        // and this site needs a guard like every other.
         const resp = await fetch(
             `https://api.the-odds-api.com/v4/sports?apiKey=${key}`,
             { cf: { cacheTtl: 3600, cacheEverything: true } }
@@ -6197,6 +6250,11 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, captu
 // consistent and we don't lock. It is an emergency floor to prevent another
 // quota wipeout, not an audit ledger.
 const ODDS_HARD_LIMIT = 85000;
+// oddsCreditCost + ODDS_REGIONS_MULTIPLY live in src/budget-helpers.js, imported
+// at the top of this file. They belong there and not here because ambient-do.js
+// and wp-resolver.js call odds endpoints too, and a cost model with three copies
+// is a cost model that will disagree with itself.
+
 const ODDS_THRESHOLDS = [
   { pct: 50, label: '50%' },
   { pct: 75, label: '75%' },
@@ -6258,12 +6316,16 @@ async function consumeOddsCredit(env, units) {
 async function fetchSportOddsLive(env, sportKey) {
   const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
-  // 3 markets (h2h,spreads,totals) → ~3 credits/call
-  if (!(await consumeOddsCredit(env, 3))) {
+  // 3 markets (h2h,spreads,totals) → 3 credits/call. The literal 3 is gone, not
+  // because it was wrong -- oddsCreditCost returns 3 for this exact URL, which
+  // is one of the two self-tests -- but so the model lives in one place and a
+  // future markets= edit cannot silently keep charging the old number.
+  const _liveUrl = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl)))) {
     return { games: [], quotaRemaining: 0, ok: false, guarded: true };
   }
   const r = await fetch(
-    `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`,
+    _liveUrl,
     // cacheEverything: true is required — Odds API returns Cache-Control: private
     // and Workers otherwise won't cache. TTL bumped to 900s to match the cron
     // cadence (15-min ticks); same-tick re-calls now hit cache for free.
@@ -6350,16 +6412,19 @@ async function snapshotCronOdds(env, dateKey) {
 async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const key = _oddsPrimaryKey(env);
   if (!key) return { games: [], quotaRemaining: 0, ok: false };
-  // Historical = 10× live cost; 3 markets → ~30 credits per call.
-  if (!(await consumeOddsCredit(env, 30))) {
-    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
-  }
+  // Historical = 10× live cost; 3 markets → 30 credits per call. Same reason as
+  // above for deriving it: oddsCreditCost returns 30 for this URL (self-tested).
+  // The URL is built below, after the snapshot anchor, so the cost is computed
+  // there and the guard runs immediately before the fetch rather than here.
   // Anchor to noon UTC on the requested date so the snapshot captures odds
   // shortly before evening kickoff for most sports.
   const snapshot = `${isoDate}T12:00:00Z`;
   const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
+  if (!(await consumeOddsCredit(env, oddsCreditCost(url)))) {
+    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+  }
   // cacheEverything: true is required — Odds API returns Cache-Control: private.
   // Historical snapshots for a (sport, date, snapshot-time) are immutable, so
   // 24h cache is safe — re-runs of the dead-hour cron walking the same date
@@ -14261,10 +14326,32 @@ export default {
         }
 
         // /odds/* → api.the-odds-api.com (apiKey injected server-side)
+        //
+        // THE LARGEST HOLE IN THE LEDGER, and the last one found. ODDS_ALLOWED_
+        // PREFIXES admits '/v4/sports/' and '/v4/events/', so this route forwards
+        // /odds/v4/sports/americanfootball_nfl/odds?markets=... to the provider
+        // with our key attached, from anyone, and charged nothing. The edge cache
+        // (ODDS_TTL_ODDS, 1h) bounds the burn per DISTINCT query string, which is
+        // not a bound at all when markets= and regions= vary freely.
+        //
+        // Of the five unaccounted paths this commit closes, this is the only one
+        // reachable without our own code deciding to call it, and so the most
+        // plausible single explanation for the provider reading 23,544 where our
+        // counter read 5,749.
+        //
+        // The sports LIST stays free (oddsBillablePath returns false for it), so
+        // capability discovery is not gated on budget. Everything else is charged
+        // at the same price as the same URL fetched from anywhere else in this
+        // worker -- one cost model, no per-route opinion.
         if (pathname.startsWith('/odds')) {
             const cleanPath = pathname.replace(/^\/odds/, '') || '/';
             if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted', ...CORS } });
             const targetUrl = oddsUrl(cleanPath, url.search, env?.ODDS_API_KEY);
+            if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl)))) {
+                return new Response(JSON.stringify({ ok: false, guarded: true,
+                    error: 'odds credit guard declined this call' }),
+                    { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });
+            }
             return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
         }
 

@@ -54,7 +54,7 @@
 // polls hit the CF cache — zero extra upstream quota cost. Result:
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, oddsCreditCost } from './budget-helpers.js';
 
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
@@ -548,12 +548,6 @@ export class AmbientDO {
             this._oddsLastFetch[sport] = now;
 
             const oddsSportKey = ODDS_SPORT_KEYS[sport];
-            // Cross-cutting monthly credit guard (KV-backed via
-            // FIELD_JOURNALISM). Hard floor at ODDS_HARD_LIMIT credits/month.
-            // Mirrors src/index.js consumeOddsCredit() — same KV key scheme.
-            // Aborts the fetch when the limit is reached, leaving the sport's
-            // _oddsLastFetch updated so we don't loop on this sport.
-            if (!(await _consumeAmbientOddsCredit(this.env, 1))) return;
             // F3 fallback: WC-only, 180s minimum cooldown. If the primary key
             // returns 401/429 and env.ODDS_API_KEY_FALLBACK is set, retry once
             // with the fallback (Starter tier, 500 credits/month). Other
@@ -571,6 +565,23 @@ export class AmbientDO {
             }
             const buildUrl = (k) =>
                 `https://api.the-odds-api.com/v4/sports/${oddsSportKey}/odds-live?apiKey=${k}&regions=us,eu&markets=h2h&oddsFormat=decimal`;
+            // Cross-cutting monthly credit guard (KV-backed via FIELD_JOURNALISM).
+            // Hard floor at ODDS_HARD_LIMIT credits/month. Mirrors src/index.js
+            // consumeOddsCredit() — same KV key scheme. Aborts the fetch when the
+            // limit is reached, leaving the sport's _oddsLastFetch updated so we
+            // don't loop on this sport.
+            //
+            // It sits AFTER buildUrl so the cost is computed from the same string
+            // the fetch sends. My first draft rebuilt the URL inline for the cost
+            // and left buildUrl where it was -- two strings that have to agree,
+            // which is the copy-of-the-source defect, and a markets= edit to one
+            // would silently keep charging for the other.
+            //
+            // regions=us,eu with markets=h2h costs 1 under markets-only, exactly
+            // what the literal it replaces charged. No behaviour changes today; it
+            // will follow ODDS_REGIONS_MULTIPLY if the X-Requests-Last measurement
+            // (see /wc/odds-probs `cost`) says regions multiply.
+            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl(''))))) return;
             const cfInit = { cf: { cacheTtl: 60, cacheEverything: true } };
             try {
                 // Cache TTL aligned to the medium-tier cooldown floor (60 s)
@@ -721,18 +732,32 @@ export class AmbientDO {
         const apiKey = this.env.ODDS_API_KEY;
         if (!apiKey) return;
 
-        // Shared daily ceiling — replaces the old in-memory _closingOddsToday
-        // cap. Coordinates with snapshotCronOdds + _fetchLiveOdds via
-        // FIELD_JOURNALISM KV key `odds:daily:YYYY-MM-DD`. checkAndIncrement
-        // also increments on pass, so don't double-bump below.
-        if (!(await checkAndIncrementDailyOdds(this.env, 1))) {
-            console.warn('[closing-odds] daily ceiling reached — skipping capture');
-            return;
-        }
-
         const url = `https://api.the-odds-api.com/v4/sports/${oddsKey}/odds`
             + `?apiKey=${apiKey}&regions=us&markets=h2h,spreads,totals`
             + `&oddsFormat=american`;
+        // WAS checkAndIncrementDailyOdds(this.env, 1), which is TWO defects.
+        //
+        // First, it charged the daily ledger only. The monthly counter that
+        // ODDS_HARD_LIMIT reads never saw this path at all, so the one guard
+        // that exists to stop a repeat of the quota wipeout was blind to a
+        // route that fires on every pre->live transition.
+        //
+        // Second, it charged 1 for a 3-market call. The identical URL shape in
+        // src/index.js fetchSportOddsLive charges 3. Two sites cannot disagree
+        // about the price of the same request.
+        //
+        // _consumeAmbientOddsCredit calls checkAndIncrementDailyOdds itself, so
+        // this is a substitution and not an addition -- the daily layer is still
+        // charged exactly once, now with the right number, and the monthly layer
+        // is charged for the first time.
+        //
+        // Note cf.cacheTtl is 0 here, deliberately: a closing line must be the
+        // line at the moment of the transition. Every one of these is a fresh
+        // billed call, which is why the accounting mattering is not theoretical.
+        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url)))) {
+            console.warn('[closing-odds] odds credit guard declined — skipping capture');
+            return;
+        }
         let events;
         try {
             const r = await fetch(url, {
