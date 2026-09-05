@@ -134,9 +134,19 @@ function functionBody(name) {
   for (const f of ALL_FILES) {
     const start = f.lines.findIndex(l => decl.test(l));
     if (start < 0) continue;
-    let end = f.lines.length;
-    for (let k = start + 1; k < f.lines.length; k++) {
-      if (/^(export\s+)?(async\s+)?function\s/.test(f.lines[k])) { end = k; break; }
+    // Brace-balance, not "until the next function declaration". The old rule
+    // captured everything sitting BETWEEN a function and the next one -- for
+    // oddsUrl, a 9-line function, that meant 22 extra lines of unrelated const
+    // blocks including two ESPN hosts, which the manifest then attributed to
+    // /odds as upstreams it never contacts. The census reads through this same
+    // function, so it was over-capturing too.
+    let depth = 0, seen = false, end = f.lines.length;
+    for (let k = start; k < f.lines.length; k++) {
+      for (const ch of f.lines[k]) {
+        if (ch === '{') { depth++; seen = true; }
+        else if (ch === '}') depth--;
+      }
+      if (seen && depth <= 0) { end = k + 1; break; }
     }
     text = f.lines.slice(start, end).join('\n');
     break;

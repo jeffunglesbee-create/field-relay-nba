@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-05T09:45:22.650Z",
+  "generated_at": "2026-09-05T10:07:29.446Z",
   "file": "src/index.js",
   "effective": {
-    "named": 145,
-    "readsNothing": 40,
-    "undeclared": 1,
+    "named": 146,
+    "readsNothing": 27,
+    "undeclared": 13,
     "unmapped": 0,
     "stamped": 186,
     "of": 186
@@ -14,15 +14,15 @@
     "dispatch_lines": 222,
     "distinct_paths": 194,
     "data_surfaces": 186,
-    "self_describing": 7
+    "self_describing": 6
   },
   "tally": {
     "protocol": 8,
     "none": 132,
     "passthrough": 23,
     "source-only": 7,
-    "both": 7,
-    "age-only": 17
+    "both": 6,
+    "age-only": 18
   },
   "self_tests": {
     "pass": 10,
@@ -1146,9 +1146,9 @@
       "line": 15089,
       "method": "POST",
       "via": "inline",
-      "state": "both",
+      "state": "age-only",
       "age": true,
-      "source": true,
+      "source": false,
       "helpers_followed": 1
     },
     {

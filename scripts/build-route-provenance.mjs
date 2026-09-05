@@ -13,7 +13,7 @@
 // manifest no longer matches the code.
 
 import { writeFileSync } from 'node:fs';
-import { routes, bodyOf, decomment, lines, ALL_FILES } from './lib/route-scan.mjs';
+import { routes, bodyOf, decomment, lines, ALL_FILES, functionBody } from './lib/route-scan.mjs';
 
 // `${ODDS_BASE}/v4/...` has to resolve to a host, or the manifest names a
 // variable instead of a source. Collected from every module, not assumed.
@@ -75,7 +75,21 @@ for (const r of routes) {
   // than none: it is the Germany v Ecuador failure with a different payload.
   // Narrow and true beats broad and plausible.
   const own = decomment(b.text);
-  const srcs = sourcesOf(own);
+  // ONE EXCEPTION TO "the route's own body", and it is narrow on purpose.
+  // Following helpers generally is what made the first manifest claim
+  // statsapi.mlb.com for /nba-stats -- a shared helper drags in every host every
+  // OTHER caller of it contacts. But a function whose entire job is assembling a
+  // URL is not shared context, it IS the route's source, moved one level out.
+  //
+  // /odds was the one route that read "undeclared": its body calls
+  // oddsUrl(cleanPath, ...) and holds no host literal, while oddsUrl holds
+  // exactly one. Restricted to callees whose NAME says they build a URL, and
+  // used only to extract host literals, so it cannot reintroduce the failure it
+  // is carved out of.
+  const urlBuilders = [...new Set([...own.matchAll(/\b([a-z_$][\w$]*[Uu]rl)\s*\(/g)].map(m => m[1]))]
+    .filter(n => !/^(new|fetch|encodeURI)/.test(n));
+  const builderText = urlBuilders.map(n => decomment(functionBody(n) || '')).join('\n');
+  const srcs = sourcesOf(own + '\n' + builderText);
   const kind = kindOf(r.path, own, srcs);
   // THREE STATES, NOT TWO. `s: null` has to mean "reads nothing" -- a trigger
   // returning an acknowledgement, a pure computation. It must NOT also mean "we
@@ -87,7 +101,22 @@ for (const r of routes) {
   // earlier today. Unresolved and empty are different answers and a reader has
   // to be able to tell them apart, or the instrument reports absence of evidence
   // as evidence of absence.
+  // A ROUTE THAT DELEGATES IS NOT A ROUTE THAT READS NOTHING, and conflating
+  // them is how /health/sources -- the Stale Data Sentinel, whose entire job is
+  // reporting where data came from -- came to claim it reads nothing at all.
+  // Its body is four lines that call checkAllSources() in another module.
+  //
+  // The census, which follows helpers, called that route `both`. The manifest,
+  // restricted to the route's own body, called it `null`. Two instruments
+  // disagreeing about one route, and the manifest is the one stamped onto live
+  // responses. Restricting to the own body is still right -- following helpers
+  // is what produced statsapi.mlb.com for /nba-stats -- but the answer for a
+  // delegating route is "we did not look that far", not "there is nothing there".
+  const delegates = [...new Set([...own.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)].map(m => m[1]))]
+    .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI)$/.test(n))
+    .filter(n => functionBody(n));
   const declared = srcs.length ? srcs.join(' + ')
+    : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
     : (kind === 'trigger' || kind === 'computed') ? null
     : `undeclared (${kind}; URL built in a helper)`;
   const prev = seen.get(r.path);
@@ -102,6 +131,7 @@ const entries = [...seen.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 const withSource   = entries.filter(([, v]) => v.sources.length).length;
 const readsNothing = entries.filter(([, v]) => v.declared === null).length;
 const undeclared   = entries.filter(([, v]) => v.declared && v.declared.startsWith('undeclared')).length;
+const delegated    = entries.filter(([, v]) => v.declared && v.declared.includes('delegated to')).length;
 
 const body = entries.map(([path, v]) =>
   `  ${JSON.stringify(path)}: { k: ${JSON.stringify(v.kind)}, s: ${JSON.stringify(v.declared)}${v.match === 'prefix' ? ', p: 1' : ''} },`
@@ -150,7 +180,7 @@ export function provenanceFor(pathname) {
 `;
 
 writeFileSync('src/route-provenance.js', out);
-console.log(`  src/route-provenance.js: ${entries.length} routes — ${withSource} named, ${readsNothing} read nothing, ${undeclared} undeclared (URL built in a helper)`);
+console.log(`  src/route-provenance.js: ${entries.length} routes — ${withSource} named, ${readsNothing} read nothing, ${undeclared} undeclared (${delegated} of them delegating)`);
 const byKind = {};
 for (const [, v] of entries) byKind[v.kind] = (byKind[v.kind] || 0) + 1;
 for (const [k, n] of Object.entries(byKind).sort((a, b) => b[1] - a[1])) console.log(`    ${String(n).padStart(3)}  ${k}`);

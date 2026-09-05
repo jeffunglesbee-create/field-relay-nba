@@ -128,13 +128,13 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     <div class="headline">
       <div class="big big-ok">186<small> of 186</small></div>
       <p>responses now arrive stamped with the route and the kind of surface it is.
-      145 name a source outright, 40 declare that they read
-      nothing, 1 say the URL is built somewhere this parser cannot follow.
+      146 name a source outright, 27 declare that they read
+      nothing, 13 say the URL is built somewhere this parser cannot follow.
       One wrapper at the fetch exit, not 186 edits.</p>
     </div>
     <div class="headline second">
-      <div class="big">7<small> of 186</small></div>
-      <p>carry it in the <em>body</em>, which is the number that was 7 before any
+      <div class="big">6<small> of 186</small></div>
+      <p>carry it in the <em>body</em>, which is the number that was 6 before any
       of this and is still worth moving. A header is lost the moment a response is saved
       to a file, logged, cached or piped into a script; a body keeps its provenance.</p>
     </div>
@@ -147,9 +147,9 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     not the source that describes it: <code>outbox/provenance-runtime-probe-latest.json</code>.</p>
     <table class="vers">
       <tr><td class="n">186</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
-      <tr><td class="n">145</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
-      <tr><td class="n">40</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
-      <tr><td class="n">1</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
+      <tr><td class="n">146</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
+      <tr><td class="n">27</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
+      <tr><td class="n">13</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
     </table>
   </section>
 
@@ -166,12 +166,12 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
       <tr><td class="n">2</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
       <tr><td class="n">1</td><td class="w">writer</td><td class="why"><code>cron:*/15 * * * *</code></td></tr>
     </table>
-    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-09-05T03:24:54.294Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
+    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-09-05T09:47:41.394Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
   </section>
 
   <div class="barwrap">
     <div class="barlabel">The body layer &mdash; what survives being saved, logged or cached</div>
-    <div class="bar"><div class="seg s-none" style="width:70.96774193548387%" title="132 bare"><span>132</span></div><div class="seg s-passthrough" style="width:12.365591397849462%" title="23 passthrough"><span>23</span></div><div class="seg s-age-only" style="width:9.13978494623656%" title="17 age only"><span>17</span></div><div class="seg s-source-only" style="width:3.763440860215054%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.763440860215054%" title="7 complete"><span>7</span></div></div>
+    <div class="bar"><div class="seg s-none" style="width:70.96774193548387%" title="132 bare"><span>132</span></div><div class="seg s-passthrough" style="width:12.365591397849462%" title="23 passthrough"><span>23</span></div><div class="seg s-age-only" style="width:9.67741935483871%" title="18 age only"><span>18</span></div><div class="seg s-source-only" style="width:3.763440860215054%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.225806451612903%" title="6 complete"><span>6</span></div></div>
     <div class="key">
       <span><i class="s-none"></i><b>bare</b> &mdash; no source, no age</span>
       <span><i class="s-passthrough"></i><b>passthrough</b> &mdash; upstream bytes, unstamped by us</span>
@@ -202,9 +202,9 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
       <button aria-pressed="true" data-f="all">all &middot; 186</button>
       <button aria-pressed="false" data-f="none">bare &middot; 132</button>
       <button aria-pressed="false" data-f="passthrough">passthrough &middot; 23</button>
-      <button aria-pressed="false" data-f="age-only">age only &middot; 17</button>
+      <button aria-pressed="false" data-f="age-only">age only &middot; 18</button>
       <button aria-pressed="false" data-f="source-only">source only &middot; 7</button>
-      <button aria-pressed="false" data-f="both">complete &middot; 7</button>
+      <button aria-pressed="false" data-f="both">complete &middot; 6</button>
     </div>
     <div class="scroll">
       <table>
@@ -1486,6 +1486,14 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 </tr>
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
+<td class="path">/journalism/run</td>
+<td class="num">15089</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
 <td class="path">/journalism/tonight</td>
 <td class="num">16639</td>
 <td class="tick">&#9675;</td>
@@ -1662,14 +1670,6 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 </tr>
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
-<td class="path">/journalism/run</td>
-<td class="num">15089</td>
-<td class="tick">&#9679;</td>
-<td class="tick">&#9679;</td>
-<td class="via">inline<span class="hf">+1</span></td>
-</tr>
-<tr data-state="both">
-<td><span class="chip c-both">complete</span></td>
 <td class="path">/provenance/kv</td>
 <td class="num">13364</td>
 <td class="tick">&#9679;</td>
@@ -1706,7 +1706,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <footer>
-    <span>census 2026-09-05T09:45:22.650Z</span>
+    <span>census 2026-09-05T10:07:29.446Z</span>
     <span>222 dispatch lines &rarr; 194 distinct paths</span>
     <span>static read; runtime responses not probed</span>
     <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>

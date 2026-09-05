@@ -176,7 +176,18 @@ const undeclared = Object.entries(ROUTE_PROVENANCE).filter(([, v]) => v.s && v.s
 console.log(`\n  ${undeclared.length} route(s) undeclared — the URL is built in a helper this parser does not follow:`);
 for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // A ratchet, not a gate: undeclared is honest, but it should not grow quietly.
-const UNDECLARED_BUDGET = 1;
+//
+// It went 1 -> 13 deliberately, and the direction is an improvement. Those 13
+// were previously claiming `s: null` -- "reads nothing" -- while delegating
+// their entire job to a helper. /health/sources, the Stale Data Sentinel itself,
+// was among them. "We did not look that far" and "there is nothing there" are
+// different answers, and the manifest is stamped onto live responses, so it has
+// to be the honest one.
+//
+// Lowering this number means naming the source in the handler or teaching the
+// generator to follow that specific shape -- never relabelling a delegating
+// route as reading nothing.
+const UNDECLARED_BUDGET = 13;
 check(`undeclared routes stay within budget (${UNDECLARED_BUDGET})`, undeclared.length <= UNDECLARED_BUDGET,
   `${undeclared.length} now. Name the host in the handler, or raise the budget in this file deliberately.`);
 
