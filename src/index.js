@@ -635,6 +635,63 @@ async function oddsFetchWithFallback(env, buildUrl, fetchInit, tag) {
   catch (e) { return { resp: null, error: e, key: 'fallback' }; }
   return { resp: r, key: 'fallback' };
 }
+// The PROVIDER's own view of the quota, as distinct from ours.
+//
+// peekDailyOdds/peekMonthlyOdds count what THIS relay spent. That is not the
+// same number the Odds API holds, and the gap between them is the whole point:
+// a key shared with something else, a key rotated behind our back, or a key the
+// provider is now rejecting all read as "plenty of budget" in our own counters.
+//
+// Answers three distinguishable states rather than a number or a boolean:
+//   no-key   ODDS_API_KEY is unset — a missing credential, not an outage
+//   <status> the provider answered but refused (401 rejected, 429 throttled)
+//   ok       remaining/used as the provider reports them
+//
+// Rule 78. /v4/usage is in ODDS_ALLOWED_EXACT beside /v4/sports because it is
+// the quota-reporting endpoint; it is nonetheless cached for 60s here so this
+// route cannot be hammered into costing anything, whatever the provider decides
+// that endpoint costs. A quota probe that burns quota is self-defeating.
+//
+// Uses oddsFetchWithFallback, so `key` reports WHICH key answered. That is the
+// credential-state signal, and it needs no credential to be read: 'fallback'
+// means the primary returned 401/429 and the Starter key is carrying traffic.
+// No key value is ever read, logged or returned here.
+async function oddsProviderQuota(env) {
+    const checked_at = new Date().toISOString();
+    try {
+        if (!_oddsPrimaryKey(env)) {
+            return { ok: false, state: 'no-key', checked_at,
+                     note: 'ODDS_API_KEY is not set. A missing credential, not an API outage.' };
+        }
+        const { resp, error, key } = await oddsFetchWithFallback(
+            env, k => oddsUrl('/v4/usage', '', k),
+            { headers: { 'Accept': 'application/json' }, cf: { cacheTtl: 60, cacheEverything: true } },
+            'budget/odds');
+        if (!resp) {
+            return { ok: false, state: 'unreachable', key, checked_at,
+                     note: String(error && error.message || error) };
+        }
+        const remaining = resp.headers.get('x-requests-remaining');
+        const used      = resp.headers.get('x-requests-used');
+        if (!resp.ok) {
+            return { ok: false, state: String(resp.status), key, checked_at,
+                     requests_remaining: remaining, requests_used: used,
+                     note: resp.status === 401 ? 'the provider rejected the key'
+                         : resp.status === 429 ? 'rate limited or out of credits'
+                         : 'the provider refused' };
+        }
+        return { ok: true, state: 'ok', key, checked_at,
+                 // Strings, not parseInt: absent and zero are different answers
+                 // and must not collapse. null means the provider sent no header.
+                 requests_remaining: remaining, requests_used: used,
+                 headers_present: remaining !== null && used !== null };
+    } catch (e) {
+        // Rule 5: this is an enhancement on a diagnostic route. It reports its
+        // own failure rather than taking the route down.
+        return { ok: false, state: 'error', checked_at, note: String(e && e.message || e) };
+    }
+}
+
 const ODDS_TTL_ODDS   = 3600;  // odds — 1hr edge cache (was 5min, burned quota fast)
 const ODDS_TTL_SPORTS = 3600;  // sports list — stable within a season
 const ODDS_ALLOWED_EXACT    = ['/v4/sports', '/v4/usage'];
@@ -13160,17 +13217,24 @@ export default {
         // GET /budget/odds — shared Odds-API budget snapshot. Returns the
         // current daily counter (src/budget-helpers.js) + the monthly hard-
         // limit counter (consumeOddsCredit / _consumeAmbientOddsCredit
-        // share the same KV key). Read-only, no Odds-API calls.
+        // share the same KV key), PLUS the provider's own view.
+        //
+        // It said "Read-only, no Odds-API calls" until 2026-09-04, and that is
+        // no longer true: `provider` comes from a real /v4/usage call, cached
+        // 60s (see oddsProviderQuota). The KV counters say what this relay
+        // spent; only the provider says what is left, and the gap between them
+        // is the reason this route now makes that call.
         if (pathname === '/budget/odds' && request.method === 'GET') {
             if (!env.FIELD_JOURNALISM) {
                 return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
-            const [daily, monthly] = await Promise.all([
+            const [daily, monthly, provider] = await Promise.all([
                 peekDailyOdds(env),
                 peekMonthlyOdds(env),
+                oddsProviderQuota(env),
             ]);
-            return new Response(JSON.stringify({ ok: true, daily, monthly }),
+            return new Response(JSON.stringify({ ok: true, daily, monthly, provider }),
                 { headers: { ...CORS, 'Content-Type': 'application/json',
                              'Cache-Control': 'public, max-age=30' } });
         }
