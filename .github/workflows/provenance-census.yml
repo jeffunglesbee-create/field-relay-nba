@@ -37,6 +37,9 @@ jobs:
       - name: Measure
         run: node scripts/provenance-census.mjs
 
+      - name: Regenerate the route manifest
+        run: node scripts/build-route-provenance.mjs
+
       - name: Render
         run: node scripts/build-provenance-view.mjs
 
@@ -44,7 +47,7 @@ jobs:
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/provenance-census-latest.json outbox/provenance-census-history.json outbox/provenance-view.html
+          git add outbox/provenance-census-latest.json outbox/provenance-census-history.json outbox/provenance-view.html src/route-provenance.js
           git diff --cached --quiet && { echo "no change"; exit 0; }
           git commit -m "census: provenance re-measured [skip ci]"
           for i in 1 2 3 4 5; do

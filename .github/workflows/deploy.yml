@@ -133,6 +133,14 @@ jobs:
       - name: Every odds call is charged to the monthly ledger
         run: node scripts/check-odds-calls-guarded.mjs
 
+      # Blocking, and the highest blast radius of any gate here: the response
+      # wrapper touches every one of the 185 responses this worker returns, so a
+      # mistake in it does not break one route, it breaks all of them. Five
+      # mutations are proven to fail this check, including deleting the guard
+      # that keeps /ws/game/* WebSocket upgrades from being rebuilt.
+      - name: Route provenance manifest matches the code, and the stamp is safe
+        run: node scripts/check-route-provenance.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

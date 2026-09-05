@@ -102,6 +102,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost } from './budget-helpers.js';
+import { stampProvenance } from './provenance-stamp.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
 import { drawPriceFrom, spreadFrom } from './odds-shape.js';
 import { playEpa, epTableFrom } from './nfl-epa.js';
@@ -9324,7 +9325,14 @@ export default {
         }
     },
 
+    // The one exit every response passes through. Routing is unchanged and lives
+    // in _fetch below, exactly as it was; this only stamps what comes back.
     async fetch(request, env, ctx) {
+        const resp = await this._fetch(request, env, ctx);
+        return stampProvenance(request, resp);
+    },
+
+    async _fetch(request, env, ctx) {
         const url      = new URL(request.url);
         const pathname = url.pathname;
 
