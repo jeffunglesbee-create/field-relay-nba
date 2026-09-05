@@ -647,10 +647,20 @@ async function oddsFetchWithFallback(env, buildUrl, fetchInit, tag) {
 //   <status> the provider answered but refused (401 rejected, 429 throttled)
 //   ok       remaining/used as the provider reports them
 //
-// Rule 78. /v4/usage is in ODDS_ALLOWED_EXACT beside /v4/sports because it is
-// the quota-reporting endpoint; it is nonetheless cached for 60s here so this
-// route cannot be hammered into costing anything, whatever the provider decides
-// that endpoint costs. A quota probe that burns quota is self-defeating.
+// Rule 78, and a correction. This first called /v4/usage, because that path
+// sits in ODDS_ALLOWED_EXACT and I read its presence there as evidence it was
+// the quota endpoint. It is not: probe 2026-09-05T00:33 got a 404 from the
+// provider. Nothing in this file had ever called it — the allow-list entry was
+// an intention, not a measurement, and reading it was not the same as running
+// it.
+//
+// Line 563 says where the numbers actually live, and always did: the
+// X-Requests-Remaining / X-Requests-Used headers come back on ANY odds
+// response. /v4/sports is the one to ask — already allow-listed, already
+// carrying ODDS_TTL_SPORTS, and the provider's own cheapest call.
+//
+// Cached 60s regardless, so this route cannot be hammered into costing
+// anything. A quota probe that burns quota is self-defeating.
 //
 // Uses oddsFetchWithFallback, so `key` reports WHICH key answered. That is the
 // credential-state signal, and it needs no credential to be read: 'fallback'
@@ -664,7 +674,7 @@ async function oddsProviderQuota(env) {
                      note: 'ODDS_API_KEY is not set. A missing credential, not an API outage.' };
         }
         const { resp, error, key } = await oddsFetchWithFallback(
-            env, k => oddsUrl('/v4/usage', '', k),
+            env, k => oddsUrl('/v4/sports', '', k),
             { headers: { 'Accept': 'application/json' }, cf: { cacheTtl: 60, cacheEverything: true } },
             'budget/odds');
         if (!resp) {
@@ -678,7 +688,8 @@ async function oddsProviderQuota(env) {
                      requests_remaining: remaining, requests_used: used,
                      note: resp.status === 401 ? 'the provider rejected the key'
                          : resp.status === 429 ? 'rate limited or out of credits'
-                         : 'the provider refused' };
+                         : resp.status === 404 ? 'the path is not one the provider serves — a relay bug, not a quota or key problem'
+                         : `the provider answered ${resp.status}` };
         }
         return { ok: true, state: 'ok', key, checked_at,
                  // Strings, not parseInt: absent and zero are different answers
