@@ -161,3 +161,81 @@ export function oddsCreditCost(url) {
     const mult = url.includes('/v4/historical/') ? 10 : 1;
     return Math.max(1, base * mult);
 }
+
+// ── Reconcile: the estimate is what the guard needs, the receipt is the truth ──
+//
+// oddsCreditCost has to answer BEFORE the call -- that is the whole point of a
+// circuit breaker. But the provider tells us afterwards exactly what the call
+// cost, in X-Requests-Last, and until now we threw that away and kept the guess.
+//
+// MEASURED 2026-09-05T03:26:20Z, which is why this exists: /wc/odds-probs
+// reported provider cost "0" against charged 4. The World Cup has no listed
+// events, the request returned nothing, the provider billed nothing, and our
+// ledger recorded four credits of spend that never happened.
+//
+// That is the mirror image of this morning's defect. Then the ledger UNDER-
+// counted and let real spend go unrecorded; now it OVER-counts and consumes
+// headroom nothing used. Both make ODDS_HARD_LIMIT mean something other than
+// what it says, and a floor you cannot trust in either direction is not a floor.
+//
+// A CACHE HIT IS THE CASE THAT MAKES THIS SUBTLE. Every odds fetch here sets
+// cacheEverything, and a hit replays the ORIGINAL response's headers -- so
+// X-Requests-Last comes back saying what the first call cost, while this call
+// cost nothing. Reconciling to the header would charge full price for a free
+// request. cf-cache-status distinguishes them, and its absence is a third state
+// rather than an assumption either way.
+//
+// Returns a report instead of a boolean, because "we could not tell" and "it
+// cost zero" are different answers and this session has now produced four
+// confident falsehoods from collapsing exactly that distinction.
+export async function reconcileOddsCredit(env, estimated, resp, site = '') {
+    const out = { site, estimated, actual: null, delta: 0, state: 'unresolved' };
+    try {
+        if (!env || !env.FIELD_JOURNALISM) { out.state = 'no-kv'; return out; }
+        if (!resp || !resp.headers)        { out.state = 'no-response'; return out; }
+
+        const cache = resp.headers.get('cf-cache-status');
+        const last  = resp.headers.get('x-requests-last');
+
+        if (cache === 'HIT') {
+            // Served from the edge. The provider was never contacted, so the
+            // replayed header describes a different call than this one.
+            out.actual = 0;
+            out.state  = 'cache-hit';
+        } else if (last === null) {
+            // No receipt. Keep the estimate rather than invent a correction --
+            // an unreconciled charge is safe, a wrong one is not.
+            out.state = 'no-header';
+            return out;
+        } else {
+            const n = parseInt(last, 10);
+            if (!Number.isFinite(n) || n < 0) { out.state = 'bad-header'; return out; }
+            out.actual = n;
+            out.state  = 'reconciled';
+        }
+
+        out.delta = out.actual - estimated;
+        if (out.delta === 0) return out;
+
+        // Both layers, since both were charged the estimate. Read-modify-write,
+        // non-atomic, exactly as the counters they adjust already are -- and
+        // clamped at zero so a lost race can never drive a ledger negative and
+        // hand back headroom that was genuinely spent.
+        const day   = `odds:daily:${new Date().toISOString().slice(0, 10)}`;
+        const d     = new Date();
+        const month = `odds:credits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        for (const key of [day, month]) {
+            const raw = await env.FIELD_JOURNALISM.get(key);
+            const cur = raw ? parseInt(raw, 10) || 0 : 0;
+            const next = Math.max(0, cur + out.delta);
+            await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
+        }
+        return out;
+    } catch (e) {
+        // A reconciliation failure must never surface as a request failure. The
+        // charge stands at the estimate, which is the safe direction.
+        out.state = 'error';
+        out.note  = String(e && e.message || e);
+        return out;
+    }
+}

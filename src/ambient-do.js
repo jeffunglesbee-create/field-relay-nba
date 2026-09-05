@@ -54,7 +54,7 @@
 // polls hit the CF cache — zero extra upstream quota cost. Result:
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds, oddsCreditCost } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
@@ -601,6 +601,13 @@ export class AmbientDO {
                     r = await fetch(buildUrl(this.env.ODDS_API_KEY_FALLBACK), cfInit);
                     this._oddsLastFetch[`fb:${sport}`] = now;
                 }
+                // Reconciled AFTER the fallback resolves, so the receipt read is
+                // the one from the call that actually answered. A failed primary
+                // followed by a fallback is two provider requests, and only the
+                // second one's X-Requests-Last describes what we hold -- but the
+                // first was billed too, so this deliberately under-corrects
+                // rather than pretending the failed attempt was free.
+                await reconcileOddsCredit(this.env, oddsCreditCost(buildUrl('')), r, '_fetchLiveOdds');
                 if (!r.ok) return;
                 const oddsGames = await r.json();
                 if (!Array.isArray(oddsGames)) return;
@@ -764,6 +771,11 @@ export class AmbientDO {
                 headers: { 'User-Agent': 'FIELD-relay/2026' },
                 cf: { cacheTtl: 0 },
             });
+            // cacheTtl 0 here, deliberately -- a closing line must be the line at
+            // the moment of the transition -- so this never reconciles to a cache
+            // hit. It reconciles to the provider's actual receipt, which for a
+            // sport with no listed events is zero.
+            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, '_captureClosingOdds');
             if (!r.ok) {
                 console.warn(`[closing-odds] fetch ${r.status} for ${sport}`);
                 return;

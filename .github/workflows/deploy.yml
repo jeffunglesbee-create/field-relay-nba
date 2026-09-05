@@ -159,6 +159,15 @@ jobs:
       - name: Every market value comes from a market
         run: node scripts/check-no-fabricated-values.mjs
 
+      # Blocking. The guard has to charge an ESTIMATE before the call; the
+      # provider says afterwards what it actually cost. Keeping the guess and
+      # discarding the receipt drifts the ledger in whichever direction the guess
+      # is wrong -- measured 03:26Z, /wc/odds-probs charged 4 for a call the
+      # provider billed 0. Four mutations proven, including reconciling a cache
+      # hit to the stale receipt it replays.
+      - name: Every charged odds call is reconciled against the receipt
+        run: node scripts/check-odds-reconciled.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

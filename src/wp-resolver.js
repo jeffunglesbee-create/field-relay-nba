@@ -8,7 +8,7 @@
 // If a constant changes in index.js, update it here too.
 
 import { resolveTeamKey } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds, oddsCreditCost } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
@@ -278,6 +278,7 @@ async function fetchSportOddsLive(env, sportKey) {
         _url,
         { cf: { cacheTtl: 900, cacheEverything: true } }
     );
+    await reconcileOddsCredit(env, oddsCreditCost(_url), r, 'wp-resolver:fetchSportOddsLive');
     const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
     if (!r.ok) return { games: [], quotaRemaining, ok: false };
     let games = [];

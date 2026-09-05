@@ -101,7 +101,7 @@ import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } f
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
-import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
@@ -1161,6 +1161,7 @@ async function getWCPregameLambdas(env) {
             _wcUrl,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
+        await reconcileOddsCredit(env, oddsCreditCost(_wcUrl), r, 'getWCPregameLambdas');
         if (!r.ok) return null;
         const games = await r.json();
         const cache = new Map();
@@ -3135,6 +3136,7 @@ async function handleWCOddsProbs(env) {
             _wcProbsUrl,
             { cf: { cacheTtl: 300, cacheEverything: true } }
         );
+        const _wcRec = await reconcileOddsCredit(env, oddsCreditCost(_wcProbsUrl), resp, 'handleWCOddsProbs');
         if (!resp.ok) {
             return new Response(JSON.stringify({ ok: false, probs: [], error: `Odds API ${resp.status}` }),
                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -3243,6 +3245,12 @@ async function handleWCOddsProbs(env) {
             // Deliberately not parseInt: null and 0 are different answers.
             cost: resp.headers.get('x-requests-last'),
             charged: oddsCreditCost(_wcProbsUrl),
+            // What the ledger ended up recording, and how it decided. `state`
+            // distinguishes a real receipt from a cache hit from no receipt at
+            // all -- the assumption that cf-cache-status is even present is
+            // measured here rather than trusted.
+            reconciled: _wcRec,
+            cached: resp.headers.get('cf-cache-status'),
             ts: Date.now(),
         }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } });
     } catch (e) {
@@ -3273,6 +3281,7 @@ async function handleCFLOddsProbs(env) {
             _cflUrl,
             { cf: { cacheTtl: 120, cacheEverything: true } }
         );
+        const _cflRec = await reconcileOddsCredit(env, oddsCreditCost(_cflUrl), resp, 'handleCFLOddsProbs');
         if (!resp.ok) {
             return new Response(JSON.stringify({ ok: false, probs: [], error: `Odds API ${resp.status}` }),
                 { status: 502, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -3328,6 +3337,8 @@ async function handleCFLOddsProbs(env) {
             // would itself be the finding, which one route alone cannot show.
             cost: resp.headers.get('x-requests-last'),
             charged: oddsCreditCost(_cflUrl),
+            reconciled: _cflRec,
+            cached: resp.headers.get('cf-cache-status'),
             ts: Date.now(),
         }), { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'max-age=120' } });
     } catch (e) {
@@ -6340,6 +6351,7 @@ async function fetchSportOddsLive(env, sportKey) {
   if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl)))) {
     return { games: [], quotaRemaining: 0, ok: false, guarded: true };
   }
+  const _est = oddsCreditCost(_liveUrl);
   const r = await fetch(
     _liveUrl,
     // cacheEverything: true is required — Odds API returns Cache-Control: private
@@ -6347,6 +6359,9 @@ async function fetchSportOddsLive(env, sportKey) {
     // cadence (15-min ticks); same-tick re-calls now hit cache for free.
     { cf: { cacheTtl: 900, cacheEverything: true } }
   );
+  // "hit cache for free" was true of the provider and false of our ledger: the
+  // guard charged the estimate whether or not the request left the edge.
+  await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');
   const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
   let games = [];
@@ -6446,6 +6461,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   // 24h cache is safe — re-runs of the dead-hour cron walking the same date
   // hit cache for free.
   const r = await fetch(url, { cf: { cacheTtl: 86400, cacheEverything: true } });
+  await reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsHistorical');
   const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
   let payload = null;
@@ -14432,7 +14448,15 @@ export default {
                     error: 'odds credit guard declined this call' }),
                     { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });
             }
-            return relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
+            const _proxyResp = await relayFetch(targetUrl, { 'Accept': 'application/json' }, oddsCacheTtl(cleanPath), 'odds', ctx);
+            // The proxy is charged the estimate before the call like every other
+            // site, so it gets reconciled like every other site. Its TTL is an
+            // hour, which means most requests here are cache hits that cost the
+            // provider nothing and used to cost the ledger full price.
+            if (oddsBillablePath(cleanPath)) {
+                await reconcileOddsCredit(env, oddsCreditCost(targetUrl), _proxyResp, 'odds-proxy');
+            }
+            return _proxyResp;
         }
 
         // /nhl/* → api-web.nhle.com
