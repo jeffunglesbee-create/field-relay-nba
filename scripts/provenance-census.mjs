@@ -322,4 +322,18 @@ const out = { generated_at: new Date().toISOString(), file: SRC, method: 'static
   routes: uniq.map(({ path, match, line, method, via, state, age, source, followed }) => ({ path, match, line, method, via, state, age: !!age, source: !!source, helpers_followed: followed ?? 0 })) };
 mkdirSync('outbox', { recursive: true });
 writeFileSync('outbox/provenance-census-latest.json', JSON.stringify(out, null, 2));
+
+// Append one row per run. The point of a baseline is the second reading: a
+// single census says how bad it is, a series says whether anything is being
+// done about it. Same-day re-runs replace rather than stack, so iterating on
+// the instrument does not manufacture a trend.
+const HIST = 'outbox/provenance-census-history.json';
+let hist = [];
+try { hist = JSON.parse(readFileSync(HIST, 'utf8')); } catch (_) { hist = []; }
+const day = out.generated_at.slice(0, 10);
+hist = hist.filter(h => h.date !== day);
+hist.push({ date: day, ...out.totals, ...tally });
+hist.sort((a, b) => a.date.localeCompare(b.date));
+writeFileSync(HIST, JSON.stringify(hist, null, 2));
+console.log(`  history:  ${HIST} (${hist.length} reading${hist.length === 1 ? '' : 's'})`);
 console.log(`  written: outbox/provenance-census-latest.json`);

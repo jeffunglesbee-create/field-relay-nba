@@ -1,0 +1,55 @@
+name: Provenance Census
+
+# How much of what this relay serves says where it came from, and which routes
+# do not. Re-measured daily so the number is a trend rather than a snapshot
+# somebody took once and then quoted for a year.
+#
+# Cheap by construction: a static parse of src/, no network, no credentials, no
+# Odds API spend. Non-blocking -- this reports, it does not gate. When a class of
+# route is fixed for good, the gate for that class earns its own step in
+# deploy.yml, the way the odds ledger did.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 6 * * *'
+  push:
+    paths:
+      - 'src/**'
+      - 'scripts/provenance-census.mjs'
+      - 'scripts/build-provenance-view.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Not continue-on-error. The census aborts rather than print a number when
+      # its own self-tests fail, and a run that cannot measure must fail loudly
+      # rather than quietly commit yesterday's page as though it were today's.
+      - name: Measure
+        run: node scripts/provenance-census.mjs
+
+      - name: Render
+        run: node scripts/build-provenance-view.mjs
+
+      - name: Commit
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/provenance-census-latest.json outbox/provenance-census-history.json outbox/provenance-view.html
+          git diff --cached --quiet && { echo "no change"; exit 0; }
+          git commit -m "census: provenance re-measured [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1

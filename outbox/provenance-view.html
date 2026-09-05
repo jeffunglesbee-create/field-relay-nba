@@ -1,0 +1,1673 @@
+<title>Relay Provenance Audit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#eef1f4; --panel:#ffffff; --line:#d6dce2; --line-soft:#e7ebef;
+  --ink:#14181d; --muted:#5c6773; --faint:#8a949e;
+  --wire:#0f6d8c;
+  --ok:#1d7a4c; --warn:#a86a12; --bad:#a3312b; --grey:#6b7680;
+  --ok-bg:#e3f0e9; --warn-bg:#f6ecd9; --bad-bg:#f6e2e0; --grey-bg:#e6e9ec;
+  /* Segment labels sit ON the semantic fills. Those fills are dark in light
+     mode and light in dark mode, so the label ink has to flip with them --
+     white on the dark-mode amber failed contrast outright. */
+  --seg-ink:#ffffff;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0f1317; --panel:#161c21; --line:#2a333b; --line-soft:#212a31;
+  --ink:#e6ecf1; --muted:#98a4b0; --faint:#6c7883;
+  --wire:#4bb8dd;
+  --ok:#5cc98d; --warn:#e0a94a; --bad:#e0736a; --grey:#8a949e;
+  --ok-bg:#16301f; --warn-bg:#312611; --bad-bg:#331a18; --grey-bg:#222a30;
+  --seg-ink:#0f1317;
+}}
+:root[data-theme="dark"]{
+  --ground:#0f1317; --panel:#161c21; --line:#2a333b; --line-soft:#212a31;
+  --ink:#e6ecf1; --muted:#98a4b0; --faint:#6c7883;
+  --wire:#4bb8dd;
+  --ok:#5cc98d; --warn:#e0a94a; --bad:#e0736a; --grey:#8a949e;
+  --ok-bg:#16301f; --warn-bg:#312611; --bad-bg:#331a18; --grey-bg:#222a30;
+  --seg-ink:#0f1317;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font:15px/1.55 "IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  padding:32px 24px 72px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+
+.eyebrow{font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--wire)}
+h1{margin:8px 0 0;font-size:29px;font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+.sub{margin:6px 0 0;color:var(--muted);max-width:64ch}
+
+.headline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-top:6px}
+.big{font:600 54px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;color:var(--bad)}
+.big small{font-size:20px;font-weight:400;color:var(--muted);letter-spacing:0}
+.headline p{margin:0;color:var(--muted);max-width:44ch}
+
+.barwrap{display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;height:38px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.seg{display:flex;align-items:center;justify-content:center;min-width:0;
+  font:500 12px/1 "IBM Plex Mono",ui-monospace,monospace;color:var(--seg-ink);
+  font-variant-numeric:tabular-nums}
+.seg span{padding:0 4px}
+.s-none{background:var(--bad)} .s-passthrough{background:var(--grey)}
+.s-age-only{background:var(--warn)} .s-source-only{background:var(--warn);opacity:.72}
+.s-both{background:var(--ok)}
+.key{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:13px;color:var(--muted)}
+.key b{color:var(--ink);font-weight:500}
+.key i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:7px;
+  vertical-align:baseline}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.panel > h2{margin:0;padding:16px 18px 12px;font-size:15px;font-weight:600;
+  border-bottom:1px solid var(--line-soft)}
+.panel > p{margin:0;padding:12px 18px;color:var(--muted);font-size:13.5px;max-width:78ch}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+.scroll{overflow-x:auto}
+th{position:sticky;top:0;background:var(--panel);text-align:left;
+  font:500 11px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--faint);
+  padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.path{font:400 13px/1.4 "IBM Plex Mono",ui-monospace,monospace;word-break:break-all}
+.pfx{color:var(--faint)}
+.num,.tick{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  color:var(--muted)}
+.num{text-align:right}
+.tick{text-align:center;font-size:12px}
+.via{color:var(--faint);font:400 12px/1.4 "IBM Plex Mono",ui-monospace,monospace}
+.hf{color:var(--wire);margin-left:5px}
+.chip{display:inline-block;padding:2px 8px;border-radius:2px;white-space:nowrap;
+  font:500 11px/1.65 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.03em}
+.c-none{background:var(--bad-bg);color:var(--bad)}
+.c-passthrough{background:var(--grey-bg);color:var(--grey)}
+.c-age-only,.c-source-only{background:var(--warn-bg);color:var(--warn)}
+.c-both{background:var(--ok-bg);color:var(--ok)}
+.c-unread{background:var(--grey-bg);color:var(--grey)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line-soft)}
+.filters button{font:500 12px/1 "IBM Plex Mono",ui-monospace,monospace;
+  padding:7px 11px;border:1px solid var(--line);background:transparent;color:var(--muted);
+  border-radius:2px;cursor:pointer;letter-spacing:.03em}
+.filters button:hover{border-color:var(--wire);color:var(--ink)}
+.filters button[aria-pressed="true"]{background:var(--wire);border-color:var(--wire);color:#fff}
+.filters button:focus-visible{outline:2px solid var(--wire);outline-offset:2px}
+
+.vers{width:100%;border-collapse:collapse;font-size:13px}
+.vers td{padding:9px 18px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.vers tr:last-child td{border-bottom:0}
+.vers .v{font:500 12px "IBM Plex Mono",ui-monospace,monospace;color:var(--faint);width:34px}
+.vers .n{font:500 13px "IBM Plex Mono",ui-monospace,monospace;
+  font-variant-numeric:tabular-nums;width:52px;color:var(--ink)}
+.vers .w{width:34%;color:var(--ink)}
+.vers .why{color:var(--muted)}
+.vers tr:last-child .n{color:var(--ok)}
+
+footer{color:var(--faint);font-size:12.5px;display:flex;flex-wrap:wrap;gap:4px 18px;
+  border-top:1px solid var(--line);padding-top:14px}
+code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-bg);
+  padding:1px 5px;border-radius:2px;color:var(--ink)}
+@media (max-width:640px){ body{padding:22px 14px 56px} .big{font-size:42px} }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">field-relay-nba &middot; src/index.js</div>
+    <h1>What this relay serves, and whether it says where any of it came from</h1>
+    <p class="sub">Every route that answers with data, classified by whether its response
+    names a source and a time. Read worst-first. Generated from the census, never written by hand.</p>
+    <div class="headline">
+      <div class="big">6<small> of 185</small></div>
+      <p>routes a reader can judge without opening the source. The other
+      179 require reading src/index.js to know what you are looking at.</p>
+    </div>
+  </header>
+
+  <div class="barwrap">
+    <div class="bar"><div class="seg s-none" style="width:71.35135135135135%" title="132 bare"><span>132</span></div><div class="seg s-passthrough" style="width:12.432432432432432%" title="23 passthrough"><span>23</span></div><div class="seg s-age-only" style="width:9.18918918918919%" title="17 age only"><span>17</span></div><div class="seg s-source-only" style="width:3.7837837837837838%" title="7 source only"><span>7</span></div><div class="seg s-both" style="width:3.2432432432432434%" title="6 complete"><span>6</span></div></div>
+    <div class="key">
+      <span><i class="s-none"></i><b>bare</b> &mdash; no source, no age</span>
+      <span><i class="s-passthrough"></i><b>passthrough</b> &mdash; upstream bytes, unstamped by us</span>
+      <span><i class="s-age-only"></i><b>age only</b> &mdash; when, but not where</span>
+      <span><i class="s-source-only"></i><b>source only</b> &mdash; where, but not when</span>
+      <span><i class="s-both"></i><b>complete</b> &mdash; source and age</span>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>How the number moved while the instrument was being repaired</h2>
+    <p>The parser was wrong four times, in both directions, and reported a plausible
+    figure every time. v1 and v5 agree at 3.2% by coincidence, not confirmation: v1
+    reached it through two compensating errors and put 23 proxy routes in the wrong
+    bucket. Ten self-tests now run in both directions before any number prints.</p>
+    <table class="vers">
+      <tr><td class="v">v1</td><td class="n">3.2%</td><td class="w">read only the route body</td><td class="why">delegation read as absence — /budget/odds, the best-instrumented route here, came back bare</td></tr>
+      <tr><td class="v">v2</td><td class="n">4.3%</td><td class="w">followed helpers one level</td><td class="why">the pattern demanded checked_at: and the code writes ES6 shorthand { checked_at }</td></tr>
+      <tr><td class="v">v3</td><td class="n">4.9%</td><td class="w">accepted shorthand</td><td class="why">/health/sources, the Stale Data Sentinel itself, still read bare — its helper is in another module</td></tr>
+      <tr><td class="v">v4</td><td class="n">8.1%</td><td class="w">searched sibling modules</td><td class="why">overcounted: &quot;, source,&quot; matched relayFetch’s parameter list, promoting all 23 proxies</td></tr>
+      <tr><td class="v">v5</td><td class="n">3.2%</td><td class="w">provenance counts only inside a response</td><td class="why">semantic, not positional. The rule that should have been first</td></tr>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>185 data surfaces</h2>
+    <div class="filters" role="group" aria-label="Filter by state">
+      <button aria-pressed="true" data-f="all">all &middot; 185</button>
+      <button aria-pressed="false" data-f="none">bare &middot; 132</button>
+      <button aria-pressed="false" data-f="passthrough">passthrough &middot; 23</button>
+      <button aria-pressed="false" data-f="age-only">age only &middot; 17</button>
+      <button aria-pressed="false" data-f="source-only">source only &middot; 7</button>
+      <button aria-pressed="false" data-f="both">complete &middot; 6</button>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th>state</th><th>route</th><th>line</th><th>src</th><th>age</th><th>answered by</th>
+        </tr></thead>
+        <tbody id="tb">
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/admin/archive/backfill-went-to-ot</td>
+<td class="num">10948</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/admin/wc/bsd-backfill</td>
+<td class="num">10920</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/ambient/<span class="pfx">*</span></td>
+<td class="num">12494</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/<span class="pfx">*</span></td>
+<td class="num">16018</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/circadian-late/recompute</td>
+<td class="num">12678</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/degraded</td>
+<td class="num">15147</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/jinx/recompute</td>
+<td class="num">12676</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/morning-report/recompute</td>
+<td class="num">12677</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/newspaper/<span class="pfx">*</span></td>
+<td class="num">15871</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/night-stars/recompute</td>
+<td class="num">12675</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/record-streak/recompute</td>
+<td class="num">12679</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/run</td>
+<td class="num">12674</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/analytics/status</td>
+<td class="num">14996</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/<span class="pfx">*</span></td>
+<td class="num">11033</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/backfill</td>
+<td class="num">11138</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/backfill-enrich</td>
+<td class="num">11648</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/bracket-replay</td>
+<td class="num">12448</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/bracket-snapshot</td>
+<td class="num">12407</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/brief</td>
+<td class="num">12259</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+4</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/date/<span class="pfx">*</span></td>
+<td class="num">11070</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/debrief-backfill</td>
+<td class="num">11164</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+4</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/drama</td>
+<td class="num">11285</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/drama-by-id</td>
+<td class="num">11428</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/drama-missing</td>
+<td class="num">11486</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/drama/leaderboard</td>
+<td class="num">11357</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/drama/percentile</td>
+<td class="num">11388</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/game</td>
+<td class="num">11769</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/last-meeting</td>
+<td class="num">11055</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/odds-backfill</td>
+<td class="num">11116</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/query</td>
+<td class="num">12168</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/score-by-id</td>
+<td class="num">11533</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+4</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/score-missing</td>
+<td class="num">11510</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/series/<span class="pfx">*</span></td>
+<td class="num">11040</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/sport/<span class="pfx">*</span></td>
+<td class="num">11093</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/archive/tagged/<span class="pfx">*</span></td>
+<td class="num">11083</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/audio/tts</td>
+<td class="num">9823</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/backfill/brief-scores</td>
+<td class="num">13209</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/backfill/game-briefs</td>
+<td class="num">12999</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+8</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/events/by-date</td>
+<td class="num">10155</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/events/live</td>
+<td class="num">9963</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/events/season</td>
+<td class="num">10172</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/r2/list</td>
+<td class="num">10189</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/r2/read</td>
+<td class="num">10204</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bsd/tennis/matches/live</td>
+<td class="num">10123</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/bundesliga-bapi/resolve-dayid</td>
+<td class="num">17346</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/<span class="pfx">*</span></td>
+<td class="num">12515</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/fixtures</td>
+<td class="num">12525</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/rosters</td>
+<td class="num">12536</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/scoreboard/rounds</td>
+<td class="num">12542</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/scoreboard/squads</td>
+<td class="num">12555</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/standings</td>
+<td class="num">12540</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/stats/players</td>
+<td class="num">12532</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/stats/teams</td>
+<td class="num">12534</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/cfl/teams</td>
+<td class="num">12538</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/changelog/<span class="pfx">*</span></td>
+<td class="num">14183</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/context/<span class="pfx">*</span></td>
+<td class="num">10774</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+5</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/context/date/<span class="pfx">*</span></td>
+<td class="num">10848</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/context/game/<span class="pfx">*</span></td>
+<td class="num">10779</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+5</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/d1/execute</td>
+<td class="num">12680</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/datamuse/words</td>
+<td class="num">15563</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/debug/gemini-model-test</td>
+<td class="num">9454</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/debug/last-archive-error</td>
+<td class="num">9437</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/debug/recent-requests</td>
+<td class="num">9357</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/dropbox/upload</td>
+<td class="num">12637</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/freshness/<span class="pfx">*</span></td>
+<td class="num">14126</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/health</td>
+<td class="num">9777</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/identity/mismatches</td>
+<td class="num">14061</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/integrity/game-briefs</td>
+<td class="num">12779</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+4</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/integrity/games</td>
+<td class="num">12871</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/brief/history</td>
+<td class="num">16509</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/context-probe</td>
+<td class="num">14932</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/enqueue</td>
+<td class="num">12671</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/game-complete</td>
+<td class="num">12672</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/game-lines</td>
+<td class="num">16563</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/game/<span class="pfx">*</span></td>
+<td class="num">16548</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/generate</td>
+<td class="num">12670</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/journalism/result/<span class="pfx">*</span></td>
+<td class="num">16463</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/jq/retry-telemetry</td>
+<td class="num">9607</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/live-wp/<span class="pfx">*</span></td>
+<td class="num">12494</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/live/ambient</td>
+<td class="num">12494</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/mcp</td>
+<td class="num">9356</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/mlb-savant-update</td>
+<td class="num">17690</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/mls/stats/team-metrics</td>
+<td class="num">14805</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/nba-clutch-update</td>
+<td class="num">17654</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/nfl-r2-update</td>
+<td class="num">17671</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/nhl-gsax/<span class="pfx">*</span></td>
+<td class="num">16891</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/nhl-series/<span class="pfx">*</span></td>
+<td class="num">16915</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/odds-story/preview</td>
+<td class="num">10367</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/odds/history/<span class="pfx">*</span></td>
+<td class="num">14299</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/pin/game/<span class="pfx">*</span></td>
+<td class="num">9744</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/push/game-final</td>
+<td class="num">9682</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/push/subscribe</td>
+<td class="num">9650</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/push/unsubscribe</td>
+<td class="num">9666</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/quality/backfill-scores</td>
+<td class="num">13320</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/quality/report</td>
+<td class="num">13384</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/repo/archive</td>
+<td class="num">9513</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/rss-proxy</td>
+<td class="num">16483</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/savant/sync</td>
+<td class="num">12673</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/schedule/ai-fallback</td>
+<td class="num">14422</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/session/record</td>
+<td class="num">12682</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/signal/crunch/<span class="pfx">*</span></td>
+<td class="num">9725</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/soccer/fbref/fetch</td>
+<td class="num">12684</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/soccer/season-form</td>
+<td class="num">14877</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/soccer/sub-impact</td>
+<td class="num">17100</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/soccer/xg</td>
+<td class="num">16965</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/stat/<span class="pfx">*</span></td>
+<td class="num">19275</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/test/combined-generate-judge</td>
+<td class="num">12688</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/test/gemini-judge</td>
+<td class="num">12687</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/test/prefilter</td>
+<td class="num">12689</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/test/workers-ai-judge</td>
+<td class="num">12686</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/unpin/game/<span class="pfx">*</span></td>
+<td class="num">9759</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/user/<span class="pfx">*</span></td>
+<td class="num">9562</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/user/event</td>
+<td class="num">9572</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/v2/golf/competitor-stats</td>
+<td class="num">12623</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/v2/golf/enriched</td>
+<td class="num">12605</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/v2/golf/eventlog</td>
+<td class="num">12613</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/v2/golf/player-stats</td>
+<td class="num">12595</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc-context-patch</td>
+<td class="num">16847</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/admin/seed</td>
+<td class="num">10558</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">handleWCAdminSeed<span class="hf">+4</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/bracket/live</td>
+<td class="num">10686</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/bracket/refresh</td>
+<td class="num">10713</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/bracket/state</td>
+<td class="num">10697</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/brief/tournament</td>
+<td class="num">10591</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/match-wp</td>
+<td class="num">10554</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">handleWCMatchWP<span class="hf">+3</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/matchup/cache</td>
+<td class="num">10731</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wc/movers</td>
+<td class="num">10582</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/web-fetch</td>
+<td class="num">15367</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/whoop/callback</td>
+<td class="num">10408</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/whoop/fetch</td>
+<td class="num">10470</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/whoop/tokens</td>
+<td class="num">10453</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/wiki/trending</td>
+<td class="num">15168</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">bare</span></td>
+<td class="path">/ws/game/<span class="pfx">*</span></td>
+<td class="num">9699</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/atp<span class="pfx">*</span></td>
+<td class="num">14630</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/bdl<span class="pfx">*</span></td>
+<td class="num">14645</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/bundesliga-bapi/broadcasts</td>
+<td class="num">17622</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/espn-gambit<span class="pfx">*</span></td>
+<td class="num">14678</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/espn-standings<span class="pfx">*</span></td>
+<td class="num">14703</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/espn-summary<span class="pfx">*</span></td>
+<td class="num">14689</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/fd<span class="pfx">*</span></td>
+<td class="num">14373</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/field/data/today</td>
+<td class="num">14715</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/fpl<span class="pfx">*</span></td>
+<td class="num">14526</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/kali/<span class="pfx">*</span></td>
+<td class="num">14257</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/laliga-apim/clasificacion</td>
+<td class="num">14501</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/mlb-stats<span class="pfx">*</span></td>
+<td class="num">14726</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/mls/stats<span class="pfx">*</span></td>
+<td class="num">14863</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/nba-clutch/<span class="pfx">*</span></td>
+<td class="num">16938</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/nba-stats<span class="pfx">*</span></td>
+<td class="num">19321</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/nfl/epa/plays</td>
+<td class="num">16650</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+4</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/nflverse/<span class="pfx">*</span></td>
+<td class="num">16706</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/nhl/<span class="pfx">*</span></td>
+<td class="num">14365</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/odds<span class="pfx">*</span></td>
+<td class="num">14346</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+7</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/pl/<span class="pfx">*</span></td>
+<td class="num">14534</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/soccer-fbref/<span class="pfx">*</span></td>
+<td class="num">17275</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/sportradar-ufl<span class="pfx">*</span></td>
+<td class="num">17843</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="passthrough">
+<td><span class="chip c-passthrough">passthrough</span></td>
+<td class="path">/squiggle<span class="pfx">*</span></td>
+<td class="num">14280</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/cfl/odds-probs</td>
+<td class="num">12506</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleCFLOddsProbs<span class="hf">+5</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/deploy/verify</td>
+<td class="num">12938</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/integrity/briefs</td>
+<td class="num">12699</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/journalism/brief</td>
+<td class="num">16535</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/journalism/tonight</td>
+<td class="num">16535</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/<span class="pfx">*</span></td>
+<td class="num">10551</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCStandings<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/bracket</td>
+<td class="num">10671</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/elimination-traps</td>
+<td class="num">10611</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/odds-probs</td>
+<td class="num">10555</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCOddsProbs<span class="hf">+7</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/projections</td>
+<td class="num">10566</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/projections/refresh</td>
+<td class="num">10600</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/results</td>
+<td class="num">10553</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCResults<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/standings</td>
+<td class="num">10552</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCStandings<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/third-place</td>
+<td class="num">10556</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCThirdPlace<span class="hf">+1</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/traps</td>
+<td class="num">10650</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wc/wp/verify</td>
+<td class="num">10557</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleWCWPVerify<span class="hf">+3</span></td>
+</tr>
+<tr data-state="age-only">
+<td><span class="chip c-age-only">age only</span></td>
+<td class="path">/wnba/slate</td>
+<td class="num">15303</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/briefs/spot-check</td>
+<td class="num">13696</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/bsd/<span class="pfx">*</span></td>
+<td class="num">9861</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/bsd/contract</td>
+<td class="num">9866</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/circadian/<span class="pfx">*</span></td>
+<td class="num">10251</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/fantasy/ownership</td>
+<td class="num">16758</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/fifa-rankings/<span class="pfx">*</span></td>
+<td class="num">10293</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="source-only">
+<td><span class="chip c-source-only">source only</span></td>
+<td class="path">/mlb-umpire-scrape</td>
+<td class="num">17763</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/budget/odds</td>
+<td class="num">13303</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+3</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/health/sources</td>
+<td class="num">10237</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/journalism/run</td>
+<td class="num">14985</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/test/drama-score-cost</td>
+<td class="num">15603</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/v2/<span class="pfx">*</span></td>
+<td class="num">12593</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleV2Games<span class="hf">+19</span></td>
+</tr>
+<tr data-state="both">
+<td><span class="chip c-both">complete</span></td>
+<td class="path">/v2/games</td>
+<td class="num">12594</td>
+<td class="tick">&#9679;</td>
+<td class="tick">&#9679;</td>
+<td class="via">handleV2Games<span class="hf">+19</span></td>
+</tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>census 2026-09-05T02:31:00.280Z</span>
+    <span>221 dispatch lines &rarr; 193 distinct paths</span>
+    <span>static read; runtime responses not probed</span>
+    <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>
+  </footer>
+</div>
+
+<script>
+const tb = document.getElementById('tb');
+document.querySelectorAll('.filters button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    const f = b.dataset.f;
+    for (const tr of tb.rows) tr.hidden = !(f === 'all' || tr.dataset.state === f);
+  });
+});
+</script>
