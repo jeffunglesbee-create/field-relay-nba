@@ -25,7 +25,11 @@ execSync('node scripts/build-route-provenance.mjs', { stdio: 'pipe' });
 const regenerated = readFileSync('src/route-provenance.js', 'utf8');
 const strip = t => t.replace(/^export const ROUTE_PROVENANCE_GENERATED_AT = .*$/m, '');
 const current = strip(committed) === strip(regenerated);
-if (!current) writeFileSync('src/route-provenance.js', committed);   // leave the tree as found
+// ALWAYS restore, not just on mismatch. The generator stamps a fresh
+// GENERATED_AT every run, so even a passing check left the working tree dirty
+// -- which turns "git status is clean" into a signal nobody can trust, and
+// invites the next person to commit a timestamp-only diff.
+writeFileSync('src/route-provenance.js', committed);
 check('the manifest matches the code it describes', current,
   'src/route-provenance.js is stale. Run: node scripts/build-route-provenance.mjs && git add src/route-provenance.js');
 
