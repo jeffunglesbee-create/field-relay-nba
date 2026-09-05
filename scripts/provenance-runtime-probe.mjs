@@ -22,7 +22,7 @@ const STAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const TARGETS = [
   { path: '/health',           why: 'the cheapest route in the worker' },
   { path: '/budget/odds',      why: 'store-backed, and the route that started all of this' },
-  { path: '/wc/odds-probs',    why: 'upstream — cached, so no credit is spent' },
+  { path: '/wc/odds-probs',    why: 'upstream, cached, no credit spent — and the route the fabricated row lived in', wc: true },
   { path: '/odds/v4/sports',   why: 'proxy: the response comes back FROZEN from fetch(), the rebuild branch' },
   { path: '/provenance/kv?prefix=odds', why: 'the write half: KV metadata read back out of the store', kv: true },
   { path: '/nothing/here',     why: 'unmapped: must say so rather than guess', expectUnmapped: true },
@@ -53,7 +53,7 @@ for (const t of TARGETS) {
   });
   // The KV target is the only one whose BODY is the finding. Headers prove the
   // response wrapper runs; only the body proves a WRITE recorded anything.
-  if (t.kv && r && r.ok) { try { readings[readings.length - 1].body = await r.json(); } catch (_) {} }
+  if ((t.kv || t.wc) && r && r.ok) { try { readings[readings.length - 1].body = await r.json(); } catch (_) {} }
 }
 
 mkdirSync('outbox', { recursive: true });
@@ -103,6 +103,32 @@ const ts = answered.map(r => r.servedAt).filter(Boolean);
 check('Served-At is a real timestamp, not a placeholder',
   ts.length > 0 && ts.every(v => Math.abs(Date.now() - Date.parse(v)) < 600000),
   `values: ${ts.join(', ')}`);
+
+// ── No hand-entered row in a live response ──────────────────────────────────
+// The deploy gate proves the fabricated Germany v Ecuador row is out of the
+// SOURCE. This proves it is out of what the deployed worker actually serves,
+// which is a different claim -- the row survived 377 commits to that file
+// precisely because everyone was reading source and nobody was reading the
+// response. It stays here permanently: the check that would have caught it on
+// day one is the check worth keeping forever.
+const wc = readings.find(r => r.wc);
+if (wc && wc.body && Array.isArray(wc.body.probs)) {
+  const rows = wc.body.probs;
+  const bad = rows.filter(p =>
+    /injected|consensus|screenshot|hand/i.test(String(p.lambdaSource || '')) ||
+    ((p.home_team === 'Germany' && p.away_team === 'Ecuador') ||
+     (p.home_team === 'Ecuador' && p.away_team === 'Germany')));
+  console.log(`\n  /wc/odds-probs served ${rows.length} row(s); provider cost=${JSON.stringify(wc.body.cost)}, charged=${wc.body.charged}`);
+  const srcs = [...new Set(rows.map(p => p.lambdaSource))];
+  if (srcs.length) console.log(`         lambdaSource values: ${srcs.join(', ')}`);
+  check('no hand-entered row in the served response', bad.length === 0,
+    `${bad.length} fabricated row(s) live: ${bad.map(p => `${p.home_team} v ${p.away_team} (${p.lambdaSource})`).join(', ')}`);
+  // Zero rows is CORRECT out of season and must not read as a failure. What
+  // matters is that whatever is served came from the market.
+  check('every served row derives from market data',
+    rows.every(p => ['totals', 'h2h-inversion'].includes(p.lambdaSource)),
+    `undeclared source: ${srcs.filter(x => !['totals', 'h2h-inversion'].includes(x)).join(', ')}`);
+}
 
 // ── The write half ──────────────────────────────────────────────────────────
 // A stamp on a response proves the wrapper runs. It proves nothing about
