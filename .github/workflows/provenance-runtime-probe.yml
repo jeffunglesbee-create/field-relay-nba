@@ -1,0 +1,27 @@
+name: Provenance Runtime Probe
+
+# The census reads src/. This reads the deployed worker. The gap between them is
+# the "is this the source, or a copy of the source?" question, and until now the
+# census has never once looked at a response.
+#
+# Free: every route it hits is cached or costs nothing, and none spends Odds API
+# credit. Runs after every deploy, so a wrapper that regressed is caught by the
+# next push rather than by someone noticing months later.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy RELAY Worker"]
+    types: [completed]
+  schedule:
+    - cron: '40 6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/provenance-runtime-probe.mjs
+      commit_message: "chore: provenance runtime probe result [skip ci]"
