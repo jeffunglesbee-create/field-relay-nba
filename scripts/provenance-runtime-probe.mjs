@@ -24,7 +24,7 @@ const TARGETS = [
   { path: '/budget/odds',      why: 'store-backed, and the route that started all of this' },
   { path: '/wc/odds-probs',    why: 'upstream — cached, so no credit is spent' },
   { path: '/odds/v4/sports',   why: 'proxy: the response comes back FROZEN from fetch(), the rebuild branch' },
-  { path: '/nothing/here',     why: 'unmapped — must say so rather than guess' },
+  { path: '/nothing/here',     why: 'unmapped: must say so rather than guess', expectUnmapped: true },
 ];
 
 let failed = 0;
@@ -69,7 +69,17 @@ check('the route header echoes the path asked for', answered.every(r => r.route 
 check('the proxy route is stamped too', !!readings.find(r => r.path === '/odds/v4/sports')?.route,
   'the frozen-response rebuild branch did not run in production');
 check('an unmapped path is labelled unmapped',
-  readings.find(r => r.path === '/nothing/here')?.kind === 'unmapped');
+  readings.find(r => r.expectUnmapped)?.kind === 'unmapped');
+
+// THE ASSERTION THIS PROBE WAS MISSING ON ITS FIRST RUN. It recorded
+// /odds/v4/sports as kind=unmapped and PASSED, because every check it had was
+// satisfied by the stamp being present at all. The defect sat in the output in
+// plain text and a human had to read it -- which is the job the probe exists to
+// do. A real route resolving to `unmapped` means the manifest cannot see a
+// route the router serves, and that is a failure, not a note.
+const wronglyUnmapped = answered.filter(r => !r.expectUnmapped && r.kind === 'unmapped');
+check('every real route resolves in the manifest', wronglyUnmapped.length === 0,
+  `${wronglyUnmapped.length} served but unmapped: ${wronglyUnmapped.map(r => r.path).join(', ')} - the manifest cannot see a route the router answers`);
 check('the headers are exposed to a browser',
   answered.every(r => (r.exposed || '').includes('X-FIELD-Source')));
 
