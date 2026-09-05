@@ -184,7 +184,19 @@ for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // over-capturing, produced no false attributions, and closed 16 of them. The old
 // conclusion had been true of the old bug, not of the approach.
 //
-// The original note follows, because the reasoning still governs the 3 left.
+// Then 3 -> 2, by following a SECOND level for storage bindings only. Two levels
+// for HOSTS was tested and rejected on evidence: it became transitive closure
+// over most of the codebase and /journalism/run came back claiming 50+ sources
+// including a Workday jobs board from browser-quick.js's allow-list. Bindings do
+// not blow up that way -- there are 13, they are named in wrangler.toml, and a
+// false one is visible on sight rather than buried in fifty hostnames.
+//
+// The 2 that remain are not a backlog. /health/sources reads through
+// `source.check(env)`, a dispatch table whose callee is a property on a data
+// structure; no parser following identifiers will ever reach it. Its label says
+// so, rather than naming a delegate and inviting a fruitless search.
+//
+// The original note follows, because the reasoning still governs what is left.
 // It went 1 -> 13 deliberately, and the direction is an improvement. Those 13
 // were previously claiming `s: null` -- "reads nothing" -- while delegating
 // their entire job to a helper. /health/sources, the Stale Data Sentinel itself,
@@ -195,7 +207,7 @@ for (const [p, v] of undeclared) console.log(`         ${p}  (${v.k})`);
 // Lowering this number means naming the source in the handler or teaching the
 // generator to follow that specific shape -- never relabelling a delegating
 // route as reading nothing.
-const UNDECLARED_BUDGET = 3;
+const UNDECLARED_BUDGET = 2;
 check(`undeclared routes stay within budget (${UNDECLARED_BUDGET})`, undeclared.length <= UNDECLARED_BUDGET,
   `${undeclared.length} now. Name the host in the handler, or raise the budget in this file deliberately.`);
 

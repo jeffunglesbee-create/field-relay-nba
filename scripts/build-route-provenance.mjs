@@ -115,8 +115,37 @@ for (const r of routes) {
   const delegatesOf = [...new Set([...own.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)].map(m => m[1]))]
     .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI)$/.test(n))
     .filter(n => functionBody(n));
+  // A SECOND LEVEL, tested the same way the first was rather than assumed safe.
+  // checkAllSources and analyticsEngine read nothing directly -- they call
+  // sourceVerdict and processDate, which do. Self-references are dropped, or a
+  // recursive function pulls its own body in twice for nothing.
+  const seen2 = new Set(delegatesOf);
+  const level2 = [];
+  for (const n of delegatesOf) {
+    const b = decomment(functionBody(n));
+    for (const m of b.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)) {
+      const c = m[1];
+      if (seen2.has(c) || c === n) continue;
+      if (/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI|json|text|html)$/.test(c)) continue;
+      if (!functionBody(c)) continue;
+      seen2.add(c); level2.push(c);
+    }
+  }
+  // TWO LEVELS FOR BINDINGS ONLY, and the asymmetry is measured rather than
+  // aesthetic. Following two levels for HOSTS became transitive closure over
+  // most of the codebase: /journalism/run came back claiming 50+ sources
+  // including aah.wd5.myworkdayjobs.com, a Workday allow-list regex in
+  // browser-quick.js. A route that proxies sports data does not read a jobs
+  // board, and a manifest that says so is worse than one that says nothing.
+  //
+  // Bindings do not blow up the same way. A helper that touches ARCHIVE_DB means
+  // the route touches ARCHIVE_DB -- there are 13 of them, they are named in
+  // wrangler.toml, and a false one is visible on sight rather than buried in a
+  // list of fifty hostnames.
   const delegateText = delegatesOf.map(n => decomment(functionBody(n))).join('\n');
-  const srcs = sourcesOf(own + '\n' + builderText + '\n' + delegateText);
+  const level2Text = level2.map(n => decomment(functionBody(n))).join('\n');
+  const level2Bindings = sourcesOf(level2Text).filter(x => /^(kv|d1|r2|do):/.test(x));
+  const srcs = [...new Set([...sourcesOf(own + '\n' + builderText + '\n' + delegateText), ...level2Bindings])].sort();
   const kind = kindOf(r.path, own, srcs);
   // THREE STATES, NOT TWO. `s: null` has to mean "reads nothing" -- a trigger
   // returning an acknowledgement, a pure computation. It must NOT also mean "we
@@ -144,10 +173,24 @@ for (const r of routes) {
   const delegates = [...new Set([...own.matchAll(/\b([a-z_$][\w$]{3,})\s*\(/g)].map(m => m[1]))]
     .filter(n => !/^(if|for|while|switch|catch|return|typeof|await|parseInt|parseFloat|String|Number|Boolean|JSON|Math|Date|Promise|fetch|console|decodeURI|encodeURI|json|text|html)$/.test(n))
     .filter(n => functionBody(n));
-  const declared = srcs.length ? srcs.join(' + ')
+  // ONE function decides the label, because two were deciding it and disagreeing.
+  // A union block added later recomputed `declared` from scratch and silently
+  // dropped the dispatch-table case -- the downstream write winning over the
+  // upstream decision, invisibly, which is the same shape as every other defect
+  // this file has had. Computed once, used in both places.
+  //
+  // WHY it is undeclared, when the reason is knowable: /health/sources delegates
+  // to checkAllSources, which reads through `source.check(env)` -- a dispatch
+  // table whose callee is a property on a data structure. No parser following
+  // identifiers will reach it. "Delegated to checkAllSources" invites someone to
+  // go looking; "reads via a dispatch table" tells them not to bother.
+  const dynamicDispatch = delegatesOf.some(n => /\.\w+\(\s*env\s*[,)]/.test(decomment(functionBody(n) || '')));
+  const label = (list) => list.length ? list.join(' + ')
+    : dynamicDispatch ? `undeclared (${kind}; reads via a dispatch table, not statically followable)`
     : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
     : (kind === 'trigger' || kind === 'computed') ? null
     : `undeclared (${kind}; URL built in a helper)`;
+  const declared = label(srcs);
   // 26 paths have more than one dispatch line -- GET and POST variants, a guard
   // list plus the real handler. The first rule here kept whichever reading found
   // the MOST sources, which under-reports: if GET /journalism/run reads D1 and
@@ -157,10 +200,7 @@ for (const r of routes) {
   // cannot pull in something the path does not do.
   const prev = seen.get(r.path);
   const merged = [...new Set([...(prev ? prev.sources : []), ...srcs])].sort();
-  const mergedDeclared = merged.length ? merged.join(' + ')
-    : delegates.length ? `undeclared (${kind}; delegated to ${delegates.slice(0, 2).join(', ')})`
-    : (kind === 'trigger' || kind === 'computed') ? null
-    : `undeclared (${kind}; URL built in a helper)`;
+  const mergedDeclared = label(merged);
   seen.set(r.path, {
     sources: merged,
     declared: mergedDeclared,
