@@ -1,0 +1,204 @@
+{
+  "ts": "2026-09-06T20:54:58.025Z",
+  "editions": [
+    {
+      "tid": 135,
+      "season": "2025",
+      "name": "US Open, Men",
+      "rowsRead": 477,
+      "declared": 477,
+      "editionRows": 240,
+      "mainDrawRows": 127,
+      "duplicates": [
+        {
+          "round": "Round of 128",
+          "playerId": 390,
+          "playerName": "Raphael Collignon",
+          "rows": [
+            {
+              "id": 8430,
+              "status": "finished",
+              "date": "2025-08-25T17:10:00+00:00",
+              "p1": "Daniel Elahi Galan",
+              "p2": "Raphael Collignon",
+              "winner": 390
+            },
+            {
+              "id": 8423,
+              "status": "cancelled",
+              "date": "2025-08-25T15:00:00+00:00",
+              "p1": "Laslo Djere",
+              "p2": "Raphael Collignon",
+              "winner": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tid": 14,
+      "season": "2026",
+      "name": "Australian Open (ATP)",
+      "rowsRead": 477,
+      "declared": 477,
+      "editionRows": 244,
+      "mainDrawRows": 129,
+      "duplicates": [
+        {
+          "round": "Round of 128",
+          "playerId": 563,
+          "playerName": "Alex de Minaur",
+          "rows": [
+            {
+              "id": 23552,
+              "status": "finished",
+              "date": "2026-01-19T02:45:00+00:00",
+              "p1": "Mackenzie McDonald",
+              "p2": "Alex de Minaur",
+              "winner": 563
+            },
+            {
+              "id": 23169,
+              "status": "cancelled",
+              "date": "2026-01-19T02:30:00+00:00",
+              "p1": "Matteo Berrettini",
+              "p2": "Alex de Minaur",
+              "winner": null
+            }
+          ]
+        },
+        {
+          "round": "Round of 128",
+          "playerId": 445,
+          "playerName": "Jaime Faria",
+          "rows": [
+            {
+              "id": 23534,
+              "status": "finished",
+              "date": "2026-01-18T06:00:00+00:00",
+              "p1": "Alexander Blockx",
+              "p2": "Jaime Faria",
+              "winner": 445
+            },
+            {
+              "id": 23127,
+              "status": "cancelled",
+              "date": "2026-01-18T04:10:00+00:00",
+              "p1": "Arthur Cazaux",
+              "p2": "Jaime Faria",
+              "winner": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tid": 77,
+      "season": "2026",
+      "name": "Roland Garros (WTA)",
+      "rowsRead": 461,
+      "declared": 461,
+      "editionRows": 239,
+      "mainDrawRows": 127,
+      "duplicates": []
+    },
+    {
+      "tid": 76,
+      "season": "2026",
+      "name": "Roland Garros (ATP)",
+      "rowsRead": 466,
+      "declared": 466,
+      "editionRows": 243,
+      "mainDrawRows": 129,
+      "duplicates": [
+        {
+          "round": "Round of 128",
+          "playerId": 560,
+          "playerName": "Stan Wawrinka",
+          "rows": [
+            {
+              "id": 35362,
+              "status": "finished",
+              "date": "2026-05-25T11:10:00+00:00",
+              "p1": "Stan Wawrinka",
+              "p2": "Jesper De Jong",
+              "winner": 476
+            },
+            {
+              "id": 34978,
+              "status": "cancelled",
+              "date": "2026-05-25T09:00:00+00:00",
+              "p1": "Stan Wawrinka",
+              "p2": "Arthur Fils",
+              "winner": null
+            }
+          ]
+        },
+        {
+          "round": "Round of 128",
+          "playerId": 84,
+          "playerName": "Luca Van Assche",
+          "rows": [
+            {
+              "id": 35464,
+              "status": "finished",
+              "date": "2026-05-25T09:00:00+00:00",
+              "p1": "Luca Van Assche",
+              "p2": "Vilius Gaubas",
+              "winner": 84
+            },
+            {
+              "id": 35129,
+              "status": "cancelled",
+              "date": "2026-05-25T09:00:00+00:00",
+              "p1": "Luca Van Assche",
+              "p2": "Patrick Kypson",
+              "winner": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tid": 15,
+      "season": "2026",
+      "name": "Australian Open (WTA)",
+      "rowsRead": 475,
+      "declared": 475,
+      "editionRows": 242,
+      "mainDrawRows": 128,
+      "duplicates": [
+        {
+          "round": "Round of 128",
+          "playerId": 287,
+          "playerName": "Hailey Baptiste",
+          "rows": [
+            {
+              "id": 23613,
+              "status": "finished",
+              "date": "2026-01-18T03:00:00+00:00",
+              "p1": "Hailey Baptiste",
+              "p2": "Taylor Townsend",
+              "winner": 287
+            },
+            {
+              "id": 23208,
+              "status": "cancelled",
+              "date": "2026-01-18T03:00:00+00:00",
+              "p1": "Hailey Baptiste",
+              "p2": "Marketa Vondrousova",
+              "winner": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "totalDupes": 6,
+    "dupesWithOneCancelled": 6,
+    "dupesWithTwoLive": 0,
+    "editionsChecked": 5,
+    "ofGrandSlamIds": 14
+  }
+}
