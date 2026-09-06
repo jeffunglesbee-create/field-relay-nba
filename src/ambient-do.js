@@ -127,6 +127,29 @@ const SPORT_ACTIVE_MONTHS = {
     'cfb':        [7,8,9,10,11,0],           // Aug–Jan
 };
 
+// Every response this object returns has to carry CORS, because a Durable
+// Object's response reaches the browser as-is: index.js dispatches
+// /live/ambient and /ambient/* with `return stub.fetch(request)` and adds
+// nothing to the headers.
+//
+// Copied from user-do.js:346 rather than invented. That is the one Durable
+// Object here whose every response already carries the header — 18 responses,
+// 19 _cors() calls — and the only one the browser has been reaching
+// successfully all along, via fetchUserState()'s GET /user/state.
+//
+// Measured 2026-09-06: of 58 responses across the four Durable Objects, two
+// set Access-Control-Allow-Origin. AmbientDO set it on exactly one — the SSE
+// stream — so /ambient/state, /ambient/kick and the BSD subscribe routes were
+// unreachable from a page. That went unnoticed because nothing in the client
+// calls them; they are diagnostics, and a diagnostic you cannot read from a
+// browser is the one you want most when something is wrong.
+function _cors() {
+    return {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+    };
+}
+
 export class AmbientDO {
     constructor(ctx, env) {
         this.ctx = ctx;
@@ -181,13 +204,13 @@ export class AmbientDO {
         // command for the given event_id. Idempotent — re-subscribing is OK.
         if (url.pathname.endsWith('/ambient/bsd/subscribe') && request.method === 'POST') {
             const { event_id } = await request.json().catch(() => ({}));
-            if (!event_id) return new Response('event_id required', { status: 400 });
+            if (!event_id) return new Response(JSON.stringify({ error: 'event_id required' }), { status: 400, headers: _cors() });
             const token = this.env.BSD_API_TOKEN;
-            if (!token) return new Response('BSD not configured', { status: 503 });
+            if (!token) return new Response(JSON.stringify({ error: 'BSD not configured' }), { status: 503, headers: _cors() });
             await this._bsdConnect(token);
             await this._bsdSubscribe(event_id);
             return new Response(JSON.stringify({ ok: true, subscribed: String(event_id) }),
-                { headers: { 'Content-Type': 'application/json' } });
+                { headers: _cors() });
         }
 
         // ── POST /ambient/bsd/unsubscribe { event_id } ────────────────────
@@ -195,7 +218,7 @@ export class AmbientDO {
             const { event_id } = await request.json().catch(() => ({}));
             if (event_id) await this._bsdUnsubscribe(event_id);
             return new Response(JSON.stringify({ ok: true }),
-                { headers: { 'Content-Type': 'application/json' } });
+                { headers: _cors() });
         }
 
         // ── GET /ambient/state — REST poll fallback ───────────────────────
@@ -216,7 +239,7 @@ export class AmbientDO {
                 bsdSocketState: this._bsdSocket ? this._bsdSocket.readyState : null,
                 bsdSubscribed:  Array.from(this._bsdSubscribed || []),
                 ts: Date.now(),
-            }), { headers: { 'Content-Type': 'application/json' } });
+            }), { headers: _cors() });
         }
 
         // ── GET /live-wp/test — deployment verification for live odds ─────
@@ -239,17 +262,17 @@ export class AmbientDO {
                     .map(([s, ts]) => [s, { lastFetchMs: Date.now() - ts, lastFetchISO: new Date(ts).toISOString() }])),
                 sportMappings: ODDS_SPORT_KEYS,
                 ts: Date.now(),
-            }), { headers: { 'Content-Type': 'application/json' } });
+            }), { headers: _cors() });
         }
 
         // ── POST /ambient/kick — manual poll trigger (admin) ─────────────
         if (url.pathname.endsWith('/ambient/kick') && request.method === 'POST') {
             await this._poll();
             return new Response(JSON.stringify({ ok: true, clients: this._clients.size }),
-                { headers: { 'Content-Type': 'application/json' } });
+                { headers: _cors() });
         }
 
-        return new Response('Not found', { status: 404 });
+        return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: _cors() });
     }
 
     // ── SSE connection handler ────────────────────────────────────────────

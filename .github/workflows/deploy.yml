@@ -158,6 +158,13 @@ jobs:
       - name: Every cross-module call resolves to an import
         run: node scripts/check-imports-resolve.mjs
 
+      # A Durable Object's response reaches the browser as-is — index.js
+      # dispatches with `return stub.fetch(request)` and adds no headers. A
+      # response without CORS is unreachable from a page, and the browser
+      # reports the miss as a CORS error rather than the status it really is.
+      - name: Every Durable Object response carries CORS
+        run: node scripts/check-do-cors.mjs
+
       # Blocking. From 2026-06-12 to 2026-09-05 /wc/odds-probs pushed a
       # hand-entered Germany v Ecuador row into its response -- a defensible
       # two-week bridge whose own exit condition ("once the Odds API lists this
