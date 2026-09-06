@@ -1,0 +1,60 @@
+name: BSD parameter probe
+
+# Dispatch-only, NO schedule. This answers a question once: does BSD's
+# /api/v2/events/ still IGNORE a parameter it does not understand, or reject it?
+#
+# Two things made it necessary on 2026-09-06.
+#
+# The repo contradicts itself. A comment in src/index.js, confirmed live
+# 2026-08-01, says a bare `date=` on that endpoint is silently ignored and
+# returns an unfiltered page — which is why the WC round/weather join uses
+# date_from/date_to. `runBSDEndgameCapture`, ~1850 lines earlier, still sends
+# `?date=${today}&league_id=27`. Both cannot be right.
+#
+# And BSD's August newsletter says the API now "rejects parameters it doesn't
+# understand instead of quietly ignoring them", which would turn a wrong result
+# into a hard failure. Either way the claim the endgame site rests on is five
+# weeks old and is a fact about someone else's server.
+#
+# CI because the sandbox cannot reach sports.bzzoiro.com.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'YYYY-MM-DD to probe. Default: today UTC.'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Probe
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: |
+          mkdir -p outbox
+          node scripts/bsd-param-probe.mjs ${{ inputs.date }} 2>&1 \
+            | tee outbox/bsd-param-probe-latest.txt
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-param-probe-latest.txt
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "probe: BSD parameter behaviour [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
