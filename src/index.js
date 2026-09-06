@@ -10408,7 +10408,41 @@ export default {
                 // of the draw and is counted, not silently dropped.
                 const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
                                'Quarterfinals', 'Semifinals', 'Final'];
-                const main = edition.filter((m) => ORDER.includes(String(m?.round_name)));
+                // A CANCELLED ROW IS NOT A MATCH IN THE DRAW, and this is the
+                // whole explanation of the ladder anomaly.
+                //
+                // Measured 2026-09-06 across five slam editions
+                // (scripts/bsd-tennis-duplicate-rows.mjs): SIX players appear
+                // in two Round of 128 rows, and in all six one row is
+                // `cancelled` and the other `finished`. Zero duplicates have
+                // two live rows.
+                //
+                //   135/2025  Collignon   8430 finished v Galan
+                //                         8423 cancelled v Djere
+                //    14/2026  de Minaur  23552 finished v McDonald
+                //                        23169 cancelled v Berrettini
+                //    76/2026  Wawrinka   35362 finished v De Jong
+                //                        34978 cancelled v Fils
+                //
+                // The shape is the same every time and it names itself: the
+                // player keeps their slot and the OPPONENT changes. That is a
+                // withdrawal — the original opponent pulled out and a lucky
+                // loser came in — and BSD keeps both rows.
+                //
+                // So 65 and 66 first-round rows are not the vendor doubling a
+                // round; they are 64 matches plus the fixtures that were
+                // replaced. Excluding them makes every edition read 127
+                // main-draw matches, which is exactly what a 128 draw holds.
+                // US Open Men 2025 lands on 126 because its Round of 64
+                // genuinely serves 31 rows where 32 exist, and that stays an
+                // anomaly rather than being explained away with this one.
+                //
+                // Counted, not dropped silently: `cancelledRowsExcluded` says
+                // how many, because a draw quietly missing rows is the failure
+                // this whole route is built against.
+                const inDraw = edition.filter((m) => ORDER.includes(String(m?.round_name)));
+                const cancelledRows = inDraw.filter((m) => String(m?.status) === 'cancelled');
+                const main = inDraw.filter((m) => String(m?.status) !== 'cancelled');
                 const offDraw = {};
                 for (const m of edition) {
                     const rn = String(m?.round_name ?? '(absent)');
@@ -10524,6 +10558,10 @@ export default {
                         anomalies.push({ kind: 'roundNotAtCanonicalSize', round: r.round,
                                          matches: r.matches, canonical: r.canonical });
                     }
+                }
+                if (cancelledRows.length) {
+                    anomalies.push({ kind: 'cancelledRowsExcluded', matches: cancelledRows.length,
+                                     ids: cancelledRows.map((m) => m.id).slice(0, 20) });
                 }
                 const doubles = nodes.filter((n) => n.isDoubles).length;
                 if (doubles) anomalies.push({ kind: 'doublesRowsInDraw', matches: doubles });

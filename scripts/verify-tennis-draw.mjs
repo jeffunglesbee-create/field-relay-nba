@@ -34,13 +34,22 @@ async function get(path) {
 // The three editions this was measured against on 2026-09-06, with the ladder
 // each one actually has. A ladder written from what a slam SHOULD look like
 // would be 64/32/16/8/4/2/1 and would fail on five of the six read.
+// LADDERS AFTER CANCELLED ROWS ARE EXCLUDED. The first version of this table
+// read 65/31 and 66/32 for the first two rounds, which is what BSD serves
+// before the withdrawal rows are taken out. Measured 2026-09-06 across five
+// editions: every duplicate first-round row is a cancelled fixture beside its
+// finished replacement, six of six, none with two live rows.
+//
+// So the first round is 64 everywhere. US Open Men 2025's Round of 64 stays at
+// 31 — that one is a row BSD genuinely does not serve, and writing 32 here to
+// make the table tidy would be the smoothing this route exists to refuse.
 const EXPECT = [
   { tid: 135, season: '2025', name: 'US Open, Men',
-    ladder: [65, 31, 16, 8, 4, 2, 1] },
+    ladder: [64, 31, 16, 8, 4, 2, 1] },
   { tid: 77, season: '2026', name: 'Roland Garros',
     ladder: [64, 32, 16, 8, 4, 2, 1] },
   { tid: 14, season: '2026', name: 'Australian Open',
-    ladder: [66, 32, 16, 8, 4, 2, 1] },
+    ladder: [64, 32, 16, 8, 4, 2, 1] },
 ];
 const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
                'Quarterfinals', 'Semifinals', 'Final'];
