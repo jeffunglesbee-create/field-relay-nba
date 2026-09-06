@@ -77,7 +77,9 @@ async function pageAll(base, cap = 6) {
   if (!TOKEN) { console.error('!! no BSD_API_TOKEN — cannot ask. This is not a "no".'); process.exit(1); }
 
   // Q1 — which ids are Grand Slams?
-  const tj = await pageAll('/tennis/api/v2/tournaments/?limit=100', 4);
+  // 8 pages, not 4. The first run read 400 of a declared 636 and said so, but
+  // "which ids are Grand Slams" is a question a truncated read cannot answer.
+  const tj = await pageAll('/tennis/api/v2/tournaments/?limit=100', 8);
   const slams = tj.rows.filter((t) => String(t?.category || '') === 'grand_slam')
                        .map((t) => ({ id: t.id, name: t.name, circuit: t.circuit, surface: t.surface }));
   out.questions.q1_grandSlamIds = { checked: tj.rows.length, declared: tj.declared,
@@ -86,12 +88,31 @@ async function pageAll(base, cap = 6) {
             + ` (BSD declares ${tj.declared}, truncated=${tj.truncated})`);
   slams.forEach((s) => console.log(`     ${String(s.id).padStart(5)}  ${s.name}   circuit=${s.circuit}`));
 
-  // Pick a slam with a 2026 edition to inspect. Prefer US Open by name.
-  const pick = slams.find((s) => /US Open/i.test(s.name)) || slams[0];
+  // Pick a slam edition to inspect. EXACT name, not /US Open/i — the first run
+  // matched "US Open, Boys" (id 144) because the slam list is not ordered and
+  // Boys sorts ahead of Men. The sample player it then printed was Jessica
+  // Pegula, which is the tell a loose match leaves.
+  const pick = slams.find((s) => s.name === 'US Open, Men')
+            || slams.find((s) => /^US Open, /.test(s.name))
+            || slams[0];
   if (!pick) { console.error('!! no grand_slam tournament found — cannot continue'); process.exit(1); }
   console.log(`\ninspecting: ${pick.id} ${pick.name}`);
 
-  const mj = await pageAll(`/tennis/api/v2/matches/?tournament_id=${pick.id}&limit=100`, 6);
+  // `tournament`, NOT `tournament_id`. Measured by the feasibility probe on
+  // 2026-09-06 and sitting in outbox/bsd-tennis-draw-probe-latest.json:
+  //
+  //   filter_tournament      200  400 rows  allSameTournament=true
+  //   filter_tournament_id   200  366 rows  allSameTournament=false
+  //   filter_tournament_ids  200  366 rows  allSameTournament=false
+  //
+  // The first run of THIS probe used tournament_id, read 363 unfiltered rows,
+  // and reported "halves=false" for all eight slam ids — every one of them the
+  // same 363 rows, because the parameter is accepted and dropped. That is the
+  // same silent-drop this relay's by-date route was built to work around, and
+  // the answer was already measured in this repo's own outbox. Written from
+  // memory instead of read from the artifact: the defect the probe-first rule
+  // names, committed while writing a probe.
+  const mj = await pageAll(`/tennis/api/v2/matches/?tournament=${pick.id}&limit=100`, 8);
   const all = mj.rows;
   const seasons = {};
   for (const m of all) (seasons[seasonOf(m)] ??= []).push(m);
@@ -104,6 +125,18 @@ async function pageAll(base, cap = 6) {
   console.log(`  read ${all.length} of ${mj.declared} rows (truncated=${mj.truncated});`
             + ` seasons ${editions.map(([k, v]) => `${k}=${v}`).join(', ')}`);
   console.log(`  edition under inspection: ${edKey} (${edition.length} matches)`);
+  const allMine = all.length > 0 && all.every((m) => m?.tournament?.id === pick.id);
+  out.questions.editionScope.filterHeld = allMine;
+  console.log(`  every fetched row belongs to ${pick.id}: ${allMine}`);
+  if (!allMine) {
+    const foreign = [...new Set(all.map((m) => m?.tournament?.id))].filter((x) => x !== pick.id);
+    out.questions.editionScope.foreignTournamentIds = foreign.slice(0, 20);
+    console.error(`!! the tournament filter did NOT hold — ${foreign.length} other tournament id(s)`
+                + ` in the result. Every answer below would be about the wrong rows.`);
+    fs.mkdirSync('outbox', { recursive: true });
+    fs.writeFileSync('outbox/bsd-tennis-draw-shape-latest.json', JSON.stringify(out, null, 2));
+    process.exit(1);
+  }
 
   // Q2 — player object shape on THIS endpoint, and name coverage.
   const pKeys = [...new Set(edition.flatMap((m) => [m?.player1, m?.player2])
@@ -173,8 +206,10 @@ async function pageAll(base, cap = 6) {
 
   // Q6 — does every slam id halve on its own latest edition?
   const perSlam = [];
-  for (const s of slams.slice(0, 8)) {
-    const r = await pageAll(`/tennis/api/v2/matches/?tournament_id=${s.id}&limit=100`, 6);
+  // The eight most bracket-like: singles draws, not Boys/Girls/Wheelchairs/Quad.
+  const singles = slams.filter((s) => !/Boys|Girls|Wheelchair|Quad|Doubles/i.test(s.name));
+  for (const s of (singles.length ? singles : slams).slice(0, 8)) {
+    const r = await pageAll(`/tennis/api/v2/matches/?tournament=${s.id}&limit=100`, 8);
     const bySeason = {};
     for (const m of r.rows) (bySeason[seasonOf(m)] ??= []).push(m);
     const top = Object.entries(bySeason).sort((a, b) => b[1].length - a[1].length)[0];
@@ -190,7 +225,8 @@ async function pageAll(base, cap = 6) {
               + `${ladder.map((x) => `${x.round.replace('Round of ', 'R')}=${x.matches}`).join(' ')}`
               + `  halves=${halves}  (read ${r.rows.length}/${r.declared}, truncated=${r.truncated})`);
   }
-  out.questions.q6_perSlamLadders = { checked: perSlam.length, of: slams.length, ladders: perSlam };
+  out.questions.q6_perSlamLadders = { checked: perSlam.length, singlesDraws: singles.length,
+                                      ofAllSlamIds: slams.length, ladders: perSlam };
 
   fs.mkdirSync('outbox', { recursive: true });
   const stamp = TS.replace(/[:.]/g, '-');
