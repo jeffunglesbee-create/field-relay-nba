@@ -159,6 +159,20 @@ jobs:
       - name: Every market value comes from a market
         run: node scripts/check-no-fabricated-values.mjs
 
+      # BSD returns HTTP 400 for a parameter it does not recognise — measured
+      # live 2026-09-06, outbox/bsd-param-probe-latest.txt, which also captured
+      # the accepted set from the server's own error payload.
+      #
+      # runBSDEndgameCapture was sending `?date=`, which is not in that set. It
+      # returned 200 and filtered correctly, so nothing was broken; it was one
+      # tightening pass from a 400 on a cron path. What let it sit there is that
+      # a comment ~1850 lines away already recorded, on 2026-08-01, that this
+      # endpoint mishandled `date=` and that date_from/date_to was the working
+      # filter. One call site knew and the other did not, and nothing connected
+      # them. This is the connection.
+      - name: Every parameter sent to BSD is one BSD documents
+        run: node scripts/bsd-param-guard.mjs --self-test && node scripts/bsd-param-guard.mjs
+
       # Blocking. The guard has to charge an ESTIMATE before the call; the
       # provider says afterwards what it actually cost. Keeping the guess and
       # discarding the receipt drifts the ledger in whichever direction the guess

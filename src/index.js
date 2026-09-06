@@ -2390,9 +2390,32 @@ async function runBSDEndgameCapture(env) {
     // Use by-date+league_id=27 instead, which returns WC games with real-time status.
     // Time-window filter (80–120 min after kickoff) handles cases where BSD doesn't
     // update current_minute for national team competitions in real time.
-    const today = new Date().toISOString().slice(0, 10);
+    // TWO FIXES, 2026-09-06, both measured rather than reasoned.
+    //
+    // date= -> date_from/date_to. `date` is NOT in BSD's accepted-parameter
+    // list, measured live: an undocumented param now returns HTTP 400 naming
+    // accepted_parameters as [date_from, date_to, league_id, limit, offset,
+    // round, season_id, stage, status, team_id, team_name]. `date` currently
+    // returns 200 and filters correctly, so this is not broken today — it is
+    // one tightening pass away from a 400 on a cron path, resting on a
+    // parameter the server does not document.
+    //
+    // The swap is safe because the equivalence was measured, not assumed:
+    // outbox/bsd-param-probe-latest.txt shows both shapes returning the SAME
+    // 6 rows on the same date. A comment ~1850 lines below already chose
+    // date_from/date_to for the WC round/weather join on 2026-08-01, when
+    // date= was silently IGNORED rather than filtering; BSD's August overhaul
+    // fixed that, which is why the claim needed re-probing rather than
+    // re-reasoning.
+    //
+    // toISOString -> getFieldDateKey. UTC midnight is not the FIELD day. That
+    // function's own comment records the failure: naive UTC advanced "today"
+    // at 8pm ET mid-primetime, before that evening's games finished. This is
+    // an endgame CAPTURE keyed on today's slate, which is exactly what it says
+    // it is for.
+    const today = getFieldDateKey();
     const dateResp = await fetch(
-        `https://sports.bzzoiro.com/api/v2/events/?date=${today}&league_id=27`,
+        `https://sports.bzzoiro.com/api/v2/events/?date_from=${today}&date_to=${today}&league_id=27`,
         { headers: bsdHdrs, signal: AbortSignal.timeout(6000) }
     );
     if (!dateResp.ok) return;
