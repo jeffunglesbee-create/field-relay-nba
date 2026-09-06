@@ -1,0 +1,43 @@
+name: Verify Tennis Draw
+
+# The deployed /bsd/tennis/draw assembles a real draw, or this fails.
+#
+# Every assertion names its artifact (Rule 89): the exact ladder of three real
+# editions, an edge count re-derived from the response's own nodes, and the
+# season partition checked against every node's date. Coverage is printed with
+# the result (Rule 91) — three editions of 636 tournaments.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:40 UTC daily. The route pages a whole tournament series, so this is
+    # deliberately once a day rather than on the deploy path.
+    - cron: '40 6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify the draw route
+        run: node scripts/verify-tennis-draw.mjs
+      - name: Commit the reading
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/verify-tennis-draw-*.json || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "verify: tennis draw route against three real slam editions"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1

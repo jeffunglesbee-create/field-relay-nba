@@ -10456,6 +10456,43 @@ export default {
                 }));
                 for (const r of rounds) r.atCanonicalSize = r.matches === r.canonical;
 
+                // A PLAYER TWICE IN ONE ROUND is refused before the join runs.
+                //
+                // This is the STRONGER form of the ambiguity guard below, and it
+                // was found by the F# model of this same draw (field-laboratory
+                // src/Draw.fs): an AmbiguousEdge case written there turned out
+                // to be unreachable, because a winner can only appear in two
+                // next-round matches if that player appears twice in that round.
+                //
+                // The reverse does not hold, which is why both live here. Two
+                // UNPLAYED first-round rows sharing a player produce no edge at
+                // all — the join sees nothing and returns a clean-looking draw
+                // with a player in two simultaneous matches. That is precisely
+                // what an un-scoped read of a tournament SERIES looks like
+                // before any result is in, and it is the state this route's
+                // season partition exists to prevent. Two guards, because the
+                // partition is a fix and this is the check that it worked.
+                const twice = [];
+                for (const [roundName, group] of Object.entries(byRound)) {
+                    const seen = new Map();
+                    for (const n of group) {
+                        for (const pid of [n.p1?.id, n.p2?.id]) {
+                            if (pid == null) continue;
+                            if (seen.has(pid)) twice.push({ round: roundName, playerId: pid,
+                                                            matches: [seen.get(pid), n.id] });
+                            else seen.set(pid, n.id);
+                        }
+                    }
+                }
+                if (twice.length) {
+                    return new Response(JSON.stringify({
+                        error: 'a player appears twice in one round',
+                        tournament: wanted, season, duplicates: twice.slice(0, 20),
+                        why: 'a player plays at most one match per round, so this is not one draw'
+                           + ' — it is two, and the join that follows would be a coincidence',
+                    }), { status: 409, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+
                 // The join. Every completed match whose round has a next round:
                 // does its winner appear in EXACTLY ONE match of that round?
                 const edges = [], ambiguous = [];
