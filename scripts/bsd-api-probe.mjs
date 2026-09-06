@@ -199,6 +199,20 @@ async function hit(label, path, expect = 200) {
   // an unfiltered page is the failure this route exists to avoid.
   await add('tennis/by-date (bad date)', '/bsd/tennis/matches/by-date?date=06-09-2026', 400);
 
+  // The draw. US Open, Men (BSD tournament id 135) — measured 2026-09-06, and
+  // 135 is the MEN'S SINGLES id specifically: 136 is the women's, 144 the boys',
+  // and a loose /US Open/i match landed on 144 while writing the shape probe.
+  // A slam edition is 127 main-draw matches plus qualifying, so this is the
+  // heaviest /bsd route here; it is probed anyway, because the join it performs
+  // is the only place in this worker where a wrong answer puts a named player
+  // in a match they did not play.
+  await add('tennis/draw', '/bsd/tennis/draw?tournament=135');
+  // Two guards, because the failure mode is silent: BSD accepts unknown
+  // parameters and returns an unfiltered page, so a missing tournament must be
+  // rejected here rather than forwarded.
+  await add('tennis/draw (no tournament)', '/bsd/tennis/draw', 400);
+  await add('tennis/draw (bad season)', '/bsd/tennis/draw?tournament=135&season=25', 400);
+
   // 5. R2 read: two calls, because the interesting answer is whether the
   //    GUARD works, not only whether a key resolves.
   await add('r2/read (bad key)', '/bsd/r2/read?key=notbsd/x.json', 400);

@@ -10278,6 +10278,246 @@ export default {
                                'Cache-Control': 'public, max-age=300', ...CORS } });
             }
 
+
+            // /bsd/tennis/draw?tournament=<id>&season=<YYYY> → one edition's draw.
+            //
+            // WHY THIS EXISTS. BSD serves no bracket. The 2026-09-06 schema
+            // census read 217 declared paths and the tennis surface carries
+            // matches, h2h, point-by-point, players, rankings, tournaments and
+            // predictions — no /draw/ and no /bracket/. A draw is either
+            // derivable from /matches/ or it is not available.
+            //
+            // It is derivable, and the measurement says how. In single
+            // elimination the WINNER is the link: a player appears in at most
+            // one match per round, so the winner of an R64 match appears in
+            // exactly one R32 match, and that is the edge — READ, not inferred
+            // from seeding or draw position. Measured 2026-09-06
+            // (scripts/bsd-tennis-draw-probe.mjs, artifact
+            // outbox/bsd-tennis-draw-probe-latest.json):
+            //
+            //   YES — 126 edges resolve to exactly one next match by winner
+            //   identity, 0 ambiguous; no parent-link field, and none needed
+            //
+            // THE PARAMETER IS `tournament`, NOT `tournament_id`. Measured in
+            // the same run, with a control:
+            //
+            //   filter_tournament      200  400 rows  allSameTournament=true
+            //   filter_tournament_id   200  366 rows  allSameTournament=false
+            //   filter_tournament_ids  200  366 rows  allSameTournament=false
+            //
+            // tournament_id is accepted and silently dropped, exactly like the
+            // four date spellings the by-date route above documents. A draw
+            // built on it would be built from every tournament at once.
+            //
+            // SEASON SCOPING IS NOT OPTIONAL. A BSD tournament id is a SERIES,
+            // not one edition: id 14 is the Australian Open across every year
+            // BSD holds. The feasibility probe's second run joined all of them
+            // and reported "ambiguous on 106 matches" — a player who reached
+            // the quarter-finals in two different years appears in two
+            // "Semifinals" matches. The tell was in its own output and went
+            // unread: `Final=2`. Two finals. A draw is one tournament in one
+            // year, and there is no season field on a match row, so the season
+            // is the year of match_date.
+            //
+            // AMBIGUITY IS A 409, NOT A DROPPED EDGE. A bracket with one
+            // guessed edge renders WRONG, not partial — it puts a named player
+            // in a match they did not play. If any winner resolves to two or
+            // more next-round matches this route refuses to answer and says
+            // which, rather than picking one and looking complete.
+            if (pathname === '/bsd/tennis/draw') {
+                const tid = url.searchParams.get('tournament');
+                if (!tid || !/^\d+$/.test(tid)) {
+                    return new Response(JSON.stringify({
+                        error: 'tournament must be a numeric BSD tournament id',
+                        hint: 'GET /bsd/tennis/tournaments lists them',
+                    }), { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const seasonParam = url.searchParams.get('season');
+                if (seasonParam && !/^\d{4}$/.test(seasonParam)) {
+                    return new Response(JSON.stringify({ error: 'season must be YYYY' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+
+                // Page the series. A slam edition is 127 main-draw matches and
+                // BSD holds several editions per id, so the bound is 8 pages /
+                // 800 rows, and `truncated` says plainly when it was reached.
+                // A clipped read is the defect that made the feasibility probe
+                // report its own page size as "sizes halve: false".
+                const rows = [];
+                let next = `${BSD_BASE}/tennis/api/v2/matches/?tournament=${tid}&limit=100`;
+                let declared = null, pages = 0;
+                while (next && pages < 8) {
+                    const r = await fetch(next, { headers: bsdHeaders });
+                    if (!r.ok) {
+                        if (pages === 0) {
+                            return new Response(await r.text(), { status: r.status,
+                                headers: { 'Content-Type': 'application/json', ...CORS } });
+                        }
+                        break;
+                    }
+                    let j;
+                    try { j = await r.json(); } catch (_) { break; }
+                    if (declared === null) declared = j?.count ?? null;
+                    const page = Array.isArray(j) ? j : (j?.results ?? []);
+                    if (!page.length) break;
+                    rows.push(...page);
+                    next = j?.next || null;
+                    pages++;
+                }
+
+                // THE FILTER IS ASSERTED, NOT ASSUMED. `tournament` is measured
+                // to work today; a vendor that starts dropping it would hand
+                // this route every tournament at once and the join would read
+                // as vendor ambiguity. A parameter's behaviour is a
+                // cross-boundary fact and this is the command that answers it.
+                const wanted = Number(tid);
+                const foreign = [...new Set(rows.map((m) => m?.tournament?.id))].filter((x) => x !== wanted);
+                if (rows.length && foreign.length) {
+                    return new Response(JSON.stringify({
+                        error: 'upstream did not honour the tournament filter',
+                        requested: wanted, alsoReturned: foreign.slice(0, 20),
+                        rowsRead: rows.length,
+                    }), { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+
+                // Partition into editions. There is no season field on a match
+                // row — the 2026-09-06 key census read id, tournament, player1,
+                // player2, is_doubles, home_pair, away_pair, match_date,
+                // status, round_name, player1_sets, player2_sets, sets_detail,
+                // winner_id, odds_player1, odds_player2 and nothing else — so
+                // the year of match_date IS the season here, stated rather
+                // than dressed up as a lookup.
+                const seasonOf = (m) => String(m?.match_date ?? '').slice(0, 4) || '?';
+                const bySeason = {};
+                for (const m of rows) (bySeason[seasonOf(m)] ??= []).push(m);
+                const seasonsAvailable = Object.fromEntries(
+                    Object.entries(bySeason).map(([k, v]) => [k, v.length]).sort((a, b) => b[0].localeCompare(a[0])));
+                const season = seasonParam
+                    || Object.entries(bySeason).sort((a, b) => b[0].localeCompare(a[0]))[0]?.[0];
+                const edition = bySeason[season] || [];
+                if (!edition.length) {
+                    return new Response(JSON.stringify({
+                        error: 'no matches for that tournament and season',
+                        tournament: wanted, season: season ?? null, seasonsAvailable,
+                        rowsRead: rows.length, declaredCount: declared,
+                    }), { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+
+                // The seven-round main draw, in order. Anything else — the
+                // qualifying rounds BSD also serves under this id — is not part
+                // of the draw and is counted, not silently dropped.
+                const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
+                               'Quarterfinals', 'Semifinals', 'Final'];
+                const main = edition.filter((m) => ORDER.includes(String(m?.round_name)));
+                const offDraw = {};
+                for (const m of edition) {
+                    const rn = String(m?.round_name ?? '(absent)');
+                    if (!ORDER.includes(rn)) offDraw[rn] = (offDraw[rn] || 0) + 1;
+                }
+
+                const person = (p) => (p ? {
+                    id: p.id ?? null,
+                    name: p.name ?? null,
+                    shortName: p.short_name ?? null,
+                    countryCode: p.country_code ?? null,
+                    // The ONLY seed-ish field on a row or a player, measured
+                    // 2026-09-06: current_ranking. There is no seed. A bracket
+                    // that prints a rank as a seed is printing a different
+                    // number under the right-looking label, so this is named
+                    // `rank` and the client must not relabel it.
+                    rank: p.current_ranking?.position ?? null,
+                } : null);
+
+                const nodes = main.map((m) => ({
+                    id: m.id,
+                    round: String(m.round_name),
+                    roundIndex: ORDER.indexOf(String(m.round_name)),
+                    date: m.match_date ?? null,
+                    status: m.status ?? null,
+                    isDoubles: Boolean(m.is_doubles),
+                    p1: person(m.player1),
+                    p2: person(m.player2),
+                    winnerId: m.winner_id ?? null,
+                    sets: Array.isArray(m.sets_detail) ? m.sets_detail : null,
+                }));
+
+                // The ladder. Each round's canonical size is fixed by the round
+                // it is, so a round that is not at it is REPORTED — a draw with
+                // 66 first-round matches where 64 exist is a fact about the
+                // data, and smoothing it is how a bracket gains a match nobody
+                // played.
+                const byRound = {};
+                for (const n of nodes) (byRound[n.round] ??= []).push(n);
+                const rounds = ORDER.filter((r) => byRound[r]).map((r) => ({
+                    round: r,
+                    index: ORDER.indexOf(r),
+                    matches: byRound[r].length,
+                    canonical: 1 << (ORDER.length - 1 - ORDER.indexOf(r)),
+                }));
+                for (const r of rounds) r.atCanonicalSize = r.matches === r.canonical;
+
+                // The join. Every completed match whose round has a next round:
+                // does its winner appear in EXACTLY ONE match of that round?
+                const edges = [], ambiguous = [];
+                for (const n of nodes) {
+                    if (n.winnerId == null) continue;
+                    if (n.roundIndex < 0 || n.roundIndex === ORDER.length - 1) continue;
+                    const nextRound = byRound[ORDER[n.roundIndex + 1]];
+                    if (!nextRound || !nextRound.length) continue;
+                    const hits = nextRound.filter(
+                        (x) => x.p1?.id === n.winnerId || x.p2?.id === n.winnerId);
+                    if (hits.length === 1) edges.push({ from: n.id, to: hits[0].id, playerId: n.winnerId });
+                    else if (hits.length > 1) {
+                        ambiguous.push({ from: n.id, playerId: n.winnerId, candidates: hits.map((h) => h.id) });
+                    }
+                    // hits.length === 0 is the champion, or a player knocked
+                    // out — not an edge and not a fault.
+                }
+                if (ambiguous.length) {
+                    return new Response(JSON.stringify({
+                        error: 'ambiguous draw — a winner appears in more than one next-round match',
+                        tournament: wanted, season, ambiguous,
+                        why: 'an edge here would put a named player in a match they did not play',
+                    }), { status: 409, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+
+                const anomalies = [];
+                for (const r of rounds) {
+                    if (!r.atCanonicalSize) {
+                        anomalies.push({ kind: 'roundNotAtCanonicalSize', round: r.round,
+                                         matches: r.matches, canonical: r.canonical });
+                    }
+                }
+                const doubles = nodes.filter((n) => n.isDoubles).length;
+                if (doubles) anomalies.push({ kind: 'doublesRowsInDraw', matches: doubles });
+                const unnamed = nodes.filter((n) => !n.p1?.name || !n.p2?.name).length;
+                if (unnamed) anomalies.push({ kind: 'matchesMissingAPlayerName', matches: unnamed });
+
+                const meta = rows.find((m) => m?.tournament?.id === wanted)?.tournament ?? null;
+                return new Response(JSON.stringify({
+                    tournament: meta ? { id: meta.id, name: meta.name, circuit: meta.circuit,
+                                         category: meta.category, surface: meta.surface } : { id: wanted },
+                    season,
+                    seasonsAvailable,
+                    // Coverage beside the result, Rule 91. A caller must be able
+                    // to tell a complete draw from a clipped one without knowing
+                    // this route's page bound.
+                    rowsRead: rows.length,
+                    declaredCount: declared,
+                    truncated: declared != null && rows.length < declared,
+                    pages,
+                    editionMatches: edition.length,
+                    mainDrawMatches: main.length,
+                    roundsOutsideMainDraw: offDraw,
+                    rounds,
+                    nodes,
+                    edges,
+                    anomalies,
+                }), { status: 200,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300', ...CORS } });
+            }
+
             // /bsd/tennis/matches/live → BSD tennis /api/v2/matches/live/ (Sports Pack)
             if (pathname === '/bsd/tennis/matches/live') {
                 const cacheKey = new Request(`${BSD_BASE}/tennis/api/v2/matches/live/`);
