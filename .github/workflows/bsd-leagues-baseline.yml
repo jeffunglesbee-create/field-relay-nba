@@ -1,0 +1,61 @@
+name: BSD Leagues Baseline
+
+# The vendor claimed "nine new competitions" in its August 2026 newsletter.
+# One reading cannot answer that — a count of leagues today says nothing about
+# what changed. So the first run establishes a baseline and every run after it
+# answers by diff. Monthly, matching the newsletter's own cadence.
+
+on:
+  schedule:
+    - cron: '23 8 4 * *'   # 4th of the month, 08:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-leagues-baseline
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enumerate every competition and diff against the baseline
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: node scripts/bsd-leagues-baseline.mjs
+
+      # The probe exits 0 whatever it finds. This is the step that can go red:
+      # a run where no surface answered wrote no reading, and a green tick on
+      # that would be the 200-with-an-empty-body failure again.
+      - name: A run that answered nothing is not a baseline
+        run: |
+          set -euo pipefail
+          LATEST=$(ls -t outbox/bsd-leagues-2*.json | head -1)
+          node -e '
+            const d=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));
+            console.log(`surfaces ${d.surfacesAnswered}/${d.surfacesProbed}, total ${d.total}, calls ${d.callsMade}`);
+            if(d.surfacesAnswered===0){console.error("no surface answered");process.exit(1);}
+            if(d.total===0){console.error("zero competitions across every surface");process.exit(1);}
+          ' "$LATEST"
+
+      - name: Commit the reading
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-leagues-*.json
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: BSD competition census" \
+                     -m "Baseline for the vendor's new-competition claims. The diff against the previous reading is in the committed JSON."
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1
