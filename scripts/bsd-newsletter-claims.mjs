@@ -85,7 +85,21 @@ function fieldNames(v, prefix = '', acc = new Set(), depth = 0) {
   }
   return acc;
 }
-const matching = (names, re) => [...names].filter((n) => re.test(n)).sort();
+// Distinct LEAF names, with the hit count beside them. An earlier version
+// returned every matching path and the 2026-09-06 reading carried 340 entries
+// for the single field `movement` -- one per bookmaker per outcome per market.
+// The question was "does an opening-price field exist", and 340 copies of the
+// answer is not a better answer than one.
+const matching = (names, re) => {
+  const leaves = {};
+  for (const n of names) {
+    if (!re.test(n)) continue;
+    const leaf = n.split('.').pop().replace(/\[\]$/, '');
+    leaves[leaf] = (leaves[leaf] || 0) + 1;
+  }
+  return Object.entries(leaves).sort((a, b) => b[1] - a[1])
+    .map(([leaf, n]) => (n > 1 ? `${leaf} (x${n})` : leaf));
+};
 
 // What FIELD already consumes, read from src/index.js rather than listed here.
 // The relay's own routes are one layer up (bsd-api-probe.mjs counts those); this
@@ -299,8 +313,13 @@ function fieldConsumedPaths(file = 'src/index.js') {
     offeredCount: offered.size,
     // Offered by BSD, never fetched by the relay. This is the actionable list.
     availableUnused: [...offered].filter((p) => !consumedNorm.has(norm(p))).sort(),
-    // Called by the relay and confirmed serving in this run.
+    // Three separate facts, because one number cannot carry them. `proven` is
+    // only what THIS run called, so a path FIELD uses but the probe did not
+    // exercise is neither confirmed nor suspect -- listing it under a single
+    // "consumed" count would make 8 read as 3.
     consumedAndProven: [...consumedNorm].filter((p) => proven.has(p)).sort(),
+    consumedAndDeclared: [...consumedNorm].filter((p) => declared.has(p) && !proven.has(p)).sort(),
+    consumedNotInIndex: [...consumedNorm].filter((p) => !declared.has(p) && !proven.has(p)).sort(),
     // Newsletter-claimed candidates that answered 404 -- absent, not merely unused.
     claimedButAbsent: surface.filter((c) => c.status === 404).map((c) => c.path).sort(),
   };
