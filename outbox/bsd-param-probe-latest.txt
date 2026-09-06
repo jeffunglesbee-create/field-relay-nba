@@ -1,0 +1,36 @@
+
+BSD /api/v2/events/ parameter behaviour — probed 2026-09-06T02:51:58.503Z for 2026-09-06
+
+  bare date=            (the endgame call site)
+      HTTP 200  0 row(s), 0 distinct date(s)
+      RateLimit headers: none
+
+  date_from/date_to      (the WC round/weather site)
+      HTTP 200  0 row(s), 0 distinct date(s)
+      RateLimit headers: none
+
+  a parameter that cannot exist
+      HTTP 400
+      body: {"detail": "Unknown query parameter(s): field_nonsense_param.", "unknown_parameters": ["field_nonsense_param"], "accepted_parameters": ["date_from", "date_to", "league_id", "limit", "offset", "round",
+      RateLimit headers: none
+
+  league_id only         (the control: unfiltered by date)
+      HTTP 200  50 row(s), 0 distinct date(s)
+      RateLimit headers: none
+
+VERDICTS
+
+  Is a bare date= rejected now?
+      NO — HTTP 200 and 0 distinct date(s). The parameter now appears to FILTER. That contradicts the 2026-08-01 comment, which should be corrected rather than trusted.
+
+  Does BSD reject an unknown parameter, as the August newsletter says?
+      YES — HTTP 400 for a parameter that cannot exist. Every call site must send only documented params.
+
+  Does date_from/date_to still filter?
+      0 distinct date(s) across 0 row(s) — filtering correctly.
+
+  Control — league_id only, no date filter at all
+      50 row(s), 0 distinct date(s). A bare date= that matches THIS shape is a parameter being ignored.
+
+  RateLimit headers present: no
+
