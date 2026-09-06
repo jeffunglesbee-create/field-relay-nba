@@ -108,6 +108,10 @@ const rowsOf = (j) => (Array.isArray(j) ? j : (j?.results ?? j?.matches ?? []));
 
     // 3. DO THE SIZES HALVE?
     const ORDER = ['Round of 128','Round of 64','Round of 32','Round of 16','Quarterfinals','Semifinals','Final'];
+    // Counted across every fetched row, so this is the SERIES ladder, not one
+    // draw's. The per-edition ladder is computed below and is the one that
+    // should halve; reporting only this one is how "sizes halve: false" was
+    // published twice about data where every round halves perfectly.
     const ladder = ORDER.filter((r) => rounds[r]).map((r) => ({ round: r, matches: rounds[r] }));
     const halves = ladder.every((x, i) => i === 0 || x.matches * 2 === ladder[i - 1].matches);
     out.findings.ladder = ladder;
@@ -145,11 +149,32 @@ const rowsOf = (j) => (Array.isArray(j) ? j : (j?.results ?? j?.matches ?? []));
     // is ambiguous and a bracket built on it would draw a false edge.
     const idxOf = (r) => ORDER.indexOf(String(r));
     const playersOf = (m) => [m?.player1?.id, m?.player2?.id].filter((x) => x != null);
+
+    // SCOPE TO ONE EDITION FIRST. This is the third scoping defect this probe
+    // has produced and the most misleading: the second run reported
+    // "ambiguous on 106 matches" and a verdict of NO. The ladder said why and
+    // was not read — `Final=2`. Two finals. Tournament id 15 is the Australian
+    // Open SERIES, not one edition, so 400 rows spanned several years and every
+    // round was doubled. A player who reached the quarter-finals in two
+    // different years appears in two "Semifinals" matches, and the join called
+    // that ambiguity in the data.
+    //
+    // It was ambiguity in the QUESTION. A draw is one tournament in one year.
+    const seasonOf = (m) => String(m?.season_id ?? String(m?.match_date ?? '').slice(0, 4) ?? '?');
+    const seasons = {};
+    for (const m of draw) (seasons[seasonOf(m)] ??= []).push(m);
+    const editions = Object.entries(seasons).sort((a, b) => b[1].length - a[1].length);
+    out.findings.seasonsSeen = Object.fromEntries(editions.map(([k, v]) => [k, v.length]));
+    console.log(`\nseasons in the fetched rows: ${editions.map(([k, v]) => `${k}=${v}`).join(', ')}`);
+    const [editionKey, edition] = editions[0] || ['?', []];
+    out.findings.editionJoined = { season: editionKey, matches: edition.length };
+    console.log(`joining ONE edition: ${editionKey} (${edition.length} matches)`);
+
     const byRound = {};
-    for (const m of draw) (byRound[String(m?.round_name)] ??= []).push(m);
+    for (const m of edition) (byRound[String(m?.round_name)] ??= []).push(m);
 
     const join = { resolved: 0, championOrOut: 0, ambiguous: 0, unusableRound: 0, examples: [] };
-    for (const m of draw) {
+    for (const m of edition) {
       const ri = idxOf(m?.round_name);
       if (ri < 0 || ri === ORDER.length - 1) continue;      // unknown round, or the Final
       if (m?.winner_id == null) continue;
@@ -164,6 +189,15 @@ const rowsOf = (j) => (Array.isArray(j) ? j : (j?.results ?? j?.matches ?? []));
       } else if (hits.length === 0) join.championOrOut++;
       else { join.ambiguous++; }
     }
+    // The ladder that actually has to halve: one edition.
+    const eRounds = {};
+    for (const m of edition) { const r = String(m?.round_name ?? '(absent)'); eRounds[r] = (eRounds[r] || 0) + 1; }
+    const eLadder = ORDER.filter((r) => eRounds[r]).map((r) => ({ round: r, matches: eRounds[r] }));
+    out.findings.editionLadder = eLadder;
+    out.findings.editionSizesHalve = eLadder.every((x, i) => i === 0 || x.matches * 2 === eLadder[i - 1].matches);
+    console.log(`edition ladder: ${eLadder.map((x) => `${x.round}=${x.matches}`).join(' -> ')}`);
+    console.log(`edition sizes halve: ${out.findings.editionSizesHalve}`);
+
     out.findings.winnerJoin = join;
     console.log(`\nedge join by winner identity:`);
     console.log(`  resolved to exactly one next match: ${join.resolved}`);
