@@ -1,0 +1,96 @@
+{
+  "ts": "2026-09-06T15:03:58.465Z",
+  "date": "2026-09-06",
+  "tokenPresent": true,
+  "attempts": [
+    {
+      "note": "CONTROL — unfiltered",
+      "qs": "?limit=50",
+      "status": 200,
+      "count": 363,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06",
+        "2026-09-07"
+      ],
+      "errorBody": null
+    },
+    {
+      "note": "date_from/date_to (the football spelling)",
+      "qs": "?date_from=2026-09-06&date_to=2026-09-06&limit=50",
+      "status": 200,
+      "count": 158,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06"
+      ],
+      "errorBody": null
+    },
+    {
+      "note": "date",
+      "qs": "?date=2026-09-06&limit=50",
+      "status": 200,
+      "count": 363,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06",
+        "2026-09-07"
+      ],
+      "errorBody": null
+    },
+    {
+      "note": "match_date (the field name on a row)",
+      "qs": "?match_date=2026-09-06&limit=50",
+      "status": 200,
+      "count": 363,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06",
+        "2026-09-07"
+      ],
+      "errorBody": null
+    },
+    {
+      "note": "start_date/end_date",
+      "qs": "?start_date=2026-09-06&end_date=2026-09-06&limit=50",
+      "status": 200,
+      "count": 363,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06",
+        "2026-09-07"
+      ],
+      "errorBody": null
+    },
+    {
+      "note": "day",
+      "qs": "?day=2026-09-06&limit=50",
+      "status": 200,
+      "count": 363,
+      "rows": 50,
+      "datesSeen": [
+        "2026-09-06",
+        "2026-09-07"
+      ],
+      "errorBody": null
+    }
+  ],
+  "summary": {
+    "controlRows": 50,
+    "controlDates": [
+      "2026-09-06",
+      "2026-09-07"
+    ],
+    "supported": [
+      "date_from/date_to (the football spelling)"
+    ],
+    "silentlyIgnored": [
+      "date",
+      "match_date (the field name on a row)",
+      "start_date/end_date",
+      "day"
+    ],
+    "rejected": [],
+    "verdict": "YES — 1 spelling(s) filter to one date: ?date_from=2026-09-06"
+  }
+}
