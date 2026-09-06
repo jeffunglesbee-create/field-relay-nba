@@ -1,5 +1,109 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-06 (a vendor newsletter surfaced a contradiction already in the repo)
+
+**HEAD:** `afff86c` → `d9181cb` · **Branch:** main throughout · 4 commits
+**Session doc:** `outbox/2026-09-06-bsd-param-behaviour.md`
+**Probe artifact:** `outbox/bsd-param-probe-latest.txt` (committed by CI, survives the log)
+
+### Why
+
+BSD's August newsletter says the API now "rejects parameters it doesn't
+understand instead of quietly ignoring them". Checking what that meant for FIELD
+turned up a contradiction the repo was already carrying.
+
+`src/index.js` had a comment, confirmed live 2026-08-01, saying `/api/v2/events/`
+**silently ignores a bare `date=`** and returns an unfiltered page — which is why
+the WC round/weather join uses `date_from`/`date_to`. Roughly **1850 lines
+earlier**, `runBSDEndgameCapture` still sent `?date=`. One call site knew and the
+other did not, and nothing connected them.
+
+### Measured, not reasoned
+
+`.github/workflows/bsd-param-probe.yml` → `outbox/bsd-param-probe-latest.txt`:
+
+```
+control page carries 21 date(s) in field 'event_date'; probing 2026-06-25
+
+bare date=          HTTP 200   6 rows, 1 distinct date
+date_from/date_to   HTTP 200   6 rows, 1 distinct date
+bogus param         HTTP 400
+league_id only      HTTP 200  50 rows, 21 distinct dates
+
+accepted_parameters: ["date_from","date_to","league_id","limit","offset",
+                      "round","season_id","stage","status","team_id","team_name"]
+```
+
+1. **`date=` filters now.** The 2026-08-01 comment recorded real behaviour; BSD's
+   August overhaul changed it. Stale, not wrong — which is why it needed
+   re-probing rather than re-reasoning.
+2. **`date` is not in the accepted set**, yet returns 200 while an undocumented
+   parameter returns 400. Nothing broken; one tightening pass from a 400 on a
+   cron path.
+3. **No RateLimit headers** on any of the four calls, though the newsletter says
+   the API now returns them. Noted, unfixed, not claimed.
+
+### Fixed — `runBSDEndgameCapture`, two lines
+
+- `?date=` → `?date_from=&date_to=`. Safe because the equivalence was
+  **measured**: both shapes returned the same 6 rows on the same date.
+- `toISOString().slice(0,10)` → `getFieldDateKey()`. UTC midnight is not the
+  FIELD day, and that helper's own comment records the failure it exists for —
+  naive UTC advanced "today" at 8pm ET mid-primetime, before that evening's games
+  finished. This is an endgame capture keyed on today's slate.
+
+### The follow-up, so it cannot recur
+
+`scripts/bsd-param-guard.mjs`, wired into `deploy.yml`. Every parameter sent to
+`sports.bzzoiro.com` must be in the accepted set — taken from **the server's own
+400 payload**, not transcribed from documentation, because the server is what
+does the rejecting. Current reading: `date_from, date_to, league_id`.
+
+Its self-test uses the **real line that was there** as the positive case, so it
+is proven to catch what it was written for rather than only proven to run.
+
+**What it does not do:** it cannot know when BSD changes the accepted set. That
+is a fact about someone else's server and belongs to the probe, which asks.
+
+### Two defects in the probe itself, both caught by reading its output
+
+The first run printed four verdicts and three were unsupported. Its extractor
+guessed `date | start_time | starts_at | datetime`; BSD uses **`event_date`**, so
+it read zero dates from a 50-row page and its `distinctDates <= 1` test read
+"could not see any dates" as "filtered to one date". **An extractor that cannot
+see is indistinguishable from a filter that works** — the substitution the probe
+was written to catch, committed in its own reader.
+
+Also `league_id=27` is the World Cup, which had no fixtures on the probed date,
+so both filtered calls returned empty and the question was unanswerable. Fixed:
+the date field is discovered and its key printed, a non-empty page yielding no
+dates reports CANNOT READ DATES, verdicts return UNKNOWN naming the blocker, and
+the control runs FIRST so the probed date is one that carries fixtures.
+
+### Credential state, corrected
+
+`bootstrap-relay-secret.yml`'s header claimed the value "appears exactly once in
+src/index.js (~9257)". Recounted:
+
+| | |
+|---|---|
+| hardcoded occurrences in `src/index.js` | **13** |
+| sites reading `env.RELAY_SHARED_SECRET` | 1 (literal as fallback) |
+| auth comparison sites | 2 |
+
+The `~9257` reference is **removed rather than corrected** — the comparisons are
+past 15400, and a number that moves whenever the file grows is a citation
+guaranteed to be wrong again. The grep finds them by content.
+
+**Rotation order, now recorded in that file:** remove the 13 literals so `env` is
+the only source, **then** rotate. Reversed, the workflow reinstalls the old
+value. No secret value appears in any commit or document.
+
+`SIBLING_REPO_TOKEN` no longer appears anywhere in this repo; the carry-forward
+about a watcher skipping its daily run for a missing token is stale and dropped.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-09-05 (provenance: 6 of 186 routes could be judged, now 182)
 
 **HEAD:** `18bc9d2` → `afff86c` · **Branch:** main throughout · 26 substantive commits
