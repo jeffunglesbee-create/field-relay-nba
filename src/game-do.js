@@ -44,6 +44,8 @@
 //   - WOW 2: Crunch fan-out — browsers signal CRUNCH TIME; DO fans Web Push
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { withKvProvenance } from './kv-provenance.js';
+
 const POLL_INTERVAL_MS    = 25000;  // 25s default poll cadence (between sub-50s ESPN/API-Sports limits)
 const IDLE_SHUTDOWN_MS    = 5 * 60 * 1000;  // 5 min with no sessions → stop polling
 const CRUNCH_DEDUP_TTL_MS = 30 * 60 * 1000; // 30 min dedup window per (gameId, type, period)

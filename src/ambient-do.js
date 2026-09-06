@@ -55,6 +55,7 @@
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
+import { withKvProvenance } from './kv-provenance.js';
 
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;

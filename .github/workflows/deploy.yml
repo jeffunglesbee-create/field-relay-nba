@@ -150,6 +150,14 @@ jobs:
       - name: Every KV write records who wrote it, and the wrap cannot lose a write
         run: node scripts/check-kv-provenance.mjs
 
+      # Every symbol a module calls from a sibling, it must import.
+      # check-kv-provenance above asserts the CALL TEXT is present in each
+      # Durable Object; it passed on 2026-09-05 while three of the four
+      # referenced an identifier they never imported, and those objects
+      # threw ReferenceError at construction in production for a day.
+      - name: Every cross-module call resolves to an import
+        run: node scripts/check-imports-resolve.mjs
+
       # Blocking. From 2026-06-12 to 2026-09-05 /wc/odds-probs pushed a
       # hand-entered Germany v Ecuador row into its response -- a defensible
       # two-week bridge whose own exit condition ("once the Odds API lists this

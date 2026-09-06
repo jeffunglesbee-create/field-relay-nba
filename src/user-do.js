@@ -50,6 +50,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { resolveWinProbability, isWpUnsupportedSport, normalizeSportCode } from './wp-resolver.js';
+import { withKvProvenance } from './kv-provenance.js';
 
 const WATCH_HISTORY_TTL_MS  = 30 * 24 * 60 * 60 * 1000; // 30 days
 const MISSED_PEAK_TTL_MS    = 7  * 24 * 60 * 60 * 1000; // 7 days
