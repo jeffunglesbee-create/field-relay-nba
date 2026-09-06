@@ -10221,10 +10221,59 @@ export default {
                     return new Response(JSON.stringify({ error: 'date must be YYYY-MM-DD' }),
                         { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
                 }
-                const r = await fetch(
-                    `${BSD_BASE}/tennis/api/v2/matches/?date_from=${dateParam}&date_to=${dateParam}&limit=100`,
-                    { headers: bsdHeaders });
-                return new Response(await r.text(), { status: r.status,
+                // PAGE IT. Measured 2026-09-06 on the route's first live probe:
+                // count 159, one page of 100, and a `next` at offset=100. Fifty
+                // nine matches of the day were absent and nothing said so — the
+                // caller got a 200 and a plausible-looking list.
+                //
+                // That matters more here than a truncation usually would,
+                // because BSD does not document an ordering. A client filtering
+                // to majors cannot know whether the Grand Slam rows were in the
+                // hundred it received or the fifty-nine it did not, and a
+                // missing US Open would look exactly like a US Open with no
+                // play that day.
+                //
+                // Bounded at 5 pages / 500 matches. A day's tennis across every
+                // tier ran 159; five pages is head-room, not an open loop, and
+                // `truncated` says plainly when the bound was reached rather
+                // than letting a silent cut happen twice.
+                const results = [];
+                let next = `${BSD_BASE}/tennis/api/v2/matches/`
+                         + `?date_from=${dateParam}&date_to=${dateParam}&limit=100`;
+                let declared = null, pages = 0, upstreamStatus = 200;
+                while (next && pages < 5) {
+                    const r = await fetch(next, { headers: bsdHeaders });
+                    upstreamStatus = r.status;
+                    if (!r.ok) {
+                        // A failure on page 1 is the caller's failure. A failure
+                        // on page 3 is a partial day, and returning it silently
+                        // would be the same lie in a smaller size.
+                        if (pages === 0) {
+                            return new Response(await r.text(), { status: r.status,
+                                headers: { 'Content-Type': 'application/json',
+                                           'Cache-Control': 'public, max-age=60', ...CORS } });
+                        }
+                        break;
+                    }
+                    let j;
+                    try { j = await r.json(); } catch (_) { break; }
+                    if (declared === null) declared = j?.count ?? null;
+                    const rows = Array.isArray(j) ? j : (j?.results ?? []);
+                    if (!rows.length) break;
+                    results.push(...rows);
+                    next = j?.next || null;
+                    pages++;
+                }
+                return new Response(JSON.stringify({
+                    count: results.length,
+                    // What BSD said the day holds, beside what this returned.
+                    // A consumer can tell a complete answer from a clipped one
+                    // without having to know this route's page bound.
+                    declaredCount: declared,
+                    truncated: declared != null && results.length < declared,
+                    pages,
+                    results,
+                }), { status: 200,
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=300', ...CORS } });
             }
