@@ -70,12 +70,27 @@ const rowsOf = (j) => (Array.isArray(j) ? j : (j?.results ?? j?.matches ?? []));
   let draw = [];
   if (slam) {
     for (const p of [`tournament_id=${slam.id}`, `tournament=${slam.id}`, `tournament_ids=${slam.id}`]) {
-      const r = await get(`/tennis/api/v2/matches/?${p}&limit=100`, `filter by ${p.split('=')[0]}`);
-      const rows = rowsOf(r.json);
-      const allMine = rows.length && rows.every((m) => m?.tournament?.id === slam.id);
-      out.findings[`filter_${p.split('=')[0]}`] = { status: r.status, rows: rows.length, allSameTournament: Boolean(allMine) };
-      console.log(`  ${p.split('=')[0].padEnd(15)} HTTP ${r.status}  ${rows.length} row(s)  allSameTournament=${Boolean(allMine)}`);
-      if (allMine && rows.length > draw.length) draw = rows;
+      // PAGE IT. The first run fetched limit=100 and stopped, then reported
+      // "Round of 128: 37 matches" and "sizes halve: false" — but 1+2+4+8+16+32
+      // is 63, and 63+37 is exactly 100. The top round was cut off by the fetch
+      // and the truncation was reported as a property of the draw. A probe that
+      // does not page turns its own page size into a finding.
+      let acc = [];
+      let path = `/tennis/api/v2/matches/?${p}&limit=100`;
+      let status = null;
+      for (let page = 0; page < 4 && path; page++) {
+        const r = await get(path, `filter by ${p.split('=')[0]} page ${page}`);
+        status = r.status ?? status;
+        const rows = rowsOf(r.json);
+        if (!rows.length) break;
+        acc = acc.concat(rows);
+        const nx = r.json?.next;
+        path = nx ? nx.replace(/^https?:\/\/[^/]+/, '') : null;
+      }
+      const allMine = acc.length && acc.every((m) => m?.tournament?.id === slam.id);
+      out.findings[`filter_${p.split('=')[0]}`] = { status, rows: acc.length, allSameTournament: Boolean(allMine) };
+      console.log(`  ${p.split('=')[0].padEnd(15)} HTTP ${status}  ${acc.length} row(s)  allSameTournament=${Boolean(allMine)}`);
+      if (allMine && acc.length > draw.length) draw = acc;
     }
   }
   out.findings.drawRowsFetched = draw.length;
@@ -115,9 +130,56 @@ const rowsOf = (j) => (Array.isArray(j) ? j : (j?.results ?? j?.matches ?? []));
     out.findings.parentLinkCandidates = linkish;
     console.log(`\nmatch keys carrying a next/parent/slot/draw hint: ${linkish.length ? linkish.join(', ') : 'NONE'}`);
 
-    out.findings.verdict = linkish.length
-      ? 'PARTIAL — a candidate parent link exists; inspect it before designing edges'
-      : 'DERIVABLE ONLY BY POSITION — no field names the match a winner feeds, so edges would be inferred from round order and seeding, never read';
+    // 6. THE TEST THE FIRST RUN DID NOT RUN, and the one that decides it.
+    //
+    // "No parent link" is not the same as "not derivable". In a single-
+    // elimination draw the WINNER is the link: a player appears in at most one
+    // match per round, so the winner of an R64 match appears in exactly one R32
+    // match, and that is the edge — READ from the data, not inferred from
+    // seeding or position. The first run's verdict said edges would have to be
+    // guessed positionally. That was a claim about a join it never attempted.
+    //
+    // The check: for every completed match whose round has a next round, does
+    // its winner appear in EXACTLY ONE match of that next round? Zero means the
+    // player went out or the round is unplayed. Two or more would mean the join
+    // is ambiguous and a bracket built on it would draw a false edge.
+    const idxOf = (r) => ORDER.indexOf(String(r));
+    const playersOf = (m) => [m?.player1?.id, m?.player2?.id].filter((x) => x != null);
+    const byRound = {};
+    for (const m of draw) (byRound[String(m?.round_name)] ??= []).push(m);
+
+    const join = { resolved: 0, championOrOut: 0, ambiguous: 0, unusableRound: 0, examples: [] };
+    for (const m of draw) {
+      const ri = idxOf(m?.round_name);
+      if (ri < 0 || ri === ORDER.length - 1) continue;      // unknown round, or the Final
+      if (m?.winner_id == null) continue;
+      const next = byRound[ORDER[ri + 1]];
+      if (!next || !next.length) { join.unusableRound++; continue; }
+      const hits = next.filter((n) => playersOf(n).includes(m.winner_id));
+      if (hits.length === 1) {
+        join.resolved++;
+        if (join.examples.length < 3) {
+          join.examples.push(`${m.round_name} winner ${m.winner_id} -> ${ORDER[ri + 1]} match ${hits[0].id}`);
+        }
+      } else if (hits.length === 0) join.championOrOut++;
+      else { join.ambiguous++; }
+    }
+    out.findings.winnerJoin = join;
+    console.log(`\nedge join by winner identity:`);
+    console.log(`  resolved to exactly one next match: ${join.resolved}`);
+    console.log(`  winner absent from the next round (lost or champion): ${join.championOrOut}`);
+    console.log(`  AMBIGUOUS (winner in 2+ next-round matches): ${join.ambiguous}`);
+    console.log(`  next round had no rows: ${join.unusableRound}`);
+    join.examples.forEach((e) => console.log(`    e.g. ${e}`));
+
+    // Ambiguity is the disqualifier, not the absence of a parent field.
+    out.findings.verdict =
+      join.ambiguous > 0
+        ? `NO — the winner join is ambiguous on ${join.ambiguous} match(es); an edge would be a guess`
+        : join.resolved === 0
+          ? 'UNKNOWN — no completed match resolved to a next-round match; nothing was actually joined'
+          : `YES — ${join.resolved} edges resolve to exactly one next match by winner identity, ${join.ambiguous} ambiguous`
+            + `${linkish.length ? `; a parent-link field also exists (${linkish.join(', ')})` : '; no parent-link field, and none needed'}`;
     console.log(`\nVERDICT: ${out.findings.verdict}`);
   }
 
