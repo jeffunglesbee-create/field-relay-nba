@@ -74,10 +74,8 @@ jobs:
           git config user.name  "FIELD CI"
           git add outbox/bsd-newsletter-claims-*.json
           git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
-          git commit -m "probe: BSD newsletter claims
-
-Four claims from the vendor's August 2026 newsletter, measured upstream.
-Answers live in the committed JSON; UNKNOWN where a call was blocked."
+          git commit -m "probe: BSD newsletter claims measured upstream" \
+                     -m "Four claims from the vendor's August 2026 newsletter. Answers live in the committed JSON; UNKNOWN where a call was blocked."
           for i in 1 2 3 4; do
             git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
             sleep $((2**i))

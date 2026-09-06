@@ -1,0 +1,33 @@
+name: Workflow YAML Gate
+
+# 107 workflow files in this repo and, until 2026-09-06, nothing parsed any of
+# them. A workflow shipped that GitHub silently refused to register; the only
+# symptom was a dispatch error naming the trigger, from a file where nothing
+# parsed at all.
+#
+# Fires on any change under .github/workflows/ — the moment a workflow changes
+# is the only moment this can catch anything.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Every workflow parses and is runnable
+        run: node scripts/workflow-yaml-check.mjs
