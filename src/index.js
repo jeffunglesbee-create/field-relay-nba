@@ -10192,6 +10192,43 @@ export default {
                                'X-Source': 'stats-embedded', ...CORS } });
             }
 
+            // /bsd/tennis/matches/by-date?date=YYYY-MM-DD → BSD tennis matches for a day.
+            //
+            // WHY THIS EXISTS. /bsd/tennis/matches/live is match-level, so a
+            // tournament is in the feed only while a ball is in the air.
+            // Measured 2026-09-06: the US Open was present at 03:23Z (23:23 ET,
+            // Round of 32 in play) and absent at 05:55Z (01:55 ET) without
+            // having ended — its day's play had. A client driven by the live
+            // feed alone shows nothing for a Grand Slam through roughly twelve
+            // hours of every tournament day.
+            //
+            // PARAMETER NAMES ARE MEASURED, NOT ASSUMED. Probed 2026-09-06 with
+            // a control (scripts/bsd-tennis-date-probe.mjs): only
+            // date_from/date_to actually filters. `date`, `match_date`,
+            // `start_date`/`end_date` and `day` all return HTTP 200 with the
+            // SAME unfiltered page — accepted and silently dropped. `date` is
+            // the public param name this relay's own football by-date route
+            // uses, so guessing it here would have shipped a filter that does
+            // nothing and looks like it works.
+            //
+            // Rule 62: the public parameter stays `date`, matching
+            // /bsd/events/by-date above, and is translated to the pair BSD
+            // actually honours. The client should not have to know which
+            // spelling a given BSD product wants.
+            if (pathname === '/bsd/tennis/matches/by-date') {
+                const dateParam = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+                    return new Response(JSON.stringify({ error: 'date must be YYYY-MM-DD' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const r = await fetch(
+                    `${BSD_BASE}/tennis/api/v2/matches/?date_from=${dateParam}&date_to=${dateParam}&limit=100`,
+                    { headers: bsdHeaders });
+                return new Response(await r.text(), { status: r.status,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=300', ...CORS } });
+            }
+
             // /bsd/tennis/matches/live → BSD tennis /api/v2/matches/live/ (Sports Pack)
             if (pathname === '/bsd/tennis/matches/live') {
                 const cacheKey = new Request(`${BSD_BASE}/tennis/api/v2/matches/live/`);
