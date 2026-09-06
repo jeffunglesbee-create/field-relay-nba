@@ -1,0 +1,82 @@
+name: BSD API surface probe
+
+# Dispatch-only plus a weekly beat. This reads the SHAPE of every BSD route the
+# relay serves — top-level keys, array lengths, byte counts — rather than
+# asserting a 200.
+#
+# WHY IT NEEDED WIRING AT ALL. scripts/bsd-api-probe.mjs was written with its
+# eleven routes read from src/index.js at HEAD rather than from memory, and then
+# no workflow ever ran it. Measured 2026-09-06: no BSD shape had been probed
+# since 2026-08-13.
+#
+# It sat unwired because nothing here looks. field-laboratory has
+# check-script-orphans.mjs for exactly this class; this repo has no equivalent,
+# and a count taken while writing this workflow found 36 of 161 scripts in
+# scripts/ named by no workflow at all. Most are probably one-shot diagnostics
+# that did their job, which is why this is recorded as a measurement rather than
+# filed as 36 defects — but a written-and-never-run probe is indistinguishable
+# from a retired one without something that asks.
+#
+# WHY IT MATTERS NOW. BSD's August release notes describe changes that are all
+# SHAPE, which is what breaks a decoder silently rather than loudly:
+#
+#   new live states — "halftime or in extra time", and a game that never reached
+#   a confirmed result "now says exactly that"
+#   odds widened — both-teams-to-score from 8 bookmakers to 18, draw-no-bet
+#   returning, European handicap added, and the OPENING price now published
+#   squad and player fields — injury type, expected return, retired players out
+#
+# A new status string is precisely what this repo's Unrecognised and Malformed
+# states exist to surface, and nothing had looked.
+#
+# WEEKLY, not daily. A shape changes when a vendor ships, not on a timer, and
+# this repo has a recorded history of scheduled workflows that cost more than
+# they found. Weekly is enough to catch a release within days of it landing.
+#
+# Runs against the DEPLOYED relay, so it measures the contract as served rather
+# than a path no user traverses. No secret: BSD_API_TOKEN lives in the Worker,
+# and a route answering without it would itself be the finding.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'YYYY-MM-DD for by-date routes. Default: today UTC.'
+        required: false
+  schedule:
+    - cron: '41 7 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-api-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Probe the surface
+        env:
+          PROBE_DATE: ${{ inputs.date }}
+        run: node scripts/bsd-api-probe.mjs
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-api-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "probe: BSD API surface shapes [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done

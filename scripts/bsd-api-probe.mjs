@@ -210,8 +210,15 @@ async function hit(label, path) {
   const fs = await import('node:fs');
   fs.mkdirSync('outbox', { recursive: true });
   const stamp = TS.replace(/[:.]/g, '-');
-  fs.writeFileSync(`outbox/bsd-api-probe-${stamp}.json`, JSON.stringify(out, null, 2));
-  console.log(`\nwrote outbox/bsd-api-probe-${stamp}.json`);
+  const body = JSON.stringify(out, null, 2);
+  fs.writeFileSync(`outbox/bsd-api-probe-${stamp}.json`, body);
+  // ALSO a stable name. Added 2026-09-06: a timestamped file can only be read
+  // by someone who already knows the timestamp, and the readings that matter
+  // are the ones a later session goes looking for without knowing when they
+  // were taken. Same reasoning as cfb-volume-probe-latest.txt. The stamped copy
+  // stays, because a series is what shows a shape CHANGING.
+  fs.writeFileSync('outbox/bsd-api-probe-latest.json', body);
+  console.log(`\nwrote outbox/bsd-api-probe-${stamp}.json and outbox/bsd-api-probe-latest.json`);
   // Exit 0 regardless: a broken route is the FINDING. A red run invites
   // re-running until green, which is the habit Rule 77 exists to break.
   process.exit(0);
