@@ -4,14 +4,14 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 186 routes describe themselves without 186 hand edits.
+// 187 routes describe themselves without 187 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-06T11:06:05.515Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-06T15:10:42.240Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -61,6 +61,7 @@ export const ROUTE_PROVENANCE = {
   "/bsd/events/season": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/r2/list": { k: "store", s: "r2:FIELD_DATA" },
   "/bsd/r2/read": { k: "store", s: "r2:FIELD_DATA" },
+  "/bsd/tennis/matches/by-date": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/tennis/matches/live": { k: "upstream", s: "sports.bzzoiro.com" },
   "/budget/odds": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/bundesliga-bapi/broadcasts": { k: "proxy", s: "wapp.bapi.bundesliga.com" },
