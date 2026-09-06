@@ -1,0 +1,99 @@
+{
+  "ts": "2026-09-06T20:51:51.574Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "checks": [
+    {
+      "name": "a missing tournament is a 400, not an unfiltered page",
+      "ok": true
+    },
+    {
+      "name": "a two-digit season is a 400",
+      "ok": true
+    },
+    {
+      "name": "a non-numeric tournament is a 400",
+      "ok": true
+    },
+    {
+      "name": "135/2025 answers 200",
+      "ok": false,
+      "detail": "409: {\"error\":\"a player appears twice in one round\",\"tournament\":135,\"season\":\"2025\",\"duplicates\":[{\"round\":\"Round of 128\",\"playerId\":390,\"matches\":[8430,8423]}],\"why\":\"a player plays at most one match per round, so this is not one draw — it is two, and the join that follows would be a coincidence\"}"
+    },
+    {
+      "name": "77/2026 answers 200",
+      "ok": true
+    },
+    {
+      "name": "77/2026 ladder is 64/32/16/8/4/2/1",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the round table counts the nodes it shipped",
+      "ok": true
+    },
+    {
+      "name": "77/2026 all 126 edges re-derive from the shipped nodes",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every joinable winner produced an edge (126)",
+      "ok": true
+    },
+    {
+      "name": "77/2026 no player appears twice in one round",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every node's date is in the requested season",
+      "ok": true
+    },
+    {
+      "name": "77/2026 every off-canonical round is declared an anomaly (none off-canonical)",
+      "ok": true
+    },
+    {
+      "name": "77/2026 the read was not truncated",
+      "ok": true
+    },
+    {
+      "name": "14/2026 answers 200",
+      "ok": false,
+      "detail": "409: {\"error\":\"a player appears twice in one round\",\"tournament\":14,\"season\":\"2026\",\"duplicates\":[{\"round\":\"Round of 128\",\"playerId\":563,\"matches\":[23552,23169]},{\"round\":\"Round of 128\",\"playerId\":445,\"matches\":[23534,23127]}],\"why\":\"a player plays at most one match per round, so this is not one draw — it is two, and the join that follows would be a coincidence\"}"
+    }
+  ],
+  "editions": [
+    {
+      "tid": 135,
+      "season": "2025",
+      "status": 409
+    },
+    {
+      "tid": 77,
+      "season": "2026",
+      "status": 200,
+      "ladder": [
+        64,
+        32,
+        16,
+        8,
+        4,
+        2,
+        1
+      ],
+      "edges": 126,
+      "edgesRederived": 126,
+      "offCanonical": [],
+      "champion": "Mirra Andreeva"
+    },
+    {
+      "tid": 14,
+      "season": "2026",
+      "status": 409
+    }
+  ],
+  "coverage": {
+    "editionsChecked": 3,
+    "grandSlamIds": 14,
+    "tournamentsInCensus": 636
+  }
+}
