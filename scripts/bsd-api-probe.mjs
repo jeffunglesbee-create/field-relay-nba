@@ -188,6 +188,16 @@ async function hit(label, path, expect = 200) {
   // 4. Tennis is a separate BSD product (Sports Pack) on a different upstream
   //    base path, so it can fail independently of football.
   await add('tennis/live', '/bsd/tennis/matches/live');
+  // Added 2026-09-06 with the route itself. /live is match-level, so a
+  // tournament is in the feed only while a ball is in the air — the US Open was
+  // present at 03:23Z and gone at 05:55Z without having ended. by-date carries
+  // the whole day's card. Probed here because a route with no probe is a route
+  // whose next break nobody sees.
+  await add('tennis/by-date', `/bsd/tennis/matches/by-date?date=${DATE}`);
+  // The guard, not just the happy path: a malformed date must be rejected HERE
+  // rather than forwarded, because BSD accepts unknown parameters silently and
+  // an unfiltered page is the failure this route exists to avoid.
+  await add('tennis/by-date (bad date)', '/bsd/tennis/matches/by-date?date=06-09-2026', 400);
 
   // 5. R2 read: two calls, because the interesting answer is whether the
   //    GUARD works, not only whether a key resolves.
