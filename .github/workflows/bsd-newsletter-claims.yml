@@ -1,0 +1,85 @@
+name: BSD Newsletter Claims Probe
+
+# Bzzoiro's August 2026 newsletter made four claims about the shape of their
+# surface. Rule 72 makes an inherited claim a hypothesis until measured, and
+# three of the four concern endpoints this relay has no route for, so nothing
+# in the deployed Worker can answer them.
+#
+# UPSTREAM, with the token. That is the opposite choice from bsd-api-probe.yml,
+# which goes through the relay on purpose because it measures the contract as
+# FIELD serves it. These are questions about what the vendor publishes.
+#
+# Monthly rather than weekly: a vendor newsletter lands monthly, and a shape
+# claim does not change between Tuesdays. Dispatchable for the run that
+# follows a newsletter.
+
+on:
+  schedule:
+    - cron: '17 8 3 * *'   # 3rd of the month, 08:17 UTC
+  workflow_dispatch:
+    inputs:
+      probe_date:
+        description: 'YYYY-MM-DD to enumerate live states for (default: today)'
+        required: false
+      call_budget:
+        description: 'Max upstream calls (default 40)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bsd-newsletter-claims
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Probe the four newsletter claims
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+          PROBE_DATE: ${{ inputs.probe_date }}
+          CALL_BUDGET: ${{ inputs.call_budget }}
+        run: node scripts/bsd-newsletter-claims.mjs
+
+      # The probe exits 0 on a 404 because a missing endpoint is the answer.
+      # This step is the one that can go red: a run that never reached the
+      # vendor produced no reading, and a green tick on that would be the
+      # 200-with-an-empty-body failure this repo keeps rediscovering.
+      - name: A run that reached nothing is not a result
+        run: |
+          set -euo pipefail
+          LATEST=$(ls -t outbox/bsd-newsletter-claims-*.json | head -1)
+          echo "reading $LATEST"
+          node -e '
+            const fs=require("fs");
+            const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+            const ok=d.calls.filter(c=>c.status===200).length;
+            console.log(`calls ${d.callsMade}, 200s ${ok}, token ${d.tokenPresent}`);
+            if(!d.tokenPresent){console.error("BSD_API_TOKEN absent — claims are UNKNOWN, not answered");process.exit(1);}
+            if(ok===0){console.error("zero 200s — never reached the vendor");process.exit(1);}
+          ' "$LATEST"
+
+      - name: Commit the reading
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-newsletter-claims-*.json
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: BSD newsletter claims
+
+Four claims from the vendor's August 2026 newsletter, measured upstream.
+Answers live in the committed JSON; UNKNOWN where a call was blocked."
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1
