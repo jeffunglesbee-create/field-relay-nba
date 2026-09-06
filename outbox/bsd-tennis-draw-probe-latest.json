@@ -1,0 +1,119 @@
+{
+  "ts": "2026-09-06T14:56:29.261Z",
+  "base": "https://sports.bzzoiro.com",
+  "tokenPresent": true,
+  "attempts": [
+    {
+      "path": "/tennis/api/v2/tournaments/?limit=100",
+      "note": "find a slam",
+      "status": 200,
+      "bytes": 15728
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=15&limit=100",
+      "note": "filter by tournament_id",
+      "status": 200,
+      "bytes": 72980
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament=15&limit=100",
+      "note": "filter by tournament",
+      "status": 200,
+      "bytes": 78507
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_ids=15&limit=100",
+      "note": "filter by tournament_ids",
+      "status": 200,
+      "bytes": 72981
+    }
+  ],
+  "findings": {
+    "tournament": {
+      "id": 15,
+      "name": "Australian Open",
+      "category": "grand_slam"
+    },
+    "filter_tournament_id": {
+      "status": 200,
+      "rows": 100,
+      "allSameTournament": false
+    },
+    "filter_tournament": {
+      "status": 200,
+      "rows": 100,
+      "allSameTournament": true
+    },
+    "filter_tournament_ids": {
+      "status": 200,
+      "rows": 100,
+      "allSameTournament": false
+    },
+    "drawRowsFetched": 100,
+    "roundVocabulary": {
+      "Final": 1,
+      "Semifinals": 2,
+      "Quarterfinals": 4,
+      "Round of 16": 8,
+      "Round of 32": 16,
+      "Round of 64": 32,
+      "Round of 128": 37
+    },
+    "ladder": [
+      {
+        "round": "Round of 128",
+        "matches": 37
+      },
+      {
+        "round": "Round of 64",
+        "matches": 32
+      },
+      {
+        "round": "Round of 32",
+        "matches": 16
+      },
+      {
+        "round": "Round of 16",
+        "matches": 8
+      },
+      {
+        "round": "Quarterfinals",
+        "matches": 4
+      },
+      {
+        "round": "Semifinals",
+        "matches": 2
+      },
+      {
+        "round": "Final",
+        "matches": 1
+      }
+    ],
+    "sizesHalve": false,
+    "winnerCoverage": {
+      "withWinner": 100,
+      "finished": 99,
+      "total": 100
+    },
+    "allMatchKeys": [
+      "away_pair",
+      "home_pair",
+      "id",
+      "is_doubles",
+      "match_date",
+      "odds_player1",
+      "odds_player2",
+      "player1",
+      "player1_sets",
+      "player2",
+      "player2_sets",
+      "round_name",
+      "sets_detail",
+      "status",
+      "tournament",
+      "winner_id"
+    ],
+    "parentLinkCandidates": [],
+    "verdict": "DERIVABLE ONLY BY POSITION — no field names the match a winner feeds, so edges would be inferred from round order and seeding, never read"
+  }
+}
