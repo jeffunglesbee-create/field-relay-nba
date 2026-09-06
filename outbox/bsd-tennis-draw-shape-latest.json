@@ -1,0 +1,1398 @@
+{
+  "ts": "2026-09-06T20:31:57.031Z",
+  "base": "https://sports.bzzoiro.com",
+  "questions": {
+    "q1_grandSlamIds": {
+      "checked": 400,
+      "declared": 636,
+      "truncated": true,
+      "slams": [
+        {
+          "id": 14,
+          "name": "Australian Open",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 15,
+          "name": "Australian Open",
+          "circuit": "WTA",
+          "surface": "hard"
+        },
+        {
+          "id": 17,
+          "name": "Australian Open, Mixed Doubles",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 77,
+          "name": "Roland Garros",
+          "circuit": "WTA",
+          "surface": "clay"
+        },
+        {
+          "id": 76,
+          "name": "Roland Garros",
+          "circuit": "ATP",
+          "surface": "clay"
+        },
+        {
+          "id": 79,
+          "name": "Roland Garros, Boys",
+          "circuit": "ATP",
+          "surface": "clay"
+        },
+        {
+          "id": 80,
+          "name": "Roland Garros, Girls",
+          "circuit": "ATP",
+          "surface": "clay"
+        },
+        {
+          "id": 83,
+          "name": "Roland Garros, Wheelchairs",
+          "circuit": "ATP",
+          "surface": "clay"
+        },
+        {
+          "id": 144,
+          "name": "US Open, Boys",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 145,
+          "name": "US Open, Girls",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 135,
+          "name": "US Open, Men",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 146,
+          "name": "US Open, Quad",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 147,
+          "name": "US Open, Wheelchairs, Women",
+          "circuit": "ATP",
+          "surface": "hard"
+        },
+        {
+          "id": 136,
+          "name": "US Open, Women",
+          "circuit": "WTA",
+          "surface": "hard"
+        }
+      ]
+    },
+    "editionScope": {
+      "tournamentId": 144,
+      "name": "US Open, Boys",
+      "rowsRead": 363,
+      "declared": 363,
+      "truncated": false,
+      "seasonsSeen": {
+        "2026": 363
+      },
+      "editionJoined": "2026",
+      "editionMatches": 363
+    },
+    "q2_playerShape": {
+      "keys": [
+        "country_code",
+        "country_name",
+        "current_ranking",
+        "gender",
+        "id",
+        "name",
+        "short_name"
+      ],
+      "checked": 363,
+      "bothPresent": 363,
+      "bothNamed": 363
+    },
+    "q2_sample": {
+      "player1": {
+        "id": 505,
+        "name": "Jessica Pegula",
+        "short_name": "J. Pegula",
+        "country_code": "US",
+        "country_name": "USA",
+        "gender": "F",
+        "current_ranking": {
+          "position": 3,
+          "points": 7265,
+          "type": "WTA"
+        }
+      },
+      "player2": {
+        "id": 336,
+        "name": "Sorana Cirstea",
+        "short_name": "S. Cirstea",
+        "country_code": "RO",
+        "country_name": "Romania",
+        "gender": "F",
+        "current_ranking": {
+          "position": 17,
+          "points": 2294,
+          "type": "WTA"
+        }
+      }
+    },
+    "q3_seedFields": {
+      "matchKeys": [
+        "away_pair",
+        "home_pair",
+        "id",
+        "is_doubles",
+        "match_date",
+        "odds_player1",
+        "odds_player2",
+        "player1",
+        "player1_sets",
+        "player2",
+        "player2_sets",
+        "round_name",
+        "sets_detail",
+        "status",
+        "tournament",
+        "winner_id"
+      ],
+      "seedCandidates": [
+        "current_ranking"
+      ]
+    },
+    "q4_roundVocabulary": {
+      "vocab": {
+        "Round of 16": 11,
+        "": 196,
+        "Qualification Round 1": 2,
+        "Round of 32": 100,
+        "Qualification Final": 49,
+        "Semifinals": 1,
+        "Final": 4
+      },
+      "offLadder": [
+        "",
+        "Qualification Round 1",
+        "Qualification Final"
+      ]
+    },
+    "q4_roundsNotAtExpectedSize": [
+      {
+        "round": "Round of 32",
+        "have": 100
+      },
+      {
+        "round": "Round of 16",
+        "have": 11
+      },
+      {
+        "round": "Semifinals",
+        "have": 1
+      },
+      {
+        "round": "Final",
+        "have": 4
+      }
+    ],
+    "q4_overCountDetail": {
+      "round": "Round of 32",
+      "rows": 100,
+      "duplicatePairings": [],
+      "rowsWithoutWinner": [
+        {
+          "id": 49437,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Enzo Aguiard",
+          "p2": "Khumoyun Sultanov"
+        },
+        {
+          "id": 49438,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Florent Bax",
+          "p2": "Maximus Jones"
+        },
+        {
+          "id": 49440,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Kasidit Samrej",
+          "p2": "Sidharth Rawat"
+        },
+        {
+          "id": 49441,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Max Purcell",
+          "p2": "Rodrigo Pacheco Mendez"
+        },
+        {
+          "id": 49442,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Moise Kouame",
+          "p2": "Kenta Miyoshi"
+        },
+        {
+          "id": 49443,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Philip Sekulic",
+          "p2": "Moerani Bouzige"
+        },
+        {
+          "id": 49444,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Sergio Callejon Hernando",
+          "p2": "Ilia Simakin"
+        },
+        {
+          "id": 49445,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Tai Leonard Sach",
+          "p2": "Thanh Minh Truong"
+        },
+        {
+          "id": 49446,
+          "status": "scheduled",
+          "date": "2026-09-07T03:00:00+00:00",
+          "p1": "Tran Quoc Cuong",
+          "p2": "Arthur Weber"
+        },
+        {
+          "id": 49436,
+          "status": "scheduled",
+          "date": "2026-09-07T04:10:00+00:00",
+          "p1": "Cruz Hewitt",
+          "p2": "Constantin Bittoun Kouzmine"
+        },
+        {
+          "id": 49439,
+          "status": "scheduled",
+          "date": "2026-09-07T04:10:00+00:00",
+          "p1": "Hiroki Moriya",
+          "p2": "Dominik Palan"
+        },
+        {
+          "id": 49723,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Elena Pridankina",
+          "p2": "Ane Mintegi Del Olmo"
+        },
+        {
+          "id": 49724,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Eva Bennemann",
+          "p2": "Katarzyna Kawa"
+        },
+        {
+          "id": 49725,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Federica Urgesi",
+          "p2": "Miriam Bulgaru"
+        },
+        {
+          "id": 49726,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Francesca Jones",
+          "p2": "Raluca Georgiana Serban"
+        },
+        {
+          "id": 49727,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Julie Struplova",
+          "p2": "Alevtina Ibragimova"
+        },
+        {
+          "id": 49729,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Maria Carle",
+          "p2": "Gina Feistel"
+        },
+        {
+          "id": 49734,
+          "status": "scheduled",
+          "date": "2026-09-07T07:00:00+00:00",
+          "p1": "Yasmine Kabbaj",
+          "p2": "Cagla Buyukakcay"
+        },
+        {
+          "id": 49377,
+          "status": "scheduled",
+          "date": "2026-09-07T08:10:00+00:00",
+          "p1": "Hayato Matsuoka",
+          "p2": "Jake Delaney"
+        },
+        {
+          "id": 49380,
+          "status": "scheduled",
+          "date": "2026-09-07T08:10:00+00:00",
+          "p1": "Rio Noguchi",
+          "p2": "Te Rigele"
+        },
+        {
+          "id": 49728,
+          "status": "scheduled",
+          "date": "2026-09-07T08:40:00+00:00",
+          "p1": "Lucia Bronzetti",
+          "p2": "Irene Burillo"
+        },
+        {
+          "id": 49731,
+          "status": "scheduled",
+          "date": "2026-09-07T08:40:00+00:00",
+          "p1": "Radka Zelníčková",
+          "p2": "Zhibek Kulambayeva"
+        },
+        {
+          "id": 49379,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Linang Xiao",
+          "p2": "Kaichi Uchida"
+        },
+        {
+          "id": 49395,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Matthew Dellavedova",
+          "p2": "Taro Daniel"
+        },
+        {
+          "id": 49396,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Semen Pankin",
+          "p2": "Alexis Galarneau"
+        },
+        {
+          "id": 49398,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Yosuke Watanuki",
+          "p2": "Marat Sharipov"
+        },
+        {
+          "id": 49566,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Alafia Ayeni",
+          "p2": "Carl Emil Overbeck"
+        },
+        {
+          "id": 49569,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Harold Mayot",
+          "p2": "Cezar Cretu"
+        },
+        {
+          "id": 49572,
+          "status": "scheduled",
+          "date": "2026-09-07T09:30:00+00:00",
+          "p1": "Marek Gengel",
+          "p2": "Christian Langmo"
+        },
+        {
+          "id": 49730,
+          "status": "scheduled",
+          "date": "2026-09-07T09:50:00+00:00",
+          "p1": "Mia Ristić",
+          "p2": "Lina Gjorcheska"
+        },
+        {
+          "id": 49732,
+          "status": "scheduled",
+          "date": "2026-09-07T09:50:00+00:00",
+          "p1": "Sofya Lansere",
+          "p2": "Aurora Zantedeschi"
+        },
+        {
+          "id": 49733,
+          "status": "scheduled",
+          "date": "2026-09-07T09:50:00+00:00",
+          "p1": "Weronika Falkowska",
+          "p2": "Elizara Yaneva"
+        },
+        {
+          "id": 49517,
+          "status": "scheduled",
+          "date": "2026-09-07T10:10:00+00:00",
+          "p1": "Anastasia Zolotareva",
+          "p2": "Despina Papamichail"
+        },
+        {
+          "id": 49534,
+          "status": "scheduled",
+          "date": "2026-09-07T10:20:00+00:00",
+          "p1": "Gabriele Piraino",
+          "p2": "Kilian Feldbausch"
+        },
+        {
+          "id": 49550,
+          "status": "scheduled",
+          "date": "2026-09-07T10:20:00+00:00",
+          "p1": "Moez Echargui",
+          "p2": "Lucas Poullain"
+        },
+        {
+          "id": 49552,
+          "status": "scheduled",
+          "date": "2026-09-07T10:20:00+00:00",
+          "p1": "Ryan Peniston",
+          "p2": "Daniil Glinka"
+        },
+        {
+          "id": 49567,
+          "status": "scheduled",
+          "date": "2026-09-07T10:40:00+00:00",
+          "p1": "August Holmgren",
+          "p2": "Vadym Ursu"
+        },
+        {
+          "id": 49570,
+          "status": "scheduled",
+          "date": "2026-09-07T10:40:00+00:00",
+          "p1": "Ivan Marrero Curbelo",
+          "p2": "Maks Kasnikowski"
+        },
+        {
+          "id": 49538,
+          "status": "scheduled",
+          "date": "2026-09-07T11:00:00+00:00",
+          "p1": "Marco Cecchinato",
+          "p2": "Laslo Djere"
+        },
+        {
+          "id": 49546,
+          "status": "scheduled",
+          "date": "2026-09-07T11:00:00+00:00",
+          "p1": "Gijs Brouwer",
+          "p2": "Matteo Martineau"
+        },
+        {
+          "id": 49560,
+          "status": "scheduled",
+          "date": "2026-09-07T11:00:00+00:00",
+          "p1": "Matias Soto",
+          "p2": "Sandro Kopp"
+        },
+        {
+          "id": 49561,
+          "status": "scheduled",
+          "date": "2026-09-07T11:00:00+00:00",
+          "p1": "Maxim Mrva",
+          "p2": "Marvin Möller"
+        },
+        {
+          "id": 49563,
+          "status": "scheduled",
+          "date": "2026-09-07T11:00:00+00:00",
+          "p1": "Ognjen Milić",
+          "p2": "Alex Barrena"
+        },
+        {
+          "id": 49523,
+          "status": "scheduled",
+          "date": "2026-09-07T11:20:00+00:00",
+          "p1": "Mina Hodzic",
+          "p2": "Anastasiia Sobolieva"
+        },
+        {
+          "id": 49531,
+          "status": "scheduled",
+          "date": "2026-09-07T11:30:00+00:00",
+          "p1": "Duje Ajduković",
+          "p2": "Filippo Romano"
+        },
+        {
+          "id": 49539,
+          "status": "scheduled",
+          "date": "2026-09-07T11:30:00+00:00",
+          "p1": "Mili Poljičak",
+          "p2": "Stefanos Sakellaridis"
+        },
+        {
+          "id": 49547,
+          "status": "scheduled",
+          "date": "2026-09-07T11:30:00+00:00",
+          "p1": "Hugo Grenier",
+          "p2": "Billy Harris"
+        },
+        {
+          "id": 49526,
+          "status": "scheduled",
+          "date": "2026-09-07T12:00:00+00:00",
+          "p1": "Tamara Zidanšek",
+          "p2": "Tessa Johanna Brockmann"
+        },
+        {
+          "id": 49535,
+          "status": "scheduled",
+          "date": "2026-09-07T12:10:00+00:00",
+          "p1": "Gianluca Cadenasso",
+          "p2": "Juan Cruz Martin Manzano"
+        },
+        {
+          "id": 49553,
+          "status": "scheduled",
+          "date": "2026-09-07T12:10:00+00:00",
+          "p1": "Titouan Droguet",
+          "p2": "Maxime Chazal"
+        },
+        {
+          "id": 49558,
+          "status": "scheduled",
+          "date": "2026-09-07T12:10:00+00:00",
+          "p1": "Marko Topo",
+          "p2": "Daniel Elahi Galan"
+        },
+        {
+          "id": 49559,
+          "status": "scheduled",
+          "date": "2026-09-07T12:10:00+00:00",
+          "p1": "Martin Krumich",
+          "p2": "Sebastian Sorger"
+        },
+        {
+          "id": 49722,
+          "status": "scheduled",
+          "date": "2026-09-07T13:00:00+00:00",
+          "p1": "Berfu Cengiz",
+          "p2": "Leyre Romero Gormaz"
+        },
+        {
+          "id": 49524,
+          "status": "scheduled",
+          "date": "2026-09-07T13:10:00+00:00",
+          "p1": "Nuria Brancaccio",
+          "p2": "Francesca Curmi"
+        },
+        {
+          "id": 49475,
+          "status": "scheduled",
+          "date": "2026-09-07T16:00:00+00:00",
+          "p1": "Genaro Alberto Olivieri",
+          "p2": "Dali Blanch"
+        },
+        {
+          "id": 49481,
+          "status": "scheduled",
+          "date": "2026-09-07T16:00:00+00:00",
+          "p1": "Petr Brunclik",
+          "p2": "Alejandro Moro Canas"
+        },
+        {
+          "id": 49519,
+          "status": "scheduled",
+          "date": "2026-09-07T16:30:00+00:00",
+          "p1": "Denisa Zoldakova",
+          "p2": "Noma Noha Akugue"
+        },
+        {
+          "id": 49476,
+          "status": "scheduled",
+          "date": "2026-09-07T17:10:00+00:00",
+          "p1": "Gilles Arnaud Bailly",
+          "p2": "Calvin Hemery"
+        },
+        {
+          "id": 49473,
+          "status": "scheduled",
+          "date": "2026-09-07T18:15:00+00:00",
+          "p1": "Facundo Diaz Acosta",
+          "p2": "Pol Martin Tiffon"
+        },
+        {
+          "id": 49378,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Ilya Ivashka",
+          "p2": "Yu Hsiou Hsu"
+        },
+        {
+          "id": 49392,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Bernard Tomić",
+          "p2": "Akira Santillan"
+        },
+        {
+          "id": 49393,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Elias Ymer",
+          "p2": "Pavel Kotov"
+        },
+        {
+          "id": 49394,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Jie Cui",
+          "p2": "Fajing Sun"
+        },
+        {
+          "id": 49397,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Sergey Fomin",
+          "p2": "Yi Zhou"
+        },
+        {
+          "id": 49568,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Francesco Maestrelli",
+          "p2": "Juan Pablo Ficovich"
+        },
+        {
+          "id": 49571,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Jay Friend",
+          "p2": "Michele Ribecai"
+        },
+        {
+          "id": 49573,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Max Basing",
+          "p2": "Atakan Karahan"
+        },
+        {
+          "id": 49574,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Mert Alkaya",
+          "p2": "Tiago Torres"
+        },
+        {
+          "id": 49575,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Miguel Tobon",
+          "p2": "Koray Kirci"
+        },
+        {
+          "id": 49576,
+          "status": "scheduled",
+          "date": "2026-09-08T07:00:00+00:00",
+          "p1": "Timofey Skatov",
+          "p2": "Yanki Erel"
+        },
+        {
+          "id": 49532,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Enrico Dalla Valle",
+          "p2": "Gabriele Crivellaro"
+        },
+        {
+          "id": 49533,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Franco Agamenone",
+          "p2": "Matej Dodig"
+        },
+        {
+          "id": 49536,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Hugo Dellien",
+          "p2": "Felipe Meligeni Alves"
+        },
+        {
+          "id": 49537,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Lorenzo Sonego",
+          "p2": "Francesco Passaro"
+        },
+        {
+          "id": 49540,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Stefano Napolitano",
+          "p2": "Stefano Travaglia"
+        },
+        {
+          "id": 49544,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Dan Added",
+          "p2": "Daniel Masur"
+        },
+        {
+          "id": 49545,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Gauthier Onclin",
+          "p2": "Raphael Perot"
+        },
+        {
+          "id": 49548,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Lenny Couturier",
+          "p2": "Mark Lajal"
+        },
+        {
+          "id": 49549,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Mae Malige",
+          "p2": "Sascha Gueymard Wayenburg"
+        },
+        {
+          "id": 49551,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Nicolai Budkov Kjaer",
+          "p2": "Felix Balshaw"
+        },
+        {
+          "id": 49554,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Ugo Blanchet",
+          "p2": "Laurent Lokoli"
+        },
+        {
+          "id": 49555,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Alex Molčan",
+          "p2": "Joao Lucas Reis da Silva"
+        },
+        {
+          "id": 49556,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Henri Squire",
+          "p2": "Filip Misolic"
+        },
+        {
+          "id": 49557,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Juan Manuel La Serna",
+          "p2": "Filip Cristian Jianu"
+        },
+        {
+          "id": 49562,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Nico Hipfl",
+          "p2": "Hynek Barton"
+        },
+        {
+          "id": 49564,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Sean Cuenin",
+          "p2": "Gustavo Heide"
+        },
+        {
+          "id": 49565,
+          "status": "scheduled",
+          "date": "2026-09-08T08:00:00+00:00",
+          "p1": "Thiago Monteiro",
+          "p2": "Max Hans Rehberg"
+        },
+        {
+          "id": 49472,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Dušan Lajović",
+          "p2": "Martin Landaluce"
+        },
+        {
+          "id": 49474,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Felix Gill",
+          "p2": "Sebastian Ofner"
+        },
+        {
+          "id": 49477,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Henrique Rocha",
+          "p2": "Carlos Taberner"
+        },
+        {
+          "id": 49478,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Inaki Montes-de la Torre",
+          "p2": "Raul Brancaccio"
+        },
+        {
+          "id": 49479,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Kimmer Coppejans",
+          "p2": "Pablo Llamas Ruiz"
+        },
+        {
+          "id": 49480,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Nikolas Sanchez Izquierdo",
+          "p2": "Frederico Ferreira Silva"
+        },
+        {
+          "id": 49516,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Alice Tubello",
+          "p2": "Barbora Palicova"
+        },
+        {
+          "id": 49518,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Andrea Lazaro Garcia",
+          "p2": "Angela Fita Boluda"
+        },
+        {
+          "id": 49520,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Fiona Ferro",
+          "p2": "Mona Barthel"
+        },
+        {
+          "id": 49521,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Guiomar Maristany",
+          "p2": "Marina Bassols Ribera"
+        },
+        {
+          "id": 49522,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Lucie Havlickova",
+          "p2": "Lola Radivojević"
+        },
+        {
+          "id": 49525,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Simona Waltert",
+          "p2": "Rebeka Masarova"
+        },
+        {
+          "id": 49527,
+          "status": "scheduled",
+          "date": "2026-09-08T09:00:00+00:00",
+          "p1": "Valentina Ryser",
+          "p2": "Dalma Galfi"
+        }
+      ]
+    },
+    "q5_setsDetailOnFinished": {
+      "finished": 0,
+      "withSetsDetail": 0,
+      "sample": null,
+      "statusVocabulary": [
+        "cancelled",
+        "interrupted",
+        "scheduled",
+        "walkover"
+      ]
+    },
+    "q6_perSlamLadders": {
+      "checked": 8,
+      "of": 14,
+      "ladders": [
+        {
+          "id": 14,
+          "name": "Australian Open",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 15,
+          "name": "Australian Open",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 17,
+          "name": "Australian Open, Mixed Doubles",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 77,
+          "name": "Roland Garros",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 76,
+          "name": "Roland Garros",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 79,
+          "name": "Roland Garros, Boys",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 80,
+          "name": "Roland Garros, Girls",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        },
+        {
+          "id": 83,
+          "name": "Roland Garros, Wheelchairs",
+          "edition": "2026",
+          "matches": 363,
+          "rowsRead": 363,
+          "declared": 363,
+          "truncated": false,
+          "ladder": [
+            {
+              "round": "Round of 32",
+              "matches": 100
+            },
+            {
+              "round": "Round of 16",
+              "matches": 11
+            },
+            {
+              "round": "Semifinals",
+              "matches": 1
+            },
+            {
+              "round": "Final",
+              "matches": 4
+            }
+          ],
+          "halves": false
+        }
+      ]
+    }
+  },
+  "attempts": [
+    {
+      "path": "/tennis/api/v2/tournaments/?limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 15728
+    },
+    {
+      "path": "/tennis/api/v2/tournaments/?limit=100&offset=100",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 15025
+    },
+    {
+      "path": "/tennis/api/v2/tournaments/?limit=100&offset=200",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 15068
+    },
+    {
+      "path": "/tennis/api/v2/tournaments/?limit=100&offset=300",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 15439
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=144&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72920
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=144",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71222
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=144",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70838
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=144",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42375
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=14&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=14",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=14",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=14",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=15&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=15",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=15",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=15",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=17&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=17",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=17",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=17",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=77&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=77",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=77",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=77",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=76&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=76",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=76",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=76",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=79&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=79",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=79",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=79",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=80&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=80",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=80",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=80",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    },
+    {
+      "path": "/tennis/api/v2/matches/?tournament_id=83&limit=100",
+      "note": "page 0",
+      "status": 200,
+      "bytes": 72919
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=100&tournament_id=83",
+      "note": "page 1",
+      "status": 200,
+      "bytes": 71220
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=200&tournament_id=83",
+      "note": "page 2",
+      "status": 200,
+      "bytes": 70836
+    },
+    {
+      "path": "/tennis/api/v2/matches/?limit=100&offset=300&tournament_id=83",
+      "note": "page 3",
+      "status": 200,
+      "bytes": 42374
+    }
+  ]
+}
