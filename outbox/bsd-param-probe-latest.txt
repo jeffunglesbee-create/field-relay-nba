@@ -1,36 +1,41 @@
 
-BSD /api/v2/events/ parameter behaviour — probed 2026-09-06T02:51:58.503Z for 2026-09-06
+  control page carries 21 date(s) in field 'event_date'; probing 2026-06-25 instead of 2026-09-06, which has no fixtures
+
+BSD /api/v2/events/ parameter behaviour — probed 2026-09-06T03:02:25.779Z for 2026-06-25
 
   bare date=            (the endgame call site)
-      HTTP 200  0 row(s), 0 distinct date(s)
+      HTTP 200  6 row(s), 1 distinct date(s) from field 'event_date'
+      dates: 2026-06-25
       RateLimit headers: none
 
   date_from/date_to      (the WC round/weather site)
-      HTTP 200  0 row(s), 0 distinct date(s)
+      HTTP 200  6 row(s), 1 distinct date(s) from field 'event_date'
+      dates: 2026-06-25
       RateLimit headers: none
 
   a parameter that cannot exist
       HTTP 400
-      body: {"detail": "Unknown query parameter(s): field_nonsense_param.", "unknown_parameters": ["field_nonsense_param"], "accepted_parameters": ["date_from", "date_to", "league_id", "limit", "offset", "round",
+      body: {"detail": "Unknown query parameter(s): field_nonsense_param.", "unknown_parameters": ["field_nonsense_param"], "accepted_parameters": ["date_from", "date_to", "league_id", "limit", "offset", "round", "season_id", "stage", "status", "team_id", "team_name"]}
       RateLimit headers: none
 
   league_id only         (the control: unfiltered by date)
-      HTTP 200  50 row(s), 0 distinct date(s)
+      HTTP 200  50 row(s), 21 distinct date(s) from field 'event_date'
+      dates: 2026-06-25, 2026-06-26, 2026-06-27, 2026-06-28, 2026-06-29, 2026-06-30 …
       RateLimit headers: none
 
 VERDICTS
 
   Is a bare date= rejected now?
-      NO — HTTP 200 and 0 distinct date(s). The parameter now appears to FILTER. That contradicts the 2026-08-01 comment, which should be corrected rather than trusted.
+      NO — HTTP 200 and 1 distinct date(s). The parameter now appears to FILTER. That contradicts the 2026-08-01 comment, which should be corrected rather than trusted.
 
   Does BSD reject an unknown parameter, as the August newsletter says?
       YES — HTTP 400 for a parameter that cannot exist. Every call site must send only documented params.
 
   Does date_from/date_to still filter?
-      0 distinct date(s) across 0 row(s) — filtering correctly.
+      1 distinct date(s) across 6 row(s) — filtering correctly.
 
   Control — league_id only, no date filter at all
-      50 row(s), 0 distinct date(s). A bare date= that matches THIS shape is a parameter being ignored.
+      50 row(s), 21 distinct date(s). A bare date= that matches THIS shape is a parameter being ignored.
 
   RateLimit headers present: no
 
