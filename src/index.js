@@ -10681,6 +10681,67 @@ export default {
                                'Cache-Control': 'public, max-age=300', ...CORS } });
             }
 
+            // /bsd/tennis/tournaments → the tennis competition census.
+            //
+            // THIS ROUTE EXISTED AS A PROMISE BEFORE IT EXISTED AS A ROUTE.
+            // /bsd/tennis/draw's 400 has said "GET /bsd/tennis/tournaments
+            // lists them" since it shipped, and nothing served that path — a
+            // caller who followed the hint got the 404 from the unknown-route
+            // guard. An error message naming a route that does not exist is the
+            // same defect as a fallback: it looks like help and it is wrong.
+            //
+            // Paged, for the reason the by-date route is: the census is 637
+            // tournaments and BSD returns 100 at a time, so a single fetch
+            // answers "which ids are Grand Slams" with the first hundred and
+            // says nothing about the rest. `truncated` states the bound.
+            //
+            // `category` filters HERE, not upstream — BSD accepts unknown
+            // parameters silently, and forwarding a category it does not honour
+            // would return the unfiltered census under a filtered name.
+            if (pathname === '/bsd/tennis/tournaments') {
+                const cat = url.searchParams.get('category');
+                if (cat && !/^[a-z0-9_]{1,32}$/.test(cat)) {
+                    return new Response(JSON.stringify({ error: 'category must be a lowercase slug' }),
+                        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const rows = [];
+                let next = `${BSD_BASE}/tennis/api/v2/tournaments/?limit=100`;
+                let declared = null, pages = 0;
+                while (next && pages < 10) {
+                    const r = await fetch(next, { headers: bsdHeaders });
+                    if (!r.ok) {
+                        if (pages === 0) {
+                            return new Response(await r.text(), { status: r.status,
+                                headers: { 'Content-Type': 'application/json', ...CORS } });
+                        }
+                        break;
+                    }
+                    let j;
+                    try { j = await r.json(); } catch (_) { break; }
+                    if (declared === null) declared = j?.count ?? null;
+                    const page = Array.isArray(j) ? j : (j?.results ?? []);
+                    if (!page.length) break;
+                    rows.push(...page);
+                    next = j?.next || null;
+                    pages++;
+                }
+                const filtered = cat ? rows.filter((t) => String(t?.category) === cat) : rows;
+                return new Response(JSON.stringify({
+                    count: filtered.length,
+                    // What the census holds, beside what this returned. With a
+                    // category applied these differ on purpose, and `read` says
+                    // how much of the census the filter was applied to.
+                    read: rows.length,
+                    declaredCount: declared,
+                    truncated: declared != null && rows.length < declared,
+                    pages,
+                    category: cat ?? null,
+                    results: filtered,
+                }), { status: 200,
+                    headers: { 'Content-Type': 'application/json',
+                               'Cache-Control': 'public, max-age=3600', ...CORS } });
+            }
+
             // /bsd/tennis/matches/live → BSD tennis /api/v2/matches/live/ (Sports Pack)
             if (pathname === '/bsd/tennis/matches/live') {
                 const cacheKey = new Request(`${BSD_BASE}/tennis/api/v2/matches/live/`);

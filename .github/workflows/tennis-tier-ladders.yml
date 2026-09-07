@@ -1,0 +1,56 @@
+name: Tennis Tier Ladders
+
+# Does the draw model hold on EVERY tier the client can show, or only on slams?
+#
+# Every edition anything here had read was a Grand Slam, and that hid a 128
+# ladder assumption for a day. A 96-draw Masters exposed it — nine of ten
+# flagged off-canonical on their entry round with not one match missing — and
+# the live page exposed the mirror four minutes later.
+#
+# So this reads the DEPLOYED route across all eight categories the client's
+# TENNIS_TIERS admits, capped per tier and with the cap in its own output.
+#
+# Replaces tennis-masters-ladders, which asked this of one tier.
+
+on:
+  workflow_dispatch:
+    inputs:
+      per_tier:
+        description: 'How many tournaments to read per tier'
+        required: false
+        default: '5'
+  schedule:
+    # Weekly, Mondays 05:10 UTC. The draw shapes change when the tour moves
+    # between surfaces and formats, and a check that only ever ran during a
+    # slam is the check that missed the 96 draw.
+    - cron: '10 5 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read ladders across every declared tier
+        run: node scripts/tennis-tier-ladders.mjs
+        env:
+          PER_TIER: ${{ inputs.per_tier || '5' }}
+      - name: Commit the reading
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/tennis-tier-ladders-*.json || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: draw ladders across every tier the client shows"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            sleep $((2**i))
+          done
+          exit 1
