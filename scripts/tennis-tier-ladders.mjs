@@ -59,6 +59,20 @@ const TIERS = ['grand_slam', 'masters_1000', 'atp_1000', 'wta_1000',
 // This does not assume it fails. It asks, and prints what comes back.
 const NAMED = /^(ATP Finals|WTA Finals|Next Gen Finals|United Cup|Davis Cup|Billie Jean King Cup( Group I)?)$/;
 
+// THE CLIENT'S SPLIT, MIRRORED HERE SO IT CAN GO STALE LOUDLY.
+//
+// jubilant-bassoon's _TENNIS_DRAW_NAMED_RANK admits four of these to the Draw
+// tab and _TENNIS_DRAW_NO_BRACKET excludes three, and that split was decided by
+// one reading on 2026-09-06. A vendor that starts serving a Davis Cup knockout,
+// or stops serving the ATP Finals semi-finals, makes the client wrong in a way
+// nothing in the client can notice — its lists are literals.
+//
+// So this run checks the split against what the route actually serves, and
+// FAILS when they disagree. It is the only automated thing that can: the lists
+// live in one repo and the truth lives in another.
+const CLIENT_ADMITS = ['ATP Finals', 'WTA Finals', 'Next Gen Finals', 'United Cup'];
+const CLIENT_EXCLUDES = ['Davis Cup', 'Billie Jean King Cup', 'Billie Jean King Cup Group I'];
+
 const out = { ts: TS, relay: RELAY, perTier: PER_TIER, tiers: {}, editions: [] };
 
 async function get(path, timeout = 60000) {
@@ -89,7 +103,7 @@ async function get(path, timeout = 60000) {
   }
 
   const singles = (t) => !/Doubles|Boys|Girls|Wheelchair|Quad/i.test(t?.name || '');
-  let modelHeld = 0, interiorHoles = [], unread = [];
+  let modelHeld = 0, interiorHoles = [], unread = [], splitDrift = [];
 
   for (const tier of TIERS) {
     const inTier = all.filter((t) => String(t?.category) === tier);
@@ -181,6 +195,15 @@ async function get(path, timeout = 60000) {
     else modelHeld++;
     (d.mainDrawMatches > 0 ? out.namedEvents.withKnockout : out.namedEvents.withoutKnockout)
       .push(`${t.id} ${t.name} (${d.mainDrawMatches} match(es))`);
+    // The cross-repo check. Both directions, because both are wrong.
+    if (CLIENT_EXCLUDES.includes(t.name) && d.mainDrawMatches > 0) {
+      splitDrift.push(`${t.name} (${t.id}) now serves ${d.mainDrawMatches} main-draw match(es)`
+                    + ` but the client excludes it by name — a real draw nobody can reach`);
+    }
+    if (CLIENT_ADMITS.includes(t.name) && d.mainDrawMatches === 0) {
+      splitDrift.push(`${t.name} (${t.id}) serves NO main-draw round but the client admits it`
+                    + ` — the tab would offer an empty bracket`);
+    }
     console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} ${d.season}`
               + ` ${(rec.ladder.join(' ') || '(no main-draw round)').padEnd(46)}`
               + ` mainDraw=${d.mainDrawMatches} outside=${JSON.stringify(d.roundsOutsideMainDraw)}`);
@@ -191,7 +214,8 @@ async function get(path, timeout = 60000) {
   const read = out.editions.filter((e) => e.status === 200).length;
   const edgeBad = out.editions.filter((e) => e.status === 200 && e.edgesDeclaredNull === false);
   out.summary = { tiersDeclared: TIERS.length, editionsRequested: checked, editionsRead: read,
-                  modelHeld, interiorHoles, unread, edgeRuleViolations: edgeBad.length };
+                  modelHeld, interiorHoles, unread, edgeRuleViolations: edgeBad.length,
+                  clientSplitDrift: splitDrift };
 
   console.log(`\nCOVERAGE: ${read} edition(s) read of ${checked} requested, across`
             + ` ${TIERS.length} declared tier(s), capped at ${PER_TIER} per tier,`
@@ -208,12 +232,16 @@ async function get(path, timeout = 60000) {
   }
   if (unread.length) { console.log(`unread:`); unread.forEach((u) => console.log(`   ${u}`)); }
   console.log(`edge-rule violations (an edge with a size, or an interior without one): ${edgeBad.length}`);
+  console.log(`client team-event split still matches what the route serves: ${splitDrift.length === 0}`);
+  splitDrift.forEach((x) => console.log(`   DRIFT: ${x}`));
 
   fs.mkdirSync('outbox', { recursive: true });
   const body = JSON.stringify(out, null, 2);
   fs.writeFileSync(`outbox/tennis-tier-ladders-${TS.replace(/[:.]/g, '-')}.json`, body);
   fs.writeFileSync('outbox/tennis-tier-ladders-latest.json', body);
-  // An edge-rule violation is a contract break and fails. An interior hole is a
-  // finding about the vendor's data and does not.
-  process.exit(edgeBad.length ? 1 : 0);
+  // An edge-rule violation is a contract break and fails. So is client split
+  // drift: it means jubilant-bassoon is hiding a real draw, or offering an
+  // empty one, and neither repo can notice on its own. An interior hole is a
+  // finding about the vendor's data and does not fail.
+  process.exit(edgeBad.length || splitDrift.length ? 1 : 0);
 })().catch((e) => { console.error('failed:', e.stack); process.exit(1); });
