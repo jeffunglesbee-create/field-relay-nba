@@ -44,6 +44,21 @@ const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
 const TIERS = ['grand_slam', 'masters_1000', 'atp_1000', 'wta_1000',
                'atp_500', 'wta_500', 'atp_250', 'wta_250'];
 
+// TEAM EVENTS AND SEASON FINALS. The client admits these by NAME, not by
+// category — TENNIS_NAMED in field.js — because they sit in `other` alongside
+// wildcard playoffs and satellite events, so the category cannot be allowed or
+// denied wholesale.
+//
+// They are read here because they are part of what FIELD shows, and because
+// their SHAPE is the open question. Davis Cup and the BJK Cup are ties, the
+// United Cup is groups then a knockout, and the ATP and WTA Finals are
+// round-robin then semi-finals. None of those is a single-elimination draw, and
+// the draw route's whole premise — a player appears in at most one match per
+// round, so the winner is the link — does not obviously survive any of them.
+//
+// This does not assume it fails. It asks, and prints what comes back.
+const NAMED = /^(ATP Finals|WTA Finals|Next Gen Finals|United Cup|Davis Cup|Billie Jean King Cup( Group I)?)$/;
+
 const out = { ts: TS, relay: RELAY, perTier: PER_TIER, tiers: {}, editions: [] };
 
 async function get(path, timeout = 60000) {
@@ -119,6 +134,43 @@ async function get(path, timeout = 60000) {
                 + ` interiorOff=${off.length ? rec.interiorOff.join('|') : 'none'}`);
       if (!rec.edgesDeclaredNull) console.log(`        !! an edge round carries a canonical size, or an interior round does not`);
     }
+  }
+
+  // ── TEAM EVENTS AND SEASON FINALS ────────────────────────────────────────
+  const named = all.filter((t) => NAMED.test(String(t?.name || '')));
+  out.namedEvents = { matched: named.length,
+                      names: [...new Set(named.map((t) => t.name))].sort() };
+  console.log(`\n── team events and season finals: ${named.length} tournament(s) match by name`);
+  console.log(`   ${out.namedEvents.names.join(' | ') || '(none)'}`);
+  console.log("   NOTE: the client's draw picker keys on category rank, and the"
+            + " 'other' category has none — so none of these can currently reach"
+            + ' the Draw tab. Verified in field.js: _tennisDrawPick does'
+            + ' `if (rank == null) continue;`.');
+  for (const t of named.slice(0, 8)) {
+    const r = await get(`/bsd/tennis/draw?tournament=${t.id}`);
+    const rec = { tier: 'named', tid: t.id, name: t.name, status: r.status };
+    out.editions.push(rec);
+    if (r.status !== 200 || !r.json) {
+      rec.body = r.text.slice(0, 400);
+      console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} HTTP ${r.status}  ${r.text.slice(0, 160)}`);
+      continue;
+    }
+    const d = r.json;
+    const rounds = (d.rounds || []).slice().sort((a, b) => a.index - b.index);
+    rec.season = d.season;
+    rec.complete = d.complete;
+    rec.ladder = rounds.map((x) => `${x.round.replace('Round of ', 'R')}=${x.matches}`);
+    rec.mainDrawMatches = d.mainDrawMatches;
+    rec.roundsOutsideMainDraw = d.roundsOutsideMainDraw;
+    const interior = rounds.filter((x) => !x.entryRound && !x.openInnermostRound);
+    const off = interior.filter((x) => x.matches !== (1 << (6 - x.index)));
+    rec.interiorOff = off.map((x) => `${x.round}=${x.matches} want ${1 << (6 - x.index)}`);
+    rec.edgesDeclaredNull = rounds.every((x) =>
+      (x.entryRound || x.openInnermostRound) ? x.canonical === null : x.canonical !== null);
+    console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} ${d.season}`
+              + ` ${(rec.ladder.join(' ') || '(no main-draw round)').padEnd(46)}`
+              + ` mainDraw=${d.mainDrawMatches} outside=${JSON.stringify(d.roundsOutsideMainDraw)}`);
+    if (off.length) console.log(`        interior off: ${rec.interiorOff.join(', ')}`);
   }
 
   const checked = out.editions.length;
