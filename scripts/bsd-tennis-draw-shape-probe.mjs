@@ -35,6 +35,16 @@
 
 import fs from 'node:fs';
 
+// WHICH TIER. Defaults to grand_slam, which is every edition this repo had ever
+// read as of 2026-09-06 — 14, 15, 76, 77, 135, 136, 101, 102, all slams.
+//
+// That is a coverage hole with a date on it. jubilant-bassoon's draw tab ranks
+// masters_1000 / atp_1000 / wta_1000 at tier 1 and selects one whenever no slam
+// is on, which is roughly 44 weeks of the year. A 96-draw Masters gives 32
+// players a bye, so the round sizes are not a 128 ladder and the relay's
+// `canonical` figure (1 << (6 - roundIndex)) may be wrong in every round. What
+// BSD names those rounds is not known here and is not guessable.
+const CATEGORY = process.env.BSD_CATEGORY || 'grand_slam';
 const BASE = process.env.BSD_BASE || 'https://sports.bzzoiro.com';
 const TOKEN = process.env.BSD_API_TOKEN || '';
 const TS = new Date().toISOString();
@@ -80,11 +90,11 @@ async function pageAll(base, cap = 6) {
   // 8 pages, not 4. The first run read 400 of a declared 636 and said so, but
   // "which ids are Grand Slams" is a question a truncated read cannot answer.
   const tj = await pageAll('/tennis/api/v2/tournaments/?limit=100', 8);
-  const slams = tj.rows.filter((t) => String(t?.category || '') === 'grand_slam')
+  const slams = tj.rows.filter((t) => String(t?.category || '') === CATEGORY)
                        .map((t) => ({ id: t.id, name: t.name, circuit: t.circuit, surface: t.surface }));
-  out.questions.q1_grandSlamIds = { checked: tj.rows.length, declared: tj.declared,
-                                    truncated: tj.truncated, slams };
-  console.log(`Q1 grand slams: ${slams.length} of ${tj.rows.length} tournaments read`
+  out.questions.q1_grandSlamIds = { category: CATEGORY, checked: tj.rows.length,
+                                    declared: tj.declared, truncated: tj.truncated, slams };
+  console.log(`Q1 ${CATEGORY}: ${slams.length} of ${tj.rows.length} tournaments read`
             + ` (BSD declares ${tj.declared}, truncated=${tj.truncated})`);
   slams.forEach((s) => console.log(`     ${String(s.id).padStart(5)}  ${s.name}   circuit=${s.circuit}`));
 
@@ -94,8 +104,12 @@ async function pageAll(base, cap = 6) {
   // Pegula, which is the tell a loose match leaves.
   const pick = slams.find((s) => s.name === 'US Open, Men')
             || slams.find((s) => /^US Open, /.test(s.name))
+            // For a non-slam tier there is no canonical name to prefer, so take
+            // the first that is a singles draw rather than the first outright —
+            // /US Open/i landing on "US Open, Boys" is the reason that matters.
+            || slams.find((s) => !/Doubles|Boys|Girls|Wheelchair|Quad/i.test(s.name))
             || slams[0];
-  if (!pick) { console.error('!! no grand_slam tournament found — cannot continue'); process.exit(1); }
+  if (!pick) { console.error(`!! no ${CATEGORY} tournament found — cannot continue`); process.exit(1); }
   console.log(`\ninspecting: ${pick.id} ${pick.name}`);
 
   // `tournament`, NOT `tournament_id`. Measured by the feasibility probe on
@@ -225,8 +239,18 @@ async function pageAll(base, cap = 6) {
               + `${ladder.map((x) => `${x.round.replace('Round of ', 'R')}=${x.matches}`).join(' ')}`
               + `  halves=${halves}  (read ${r.rows.length}/${r.declared}, truncated=${r.truncated})`);
   }
-  out.questions.q6_perSlamLadders = { checked: perSlam.length, singlesDraws: singles.length,
-                                      ofAllSlamIds: slams.length, ladders: perSlam };
+  out.questions.q6_perSlamLadders = { category: CATEGORY, checked: perSlam.length,
+                                      singlesDraws: singles.length,
+                                      ofAllIdsInCategory: slams.length, ladders: perSlam };
+  // The ORDER vocabulary above is the seven rounds of a 128 draw. A tier whose
+  // draws are not 128 will show rounds outside it, or a first round that is not
+  // 64, and BOTH are the finding rather than a defect — printed here so a
+  // non-slam run cannot be read as a slam run that went wrong.
+  console.log(`\nCOVERAGE: category=${CATEGORY}, ${perSlam.length} edition(s) checked`
+            + ` of ${slams.length} id(s) in that category, from ${tj.rows.length}`
+            + ` tournaments read (BSD declares ${tj.declared}).`);
+  console.log('The seven-round vocabulary above is a 128 draw. A 96-draw tier'
+            + ' will not match it, and that is the answer, not an error.');
 
   fs.mkdirSync('outbox', { recursive: true });
   const stamp = TS.replace(/[:.]/g, '-');
