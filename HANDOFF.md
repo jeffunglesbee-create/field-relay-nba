@@ -2,7 +2,7 @@
 
 ## SESSION CLOSE-OUT — 2026-09-06/07 (a tennis draw, and a 128-ladder no slam could catch)
 
-**HEAD:** `fd25196` → `9c7ed8c` · **Branch:** main throughout
+**HEAD:** `fd25196` → `9d029e9` · **Branch:** main throughout
 **Session doc:** `outbox/cc-session-2026-09-06-tennis-draw-route.md`
 **Deploys:** 912–917, all SUCCESS
 
