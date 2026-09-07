@@ -1,0 +1,296 @@
+{
+  "ts": "2026-09-07T02:27:15.509Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "editions": [
+    {
+      "tid": 63,
+      "name": "ATP Madrid Masters",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 67,
+      "name": "ATP Rome Masters",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 130,
+      "name": "Cincinnati",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 42,
+      "name": "Indian Wells",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [],
+      "mainDrawMatches": 31,
+      "edges": 30,
+      "entryRound": {
+        "round": "Round of 32",
+        "matches": 16
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": []
+    },
+    {
+      "tid": 45,
+      "name": "Miami",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 56,
+      "name": "Monte Carlo",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 64",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 55,
+      "edges": 54,
+      "entryRound": {
+        "round": "Round of 64",
+        "matches": 24
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 64: 24 vs canonical 32"
+      ]
+    },
+    {
+      "tid": 693,
+      "name": "Montreal",
+      "status": 200,
+      "season": "2026",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 196,
+      "name": "Paris",
+      "status": 200,
+      "season": "2025",
+      "ladder": [
+        "R64=24",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 64",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 55,
+      "edges": 54,
+      "entryRound": {
+        "round": "Round of 64",
+        "matches": 24
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 64: 24 vs canonical 32"
+      ]
+    },
+    {
+      "tid": 175,
+      "name": "Shanghai",
+      "status": 200,
+      "season": "2025",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=16",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 95,
+      "edges": 94,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    },
+    {
+      "tid": 125,
+      "name": "Toronto",
+      "status": 200,
+      "season": "2025",
+      "ladder": [
+        "R128=32",
+        "R64=32",
+        "R32=15",
+        "R16=8",
+        "Quarterfinals=4",
+        "Semifinals=2",
+        "Final=1"
+      ],
+      "anomalies": [
+        "roundNotAtCanonicalSize:Round of 128",
+        "roundNotAtCanonicalSize:Round of 32",
+        "cancelledRowsExcluded"
+      ],
+      "mainDrawMatches": 94,
+      "edges": 91,
+      "entryRound": {
+        "round": "Round of 128",
+        "matches": 32
+      },
+      "innerRoundsOffModel": [
+        "Round of 32=15 want 16"
+      ],
+      "entryRoundCalledAnomalous": [
+        "Round of 128: 32 vs canonical 64"
+      ]
+    }
+  ],
+  "summary": {
+    "checked": 10,
+    "modelHeld": 9,
+    "modelRefuted": 1,
+    "unread": 0
+  }
+}
