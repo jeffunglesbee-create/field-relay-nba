@@ -1,0 +1,86 @@
+{
+  "probed_at": "2026-09-07T14:38:23.814Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 3,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Isak (LIV) 2\nAssists: Gakpo (LIV) 2\nYellow cards: Enciso (IPS), Kerkez (LIV), Jacquet (LIV), Mac Allister (LIV)\nSaves: Scherpen (IPS) 5, A.Becker (LIV) 5\nFPL bonus: Isak (LIV) +3, Gakpo (LIV) +2, A.Becker (LIV) +1\nTop BPS: Isak (LIV) 61, Gakpo (LIV) 43, A.Becker (LIV) 35\nLeague table: Ipswich Town 14th on 0 points from 0 | Liverpool 6th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879292",
+      "game_recap_epl_401879291",
+      "game_recap_epl_401878781",
+      "game_recap_epl_401879311",
+      "game_recap_epl_401878780",
+      "game_recap_epl_401879287",
+      "game_recap_epl_401879289",
+      "game_recap_epl_401879290",
+      "game_recap_epl_401879286",
+      "game_recap_epl_401879295",
+      "game_recap_epl_401879293",
+      "game_recap_epl_401879315",
+      "game_recap_epl_401879317",
+      "game_recap_epl_401879312",
+      "game_recap_epl_401879316",
+      "game_recap_epl_401879296",
+      "game_recap_epl_401879314",
+      "game_recap_epl_401879294"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [],
+    "banned_phrases": [
+      "game_recap_epl_401879311: secured the win",
+      "game_recap_epl_401879311: result moves",
+      "game_recap_epl_401879293: overcome the",
+      "game_recap_epl_401879293: to overcome",
+      "game_recap_epl_401879294: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879292, game_recap_epl_401879291, game_recap_epl_401878781 | archived briefs use a banned phrase: game_recap_epl_401879311: secured the win, game_recap_epl_401879311: result moves, game_recap_epl_401879293: overcome the"
+}
