@@ -32,13 +32,20 @@ const BASE = process.env.BSD_BASE || 'https://sports.bzzoiro.com';
 const TOKEN = process.env.BSD_API_TOKEN || '';
 const TS = new Date().toISOString();
 const ORDER = ['Round of 128','Round of 64','Round of 32','Round of 16','Quarterfinals','Semifinals','Final'];
-const EDITIONS = [
-  { tid: 135, season: '2025', name: 'US Open, Men' },
-  { tid: 14,  season: '2026', name: 'Australian Open (ATP)' },
-  { tid: 77,  season: '2026', name: 'Roland Garros (WTA)' },
-  { tid: 76,  season: '2026', name: 'Roland Garros (ATP)' },
-  { tid: 15,  season: '2026', name: 'Australian Open (WTA)' },
-];
+// Overridable, because the next duplicate is never in the last one's list.
+// TIDS=53:2026,14:2026 reads exactly those.
+const EDITIONS = process.env.TIDS
+  ? process.env.TIDS.split(',').map((x) => {
+      const [tid, season] = x.split(':');
+      return { tid: Number(tid), season, name: `tournament ${tid}` };
+    })
+  : [
+      { tid: 135, season: '2025', name: 'US Open, Men' },
+      { tid: 14,  season: '2026', name: 'Australian Open (ATP)' },
+      { tid: 77,  season: '2026', name: 'Roland Garros (WTA)' },
+      { tid: 76,  season: '2026', name: 'Roland Garros (ATP)' },
+      { tid: 15,  season: '2026', name: 'Australian Open (WTA)' },
+    ];
 const out = { ts: TS, editions: [] };
 
 async function pageAll(path, cap = 8) {
@@ -94,11 +101,20 @@ async function pageAll(path, cap = 8) {
         const live = ms.length - cancelled;
         if (live === 1) dupesWithOneCancelled++; else dupesWithTwoLive++;
         const name = ms[0].player1?.id === pid ? ms[0].player1?.name : ms[0].player2?.name;
-        rec.duplicates.push({ round: rn, playerId: pid, playerName: name,
+        // THE DATE SPREAD IS THE TELL. Two rows of one round a few days apart
+        // is a withdrawal and its replacement. Two rows MONTHS apart is two
+        // editions of a tournament held more than once in a calendar year —
+        // and the season partition, which is the YEAR of match_date, cannot
+        // separate those. Antalya runs several weeks under separate ids, so
+        // this is a real shape and not a hypothetical.
+        const days = ms.map((m) => Date.parse(m.match_date)).filter((x) => !Number.isNaN(x));
+        const spreadDays = days.length > 1
+          ? Math.round((Math.max(...days) - Math.min(...days)) / 86400000) : 0;
+        rec.duplicates.push({ round: rn, playerId: pid, playerName: name, spreadDays,
           rows: ms.map((m) => ({ id: m.id, status: m.status, date: m.match_date,
             p1: m.player1?.name, p2: m.player2?.name, winner: m.winner_id })) });
         console.log(`   ${rn}: ${name} (#${pid}) in ${ms.length} rows`
-                  + `  — ${cancelled} cancelled, ${live} not`);
+                  + `  — ${cancelled} cancelled, ${live} not, ${spreadDays} day(s) apart`);
         for (const m of ms) console.log(`      ${m.id}  ${String(m.status).padEnd(12)}`
                   + ` ${String(m.match_date).slice(0,10)}  ${m.player1?.name} v ${m.player2?.name}`
                   + `  winner=${m.winner_id ?? '-'}`);

@@ -139,7 +139,12 @@ async function get(path, timeout = 60000) {
   // ── TEAM EVENTS AND SEASON FINALS ────────────────────────────────────────
   const named = all.filter((t) => NAMED.test(String(t?.name || '')));
   out.namedEvents = { matched: named.length,
-                      names: [...new Set(named.map((t) => t.name))].sort() };
+                      names: [...new Set(named.map((t) => t.name))].sort(),
+                      // Filled below. A team event with zero main-draw rounds
+                      // is not a draw that failed — it is a format that has no
+                      // draw, and lumping the two together is how a Davis Cup
+                      // tie would read as a broken bracket.
+                      withKnockout: [], withoutKnockout: [] };
   console.log(`\n── team events and season finals: ${named.length} tournament(s) match by name`);
   console.log(`   ${out.namedEvents.names.join(' | ') || '(none)'}`);
   console.log("   NOTE: the client's draw picker keys on category rank, and the"
@@ -167,6 +172,15 @@ async function get(path, timeout = 60000) {
     rec.interiorOff = off.map((x) => `${x.round}=${x.matches} want ${1 << (6 - x.index)}`);
     rec.edgesDeclaredNull = rounds.every((x) =>
       (x.entryRound || x.openInnermostRound) ? x.canonical === null : x.canonical !== null);
+    // COUNTED, like every other edition. The first run of this block did not
+    // touch modelHeld, so the summary read "interior rounds at their size: 20
+    // of 27" on a run where nothing failed — seven editions looked like seven
+    // failures because the loop that read them never incremented the counter.
+    // A number that only some of its subjects can move is not a count.
+    if (off.length) interiorHoles.push(`named ${t.id} ${t.name} ${d.season}: ${rec.interiorOff.join(', ')}`);
+    else modelHeld++;
+    (d.mainDrawMatches > 0 ? out.namedEvents.withKnockout : out.namedEvents.withoutKnockout)
+      .push(`${t.id} ${t.name} (${d.mainDrawMatches} match(es))`);
     console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} ${d.season}`
               + ` ${(rec.ladder.join(' ') || '(no main-draw round)').padEnd(46)}`
               + ` mainDraw=${d.mainDrawMatches} outside=${JSON.stringify(d.roundsOutsideMainDraw)}`);
@@ -184,6 +198,10 @@ async function get(path, timeout = 60000) {
             + ` from a census of ${out.census.declared}. utr and challenger are NOT`
             + ` checked — the client drops them, so no draw is ever requested for one.`);
   console.log(`\ninterior rounds at their size: ${modelHeld} of ${read}`);
+  console.log(`team events WITH a knockout the draw route can render:`);
+  out.namedEvents.withKnockout.forEach((x) => console.log(`   ${x}`));
+  console.log(`team events with NO main-draw round — a format, not a failure:`);
+  out.namedEvents.withoutKnockout.forEach((x) => console.log(`   ${x}`));
   if (interiorHoles.length) {
     console.log(`interior rounds SHORT (a hole, or a refutation — this does not decide):`);
     interiorHoles.forEach((h) => console.log(`   ${h}`));
