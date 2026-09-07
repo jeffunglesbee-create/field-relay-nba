@@ -50,6 +50,13 @@ const EXPECT = [
     ladder: [64, 32, 16, 8, 4, 2, 1] },
   { tid: 14, season: '2026', name: 'Australian Open',
     ladder: [64, 32, 16, 8, 4, 2, 1] },
+  // NOT A SLAM. Every edition this verify checked until 2026-09-06 was a 128
+  // draw, which is exactly why `canonical` could be a 128 ladder for months
+  // without anything objecting. A Masters 1000 is a 96 draw: 32 players get a
+  // bye, so the first round is 32 matches and not 64. Measured against this
+  // route, all ten masters_1000 ids.
+  { tid: 63, season: '2026', name: 'ATP Madrid Masters',
+    ladder: [32, 32, 16, 8, 4, 2, 1] },
 ];
 const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
                'Quarterfinals', 'Semifinals', 'Final'];
@@ -151,9 +158,27 @@ const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
     check(`${e.tid}/${e.season} every node's date is in the requested season`,
           strayYears.length === 0, `also saw ${strayYears.join(', ')}`);
 
+    // THE ENTRY ROUND HAS NO CANONICAL SIZE. It holds whoever did not get a
+    // bye, which is a property of the draw's size, and BSD does not serve
+    // that. Nine of the ten Masters were flagged off-canonical on their entry
+    // round with not one match missing.
+    const entry = (d.rounds || [])[0];
+    check(`${e.tid}/${e.season} the entry round declares no canonical size`,
+          entry != null && entry.canonical === null && entry.entryRound === true,
+          `entry=${JSON.stringify(entry)}`);
+    check(`${e.tid}/${e.season} every round after the entry round has one`,
+          (d.rounds || []).slice(1).every((x) => x.canonical === (1 << (6 - x.index))),
+          JSON.stringify((d.rounds || []).slice(1).map((x) => `${x.round}:${x.canonical}`)));
+    check(`${e.tid}/${e.season} the entry round is never an anomaly`,
+          !(d.anomalies || []).some((a) => a.kind === 'roundNotAtCanonicalSize'
+                                        && a.round === entry?.round),
+          `anomalies=${JSON.stringify((d.anomalies || []).map((a) => a.kind + ':' + (a.round || '')))}`);
+
     // Anomalies are DECLARED, not hidden. Off-canonical rounds must each have
     // an entry — this is the promise the route makes about not smoothing.
-    const off = (d.rounds || []).filter((x) => x.matches !== x.canonical).map((x) => x.round);
+    // `x.canonical !== null` first: the entry round is not off anything.
+    const off = (d.rounds || []).filter((x) => x.canonical !== null && x.matches !== x.canonical)
+                                .map((x) => x.round);
     const declared = (d.anomalies || []).filter((a) => a.kind === 'roundNotAtCanonicalSize').map((a) => a.round);
     rec.offCanonical = off;
     check(`${e.tid}/${e.season} every off-canonical round is declared an anomaly`
@@ -172,9 +197,11 @@ const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
           `rowsRead=${d.rowsRead} declared=${d.declaredCount}`);
   }
 
-  console.log(`\nCOVERAGE: 3 editions checked, of 14 grand-slam tournament ids`
-            + ` in a census of 636 tournaments. The other 633 are UNCHECKED.`);
-  out.coverage = { editionsChecked: 3, grandSlamIds: 14, tournamentsInCensus: 636 };
+  console.log(`\nCOVERAGE: 4 editions checked — 3 grand_slam of 14 ids, 1 masters_1000`
+            + ` of 10 — in a census of 637 tournaments. wta_1000, atp_500 and`
+            + ` every tier below are UNCHECKED.`);
+  out.coverage = { editionsChecked: 4, grandSlam: '3 of 14', masters1000: '1 of 10',
+                   tournamentsInCensus: 637, uncheckedTiers: ['wta_1000', 'atp_500', 'and below'] };
 
   fs.mkdirSync('outbox', { recursive: true });
   const body = JSON.stringify(out, null, 2);

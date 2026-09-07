@@ -10482,13 +10482,61 @@ export default {
                 // played.
                 const byRound = {};
                 for (const n of nodes) (byRound[n.round] ??= []).push(n);
-                const rounds = ORDER.filter((r) => byRound[r]).map((r) => ({
-                    round: r,
-                    index: ORDER.indexOf(r),
-                    matches: byRound[r].length,
-                    canonical: 1 << (ORDER.length - 1 - ORDER.indexOf(r)),
-                }));
-                for (const r of rounds) r.atCanonicalSize = r.matches === r.canonical;
+                // THE ENTRY ROUND HAS NO CANONICAL SIZE, and every round after
+                // it has exactly one.
+                //
+                // `canonical` was 1 << (6 - roundIndex) for every round: a 128
+                // ladder. That is right for a slam and wrong for everything
+                // else. A Masters 1000 is a 96 draw — 32 players get a bye —
+                // so its first round holds 32 matches, and the route called
+                // that 32 short of a full round. The client rendered it as
+                // "Round of 128 holds 32 matches where 64 make a full round",
+                // which is a claim that 32 matches are missing when none are.
+                //
+                // Measured 2026-09-06 against this deployed route, all ten
+                // masters_1000 ids (scripts/tennis-masters-ladders.mjs):
+                //
+                //   63 Madrid  67 Rome  130 Cincinnati  45 Miami
+                //  693 Montreal  175 Shanghai  125 Toronto
+                //                             R128=32 R64=32 R32=16 R16=8 4 2 1
+                //   56 Monte Carlo  196 Paris   R64=24 R32=16 R16=8 4 2 1
+                //   42 Indian Wells             R32=16 R16=8 4 2 1
+                //
+                // NINE OF TEN were flagged off-canonical on their entry round
+                // and not one of them was missing a match. Byes only ever
+                // affect the entry round, so every round after it is exactly
+                // 2^(levels above the final) whatever the draw size — 32, 16,
+                // 8, 4, 2, 1 — and that held on all ten.
+                //
+                // The one apparent exception is the reason this stays a check
+                // rather than becoming a shrug: Toronto 2025 serves R32=15
+                // where 16 belong. Short by exactly one, in an inner round,
+                // exactly like US Open Men 2025's R64=31. That is a match BSD
+                // does not have, and it is the anomaly this field exists to
+                // surface. A model that explained it away would have hidden
+                // the only true positive in the set.
+                //
+                // So: `canonical` is null on the entry round and the anomaly
+                // cannot fire there. Its size is reported as what it is.
+                const present = ORDER.filter((r) => byRound[r]);
+                const rounds = present.map((r, i) => {
+                    const index = ORDER.indexOf(r);
+                    const isEntry = i === 0;
+                    return {
+                        round: r,
+                        index,
+                        matches: byRound[r].length,
+                        // The outermost round present holds whoever did not get
+                        // a bye. That number is a property of the draw's size,
+                        // which BSD does not serve, so there is nothing to
+                        // compare it against and null says so.
+                        canonical: isEntry ? null : (1 << (ORDER.length - 1 - index)),
+                        entryRound: isEntry,
+                    };
+                });
+                for (const r of rounds) {
+                    r.atCanonicalSize = r.canonical === null ? null : r.matches === r.canonical;
+                }
 
                 // A PLAYER TWICE IN ONE ROUND is refused before the join runs.
                 //
@@ -10554,7 +10602,11 @@ export default {
 
                 const anomalies = [];
                 for (const r of rounds) {
-                    if (!r.atCanonicalSize) {
+                    // `=== false`, not `!`. atCanonicalSize is null on the entry
+                    // round and `!null` is true, so a truthiness test here would
+                    // flag the one round that has nothing to be compared to —
+                    // which is the whole defect this change removes.
+                    if (r.atCanonicalSize === false) {
                         anomalies.push({ kind: 'roundNotAtCanonicalSize', round: r.round,
                                          matches: r.matches, canonical: r.canonical });
                     }
