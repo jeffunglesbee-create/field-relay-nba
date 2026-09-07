@@ -1,5 +1,117 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-06/07 (a tennis draw, and a 128-ladder no slam could catch)
+
+**HEAD:** `fd25196` → `9c7ed8c` · **Branch:** main throughout
+**Session doc:** `outbox/cc-session-2026-09-06-tennis-draw-route.md`
+**Deploys:** 912–917, all SUCCESS
+
+### What shipped
+
+Two routes and a model.
+
+| route | what it does |
+|---|---|
+| `/bsd/tennis/draw?tournament=&season=` | one edition's bracket, edges joined by winner identity |
+| `/bsd/tennis/tournaments[?category=]` | the paged competition census |
+
+BSD serves **no** bracket — the 217-path schema census has no `/draw/` and no
+`/bracket/`, and a match row carries no parent link. The edge is read anyway:
+in single elimination a player appears in at most one match per round, so an
+R64 winner appears in exactly one R32 match. Measured: **126 edges resolve to
+exactly one next match, 0 ambiguous.**
+
+### Done condition
+
+`verify-tennis-draw` against the deployed route, **59/59**, four editions:
+
+```
+135/2025  64 31 16 8 4 2 1   123 edges re-derived   Carlos Alcaraz
+ 77/2026  64 32 16 8 4 2 1   126 edges re-derived   Mirra Andreeva
+ 14/2026  64 32 16 8 4 2 1   126 edges re-derived   Carlos Alcaraz
+ 63/2026  32 32 16 8 4 2 1    94 edges re-derived   Jannik Sinner
+```
+
+`tennis-tier-ladders`, all eight categories plus seven team events:
+**637 of 637 tournaments read untruncated, 34 of 35 editions assembled, zero
+interior holes, zero edge-rule violations, zero client split drift.**
+
+### Three refusals, each measured before it was written
+
+**A cancelled row is not a match in the draw.** Six players appeared in two
+first-round rows across five editions; **six of six** were a `cancelled` row
+beside its `finished` replacement, **zero** with two live rows. The player keeps
+their slot and the opponent changes — a withdrawal. So 65- and 66-row first
+rounds were never the vendor doubling a round; excluding cancelled rows puts
+every edition at 127, which is what a 128 draw holds.
+
+**A player twice in one round is a 409.** Found by field-laboratory's F# model,
+which could not construct an input reaching its own `AmbiguousEdge` case: a
+winner can only be in two next-round matches if that player is twice in that
+round. The case was deleted there; the relay keeps both guards because the
+reverse does not hold.
+
+**Ambiguity is a 409, not a dropped edge.** A bracket with one guessed edge puts
+a named player in a match they did not play.
+
+### The two ends of a bracket
+
+`canonical` was `1 << (6 - roundIndex)` — a 128 ladder — and **every edition
+anything here had read was a slam**, so nothing could catch it.
+
+| edge | the false claim | evidence |
+|---|---|---|
+| entry round | "R128 holds 32 where 64 make a full round" | 9 of 10 Masters flagged, **0 missing a match** |
+| innermost round of a live draw | "QF holds 1 where 4 make a full round" | US Open Women 2026, 3 unplayed |
+
+A Masters is a 96 draw (32 byes); Monte Carlo and Paris are 56 draws. Byes only
+affect the entry round and the calendar only the innermost, so **everything
+between them is exactly `2^(levels above the final)`** — held on all 35 editions,
+across draw sizes 128, 96, 56, 32, 30, 28 and 26.
+
+**The one true positive survives**: Toronto 2025's `R32=15` and US Open Men
+2025's `R64=31` are interior, real, and still reported. A model that explained
+them away would have hidden the only findings in the set.
+
+### Open, and why
+
+**One 409 stands. Antalya 3 (id 53), 2026.** Rus lost her R32 on 03-10 and is
+scheduled in another R32 on 03-14 — **two events four days apart under one
+tournament id**, main draw 36 rows where a 32-draw holds 31. The season
+partition is the year of `match_date`; a match row carries no season field. A
+date-clustering partition might work and might silently split a rain-delayed
+slam, so it was not written. The payload now names the cause.
+
+`atp_1000` holds **zero** tournaments — a dead entry in the client's tier table.
+Reported by every weekly run.
+
+### Automated
+
+| workflow | cadence | what it catches |
+|---|---|---|
+| `verify-tennis-draw` | daily 06:40 UTC | ladder, edges re-derived, season partition, guards |
+| `tennis-tier-ladders` | weekly Mon 05:10 UTC | every tier; **fails on client split drift** |
+| `bsd-tennis-duplicate-rows` | dispatch, `TIDS=` | why a player is twice in a round |
+
+The drift check is the only automated thing that can catch a stale team-event
+list: those literals live in jubilant-bassoon and the truth lives here.
+
+### Defects this session, all mine, all apparatus
+
+1. The shape probe filtered on `tournament_id` — **already measured as silently
+   dropped, with the answer in this repo's own outbox.** All eight slam ids
+   returned identical rows and it reported `halves=false` as a property of the
+   draws.
+2. `/US Open/i` matched **US Open, Boys**; the sample player it printed was
+   Jessica Pegula.
+3. The 400 hint named `/bsd/tennis/tournaments`, **a route that did not exist**.
+4. The tier reader printed `20 of 27` on a run where nothing failed — the
+   team-event loop never incremented the counter. **A count only some of its
+   subjects can move is not a count.**
+
+---
+
+
 ## SESSION CLOSE-OUT — 2026-09-06 (a vendor newsletter surfaced a contradiction already in the repo)
 
 **HEAD:** `afff86c` → `d9181cb` · **Branch:** main throughout · 4 commits
