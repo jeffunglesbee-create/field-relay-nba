@@ -612,7 +612,11 @@ try {
             control_entries: controlEntries,
             dash_entries: dashEntries,
             game_days_in_window: gameDays,
-            status: d1WriteProvenance({ everEntries, controlEntries, dashEntries, windowHours: WINDOW_H, gameDaysInWindow: gameDays }),
+            // FALSE, and stated rather than inferred: this run reads the
+            // dataset and never writes a control. Only
+            // d1-write-provenance-verify does, and it is dispatch-only.
+            control_attempted: false,
+            status: d1WriteProvenance({ everEntries, controlEntries, dashEntries, windowHours: WINDOW_H, gameDaysInWindow: gameDays, controlAttempted: false }),
             note: 'blob1 carries the id scheme observed: control | dash. The dataset held zero d1-write entries when this check was written, so PENDING is the expected reading until the instrumentation deploys.',
         });
     }

@@ -40,9 +40,22 @@ for (const [id, verdict] of Object.entries(VERDICTS)) {
   if (!has) continue
   let out
   try { out = verdict(verdict.mustFailOn) } catch (e) { out = `THREW: ${e.message}` }
-  check(`${id}: does not PASS its negative control`,
-    typeof out === 'string' && !out.startsWith('PASS'),
-    `returned ${JSON.stringify(out)} — a known-bad payload reads as PASS`)
+  // FAIL, NOT MERELY "NOT PASS".
+  //
+  // This asserted `!out.startsWith('PASS')`, which PENDING satisfies. So a
+  // verdict whose negative control returns PENDING — one that can never fail at
+  // all — passed this check cleanly. Caught 2026-09-07 while changing
+  // d1_write_provenance: flipping its mustFailOn to a payload that returns
+  // PENDING left this checker green, and the mutation went NOT CAUGHT.
+  //
+  // That is this file's own stated defect, one level up. "A verdict that passes
+  // its own negative control is vacuous" is the header; a verdict that
+  // ABSTAINS on its own negative control is equally vacuous, and only one of
+  // the two was being tested for.
+  check(`${id}: FAILS its negative control`,
+    typeof out === 'string' && out.startsWith('FAIL'),
+    `returned ${JSON.stringify(out)} — a negative control must produce FAIL, not `
+    + `PASS and not PENDING. PENDING means this verdict cannot be made to fail at all.`)
 }
 
 // A verdict must also be able to say PASS at all. One that can never pass is
@@ -61,7 +74,7 @@ const CAN_PASS = {
   },
   recap_names_a_scoring_play: { recapRows: 6, testable: 6, named: 6 },
   thread_notes_cleanup: { total: 40, expiredBeyondGrace: 0 },
-  d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2 },
+  d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone
 // remembered. This loop iterated CAN_PASS rather than VERDICTS, so a verdict

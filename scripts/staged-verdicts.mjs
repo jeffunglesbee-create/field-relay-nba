@@ -120,9 +120,33 @@ threadNotesCleanup.mustFailOn = { total: 40, expiredBeyondGrace: 37 }
 /// `gameDaysInWindow` is required rather than assumed: the two observed writes
 /// landed the day after a game, so a window containing no such day proves
 /// nothing and must not be counted as evidence of absence.
-export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, windowHours, gameDaysInWindow }) => {
+///
+/// `controlAttempted` IS REQUIRED, AND ADDING IT IS THE FIX FOR A PERMANENT RED.
+///
+/// The control is written by `d1-write-provenance-verify.yml`, which is
+/// DISPATCH-ONLY. This verdict runs weekly on a schedule. So `controlEntries`
+/// was 0 on every scheduled run unless a human happened to dispatch the control
+/// inside the same 48h window, and the run returned FAIL — for three weeks, on
+/// runs 32, 33 and 34.
+///
+/// That is exactly the "can never pass, so everyone ignores it" defect the
+/// paragraph above says this verdict checker exists to catch, happening to this
+/// verdict. A missing control is only evidence of a silent instrument if a
+/// control was actually written; otherwise the run has not tested liveness at
+/// all, and "not tested" is not "broken".
+///
+/// The true positive is unchanged and still the only failure: attempt a control
+/// and find no entry, and the instrument is silent. What is removed is a red
+/// that no scheduled run could ever avoid.
+///
+/// Not fixed by scheduling the control instead: it issues 90 synthetic writes
+/// into live D1 per run, and standing D1 mutations in this repo are authorised
+/// case by case, not wired to a cron by the session that noticed the red.
+export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, windowHours, gameDaysInWindow, controlAttempted }) => {
   for (const [k, v] of Object.entries({ everEntries, controlEntries, dashEntries, windowHours, gameDaysInWindow }))
     if (typeof v !== 'number') throw new TypeError(`d1WriteProvenance: ${k} is required`)
+  if (typeof controlAttempted !== 'boolean')
+    throw new TypeError('d1WriteProvenance: controlAttempted is required')
   // NEVER WROTE is not WENT SILENT, and collapsing them would make this
   // permanently red until the instrumentation ships — which is precisely the
   // "can never pass, so everyone ignores it" defect the verdict checker exists
@@ -130,7 +154,10 @@ export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, wi
   if (everEntries === 0)
     return 'PENDING — the provenance instrumentation has never written an entry; it is not deployed yet'
   if (controlEntries === 0)
-    return 'FAIL — entries exist historically but none in the window; the instrument wrote before and has gone silent'
+    return controlAttempted
+      ? 'FAIL — a control was written in this window and no entry appeared; the instrument is silent'
+      : `PENDING — no control was written in this ${windowHours}h window, so the instrument's`
+        + ' liveness was not tested. Dispatch d1-write-provenance-verify to test it'
   if (dashEntries > 0)
     return `PASS — ${dashEntries} dash-scheme INSERT(s) recorded with provenance; the caller is named`
   if (gameDaysInWindow === 0)
@@ -140,7 +167,7 @@ export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, wi
 // The control missing is the ONE condition that is a failure: the instrument is
 // silent, and a silent instrument reporting "no second writer" is the false
 // negative this whole item exists to avoid.
-d1WriteProvenance.mustFailOn = { everEntries: 12, controlEntries: 0, dashEntries: 0, windowHours: 48, gameDaysInWindow: 2 }
+d1WriteProvenance.mustFailOn = { everEntries: 12, controlEntries: 0, dashEntries: 0, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true }
 
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
