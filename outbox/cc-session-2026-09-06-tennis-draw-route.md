@@ -112,3 +112,76 @@ and returns a clean-looking draw with one player in two simultaneous matches.
 Nothing deferred. Three `/bsd` routes remain unprobed from the earlier session
 (`events/season`, `r2/list`, `tennis/matches/{id}`); coverage is now 14 of 17
 with the three draw probes added.
+
+---
+
+## Every tier, and the two ends of a bracket
+
+**Coverage: 637 of 637 tournaments read, untruncated.** 35 editions across all
+eight categories the client admits, plus all seven named team events.
+
+**34 of 35 assembled. Zero interior holes. Zero edge-rule violations.**
+
+Draw sizes the model held on: **128, 96, 56, 32, 30, 28, 26.**
+
+```
+grand_slam    R128=64 R64=32 R32=16 R16=8 QF=4 SF=2 F=1
+masters_1000  R128=32 R64=32 ...          96 draw
+wta_1000      R64=24  R32=16 ...          56 draw  (Doha, Dubai)
+atp_500       R32=16  R16=8  ...          32 draw
+wta_500       R32=12  R16=8  ...          28 draw
+```
+
+`atp_1000` holds **zero** tournaments — a dead entry in the client's
+`TENNIS_TIERS`. Harmless, and the weekly run reports it every time.
+
+### Two exemptions, both measured, both at an edge
+
+| edge | the false claim it removed | evidence |
+|---|---|---|
+| entry round | "R128 holds 32 where 64 make a full round" | 9 of 10 Masters flagged, 0 missing a match |
+| innermost round of a live draw | "QF holds 1 where 4 make a full round" | US Open Women 2026, 3 unplayed |
+
+Everything between them stays checked, which is the point: US Open Men 2025's
+`R64=31` and Toronto 2025's `R32=15` are interior, real, and still reported.
+
+### The one 409, and why it stays
+
+**Antalya 3 (id 53), 2026.** Rus lost her Round of 32 on 2026-03-10 and is
+scheduled in another Round of 32 on 03-14. Two events four days apart under one
+tournament id — Antalya runs back-to-back weeks — and the main draw reads 36
+rows where a 32-draw holds 31.
+
+Neither proposed cause fit: not a withdrawal pair (two of three duplicates have
+two live rows), not two calendar years. The season partition is the year of
+`match_date` and a match row carries no season field. The refusal is correct;
+the payload now names the cause.
+
+### Team events: two shapes
+
+```
+WITH a knockout      209 ATP Finals · 4 Next Gen Finals · 204 WTA Finals  (SF=2 F=1)
+                     391 United Cup                                       (QF=4 SF=2 F=1)
+WITHOUT              446 Davis Cup · 509 BJK Cup · 508 BJK Cup Group I    (0 main-draw)
+```
+
+The Cups are ties — no bracket exists. The Finals' round-robin group stage
+carries a **blank** round name and is counted under `roundsOutsideMainDraw`; a
+round-robin is not a round, and what renders is the knockout it feeds.
+
+### The automated follow-up that could not live in either repo alone
+
+The client's admit/exclude lists are literals in `field.js`. A vendor that starts
+serving a Davis Cup knockout, or stops serving the ATP Finals semi-finals, makes
+the client wrong in a way nothing in the client can notice.
+
+`tennis-tier-ladders` now checks both directions weekly against the deployed
+route and **exits 1** on either — an excluded event that gains a draw (a bracket
+nobody can reach) or an admitted one that loses it (a tab offering an empty
+bracket). First run: **21/21 read, 21 held, zero drift.**
+
+### One apparatus defect, mine
+
+The reader printed `interior rounds at their size: 20 of 27` on a run where
+nothing failed — the team-event loop read seven editions and never incremented
+the counter. **A count only some of its subjects can move is not a count.**
