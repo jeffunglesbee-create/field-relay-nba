@@ -10599,11 +10599,38 @@ export default {
                     }
                 }
                 if (twice.length) {
+                    // NAME THE CAUSE, not just the symptom. Measured 2026-09-06
+                    // on tournament 53, "Antalya 3, Turkiye", season 2026:
+                    //
+                    //   Kostović  28603 finished  2026-03-10 v Pigato    won
+                    //             28296 scheduled 2026-03-14 v Rus
+                    //   Rus       28512 finished  2026-03-10 v Gorgodze  LOST
+                    //             28296 scheduled 2026-03-14 v Kostović
+                    //
+                    // Rus lost her Round of 32 on the 10th and is scheduled in
+                    // another Round of 32 on the 14th. That is not one draw with
+                    // a rescheduled match; it is TWO EVENTS four days apart
+                    // under one tournament id, which Antalya runs in
+                    // back-to-back weeks. Its main draw reads 36 rows where a
+                    // 32-draw holds 31.
+                    //
+                    // The season partition is the YEAR of match_date and cannot
+                    // separate them — there is no season field on a match row to
+                    // do better with. So the refusal is correct, and the payload
+                    // now carries the date range so a caller can see WHY rather
+                    // than inferring a vendor bug.
+                    const dates = main.map((m) => String(m.match_date || '').slice(0, 10))
+                                      .filter(Boolean).sort();
                     return new Response(JSON.stringify({
                         error: 'a player appears twice in one round',
                         tournament: wanted, season, duplicates: twice.slice(0, 20),
+                        matchDateRange: dates.length ? { first: dates[0], last: dates[dates.length - 1] } : null,
+                        mainDrawMatches: main.length,
                         why: 'a player plays at most one match per round, so this is not one draw'
                            + ' — it is two, and the join that follows would be a coincidence',
+                        likelyCause: 'two events under one tournament id within the same calendar'
+                           + ' year, which the season partition cannot separate: it is the year of'
+                           + ' match_date, and a match row carries no season field',
                     }), { status: 409, headers: { 'Content-Type': 'application/json', ...CORS } });
                 }
 
