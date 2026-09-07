@@ -10518,10 +10518,35 @@ export default {
                 //
                 // So: `canonical` is null on the entry round and the anomaly
                 // cannot fire there. Its size is reported as what it is.
+                // AND THE INNERMOST ROUND OF A DRAW STILL BEING PLAYED has no
+                // canonical size either, for the mirror-image reason.
+                //
+                // Found by tennis_draw_probe minutes after the entry-round fix
+                // shipped, on the live page: US Open Women 2026 was serving
+                // R128=64 R64=32 R32=16 R16=8 QF=1, and the page said
+                // "Quarterfinals holds 1 matches where 4 make a full round".
+                // Three quarter-finals were not missing. They had not been
+                // played yet.
+                //
+                // The test for "still being played" is the Final: a draw whose
+                // Final exists and has a winner is finished, and every round in
+                // it should be full. Anything else is still filling its
+                // innermost round, and comparing that round to a size is the
+                // same false claim the entry round produced.
+                //
+                // Both exemptions are about the EDGES of what is known: the
+                // outer edge is shaped by byes, the inner edge by the calendar.
+                // Everything between them is comparable and stays checked —
+                // US Open Men 2025's R64=31 and Toronto 2025's R32=15 are both
+                // interior, both real, and both still reported.
                 const present = ORDER.filter((r) => byRound[r]);
+                const finalNodes = byRound['Final'] || [];
+                const drawComplete = finalNodes.length > 0
+                                  && finalNodes.some((n) => n.winnerId != null);
                 const rounds = present.map((r, i) => {
                     const index = ORDER.indexOf(r);
                     const isEntry = i === 0;
+                    const isOpenInnermost = !drawComplete && i === present.length - 1;
                     return {
                         round: r,
                         index,
@@ -10530,10 +10555,17 @@ export default {
                         // a bye. That number is a property of the draw's size,
                         // which BSD does not serve, so there is nothing to
                         // compare it against and null says so.
-                        canonical: isEntry ? null : (1 << (ORDER.length - 1 - index)),
+                        canonical: (isEntry || isOpenInnermost)
+                            ? null : (1 << (ORDER.length - 1 - index)),
                         entryRound: isEntry,
+                        // The round currently being played out. Only ever true
+                        // on a draw with no decided Final.
+                        openInnermostRound: isOpenInnermost,
                     };
                 });
+                // Stated at the top level too, because a client showing a live
+                // draw needs to know it is live without inspecting rounds.
+                const drawIsComplete = drawComplete;
                 for (const r of rounds) {
                     r.atCanonicalSize = r.canonical === null ? null : r.matches === r.canonical;
                 }
@@ -10635,6 +10667,10 @@ export default {
                     pages,
                     editionMatches: edition.length,
                     mainDrawMatches: main.length,
+                    // A finished draw has a Final with a winner. Anything else
+                    // is still filling its innermost round, and that round's
+                    // size is not a fact about the draw yet.
+                    complete: drawIsComplete,
                     roundsOutsideMainDraw: offDraw,
                     rounds,
                     nodes,

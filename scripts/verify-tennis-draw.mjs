@@ -166,9 +166,23 @@ const ORDER = ['Round of 128', 'Round of 64', 'Round of 32', 'Round of 16',
     check(`${e.tid}/${e.season} the entry round declares no canonical size`,
           entry != null && entry.canonical === null && entry.entryRound === true,
           `entry=${JSON.stringify(entry)}`);
-    check(`${e.tid}/${e.season} every round after the entry round has one`,
-          (d.rounds || []).slice(1).every((x) => x.canonical === (1 << (6 - x.index))),
-          JSON.stringify((d.rounds || []).slice(1).map((x) => `${x.round}:${x.canonical}`)));
+    // ...and so does the innermost round of a draw still being played, for the
+    // mirror reason: US Open Women 2026 was serving Quarterfinals=1 and the
+    // page said three were missing. They had not been played yet.
+    check(`${e.tid}/${e.season} every INTERIOR round has a canonical size`,
+          (d.rounds || []).filter((x) => !x.entryRound && !x.openInnermostRound)
+                          .every((x) => x.canonical === (1 << (6 - x.index))),
+          JSON.stringify((d.rounds || []).map((x) => `${x.round}:${x.canonical}`)));
+    check(`${e.tid}/${e.season} an open innermost round is only possible on an unfinished draw`,
+          d.complete === true
+            ? (d.rounds || []).every((x) => x.openInnermostRound === false)
+            : (d.rounds || []).filter((x) => x.openInnermostRound).length <= 1,
+          `complete=${d.complete} open=${JSON.stringify((d.rounds || []).filter((x) => x.openInnermostRound).map((x) => x.round))}`);
+    // All four editions here are finished, so `complete` must be true on each.
+    // A row of these that went false would mean the Final's winner stopped
+    // being read, and every canonical figure would quietly go null with it.
+    check(`${e.tid}/${e.season} reads as a completed draw`, d.complete === true,
+          `complete=${d.complete}`);
     check(`${e.tid}/${e.season} the entry round is never an anomaly`,
           !(d.anomalies || []).some((a) => a.kind === 'roundNotAtCanonicalSize'
                                         && a.round === entry?.round),
