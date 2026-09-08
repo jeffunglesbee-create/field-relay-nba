@@ -1,0 +1,12 @@
+PASS  write 1 (new key) succeeds
+PASS  a NEW key writes no history row
+PASS  the codex row holds the first body
+PASS  write 2 (overwrite) succeeds
+PASS  THE FIRST BODY SURVIVES IN codex_history
+PASS  the codex row now holds the second body
+PASS  the history row is stamped
+PASS  write 3 (unchanged body) succeeds
+PASS  AN UNCHANGED REWRITE ADDS NO HISTORY ROW
+PASS  the scratch key is gone from both tables
+
+10/10 assertions passed
