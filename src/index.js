@@ -5711,6 +5711,52 @@ async function ensureScoringVersionColumn(env) {
   _scoringVersionReady = true;
 }
 
+// ── codex_history: the prior body of any codex row an update replaces ──────
+//
+// CC-CMD-2026-09-07-codex-write-nondestructive-and-recovery. On 2026-09-08
+// between ~03:11Z and ~03:14Z, 25 `codex_write` calls against existing
+// `cc-cmd-queue` keys replaced their bodies with verification notes. The handler
+// is an upsert: `content = excluded.content` destroys the prior value with no
+// copy anywhere. `created_at` survived; the prose did not. One of the 25 —
+// `cc-cmd-2026-08-08-desk-sports-followups` — had no CC-CMD doc and no outbox
+// record in either repo, so its codex body was the only description of that work
+// in existence.
+//
+// The guard is AUTOMATIC, and that is the requirement rather than a convenience:
+// the failure mode is a careless caller, and a caller who has to opt in to
+// history is exactly the caller who will not.
+//
+// `_codexHistoryReady` is set ONLY on success, unlike `_codexStatusReady` below.
+// That difference is deliberate. The status migration's expected outcome is a
+// thrown "duplicate column" — failure there means the column already exists, so
+// latching is right. Here a failure means the table may not exist, and latching
+// would mark a missing journal as ready for the rest of the isolate's life.
+let _codexHistoryReady = false;
+async function ensureCodexHistoryTable(env) {
+  if (_codexHistoryReady) return;
+  if (!env.ARCHIVE_DB) return;
+  try {
+    await env.ARCHIVE_DB.batch([
+      env.ARCHIVE_DB.prepare(`
+        CREATE TABLE IF NOT EXISTS codex_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          key TEXT NOT NULL,
+          category TEXT,
+          title TEXT,
+          content TEXT,
+          replaced_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `),
+      env.ARCHIVE_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_codex_history_key ON codex_history(key)`),
+      env.ARCHIVE_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_codex_history_replaced ON codex_history(replaced_at)`),
+    ]);
+    _codexHistoryReady = true;
+  } catch (e) {
+    console.error("[CODEX-HISTORY] table bootstrap failed:", e.message);
+    /* NOT latched — retried on the next write. See the note above. */
+  }
+}
+
 let _codexStatusReady = false;
 async function ensureCodexStatusColumn(env) {
   if (_codexStatusReady) return;
@@ -14926,7 +14972,11 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'missing sql' }),
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
-            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'jq_retry_telemetry', 'game_thread_notes'];
+            // `codex_history` added 2026-09-08 with the non-destructive guard. `codex` was
+            // already here; the journal holds the same class of row and is unreadable
+            // without it, which would leave the guard's own done condition —
+            // "the first body survives" — unverifiable from outside the worker.
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'codex_history', 'jq_retry_telemetry', 'game_thread_notes'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),
@@ -19884,17 +19934,56 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                     }
                     try {
                         await ensureCodexStatusColumn(env);
-                        await env.ARCHIVE_DB.prepare(`
-                            INSERT INTO codex (key, category, title, content, drive_refs, status, updated_at)
-                            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                            ON CONFLICT(key) DO UPDATE SET
-                                category = excluded.category,
-                                title    = excluded.title,
-                                content  = excluded.content,
-                                drive_refs = excluded.drive_refs,
-                                status   = COALESCE(?, status),
-                                updated_at = datetime('now')
-                        `).bind(key, category, title, content, drive_refs || null, status || 'open', status || null).run();
+                        await ensureCodexHistoryTable(env);
+                        // ONE BATCH, AND THE ORDER IS WHAT THE GUARD RESTS ON.
+                        // batch() runs its statements sequentially, so the
+                        // history copy is attempted BEFORE the upsert — there is
+                        // no interleaving where the row is replaced first and
+                        // journalled second. D1 additionally documents batch()
+                        // as a single transaction that rolls back on any
+                        // failure, which makes a partial outcome impossible as
+                        // well as unordered; the sequential guarantee alone is
+                        // enough for the property that matters here, so this
+                        // does not depend on the stronger claim.
+                        //
+                        // FAIL-CLOSED, and the tension with Rule 5 is stated
+                        // rather than glossed. Rule 5 says an MCP tool must not
+                        // fail because an archive write failed. This history
+                        // write is not incidental archival beside the operation;
+                        // it IS the operation's safety property, and the only
+                        // alternative to refusing is destroying a body with no
+                        // copy — which is the incident this exists to prevent.
+                        // The caller gets an error and can retry; nothing is
+                        // lost either way.
+                        await env.ARCHIVE_DB.batch([
+                            // `IS NOT`, not `<>`. In SQLite `content <> ?`
+                            // evaluates to NULL when content is NULL, so the row
+                            // would not be selected and a NULL prior state would
+                            // go unjournaled — the one shape where "no history
+                            // row" and "nothing was replaced" become
+                            // indistinguishable. `IS NOT` is null-safe.
+                            //
+                            // The WHERE clause is also what makes this a no-op
+                            // for an insert of a brand-new key and for a rewrite
+                            // that changes nothing: neither selects a row, so
+                            // neither adds history.
+                            env.ARCHIVE_DB.prepare(`
+                                INSERT INTO codex_history (key, category, title, content, replaced_at)
+                                SELECT key, category, title, content, datetime('now')
+                                FROM codex WHERE key = ? AND content IS NOT ?
+                            `).bind(key, content),
+                            env.ARCHIVE_DB.prepare(`
+                                INSERT INTO codex (key, category, title, content, drive_refs, status, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                                ON CONFLICT(key) DO UPDATE SET
+                                    category = excluded.category,
+                                    title    = excluded.title,
+                                    content  = excluded.content,
+                                    drive_refs = excluded.drive_refs,
+                                    status   = COALESCE(?, status),
+                                    updated_at = datetime('now')
+                            `).bind(key, category, title, content, drive_refs || null, status || 'open', status || null),
+                        ]);
                         return respond(jsonrpc2({content:[{type:'text',text:JSON.stringify({ok:true, key, category, title, status: status || 'open'})}]}));
                     } catch (e) {
                         return respond(jsonrpc2({content:[{type:'text',text:`codex_write failed: ${e.message}`}], isError:true}));

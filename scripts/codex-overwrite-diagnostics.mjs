@@ -116,18 +116,53 @@ out.findings.desk_sports_followups = await d1(
 // ── verdict ────────────────────────────────────────────────────────────────
 const codexJournalRows = out.findings.change_log_codex_any_time.rows?.length ?? null;
 const historyRows = out.findings.codex_history_probe.rows?.[0]?.n ?? null;
-const historyErrored = !!out.findings.codex_history_probe.error;
+const historyErr = out.findings.codex_history_probe.error || '';
+
+// A 403 "table not allowed" is the /d1/execute ALLOWED_TABLES guard REFUSING the
+// question, not an answer to it. The first run of this script conflated the two
+// and printed "codex_history does not exist" — a claim the probe had not made
+// and could not make. `codex_history` was added to ALLOWED_TABLES alongside the
+// guard; until that deploys, this states the refusal instead of inventing a
+// finding from it.
+const historyUnasked = /table not allowed/.test(historyErr);
+const historyState =
+  historyUnasked ? 'was NOT ASKED — /d1/execute refused the table (ALLOWED_TABLES)'
+  : historyErr ? `errored: ${historyErr.slice(0, 120)}`
+  : historyRows > 0 ? `holds ${historyRows} row(s)`
+  : 'exists and is empty';
+
+out.findings.codex_history_state = historyState;
 
 out.verdict =
   codexJournalRows === null
     ? 'INCONCLUSIVE — the change_log query itself failed; see findings.change_log_codex_any_time.error'
   : codexJournalRows > 0
-    ? `RECOVERABLE FROM change_log — ${codexJournalRows} codex-referencing row(s). Task 2 and 3 are unnecessary.`
-  : (!historyErrored && historyRows > 0)
+    ? `RECOVERABLE FROM change_log — ${codexJournalRows} codex-referencing row(s). Tasks 2 and 3 are unnecessary.`
+  : (!historyErr && historyRows > 0)
     ? `RECOVERABLE FROM codex_history — ${historyRows} row(s) already journaled.`
-    : 'NO JOURNAL — change_log carries no codex row at any time, and codex_history '
-      + (historyErrored ? 'does not exist' : 'is empty')
-      + '. Task 0a fails; the originals are not in live data.';
+    : `NO JOURNAL IN change_log — it carries no codex-referencing row at any time. `
+      + `codex_history ${historyState}. `
+      + (historyUnasked
+          ? 'The codex_history half of Task 0a is therefore UNANSWERED, not negative.'
+          : 'Task 0a fails; the originals are not in live data.');
+
+// The damage, measured rather than inherited (Rule 72). An UPDATE bumps
+// updated_at; a fresh INSERT sets created_at too. Separating them is what turns
+// "28 rows touched" into "26 overwrites and 2 new rows" — the CC-CMD's inherited
+// figure was 25.
+const q = out.findings.queue_rows.rows || [];
+const inWindow = q.filter(r => r.updated_at >= WINDOW_FROM && r.updated_at <= WINDOW_TO);
+const createdInWindow = inWindow.filter(r => r.created_at >= WINDOW_FROM && r.created_at <= WINDOW_TO);
+out.findings.damage = {
+  queue_rows_total: q.length,
+  touched_in_window: inWindow.length,
+  created_in_window: createdInWindow.length,
+  overwritten_in_window: inWindow.length - createdInWindow.length,
+  cc_cmd_claimed: 25,
+  keys_overwritten: inWindow
+    .filter(r => !(r.created_at >= WINDOW_FROM && r.created_at <= WINDOW_TO))
+    .map(r => r.key),
+};
 
 const { writeFileSync } = await import('node:fs');
 writeFileSync(OUT, JSON.stringify(out, null, 2) + '\n');

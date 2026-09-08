@@ -54,6 +54,16 @@ jobs:
             npx --yes wrangler@3.109.0 d1 time-travel info field-archive 2>&1
           } | tee outbox/codex-overwrite-0b-timetravel.txt
 
+      # TASK 1 verification. Runs after the guard deploys; before that it fails
+      # on the missing table, which is a true report of the deployed state rather
+      # than a broken test.
+      - name: 1 — two-write scratch test, and the no-op control
+        continue-on-error: true
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-history-scratch-test.mjs 2>&1 | tee outbox/codex-history-scratch-test.log
+
       - name: Commit findings
         if: always()
         run: |
