@@ -1,0 +1,26 @@
+# wrangler d1 time-travel info --database field-archive
+# run at 2026-09-08T18:32:00Z
+# INFO ONLY. restore is forbidden by the CC-CMD and by the dispatcher.
+
+npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
+npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mA request to the Cloudflare API (/accounts/b57e9af57ab46c52ca9215804e689c29/d1/database/cc49101c-0569-4d41-8e7a-be139cde4f26) failed.[0m
+
+  Authentication error [code: 10000]
+
+
+📎 It looks like you are authenticating Wrangler via a custom API token set in an environment variable.
+Please ensure it has the correct permissions for this operation.
+
+Getting User settings...
+ℹ️  The API Token is read from the CLOUDFLARE_API_TOKEN in your environment.
+👋 You are logged in with an API Token, associated with the email jeffunglesbee@gmail.com.
+┌───────────────────────────────────┬──────────────────────────────────┐
+│ Account Name                      │ Account ID                       │
+├───────────────────────────────────┼──────────────────────────────────┤
+│ Jeffunglesbee@gmail.com's Account │ b57e9af57ab46c52ca9215804e689c29 │
+└───────────────────────────────────┴──────────────────────────────────┘
+🔓 To see token permissions visit https://dash.cloudflare.com/profile/api-tokens.
+🎢 Membership roles in "Jeffunglesbee@gmail.com's Account": Contact account super admin to change your permissions.
+- Super Administrator - All Privileges

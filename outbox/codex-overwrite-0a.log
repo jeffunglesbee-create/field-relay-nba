@@ -1,0 +1,160 @@
+{
+  "ran_at": "2026-09-08T18:31:59.596Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "window": {
+    "from": "2026-09-08 02:00:00",
+    "to": "2026-09-08 04:00:00"
+  },
+  "findings": {
+    "change_log_rows_in_window": {
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "change_log_sources_in_window": {
+      "rows": []
+    },
+    "change_log_codex_any_time": {
+      "rows": []
+    },
+    "codex_history_probe": {
+      "error": "HTTP 403 {\"ok\":false,\"error\":\"table not allowed\",\"table\":\"codex_history\"}"
+    },
+    "queue_rows": {
+      "rows": [
+        {
+          "key": "cc-cmd-2026-09-07-codex-write-nondestructive-and-recovery",
+          "title": "PENDING -- make codex_write non-destructive (codex_history) + recover 25 overwritten queue bodies",
+          "status": "open",
+          "created_at": "2026-09-08 04:04:27",
+          "updated_at": "2026-09-08 04:04:27",
+          "content_len": 1255,
+          "content_head": "field-relay-nba docs/CC-CMD-2026-09-07-codex-write-nondestructive-and-recovery.md, commit 3a61e53.\n\nCAUSE: codex_write REPLACES content on an existing key. On 2"
+        },
+        {
+          "key": "cc-cmd-2026-08-08-desk-sports-followups",
+          "title": "PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)",
+          "status": "open",
+          "created_at": "2026-08-08 22:38:47",
+          "updated_at": "2026-09-08 03:13:38",
+          "content_len": 682,
+          "content_head": "STILL UNVERIFIED after the 2026-09-07 audit. Neither repo contains a CC-CMD doc or an outbox/cc-session record matching \"desk-sports\".\n\nCORRECTION: this audit i"
+        },
+        {
+          "key": "cc-cmd-2026-07-28-venue-table-followups",
+          "title": "PENDING -- venue table followups, roofType generator task not landed",
+          "status": "open",
+          "created_at": "2026-07-28 00:36:48",
+          "updated_at": "2026-09-08 03:13:32",
+          "content_len": 493,
+          "content_head": "RE-VERIFIED 2026-09-07 against HEAD. roofType appears 0 times in src/legacy/field.js, so the roofType generator task did not land.\n\nCORRECTION TO THIS AUDIT'S O"
+        },
+        {
+          "key": "queue-deadcode-and-ambiguous",
+          "title": "PENDING -- dead-code removal HALF LANDED, no execution record, 3 of 6 functions remain",
+          "status": "open",
+          "created_at": "2026-07-13 02:44:08",
+          "updated_at": "2026-09-08 03:13:27",
+          "content_len": 1024,
+          "content_head": "RE-VERIFIED 2026-09-07 against HEAD 893e0d7. This is the only genuinely-open CODE item in the queue. No outbox/cc-session record exists for CC-CMD-2026-07-13-qu"
+        },
+        {
+          "key": "cc-cmd-2026-08-06-apply-soccer-league-label-fix-v2",
+          "title": "DONE -- apply soccer league label fix v2",
+          "status": "resolved",
+          "created_at": "2026-08-06 14:34:06",
+          "updated_at": "2026-09-08 03:13:18",
+          "content_len": 256,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. field-relay-nba HANDOFF 2026-08-06 close-out: commit 3235749, 52 mislabelled archived soccer rows corrected, 0 mismatches remain"
+        },
+        {
+          "key": "cc-cmd-2026-07-25-playground-secret-bootstrap",
+          "title": "DONE -- playground secret bootstrap",
+          "status": "resolved",
+          "created_at": "2026-07-25 23:14:45",
+          "updated_at": "2026-09-08 03:13:14",
+          "content_len": 206,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. field-relay-nba HANDOFF.md 2026-07-25/27 session close-out records completion with the verbatim Courier response, a successful d"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-fix-espn-standings-all-sports",
+          "title": "DONE -- fix ESPN standings across all sports",
+          "status": "resolved",
+          "created_at": "2026-08-02 11:33:31",
+          "updated_at": "2026-09-08 03:13:10",
+          "content_len": 628,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Confirmed via the 2026-08-16 client session's live browser verification: 33 rows with two conference group headers; fix shared b"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-discovery-discipline-and-drift-detector",
+          "title": "DONE -- discovery discipline (Rule 98) + deploy drift detector",
+          "status": "resolved",
+          "created_at": "2026-08-02 21:44:19",
+          "updated_at": "2026-09-08 03:13:04",
+          "content_len": 311,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Both halves confirmed: Rule 98 \"Undocumented-API discovery discipline (DISCOVERY-DISCIPLINE-A)\" at STANDARDS.md:4845, and .githu"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-undocumented-api-health-check",
+          "title": "DONE -- undocumented API health check",
+          "status": "resolved",
+          "created_at": "2026-08-02 21:44:25",
+          "updated_at": "2026-09-08 03:12:59",
+          "content_len": 243,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Both artifacts exist and return 200: scripts/undocumented-api-health-check.mjs and .github/workflows/undocumented-api-health-che"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-warm-mlb-standings-streak-bonuses",
+          "title": "DONE -- warm MLB standings for streak bonuses (SHIPPED 06994101)",
+          "status": "resolved",
+          "created_at": "2026-08-02 04:08:44",
+          "updated_at": "2026-09-08 03:12:55",
+          "content_len": 428,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-warm-mlb-standings-for-streak-bonuses.md. Status: SHIPPED, com"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-standards-redundancy-audit",
+          "title": "DONE -- STANDARDS.md redundancy audit (investigation only)",
+          "status": "resolved",
+          "created_at": "2026-08-02 23:40:32",
+          "updated_at": "2026-09-08 03:12:51",
+          "content_len": 372,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-standards-redundancy-audit.md. Status DONE, investigation only"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-byte-ceiling-options",
+          "title": "DONE -- byte ceiling options (investigation; DECISION STILL OWED BY JEFF)",
+          "status": "resolved",
+          "created_at": "2026-08-02 23:40:36",
+          "updated_at": "2026-09-08 03:12:46",
+          "content_len": 421,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-byte-ceiling-options.md. Status: DONE, investigation only -- \""
+        },
+        {
+          "key": "cc-cmd-2026-08-10-laboratory-secret-bootstrap",
+          "title": "DONE -- field-laboratory secret bootstrap (confidence 96)",
+          "status": "resolved",
+          "created_at": "2026-08-10 02:03:41",
+          "updated_at": "2026-09-08 03:12:41",
+          "content_len": 445,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-10-laboratory-secret-bootstrap.md (164 lines). Status DONE, confidence 96 -- labor"
+        },
+        {
+          "key": "cc-cmd-2026-08-03-fix-drama-backfill-situational-fields",
+          "title": "DONE -- fix drama backfill situational fields",
+          "status": "resolved",
+          "created_at": "2026-08-03 13:12:27",
+          "updated_at": "2026-09-08 03:12:36",
+          "content_len": 307,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-03-fix-drama-backfill-situational-fields.md (138 lines). Status DONE: real field-p"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-shared-schedule-ai-cache",
+          "title": "DONE -- shared schedule AI cache (relay)",
+          "status":
+
+written to outbox/codex-overwrite-diagnostics-2026-09-08T18-31-59-595Z.json
+
+VERDICT: NO JOURNAL — change_log carries no codex row at any time, and codex_history does not exist. Task 0a fails; the originals are not in live data.
