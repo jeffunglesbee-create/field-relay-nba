@@ -1,0 +1,90 @@
+# CC-CMD-2026-09-07-codex-write-nondestructive-and-recovery — the Task 0b
+# follow-up, automated so nobody has to remember it.
+#
+# Task 0b could not read field-archive's Time Travel retention window: the
+# CLOUDFLARE_API_TOKEN authenticates — the same token deployed the worker in run
+# 34264096616 minutes earlier — and is refused on the D1 endpoint with
+# `Authentication error [code: 10000]`. The window is therefore UNMEASURED, which
+# is neither "there is one" nor "there is not", and Task 2's gate ("0a failed AND
+# 0b confirms a window") is unmet.
+#
+# One human action unblocks it: minting a token with D1 read permission. This
+# watches for that and reports which of two terminal answers arrived.
+#
+# IT REPORTS. IT DOES NOT RECOVER. The side-restore exports production data into
+# a scratch database, and standing operations against production D1 are
+# authorised case by case — never wired to a cron by the session that noticed
+# they were possible. `time-travel restore` is forbidden outright: it rewinds the
+# ENTIRE database, and 60 deployed routes read or write d1:ARCHIVE_DB, several on
+# */5 and */15 crons.
+name: time travel window watch
+
+on:
+  schedule:
+    # Weekly. The thing being waited on is a person minting a token, which does
+    # not happen on a schedule — a daily run would spend Actions minutes to ask
+    # the same question six more times a week for no extra information.
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timetravel-window-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The classifier before the classification. It is fixture-driven and
+      # includes the REAL captured refusal, so this costs seconds and catches a
+      # parser that has quietly stopped telling the three states apart — which is
+      # the failure mode of a check that has only ever seen one of them.
+      - name: The classifier can still tell the three answers apart
+        run: node scripts/timetravel-window-watch.mjs --self-test
+
+      - name: Ask whether the window is readable yet
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/timetravel-window-watch.mjs | tee outbox/timetravel-window-watch.log
+
+      # The commit message carries the state, so the answer is visible in `git
+      # log` without opening an artifact. A PENDING week commits nothing at all —
+      # the status file is byte-identical apart from its timestamp, and a weekly
+      # "nothing changed" commit is noise that trains people to skip the one week
+      # it does change.
+      - name: Commit only a CHANGED answer
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          STATE=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('outbox/timetravel-window-watch-status.json','utf8')).state)}catch(e){console.log('UNKNOWN')}")
+          # Ignore a timestamp-only diff. `git diff` on the status file would
+          # report a change every single run because checked_at always moves.
+          git add outbox/timetravel-window-watch-status.json outbox/timetravel-window-watch.log
+          if git diff --cached -U0 -- outbox/timetravel-window-watch-status.json \
+             | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
+             | grep -vE '"(checked_at|raw_output)"' | grep -q .; then
+            echo "state changed to ${STATE} — committing"
+          else
+            echo "still ${STATE}, nothing but timestamps moved — no commit"
+            git reset -q
+            exit 0
+          fi
+          git commit -m "chore: time travel window watch — ${STATE}"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1

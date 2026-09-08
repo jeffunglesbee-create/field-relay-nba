@@ -109,3 +109,34 @@ convert it into a real CC-CMD. This entry is the whole point of the exercise.
 Write `outbox/cc-session-2026-09-07-codex-write-nondestructive-and-recovery.md`
 with the Task 0a/0b findings, the commit SHA, the scratch-test output, exactly
 which keys were recovered, and which (if any) were not and why.
+
+---
+
+## STATUS — 2026-09-08: TASK 1 DONE, TASKS 2-4 BLOCKED ON A TOKEN
+
+Executed 2026-09-08. Session doc:
+`outbox/cc-session-2026-09-07-codex-write-nondestructive-and-recovery.md`
+
+| task | outcome |
+|---|---|
+| 0a | **NO JOURNAL.** `change_log` holds 0 codex-referencing rows at any time; `codex_history` did not exist. Measured twice. |
+| 0b | **UNMEASURABLE.** `wrangler d1 time-travel info` → Cloudflare `Authentication error [code: 10000]`. The same token deployed the worker minutes earlier, so it is valid and lacks D1 permission. `restore` never run. |
+| 1 | **DONE.** `f2cf0fd`, deploy 919. Scratch test 10/10 including the no-op negative control. |
+| 2 | **NOT RUN.** Its gate is "0a failed AND 0b confirms a window". 0b confirms nothing, and this document says not to assume one exists. |
+| 3 | Not reachable — depends on Task 2's output. |
+| 4 | **NOT RESOLVED.** `desk-sports-followups` is unrecoverable; "no record in either repo" verified independently across four searches. |
+| 5 | **DONE.** `80673b0`. |
+
+**The damage is 26, not 25.** 28 `cc-cmd-queue` rows were touched in the window;
+2 have `created_at` inside it, so they are creations rather than overwrites.
+
+**The follow-up is automated, not carried forward.**
+`.github/workflows/timetravel-window-watch.yml` re-asks weekly and on dispatch
+whether the window has become readable, and reports one of three states. It
+reports and never recovers: the side-restore exports production data, and
+standing operations against production D1 are authorised case by case.
+
+**What unblocks Tasks 2-4:** a `CLOUDFLARE_API_TOKEN` carrying D1 read
+permission. Nothing else. If the earliest bookmark then reaches back past
+2026-09-08T03:11:00Z, Task 2 runs exactly as written above; if it does not, the
+answer is already final and no procedure changes it.

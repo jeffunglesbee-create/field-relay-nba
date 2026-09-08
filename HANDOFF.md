@@ -1,5 +1,108 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-08 (codex_write stopped destroying bodies; the recovery did not happen)
+
+**HEAD:** `1b625b5` → `518978e` → `f2cf0fd` → `80673b0` → this · **Branch:** main throughout
+**Session doc:** `outbox/cc-session-2026-09-07-codex-write-nondestructive-and-recovery.md`
+**CC-CMD:** `docs/CC-CMD-2026-09-07-codex-write-nondestructive-and-recovery.md`
+**Deploy:** 919, SUCCESS (85 gates + 13 verify steps)
+
+### The guard
+
+`codex_write` was a bare upsert: `content = excluded.content` destroyed the
+prior value with no copy anywhere. On 2026-09-08 between ~03:11Z and ~03:14Z it
+replaced **26** `cc-cmd-queue` bodies with verification notes.
+
+`codex_history (id, key, category, title, content, replaced_at)` now takes a copy
+whenever an update would change `content`. Signature unchanged, automatic —
+the failure mode is a careless caller, and a caller who has to opt in is exactly
+the caller who will not.
+
+```sql
+INSERT INTO codex_history (key, category, title, content, replaced_at)
+SELECT key, category, title, content, datetime('now')
+FROM codex WHERE key = ? AND content IS NOT ?
+```
+
+`IS NOT`, not `<>`: in SQLite `content <> ?` is NULL when content is NULL, so
+that row would not be selected and a NULL prior state would go unjournalled.
+The same clause makes it a no-op for a new key and for a rewrite that changes
+nothing. One batch, and the ORDER carries the guarantee — the copy is attempted
+before the upsert, so a failure refuses rather than destroys.
+
+### Done condition — the scratch test, verbatim
+
+```
+PASS  a NEW key writes no history row
+PASS  THE FIRST BODY SURVIVES IN codex_history
+PASS  AN UNCHANGED REWRITE ADDS NO HISTORY ROW
+PASS  the scratch key is gone from both tables
+
+10/10 assertions passed
+```
+
+The third write is the teeth: a guard journalling on every write regardless of
+change would satisfy "the first body survives" and be wrong.
+
+### Task 0 — both diagnostics, and what they cost
+
+**0a — no journal.** `change_log` carries 0 rows in the incident window and 0
+codex-referencing rows **at any time**; `codex_history` did not exist. Measured
+twice against the live database, not read off the source.
+
+**0b — UNMEASURABLE, which is not "no window".** `wrangler d1 time-travel info`
+returns Cloudflare `Authentication error [code: 10000]` on the D1 endpoint. The
+same token succeeded for `wrangler deploy`, KV bootstrap and three cross-repo
+secret syncs in run 34264096616 minutes earlier — so the token is valid and
+lacks D1 permission specifically. Two measurements, not one reading.
+
+`time-travel restore` was never run and must not be: it rewinds the ENTIRE
+database, and 60 deployed routes read or write `d1:ARCHIVE_DB`, several on `*/5`
+and `*/15` crons.
+
+### Tasks 2–4 NOT RUN, and that is the correct outcome
+
+Task 2's gate is "0a failed **and** 0b confirms a window". 0b confirms nothing,
+and the CC-CMD is explicit: do not assume a window exists.
+
+`cc-cmd-2026-08-08-desk-sports-followups` — the one row with no other copy
+anywhere — is **unrecovered**. Its "no record in either repo" claim was verified
+independently: filenames and file contents across `docs/` and `outbox/` in both
+repos, four searches, all empty. `created_at 2026-08-08 22:38:47` is the only
+surviving fact about the original.
+
+### The follow-up is automated, not carried forward
+
+`.github/workflows/timetravel-window-watch.yml`, weekly and dispatchable. It
+re-asks whether the window is readable and reports one of three states; a
+PENDING week commits nothing, so the one week it changes is visible. It
+**reports and never recovers** — the side-restore exports production data, and
+standing operations against production D1 are authorised case by case.
+
+The classifier is fixture-driven (the real captured refusal among them) and was
+mutation-tested before being trusted: always-AUTH_REFUSED, an exclusive
+boundary, and latest-instead-of-earliest were each caught by the row written for
+them.
+
+### Corrections recorded rather than quietly fixed
+
+- The CC-CMD's inherited count was **25**; measurement says **26**. Of 28 rows
+  touched in the window, 2 have `created_at` inside it — new rows, not
+  overwrites.
+- The first diagnostics run printed "codex_history does not exist" when its query
+  had returned **403 table not allowed** — the `/d1/execute` guard refusing the
+  question, conflated with an answer.
+- A workflow run id in the session doc's first draft was **invented**. Replaced
+  with the id read back from the Actions API, and the correction left in the
+  document.
+
+### Open, and whose it is
+
+Minting a `CLOUDFLARE_API_TOKEN` with **D1 read** permission is the only thing
+that unblocks the recovery. The watch above is what notices.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-09-06/07 (a tennis draw, and a 128-ladder no slam could catch)
 
 **HEAD:** `fd25196` → `9d029e9` · **Branch:** main throughout
