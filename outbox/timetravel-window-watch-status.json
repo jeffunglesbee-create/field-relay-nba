@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-09-08T22:28:55.742Z",
+  "database": "field-archive",
+  "incident": "2026-09-08T03:11:00Z",
+  "state": "AUTH_REFUSED",
+  "verdict": "PENDING — the token still lacks D1 permission, so the retention window is unmeasured. Task 2 stays blocked. Nothing has changed and nothing is wrong.",
+  "terminal": false,
+  "raw_output": "npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.\nnpm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead\n\n\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mA request to the Cloudflare API (/accounts/b57e9af57ab46c52ca9215804e689c29/d1/database/cc49101c-0569-4d41-8e7a-be139cde4f26) failed.\u001b[0m\n\n  Authentication error [code: 10000]\n\n\n📎 It looks like you are authenticating Wrangler via a custom API token set in an environment variable.\nPlease ensure it has the correct permissions for this operation.\n\nGetting User settings...\nℹ️  The API Token is read from the CLOUDFLARE_API_TOKEN in your environment.\n👋 You are logged in with an API Token, associated with the email jeffunglesbee@gmail.com.\n┌───────────────────────────────────┬──────────────────────────────────┐\n│ Account Name                      │ Account ID                       │\n├───────────────────────────────────┼──────────────────────────────────┤\n│ Jeffunglesbee@gmail.com's Account │ b57e9af57ab46c52ca9215804e689c29 │\n└───────────────────────────────────┴──────────────────────────────────┘\n🔓 To see token permissions visit https://dash.cloudflare.com/profile/api-tokens.\n🎢 Membership roles in \"Jeffunglesbee@gmail.com's Account\": Contact account super admin to change your permissions.\n- Super Administrator - All Privileges\n"
+}
