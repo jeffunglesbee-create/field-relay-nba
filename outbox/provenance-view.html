@@ -165,12 +165,11 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     <table class="vers">
       <tr><td class="n">6</td><td class="w">stamped</td><td class="why">keys carrying a writer and a timestamp, prefix <code>odds</code></td></tr>
       <tr><td class="n">3</td><td class="w">not yet</td><td class="why">written before the wrap shipped, or by a Durable Object &mdash; these expire on their own TTL, and watching this to zero is the done condition</td></tr>
-      <tr><td class="n">1</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
+      <tr><td class="n">2</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
       <tr><td class="n">2</td><td class="w">writer</td><td class="why"><code>cron:*/15 * * * *</code></td></tr>
       <tr><td class="n">2</td><td class="w">writer</td><td class="why"><code>do:AmbientDO</code></td></tr>
-      <tr><td class="n">1</td><td class="w">writer</td><td class="why"><code>route:/v2/games</code></td></tr>
     </table>
-    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-09-07T03:04:47.437Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
+    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-09-07T13:01:05.903Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
   </section>
 
   <div class="barwrap">
@@ -1735,7 +1734,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <footer>
-    <span>census 2026-09-07T12:45:49.003Z</span>
+    <span>census 2026-09-08T11:28:18.483Z</span>
     <span>225 dispatch lines &rarr; 197 distinct paths</span>
     <span>static read; runtime responses not probed</span>
     <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>
