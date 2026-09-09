@@ -1,0 +1,37 @@
+authority (28):
+  "AFL"
+  "Bundesliga"
+  "CFB"
+  "CFL"
+  "EFL Cup"
+  "EFL Trophy"
+  "EPL"
+  "FIFA World Cup"
+  "IPL"
+  "La Liga"
+  "Ligue 1"
+  "MLB"
+  "MLS"
+  "NBA"
+  "NFL"
+  "NHL"
+  "PGA Tour"
+  "Serie A"
+  "UEFA Champions League"
+  "UEFA Champions League Qualifying"
+  "UEFA Europa Conference League"
+  "UEFA Europa Conference League Qualifying"
+  "UEFA Europa League"
+  "UEFA Europa League Qualifying"
+  "UFL"
+  "WNBA"
+  "golf"
+  "wnba"
+
+case-insensitive collisions inside the authority: [["wnba",["WNBA","wnba"]]]
+
+briefs labels NOT in the authority (4):
+  "MLS Soccer"  7 row(s)
+  "PGA TOUR"  2 row(s)
+  "CFL – 2026 Season · Week 14"  2 row(s)
+  "wc"  1 row(s)

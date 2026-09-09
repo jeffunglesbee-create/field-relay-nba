@@ -1,0 +1,294 @@
+{
+  "ran_at": "2026-09-09T22:34:04.868Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "regular_season_sports": {
+    "rows": [
+      {
+        "sport": "AFL",
+        "n": 138
+      },
+      {
+        "sport": "Bundesliga",
+        "n": 18
+      },
+      {
+        "sport": "CFB",
+        "n": 99
+      },
+      {
+        "sport": "CFL",
+        "n": 21
+      },
+      {
+        "sport": "EFL Cup",
+        "n": 63
+      },
+      {
+        "sport": "EFL Trophy",
+        "n": 11
+      },
+      {
+        "sport": "EPL",
+        "n": 56
+      },
+      {
+        "sport": "FIFA World Cup",
+        "n": 103
+      },
+      {
+        "sport": "IPL",
+        "n": 2
+      },
+      {
+        "sport": "La Liga",
+        "n": 51
+      },
+      {
+        "sport": "Ligue 1",
+        "n": 29
+      },
+      {
+        "sport": "MLB",
+        "n": 1096
+      },
+      {
+        "sport": "MLS",
+        "n": 586
+      },
+      {
+        "sport": "NFL",
+        "n": 49
+      },
+      {
+        "sport": "PGA Tour",
+        "n": 14
+      },
+      {
+        "sport": "Serie A",
+        "n": 30
+      },
+      {
+        "sport": "UEFA Champions League",
+        "n": 13
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "n": 11
+      },
+      {
+        "sport": "UEFA Europa Conference League",
+        "n": 1
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "n": 48
+      },
+      {
+        "sport": "UEFA Europa League",
+        "n": 1
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "n": 24
+      },
+      {
+        "sport": "WNBA",
+        "n": 210
+      },
+      {
+        "sport": "golf",
+        "n": 56
+      },
+      {
+        "sport": "wnba",
+        "n": 14
+      }
+    ]
+  },
+  "postseason_sports": {
+    "rows": [
+      {
+        "sport": "MLS",
+        "n": 243
+      },
+      {
+        "sport": "NBA",
+        "n": 15
+      },
+      {
+        "sport": "NHL",
+        "n": 15
+      },
+      {
+        "sport": "UFL",
+        "n": 2
+      }
+    ]
+  },
+  "briefs_sports": {
+    "rows": [
+      {
+        "sport": "MLB",
+        "n": 2703
+      },
+      {
+        "sport": "FIFA World Cup",
+        "n": 615
+      },
+      {
+        "sport": "MLS",
+        "n": 387
+      },
+      {
+        "sport": "CFB",
+        "n": 231
+      },
+      {
+        "sport": "WNBA",
+        "n": 216
+      },
+      {
+        "sport": "EPL",
+        "n": 140
+      },
+      {
+        "sport": "EFL Cup",
+        "n": 132
+      },
+      {
+        "sport": "La Liga",
+        "n": 116
+      },
+      {
+        "sport": "NFL",
+        "n": 87
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "n": 76
+      },
+      {
+        "sport": "Serie A",
+        "n": 65
+      },
+      {
+        "sport": "Ligue 1",
+        "n": 54
+      },
+      {
+        "sport": "Bundesliga",
+        "n": 41
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "n": 40
+      },
+      {
+        "sport": "wnba",
+        "n": 36
+      },
+      {
+        "sport": "PGA Tour",
+        "n": 34
+      },
+      {
+        "sport": "UEFA Champions League",
+        "n": 28
+      },
+      {
+        "sport": "AFL",
+        "n": 23
+      },
+      {
+        "sport": "NBA",
+        "n": 17
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "n": 14
+      },
+      {
+        "sport": "NHL",
+        "n": 14
+      },
+      {
+        "sport": "EFL Trophy",
+        "n": 14
+      },
+      {
+        "sport": "golf",
+        "n": 9
+      },
+      {
+        "sport": "MLS Soccer",
+        "n": 7
+      },
+      {
+        "sport": "CFL",
+        "n": 6
+      },
+      {
+        "sport": "PGA TOUR",
+        "n": 2
+      },
+      {
+        "sport": "CFL – 2026 Season · Week 14",
+        "n": 2
+      },
+      {
+        "sport": "wc",
+        "n": 1
+      },
+      {
+        "sport": "UEFA Europa League",
+        "n": 1
+      }
+    ]
+  },
+  "authority": [
+    "AFL",
+    "Bundesliga",
+    "CFB",
+    "CFL",
+    "EFL Cup",
+    "EFL Trophy",
+    "EPL",
+    "FIFA World Cup",
+    "IPL",
+    "La Liga",
+    "Ligue 1",
+    "MLB",
+    "MLS",
+    "NBA",
+    "NFL",
+    "NHL",
+    "PGA Tour",
+    "Serie A",
+    "UEFA Champions League",
+    "UEFA Champions League Qualifying",
+    "UEFA Europa Conference League",
+    "UEFA Europa Conference League Qualifying",
+    "UEFA Europa League",
+    "UEFA Europa League Qualifying",
+    "UFL",
+    "WNBA",
+    "golf",
+    "wnba"
+  ],
+  "authority_count": 28,
+  "briefs_not_in_authority": [
+    "MLS Soccer",
+    "PGA TOUR",
+    "CFL – 2026 Season · Week 14",
+    "wc"
+  ],
+  "authority_case_collisions": [
+    [
+      "wnba",
+      [
+        "WNBA",
+        "wnba"
+      ]
+    ]
+  ]
+}
