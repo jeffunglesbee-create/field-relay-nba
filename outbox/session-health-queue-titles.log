@@ -1,0 +1,74 @@
+24 row(s) whose leading word is not in the unambiguous CLOSED vocabulary
+
+  2026-07-02 20:35:34  [resolved]  cf/2026-07-02/soccer-player-identity-shipped
+      Soccer player identity resolution shipped — soccer_player type added, 9 candidates verified and live
+
+  2026-07-06 01:07:17  [resolved]  CC-CMD-2026-07-01-completion-triggered-journalism.md
+      CONFIRMED via D1 timing analysis 2026-07-06 — I wrongly kept re-listing this as open after already proving it
+
+  2026-07-07 21:01:58  [open]  CC-CMD-2026-07-07-worth-watching-display.md
+      CORRECTED to v2 before execution — resolved design question + fixed naming collision, just pushed
+
+  2026-07-08 03:21:10  [open]  CC-CMD-2026-07-07-espn-cache-date-qualification.md
+      SCOPING refined further -- editorial-contamination category + explicit boundary added, urgent fix untouched
+
+  2026-07-09 15:23:11  [open]  CC-CMD-2026-07-09-enqueue-context-gap.md
+      TASKS 1-2 DONE (jubilant-bassoon) -- verified live; TASK 5 was orphaned by my own dispatch gap, now separately dispatched; TASK 3-4 (relay) still pending
+
+  2026-07-12 02:05:49  [open]  ui-hash-unreliability
+      PENDING -- document Claude Code UI hash-display unreliability in STANDARDS.md
+
+  2026-07-12 02:26:26  [open]  mcp-tool-visibility-gap
+      PENDING -- document mid-session MCP tool visibility gap in STANDARDS.md
+
+  2026-07-12 02:55:24  [open]  standards-index
+      PENDING -- create STANDARDS-INDEX.md, additive fix for the read-burden problem
+
+  2026-07-12 04:33:53  [open]  standards-index-wiring
+      PENDING -- wire STANDARDS-INDEX.md into Rule 40/Rule 8/GOVERNANCE.json (depends on standards-index)
+
+  2026-07-12 14:23:24  [open]  datamuse-relay-proxy
+      TASK 1 DONE (field-relay-nba) / TASK 2 DONE (jubilant-bassoon) -- Datamuse relay proxy
+
+  2026-07-12 23:15:55  [open]  cliche-freshness-scoring
+      BLOCKED -- premise empirically disproven; hasCliche()/BANNED_PHRASES intentionally left unchanged
+
+  2026-07-13 05:51:56  [open]  bucketc-inverse-problem-confirmed
+      CONFIRMED -- Bucket C inverse-misclassification is real (2 found via Cluster 3), not just theoretical; standing check to carry into future clusters, not a full 519-entry audit
+
+  2026-07-13 09:17:57  [open]  p15b-p16-getqualitytarget
+      P15B dispatched (real 23-day-old bug, confirmed via bundle not source search) -- P16 confirmed still open/low-priority, not dispatched -- getQualityTarget fully resolved (superseded by loadQualityCalibration, one new silent-catch gap found)
+
+  2026-07-13 12:52:21  [open]  brief-archive-health-audit
+      Brief archive verified real via direct D1 query -- mostly healthy, one confirmed real stall (backfill engine, 140-date backlog) dispatched for diagnosis; KV sweep likely benign but not fully certain; compound/stakes/series_preview archival flagged unexamined
+
+  2026-07-13 17:04:02  [open]  relay-empty-catches-sweep
+      CORRECTED -- true relay empty-catch total is 118, not 50 (comment-only-body counting bug found and fixed); Cluster 1's real 23-site fix already shipped and verified, unaffected; ~95 remain, not 34
+
+  2026-07-19 23:56:11  [open]  2026-07-16-drama-gateway-and-amnesty-zone-held
+      SPLIT (2026-07-19) -- 1 of 5 Amnesty CC-CMDs resolved to Stats tab, 4 remain genuinely held
+
+  2026-07-26 16:24:19  [open]  playground-weatherpoll-wrong-endpoint
+      OPEN — WeatherPoll: wrong endpoint; fix is direct Open-Meteo (CORS verified), venue coords already solved in production
+
+  2026-07-27 00:47:13  [open]  journalismbrief-endpoint-correction
+      CORRECTED — JournalismBrief: my correction was itself partly false (fields are real)
+
+  2026-09-08 03:11:16  [open]  cc-cmd-2026-09-07-soccer-season-gates-autoroll
+      PENDING -- fix 8 stuck European soccer season gates in FIELD_V2_SOURCES (auto-rolling helper)
+
+  2026-09-08 03:11:24  [open]  cc-cmd-2026-09-07-session-health-queue-coverage
+      PENDING -- fix session_health under-reporting cc-cmd-queue (LIMIT 15 + blind predicate)
+
+  2026-09-08 03:13:27  [open]  queue-deadcode-and-ambiguous
+      PENDING -- dead-code removal HALF LANDED, no execution record, 3 of 6 functions remain
+
+  2026-09-08 03:13:32  [open]  cc-cmd-2026-07-28-venue-table-followups
+      PENDING -- venue table followups, roofType generator task not landed
+
+  2026-09-08 03:13:38  [open]  cc-cmd-2026-08-08-desk-sports-followups
+      PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)
+
+  2026-09-08 04:04:27  [open]  cc-cmd-2026-09-07-codex-write-nondestructive-and-recovery
+      PENDING -- make codex_write non-destructive (codex_history) + recover 25 overwritten queue bodies
+

@@ -1,0 +1,160 @@
+{
+  "ran_at": "2026-09-09T23:50:25.837Z",
+  "closed_words": [
+    "DONE",
+    "DONE,",
+    "RESOLVED",
+    "SUPERSEDED",
+    "CLOSED",
+    "WITHDRAWN",
+    "MERGED",
+    "EXECUTED"
+  ],
+  "count": 24,
+  "rows": [
+    {
+      "key": "cf/2026-07-02/soccer-player-identity-shipped",
+      "title": "Soccer player identity resolution shipped — soccer_player type added, 9 candidates verified and live",
+      "status": "resolved",
+      "updated_at": "2026-07-02 20:35:34"
+    },
+    {
+      "key": "CC-CMD-2026-07-01-completion-triggered-journalism.md",
+      "title": "CONFIRMED via D1 timing analysis 2026-07-06 — I wrongly kept re-listing this as open after already proving it",
+      "status": "resolved",
+      "updated_at": "2026-07-06 01:07:17"
+    },
+    {
+      "key": "CC-CMD-2026-07-07-worth-watching-display.md",
+      "title": "CORRECTED to v2 before execution — resolved design question + fixed naming collision, just pushed",
+      "status": "open",
+      "updated_at": "2026-07-07 21:01:58"
+    },
+    {
+      "key": "CC-CMD-2026-07-07-espn-cache-date-qualification.md",
+      "title": "SCOPING refined further -- editorial-contamination category + explicit boundary added, urgent fix untouched",
+      "status": "open",
+      "updated_at": "2026-07-08 03:21:10"
+    },
+    {
+      "key": "CC-CMD-2026-07-09-enqueue-context-gap.md",
+      "title": "TASKS 1-2 DONE (jubilant-bassoon) -- verified live; TASK 5 was orphaned by my own dispatch gap, now separately dispatched; TASK 3-4 (relay) still pending",
+      "status": "open",
+      "updated_at": "2026-07-09 15:23:11"
+    },
+    {
+      "key": "ui-hash-unreliability",
+      "title": "PENDING -- document Claude Code UI hash-display unreliability in STANDARDS.md",
+      "status": "open",
+      "updated_at": "2026-07-12 02:05:49"
+    },
+    {
+      "key": "mcp-tool-visibility-gap",
+      "title": "PENDING -- document mid-session MCP tool visibility gap in STANDARDS.md",
+      "status": "open",
+      "updated_at": "2026-07-12 02:26:26"
+    },
+    {
+      "key": "standards-index",
+      "title": "PENDING -- create STANDARDS-INDEX.md, additive fix for the read-burden problem",
+      "status": "open",
+      "updated_at": "2026-07-12 02:55:24"
+    },
+    {
+      "key": "standards-index-wiring",
+      "title": "PENDING -- wire STANDARDS-INDEX.md into Rule 40/Rule 8/GOVERNANCE.json (depends on standards-index)",
+      "status": "open",
+      "updated_at": "2026-07-12 04:33:53"
+    },
+    {
+      "key": "datamuse-relay-proxy",
+      "title": "TASK 1 DONE (field-relay-nba) / TASK 2 DONE (jubilant-bassoon) -- Datamuse relay proxy",
+      "status": "open",
+      "updated_at": "2026-07-12 14:23:24"
+    },
+    {
+      "key": "cliche-freshness-scoring",
+      "title": "BLOCKED -- premise empirically disproven; hasCliche()/BANNED_PHRASES intentionally left unchanged",
+      "status": "open",
+      "updated_at": "2026-07-12 23:15:55"
+    },
+    {
+      "key": "bucketc-inverse-problem-confirmed",
+      "title": "CONFIRMED -- Bucket C inverse-misclassification is real (2 found via Cluster 3), not just theoretical; standing check to carry into future clusters, not a full 519-entry audit",
+      "status": "open",
+      "updated_at": "2026-07-13 05:51:56"
+    },
+    {
+      "key": "p15b-p16-getqualitytarget",
+      "title": "P15B dispatched (real 23-day-old bug, confirmed via bundle not source search) -- P16 confirmed still open/low-priority, not dispatched -- getQualityTarget fully resolved (superseded by loadQualityCalibration, one new silent-catch gap found)",
+      "status": "open",
+      "updated_at": "2026-07-13 09:17:57"
+    },
+    {
+      "key": "brief-archive-health-audit",
+      "title": "Brief archive verified real via direct D1 query -- mostly healthy, one confirmed real stall (backfill engine, 140-date backlog) dispatched for diagnosis; KV sweep likely benign but not fully certain; compound/stakes/series_preview archival flagged unexamined",
+      "status": "open",
+      "updated_at": "2026-07-13 12:52:21"
+    },
+    {
+      "key": "relay-empty-catches-sweep",
+      "title": "CORRECTED -- true relay empty-catch total is 118, not 50 (comment-only-body counting bug found and fixed); Cluster 1's real 23-site fix already shipped and verified, unaffected; ~95 remain, not 34",
+      "status": "open",
+      "updated_at": "2026-07-13 17:04:02"
+    },
+    {
+      "key": "2026-07-16-drama-gateway-and-amnesty-zone-held",
+      "title": "SPLIT (2026-07-19) -- 1 of 5 Amnesty CC-CMDs resolved to Stats tab, 4 remain genuinely held",
+      "status": "open",
+      "updated_at": "2026-07-19 23:56:11"
+    },
+    {
+      "key": "playground-weatherpoll-wrong-endpoint",
+      "title": "OPEN — WeatherPoll: wrong endpoint; fix is direct Open-Meteo (CORS verified), venue coords already solved in production",
+      "status": "open",
+      "updated_at": "2026-07-26 16:24:19"
+    },
+    {
+      "key": "journalismbrief-endpoint-correction",
+      "title": "CORRECTED — JournalismBrief: my correction was itself partly false (fields are real)",
+      "status": "open",
+      "updated_at": "2026-07-27 00:47:13"
+    },
+    {
+      "key": "cc-cmd-2026-09-07-soccer-season-gates-autoroll",
+      "title": "PENDING -- fix 8 stuck European soccer season gates in FIELD_V2_SOURCES (auto-rolling helper)",
+      "status": "open",
+      "updated_at": "2026-09-08 03:11:16"
+    },
+    {
+      "key": "cc-cmd-2026-09-07-session-health-queue-coverage",
+      "title": "PENDING -- fix session_health under-reporting cc-cmd-queue (LIMIT 15 + blind predicate)",
+      "status": "open",
+      "updated_at": "2026-09-08 03:11:24"
+    },
+    {
+      "key": "queue-deadcode-and-ambiguous",
+      "title": "PENDING -- dead-code removal HALF LANDED, no execution record, 3 of 6 functions remain",
+      "status": "open",
+      "updated_at": "2026-09-08 03:13:27"
+    },
+    {
+      "key": "cc-cmd-2026-07-28-venue-table-followups",
+      "title": "PENDING -- venue table followups, roofType generator task not landed",
+      "status": "open",
+      "updated_at": "2026-09-08 03:13:32"
+    },
+    {
+      "key": "cc-cmd-2026-08-08-desk-sports-followups",
+      "title": "PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)",
+      "status": "open",
+      "updated_at": "2026-09-08 03:13:38"
+    },
+    {
+      "key": "cc-cmd-2026-09-07-codex-write-nondestructive-and-recovery",
+      "title": "PENDING -- make codex_write non-destructive (codex_history) + recover 25 overwritten queue bodies",
+      "status": "open",
+      "updated_at": "2026-09-08 04:04:27"
+    }
+  ]
+}
