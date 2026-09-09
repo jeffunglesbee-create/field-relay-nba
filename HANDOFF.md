@@ -1,5 +1,71 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-09 (four producers, and a canonicaliser that knew one)
+
+**HEAD:** `d3e3efe` → `9551b6d` → `f18b98c` → this · **Branch:** main throughout
+**Session doc:** `outbox/cc-session-2026-09-09-brief-sport-producers.md`
+**Deploy:** 920, SUCCESS
+
+`brief-label-migration` had failed on every scheduled run since 2026-08-24, and
+applying it would not have helped: the count kept growing because nothing had
+stopped the writers. **2 rows on 08-24, 7 on 08-31, 10 on 09-07, 12 today.**
+
+### The four, traced to a line each
+
+| value | rows | producer |
+|---|---|---|
+| `MLS Soccer` | 7 | client `game.league` — `field.js:31075`, `:41603` |
+| `CFL – 2026 Season · Week 14` | 2 | client `game.league` (a caption, `field.js:9461`) |
+| `PGA TOUR` | 2 | relay golf enqueue, `index.js ~8540` |
+| `wc` | 1 | relay BracketDO, `bracket-do.js ~409` |
+
+**The relay was emitting a value its own canonicaliser rejected.**
+`canonicalizeWC26Sport` tested `=== 'wc26'` and `startsWith('fifa world cup')`;
+BracketDO sends `'wc'`.
+
+**`game.league` means two different things** — the relay's declared label for
+relay-sourced soccer, and a display caption in the client's own hardcoded fixture
+tables. So the residual was never four variants; it is whatever that field holds.
+`WNBA – 2026 Season` is already in the client waiting for its first brief.
+
+### The fix
+
+`canonicalizeBriefSport` at both write boundaries, which were already wired.
+Declared set of **28 labels measured from the live games tables**, not assembled
+— `brief-label-migration.mjs` already paid for the alternative by calling 106
+correctly-labelled rows non-conforming. `golf` and `wnba` are lowercase AND
+correct and return unchanged before any rule runs. Casing recovery needs exactly
+one match. An unrecognised value is returned unchanged, never guessed.
+
+Both relay producers fixed at source too. The client was deliberately not
+changed — the relay owns the contract (Rule 60) and a client-side normalisation
+is the band-aid Rule 64 names. Recorded in CONTRACTS.md.
+
+### Six mutations, two of which survived the first attempt
+
+Ambiguity-ignored survived because the conforming check catches the lowercase
+labels first, so casing recovery was never exercised at all. Removing the
+conforming check survived because for all 28 labels the context-prefix helper
+reaches the same answer — a true fact about today's labels, recorded rather than
+hidden.
+
+And `declared.size === 28` was simply wrong: it failed at 31 because three EFL
+competitions are declared before their first archived game. The invariant is
+coverage, not equality.
+
+### Done condition
+
+```
+scope    12 rows, 0 unclassified
+apply    12 of 12 changed, 0 skipped, 0 drift
+verify   non_conforming_remaining []  recaps_remaining 0  CLEAN true
+```
+
+`verify` ran as a separate dispatch against a fresh read. **Green for the first
+time since 2026-08-24.**
+
+---
+
 ## SESSION CLOSE-OUT — 2026-09-08 (codex_write stopped destroying bodies; the recovery did not happen)
 
 **HEAD:** `1b625b5` → `518978e` → `f2cf0fd` → `80673b0` → this · **Branch:** main throughout
