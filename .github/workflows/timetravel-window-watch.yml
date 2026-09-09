@@ -63,6 +63,11 @@ jobs:
       # the status file is byte-identical apart from its timestamp, and a weekly
       # "nothing changed" commit is noise that trains people to skip the one week
       # it does change.
+      #
+      # The cost of that choice, stated because it bit once: the committed file's
+      # timestamp is when the ANSWER was recorded, not when the question was last
+      # asked. The field is named `answer_recorded_at` for exactly that reason,
+      # and the record of every asking is this workflow's own run history.
       - name: Commit only a CHANGED answer
         if: always()
         run: |
@@ -74,7 +79,7 @@ jobs:
           git add outbox/timetravel-window-watch-status.json outbox/timetravel-window-watch.log
           if git diff --cached -U0 -- outbox/timetravel-window-watch-status.json \
              | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
-             | grep -vE '"(checked_at|raw_output)"' | grep -q .; then
+             | grep -vE '"(answer_recorded_at|checked_at|raw_output)"' | grep -q .; then
             echo "state changed to ${STATE} — committing"
           else
             echo "still ${STATE}, nothing but timestamps moved — no commit"

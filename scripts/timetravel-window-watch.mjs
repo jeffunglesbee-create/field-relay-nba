@@ -183,7 +183,10 @@ if (existsSync(STATUS_FILE)) {
   try {
     const prior = JSON.parse(readFileSync(STATUS_FILE, 'utf8'));
     if (prior.terminal) {
-      console.log(`ALREADY ANSWERED on ${prior.checked_at}: ${prior.state}`);
+      // `checked_at` is read as a fallback: a status file written before the
+      // 2026-09-09 rename carries the old name, and a terminal answer must keep
+      // short-circuiting rather than re-open itself over a field name.
+      console.log(`ALREADY ANSWERED on ${prior.answer_recorded_at || prior.checked_at}: ${prior.state}`);
       console.log(prior.verdict);
       console.log('\nNothing to do. Delete the status file to re-open the question.');
       process.exit(0);
@@ -205,8 +208,26 @@ try {
 }
 
 const result = classify(output);
+
+// `answer_recorded_at`, NOT `checked_at`, and the rename is a correction rather
+// than a preference.
+//
+// A PENDING run commits nothing — deliberately, so the one week the answer
+// changes is not buried under fifty weeks of "still the same". The consequence
+// is that this file's timestamp is the moment the CURRENT ANSWER was recorded,
+// not the moment the question was last asked. Calling it `checked_at` made those
+// two the same word: on 2026-09-09 the watch ran at 00:14:50Z, found AUTH_REFUSED
+// again, correctly committed nothing, and left a file saying `checked_at
+// 2026-09-08T22:28:55Z`. From the repo alone, "asked today and unchanged" and
+// "never asked again" were indistinguishable — an absence meaning two different
+// things, which is the shape this repo keeps having to fix.
+//
+// Every asking IS recorded, in the workflow's run history. The field below says
+// where, so a reader is not left inferring it.
 const status = {
-  checked_at: new Date().toISOString(),
+  answer_recorded_at: new Date().toISOString(),
+  every_check_is_recorded_at:
+    'https://github.com/jeffunglesbee-create/field-relay-nba/actions/workflows/timetravel-window-watch.yml',
   database: DB,
   incident: INCIDENT_ISO,
   ...result,
@@ -215,6 +236,7 @@ const status = {
 writeFileSync(STATUS_FILE, JSON.stringify(status, null, 2) + '\n');
 
 console.log(`state:   ${status.state}`);
+console.log(`recorded: ${status.answer_recorded_at}  (every check is in the workflow's run history)`);
 console.log(`verdict: ${status.verdict}`);
 console.log(`\n--- raw wrangler output ---\n${output.slice(0, 2000)}`);
 

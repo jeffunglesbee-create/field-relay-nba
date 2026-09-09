@@ -136,6 +136,29 @@ whether the window has become readable, and reports one of three states. It
 reports and never recovers: the side-restore exports production data, and
 standing operations against production D1 are authorised case by case.
 
+### Re-dispatched 2026-09-09 — nothing changed, and one thing was wrong
+
+The CC-CMD was dispatched again. Rather than repeat settled findings, only the
+two gates that could have flipped were re-asked.
+
+| re-asked | result |
+|---|---|
+| 0b — is the window readable yet? | run 34294179181, `AUTH_REFUSED`. Still blocked. |
+| 0a — does `codex_history` hold anything now? | **exists and is empty.** The guard is deployed and no codex row has been overwritten since it landed. |
+| the guard itself | `git log f2cf0fd..HEAD -- src/index.js` is empty; nothing has touched it. |
+| the damage | unchanged: 28 touched, 2 created, **26 overwritten**, 285 rows in the queue. |
+
+**A defect in the watch, found by re-running it.** The 2026-09-09 run asked at
+00:14:50Z, found the same answer, and correctly committed nothing — leaving a
+status file that read `checked_at 2026-09-08T22:28:55Z`. From the repo alone,
+"asked today and unchanged" and "never asked again" were indistinguishable: an
+absence meaning two different things.
+
+The field is now `answer_recorded_at`, which is what it holds, and the file names
+where every asking is recorded (the workflow's own run history). The no-commit
+behaviour is unchanged — it is correct, and the cost of it is now stated instead
+of implied.
+
 **What unblocks Tasks 2-4:** a `CLOUDFLARE_API_TOKEN` carrying D1 read
 permission. Nothing else. If the earliest bookmark then reaches back past
 2026-09-08T03:11:00Z, Task 2 runs exactly as written above; if it does not, the
