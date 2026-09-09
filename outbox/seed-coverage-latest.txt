@@ -19,19 +19,18 @@
 
   PASS  LEAGUES_LOCAL contains nothing the cron does not seed
 
-  Live half, 2026-09-05 (4 day(s) ago)
+  Live half, 2026-09-06 (4 day(s) ago)
 
   PASS  the archive answers for that date
   PASS  the payload carries games.regular / games.postseason, not a bare array
   competition            ESPN  archive
   MLB                      15       15
-  EPL                       7        7
-  MLS                      14       21
-  La Liga                   3        3
-  Serie A                   3        3
-  Bundesliga                6        6
+  EPL                       2        2
+  La Liga                   4        4
+  Serie A                   4        4
+  Bundesliga                2        2
   Ligue 1                   3        3
-  CFB                      68       68
+  CFB                       3        3
 
   PASS  the date carried fixtures somewhere — otherwise a clean run is vacuous
   PASS  the archive returned rows for that date
