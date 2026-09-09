@@ -1,0 +1,45 @@
+# The authority for briefs.sport, measured before the canonicaliser is widened.
+#
+# Read-only: every statement in the script is a SELECT. It exists because
+# `scripts/brief-label-migration.mjs` records what happens when this set is
+# assembled from memory instead — its first run used a hand-written conforming
+# set, lacked EFL Cup, EFL Trophy and three UEFA qualifying labels, and reported
+# 106 correctly-labelled rows as non-conforming.
+name: brief sport authority census
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read the games tables and the briefs distribution
+        continue-on-error: true
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/brief-sport-authority-census.mjs 2>&1 | tee outbox/brief-sport-authority.log
+
+      - name: Commit the census
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/ || echo "nothing under outbox/"
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: brief sport authority census"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
