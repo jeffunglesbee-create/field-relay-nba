@@ -1,0 +1,60 @@
+# CC-CMD-2026-09-07-session-health-queue-coverage — Task 0, and Task 3's
+# verification after the fix deploys.
+#
+# Read-only for Task 0: every statement in the probe is a SELECT. The CC-CMD
+# refuses to be trusted as the source ("this document's transcription is a
+# starting point, not the source of truth"), so the predicate in Task 1 is
+# derived from this output rather than from the document's description of it.
+name: session health queue probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe | verify'
+        required: false
+        default: 'probe'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Task 0 — count the queue against every predicate candidate
+        continue-on-error: true
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/session-health-queue-probe.mjs 2>&1 | tee outbox/session-health-queue-probe.log
+
+      # Task 3. Calls the deployed session_health tool and prints the coverage
+      # fields verbatim — the CC-CMD's done condition is the live response, not a
+      # local reproduction of the query.
+      - name: Task 3 — the live session_health response
+        if: ${{ inputs.mode == 'verify' }}
+        continue-on-error: true
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/session-health-queue-verify.mjs 2>&1 | tee outbox/session-health-queue-verify.log
+
+      - name: Commit findings
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/ || echo "nothing under outbox/"
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: session_health queue coverage — ${{ inputs.mode }}"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
