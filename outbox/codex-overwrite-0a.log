@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-09-08T18:41:41.103Z",
+  "ran_at": "2026-09-09T00:15:00.564Z",
   "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "window": {
     "from": "2026-09-08 02:00:00",
@@ -20,7 +20,11 @@
       "rows": []
     },
     "codex_history_probe": {
-      "error": "HTTP 500 {\"ok\":false,\"error\":\"D1_ERROR: no such table: codex_history: SQLITE_ERROR\"}"
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
     },
     "queue_rows": {
       "rows": [
@@ -153,8 +157,9 @@
         {
           "key": "cc-cmd-2026-08-02-shared-schedule-ai-cache",
           "title": "DONE -- shared schedule AI cache (relay)",
-          "s
+          "status": "resolved",
+          "created_at": "20
 
-written to outbox/codex-overwrite-diagnostics-2026-09-08T18-41-41-102Z.json
+written to outbox/codex-overwrite-diagnostics-2026-09-09T00-15-00-564Z.json
 
-VERDICT: NO JOURNAL IN change_log — it carries no codex-referencing row at any time. codex_history errored: HTTP 500 {"ok":false,"error":"D1_ERROR: no such table: codex_history: SQLITE_ERROR"}. Task 0a fails; the originals are not in live data.
+VERDICT: NO JOURNAL IN change_log — it carries no codex-referencing row at any time. codex_history exists and is empty. Task 0a fails; the originals are not in live data.

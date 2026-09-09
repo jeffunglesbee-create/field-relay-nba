@@ -1,0 +1,48 @@
+{
+  "ran_at": "2026-09-09T00:15:13.688Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "scratch_key": "scratch/codex-history-selftest/2026-09-09T00-15-12-499Z",
+  "failed": 0,
+  "results": [
+    {
+      "name": "write 1 (new key) succeeds",
+      "ok": true
+    },
+    {
+      "name": "a NEW key writes no history row",
+      "ok": true
+    },
+    {
+      "name": "the codex row holds the first body",
+      "ok": true
+    },
+    {
+      "name": "write 2 (overwrite) succeeds",
+      "ok": true
+    },
+    {
+      "name": "THE FIRST BODY SURVIVES IN codex_history",
+      "ok": true
+    },
+    {
+      "name": "the codex row now holds the second body",
+      "ok": true
+    },
+    {
+      "name": "the history row is stamped",
+      "ok": true
+    },
+    {
+      "name": "write 3 (unchanged body) succeeds",
+      "ok": true
+    },
+    {
+      "name": "AN UNCHANGED REWRITE ADDS NO HISTORY ROW",
+      "ok": true
+    },
+    {
+      "name": "the scratch key is gone from both tables",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,2656 @@
+{
+  "ran_at": "2026-09-09T00:15:00.564Z",
+  "relay": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "window": {
+    "from": "2026-09-08 02:00:00",
+    "to": "2026-09-08 04:00:00"
+  },
+  "findings": {
+    "change_log_rows_in_window": {
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "change_log_sources_in_window": {
+      "rows": []
+    },
+    "change_log_codex_any_time": {
+      "rows": []
+    },
+    "codex_history_probe": {
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "queue_rows": {
+      "rows": [
+        {
+          "key": "cc-cmd-2026-09-07-codex-write-nondestructive-and-recovery",
+          "title": "PENDING -- make codex_write non-destructive (codex_history) + recover 25 overwritten queue bodies",
+          "status": "open",
+          "created_at": "2026-09-08 04:04:27",
+          "updated_at": "2026-09-08 04:04:27",
+          "content_len": 1255,
+          "content_head": "field-relay-nba docs/CC-CMD-2026-09-07-codex-write-nondestructive-and-recovery.md, commit 3a61e53.\n\nCAUSE: codex_write REPLACES content on an existing key. On 2"
+        },
+        {
+          "key": "cc-cmd-2026-08-08-desk-sports-followups",
+          "title": "PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)",
+          "status": "open",
+          "created_at": "2026-08-08 22:38:47",
+          "updated_at": "2026-09-08 03:13:38",
+          "content_len": 682,
+          "content_head": "STILL UNVERIFIED after the 2026-09-07 audit. Neither repo contains a CC-CMD doc or an outbox/cc-session record matching \"desk-sports\".\n\nCORRECTION: this audit i"
+        },
+        {
+          "key": "cc-cmd-2026-07-28-venue-table-followups",
+          "title": "PENDING -- venue table followups, roofType generator task not landed",
+          "status": "open",
+          "created_at": "2026-07-28 00:36:48",
+          "updated_at": "2026-09-08 03:13:32",
+          "content_len": 493,
+          "content_head": "RE-VERIFIED 2026-09-07 against HEAD. roofType appears 0 times in src/legacy/field.js, so the roofType generator task did not land.\n\nCORRECTION TO THIS AUDIT'S O"
+        },
+        {
+          "key": "queue-deadcode-and-ambiguous",
+          "title": "PENDING -- dead-code removal HALF LANDED, no execution record, 3 of 6 functions remain",
+          "status": "open",
+          "created_at": "2026-07-13 02:44:08",
+          "updated_at": "2026-09-08 03:13:27",
+          "content_len": 1024,
+          "content_head": "RE-VERIFIED 2026-09-07 against HEAD 893e0d7. This is the only genuinely-open CODE item in the queue. No outbox/cc-session record exists for CC-CMD-2026-07-13-qu"
+        },
+        {
+          "key": "cc-cmd-2026-08-06-apply-soccer-league-label-fix-v2",
+          "title": "DONE -- apply soccer league label fix v2",
+          "status": "resolved",
+          "created_at": "2026-08-06 14:34:06",
+          "updated_at": "2026-09-08 03:13:18",
+          "content_len": 256,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. field-relay-nba HANDOFF 2026-08-06 close-out: commit 3235749, 52 mislabelled archived soccer rows corrected, 0 mismatches remain"
+        },
+        {
+          "key": "cc-cmd-2026-07-25-playground-secret-bootstrap",
+          "title": "DONE -- playground secret bootstrap",
+          "status": "resolved",
+          "created_at": "2026-07-25 23:14:45",
+          "updated_at": "2026-09-08 03:13:14",
+          "content_len": 206,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. field-relay-nba HANDOFF.md 2026-07-25/27 session close-out records completion with the verbatim Courier response, a successful d"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-fix-espn-standings-all-sports",
+          "title": "DONE -- fix ESPN standings across all sports",
+          "status": "resolved",
+          "created_at": "2026-08-02 11:33:31",
+          "updated_at": "2026-09-08 03:13:10",
+          "content_len": 628,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Confirmed via the 2026-08-16 client session's live browser verification: 33 rows with two conference group headers; fix shared b"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-discovery-discipline-and-drift-detector",
+          "title": "DONE -- discovery discipline (Rule 98) + deploy drift detector",
+          "status": "resolved",
+          "created_at": "2026-08-02 21:44:19",
+          "updated_at": "2026-09-08 03:13:04",
+          "content_len": 311,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Both halves confirmed: Rule 98 \"Undocumented-API discovery discipline (DISCOVERY-DISCIPLINE-A)\" at STANDARDS.md:4845, and .githu"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-undocumented-api-health-check",
+          "title": "DONE -- undocumented API health check",
+          "status": "resolved",
+          "created_at": "2026-08-02 21:44:25",
+          "updated_at": "2026-09-08 03:12:59",
+          "content_len": 243,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Both artifacts exist and return 200: scripts/undocumented-api-health-check.mjs and .github/workflows/undocumented-api-health-che"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-warm-mlb-standings-streak-bonuses",
+          "title": "DONE -- warm MLB standings for streak bonuses (SHIPPED 06994101)",
+          "status": "resolved",
+          "created_at": "2026-08-02 04:08:44",
+          "updated_at": "2026-09-08 03:12:55",
+          "content_len": 428,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-warm-mlb-standings-for-streak-bonuses.md. Status: SHIPPED, com"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-standards-redundancy-audit",
+          "title": "DONE -- STANDARDS.md redundancy audit (investigation only)",
+          "status": "resolved",
+          "created_at": "2026-08-02 23:40:32",
+          "updated_at": "2026-09-08 03:12:51",
+          "content_len": 372,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-standards-redundancy-audit.md. Status DONE, investigation only"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-byte-ceiling-options",
+          "title": "DONE -- byte ceiling options (investigation; DECISION STILL OWED BY JEFF)",
+          "status": "resolved",
+          "created_at": "2026-08-02 23:40:36",
+          "updated_at": "2026-09-08 03:12:46",
+          "content_len": 421,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at jubilant-bassoon outbox/cc-session-2026-08-02-byte-ceiling-options.md. Status: DONE, investigation only -- \""
+        },
+        {
+          "key": "cc-cmd-2026-08-10-laboratory-secret-bootstrap",
+          "title": "DONE -- field-laboratory secret bootstrap (confidence 96)",
+          "status": "resolved",
+          "created_at": "2026-08-10 02:03:41",
+          "updated_at": "2026-09-08 03:12:41",
+          "content_len": 445,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-10-laboratory-secret-bootstrap.md (164 lines). Status DONE, confidence 96 -- labor"
+        },
+        {
+          "key": "cc-cmd-2026-08-03-fix-drama-backfill-situational-fields",
+          "title": "DONE -- fix drama backfill situational fields",
+          "status": "resolved",
+          "created_at": "2026-08-03 13:12:27",
+          "updated_at": "2026-09-08 03:12:36",
+          "content_len": 307,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-03-fix-drama-backfill-situational-fields.md (138 lines). Status DONE: real field-p"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-shared-schedule-ai-cache",
+          "title": "DONE -- shared schedule AI cache (relay)",
+          "status": "resolved",
+          "created_at": "2026-08-03 01:55:56",
+          "updated_at": "2026-09-08 03:12:32",
+          "content_len": 215,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-02-shared-schedule-ai-cache-relay.md (77 lines). Status DONE with real live before"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-ruwt-baseline-audit",
+          "title": "DONE -- RUWT baseline audit (verdict COMPLIANT)",
+          "status": "resolved",
+          "created_at": "2026-08-02 23:40:41",
+          "updated_at": "2026-09-08 03:12:28",
+          "content_len": 355,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at field-relay-nba outbox/cc-session-2026-08-02-ruwt-baseline-audit.md (111 lines). Status DONE, report-only. O"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-cron-gate-audit-repowide",
+          "title": "DONE -- repo-wide cron gate audit (report-only)",
+          "status": "resolved",
+          "created_at": "2026-08-03 02:05:55",
+          "updated_at": "2026-09-08 03:12:24",
+          "content_len": 265,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Execution record at outbox/cc-session-2026-08-02-cron-gate-audit-repowide.md (146 lines). Status: DONE, report-only, no fixes ap"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-gate-bsd-club-league-capture",
+          "title": "DONE -- gate BSD club league capture",
+          "status": "resolved",
+          "created_at": "2026-08-03 03:15:56",
+          "updated_at": "2026-09-08 03:12:19",
+          "content_len": 132,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. _bsdClubShouldFire = event.cron === '*/5 * * * *' at src/index.js:9377 with [BSD-CLUB-GATE] logging."
+        },
+        {
+          "key": "cc-cmd-2026-08-02-gate-weekly-r2-update-windows",
+          "title": "DONE -- gate weekly R2 update windows",
+          "status": "resolved",
+          "created_at": "2026-08-03 03:16:02",
+          "updated_at": "2026-09-08 03:12:15",
+          "content_len": 97,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. _r2ShouldFire at src/index.js:9270 with [R2-WINDOW-GATE] logging."
+        },
+        {
+          "key": "cc-cmd-2026-08-02-gate-journalism-cycle-cron",
+          "title": "DONE -- gate journalism cycle cron",
+          "status": "resolved",
+          "created_at": "2026-08-03 02:05:51",
+          "updated_at": "2026-09-08 03:12:12",
+          "content_len": 139,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. _journalismShouldFire = event.cron === '*/15 * * * *' at src/index.js:9245, with [JOURNALISM-GATE] logging."
+        },
+        {
+          "key": "cc-cmd-2026-08-02-wire-bundesliga-broadcasts-into-client",
+          "title": "DONE -- wire Bundesliga broadcasts into client",
+          "status": "resolved",
+          "created_at": "2026-08-02 12:30:04",
+          "updated_at": "2026-09-08 03:12:09",
+          "content_len": 378,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. \"bundesliga-bapi\" appears 2x in src/legacy/field.js and 2x in index.html at HEAD. ger.1 present in SOCCER_LEAGUES (field.js:1488"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-add-browser-rendering-bundesliga-dayid",
+          "title": "DONE -- Cloudflare Browser Rendering for Bundesliga dayId resolution",
+          "status": "resolved",
+          "created_at": "2026-08-02 11:33:37",
+          "updated_at": "2026-09-08 03:12:04",
+          "content_len": 208,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. /bundesliga-bapi/resolve-dayid in deployed route manifest, k:\"upstream\", s:\"d1:ARCHIVE_DB + www.bundesliga.com\" -- confirming bo"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-wire-bundesliga-bapi-broadcasts-v2",
+          "title": "DONE -- wire Bundesliga bapi broadcasts v2",
+          "status": "resolved",
+          "created_at": "2026-08-02 04:56:20",
+          "updated_at": "2026-09-08 03:12:00",
+          "content_len": 263,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Same /bundesliga-bapi/broadcasts route confirmed in deployed route manifest. Client CC-CMD docs present in jubilant-bassoon/docs"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-proxy-bundesliga-broadcasts",
+          "title": "DONE -- proxy Bundesliga broadcasts",
+          "status": "resolved",
+          "created_at": "2026-08-02 12:29:58",
+          "updated_at": "2026-09-08 03:11:56",
+          "content_len": 128,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. /bundesliga-bapi/broadcasts in deployed route manifest, k:\"proxy\", s:\"wapp.bapi.bundesliga.com\"."
+        },
+        {
+          "key": "cc-cmd-2026-08-02-wire-laliga-apim-standings-v2",
+          "title": "DONE -- wire LaLiga apim standings v2",
+          "status": "resolved",
+          "created_at": "2026-08-02 04:56:11",
+          "updated_at": "2026-09-08 03:11:53",
+          "content_len": 212,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. /laliga-apim/clasificacion in deployed route manifest, k:\"proxy\", s:\"apim.laliga.com + www.laliga.com\". Client consumer _laligaA"
+        },
+        {
+          "key": "cc-cmd-2026-08-06-relay-web-fetch-proxy",
+          "title": "DONE -- general-purpose relay web-fetch proxy",
+          "status": "resolved",
+          "created_at": "2026-08-06 15:24:52",
+          "updated_at": "2026-09-08 03:11:49",
+          "content_len": 164,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. /web-fetch present in src/route-provenance.js (deployed route manifest), k:\"upstream\", s:\"cloudflare-dns.com + kv:FIELD_JOURNALI"
+        },
+        {
+          "key": "cc-cmd-2026-08-09-create-field-laboratory-repo",
+          "title": "DONE -- create field-laboratory repo (F#/Fable proving ground)",
+          "status": "resolved",
+          "created_at": "2026-08-09 18:54:22",
+          "updated_at": "2026-09-08 03:11:46",
+          "content_len": 204,
+          "content_head": "VERIFIED DONE 2026-09-07 audit. Repo jeffunglesbee-create/field-laboratory exists and is reachable via read_file; README.md read successfully; ~15,429 lines of "
+        },
+        {
+          "key": "cc-cmd-2026-09-07-session-health-queue-coverage",
+          "title": "PENDING -- fix session_health under-reporting cc-cmd-queue (LIMIT 15 + blind predicate)",
+          "status": "open",
+          "created_at": "2026-09-08 03:11:24",
+          "updated_at": "2026-09-08 03:11:24",
+          "content_len": 933,
+          "content_head": "field-relay-nba docs/CC-CMD-2026-09-07-session-health-queue-coverage.md, commit 8dc9aad.\n\nTwo faults in the stale_pending_cc_cmds query at src/index.js ~19232:\n"
+        },
+        {
+          "key": "cc-cmd-2026-09-07-soccer-season-gates-autoroll",
+          "title": "PENDING -- fix 8 stuck European soccer season gates in FIELD_V2_SOURCES (auto-rolling helper)",
+          "status": "open",
+          "created_at": "2026-09-08 03:11:16",
+          "updated_at": "2026-09-08 03:11:16",
+          "content_len": 1088,
+          "content_head": "jubilant-bassoon docs/CC-CMD-2026-09-07-soccer-season-gates-autoroll.md, commit 92ec656.\n\nLIVE DEFECT. FIELD_V2_SOURCES ~field.js:15043 hardcodes epl, laliga, s"
+        },
+        {
+          "key": "cc-cmd-2026-08-06-wire-efl-cup",
+          "title": "SUPERSEDED — see CC-CMD-2026-08-08-efl-carabao-cup-coverage (blocked by a real P0)",
+          "status": "open",
+          "created_at": "2026-08-08 12:37:25",
+          "updated_at": "2026-08-08 12:41:35",
+          "content_len": 597,
+          "content_head": "Superseded by docs/CC-CMD-2026-08-08-efl-carabao-cup-coverage.md (field-relay-nba + jubilant-bassoon paired). My original client-only CC-CMD never touched the r"
+        },
+        {
+          "key": "cc-cmd-2026-08-06-apply-soccer-league-label-fix",
+          "title": "SUPERSEDED — see v2, fully detached from field-playground",
+          "status": "open",
+          "created_at": "2026-08-06 14:29:24",
+          "updated_at": "2026-08-06 14:33:59",
+          "content_len": 307,
+          "content_head": "Superseded by cc-cmd-2026-08-06-apply-soccer-league-label-fix-v2, which is fully self-contained and does not reference field-playground at all. v1 depended on f"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-wire-bundesliga-bapi-broadcasts",
+          "title": "SUPERSEDED — see v2, real auth key + selector found",
+          "status": "open",
+          "created_at": "2026-08-02 04:08:07",
+          "updated_at": "2026-08-02 04:56:16",
+          "content_len": 251,
+          "content_head": "Superseded by cc-cmd-2026-08-02-wire-bundesliga-bapi-broadcasts-v2. Both open questions resolved via novel diagnostic: real auth key found (x-api-key, missed at"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-wire-laliga-apim-standings",
+          "title": "SUPERSEDED — see v2, real root cause found",
+          "status": "open",
+          "created_at": "2026-08-02 04:08:03",
+          "updated_at": "2026-08-02 04:56:07",
+          "content_len": 281,
+          "content_head": "Superseded by cc-cmd-2026-08-02-wire-laliga-apim-standings-v2. Root cause found via novel diagnostic (re-observe real browser behavior instead of guessing heade"
+        },
+        {
+          "key": "cc-cmd-2026-08-02-bracketdo-probe-diagnostics",
+          "title": "WITHDRAWN — question independently resolved before pickup, guard confirmed live",
+          "status": "open",
+          "created_at": "2026-08-02 04:08:14",
+          "updated_at": "2026-08-02 04:08:14",
+          "content_len": 675,
+          "content_head": "docs/CC-CMD-2026-08-02-bracketdo-probe-diagnostics.md, jubilant-bassoon. Superseded, not executed. The question it was written to answer (why does the visibilit"
+        },
+        {
+          "key": "cc-cmd-2026-07-30-layer4-and-bracketdo-audit",
+          "title": "DONE — see cc-cmd-2026-07-30-drama-dead-code-revival; BracketDO guard separately confirmed live",
+          "status": "open",
+          "created_at": "2026-07-30 22:35:35",
+          "updated_at": "2026-08-02 04:07:53",
+          "content_len": 357,
+          "content_head": "Consolidated into cc-cmd-2026-07-30-drama-dead-code-revival. Layer 4 rebuilt pull-only per the BracketDO Rule A finding. Separately: BracketDO's own visibilityc"
+        },
+        {
+          "key": "cc-cmd-2026-07-30-soccer-layers-1-3",
+          "title": "DONE — see cc-cmd-2026-07-30-drama-dead-code-revival",
+          "status": "open",
+          "created_at": "2026-07-30 22:21:07",
+          "updated_at": "2026-08-02 04:07:48",
+          "content_len": 248,
+          "content_head": "Consolidated into cc-cmd-2026-07-30-drama-dead-code-revival. Layer 1 (base formula) reconciled and shipped. Layer 3 (two-legged aggregate) investigated and corr"
+        },
+        {
+          "key": "cc-cmd-2026-07-30-fix-savant-wp-scale",
+          "title": "DONE — see cc-cmd-2026-07-30-drama-dead-code-revival",
+          "status": "open",
+          "created_at": "2026-07-30 22:10:36",
+          "updated_at": "2026-08-02 04:07:44",
+          "content_len": 109,
+          "content_head": "Consolidated into cc-cmd-2026-07-30-drama-dead-code-revival. Savant WP scale fix confirmed executed and live."
+        },
+        {
+          "key": "cc-cmd-2026-07-30-drama-dead-code-revival",
+          "title": "DONE — all four (Savant WP scale, soccer Layers 1/3/4, NFL/PL/milestone drama revival) verified live",
+          "status": "open",
+          "created_at": "2026-07-30 04:34:21",
+          "updated_at": "2026-08-02 04:07:34",
+          "content_len": 859,
+          "content_head": "Verified independently via direct field.js/outbox checks: fix-savant-wp-scale executed (fetchSavantGameFeed /100 normalization confirmed), soccer Layer 1 base f"
+        },
+        {
+          "key": "mlbtv-pricing-probe",
+          "title": "DONE — MLB.TV pricing probe (hypothesis refuted, unknown-handling validated)",
+          "status": "open",
+          "created_at": "2026-07-28 23:58:52",
+          "updated_at": "2026-07-28 23:58:52",
+          "content_len": 3534,
+          "content_head": "DONE — MLB.TV pricing probe. Hypothesis REFUTED; Arbitrage's \"unknown\" handling validated as correct and permanent. 2026-07-28.\n\nQUESTION: probe-streams-availab"
+        },
+        {
+          "key": "venue-data-sourcing-investigation",
+          "title": "DONE — venue sourcing: coords externally sourceable, roofType not (schema reason)",
+          "status": "open",
+          "created_at": "2026-07-28 00:05:05",
+          "updated_at": "2026-07-28 00:05:05",
+          "content_len": 2667,
+          "content_head": "DONE — venue data sourcing investigation. Concluded 2026-07-28.\n\nQUESTION: can external sources replace field-playground's hand-maintained\n98-venue table (coord"
+        },
+        {
+          "key": "journalismbrief-endpoint-correction",
+          "title": "CORRECTED — JournalismBrief: my correction was itself partly false (fields are real)",
+          "status": "open",
+          "created_at": "2026-07-27 00:14:43",
+          "updated_at": "2026-07-27 00:47:13",
+          "content_len": 2113,
+          "content_head": "CORRECTED — JournalismBrief endpoint. My own correction was itself partly false. Verified 2026-07-27.\n\nWHAT I GOT RIGHT: /journalism/brief IS a real, allowliste"
+        },
+        {
+          "key": "verify-artifact-tab-aware",
+          "title": "DONE — verify-artifact.mjs tab-aware + rename-proof (structural dead-section check)",
+          "status": "open",
+          "created_at": "2026-07-26 23:10:28",
+          "updated_at": "2026-07-26 23:36:19",
+          "content_len": 2676,
+          "content_head": "DONE — verify-artifact.mjs made tab-aware and rename-proof. Verified live 2026-07-26.\n\nFINAL RESULT: allPass true. 10 tabs walked, all 7 top-level tabs render\n("
+        },
+        {
+          "key": "playground-weatherpoll-wrong-endpoint",
+          "title": "OPEN — WeatherPoll: wrong endpoint; fix is direct Open-Meteo (CORS verified), venue coords already solved in production",
+          "status": "open",
+          "created_at": "2026-07-26 16:24:19",
+          "updated_at": "2026-07-26 16:24:19",
+          "content_len": 3289,
+          "content_head": "OPEN — WeatherPoll points at an endpoint that never existed. Full diagnosis complete 2026-07-26; fix is client-side only, no relay work.\n\nWHAT'S BROKEN: src/dat"
+        },
+        {
+          "key": "playground-shared-tabs-primitive",
+          "title": "DONE (build-verified) — shared Tabs primitive across Seasons/PickEm/DayComparison",
+          "status": "open",
+          "created_at": "2026-07-26 01:59:07",
+          "updated_at": "2026-07-26 01:59:07",
+          "content_len": 2444,
+          "content_head": "DONE (build-verified) — shared Tabs primitive; PickEm and DayComparison now match Seasons' tab structure. 2026-07-26.\n\nBUILT:\n- src/components/Tabs/{index.jsx,T"
+        },
+        {
+          "key": "cc-cmd-2026-07-25-start-time-persistence",
+          "title": "DONE — start_time persistence (shipped, format ISO-8601 no-seconds, client verified)",
+          "status": "open",
+          "created_at": "2026-07-25 22:23:21",
+          "updated_at": "2026-07-26 01:07:31",
+          "content_len": 1681,
+          "content_head": "DONE — CC-CMD-2026-07-25-start-time-persistence, verified live 2026-07-26.\n\nWas left marked PENDING without confirmation; Jeff asked whether it had\nshipped, whi"
+        },
+        {
+          "key": "playground-orthogonal-experiments-batch",
+          "title": "DONE — five orthogonal SolidJS experiments (verified, both risk overlaps clean)",
+          "status": "open",
+          "created_at": "2026-07-26 00:52:24",
+          "updated_at": "2026-07-26 00:52:24",
+          "content_len": 2382,
+          "content_head": "DONE — five orthogonal SolidJS experiments verified 2026-07-26 (UndoStackDemo, WorkerBridgeDemo, PollDeltaFeed, ReplayDemo, LatencyHistogram).\n\nRender verified "
+        },
+        {
+          "key": "field-playground-public-hosting",
+          "title": "DONE — field-playground public hosting (live, verified)",
+          "status": "open",
+          "created_at": "2026-07-25 23:08:10",
+          "updated_at": "2026-07-25 23:46:57",
+          "content_len": 1815,
+          "content_head": "DONE — field-playground public hosting, verified live 2026-07-25.\n\nhttps://field-playground.jeffunglesbee.workers.dev → HTTP 200, serving the\nreal built app.\n\nV"
+        },
+        {
+          "key": "2026-07-21-fix-workflow-dispatch-trigger",
+          "title": "CLOSED (hypothesis disproven) -- workflow_dispatch block is repo/account-level, not fixable via code",
+          "status": "open",
+          "created_at": "2026-07-21 01:47:30",
+          "updated_at": "2026-07-21 01:47:30",
+          "content_len": 546,
+          "content_head": "SUPERSEDED -- my own [skip ci] re-indexing hypothesis is disproven by\ndirect evidence: a brand-new workflow file created same-day with\nworkflow_dispatch: as its"
+        },
+        {
+          "key": "2026-07-20-cleanup-workers-ai-judge-routes",
+          "title": "DONE -- cleanup dead-end Workers AI judge test routes",
+          "status": "open",
+          "created_at": "2026-07-21 00:20:33",
+          "updated_at": "2026-07-21 01:16:32",
+          "content_len": 223,
+          "content_head": "Superseded by combined entry 2026-07-21-test-route-fixes -- fully\nverified, live-confirmed (dead route returns 403 as expected). This key\nshould have been updat"
+        },
+        {
+          "key": "2026-07-21-fix-test-route-allowlist",
+          "title": "DONE -- fix missing allowlist entries blocking tonight's /test/* routes",
+          "status": "open",
+          "created_at": "2026-07-21 00:20:39",
+          "updated_at": "2026-07-21 01:16:28",
+          "content_len": 186,
+          "content_head": "Superseded by combined entry 2026-07-21-test-route-fixes -- fully\nverified, live-confirmed. This key should have been updated directly\nrather than a new key cre"
+        },
+        {
+          "key": "2026-07-21-test-route-fixes",
+          "title": "DONE -- allowlist fix + dead-route cleanup, both fully verified, one live race condition correctly handled",
+          "status": "open",
+          "created_at": "2026-07-21 00:51:44",
+          "updated_at": "2026-07-21 00:51:44",
+          "content_len": 1764,
+          "content_head": "Both CC-CMD-2026-07-21-fix-test-route-allowlist.md and CC-CMD-2026-07-20-\ncleanup-workers-ai-judge-routes.md VERIFIED complete, both self-scored\n100/100, both i"
+        },
+        {
+          "key": "2026-07-20-pl-match-client-wiring",
+          "title": "DONE -- PL match client wiring + card-type follow-up, both fully verified",
+          "status": "open",
+          "created_at": "2026-07-20 19:02:49",
+          "updated_at": "2026-07-20 19:02:49",
+          "content_len": 1345,
+          "content_head": "CC-CMD-2026-07-20-pl-match-client-wiring.md (jubilant-bassoon). VERIFIED.\nfetchPLMatch() wired into both bottom sheet (Key Moments) and Stats tab\n(Lineups), fol"
+        },
+        {
+          "key": "2026-07-20-pl-match-probe",
+          "title": "DONE (relay) -- PL match pagination fix, verified live; client wiring is the real next step",
+          "status": "open",
+          "created_at": "2026-07-20 17:35:10",
+          "updated_at": "2026-07-20 17:35:10",
+          "content_len": 959,
+          "content_head": "PL match-probe follow-up (field-relay-nba, CC session 2026-07-20).\nFixed a real correctness bug: /pl/match/:id was defaulting to\npageSize=10, silently returning"
+        },
+        {
+          "key": "2026-07-20-pl-pulselive",
+          "title": "DONE -- Premier League PulseLive integration, fully verified live",
+          "status": "open",
+          "created_at": "2026-07-20 17:14:58",
+          "updated_at": "2026-07-20 17:14:58",
+          "content_len": 935,
+          "content_head": "PL PulseLive integration (both repos, CC session 2026-07-20, no CC-CMD doc\n-- appears to have been worked directly, likely from an external\nsuggestion per Jeff)"
+        },
+        {
+          "key": "2026-07-19-solid-js-islands",
+          "title": "DONE -- Solid.js thread fully closed (build pipeline, ambient panel rewrite, score-wrap dirty-check)",
+          "status": "open",
+          "created_at": "2026-07-19 23:55:19",
+          "updated_at": "2026-07-20 03:12:17",
+          "content_len": 854,
+          "content_head": "CC-CMD-2026-07-20-score-wrap-dirty-check.md (jubilant-bassoon). VERIFIED.\nReal dirty check keyed on full scoreHTML (not just scoreline) added to\nrenderESPNScore"
+        },
+        {
+          "key": "2026-07-19-bottom-sheet-stats-reconciliation",
+          "title": "DONE -- bottom sheet / Stats tab reconciliation, fully verified",
+          "status": "open",
+          "created_at": "2026-07-19 20:18:52",
+          "updated_at": "2026-07-20 02:59:45",
+          "content_len": 571,
+          "content_head": "CC-CMD-2026-07-19-bottom-sheet-stats-reconciliation.md (jubilant-bassoon).\nDONE, fully verified. All 5 tasks complete -- correctly solved the\nper-game vs. leade"
+        },
+        {
+          "key": "2026-07-19-mls-novel-metrics",
+          "title": "DONE -- MLS novel metrics + amnesty leaderboard relay, both fully verified",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:23",
+          "updated_at": "2026-07-20 02:36:50",
+          "content_len": 1175,
+          "content_head": "CC-CMD-2026-07-16-amnesty-leaderboard-relay.md (field-relay-nba).\nVERIFIED. /archive/drama/leaderboard and /archive/drama/percentile both\nlive. Real, honest dis"
+        },
+        {
+          "key": "2026-07-19-mls-journalism-xg-fix",
+          "title": "RESOLVED (audit) -- MLS journalism XG fix, real fix already existed, no code change needed",
+          "status": "open",
+          "created_at": "2026-07-20 00:21:28",
+          "updated_at": "2026-07-20 01:28:03",
+          "content_len": 549,
+          "content_head": "CC-CMD-2026-07-19-mls-journalism-xg-fix.md (field-relay-nba). AUDITED,\nno code change needed -- the real fix was already in place from a prior\nsession. /soccer/"
+        },
+        {
+          "key": "2026-07-19-mls-sub-impact-metric",
+          "title": "DONE -- MLS defensive substitution lead-loss metric, both repos complete",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:18",
+          "updated_at": "2026-07-20 01:16:24",
+          "content_len": 649,
+          "content_head": "CC-CMD-2026-07-19-mls-sub-impact-metric.md Task 4 (jubilant-bassoon).\nmlsSubImpactInit() wired into boot sequence, real Defensive Substitutions\nsub-section in S"
+        },
+        {
+          "key": "2026-07-20-game-thread-client",
+          "title": "DONE -- Game Thread client, full two-tab E2E verified live",
+          "status": "open",
+          "created_at": "2026-07-20 01:16:18",
+          "updated_at": "2026-07-20 01:16:18",
+          "content_len": 462,
+          "content_head": "CC-CMD-2026-07-20-game-thread-client.md (jubilant-bassoon). All 6 tasks\nVERIFIED, including genuine two-tab browser E2E (real WS broadcast/\ncatchup confirmed ac"
+        },
+        {
+          "key": "2026-07-19-game-thread-relay",
+          "title": "DONE -- Game Thread relay implementation, full GHA E2E verification",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:13",
+          "updated_at": "2026-07-20 00:52:39",
+          "content_len": 490,
+          "content_head": "CC-CMD-2026-07-19-game-thread-relay.md (field-relay-nba). D1 schema,\nGameDO thread_note handling, catchup-on-join, rate cap, hourly cleanup\ncron -- all VERIFIED"
+        },
+        {
+          "key": "2026-07-16-drama-gateway-and-amnesty-zone-held",
+          "title": "SPLIT (2026-07-19) -- 1 of 5 Amnesty CC-CMDs resolved to Stats tab, 4 remain genuinely held",
+          "status": "open",
+          "created_at": "2026-07-16 19:28:21",
+          "updated_at": "2026-07-19 23:56:11",
+          "content_len": 1353,
+          "content_head": "Original 2026-07-16 hold covered all 5 Amnesty Zone CC-CMDs pending a\nproduct-sequencing decision. Reassessed 2026-07-19 against the newly-\nshipped Stats tab --"
+        },
+        {
+          "key": "2026-07-19-fix-bracketdelta-prefix",
+          "title": "DONE -- bracket_delta game_id prefix fix, Gap 7's full E2E chain now proven live",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:45",
+          "updated_at": "2026-07-19 20:07:45",
+          "content_len": 469,
+          "content_head": "CC-CMD-2026-07-18-fix-bracketdelta-prefix.md (field-relay-nba). Real WC\nmatch (France/England, espn:760516) surfaced a genuine 7th ID-format bug\n-- bracket_delt"
+        },
+        {
+          "key": "2026-07-19-fix-mls-live-endpoint",
+          "title": "DONE -- fetchMLSLive endpoint fix, stopped using the broken v1/matches path",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:40",
+          "updated_at": "2026-07-19 20:07:40",
+          "content_len": 370,
+          "content_head": "CC-CMD-2026-07-19-fix-mls-live-endpoint.md (jubilant-bassoon).\nfetchMLSLive() switched from broken /v1/matches (genuine auth requirement,\nMissingAuthenticationT"
+        },
+        {
+          "key": "2026-07-19-browser-verify-pickem",
+          "title": "DONE -- Pick 'em real browser verification (click-to-select, Results, Record stats), 100/100",
+          "status": "open",
+          "created_at": "2026-07-19 20:07:37",
+          "updated_at": "2026-07-19 20:07:37",
+          "content_len": 319,
+          "content_head": "CC-CMD-2026-07-19-browser-verify-pickem.md (jubilant-bassoon). Real\nbrowser click-to-pick, Results display, Record stats -- all confirmed\nworking via genuine DO"
+        },
+        {
+          "key": "2026-07-18-typescript-adoption-and-remaining-open-items",
+          "title": "DONE -- both TS modules (Identity + Debrief) shipped and verified, plus honest accounting of what's genuinely still open",
+          "status": "open",
+          "created_at": "2026-07-18 19:46:58",
+          "updated_at": "2026-07-18 19:54:45",
+          "content_len": 1405,
+          "content_head": "Both real TypeScript modules now shipped and independently live-verified.\n\nsrc/identity/index.ts -- findGameById, _resolveRealGameId, resolveGameIdByHome, direc"
+        },
+        {
+          "key": "2026-07-18-golf-leaderboard-and-mlb-briefs-backfill",
+          "title": "DONE -- golf leaderboard thread closed + MLB briefs backfill (5 passes, 255/352 recovered, 97 honestly unmatched)",
+          "status": "open",
+          "created_at": "2026-07-18 19:46:47",
+          "updated_at": "2026-07-18 19:46:47",
+          "content_len": 1804,
+          "content_head": "Golf leaderboard thread: Sand Saves column shipped (real, already-fetched ESPN field, zero new cost). Green Light Rate/Wasted Green confirmed permanently blocke"
+        },
+        {
+          "key": "2026-07-18-the-debrief-and-all-12-gaps",
+          "title": "DONE -- The Debrief (5 layers, both repos) + all 12 original circadian-spec gaps, all independently live-verified",
+          "status": "open",
+          "created_at": "2026-07-18 19:46:35",
+          "updated_at": "2026-07-18 19:46:35",
+          "content_len": 2009,
+          "content_head": "Compound Architecture Phase 1-3b (both repos): UI Primitives, Schedule Compound (buildEnrichedGame/renderCard/updateCard), The Debrief's 5 real layers (Drama Un"
+        },
+        {
+          "key": "2026-07-18-esbuild-migration-full-arc",
+          "title": "DONE -- esbuild migration complete, all 7 phases + Scenario A/B + globalThis bridge retirement, all independently live-verified",
+          "status": "open",
+          "created_at": "2026-07-18 19:46:22",
+          "updated_at": "2026-07-18 19:46:22",
+          "content_len": 1600,
+          "content_head": "Full arc, all independently verified via real job logs and live content checks, not just claimed: Phase 1 (pipeline wiring, caught a real wrong-script-block bug"
+        },
+        {
+          "key": "2026-07-16-broadcast-chip-durable-fix-and-deploy-probe",
+          "title": "DONE -- broadcast-chip durable fix (real root cause was ESPN_CABLE_SCHEDULE timing gate, not GOTD as chat's own CC-CMD assumed) + deploy streams probe, both repos, live-verified",
+          "status": "resolved",
+          "created_at": "2026-07-16 19:28:09",
+          "updated_at": "2026-07-16 19:28:09",
+          "content_len": 1134,
+          "content_head": "Real process failure owned directly: chat wrote and dispatched the first CC-CMD before searching chat history, not after -- should have searched first given thi"
+        },
+        {
+          "key": "2026-07-16-sweep-kv-briefs-and-upsert-team-refresh",
+          "title": "DONE -- sweep-kv-briefs id-mismatch root cause fixed (100/100) + archive-game upsert team-refresh guard (100/100), both live-verified",
+          "status": "resolved",
+          "created_at": "2026-07-16 19:27:58",
+          "updated_at": "2026-07-16 19:27:58",
+          "content_len": 872,
+          "content_head": "sweep-kv-briefs-id-mismatch: DONE, 100/100, real self-correction of chat's own CC-CMD (checked and corrected a false \"~15-20s cadence\" claim -- real cadence ~4-"
+        },
+        {
+          "key": "2026-07-16-archive-write-investigation-and-repair-infra",
+          "title": "DONE -- archive-write data-loss incident found+repaired, real detection infra shipped, calibration recheck honest/inconclusive, 1 dated follow-up open for 07-17",
+          "status": "resolved",
+          "created_at": "2026-07-16 19:27:49",
+          "updated_at": "2026-07-16 19:27:49",
+          "content_len": 1333,
+          "content_head": "Real, live data-loss incident found (novel-thinking CI-as-proxy wrangler tail, since CLOUDFLARE_API_TOKEN already exists for deploy) and repaired: 8 finalized W"
+        },
+        {
+          "key": "2026-07-16-orphan-sweep-followups-and-gamenetwork",
+          "title": "DONE -- 5 orphan-sweep follow-ups + call-graph tooling validation + gameNetwork, all independently verified, smoke 948-&gt;954",
+          "status": "resolved",
+          "created_at": "2026-07-16 19:27:36",
+          "updated_at": "2026-07-16 19:27:36",
+          "content_len": 1017,
+          "content_head": "5 real follow-ups spawned by executing the original 9, all DONE, all independently verified: web-tree-sitter-migration (native tree-sitter -> WASM, npm peer-dep"
+        },
+        {
+          "key": "2026-07-15-orphan-sweep-cccmds-pending",
+          "title": "DONE -- all 9 original orphan-sweep CC-CMDs verified complete, smoke 932-&gt;948",
+          "status": "resolved",
+          "created_at": "2026-07-15 16:38:20",
+          "updated_at": "2026-07-16 19:27:25",
+          "content_len": 395,
+          "content_head": "All 9 original orphan-sweep CC-CMDs (orphan-cleanup-dead, card-badges, last-meeting, golf-rankings, drop-game-socket, dispatch-field-score, predict-open-hour, g"
+        },
+        {
+          "key": "2026-07-15-european-qualifying-and-fpl-context-resolved",
+          "title": "RESOLVED -- European qualifying (UCL/Europa/Conference) + FPL player-analytics context, both verified, real self-corrections in each",
+          "status": "resolved",
+          "created_at": "2026-07-15 04:49:22",
+          "updated_at": "2026-07-15 04:49:22",
+          "content_len": 1936,
+          "content_head": "european-qualifying (field-relay-nba): added uclqual/europaqual/conferencequal V2_LEAGUES entries. Real finding via a live CI-as-proxy probe (temp workflow, rea"
+        },
+        {
+          "key": "2026-07-15-mls-tournament-refresh-and-telus-fix-resolved",
+          "title": "RESOLVED -- MLS tournament refresh (2 real bugs found) + TELUS SF duplicate-rows cleanup, both verified, 1 more misfile caught and relocated",
+          "status": "resolved",
+          "created_at": "2026-07-15 04:49:09",
+          "updated_at": "2026-07-15 04:49:09",
+          "content_len": 1858,
+          "content_head": "mls-tournament-refresh (jubilant-bassoon): found the CC-CMD's own CONTEXT was already stale (a partial July 14 sync had landed 3 TELUS rows before this dispatch"
+        },
+        {
+          "key": "2026-07-15-cfb-featured-tier-arc-resolved",
+          "title": "RESOLVED -- featured-tier/overflow + CFB section-injection + curatedRank chain, all 3 pieces verified, 1 misfile caught and relocated",
+          "status": "resolved",
+          "created_at": "2026-07-15 04:48:57",
+          "updated_at": "2026-07-15 04:48:57",
+          "content_len": 1462,
+          "content_head": "Three-piece chain, all independently verified: (1) featured-tier-overflow (jubilant-bassoon) -- generic isFeaturedTierGame/buildOverflowStrip/buildRankBadge, th"
+        },
+        {
+          "key": "2026-07-15-bsd-full-arc-resolved",
+          "title": "RESOLVED -- full BSD generalization arc (live pitch, capture, replay, trigger), all 4 pieces independently verified, one real self-correction mid-session",
+          "status": "resolved",
+          "created_at": "2026-07-15 04:48:40",
+          "updated_at": "2026-07-15 04:48:40",
+          "content_len": 1353,
+          "content_head": "Four-piece chain, all independently verified live tonight, not just trusted from outbox reports: (1) bsd-pitch-generalize (jubilant-bassoon) -- live SVG pitch d"
+        },
+        {
+          "key": "missing-july12-assertions",
+          "title": "RESOLVED -- 2 missing July 12 structural assertions confirmed shipped; the client-live-invariant gap this entry flagged as open is also now resolved (corrected stale cross-reference)",
+          "status": "resolved",
+          "created_at": "2026-07-13 02:27:43",
+          "updated_at": "2026-07-14 21:48:30",
+          "content_len": 1412,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped. Directly grepped smoke.js in the live repo tarball: A740 exists and passed live (\"A740 — fiel"
+        },
+        {
+          "key": "2026-07-14-jq-context-and-calibration-resolved",
+          "title": "RESOLVED -- JQ context-completeness + brief-type calibration, verified live via probe_relay_route (bash_tool down this session)",
+          "status": "resolved",
+          "created_at": "2026-07-14 21:43:36",
+          "updated_at": "2026-07-14 21:43:36",
+          "content_len": 1302,
+          "content_head": "Verified live via probe_relay_route (bash_tool was down this session; MCP-only verification path), not via outbox/source diff. Both tasks confirmed real and dep"
+        },
+        {
+          "key": "2026-07-14-soccer-batch-resolved",
+          "title": "RESOLVED -- soccer league label, Night Stars signature events, MLS identity-resolver, all independently re-verified live",
+          "status": "resolved",
+          "created_at": "2026-07-14 19:35:36",
+          "updated_at": "2026-07-14 19:35:36",
+          "content_len": 559,
+          "content_head": "Dispatched, executed, independently verified this session. Soccer league label (commit 1f99409/76ea049): all 13 competitions correctly labeled, live-checked MLS"
+        },
+        {
+          "key": "promise-catch-tier1-tier2-cc-cmds",
+          "title": "RESOLVED -- both Tiers dispatched, independently re-verified (44/44 sites, 0 empty of either catch pattern remain anywhere in the file)",
+          "status": "resolved",
+          "created_at": "2026-07-14 13:07:03",
+          "updated_at": "2026-07-14 17:07:18",
+          "content_len": 835,
+          "content_head": "Both dispatched and independently verified. Tier 1 (commit 5c08e9a): 24 D1/KV sites, 10 real behavioral fixes + 14 correctly-justified safe sites, 100/100. Tier"
+        },
+        {
+          "key": "client-live-invariant",
+          "title": "RESOLVED -- confirmed live: .github/workflows/client-live-invariant.yml exists, Playwright-based, checks real deployed DOM against real fetched data, running successfully on every deploy tonight",
+          "status": "resolved",
+          "created_at": "2026-07-13 02:30:57",
+          "updated_at": "2026-07-14 12:58:50",
+          "content_len": 444,
+          "content_head": "Confirmed via direct file read: workflow header comment explicitly cites this CC-CMD by name, triggers on Deploy gate completion (matching field-relay-nba's own"
+        },
+        {
+          "key": "rule89-scoped-tools-cc-cmd",
+          "title": "RESOLVED -- both tools confirmed live and working this session via direct testing (get_deploy_status event field called directly; commit_file_patch's own outbox transcript shows a real end-to-end patch + rejection test)",
+          "status": "resolved",
+          "created_at": "2026-07-14 02:59:42",
+          "updated_at": "2026-07-14 12:58:44",
+          "content_len": 531,
+          "content_head": "Verified same-session via this chat's own \"pull files and verify\" pass: get_ci_status/get_deploy_status called directly, event field confirmed present in real o"
+        },
+        {
+          "key": "relay-empty-catches-cluster2",
+          "title": "RESOLVED -- confirmed live via tree-sitter (34/34 block-statement catches, 0 empty), plus this session's own follow-on fix for 11 promise-chain sites the original scope never covered (see handlejournalismcycle-promise-catch-fixes)",
+          "status": "resolved",
+          "created_at": "2026-07-13 17:07:28",
+          "updated_at": "2026-07-14 12:58:36",
+          "content_len": 428,
+          "content_head": "Original 28-site block-statement scope confirmed complete and correct via a real AST parse tonight, cross-checked against the Drive outbox doc's own detailed ve"
+        },
+        {
+          "key": "catchup-block-catch-fix",
+          "title": "RESOLVED -- confirmed live: src/index.js:6162, console.error(\"[ARCHIVE-CATCHUP] loop failed:\", e.message). Codex entry was never flipped after landing.",
+          "status": "resolved",
+          "created_at": "2026-07-13 09:50:41",
+          "updated_at": "2026-07-14 12:58:27",
+          "content_len": 392,
+          "content_head": "Confirmed via direct code read tonight, plus its own real outbox manifest (outbox/catchup-block-catch-2026-07-13.md). Correctly the inner loop-wrapper catch, di"
+        },
+        {
+          "key": "quality-calibration-catch-fix",
+          "title": "RESOLVED -- confirmed live: src/index.js:4158, console.error(\"[QUALITY] D1 fallback failed:\", e.message). Codex entry was never flipped after landing.",
+          "status": "resolved",
+          "created_at": "2026-07-13 09:47:46",
+          "updated_at": "2026-07-14 12:58:20",
+          "content_len": 351,
+          "content_head": "Confirmed via direct code read tonight, plus its own real outbox manifest (outbox/quality-calibration-catch-2026-07-13.md) showing genuine TASK 0 probe work and"
+        },
+        {
+          "key": "handlejournalismcycle-promise-catch-fixes",
+          "title": "DONE -- 11 promise-chain catches in handleJournalismCycle fixed (8 real bugs, not just missing logs), tree-sitter-verified; repo-wide empty-catch count confirmed to be an undercount",
+          "status": "open",
+          "created_at": "2026-07-14 12:10:06",
+          "updated_at": "2026-07-14 12:10:06",
+          "content_len": 2807,
+          "content_head": "Shipped commit 9b2c66c (field-relay-nba), deploy + post-deploy live verification both green, /journalism/tonight confirmed returning real content post-deploy.\n\n"
+        },
+        {
+          "key": "hrd-verified-final-result-2026-07-13",
+          "title": "DONE -- real verified HRD final result (Walker def. Schwarber 12-11) wired into journalism, live-verified on production",
+          "status": "open",
+          "created_at": "2026-07-14 02:48:03",
+          "updated_at": "2026-07-14 02:48:03",
+          "content_len": 1577,
+          "content_head": "Shipped commit da347b0 (jubilant-bassoon), deploy gate passed, confirmed live on production. Jordan Walker def. Kyle Schwarber, 12-11 -- down 8-11 with one swin"
+        },
+        {
+          "key": "fieldoperation-real-pilot-compound-editorial",
+          "title": "DONE -- fieldOperation real pilot shipped on fetchCompoundEditorial (3-phase operation identity, not the cheap single-wrap version), 921/0 live-verified",
+          "status": "open",
+          "created_at": "2026-07-14 02:13:26",
+          "updated_at": "2026-07-14 02:13:26",
+          "content_len": 2893,
+          "content_head": "Shipped commit 2be12a3 (jubilant-bassoon), pushed, deploy-gate passed, live-verified. This is the real pilot, not the cheap single-wrap version -- see the HANDO"
+        },
+        {
+          "key": "capturefielderror-cap",
+          "title": "RESOLVED -- captureFieldError() cap/dedup confirmed live, was a hard prerequisite for the now-confirmed-shipped Bucket B sweep",
+          "status": "resolved",
+          "created_at": "2026-07-13 03:25:33",
+          "updated_at": "2026-07-14 00:42:57",
+          "content_len": 1007,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped by necessity and by direct citation. bucketb-tiera's own entry states this was \"explicitly che"
+        },
+        {
+          "key": "bucketc-cleanup",
+          "title": "RESOLVED -- Bucket C audit cleanup (4 dead refs + 1 stale citation) confirmed shipped",
+          "status": "resolved",
+          "created_at": "2026-07-13 16:08:54",
+          "updated_at": "2026-07-14 00:42:30",
+          "content_len": 830,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped, both halves. The 4 dead-ref entries (fetchESPNPlays, formatPitcher, _plEuroNote, fdFetchLive)"
+        },
+        {
+          "key": "bucketb-tierc-cluster10",
+          "title": "RESOLVED -- Cluster 10 (FINAL, 15 functions) confirmed shipped, closes all of Bucket B; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 08:26:19",
+          "updated_at": "2026-07-14 00:41:55",
+          "content_len": 942,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; docs/TYPED"
+        },
+        {
+          "key": "bucketb-tierc-cluster9",
+          "title": "RESOLVED -- Cluster 9 (10 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 06:59:19",
+          "updated_at": "2026-07-14 00:41:46",
+          "content_len": 797,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; queue doc "
+        },
+        {
+          "key": "bucketb-tierc-cluster8",
+          "title": "RESOLVED -- Cluster 8 (11 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 06:59:12",
+          "updated_at": "2026-07-14 00:41:35",
+          "content_len": 616,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; queue doc "
+        },
+        {
+          "key": "bucketb-tierc-cluster7",
+          "title": "RESOLVED -- Cluster 7 (9 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 06:52:00",
+          "updated_at": "2026-07-14 00:41:28",
+          "content_len": 782,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; queue doc "
+        },
+        {
+          "key": "bucketb-tierc-cluster6",
+          "title": "RESOLVED -- Cluster 6 (10 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 06:44:18",
+          "updated_at": "2026-07-14 00:41:22",
+          "content_len": 738,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; queue doc "
+        },
+        {
+          "key": "bucketb-tierc-cluster5",
+          "title": "RESOLVED -- Cluster 5 (11 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 06:28:33",
+          "updated_at": "2026-07-14 00:41:16",
+          "content_len": 687,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; queue doc "
+        },
+        {
+          "key": "bucketb-tierc-cluster4",
+          "title": "RESOLVED -- Cluster 4 (10 functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 05:54:42",
+          "updated_at": "2026-07-14 00:41:09",
+          "content_len": 713,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped -- live `node smoke.js` run against current HEAD = 920/0 exact match to HANDOFF.md; TYPED-RESU"
+        },
+        {
+          "key": "bucketb-tierc",
+          "title": "RESOLVED -- Bucket B Tier C fully closed (all 10 clusters landed); this was the mid-sweep progress entry, superseded by cluster10's FINAL closure",
+          "status": "resolved",
+          "created_at": "2026-07-13 04:49:11",
+          "updated_at": "2026-07-14 00:41:03",
+          "content_len": 882,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): this entry captured Tier C at 2-of-~6 clusters drafted. All 10 clusters (1-10) subsequently landed same session "
+        },
+        {
+          "key": "bucketb-tierb",
+          "title": "RESOLVED -- Bucket B Tier B (13 moderate-frequency functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 04:21:16",
+          "updated_at": "2026-07-14 00:40:56",
+          "content_len": 889,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation): confirmed shipped, same verification as bucketb-tiera -- live `node smoke.js` run against current HEAD = 920/0 e"
+        },
+        {
+          "key": "bucketb-tiera",
+          "title": "RESOLVED -- Bucket B Tier A (5 highest-frequency functions) confirmed shipped; entry was never flipped after landing",
+          "status": "resolved",
+          "created_at": "2026-07-13 03:25:42",
+          "updated_at": "2026-07-14 00:40:49",
+          "content_len": 1371,
+          "content_head": "RECONCILED 2026-07-13 (session reconciliation, not assumed): this entry sat PENDING while the work actually landed same-day. Confirmed via two independent check"
+        },
+        {
+          "key": "relay-empty-catches-sweep",
+          "title": "CORRECTED -- true relay empty-catch total is 118, not 50 (comment-only-body counting bug found and fixed); Cluster 1's real 23-site fix already shipped and verified, unaffected; ~95 remain, not 34",
+          "status": "open",
+          "created_at": "2026-07-13 16:41:11",
+          "updated_at": "2026-07-13 17:04:02",
+          "content_len": 1551,
+          "content_head": "MAJOR CORRECTION to the prior entry's scope: found a 4th real bug in my own tree-sitter counting tool -- comment-only catch bodies (e.g. catch(_){/* KV read fai"
+        },
+        {
+          "key": "brief-archive-health-audit",
+          "title": "Brief archive verified real via direct D1 query -- mostly healthy, one confirmed real stall (backfill engine, 140-date backlog) dispatched for diagnosis; KV sweep likely benign but not fully certain; compound/stakes/series_preview archival flagged unexamined",
+          "status": "open",
+          "created_at": "2026-07-13 12:52:21",
+          "updated_at": "2026-07-13 12:52:21",
+          "content_len": 1458,
+          "content_head": "Spec pushed: field-relay-nba docs/CC-CMD-2026-07-13-backfill-stall-diagnosis.md (commit a7ce4d0). Triggered by \"so we have an archive of saved briefs\" -- verifi"
+        },
+        {
+          "key": "p15b-p16-getqualitytarget",
+          "title": "P15B dispatched (real 23-day-old bug, confirmed via bundle not source search) -- P16 confirmed still open/low-priority, not dispatched -- getQualityTarget fully resolved (superseded by loadQualityCalibration, one new silent-catch gap found)",
+          "status": "open",
+          "created_at": "2026-07-13 09:17:57",
+          "updated_at": "2026-07-13 09:17:57",
+          "content_len": 1594,
+          "content_head": "Spec pushed: field-relay-nba docs/CC-CMD-2026-07-13-p15b-archive-catchup-fix.md (commit d83f785). Closes P15B, open since 2026-06-20. Confirmed via workers_get_"
+        },
+        {
+          "key": "bucketc-inverse-problem-confirmed",
+          "title": "CONFIRMED -- Bucket C inverse-misclassification is real (2 found via Cluster 3), not just theoretical; standing check to carry into future clusters, not a full 519-entry audit",
+          "status": "open",
+          "created_at": "2026-07-13 05:51:56",
+          "updated_at": "2026-07-13 05:51:56",
+          "content_len": 1448,
+          "content_head": "Confirmed real, not theoretical: Cluster 3's own investigation found 2 genuine Bucket C misclassifications (fetchGameBriefOnDemand's champ-archive-enrich catch,"
+        },
+        {
+          "key": "rule97-ci-as-invariant",
+          "title": "DONE -- Rule 97 fully verified: STANDARDS.md text AND codex rule-registry entry, both independently re-confirmed multiple times, full CI workflow confirmed green after registration",
+          "status": "open",
+          "created_at": "2026-07-12 18:17:18",
+          "updated_at": "2026-07-13 05:32:08",
+          "content_len": 1172,
+          "content_head": "Fully verified, twice, at two different points this session -- record was previously incomplete, only reflecting the first pass. (1) STANDARDS.md text confirmed"
+        },
+        {
+          "key": "bucketb-tierc-cluster3",
+          "title": "MERGED -- Cluster 3 already existed from a parallel session with a sharper staleness-risk framing; combined with this session's exception-surface lesson rather than overwritten",
+          "status": "open",
+          "created_at": "2026-07-13 05:18:00",
+          "updated_at": "2026-07-13 05:23:10",
+          "content_len": 1115,
+          "content_head": "Merged, not overwritten: docs/CC-CMD-2026-07-13-bucketb-tierc-cluster3.md (final commit 399a022). This CC-CMD already existed on GitHub (independently, from ano"
+        },
+        {
+          "key": "bucket-a-full-sweep",
+          "title": "DONE -- all 13 Bucket A entries closed (17 commits), several found a different real bug than the queue predicted rather than force-fitting the stated pattern",
+          "status": "open",
+          "created_at": "2026-07-13 02:12:22",
+          "updated_at": "2026-07-13 02:12:22",
+          "content_len": 2057,
+          "content_head": "Confirmed via local git clone (HANDOFF.md read directly, 13 commits spot-checked by SHA presence in git log, not individually deep-verified line-by-line each). "
+        },
+        {
+          "key": "compound-retry-after-cap",
+          "title": "DONE -- uncapped Retry-After backoff in fetchCompoundEditorial clamped to 30min, independently verified line-by-line against all 8 test scenarios",
+          "status": "open",
+          "created_at": "2026-07-13 02:12:09",
+          "updated_at": "2026-07-13 02:12:09",
+          "content_len": 1200,
+          "content_head": "Confirmed via local git clone. Commit dbd91f74. Directly answers a question just discussed conversationally (backoff needing a real cap and terminal state, not "
+        },
+        {
+          "key": "epl-brief-archive-typo-fix",
+          "title": "DONE -- renderEPLMatchBriefCard's undefined g fixed to game, verified via extraction test (no live game available, stated honestly)",
+          "status": "open",
+          "created_at": "2026-07-13 00:35:56",
+          "updated_at": "2026-07-13 01:09:38",
+          "content_len": 432,
+          "content_head": "Confirmed via local git clone. Commit f72a58a2, outbox real. Fixed via extraction test (stubbed fetchEPLMatchBriefFromClaude + archiveBrief, ran renderEPLMatchB"
+        },
+        {
+          "key": "fetchnhlrelayscores-migration",
+          "title": "DONE -- fetchNHLRelayScores migrated, correctly scope-disciplined (flagged 3 siblings rather than touching them), 3 real tests passed",
+          "status": "open",
+          "created_at": "2026-07-13 00:36:12",
+          "updated_at": "2026-07-13 01:09:32",
+          "content_len": 774,
+          "content_head": "Confirmed via local git clone. Commit 08c85e1d, outbox real and thorough. Correctly stayed within stated scope -- explicitly left 3 sibling fire-and-forget func"
+        },
+        {
+          "key": "saveespnfinal-migration",
+          "title": "DONE -- saveEspnFinal migrated, caught and fixed a real gap in chat's own CC-CMD spec (guard-rejection vs failure), 4 real tests passed",
+          "status": "open",
+          "created_at": "2026-07-13 00:36:06",
+          "updated_at": "2026-07-13 01:09:24",
+          "content_len": 571,
+          "content_head": "Confirmed via local git clone. Commit ca10d131, outbox real and thorough. Found and corrected a real gap in chat's own CC-CMD spec: TASK 2's guidance (\"if (resu"
+        },
+        {
+          "key": "typed-result-survey",
+          "title": "DONE -- all 827 sites classified (26 Bucket A / 281 B / 519 C + 1 confirmed bug), independently spot-verified, real misclassification caught and fixed mid-task",
+          "status": "open",
+          "created_at": "2026-07-12 22:32:44",
+          "updated_at": "2026-07-13 00:29:49",
+          "content_len": 1593,
+          "content_head": "Confirmed via local git clone. docs/TYPED-RESULT-MIGRATION-QUEUE.md exists (79940 bytes), real and durable. All 827 sites (re-confirmed count, drifted +2 from t"
+        },
+        {
+          "key": "completion-field-parity-gate-resolution",
+          "title": "DONE -- confidence-gate violation resolved + a second real gap found and fixed (Rule 97 never registered in codex), full CI re-verified green, independently confirmed",
+          "status": "open",
+          "created_at": "2026-07-13 00:19:14",
+          "updated_at": "2026-07-13 00:19:14",
+          "content_len": 1196,
+          "content_head": "Confirmed via local git clone + 2 independent live checks. (1) codex_read('rule-97') confirms the rule-registry entry genuinely exists now, category='rule-regis"
+        },
+        {
+          "key": "jinx-drama-peak-invalidation",
+          "title": "DONE -- jinx recompute endpoint live, real historical wrong-grading corrected (jinx_2026-07-11), independently verified via D1",
+          "status": "open",
+          "created_at": "2026-07-13 00:19:04",
+          "updated_at": "2026-07-13 00:19:04",
+          "content_len": 1010,
+          "content_head": "Confirmed via local git clone + 3 independent live checks, not taken on the outbox's word. (1) D1 direct query on analytics_output WHERE feature='jinx' AND date"
+        },
+        {
+          "key": "otw-tier-categorical",
+          "title": "DONE (commit confirmed, not yet deep-verified) -- _otwGetLiveTier T3/T4 now categorical, not composite-score thresholds",
+          "status": "open",
+          "created_at": "2026-07-12 13:46:52",
+          "updated_at": "2026-07-12 23:58:17",
+          "content_len": 549,
+          "content_head": "Confirmed executed via local git clone (rate-limit-free method). Commit f2c7413c: _otwGetLiveTier's T3/T4 tiers converted from composite-score threshold compari"
+        },
+        {
+          "key": "drama-peak-nightstars-invalidation",
+          "title": "DONE -- push-based invalidation live, real synthetic test proved the recompute actually re-ran (not just endpoint 200), 100/100",
+          "status": "open",
+          "created_at": "2026-07-12 17:08:12",
+          "updated_at": "2026-07-12 23:30:56",
+          "content_len": 745,
+          "content_head": "Confirmed executed via local git clone. Commit 49b2ad1, outbox 100/100. touchedDates tracking added to drama-backfill.mjs's main() loop, post-loop recompute tri"
+        },
+        {
+          "key": "relay-operation-primitive",
+          "title": "DONE -- relayOperation() built for field-relay-nba, correctly found captureFieldError doesn't really exist there (undefined global), 100/100",
+          "status": "open",
+          "created_at": "2026-07-12 22:32:51",
+          "updated_at": "2026-07-12 23:30:48",
+          "content_len": 750,
+          "content_head": "Confirmed executed via local git clone (field-relay-nba is actually publicly clonable, unauthenticated -- corrects an earlier session's \"private\" characterizati"
+        },
+        {
+          "key": "field-operation-primitive",
+          "title": "DONE -- fieldOperation() built, extends captureFieldError(), zero call sites touched, all test suites clean",
+          "status": "open",
+          "created_at": "2026-07-12 22:32:37",
+          "updated_at": "2026-07-12 23:30:40",
+          "content_len": 529,
+          "content_head": "Confirmed executed via local git clone + git log (not rate-limited api.github.com) -- commit c6f632c2, outbox at docs/outbox/cc-field-operation-primitive-2026-0"
+        },
+        {
+          "key": "cliche-freshness-scoring",
+          "title": "BLOCKED -- premise empirically disproven; hasCliche()/BANNED_PHRASES intentionally left unchanged",
+          "status": "open",
+          "created_at": "2026-07-12 13:27:28",
+          "updated_at": "2026-07-12 23:15:55",
+          "content_len": 3119,
+          "content_head": "Executed all 4 tasks from docs/CC-CMD-2026-07-12-cliche-freshness-scoring.md\n(jubilant-bassoon). Confidence scored ~62/100 against the CC-CMD's own\nrubric -- st"
+        },
+        {
+          "key": "wenttoot-invariant-exception",
+          "title": "DONE -- all 38 rows resolved directly via D1 (2 real ingestion-path bugs found and fixed), invariant now 0/0, no exceptions file needed",
+          "status": "open",
+          "created_at": "2026-07-12 21:11:45",
+          "updated_at": "2026-07-12 22:54:51",
+          "content_len": 1265,
+          "content_head": "Resolved directly by chat via live D1 writes, not dispatched to CC. Real 38-row list re-pulled fresh (drifted from 36 to 38 since last check -- more games compl"
+        },
+        {
+          "key": "analytics-degraded-sweep",
+          "title": "DONE -- generic degraded-phase sweep live for 8 PURE phases, AI-costing phases correctly surfaced read-only not auto-fired",
+          "status": "open",
+          "created_at": "2026-07-12 17:00:13",
+          "updated_at": "2026-07-12 22:41:47",
+          "content_len": 495,
+          "content_head": "Confirmed executed via real commit (9335c83): recomputePhase(env, feature, date) generalizes recomputeNightStars's shape, PURE_PHASE_DISPATCH covers exactly the"
+        },
+        {
+          "key": "lead-detector-team-verb-shape",
+          "title": "DONE -- lead-sentence genericness now uses per-sentence specificity scoring, regex removed; this entry was stale, work completed hours ago",
+          "status": "open",
+          "created_at": "2026-07-12 04:44:49",
+          "updated_at": "2026-07-12 22:15:23",
+          "content_len": 761,
+          "content_head": "Confirmed already fully executed via direct outbox read (docs/outbox/cc-lead-specificity-scoring-2026-07-12.md, 220 lines, complete) -- this codex entry was sim"
+        },
+        {
+          "key": "completion-trigger-sticky",
+          "title": "DONE -- source='completion-trigger' now sticky against later cron overwrites, proven via real write-after-write test",
+          "status": "open",
+          "created_at": "2026-07-12 20:57:02",
+          "updated_at": "2026-07-12 22:04:09",
+          "content_len": 679,
+          "content_head": "Confirmed executed via fresh source read: CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END correctly landed at the que"
+        },
+        {
+          "key": "completion-trigger-close",
+          "title": "DONE -- source mislabeling + shadowing fixed, verify-pending-checks.yml crash fixed, savant check retired (durability gap found after, see completion-trigger-sticky)",
+          "status": "open",
+          "created_at": "2026-07-12 20:20:14",
+          "updated_at": "2026-07-12 22:04:02",
+          "content_len": 948,
+          "content_head": "Confirmed executed via fresh source read: source:'completion-trigger' correctly added to the enqueue payload (line ~11890), job.source ?? 'cron' correctly used "
+        },
+        {
+          "key": "went-to-ot-historical-backfill",
+          "title": "DONE -- retroactive went_to_ot backfill executed and verified (357->38 unresolved at the time; the 38 later found likely resolvable, see wenttoot-invariant-exception)",
+          "status": "open",
+          "created_at": "2026-07-12 18:25:04",
+          "updated_at": "2026-07-12 22:03:54",
+          "content_len": 734,
+          "content_head": "Confirmed executed and verified: fresh source read (relay-index-final.js) confirms went_to_ot computed for real via self-fetch to /v2/games, MLB/WNBA scoped hon"
+        },
+        {
+          "key": "completion-field-parity-went-to-ot",
+          "title": "DONE (TASKS 0-3) -- went_to_ot + a second real finalized_at bug fixed and live-verified; TASK 4 (STANDARDS.md rule) spun off, see rule97-ci-as-invariant",
+          "status": "open",
+          "created_at": "2026-07-12 17:36:11",
+          "updated_at": "2026-07-12 18:17:11",
+          "content_len": 2335,
+          "content_head": "Pulled fresh source and verified directly (not taken on the outbox's word alone, though it checks out): TASKS 0/1/2/3 genuinely executed and deployed (relay com"
+        },
+        {
+          "key": "mcp-trigger-workflow",
+          "title": "DONE -- trigger_workflow MCP tool built and live-verified (corrects this entry's own prior PENDING status)",
+          "status": "open",
+          "created_at": "2026-07-12 01:36:28",
+          "updated_at": "2026-07-12 16:12:07",
+          "content_len": 1787,
+          "content_head": "CORRECTION to this entry's own prior version (updated_at 2026-07-12 01:36:28), which said \"no matching outbox file exists, genuinely never executed\" -- accurate"
+        },
+        {
+          "key": "datamuse-relay-proxy",
+          "title": "TASK 1 DONE (field-relay-nba) / TASK 2 DONE (jubilant-bassoon) -- Datamuse relay proxy",
+          "status": "open",
+          "created_at": "2026-07-12 13:34:31",
+          "updated_at": "2026-07-12 14:23:24",
+          "content_len": 2754,
+          "content_head": "Both sides complete and verified live as of 2026-07-12.\n\nfield-relay-nba TASK 1: live as of commit 664a039. GET /datamuse/words, transparent passthrough to api."
+        },
+        {
+          "key": "standards-index-wiring",
+          "title": "PENDING -- wire STANDARDS-INDEX.md into Rule 40/Rule 8/GOVERNANCE.json (depends on standards-index)",
+          "status": "open",
+          "created_at": "2026-07-12 04:33:53",
+          "updated_at": "2026-07-12 04:33:53",
+          "content_len": 435,
+          "content_head": "Pushed to jubilant-bassoon, commit 48e7e2f6. Real gap in the original standards-index CC-CMD: it created the index and pointed to it from inside STANDARDS.md, b"
+        },
+        {
+          "key": "standards-index",
+          "title": "PENDING -- create STANDARDS-INDEX.md, additive fix for the read-burden problem",
+          "status": "open",
+          "created_at": "2026-07-12 02:55:24",
+          "updated_at": "2026-07-12 02:55:24",
+          "content_len": 352,
+          "content_head": "Pushed to jubilant-bassoon, commit 3bfa02fd. Purely additive -- creates STANDARDS-INDEX.md (rule/reference/case-study index) as the fast session-start read; STA"
+        },
+        {
+          "key": "mcp-tool-visibility-gap",
+          "title": "PENDING -- document mid-session MCP tool visibility gap in STANDARDS.md",
+          "status": "open",
+          "created_at": "2026-07-12 02:26:26",
+          "updated_at": "2026-07-12 02:26:26",
+          "content_len": 432,
+          "content_head": "Pushed to jubilant-bassoon, commit cca2e000. Documents a real, confirmed gap distinct from the already-known \"new parameter on existing tool works immediately\" "
+        },
+        {
+          "key": "ui-hash-unreliability",
+          "title": "PENDING -- document Claude Code UI hash-display unreliability in STANDARDS.md",
+          "status": "open",
+          "created_at": "2026-07-12 02:05:49",
+          "updated_at": "2026-07-12 02:05:49",
+          "content_len": 375,
+          "content_head": "Pushed to jubilant-bassoon, commit 6547d06c. Was never registered when originally pushed -- closing that gap now. Confirmed via direct STANDARDS.md grep: sectio"
+        },
+        {
+          "key": "deploy-recovery-reference",
+          "title": "DONE -- documented deploy recovery infrastructure in STANDARDS.md",
+          "status": "open",
+          "created_at": "2026-07-11 21:03:23",
+          "updated_at": "2026-07-12 02:05:44",
+          "content_len": 296,
+          "content_head": "Verified done, section confirmed present in STANDARDS.md (grep-verified this session). Documents the current manual/CC-only deploy-recovery path and trigger_wor"
+        },
+        {
+          "key": "pick-resolution-retry-decouple",
+          "title": "DONE -- decoupled pick-resolution retry from saveEspnFinal dedup guard",
+          "status": "open",
+          "created_at": "2026-07-11 22:25:14",
+          "updated_at": "2026-07-12 02:05:28",
+          "content_len": 315,
+          "content_head": "Verified done 2026-07-11/12, real commit 7c96dac (Claude Code's own display hash -- confirmed via git log). Pick-resolution moved before the save-dedup guard, r"
+        },
+        {
+          "key": "per-card-render-isolation",
+          "title": "DONE -- isolated per-card build failures in structural render map",
+          "status": "open",
+          "created_at": "2026-07-11 21:50:14",
+          "updated_at": "2026-07-12 02:05:21",
+          "content_len": 389,
+          "content_head": "Verified done 2026-07-11/12, real commit a871de9 (Claude Code's own display hash -- confirmed via git log, matches the same UI-hash-unreliability pattern docume"
+        },
+        {
+          "key": "render-surface-visibility",
+          "title": "DONE -- made render-surface failures visible in _fieldRefreshDynamicSurfaces",
+          "status": "open",
+          "created_at": "2026-07-11 20:45:44",
+          "updated_at": "2026-07-12 02:05:15",
+          "content_len": 293,
+          "content_head": "Verified done 2026-07-11/12, commits d6796c6/a871de9 (Claude Code's own display hashes -- real commits confirmed via git log). Primary cluster (6 renderers) plu"
+        },
+        {
+          "key": "remaining-field-smoke-gaps",
+          "title": "DONE -- resolved 3 remaining field_smoke.js failures, field_smoke.js now Failures: 0",
+          "status": "open",
+          "created_at": "2026-07-12 00:00:54",
+          "updated_at": "2026-07-12 01:36:21",
+          "content_len": 319,
+          "content_head": "Verified done 2026-07-11, commit f6bb9812. field_smoke.js: 21 -> 0 failures, confirmed via direct run. Assertion 48 correctly identified and removed as a 4th st"
+        },
+        {
+          "key": "stale-beatthebook-assertions",
+          "title": "DONE -- updated 3 stale field_smoke.js assertions to match confirmed betting-content removal",
+          "status": "open",
+          "created_at": "2026-07-11 23:49:08",
+          "updated_at": "2026-07-12 01:36:16",
+          "content_len": 151,
+          "content_head": "Verified done 2026-07-11, commit ec702dbc (369a061 in Claude Code's own display, not a real git hash). All 3 stale betting-content assertions resolved."
+        },
+        {
+          "key": "standards-collision-resolution",
+          "title": "DONE -- resolved 5 internal STANDARDS.md rule-number collisions (48-52 originals untouched, collisions now 92-96)",
+          "status": "open",
+          "created_at": "2026-07-11 20:25:21",
+          "updated_at": "2026-07-11 20:41:31",
+          "content_len": 636,
+          "content_head": "Verified done 2026-07-11, commit 85f36dee. Zero duplicate rule numbers remain in STANDARDS.md (independently confirmed via fresh duplicate-detection sweep). Rul"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-mlb-whos-up-next.md",
+          "title": "DONE -- MLB who's-up-next forecast, wires confirmed-present-but-discarded data from the probe",
+          "status": "open",
+          "created_at": "2026-07-11 00:11:18",
+          "updated_at": "2026-07-11 20:19:34",
+          "content_len": 347,
+          "content_head": "Verified done earlier in tonight's 2026-07-11 session, this entry was simply never updated at the time. Commit ecdfb5a6 -- _mlbWhosUpNext() lineup-rotation fore"
+        },
+        {
+          "key": "nhl-nba-regular-season-continuation",
+          "title": "DONE -- extended playoff-only NHL/NBA pipelines to October regular season",
+          "status": "open",
+          "created_at": "2026-07-11 20:00:48",
+          "updated_at": "2026-07-11 20:19:12",
+          "content_len": 538,
+          "content_head": "Verified done 2026-07-11, same session as PENDING registration. nhl-gsax wired to both playoffs and regular-season crons, nba-clutch zero-count guard fixed (rea"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-getqualitytarget-fallback-fix.md",
+          "title": "DONE (self-reported 100/100, commit 8c34b22) -- executed and probed fresh per Jeff's live CC screenshot; arithmetic vs. doc's own TASKS formula not independently checked by chat",
+          "status": "resolved",
+          "created_at": "2026-07-09 15:10:27",
+          "updated_at": "2026-07-11 04:50:28",
+          "content_len": 1095,
+          "content_head": "Executed, commit 8c34b22, self-reported 100/100 -- confirmed via Jeff's own live Claude Code screenshot (field-relay-nba session), not chat history. HARDCODED r"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-view-transitions-render.md",
+          "title": "DONE -- View Transitions wrap for renderAll shipped, verified via commit 96b23f93",
+          "status": "resolved",
+          "created_at": "2026-07-10 21:54:59",
+          "updated_at": "2026-07-11 04:12:20",
+          "content_len": 321,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds. Commit 96b23f93 \"feat: wrap structural re"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-render-gate-smoke-coverage.md",
+          "title": "DONE -- smoke coverage for the render-signature gate itself shipped, verified via commit a251330b",
+          "status": "resolved",
+          "created_at": "2026-07-10 21:02:32",
+          "updated_at": "2026-07-11 04:12:15",
+          "content_len": 308,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds. Commit a251330b \"test: add smoke coverage"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-smoke-coverage-sweep.md",
+          "title": "DONE -- 16-fix smoke coverage sweep shipped, verified via commit 0e0189fe",
+          "status": "resolved",
+          "created_at": "2026-07-10 20:04:52",
+          "updated_at": "2026-07-11 04:12:11",
+          "content_len": 350,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds. Commit 0e0189fe \"test: add smoke coverage"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-render-signature-gate.md",
+          "title": "DONE -- render-signature gate + getGameReasonTags compatibility fix shipped, verified via commits a8ca7f32 + 61911976",
+          "status": "resolved",
+          "created_at": "2026-07-10 20:01:56",
+          "updated_at": "2026-07-11 04:12:06",
+          "content_len": 534,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds. Commit a8ca7f32 \"feat: port render-signat"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-enqueue-smoke-coverage.md",
+          "title": "DONE -- broadened smoke coverage (6 fixes) shipped, verified via commit 15a6b7dd",
+          "status": "resolved",
+          "created_at": "2026-07-09 16:17:47",
+          "updated_at": "2026-07-11 04:12:00",
+          "content_len": 376,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds. Commit 15a6b7dd \"Broaden smoke coverage s"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-finals-desk-context-gap.md",
+          "title": "DONE -- finals-desk enqueue-context-gap fix, verified via commit 00e9cfb1 + confirmed live in current production index.html (line 34441)",
+          "status": "resolved",
+          "created_at": "2026-07-09 16:06:57",
+          "updated_at": "2026-07-11 04:11:54",
+          "content_len": 550,
+          "content_head": "Independently re-verified 2026-07-11 during a \"pull files and verify\" sweep of session_health's stale_pending_cc_cmds -- this entry had been sitting as PENDING "
+        },
+        {
+          "key": "CC-CMD-2026-07-10-prompt-leak-hard-strip.md",
+          "title": "DONE -- deterministic post-generation leak strip, verified 100/100, closes priority item #1 fully",
+          "status": "open",
+          "created_at": "2026-07-10 20:01:37",
+          "updated_at": "2026-07-10 20:01:37",
+          "content_len": 822,
+          "content_head": "Verified 100/100, CI clean. CC's own follow-up proposal (offered directly to chat, refined then approved): stripPromptLeaks() deterministically strips any sente"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-prompt-data-separation.md",
+          "title": "DONE -- prompt/data structural separation across 9 real sites, verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-10 20:01:29",
+          "updated_at": "2026-07-10 20:01:29",
+          "content_len": 669,
+          "content_head": "Verified 100/100, CI clean. Closes the prompt-leakage bug flagged early in the session (Night Owl leaked its own rule text into output). Root cause: every promp"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-monotonicity-guard.md",
+          "title": "DONE -- write-side monotonicity repair (CC-initiated follow-up, not dispatched by chat), verified",
+          "status": "open",
+          "created_at": "2026-07-10 20:01:21",
+          "updated_at": "2026-07-10 20:01:21",
+          "content_len": 665,
+          "content_head": "Not dispatched by chat -- Claude Code's own follow-up noticing the write-side root cause while executing the read-side ceiling fix, confirmed via Jeff. Genuinel"
+        },
+        {
+          "key": "CC-CMD-2026-07-10-lead-differential-upper-bound.md",
+          "title": "DONE -- lead-differential upper bound, verified 100/100, fixes the reported impossible-lead bug",
+          "status": "open",
+          "created_at": "2026-07-10 20:01:12",
+          "updated_at": "2026-07-10 20:01:12",
+          "content_len": 521,
+          "content_head": "Verified 100/100, CI 5/5. Real bug: Marlins-Mariners 2-0 final brief reported an impossible 4-run lead. buildScoreNarrativeContext() had a lower-bound floor (ad"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-anti-fabrication-shared-guard.md",
+          "title": "DONE -- anti-fabrication guard live in shared prose style, confirmed with bonus margin-correctness guard",
+          "status": "open",
+          "created_at": "2026-07-09 18:43:23",
+          "updated_at": "2026-07-10 20:01:04",
+          "content_len": 405,
+          "content_head": "Confirmed live in shared FIELD_PROSE_STYLE: \"DO NOT FABRICATE NUMBERS OR EVENTS\" with explicit per-sport specificity (innings, periods, at-bats, drives, possess"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-index-html-optimization-followups",
+          "title": "DONE -- saveEspnFinal guard + display-consumer sweep, both verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-09 19:04:13",
+          "updated_at": "2026-07-10 20:00:31",
+          "content_len": 423,
+          "content_head": "Both verified 100/100, CI clean. saveEspnFinal internal guard: found a real third caller (DOM-fallback path, synthetic eData) the CC-CMD's own premise missed, _"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-wc-advprob-and-keys-sweep.md",
+          "title": "DONE -- WC mutation bug fixed, .keys() sweep closed, verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-09 20:50:17",
+          "updated_at": "2026-07-10 20:00:22",
+          "content_len": 287,
+          "content_head": "Verified 100/100, CI clean. Two-stage resolution (both home+away, then findEspnEntry with requireSameDate) replaces the old home-only suffix scan for WC advance"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-realid-fix-and-generalize.md",
+          "title": "DONE -- fixed a feature that never worked, generalized real-ID matching, verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-09 21:10:19",
+          "updated_at": "2026-07-10 20:00:15",
+          "content_len": 320,
+          "content_head": "Verified 100/100, CI clean. scoreSMTCard's live-state suppression had genuinely never worked (game._id vs fg.id, two different ID spaces compared with ===). Fix"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-realid-bootstrap-collision-check.md",
+          "title": "DONE -- bootstrap collision was real, unambiguous-candidacy guard added and verified",
+          "status": "open",
+          "created_at": "2026-07-09 21:53:26",
+          "updated_at": "2026-07-10 20:00:08",
+          "content_len": 312,
+          "content_head": "Executed -- probe found the collision risk real enough to warrant the fix (not the negligible-risk exit clause). _resolveRealGameId now requires exactly one mat"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-all-final-envelope-standardize.md",
+          "title": "DONE -- field:all_final PM-27 envelope standardization, verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-10 02:40:15",
+          "updated_at": "2026-07-10 20:00:00",
+          "content_len": 140,
+          "content_head": "Verified 100/100, CI clean. Both field:all_final dispatch sites now use the real PM-27 envelope, both subscribers updated to read payload.*."
+        },
+        {
+          "key": "CC-CMD-2026-07-09-otw-significant-event.md",
+          "title": "DONE -- field:otw_changed_significant, verified 100/100",
+          "status": "open",
+          "created_at": "2026-07-10 02:54:17",
+          "updated_at": "2026-07-10 19:59:55",
+          "content_len": 193,
+          "content_head": "Verified 100/100, CI clean. field:otw_changed_significant live, additive to raw field:otw_changed (byte-for-byte unchanged, confirmed via diff). Streak + tier-m"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-card-region-claim-primitive.md",
+          "title": "DONE -- card-region claim primitive, verified 100/100, STAGED unwired by design",
+          "status": "open",
+          "created_at": "2026-07-10 02:59:08",
+          "updated_at": "2026-07-10 19:59:48",
+          "content_len": 156,
+          "content_head": "Verified 100/100, CI clean, live-tested (STAGED, no caller yet -- foundational infra, correct per its own scope). Confirmed live in production this session."
+        },
+        {
+          "key": "CC-CMD-2026-07-09-jq-threshold-240-migration.md",
+          "title": "DONE -- fully subsumed by enqueue-context-gap's own TASK 1, nothing outstanding",
+          "status": "resolved",
+          "created_at": "2026-07-09 13:17:57",
+          "updated_at": "2026-07-09 16:51:41",
+          "content_len": 522,
+          "content_head": "Repo: field-relay-nba + jubilant-bassoon. Doc: docs/CC-CMD-2026-07-09-jq-threshold-240-migration.md. Fully subsumed: TASK 1 (relay fallback) executed directly, "
+        },
+        {
+          "key": "CC-CMD-2026-07-09-enqueue-context-gap.md",
+          "title": "TASKS 1-2 DONE (jubilant-bassoon) -- verified live; TASK 5 was orphaned by my own dispatch gap, now separately dispatched; TASK 3-4 (relay) still pending",
+          "status": "open",
+          "created_at": "2026-07-09 14:56:47",
+          "updated_at": "2026-07-09 15:23:11",
+          "content_len": 1129,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-09-enqueue-context-gap.md, TASKS 1-2. Executed, commit c6f1359, live-verified (saveEspnFinal sends homeScore/aw"
+        },
+        {
+          "key": "CC-CMD-2026-07-09-maxretries-override-sweep.md",
+          "title": "DONE -- 8 stale overrides removed, live endpoint proof obtained directly by chat after CC's GitHub Actions route hit an indexing delay",
+          "status": "resolved",
+          "created_at": "2026-07-09 13:33:23",
+          "updated_at": "2026-07-09 13:58:24",
+          "content_len": 1613,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-09-maxretries-override-sweep.md. Code fix executed and verified (commit landed pre-outbox-cleanup, 9a91638 is th"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-wp-failure-predictedwinner-logging.md",
+          "title": "DONE -- predictedWinner logging, verified live, D1 confirmed clean",
+          "status": "resolved",
+          "created_at": "2026-07-09 03:02:19",
+          "updated_at": "2026-07-09 12:53:53",
+          "content_len": 503,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-wp-failure-predictedwinner-logging.md. Executed, commit 6a59157, 100/100. Independently verified this session"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-jq-3b-starvation-and-targeting.md",
+          "title": "DONE -- JQ 3b starvation fix, all 7 layers proven firing via real test output",
+          "status": "resolved",
+          "created_at": "2026-07-09 02:48:02",
+          "updated_at": "2026-07-09 12:53:47",
+          "content_len": 1046,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-jq-3b-starvation-and-targeting.md. Executed, commit 254b9a9, 100/100. Independently verified this session: re"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-anomaly-draft-watcher.md",
+          "title": "DONE -- anomaly-to-draft watcher, RUWT-safety independently verified via grep",
+          "status": "resolved",
+          "created_at": "2026-07-08 23:02:31",
+          "updated_at": "2026-07-09 12:53:37",
+          "content_len": 592,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-anomaly-draft-watcher.md. Executed, commit 7be7d15, 100/100. Independently verified this session: cron isolat"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-night-stars-recompute.md",
+          "title": "DONE -- surgical night_stars recompute, verified live via direct D1 query",
+          "status": "resolved",
+          "created_at": "2026-07-08 22:25:19",
+          "updated_at": "2026-07-09 12:53:29",
+          "content_len": 332,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-night-stars-recompute.md. Executed, commit 78d410e, 100/100. Independently verified this session: real D1 que"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-analytics-force-recompute.md",
+          "title": "SUPERSEDED -- never executed, target problem already fixed by the cheaper night-stars-recompute CC-CMD",
+          "status": "resolved",
+          "created_at": "2026-07-08 22:13:30",
+          "updated_at": "2026-07-09 12:51:35",
+          "content_len": 1235,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-analytics-force-recompute.md. Never dispatched, never executed. Superseded: written by a different, parallel "
+        },
+        {
+          "key": "CC-CMD-2026-07-08-afl-kali-relayfetch-fix.md",
+          "title": "DONE -- relayFetch extraction + both Kali call sites fixed, TASK 4 resolved via follow-up CC-CMDs",
+          "status": "resolved",
+          "created_at": "2026-07-08 19:49:14",
+          "updated_at": "2026-07-08 22:00:55",
+          "content_len": 468,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-afl-kali-relayfetch-fix.md. TASK 1-3 shipped and verified (commit 1b51e70). TASK 4's inconclusive cache-hit r"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-confidence-gate-acknowledgment.md",
+          "title": "DONE -- confidence-gate acknowledgment list, 100/100, verified live",
+          "status": "resolved",
+          "created_at": "2026-07-08 21:40:22",
+          "updated_at": "2026-07-08 21:51:03",
+          "content_len": 1350,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-confidence-gate-acknowledgment.md. Executed, commit ca75442, 100/100. Independently verified this session aga"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-afl-kali-kv-cache.md",
+          "title": "DONE -- KV cache fix, 100/100, live-verified, closes the full multi-session caching arc",
+          "status": "resolved",
+          "created_at": "2026-07-08 21:09:03",
+          "updated_at": "2026-07-08 21:37:21",
+          "content_len": 1445,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-afl-kali-kv-cache.md. Executed, commit 57bbb21 (fix) + 49d2bf7 (cleanup), 100/100. Independently verified thi"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-afl-kali-cache-audit.md",
+          "title": "DONE -- cache audit, real BYPASS finding confirmed, superseded by deeper workers.dev root cause",
+          "status": "resolved",
+          "created_at": "2026-07-08 19:06:47",
+          "updated_at": "2026-07-08 21:15:36",
+          "content_len": 814,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-afl-kali-cache-audit.md. Executed, commits 6f76984/cdbc2a5, 70/100 (below 95, correctly reported verbatim per"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-afl-wp-kali-integration.md",
+          "title": "DONE -- AFL WP Kali integration, verified live (codex was never updated)",
+          "status": "resolved",
+          "created_at": "2026-07-08 18:38:59",
+          "updated_at": "2026-07-08 21:15:27",
+          "content_len": 727,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-afl-wp-kali-integration.md. Superseded by its own execution -- this CC-CMD's implementation IS what produced "
+        },
+        {
+          "key": "CC-CMD-2026-07-08-sport-label-matching-utility.md",
+          "title": "DONE — sport-label matching extracted to reusable utility, verified live",
+          "status": "resolved",
+          "created_at": "2026-07-08 15:38:16",
+          "updated_at": "2026-07-08 18:54:37",
+          "content_len": 455,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-08-sport-label-matching-utility.md. Executed as commits 0a0034f2 + f39ef294. Independently verified via live di"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-truth-is-night-stars-client-fix.md",
+          "title": "DONE — Truth Is/Night Stars finalized_at client fix, verified live (codex was just never updated)",
+          "status": "resolved",
+          "created_at": "2026-07-08 15:15:35",
+          "updated_at": "2026-07-08 17:37:52",
+          "content_len": 837,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-08-truth-is-night-stars-client-fix.md (commit d12d2a2). Codex was never flipped from PENDING despite the code s"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-wp-resolution-noise-suppression.md",
+          "title": "SUPERSEDED — never executed itself; problem resolved via sibling CC-CMD (wp-failure-noise-suppression.md, b40211f)",
+          "status": "resolved",
+          "created_at": "2026-07-08 16:52:01",
+          "updated_at": "2026-07-08 17:35:31",
+          "content_len": 810,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-wp-resolution-noise-suppression.md (pushed 9c1ae73). NEVER EXECUTED as its own artifact -- a separate session"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-wp-failure-noise-suppression.md",
+          "title": "DONE — stop logging known-unsupported sports as WP failures, verified live",
+          "status": "resolved",
+          "created_at": "2026-07-08 17:03:03",
+          "updated_at": "2026-07-08 17:35:23",
+          "content_len": 974,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-08-wp-failure-noise-suppression.md. Executed as commit b40211f (isWpUnsupportedSport() added, else-branch call s"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-finalized-at-timestamp.md",
+          "title": "DONE (prerequisite only) — verified thoroughly, client-side follow-up still genuinely unscoped",
+          "status": "resolved",
+          "created_at": "2026-07-07 23:59:47",
+          "updated_at": "2026-07-08 15:00:46",
+          "content_len": 823,
+          "content_head": "CORRECTION: verified DONE, thoroughly (commit d57500e). ensureFinalizedAtColumn() confirmed matching the ensureCodexStatusColumn pattern exactly. Re-queried the"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-wp-resolver-sport-normalization.md",
+          "title": "DONE — verified across all three commits, live deploy confirmed, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-08 13:09:05",
+          "updated_at": "2026-07-08 15:00:32",
+          "content_len": 628,
+          "content_head": "CORRECTION: verified DONE, thoroughly, across three commits (9b11cac, 879d634, f7323f8). Full SPORT_LABEL_MAP and normalizeSportCode() read directly and cross-c"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-pick-cross-session-resolution.md",
+          "title": "DONE — verified thoroughly across both commits, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-08 13:58:05",
+          "updated_at": "2026-07-08 14:53:19",
+          "content_len": 762,
+          "content_head": "CORRECTION: verified DONE, thoroughly, this session. Two commits, both confirmed real and matching claims exactly: 6789cd8 (initial re-key to _pickStorageKey, s"
+        },
+        {
+          "key": "CC-CMD-2026-07-08-task4-resolution.md",
+          "title": "DONE — fulfilled by 685ea90a, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-08 04:11:26",
+          "updated_at": "2026-07-08 12:56:42",
+          "content_len": 172,
+          "content_head": "CORRECTION: this authorization was fulfilled -- the code it authorized is the same commit verified above (685ea90a). Never updated Codex status after verifying."
+        },
+        {
+          "key": "CC-CMD-2026-07-07-pickem-stale-final-resolution-fix.md",
+          "title": "DONE — verified thoroughly same session (685ea90a), Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-08 01:53:27",
+          "updated_at": "2026-07-08 12:56:36",
+          "content_len": 277,
+          "content_head": "CORRECTION: verified DONE, thoroughly, same session (commit 685ea90a, all five tasks confirmed line-by-line against the real diff, fourth call site independentl"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-espn-cache-date-qualification.md",
+          "title": "SCOPING refined further -- editorial-contamination category + explicit boundary added, urgent fix untouched",
+          "status": "open",
+          "created_at": "2026-07-08 02:10:06",
+          "updated_at": "2026-07-08 03:21:10",
+          "content_len": 783,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-07-espn-cache-date-qualification.md (commit f070c0c). Added two things, both independently verified before incl"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-pickem-stale-final-resolution-fix-v1",
+          "title": "SUPERSEDED by v2 (properly scoped: guards findEspnEntry itself, not just checkForNewFinals)",
+          "status": "resolved",
+          "created_at": "2026-07-08 02:09:44",
+          "updated_at": "2026-07-08 02:09:44",
+          "content_len": 691,
+          "content_head": "SUPERSEDED before execution -- v1 only patched checkForNewFinals directly. Found via direct challenge before committing: findEspnEntry() already exists as a par"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-wp-resolution-root-fix.md",
+          "title": "DONE — verified via diff + independent D1 game-result check + live deploy confirmation, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 23:43:55",
+          "updated_at": "2026-07-08 01:44:32",
+          "content_len": 972,
+          "content_head": "CORRECTION: verified DONE (commits 01d9bee + ead70d1, deploy confirmed live via session_health: relay_deployed=ead70d1, deploy_match=true). Diff confirmed exact"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-pick-probability-visibility.md",
+          "title": "CLOSED — original content unrecoverable, but investigation led to a real finding, captured in wp-resolution-root-fix.md",
+          "status": "resolved",
+          "created_at": "2026-07-07 23:15:19",
+          "updated_at": "2026-07-07 23:44:08",
+          "content_len": 918,
+          "content_head": "Original content permanently unrecoverable -- confirmed via GitHub's own API (not just local git) that commit 95edc8bc doesn't exist anywhere, no outbox file su"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-worth-watching-clickthrough.md",
+          "title": "DONE — verified via diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 21:13:04",
+          "updated_at": "2026-07-07 23:39:08",
+          "content_len": 605,
+          "content_head": "CORRECTION: verified DONE this session (commit a800e954). Found and disclosed a real, significant bug caught via actual testing (not assumed away): the relay's "
+        },
+        {
+          "key": "CC-CMD-2026-07-07-wwfindcard-comment-fix.md",
+          "title": "DONE — verified via exact diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 22:55:44",
+          "updated_at": "2026-07-07 23:38:56",
+          "content_len": 264,
+          "content_head": "CORRECTION: verified DONE this session (commit 9545c771). Diff confirmed exactly two lines changed, function body byte-identical, rest of comment (the accurate "
+        },
+        {
+          "key": "CC-CMD-2026-07-07-wp-resolution-failure-tracking.md",
+          "title": "DONE — verified via diff + independent D1 re-query same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 23:20:10",
+          "updated_at": "2026-07-07 23:38:31",
+          "content_len": 823,
+          "content_head": "CORRECTION: verified DONE this session (commit 66f0abd). Diff confirmed matching spec exactly, including careful double-guarded safety (inner try/catch on the t"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-handoff-midsession-update.md",
+          "title": "DONE — verified via diff + hash re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 23:21:39",
+          "updated_at": "2026-07-07 23:38:15",
+          "content_len": 450,
+          "content_head": "CORRECTION: verified DONE this session (commit a9da3c7c). Diff confirmed exact: 76 insertions, 0 deletions. All 5 cited jubilant-bassoon commit hashes independe"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-worth-watching-display.md",
+          "title": "CORRECTED to v2 before execution — resolved design question + fixed naming collision, just pushed",
+          "status": "open",
+          "created_at": "2026-07-07 20:47:37",
+          "updated_at": "2026-07-07 21:01:58",
+          "content_len": 1046,
+          "content_head": "CORRECTION before execution -- user flagged an unresolved design question from an earlier turn had been silently defaulted rather than answered. Two real gaps f"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-pickem-illegible-text-fix.md",
+          "title": "DONE — verified via independent WCAG recomputation + diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 20:05:13",
+          "updated_at": "2026-07-07 20:44:34",
+          "content_len": 505,
+          "content_head": "CORRECTION: verified DONE this session (commit 4b5cd3a1). Diff confirmed matching spec exactly, exactly two lines changed. Independently recomputed the WCAG con"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-fields-pick-tier-upgrade.md",
+          "title": "DONE — verified via independent live curl + diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 20:08:45",
+          "updated_at": "2026-07-07 20:44:24",
+          "content_len": 654,
+          "content_head": "CORRECTION: verified DONE this session (commits 0bf2ea4/6a65e62). Diff confirmed matching spec exactly. Independently re-verified live: curled /analytics/newspa"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-fields-pick-tiered-ranking.md",
+          "title": "SUPERSEDED by fields-pick-tier-upgrade.md (v3) — same design, adapted to build on the now-live v1 code",
+          "status": "resolved",
+          "created_at": "2026-07-07 19:54:04",
+          "updated_at": "2026-07-07 20:08:32",
+          "content_len": 447,
+          "content_head": "SUPERSEDED before execution -- not because the design was wrong, but because v1 (which this was meant to replace) executed anyway due to a dispatch mixup and is"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-fields-pick-ranked-list.md",
+          "title": "EXECUTED AND DEPLOYED despite being superseded — dispatch mixup, not reverted, tier logic being added as an upgrade instead",
+          "status": "resolved",
+          "created_at": "2026-07-07 19:45:23",
+          "updated_at": "2026-07-07 20:07:21",
+          "content_len": 887,
+          "content_head": "CORRECTION: the superseded v1 design was executed and deployed anyway (commit 1b3c16f, deploy confirmed live via session_health). Confirmed precisely: outbox fi"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-confidence-gate-regex-fix.md",
+          "title": "DONE — verified via real live CI run same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 17:18:53",
+          "updated_at": "2026-07-07 19:39:06",
+          "content_len": 368,
+          "content_head": "CORRECTION: verified DONE this session (commit 12b348e). Diff confirmed exact match to spec. Independently triggered and confirmed a real live CI run (288863227"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-adr002-full-consistency-pass.md",
+          "title": "DONE — verified via full diff re-check same session, closes the RUWT documentation thread, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 19:09:55",
+          "updated_at": "2026-07-07 19:38:57",
+          "content_len": 747,
+          "content_head": "CORRECTION: verified DONE this session (commit 01b18e6). Diff confirmed matching spec exactly across all 5 corrected sections (Rules A/B/C/E, Defense 2, PERMITT"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-adr002-rules-abce-update.md",
+          "title": "SUPERSEDED by adr002-full-consistency-pass.md — both reversions were correct, found 5 real contradictions not 3",
+          "status": "resolved",
+          "created_at": "2026-07-07 19:00:24",
+          "updated_at": "2026-07-07 19:09:45",
+          "content_len": 944,
+          "content_head": "SUPERSEDED after two correct reversions. CC correctly refused to commit twice: first pass found 1 contradiction (Defense 2), second pass found 3 (Defense 2, PRO"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-adr002-rules-abc-update.md",
+          "title": "SUPERSEDED by adr002-rules-abce-update.md (Rule E folded in)",
+          "status": "resolved",
+          "created_at": "2026-07-07 17:01:54",
+          "updated_at": "2026-07-07 19:00:15",
+          "content_len": 305,
+          "content_head": "SUPERSEDED — renamed to CC-CMD-2026-07-07-adr002-rules-abce-update.md after folding in Rule E (found this session to have the same over-broad pattern as A/B/C, "
+        },
+        {
+          "key": "CC-CMD-2026-07-07-drama-score-synthetic-benchmark.md",
+          "title": "DONE — 97/100, gate correctly respected across both phases, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 15:24:20",
+          "updated_at": "2026-07-07 17:23:11",
+          "content_len": 514,
+          "content_head": "CORRECTION: verified DONE same session, thoroughly, in two phases. Phase 1 correctly stopped at 81/100 (Workers frozen-clock limitation, proven via sink accumul"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-synthetic-benchmark-outbox-corrections.md",
+          "title": "DONE — verified via exact diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 16:35:08",
+          "updated_at": "2026-07-07 17:22:59",
+          "content_len": 341,
+          "content_head": "CORRECTION: verified DONE same session (commit 2f37f25). Diff confirmed exactly two hunks, both matching spec precisely -- label fixed to 0.01ms/call, JIT warm-"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-confidence-gate-detection.md",
+          "title": "DONE and proven live via a real triggered CI run — found 3 real violations + 1 bug in itself; the bug fix is a separate, still-pending CC-CMD",
+          "status": "resolved",
+          "created_at": "2026-07-07 16:35:19",
+          "updated_at": "2026-07-07 17:22:51",
+          "content_len": 688,
+          "content_head": "CORRECTION: verified DONE same session (commit c96b3fc). Confirmed via live GitHub Actions run (triggered a real redeploy specifically to test it): the check fi"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-archive-catchup-existence-check-fix.md",
+          "title": "DONE, work verified correct — AND confirmed a real 70/100 gate violation (found 2026-07-07 via live CI test)",
+          "status": "resolved",
+          "created_at": "2026-07-06 00:41:24",
+          "updated_at": "2026-07-07 17:19:49",
+          "content_len": 873,
+          "content_head": "ADDENDUM (2026-07-07): the underlying fix was correctly verified as DONE (as this entry already said) -- but confirmed today via the confidence-gate check's fir"
+        },
+        {
+          "key": "CC-CMD-2026-07-07-drama-score-cost-measurement.md",
+          "title": "DONE with a real caveat — shipped at 85/100 despite its own 95 gate; code correct, measurement incomplete, follow-up dispatched",
+          "status": "resolved",
+          "created_at": "2026-07-07 14:58:58",
+          "updated_at": "2026-07-07 15:24:09",
+          "content_len": 1117,
+          "content_head": "CORRECTION: real finding, not just completion. This CC-CMD reported 85/100 confidence and committed/deployed anyway (04611bc, 1c8b88e) -- a direct violation of "
+        },
+        {
+          "key": "CC-CMD-2026-07-06-sw-push-notification-scoping-complete.md",
+          "title": "DONE — verified via diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 03:02:12",
+          "updated_at": "2026-07-07 13:26:24",
+          "content_len": 601,
+          "content_head": "CORRECTION: verified DONE same session (commit 9d026560/c7f3985). Diff confirmed matching exactly: isCrunchLikePush() boolean replaces computePushDrama scalar, "
+        },
+        {
+          "key": "CC-CMD-2026-07-06-sw-push-boolean-redesign.md",
+          "title": "SUPERSEDED — scored 70/100, correctly did not commit; completed instead by sw-push-notification-scoping-complete.md",
+          "status": "resolved",
+          "created_at": "2026-07-07 02:21:20",
+          "updated_at": "2026-07-07 13:26:11",
+          "content_len": 471,
+          "content_head": "CORRECTION: this specific attempt scored 70/100 and correctly did NOT commit (Tasks 1+3 verified, Task 2 blocked on missing MY_TEAMS->SW sync, honestly reported"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-adr002-doc-correction.md",
+          "title": "DONE — verified via diff re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 02:21:11",
+          "updated_at": "2026-07-07 13:25:58",
+          "content_len": 339,
+          "content_head": "CORRECTION: verified DONE same session (commit e1fa3403). Diff confirmed matching spec exactly, including the disclosed correct fix to my own \"(see Rule D)\" cit"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-drama-peak-immutability-guard.md",
+          "title": "DONE — verified via live D1 re-check same session, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-07 02:21:02",
+          "updated_at": "2026-07-07 13:25:48",
+          "content_len": 246,
+          "content_head": "CORRECTION: verified DONE same session (commit fd4b32e/49a8556). Independently re-confirmed via live D1: portugal_spain still drama_peak=63 (overwrite blocked),"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-wiki-trending-client-consume.md",
+          "title": "DONE — verified via diff + independent full-file grep, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 17:30:16",
+          "updated_at": "2026-07-06 19:09:49",
+          "content_len": 737,
+          "content_head": "CORRECTION: verified DONE (commit f486bfc0). Real diff confirmed: bulk fetchAllWikiTrending replaces per-team fetching, WIKI_TITLES/_wikiCache fully removed (in"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-wiki-trending-aggregator.md",
+          "title": "DONE — verified live via independent curl, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 17:30:09",
+          "updated_at": "2026-07-06 19:09:40",
+          "content_len": 299,
+          "content_head": "CORRECTION: verified DONE (commit 15942c1). Independently re-verified live myself: curled /wiki/trending directly, got HTTP 200, 7648 bytes, 86 teams, 0 nulls, "
+        },
+        {
+          "key": "CC-CMD-2026-07-06-zero-change-render-fast-path.md",
+          "title": "DONE — critical anchor-detachment bug found & fixed during verification, Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-06 17:24:20",
+          "updated_at": "2026-07-06 19:09:22",
+          "content_len": 1466,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit a1ea9f8d/b07ff679). Real critical bug found and confirmed during that verification: the CC-CMD's own lite"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-reduce-rerender-overhead.md",
+          "title": "DONE — verified hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 16:32:17",
+          "updated_at": "2026-07-06 19:04:05",
+          "content_len": 213,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit 6eb47a02/583394c5, diff confirmed byte-identical hoisting + correct cache-first sort logic, smoke 890/0)."
+        },
+        {
+          "key": "CC-CMD-2026-07-06-kv-sweep-sport-mislabel-fix.md",
+          "title": "DONE — verified hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 15:31:27",
+          "updated_at": "2026-07-06 19:03:59",
+          "content_len": 195,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit 9ce2ab6, live D1 query confirmed zero remaining sport='espn' rows, 76 rows backfilled). Never updated Cod"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-stale-cc-cmd-detection.md",
+          "title": "DONE — verified working hours ago (it's the feature that caught this exact correction), Codex status was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-06 14:51:00",
+          "updated_at": "2026-07-06 19:03:52",
+          "content_len": 254,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit 944b842, live session_health call confirmed stale_pending_cc_cmds field present and working -- this exact"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-wenttoot-client-filter-wire.md",
+          "title": "DONE — verified hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 13:46:56",
+          "updated_at": "2026-07-06 19:03:46",
+          "content_len": 224,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit 4bdd0520/0a1536c, independently cross-checked the July 4th all-regulation claim against live /v2/games da"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-wenttoot-newspaper-bundle-wire.md",
+          "title": "DONE — verified and deployed hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 13:46:49",
+          "updated_at": "2026-07-06 19:03:40",
+          "content_len": 258,
+          "content_head": "CORRECTION: verified DONE earlier this session (commit 5152137, deployed via manual workflow_dispatch after finding the auto-deploy never triggered; confirmed l"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-fields-pick-fix.md",
+          "title": "DONE — verified hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 13:35:37",
+          "updated_at": "2026-07-06 19:03:30",
+          "content_len": 267,
+          "content_head": "CORRECTION: verified DONE earlier this session (commits 58038db + a4d0b2c, real analytics run confirmed score jumped 1.0->3.0 live). Never updated Codex status "
+        },
+        {
+          "key": "cf/2026-07-03/gap-sweep-cc-cmds-written",
+          "title": "DONE (both halves) — client re-run addendum already reviewed and its findings already fixed, Codex was never updated",
+          "status": "resolved",
+          "created_at": "2026-07-03 21:02:07",
+          "updated_at": "2026-07-06 13:22:47",
+          "content_len": 461,
+          "content_head": "CORRECTION: the 07-05 re-run addendum (commit 523d7f72, appended to the SAME outbox/cc-gap-sweep-client-2026-07-03.md file rather than a new file) was already f"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-cfl-scoreboard-cache-guard.md",
+          "title": "DONE — verified live hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-05 22:36:47",
+          "updated_at": "2026-07-06 13:22:40",
+          "content_len": 193,
+          "content_head": "CORRECTION: verified DONE hours ago (commit cc0853e; real cache-header test showed REVALIDATED->HIT within 30s, proving upstream throttled). Never updated Codex"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-cfl-live-poll.md",
+          "title": "DONE — verified live hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-05 22:59:41",
+          "updated_at": "2026-07-06 13:22:33",
+          "content_len": 194,
+          "content_head": "CORRECTION: verified DONE hours ago (commit 118b35e; real Winnipeg@Hamilton CFL game cross-checked live twice independently, matching score). Never updated Code"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-gap-sweep-fixes.md",
+          "title": "DONE — verified extensively hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-05 23:56:38",
+          "updated_at": "2026-07-06 13:22:27",
+          "content_len": 203,
+          "content_head": "CORRECTION: verified DONE hours ago (commit a4929c6; all 5 tasks confirmed via direct diff read; live MLB game cross-check against ESPN; smoke 890/0). Never upd"
+        },
+        {
+          "key": "CC-CMD-2026-07-06-wenttoot-relay-side.md",
+          "title": "DONE (relay-side) 2026-07-06 — verified deployed hours ago, Codex status was never updated from PENDING",
+          "status": "resolved",
+          "created_at": "2026-07-06 01:15:31",
+          "updated_at": "2026-07-06 13:22:15",
+          "content_len": 475,
+          "content_head": "CORRECTION (2026-07-06 13:xx UTC): I verified this DONE in conversation hours ago (commit b39ec8f, outbox 9363ee9, session_health confirmed deploy_match:true at"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-completion-triggered-journalism.md",
+          "title": "CONFIRMED via D1 timing analysis 2026-07-06 — I wrongly kept re-listing this as open after already proving it",
+          "status": "resolved",
+          "created_at": "2026-07-02 02:30:02",
+          "updated_at": "2026-07-06 01:07:17",
+          "content_len": 916,
+          "content_head": "CORRECTION (2026-07-06): I wrongly kept listing this as \"still genuinely open\" on priority lists after already gathering real confirming evidence. Live verifica"
+        },
+        {
+          "key": "CC-CMD-2026-07-03-gap-sweep-client.md",
+          "title": "DONE — was wrongly re-flagged as missing outbox at least twice; outbox lives in repo-root outbox/, not docs/outbox/",
+          "status": "resolved",
+          "created_at": "2026-07-06 01:04:58",
+          "updated_at": "2026-07-06 01:04:58",
+          "content_len": 752,
+          "content_head": "CORRECTION (2026-07-06): this was wrongly reported as \"no outbox filed\" across at least 2 separate priority-list checks this session. Real location: outbox/cc-g"
+        },
+        {
+          "key": "CC-CMD-2026-07-04-circadian-late-newspaper-wire.md",
+          "title": "DONE 2026-07-04 (relay-side) — was wrongly re-flagged as pending/open across multiple sessions, wrong repo checked",
+          "status": "resolved",
+          "created_at": "2026-07-04 00:50:15",
+          "updated_at": "2026-07-06 00:17:39",
+          "content_len": 630,
+          "content_head": "CORRECTION (2026-07-06): this was wrongly carried as PENDING across multiple sessions and priority lists. It's relay-side (field-relay-nba), not client -- a rep"
+        },
+        {
+          "key": "CC-CMD-2026-07-04-og-share-meta.md",
+          "title": "DONE — superseded stale status; full 5-doc chain resolved same-day, bot/non-bot verified end-to-end live",
+          "status": "resolved",
+          "created_at": "2026-07-04 01:47:16",
+          "updated_at": "2026-07-05 22:28:43",
+          "content_len": 732,
+          "content_head": "CORRECTION: previous title said \"happy-path tag injection still unobserved\" based on the first outbox (cc-og-share-meta-2026-07-04.md) which had unchecked boxes"
+        },
+        {
+          "key": "cfl-circadian-state-wire.md",
+          "title": "DONE 2026-07-04 — HANDOFF has been wrongly claiming this pending for 2 sessions; verified fixed and live",
+          "status": "resolved",
+          "created_at": "2026-07-05 22:22:28",
+          "updated_at": "2026-07-05 22:22:56",
+          "content_len": 888,
+          "content_head": "CORRECTION to my own prior entry: I initially wrote this as PENDING without checking git log --all — wrong. Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-04-"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pickem-coverage-check.md",
+          "title": "DONE — full-sport non-rendering coverage check, all sports PASS, no new failures found",
+          "status": "open",
+          "created_at": "2026-07-05 22:22:23",
+          "updated_at": "2026-07-05 22:22:23",
+          "content_len": 459,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-pickem-coverage-check.md. Outbox: docs/outbox/cc-pickem-coverage-check-2026-07-05.md. Two non-visual scripts"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pickem-cfl-mlb-gaps.md",
+          "title": "DONE — MLB clock-parsing false-positive fixed, real CFL gap found (not the suspected one), 100/100",
+          "status": "open",
+          "created_at": "2026-07-05 22:22:18",
+          "updated_at": "2026-07-05 22:22:18",
+          "content_len": 580,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-pickem-cfl-mlb-gaps.md. Outbox: docs/outbox/cc-pickem-cfl-mlb-gaps-2026-07-05.md. Both of the CC-CMD's own s"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pick-em-surface-design.md",
+          "title": "DONE — corrected design, togglePickEmView top-level surface matching toggleWCView/toggleJournalismView pattern",
+          "status": "open",
+          "created_at": "2026-07-05 22:22:12",
+          "updated_at": "2026-07-05 22:22:12",
+          "content_len": 331,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-pick-em-surface-design.md (design spec: docs/design-pick-em-surface-2026-07-05.md). Outbox: docs/outbox/cc-p"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pick-em-ui.md",
+          "title": "SUPERSEDED — card-based UI shipped before checking card density (39+ chips), corrected by pick-em-surface-design",
+          "status": "open",
+          "created_at": "2026-07-05 22:22:08",
+          "updated_at": "2026-07-05 22:22:08",
+          "content_len": 502,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-pick-em-ui.md. Real motivating failure for new Behavior Rule (8) — chat's own confidence gate. This doc was "
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pick-em-reconcile.md",
+          "title": "DONE — pick-em relocated to top-level pickem-mode surface, 3 real bugs fixed, 100/100",
+          "status": "open",
+          "created_at": "2026-07-05 22:22:03",
+          "updated_at": "2026-07-05 22:22:03",
+          "content_len": 373,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-pick-em-reconcile.md. Outbox: docs/outbox/cc-pick-em-reconcile-2026-07-05.md. Fixed via live Playwright CI v"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-nav-mode-consolidate.md",
+          "title": "DONE — attachNavLinkOnce() shared across all 4 nav-links, wc-mode upper-slots bug fixed, 100/100",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:58",
+          "updated_at": "2026-07-05 22:21:58",
+          "content_len": 324,
+          "content_head": "Repo: jubilant-bassoon. Doc: docs/CC-CMD-2026-07-05-nav-mode-consolidate.md. Outbox: docs/outbox/cc-nav-mode-consolidate-2026-07-05.md. Closes both follow-ups f"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-upset-model-v2.md",
+          "title": "DONE — fitted upset-bonus model on 79 real WC26 games, replaces hand-picked rankGap heuristic",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:53",
+          "updated_at": "2026-07-05 22:21:53",
+          "content_len": 358,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-upset-model-v2.md. Outbox: outbox/cc-upset-model-v2-2026-07-05.md. Corrects a scope misidentification from v1"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-score-fill-schedule.md",
+          "title": "DONE — score-fill.yml scheduled 4h, fires 10min before drama-backfill",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:49",
+          "updated_at": "2026-07-05 22:21:49",
+          "content_len": 342,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-score-fill-schedule.md. Outbox: outbox/cc-score-fill-schedule-2026-07-05.md. Real, confirmed-unscheduled gap "
+        },
+        {
+          "key": "CC-CMD-2026-07-05-afl-backfill-fixes.md",
+          "title": "DONE — GWS name alias + ESPN limit=500 param fixed, 136/138 scored, status completed/success",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:44",
+          "updated_at": "2026-07-05 22:21:44",
+          "content_len": 340,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-afl-backfill-fixes.md. Outbox: outbox/cc-afl-backfill-fixes-2026-07-05.md — Status: completed/success. Both r"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-afl-scoreboard-backfill.md",
+          "title": "DONE — real AFL drama backfill via ESPN AFL scoreboard, team+date matching (not espn_event_id)",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:38",
+          "updated_at": "2026-07-05 22:21:38",
+          "content_len": 356,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-afl-scoreboard-backfill.md. Implemented commit d880522. Verification folded into outbox/cc-afl-backfill-fixes"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-backfill-wnba-afl-epl.md",
+          "title": "DONE (split execution) — WNBA/EPL fixed directly, AFL redirected to its own follow-on CC-CMDs",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:33",
+          "updated_at": "2026-07-05 22:21:33",
+          "content_len": 571,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-backfill-wnba-afl-epl.md. No dedicated outbox manifest filed — verification is split across commit c5b6b1d (W"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-consolidate-name-maps-v2.md",
+          "title": "DONE — resolveTeamName() added, wcFixName migrated, FIFA aliases correctly kept separate",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:27",
+          "updated_at": "2026-07-05 22:21:27",
+          "content_len": 388,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-consolidate-name-maps-v2.md. Outbox: outbox/cc-consolidate-name-maps-v2-2026-07-05.md — resolveTeamName() liv"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-consolidate-all-name-maps.md",
+          "title": "SUPERSEDED by v2 — CC honestly stopped at 45/100, direction-incompatible merge",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:22",
+          "updated_at": "2026-07-05 22:21:22",
+          "content_len": 302,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-consolidate-all-name-maps.md. Real, honest stop — WC_NAME_FIX/FIFA_NAME_ALIASES not a forced fit into the str"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-consolidate-afl-v2.md",
+          "title": "DONE — normAFL migrated as its own afl_team type, 136/138 verified, 14 GWS games confirmed",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:18",
+          "updated_at": "2026-07-05 22:21:18",
+          "content_len": 367,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-consolidate-afl-v2.md. Outbox: outbox/cc-consolidate-afl-v2-2026-07-05.md — ALL MATCH RESULTS IDENTICAL. Corr"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-consolidate-afl-normalization.md",
+          "title": "SUPERSEDED by v2 — CC honestly stopped at 70/100, resolveTeamKey() was not a drop-in fit",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:13",
+          "updated_at": "2026-07-05 22:21:13",
+          "content_len": 357,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-consolidate-afl-normalization.md. Real, honest stop — output shapes incompatible (strip-form match-key vs. re"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-pick-ledger-backend.md",
+          "title": "DONE — pickLedger in UserDO, cumulative non-resetting, no streak fields",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:09",
+          "updated_at": "2026-07-05 22:21:09",
+          "content_len": 379,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-pick-ledger-backend.md. Outbox: outbox/cc-pick-ledger-backend-2026-07-05.md, 100/100, live UserDO sequence ve"
+        },
+        {
+          "key": "CC-CMD-2026-07-05-wp-source-resolver.md",
+          "title": "DONE — WP source resolver, all sports wired, ESPN 0-1 scale bug caught live and fixed",
+          "status": "open",
+          "created_at": "2026-07-05 22:21:03",
+          "updated_at": "2026-07-05 22:21:03",
+          "content_len": 588,
+          "content_head": "Repo: field-relay-nba. Doc: docs/CC-CMD-2026-07-05-wp-source-resolver.md. Outbox: outbox/cc-wp-source-resolver-2026-07-05.md, 100/100. resolveWinProbability() r"
+        },
+        {
+          "key": "CC-CMD-2026-07-04-circadian-kv-read-endpoint.md",
+          "title": "DONE (verified) — circadian KV read endpoint, live-checked by chat, process bug identified and fixed",
+          "status": "resolved",
+          "created_at": "2026-07-04 01:28:18",
+          "updated_at": "2026-07-04 01:28:29",
+          "content_len": 1455,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-07-04-circadian-kv-read-endpoint.md\",\"pushed_at\":\"2026-07-04T00:30:00Z\",\"status\":\"done\",\"completed_commit"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-drama-backfill-client.md",
+          "title": "DONE — code shipped, verified via independent reproduction. Status was stale in Codex, corrected 2026-07-02. Backlog still growing, not clearing.",
+          "status": "resolved",
+          "created_at": "2026-07-02 23:14:59",
+          "updated_at": "2026-07-03 02:48:44",
+          "content_len": 484,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"code_on_main\":true,\"real_operational_note\":\"backlog grew 128->137 since shipping, not shrunk. Mechanism verified correct via indepen"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-drama-backfill-discovery.md",
+          "title": "DONE — endpoint live, verified via screenshot + independent re-curl. Status was stale in Codex, corrected 2026-07-02.",
+          "status": "resolved",
+          "created_at": "2026-07-02 23:14:48",
+          "updated_at": "2026-07-03 02:48:30",
+          "content_len": 125,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"endpoint_live\":true,\"verified_via\":\"real curl, 3 real games returned from /archive/drama-missing\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-player-mismatch-detector.md",
+          "title": "DONE — 22 real candidates found, 11 collision-free entries added to CANONICAL_PLAYER, 10 excluded with reasons",
+          "status": "resolved",
+          "created_at": "2026-07-02 14:33:09",
+          "updated_at": "2026-07-02 22:16:51",
+          "content_len": 613,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"commit\":\"1af0326 (script+workflow) via real CI run 28599226655\",\"status_note\":\"Verified via screenshot 2026-07-02: real production r"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-savant-probable-starter.md",
+          "title": "DONE — shipped, deployed, verified live via independent re-execution of the test",
+          "status": "resolved",
+          "created_at": "2026-07-02 20:55:50",
+          "updated_at": "2026-07-02 22:16:43",
+          "content_len": 792,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"commit\":\"5f71d09\",\"status_note\":\"Verified via screenshot 2026-07-02: buildGameLine captures probableHome/probableAway, threaded throu"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-goalscorer-xg.md",
+          "title": "DONE — shipped, deployed, verified live; real auth bug found and fixed post-hoc",
+          "status": "resolved",
+          "created_at": "2026-07-02 20:55:55",
+          "updated_at": "2026-07-02 22:16:34",
+          "content_len": 642,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"commit\":\"373899d (code) + 06c5bb1 (auth header fix)\",\"status_note\":\"Verified via screenshot 2026-07-02, all 9 IDs independently re-te"
+        },
+        {
+          "key": "cf/2026-07-02/soccer-player-identity-shipped",
+          "title": "Soccer player identity resolution shipped — soccer_player type added, 9 candidates verified and live",
+          "status": "resolved",
+          "created_at": "2026-07-02 20:35:34",
+          "updated_at": "2026-07-02 20:35:34",
+          "content_len": 982,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"commit\":\"5662aaf48\",\"deployed\":true,\"deploy_verified\":\"expected=5662aaf deployed=5662aaf match=true via /deploy/verify\",\"content\":\"Ad"
+        },
+        {
+          "key": "CC-CMD-2026-07-02-soccer-player-crosscheck.md",
+          "title": "DONE — Copa del Rey/DFB-Pokal fallback added; La Liga gap fully closed, Bundesliga down to 1 genuine exception (Paderborn)",
+          "status": "resolved",
+          "created_at": "2026-07-02 17:21:12",
+          "updated_at": "2026-07-02 20:20:01",
+          "content_len": 917,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"final_commit\":\"6e472f78c\",\"real_ci_verified\":\"run 28618776501, success\",\"test_result\":\"Jeff asked if FA Cup/League Cup pattern extend"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-identity-resolver-generalize.md",
+          "title": "DONE — resolveEntity/CANONICAL_PLAYER shipped, deployed, verified live; 2 real bugs in original pseudocode found and fixed",
+          "status": "resolved",
+          "created_at": "2026-07-01 19:21:25",
+          "updated_at": "2026-07-02 14:26:51",
+          "content_len": 1232,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"commit\":\"8bc84fc\",\"deployed\":true,\"deploy_verified\":\"expected=8bc84fc deployed=8bc84fc match=true via /deploy/verify 2026-07-02T14:26"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-automated-followup-verification.md",
+          "title": "DONE — Scheduled workflow live and verified working, real quoting bug found on first dispatch and fixed",
+          "status": "resolved",
+          "created_at": "2026-07-02 04:23:15",
+          "updated_at": "2026-07-02 13:54:48",
+          "content_len": 1238,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"original_commit\":\"0cea732\",\"bug_found\":\"first-ever workflow_dispatch run (28595341523) failed — codex-logging step embedded raw JSON "
+        },
+        {
+          "key": "CC-CMD-2026-07-01-auto-merge-skip-ci-gap.md",
+          "title": "DONE — Scheduled sweep fallback closes the [skip ci] blind spot, workflow_dispatch clean-run verified",
+          "status": "resolved",
+          "created_at": "2026-07-02 12:20:56",
+          "updated_at": "2026-07-02 13:44:36",
+          "content_len": 570,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"completed_commit\":\"234c8a7\",\"merge_method\":\"manual chat-side merge via GitHub Merges API — push trigger was suppressed because the br"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-auto-merge-stray-branches.md",
+          "title": "DONE (with real gap) — Auto-merge stray branches CI safety net; [skip ci] blind spot found live",
+          "status": "done",
+          "created_at": "2026-07-02 12:05:46",
+          "updated_at": "2026-07-02 12:05:46",
+          "content_len": 310,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"pushed_at\":\"2026-07-02T04:45:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\",\"note\":\"fourth attempt at stray-branch "
+        },
+        {
+          "key": "CC-CMD-2026-07-01-branch-enforcement-hook.md",
+          "title": "DONE (with gap) — Pre-commit branch enforcement hook, merged after third stray-branch incident; .git/hooks/ persistence gap remains open",
+          "status": "done",
+          "created_at": "2026-07-02 04:20:12",
+          "updated_at": "2026-07-02 04:20:12",
+          "content_len": 246,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"pushed_at\":\"2026-07-02T04:25:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\",\"note\":\"third attempt at fixing stray-b"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-reconcile-chunking-fix.md",
+          "title": "DONE — Fix reconcile() D1 100-parameter-limit bug (merged from stray branch, verified)",
+          "status": "done",
+          "created_at": "2026-07-02 04:11:12",
+          "updated_at": "2026-07-02 04:11:12",
+          "content_len": 121,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"pushed_at\":\"2026-07-02T04:10:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-savant-xera-reconcile-relay.md",
+          "title": "DONE — Generic Savant reconcile-sync endpoint with allowlist (merged via direct git merge after stray-branch failure)",
+          "status": "done",
+          "created_at": "2026-07-02 03:10:23",
+          "updated_at": "2026-07-02 03:10:23",
+          "content_len": 328,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"corrected_at\":\"2026-07-02T02:45:00Z\",\"correction_reason\":\"replaced bespoke pitcher_expected_stats-only endpoint with generic /savant/"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-savant-xera-fetch-post.md",
+          "title": "DONE — Fetch pitcher xERA, POST to generic /savant/sync endpoint — 633 real rows confirmed live",
+          "status": "done",
+          "created_at": "2026-07-02 03:10:23",
+          "updated_at": "2026-07-02 03:10:23",
+          "content_len": 199,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"corrected_at\":\"2026-07-02T02:45:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\",\"order\":2,\"depends_on\":\"CC-CMD-2026"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-xera-materiality-threshold.md",
+          "title": "DONE — Add real magnitude threshold to xERA materiality check",
+          "status": "done",
+          "created_at": "2026-07-02 02:45:37",
+          "updated_at": "2026-07-02 02:45:37",
+          "content_len": 228,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"pushed_at\":\"2026-07-02T02:15:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\",\"blocks\":\"any future brief-correction J"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-sprintspeed-key-fix.md",
+          "title": "DONE — Fix getSprintSpeed/getRegressionAlert live key mismatch (Witt Jr. bug)",
+          "status": "done",
+          "created_at": "2026-07-02 01:35:36",
+          "updated_at": "2026-07-02 01:35:36",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-02T01:40:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-drama-score-compliance-smoke.md",
+          "title": "DONE — Lock in drama score display compliance via smoke assertions",
+          "status": "done",
+          "created_at": "2026-07-02 01:01:04",
+          "updated_at": "2026-07-02 01:01:04",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-02T00:15:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-umpire-weakness-backfill.md",
+          "title": "DONE — One-time backfill zone data for already-processed umpire games",
+          "status": "done",
+          "created_at": "2026-07-01 23:48:17",
+          "updated_at": "2026-07-01 23:48:17",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T23:45:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-umpire-weakness-zone.md",
+          "title": "DONE — Populate umpire weakness field using zone data",
+          "status": "done",
+          "created_at": "2026-07-01 23:20:21",
+          "updated_at": "2026-07-01 23:20:21",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T21:15:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-atbat-edge-arsenal.md",
+          "title": "DONE — Live pitch arsenal in At-Bat Edge + lastNameOf helper",
+          "status": "done",
+          "created_at": "2026-07-01 20:45:49",
+          "updated_at": "2026-07-01 20:45:49",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T20:35:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-scouting-report-tempo-fix.md",
+          "title": "DONE — Fix pre-existing tempo-line last-name bug",
+          "status": "done",
+          "created_at": "2026-07-01 20:19:43",
+          "updated_at": "2026-07-01 20:19:43",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T20:22:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-scouting-report-arsenal.md",
+          "title": "DONE — Surface pitch arsenal data in Scouting Report",
+          "status": "done",
+          "created_at": "2026-07-01 20:00:14",
+          "updated_at": "2026-07-01 20:00:14",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T20:20:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-avv-savant.md",
+          "title": "DONE — Fix pitch_arsenals root cause + AVV proof for Baseball Savant",
+          "status": "done",
+          "created_at": "2026-07-01 19:38:02",
+          "updated_at": "2026-07-01 19:38:02",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T20:05:00Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-a190-sw-version-fix.md",
+          "title": "DONE — Fix recurring A190 SW_VERSION sync bug",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 182,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"completed_commit\":\"301b643\",\"verification_method\":\"fresh clone confirmed SW_VERSION match + 813/0 smoke + pre-commit guard present i"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-current-state-corruption-fix.md",
+          "title": "DONE — Fix FIELD-CURRENT-STATE.md merge-conflict corruption (816 commits)",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 206,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"completed_commit\":\"b7f37b4\",\"verification_method\":\"confirmed file dropped from 74.7MB/1.34M lines to 46 lines/2538 bytes, 0 conflict"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-canonical-doc-id-consolidation.md",
+          "title": "DONE — Consolidate canonical Drive doc IDs",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 203,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"completed_commit\":\"c8e186a\",\"verification_method\":\"confirmed 0 old IDs remain in STANDARDS.md, GOVERNANCE.json entries updated, bonu"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-gotd-adapter-tagging.md",
+          "title": "DONE — GOTD tagging for adapter-driven days",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 212,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"completed_commit\":\"814b00a\",\"verification_method\":\"confirmed PEACOCK_GOTD_SCHEDULE entry live, badge HTML matches live screenshot of"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-gotd-workflow-wiring.md",
+          "title": "DONE — Wire dead GOTD workflow_dispatch inputs",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 235,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"completed_commit\":\"1206d19\",\"verification_method\":\"triggered real workflow_dispatch run, confirmed field-data-today.json came back w"
+        },
+        {
+          "key": "CC-CMD-2026-07-01-espn-gotd-structural-detection.md",
+          "title": "DONE — Structural ESPN GOTD auto-detection via ESPN scoreboard feed",
+          "status": "done",
+          "created_at": "2026-07-01 18:47:53",
+          "updated_at": "2026-07-01 18:47:53",
+          "content_len": 122,
+          "content_head": "{\"repo\":\"jubilant-bassoon\",\"pushed_at\":\"2026-07-01T15:48:04Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"status\":\"pending\"}"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-team-form-context-source.md",
+          "title": "DONE — team_form CONTEXT_SOURCE (closes recent-form gap)",
+          "status": "done",
+          "created_at": "2026-07-01 03:15:21",
+          "updated_at": "2026-07-01 03:15:21",
+          "content_len": 228,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-team-form-context-source.md\",\"pushed_at\":\"2026-07-01T03:05:00Z\",\"one_liner_sent\":true,\"one_liner_se"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-incident-resolved-status.md",
+          "title": "DONE — Incident resolved-status filter for session_health",
+          "status": "done",
+          "created_at": "2026-07-01 02:36:40",
+          "updated_at": "2026-07-01 02:36:40",
+          "content_len": 228,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-incident-resolved-status.md\",\"pushed_at\":\"2026-07-01T02:35:00Z\",\"one_liner_sent\":true,\"one_liner_se"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-kv-brief-quality-backfill.md",
+          "title": "DONE — KV-brief quality score write-time fix + backfill",
+          "status": "done",
+          "created_at": "2026-07-01 02:28:15",
+          "updated_at": "2026-07-01 02:28:15",
+          "content_len": 703,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-kv-brief-quality-backfill.md\",\"pushed_at\":\"2026-07-01T01:22:30Z\",\"one_liner_sent\":true,\"reminder_co"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-browserdo-session-reuse.md",
+          "title": "DONE — BrowserDO idle session reuse",
+          "status": "done",
+          "created_at": "2026-07-01 02:28:10",
+          "updated_at": "2026-07-01 02:28:10",
+          "content_len": 449,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-browserdo-session-reuse.md\",\"pushed_at\":\"2026-07-01T02:04:28Z\",\"one_liner_sent\":true,\"reminder_coun"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-wrangler-limits.md",
+          "title": "DONE — wrangler.toml CPU/subrequest limits",
+          "status": "done",
+          "created_at": "2026-07-01 02:28:06",
+          "updated_at": "2026-07-01 02:28:06",
+          "content_len": 392,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-wrangler-limits.md\",\"pushed_at\":\"2026-07-01T01:40:31Z\",\"one_liner_sent\":true,\"reminder_count\":0,\"st"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-pregame-slate-seed.md",
+          "title": "DONE — Pre-game slate seeding for opening_odds",
+          "status": "done",
+          "created_at": "2026-07-01 02:28:01",
+          "updated_at": "2026-07-01 02:28:01",
+          "content_len": 404,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-pregame-slate-seed.md\",\"pushed_at\":\"2026-07-01T01:36:37Z\",\"one_liner_sent\":true,\"reminder_count\":0,"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-utc-boundary-catchup-fix.md",
+          "title": "DONE — UTC date-boundary archive catch-up fix",
+          "status": "done",
+          "created_at": "2026-07-01 02:27:57",
+          "updated_at": "2026-07-01 02:27:57",
+          "content_len": 362,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-utc-boundary-catchup-fix.md\",\"pushed_at\":\"2026-07-01T01:26:28Z\",\"one_liner_sent\":true,\"reminder_cou"
+        },
+        {
+          "key": "CC-CMD-2026-06-30-closing-odds-capture.md",
+          "title": "DONE — Closing-odds capture in /archive/game",
+          "status": "done",
+          "created_at": "2026-07-01 02:27:51",
+          "updated_at": "2026-07-01 02:27:51",
+          "content_len": 370,
+          "content_head": "{\"repo\":\"field-relay-nba\",\"doc_path\":\"docs/CC-CMD-2026-06-30-closing-odds-capture.md\",\"pushed_at\":\"2026-07-01T00:38:00Z\",\"one_liner_sent\":true,\"reminder_count\":"
+        }
+      ]
+    },
+    "queue_touched_in_window": {
+      "rows": [
+        {
+          "n": 28
+        }
+      ]
+    },
+    "desk_sports_followups": {
+      "rows": [
+        {
+          "key": "cc-cmd-2026-08-08-desk-sports-followups",
+          "category": "cc-cmd-queue",
+          "title": "PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)",
+          "status": "open",
+          "created_at": "2026-08-08 22:38:47",
+          "updated_at": "2026-09-08 03:13:38",
+          "content": "STILL UNVERIFIED after the 2026-09-07 audit. Neither repo contains a CC-CMD doc or an outbox/cc-session record matching \"desk-sports\".\n\nCORRECTION: this audit initially reported the entry DONE on the reasoning that \"CFL work landed across four CC-CMDs\". That was pattern-matching, not evidence -- the four CFL documents found (cfl-circadian-state-wire, cfl-live-scoreboard-wire, cfl-live-poll, pickem-cfl-mlb-gaps) are all dated 2026-07-04/05 and address different scopes than a 2026-08-08 desk-sports follow-up set. A name adjacency is not a match for the right reason.\n\nNeeds someone to locate the original CC-CMD (it may never have been written) or close the entry as superseded."
+        }
+      ]
+    },
+    "codex_history_state": "exists and is empty",
+    "damage": {
+      "queue_rows_total": 285,
+      "touched_in_window": 28,
+      "created_in_window": 2,
+      "overwritten_in_window": 26,
+      "cc_cmd_claimed": 25,
+      "keys_overwritten": [
+        "cc-cmd-2026-08-08-desk-sports-followups",
+        "cc-cmd-2026-07-28-venue-table-followups",
+        "queue-deadcode-and-ambiguous",
+        "cc-cmd-2026-08-06-apply-soccer-league-label-fix-v2",
+        "cc-cmd-2026-07-25-playground-secret-bootstrap",
+        "cc-cmd-2026-08-02-fix-espn-standings-all-sports",
+        "cc-cmd-2026-08-02-discovery-discipline-and-drift-detector",
+        "cc-cmd-2026-08-02-undocumented-api-health-check",
+        "cc-cmd-2026-08-02-warm-mlb-standings-streak-bonuses",
+        "cc-cmd-2026-08-02-standards-redundancy-audit",
+        "cc-cmd-2026-08-02-byte-ceiling-options",
+        "cc-cmd-2026-08-10-laboratory-secret-bootstrap",
+        "cc-cmd-2026-08-03-fix-drama-backfill-situational-fields",
+        "cc-cmd-2026-08-02-shared-schedule-ai-cache",
+        "cc-cmd-2026-08-02-ruwt-baseline-audit",
+        "cc-cmd-2026-08-02-cron-gate-audit-repowide",
+        "cc-cmd-2026-08-02-gate-bsd-club-league-capture",
+        "cc-cmd-2026-08-02-gate-weekly-r2-update-windows",
+        "cc-cmd-2026-08-02-gate-journalism-cycle-cron",
+        "cc-cmd-2026-08-02-wire-bundesliga-broadcasts-into-client",
+        "cc-cmd-2026-08-02-add-browser-rendering-bundesliga-dayid",
+        "cc-cmd-2026-08-02-wire-bundesliga-bapi-broadcasts-v2",
+        "cc-cmd-2026-08-02-proxy-bundesliga-broadcasts",
+        "cc-cmd-2026-08-02-wire-laliga-apim-standings-v2",
+        "cc-cmd-2026-08-06-relay-web-fetch-proxy",
+        "cc-cmd-2026-08-09-create-field-laboratory-repo"
+      ]
+    }
+  },
+  "verdict": "NO JOURNAL IN change_log — it carries no codex-referencing row at any time. codex_history exists and is empty. Task 0a fails; the originals are not in live data."
+}

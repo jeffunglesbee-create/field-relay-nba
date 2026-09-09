@@ -1,5 +1,5 @@
 # wrangler d1 time-travel info --database field-archive
-# run at 2026-09-08T18:41:42Z
+# run at 2026-09-09T00:15:01Z
 # INFO ONLY. restore is forbidden by the CC-CMD and by the dispatcher.
 
 npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
