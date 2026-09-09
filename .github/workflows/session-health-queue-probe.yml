@@ -34,6 +34,12 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/session-health-queue-probe.mjs 2>&1 | tee outbox/session-health-queue-probe.log
 
+      - name: Task 0 second pass — read the titles the first-word census cannot judge
+        continue-on-error: true
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/session-health-queue-titles.mjs 2>&1 | tee outbox/session-health-queue-titles.log
+
       # Task 3. Calls the deployed session_health tool and prints the coverage
       # fields verbatim — the CC-CMD's done condition is the live response, not a
       # local reproduction of the query.
