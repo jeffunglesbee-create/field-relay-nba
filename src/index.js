@@ -1991,11 +1991,112 @@ const SOCCER_LEAGUE_LABELS = {
 // match on 'fifa world cup' plus an exact match on the internal slug 'wc26'
 // catches all of them without touching any other sport's labeling (no other
 // real sport string starts with 'fifa world cup' or equals 'wc26').
-function canonicalizeWC26Sport(sport) {
+// The NON-SOCCER half of the archive's label authority. The soccer half is
+// SOCCER_LEAGUE_LABELS above and is not repeated here (Rule 62) — duplicating
+// sixteen strings would be sixteen places for one of them to drift.
+//
+// MEASURED, NOT ASSEMBLED. Read from the live games tables on 2026-09-09 by
+// scripts/brief-sport-authority-census.mjs: 28 distinct labels across
+// regular_season_games and postseason_games. That census exists because
+// scripts/brief-label-migration.mjs already paid for the alternative — its first
+// run used a hand-written conforming set, lacked EFL Cup, EFL Trophy and the
+// three UEFA qualifying labels, and reported 106 correctly-labelled rows as
+// non-conforming.
+//
+// `golf` AND `wnba` ARE LOWERCASE AND CONFORMING. The games tables carry those
+// exact forms, so a "fix the lowercase ones" pass would break working joins.
+// This is the trap CC-CMD-2026-08-20-brief-data-quality names explicitly, and it
+// is honoured here by construction rather than by a special case: they are
+// members of the set, so they are returned unchanged before any rule runs.
+const NON_SOCCER_SPORT_LABELS = [
+    'AFL', 'CFB', 'CFL', 'IPL', 'MLB', 'NBA', 'NFL', 'NHL',
+    'PGA Tour', 'UFL', 'WNBA', 'golf', 'wnba',
+];
+
+/// Every label the archive recognises, soccer and otherwise.
+const ARCHIVE_SPORT_LABELS = new Set([
+    ...Object.values(SOCCER_LEAGUE_LABELS),
+    ...NON_SOCCER_SPORT_LABELS,
+]);
+
+// Display strings that are NOT labels, mapped to the label they mean.
+//
+// Every entry is a value measured in briefs.sport, not one imagined. The client
+// passes `game.league` — a caption — where a sport belongs, and the relay's own
+// BracketDO sends 'wc'; see the 2026-09-09 producer trace.
+const SPORT_DISPLAY_ALIASES = {
+    // jubilant-bassoon section labels (src/legacy/field.js).
+    'MLS Soccer': 'MLS',
+    'Baseball (MLB)': 'MLB',
+    'Basketball (NBA)': 'NBA',
+    'Hockey (NHL)': 'NHL',
+    'Football (NFL)': 'NFL',
+    'Australian Football (AFL)': 'AFL',
+    'Premier League': 'EPL',
+    // The relay's own. 'wc' is BracketDO's (src/bracket-do.js) and is the reason
+    // this function could not stay WC26-only: canonicalizeBriefSport tested
+    // `=== 'wc26'` and `startsWith('fifa world cup')`, so the relay was emitting
+    // a value its own canonicaliser did not recognise.
+    'wc': 'FIFA World Cup',
+    'wc26': 'FIFA World Cup',
+    'football': 'FIFA World Cup',
+    'NBA Playoffs': 'NBA',
+};
+
+// A caption whose LABEL is its leading segment:
+//   'CFL – 2026 Season · Week 14'  -> 'CFL'
+//   'WNBA – 2026 Season'           -> 'WNBA'
+//   'AFL 2026 — Round 15'          -> 'AFL 2026' -> 'AFL'
+//
+// Split on the dashes and the middot ONLY, never on a plain hyphen: a real
+// competition label could contain one. The prefix may carry a trailing season
+// year, which is stripped and re-checked rather than assumed.
+const sportContextPrefix = (value) => {
+    let head = String(value).split(/\s*[–—·]\s*/)[0].trim();
+    if (!ARCHIVE_SPORT_LABELS.has(head)) head = head.replace(/\s+(19|20)\d{2}$/, '').trim();
+    return ARCHIVE_SPORT_LABELS.has(head) ? head : null;
+};
+
+// Casing recovery, and the EXACTLY-ONE rule is what makes it safe.
+//
+// A value is a casing variant iff precisely one authority label equals it
+// case-insensitively. The census measured the reason this matters: `WNBA` and
+// `wnba` are BOTH real, so a value matching two labels is genuinely ambiguous
+// and is refused rather than guessed. Nothing is uppercased or title-cased; a
+// value is only ever replaced by a label the games tables already carry.
+const sportCasingMatch = (value) => {
+    const lc = String(value).toLowerCase();
+    const hits = [...ARCHIVE_SPORT_LABELS].filter(a => a.toLowerCase() === lc);
+    return hits.length === 1 ? hits[0] : null;
+};
+
+/// Canonicalize a caller-supplied sport to a label the archive recognises.
+///
+/// SUPERSEDES canonicalizeBriefSport, which handled WC26 alone. That was the
+/// fragmentation of the day (CC-CMD-2026-07-15: 12 distinct WC26 variants under
+/// briefs.sport); it was never the only one. Measured 2026-09-09, four
+/// non-conforming values were still accumulating — 'MLS Soccer' (7 rows),
+/// 'PGA TOUR' (2), 'CFL – 2026 Season · Week 14' (2) and 'wc' (1) — and the
+/// count had grown twice since 2026-08-24 because the producers kept writing.
+///
+/// RETURNS THE INPUT UNCHANGED when it recognises nothing. That is deliberate
+/// and is the boundary between this function and invention: an unrecognised
+/// value is reported by the guard and by the migration, not replaced by a guess.
+function canonicalizeBriefSport(sport) {
     if (!sport) return sport;
-    const s = String(sport).toLowerCase();
-    if (s === 'wc26' || s.startsWith('fifa world cup')) return SOCCER_LEAGUE_LABELS.wc26;
-    return sport;
+    const raw = String(sport);
+    // Conforming already — including the two lowercase labels the games tables
+    // really carry. Checked FIRST so no rule below can reach them.
+    if (ARCHIVE_SPORT_LABELS.has(raw)) return raw;
+    if (SPORT_DISPLAY_ALIASES[raw]) return SPORT_DISPLAY_ALIASES[raw];
+    // The WC26 rule this function grew out of: any 'FIFA World Cup …' suffix
+    // variant collapses to the bare label.
+    if (raw.toLowerCase().startsWith('fifa world cup')) return SOCCER_LEAGUE_LABELS.wc26;
+    const prefix = sportContextPrefix(raw);
+    if (prefix) return prefix;
+    const cased = sportCasingMatch(raw);
+    if (cased) return cased;
+    return raw;
 }
 
 // CC-CMD-2026-07-15-brief-game-kv-id-convention: strips a leading sport-tag
@@ -8171,19 +8272,19 @@ async function handleJournalismCycle(env, opts = {}) {
             // the non-soccer branch of that same ternary was already using it.
             //
             // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
-            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // concluded "no change needed" because canonicalizeBriefSport() already
             // normalizes the persisted `sport` COLUMN. That reasoning solved label
             // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
-            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // CORRECTNESS: canonicalizeBriefSport maps anything starting with
             // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
             // mislabel rather than fixing it. It also predates MLS sharing this
             // branch.
             //
             // Its one still-valid point is preserved: this literal feeds
             // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
-            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // BEFORE canonicalizeBriefSport is applied). For genuine WC rows the
             // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
-            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // label is 'FIFA World Cup', which canonicalizeBriefSport still maps to
             // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
             // changes. Safe to land only when no soccer row is seeded-but-unfinal;
             // verified zero exposed rows before this deployed.
@@ -8274,19 +8375,19 @@ async function handleJournalismCycle(env, opts = {}) {
             // the non-soccer branch of that same ternary was already using it.
             //
             // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
-            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // concluded "no change needed" because canonicalizeBriefSport() already
             // normalizes the persisted `sport` COLUMN. That reasoning solved label
             // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
-            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // CORRECTNESS: canonicalizeBriefSport maps anything starting with
             // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
             // mislabel rather than fixing it. It also predates MLS sharing this
             // branch.
             //
             // Its one still-valid point is preserved: this literal feeds
             // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
-            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // BEFORE canonicalizeBriefSport is applied). For genuine WC rows the
             // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
-            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // label is 'FIFA World Cup', which canonicalizeBriefSport still maps to
             // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
             // changes. Safe to land only when no soccer row is seeded-but-unfinal;
             // verified zero exposed rows before this deployed.
@@ -8375,19 +8476,19 @@ async function handleJournalismCycle(env, opts = {}) {
             // the non-soccer branch of that same ternary was already using it.
             //
             // The prior comment here (CC-CMD-2026-07-15-wc-label-fragmentation)
-            // concluded "no change needed" because canonicalizeWC26Sport() already
+            // concluded "no change needed" because canonicalizeBriefSport() already
             // normalizes the persisted `sport` COLUMN. That reasoning solved label
             // FRAGMENTATION (12 WC26 variants -> 1 canonical) but not label
-            // CORRECTNESS: canonicalizeWC26Sport maps anything starting with
+            // CORRECTNESS: canonicalizeBriefSport maps anything starting with
             // 'fifa world cup' TO the canonical WC label, so it cemented the MLS
             // mislabel rather than fixing it. It also predates MLS sharing this
             // branch.
             //
             // Its one still-valid point is preserved: this literal feeds
             // /archive/game's `id` construction (id = `${sport}_${date}_...`, built
-            // BEFORE canonicalizeWC26Sport is applied). For genuine WC rows the
+            // BEFORE canonicalizeBriefSport is applied). For genuine WC rows the
             // persisted `sport` column is UNCHANGED by this fix -- LEAGUES' own WC
-            // label is 'FIFA World Cup', which canonicalizeWC26Sport still maps to
+            // label is 'FIFA World Cup', which canonicalizeBriefSport still maps to
             // SOCCER_LEAGUE_LABELS.wc26 exactly as before -- only the id PREFIX
             // changes. Safe to land only when no soccer row is seeded-but-unfinal;
             // verified zero exposed rows before this deployed.
@@ -8583,7 +8684,11 @@ async function handleJournalismCycle(env, opts = {}) {
               eventId: `golf_${eventId}_R${roundNum}`,
               gameHash: computeGameHash(prompt),
               max_tokens: 300,
-              sport: 'PGA TOUR',
+              // 'PGA Tour' is the label the games tables carry; 'PGA TOUR'
+              // is not, and produced 2 unreachable briefs rows. The queue
+              // consumer lowercases this for the ID and writes it verbatim to
+              // the column, so the column is what has to be right here.
+              sport: 'PGA Tour',
               home: evName,
               away: `Round ${roundNum}`,
               homeScore: null,
@@ -9144,7 +9249,7 @@ async function handleJournalismCycle(env, opts = {}) {
                         //
                         // Same bug class CC-CMD-2026-07-15 fixed at the kv_capture
                         // site, recurring here -- hence the guard, not just the fix.
-                        _pgDateStr, canonicalizeWC26Sport(label), eventId, _pgStripped,
+                        _pgDateStr, canonicalizeBriefSport(label), eventId, _pgStripped,
                         _pgStripped.split(/\s+/).length
                       ).run();
                       console.log(`[GAME-BRIEF-ENQUEUE] pre-game brief written for ${eventId} (${_pgArchRow.id})`);
@@ -12587,7 +12692,7 @@ export default {
                     : isEspnEventId(source_id)
                         ? `${sport}_${date}_e${source_id}`
                         : `${sport}_${date}_${idTail}`;
-                sport = canonicalizeWC26Sport(sport);
+                sport = canonicalizeBriefSport(sport);
 
                 // CC-CMD-2026-07-12-completion-field-parity TASK 2: while building
                 // the completion field-list guardrail, found this route was itself
@@ -12973,7 +13078,7 @@ export default {
                 // Cup 2026 — Group X" suffixed values from this exact route). Relay
                 // owns the data contract (Rule 60) -- normalize here rather than
                 // relying on the client to send a canonical string.
-                sport = canonicalizeWC26Sport(sport);
+                sport = canonicalizeBriefSport(sport);
                 // ask 4b/4a: reject the render-order ordinal as a game_id.
                 //
                 // jubilant-bassoon's buildDateSchedule assigns game._id = 'g'+(++_gid)
@@ -13537,7 +13642,7 @@ export default {
                                context_hash = excluded.context_hash,
                                source = CASE WHEN briefs.source = 'completion-trigger' THEN briefs.source ELSE excluded.source END`
                         ).bind(
-                            id, date, _repairType, canonicalizeWC26Sport(cand.sport) || null, String(eventId), text,
+                            id, date, _repairType, canonicalizeBriefSport(cand.sport) || null, String(eventId), text,
                             qualityScore, kvBrief.contextHash || null, text.split(/\s+/).filter(Boolean).length,
                             CURRENT_SCORING_ERA
                         ).run();
@@ -20286,7 +20391,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                   `${_jobBriefType}_${String(job.sport || '').toLowerCase()}_${job.eventId}`,
                   briefDate,
                   _jobBriefType,
-                  canonicalizeWC26Sport(job.sport) || null,
+                  canonicalizeBriefSport(job.sport) || null,
                   String(job.eventId),
                   finalText,
                   'claude-haiku-4-5-20251001',

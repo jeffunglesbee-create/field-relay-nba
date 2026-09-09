@@ -256,6 +256,61 @@ even money — it is "not captured", and the three states must stay distinct.
 
 ---
 
+## briefs.sport — POST /archive/brief and the queue consumer
+
+**The relay owns this column (Rule 60).** Callers may send any string; the relay
+canonicalises it at the boundary with `canonicalizeBriefSport` (src/index.js).
+Client code must NOT normalise before sending, and must not be relied on to.
+
+**The authority is the games tables**, not this document: 28 distinct labels
+across `regular_season_games` and `postseason_games`, measured 2026-09-09 by
+`scripts/brief-sport-authority-census.mjs`. A brief whose `sport` matches no
+games-table label is unreachable by every sport-filtered read, including
+`/archive/query?sport=`.
+
+Two of the 28 are **lowercase and correct** — `golf` and `wnba`. The games tables
+carry those exact forms. A "fix the lowercase values" pass breaks working joins;
+this is CC-CMD-2026-08-20's central warning.
+
+### `game.league` is a CAPTION, not a label — and it means two different things
+
+jubilant-bassoon passes `game.league` as `sport` at
+`src/legacy/field.js:31075` (`epl_match`) and `:41603` (`night_owl`). Both call
+sites carry a comment saying `league` "carries the competition's real declared
+label (the relay sets it from its LEAGUES table)". That is true **only for
+relay-sourced soccer**, where the deploy's "Soccer league label contract check"
+asserts it.
+
+It is false for the client's own hardcoded fixture tables, where `league` is a
+display caption:
+
+```
+src/legacy/field.js:9461   league: 'CFL – 2026 Season · ' + (round.name || '')
+src/legacy/field.js:9326   league: "WNBA – 2026 Season"
+```
+
+So the non-conforming set was never a fixed list of variants — it is whatever
+`game.league` happens to hold. Measured accumulation, all four from these
+producers:
+
+| value | rows | producer |
+|---|---|---|
+| `MLS Soccer` | 7 | client `game.league` (section label, field.js:9206) |
+| `CFL – 2026 Season · Week 14` | 2 | client `game.league` (caption, field.js:9461) |
+| `PGA TOUR` | 2 | relay, golf per-round enqueue (index.js ~8540) |
+| `wc` | 1 | relay, BracketDO (bracket-do.js ~409) |
+
+Counted 2026-08-24: 2 rows. 2026-08-31: 7. 2026-09-07: 10. 2026-09-09: 12.
+
+**The client was deliberately NOT changed.** The relay owns the contract and now
+enforces it; a client-side normalisation would be the band-aid Rule 64 names.
+Both relay producers were fixed at source anyway, so the canonicaliser is their
+safety net rather than their mechanism.
+
+`scripts/check-sport-canonicaliser.mjs` guards both halves: the static mappings
+in the deploy gate, and `--live` in the verify job asserting the declared set
+still covers what the games tables hold.
+
 ## /d1/execute endpoint
 
 Producer: GitHub Actions scripts (odds-backfill.js)

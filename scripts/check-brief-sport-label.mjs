@@ -60,19 +60,19 @@ for (const start of inserts) {
         const line = code.slice(0, start).split('\n').length;
         console.error(`FAIL: briefs INSERT near line ${line} lowercases a bind argument.`);
         console.error('       Column values must carry the declared label verbatim; only ids are');
-        console.error('       lowercased. Bind canonicalizeWC26Sport(label), not label.toLowerCase().');
+        console.error('       lowercased. Bind canonicalizeBriefSport(label), not label.toLowerCase().');
     }
 }
 if (!failed) console.log(`ok: no briefs INSERT lowercases a column bind argument (${checked} bind lists checked)`);
 
 // The known-good expression must still be at the pre-game site — if someone
 // removes it the check above still passes, since absence is not lowercasing.
-if (!/canonicalizeWC26Sport\(label\)/.test(code)) {
+if (!/canonicalizeBriefSport\(label\)/.test(code)) {
     failed = true;
-    console.error('FAIL: the pre-game brief writer no longer binds canonicalizeWC26Sport(label).');
+    console.error('FAIL: the pre-game brief writer no longer binds canonicalizeBriefSport(label).');
     console.error('       Ask 3 fixed exactly that expression; losing it silently reopens the defect.');
 } else {
-    console.log('ok: pre-game writer binds canonicalizeWC26Sport(label)');
+    console.log('ok: pre-game writer binds canonicalizeBriefSport(label)');
 }
 
 if (failed) process.exit(1);

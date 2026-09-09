@@ -406,7 +406,15 @@ export class BracketDO {
                         id:            _bdId,
                         brief_type:    'bracket_delta',
                         date:          _bdDate,
-                        sport:         'wc',
+                        // 'FIFA World Cup', not 'wc'. The relay's own
+                        // canonicaliser tested `=== 'wc26'` and
+                        // `startsWith('fifa world cup')`, so this DO was
+                        // emitting a value the relay did not recognise — one
+                        // row in briefs.sport, measured 2026-09-09. The
+                        // canonicaliser now maps it too, and this sends the
+                        // label directly so the mapping is a safety net rather
+                        // than the mechanism.
+                        sport:         'FIFA World Cup',
                         game_id:       String(triggerResult.gameId).replace(/^[a-z]+:/, ''),
                         brief_text:    JSON.stringify(delta),
                         quality_score: 0,
