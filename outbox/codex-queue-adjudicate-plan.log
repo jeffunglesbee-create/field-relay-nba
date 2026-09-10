@@ -1,0 +1,78 @@
+mode: PLAN (no writes)
+adjudicating 10 of the 10 undetermined rows
+
+PASS  all ten rows were read
+PASS  ANCHOR CC-CMD-2026-07-07-worth-watching-display.md is undetermined before the write
+PASS  ANCHOR CC-CMD-2026-07-09-enqueue-context-gap.md is undetermined before the write
+PASS  ANCHOR datamuse-relay-proxy is undetermined before the write
+PASS  ANCHOR bucketc-inverse-problem-confirmed is undetermined before the write
+PASS  ANCHOR journalismbrief-endpoint-correction is undetermined before the write
+PASS  ANCHOR CC-CMD-2026-07-07-espn-cache-date-qualification.md is undetermined before the write
+PASS  ANCHOR p15b-p16-getqualitytarget is undetermined before the write
+PASS  ANCHOR brief-archive-health-audit is undetermined before the write
+PASS  ANCHOR relay-empty-catches-sweep is undetermined before the write
+PASS  ANCHOR 2026-07-16-drama-gateway-and-amnesty-zone-held is undetermined before the write
+PASS  the new title for CC-CMD-2026-07-07-worth-watching-display.md classifies as closed
+PASS  the new title for CC-CMD-2026-07-09-enqueue-context-gap.md classifies as closed
+PASS  the new title for datamuse-relay-proxy classifies as closed
+PASS  the new title for bucketc-inverse-problem-confirmed classifies as closed
+PASS  the new title for journalismbrief-endpoint-correction classifies as closed
+PASS  the new title for CC-CMD-2026-07-07-espn-cache-date-qualification.md classifies as open
+PASS  the new title for p15b-p16-getqualitytarget classifies as open
+PASS  the new title for brief-archive-health-audit classifies as open
+PASS  the new title for relay-empty-catches-sweep classifies as open
+PASS  the new title for 2026-07-16-drama-gateway-and-amnesty-zone-held classifies as open
+
+pre-image written: outbox/codex-queue-adjudicate-preimage-2026-09-10T00-29-28-249Z.json
+
+--- CC-CMD-2026-07-07-worth-watching-display.md
+    was : [undetermined] CORRECTED to v2 before execution — resolved design question + fixed naming collision, just pushed
+    now : [closed] DONE — v2 executed: ranked rows folded into Tonight's Pick, tier-0 ELIMINATION badge live (adjudicated 2026-09-10)
+    why : PROBE CHANGED THE VERDICT. The note recorded a correction made "before execution" and never said whether v2 ran. It did: jubilant-bassoon src/legacy/field.js carries "// 5. Tonight's Pick", the tier-0-only ELIMINATION badge, and a comment restating v2's naming-collision fix verbatim.
+
+--- CC-CMD-2026-07-09-enqueue-context-gap.md
+    was : [undetermined] TASKS 1-2 DONE (jubilant-bassoon) -- verified live; TASK 5 was orphaned by my own dispatch gap, now separately dispatched; TASK 3-4 (relay) still pending
+    now : [closed] DONE — relay TASKS 3-4 shipped 0952d28 the same day; enqueue carries home/away/scores/matchupNote at HEAD (adjudicated 2026-09-10)
+    why : PROBE OVERTURNED THE TITLE. It reads "TASK 3-4 (relay) still pending" and was stale within hours: field-relay-nba outbox/cc-enqueue-context-gap-relay-2026-07-09.md records both executed and live-verified on 2026-07-09, and src/index.js still binds all five fields into JOURNALISM_QUEUE.send. A client session reported the relay repo's state from a distance — the source-versus-copy substitution.
+
+--- datamuse-relay-proxy
+    was : [undetermined] TASK 1 DONE (field-relay-nba) / TASK 2 DONE (jubilant-bassoon) -- Datamuse relay proxy
+    now : [closed] DONE — both sides live and verified: relay 664a039, client 8ede35e (adjudicated 2026-09-10)
+    why : The body already says "Both sides complete and verified live as of 2026-07-12" with commits, a real fetch response, and end-to-end scores. Nothing was undetermined but the leading word.
+
+--- bucketc-inverse-problem-confirmed
+    was : [undetermined] CONFIRMED -- Bucket C inverse-misclassification is real (2 found via Cluster 3), not just theoretical; standing check to carry into future clusters, not a full 519-entry audit
+    now : [closed] DONE — investigation complete (2 reclassified C->B, telemetry reinstated); the residual is a standing check, refile as a rule (adjudicated 2026-09-10)
+    why : The work finished: 2 genuine misclassifications found and reclassified, telemetry reinstated, suites run, plus a separate real ReferenceError fixed. What remains is a STANDING INSTRUCTION for future clusters, which never completes — a rule miscategorised as a queue entry. Closing it as a queue item; it should be refiled under category "rule".
+
+--- journalismbrief-endpoint-correction
+    was : [undetermined] CORRECTED — JournalismBrief: my correction was itself partly false (fields are real)
+    now : [closed] DONE — both corrections applied, surviving reason documented; the standing lesson should be refiled as a rule (adjudicated 2026-09-10)
+    why : The body says "Both now fixed" and states what survives (/journalism/brief ignores ?date=, so /analytics/newspaper/{date} is the right target). No residual work. Like bucketc, it carries a STANDING LESSON that belongs under "rule", not in a work queue.
+
+--- CC-CMD-2026-07-07-espn-cache-date-qualification.md
+    was : [undetermined] SCOPING refined further -- editorial-contamination category + explicit boundary added, urgent fix untouched
+    now : [open] BLOCKED — the doc self-declares "not an execution-ready CC-CMD"; needs deliberate review and staging before dispatch (adjudicated 2026-09-10)
+    why : Held BY DESIGN and the hold still stands. The document's own header reads "Status: NOT for tonight. This is a scoping document... Do not dispatch this with an execution one-liner until it's been reviewed and staged deliberately." 74 espnScores references, a dozen-plus unqualified read sites.
+
+--- p15b-p16-getqualitytarget
+    was : [undetermined] P15B dispatched (real 23-day-old bug, confirmed via bundle not source search) -- P16 confirmed still open/low-priority, not dispatched -- getQualityTarget fully resolved (superseded by loadQualityCalibration, one new silent-catch gap found)
+    now : [open] OPEN — only P16 survives: getQualityTarget resolved, and loadQualityCalibration no longer exists so its empty-catch residual is moot (adjudicated 2026-09-10)
+    why : PROBE RETIRED ONE OF TWO RESIDUALS. loadQualityCalibration is not defined anywhere in relay src/ at HEAD — only referenced in comments — so its empty final catch cannot still be a gap. P16 (retroactive drama estimation) could NOT be settled from the record and is stated as the one live question rather than guessed: a "Retroactive Drama Backfill" shipped in the client on 2026-07-02, eleven days before this note called P16 unbuilt, so either they are different features or the note was wrong.
+
+--- brief-archive-health-audit
+    was : [undetermined] Brief archive verified real via direct D1 query -- mostly healthy, one confirmed real stall (backfill engine, 140-date backlog) dispatched for diagnosis; KV sweep likely benign but not fully certain; compound/stakes/series_preview archival flagged unexamined
+    now : [open] OPEN — compound/client and series_preview/stakes archival still unexamined; the backfill stall was already dispatched a7ce4d0 (adjudicated 2026-09-10)
+    why : The body names its own residual: "Not yet investigated: compound/client (5 rows total, silent since July 10) and the near-zero series_preview/stakes client archival (1 row each, ever) -- flagging for a future pass, not dispatched this turn."
+
+--- relay-empty-catches-sweep
+    was : [undetermined] CORRECTED -- true relay empty-catch total is 118, not 50 (comment-only-body counting bug found and fixed); Cluster 1's real 23-site fix already shipped and verified, unaffected; ~95 remain, not 34
+    now : [open] OPEN — 70 functionally-empty catch bodies measured across relay src/ on 2026-09-10 by an independent count (adjudicated 2026-09-10)
+    why : RE-MEASURED TODAY rather than inherited. An independent regex count over relay src/*.js finds 70 catch bodies that are empty once comments are stripped (bracket-do 11, game-do 10, ambient-do 9, context-assembler 9, index 9, analytics-engine 7, wp-resolver 5, others 1-3). That is a DIFFERENT INSTRUMENT from the tree-sitter tool that produced the 118/~95 figures, so it does not refute them — but it is decisively greater than zero, which is the only question adjudication has to answer.
+
+--- 2026-07-16-drama-gateway-and-amnesty-zone-held
+    was : [undetermined] SPLIT (2026-07-19) -- 1 of 5 Amnesty CC-CMDs resolved to Stats tab, 4 remain genuinely held
+    now : [open] BLOCKED — held set is 2 not 4: relay leaderboard shipped 2026-07-20, bottom-sheet CLOSED 2026-09-04; card-face + arc-poster await product sequencing (adjudicated 2026-09-10)
+    why : PROBE HALVED THE HOLD. The note says the relay CC-CMD "still needs dispatching" — /archive/drama/leaderboard is live in relay src/index.js and in the MCP probe allow-list, its comment dated 2026-07-20, one day after this note was last updated. And amnesty-bottom-sheet carries "Status: CLOSED 2026-09-04" in its own doc. Two genuinely remain, held on a product-sequencing decision that is the owner's.
+
+PLAN OK — no writes made
