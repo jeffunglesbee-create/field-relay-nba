@@ -1,0 +1,65 @@
+mode: APPLY
+
+queue before: total 285 open 17 undetermined 0 closed 268
+
+PASS  p15b-p16-getqualitytarget was read
+PASS  ANCHOR p15b-p16-getqualitytarget classifies as open before the write
+PASS  the new title for p15b-p16-getqualitytarget classifies as closed
+
+pre-image written: outbox/codex-queue-settle-preimage-2026-09-10T01-18-55-232Z.json
+
+--- p15b-p16-getqualitytarget
+    was : [open] OPEN — only P16 survives: getQualityTarget resolved, and loadQualityCalibration no longer exists so its empty-catch residual is moot (adjudicated 2026-09-10)
+    now : [closed] DONE — P16 settled: retroactive drama estimation SHIPPED 2026-07-02 as the drama backfill, and was tuned after shipping (settled 2026-09-10)
+
+    The 2026-07-13 note says P16 "confirmed still genuinely unbuilt". It is built,
+    and was already running when that sentence was written.
+    
+    WHAT P16 IS. The note places it 6th of 6 in a "June 20 health-monitoring table".
+    That table exists nowhere in either repo — searched both — so the identity is
+    established from subject and date rather than by reading it. Both halves of the
+    drama-backfill pair name the same defect and the same date:
+    
+      jubilant-bassoon docs/CC-CMD-2026-07-02-drama-backfill-client.md
+        "Retroactive Drama Backfill ... structurally, not accidentally, degraded
+         since at least 2026-06-20"
+      field-relay-nba docs/CC-CMD-2026-07-02-drama-backfill-discovery.md
+        "silently, structurally degraded since at least 2026-06-20 with zero visible
+         indication anywhere (buried in session_health's night_stars.degraded)"
+    
+    June 20 is the date of the table P16 was ranked in, and no other
+    retroactive-drama work exists in either repo. Same feature.
+    
+    IT SHIPPED, AND IT WAS TUNED AFTER SHIPPING — which is stronger evidence than
+    shipping alone, because tuning means somebody watched it run:
+    
+      field.js:35096  the backfill block, citing CC-CMD-2026-07-02
+      field.js:35297  fetch(`${relayBase}/archive/drama-missing?limit=20`)
+      field.js:42195  called on the boot path, best-effort, never blocks boot
+                      "Cap raised 3 -> 20 games per session: verified 2026-07-02
+                       that the original cap of 3 wasn't keeping pace with the real
+                       backlog (128 -> 137 missing games since shipping)"
+    
+    LIVE ARTIFACT. GET /archive/drama/leaderboard?sport=MLB&limit=5 returns five
+    games with real drama_peak values (100, 100, 100, 100, 99) and dense
+    several-hundred-sample drama_arc series, dated 2026-05-25 through 2026-08-07.
+    
+    WHAT THAT ARTIFACT DOES AND DOES NOT PROVE. It proves the pipeline produces and
+    stores real arcs. It does NOT prove any individual arc came from the backfill
+    rather than from a live session, and this settlement does not claim it did —
+    the mechanism is established from the code and its post-ship tuning, and the
+    leaderboard is corroboration, not the proof.
+    
+    The row's other two residuals were already retired on 2026-09-10: getQualityTarget
+    is superseded, and loadQualityCalibration is not defined anywhere in relay src/ at
+    HEAD. With P16 settled, nothing is left open on this row.
+
+=== APPLYING ===
+  wrote p15b-p16-getqualitytarget
+
+PASS  p15b-p16-getqualitytarget → closed
+
+queue after: total 285 open 16 undetermined 0 closed 269
+PASS  the queue moved by exactly the number of settlements, in the right direction
+
+PASS
