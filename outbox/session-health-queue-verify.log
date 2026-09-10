@@ -1,0 +1,126 @@
+--- cc_cmd_queue, verbatim from the live session_health ---
+{
+  "total": 285,
+  "open": 12,
+  "undetermined": 10,
+  "closed": 263,
+  "undetermined_note": "title states no disposition and no status was set — these are the queue's unclassified entries, not a residual bucket",
+  "stale_threshold_hours": 2,
+  "open_and_stale": 12,
+  "returned": 12,
+  "truncated": false,
+  "cap": 40,
+  "items": [
+    {
+      "key": "ui-hash-unreliability",
+      "title": "PENDING -- document Claude Code UI hash-display unreliability in STANDARDS.md",
+      "hours_stale": 1438.2
+    },
+    {
+      "key": "mcp-tool-visibility-gap",
+      "title": "PENDING -- document mid-session MCP tool visibility gap in STANDARDS.md",
+      "hours_stale": 1437.9
+    },
+    {
+      "key": "standards-index",
+      "title": "PENDING -- create STANDARDS-INDEX.md, additive fix for the read-burden problem",
+      "hours_stale": 1437.4
+    },
+    {
+      "key": "standards-index-wiring",
+      "title": "PENDING -- wire STANDARDS-INDEX.md into Rule 40/Rule 8/GOVERNANCE.json (depends on standards-index)",
+      "hours_stale": 1435.7
+    },
+    {
+      "key": "cliche-freshness-scoring",
+      "title": "BLOCKED -- premise empirically disproven; hasCliche()/BANNED_PHRASES intentionally left unchanged",
+      "hours_stale": 1417
+    },
+    {
+      "key": "playground-weatherpoll-wrong-endpoint",
+      "title": "OPEN — WeatherPoll: wrong endpoint; fix is direct Open-Meteo (CORS verified), venue coords already solved in production",
+      "hours_stale": 1087.9
+    },
+    {
+      "key": "cc-cmd-2026-09-07-soccer-season-gates-autoroll",
+      "title": "PENDING -- fix 8 stuck European soccer season gates in FIELD_V2_SOURCES (auto-rolling helper)",
+      "hours_stale": 45.1
+    },
+    {
+      "key": "cc-cmd-2026-09-07-session-health-queue-coverage",
+      "title": "PENDING -- fix session_health under-reporting cc-cmd-queue (LIMIT 15 + blind predicate)",
+      "hours_stale": 45.1
+    },
+    {
+      "key": "queue-deadcode-and-ambiguous",
+      "title": "PENDING -- dead-code removal HALF LANDED, no execution record, 3 of 6 functions remain",
+      "hours_stale": 45.1
+    },
+    {
+      "key": "cc-cmd-2026-07-28-venue-table-followups",
+      "title": "PENDING -- venue table followups, roofType generator task not landed",
+      "hours_stale": 45.1
+    },
+    {
+      "key": "cc-cmd-2026-08-08-desk-sports-followups",
+      "title": "PENDING -- desk sports followups, NOT VERIFIED (no CC-CMD doc, no outbox record in either repo)",
+      "hours_stale": 45.1
+    },
+    {
+      "key": "cc-cmd-2026-09-07-codex-write-nondestructive-and-recovery",
+      "title": "PENDING -- make codex_write non-destructive (codex_history) + recover 25 overwritten queue bodies",
+      "hours_stale": 44.2
+    }
+  ],
+  "undetermined_items": [
+    {
+      "key": "CC-CMD-2026-07-07-worth-watching-display.md",
+      "title": "CORRECTED to v2 before execution — resolved design question + fixed naming collision, just pushed"
+    },
+    {
+      "key": "CC-CMD-2026-07-07-espn-cache-date-qualification.md",
+      "title": "SCOPING refined further -- editorial-contamination category + explicit boundary added, urgent fix untouched"
+    },
+    {
+      "key": "CC-CMD-2026-07-09-enqueue-context-gap.md",
+      "title": "TASKS 1-2 DONE (jubilant-bassoon) -- verified live; TASK 5 was orphaned by my own dispatch gap, now separately dispatched; TASK 3-4 (relay) still pending"
+    },
+    {
+      "key": "datamuse-relay-proxy",
+      "title": "TASK 1 DONE (field-relay-nba) / TASK 2 DONE (jubilant-bassoon) -- Datamuse relay proxy"
+    },
+    {
+      "key": "bucketc-inverse-problem-confirmed",
+      "title": "CONFIRMED -- Bucket C inverse-misclassification is real (2 found via Cluster 3), not just theoretical; standing check to carry into future clusters, not a full 519-entry audit"
+    },
+    {
+      "key": "p15b-p16-getqualitytarget",
+      "title": "P15B dispatched (real 23-day-old bug, confirmed via bundle not source search) -- P16 confirmed still open/low-priority, not dispatched -- getQualityTarget fully resolved (superseded by loadQualityCalibration, one new silent-catch gap found)"
+    },
+    {
+      "key": "brief-archive-health-audit",
+      "title": "Brief archive verified real via direct D1 query -- mostly healthy, one confirmed real stall (backfill engine, 140-date backlog) dispatched for diagnosis; KV sweep likely benign but not fully certain; compound/stakes/series_preview archival flagged unexamined"
+    },
+    {
+      "key": "relay-empty-catches-sweep",
+      "title": "CORRECTED -- true relay empty-catch total is 118, not 50 (comment-only-body counting bug found and fixed); Cluster 1's real 23-site fix already shipped and verified, unaffected; ~95 remain, not 34"
+    },
+    {
+      "key": "2026-07-16-drama-gateway-and-amnesty-zone-held",
+      "title": "SPLIT (2026-07-19) -- 1 of 5 Amnesty CC-CMDs resolved to Stats tab, 4 remain genuinely held"
+    },
+    {
+      "key": "journalismbrief-endpoint-correction",
+      "title": "CORRECTED — JournalismBrief: my correction was itself partly false (fields are real)"
+    }
+  ]
+}
+PASS  the queue block is present and not "unavailable"
+PASS  the three counts account for every row
+PASS  coverage is DECLARED — returned and truncated are both present
+PASS  returned matches the items actually in the payload
+PASS  'playground-weatherpoll-wrong-endpoint' is accounted for
+PASS  'queue-deadcode-and-ambiguous' is accounted for
+PASS  undetermined is non-empty — the bucket is reached on real data
+
+PASS
