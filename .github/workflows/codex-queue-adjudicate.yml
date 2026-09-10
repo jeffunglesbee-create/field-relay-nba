@@ -1,0 +1,57 @@
+# Adjudicate the ten `undetermined` cc-cmd-queue rows — 2026-09-10.
+#
+# `plan` is READ-ONLY: it reads the ten rows, asserts each still classifies as
+# undetermined, checks that every new title classifies the way its verdict says,
+# and commits a pre-image of all ten bodies. It writes nothing to D1.
+#
+# `apply` does all of that first, then writes, then RE-READS every row to verify
+# the title moved and the body did not, and finally calls the live session_health
+# and asserts `undetermined` is zero. The done condition is the instrument's own
+# answer, not this workflow's exit code.
+name: codex queue adjudicate
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan (read-only) | apply'
+        required: true
+        default: 'plan'
+
+permissions:
+  contents: write
+
+jobs:
+  adjudicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Offline, and it runs in BOTH modes. A verdict table that cannot classify
+      # its own titles must never reach the network.
+      - name: self-test — the verdicts classify as they claim
+        run: node scripts/codex-queue-adjudicate.mjs --self-test
+
+      - name: ${{ inputs.mode }}
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-queue-adjudicate.mjs --${{ inputs.mode }} 2>&1 | tee outbox/codex-queue-adjudicate-${{ inputs.mode }}.log
+
+      - name: Commit findings
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/ || echo "nothing under outbox/"
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: codex queue adjudication — ${{ inputs.mode }}"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
