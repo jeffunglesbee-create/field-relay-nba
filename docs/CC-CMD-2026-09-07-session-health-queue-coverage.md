@@ -6,6 +6,46 @@
 **Type:** B (bug fix)
 **Severity:** Instrument defect. Every session start reads a wrong number as fact.
 
+## STATUS — RESOLVED 2026-09-10
+
+All four tasks complete. Deployed and answered live.
+
+| | |
+|---|---|
+| Commits | `716391d` (fix + guard), `f5efa60` (citation ratchet repair) |
+| Deploy | run 922, `workflow_dispatch` at `f5efa60`, SUCCESS |
+| Verification | run 34420652193, `session-health-queue-probe.yml` `mode: verify`, 7/7 PASS |
+| Artifact | `outbox/session-health-queue-verify.log`, and the Tasks 1-3 section of `outbox/cc-session-2026-09-07-session-health-queue-coverage.md` |
+| Live result | `total` 285, `open` 12, `undetermined` 10, `closed` 263, `returned` 12, `truncated` false, `cap` 40 |
+
+**The fix is not a wider predicate.** It is three counts where there was one, and
+the third — `undetermined` — names what the record does not say instead of
+letting a broadened `LIKE` absorb it. Ten of 285 rows carry a title stating no
+disposition and a status nobody set; a predicate deciding those would be
+choosing the number, which is the defect this document was written about.
+
+**Two premises in this document were wrong, and are corrected in the outbox
+rather than restated:**
+
+1. **TASK 3.3 asks for a `total_open` matching a hand count.** There is no
+   `total_open` field and no hand count was manufactured. Reporting that is what
+   step 3's own "stop and report the discrepancy" clause asks for.
+2. **`queue-deadcode-and-ambiguous` was never truncated away.** Its title leads
+   `PENDING`, so the old `LIKE` did match it, and with only 12 open rows the
+   `LIMIT 15` was not truncating anything. What hid it on 2026-09-07 was the
+   2026-09-08 `codex_write` overwrite incident rewriting 26 titles.
+   `playground-weatherpoll-wrong-endpoint` (title leads `OPEN —`) was the one
+   genuinely invisible key.
+
+Fault 3, which this document does not name, is fixed too: the stale cut used to
+happen in JS *after* the SQL `LIMIT`, so `returned` could not have meant what it
+said.
+
+Not done, and deliberately not this session's call: adjudicating the ambiguous
+rows and repairing the badly-titled ones. Those are the queue owner's decisions,
+and `undetermined` exists to keep them on screen rather than deferring them
+invisibly.
+
 ## CONTEXT — the defect, read from HEAD
 
 `src/index.js` at approximately line 19232 builds `stale_pending_cc_cmds`:
