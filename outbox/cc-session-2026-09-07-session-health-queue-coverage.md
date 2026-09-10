@@ -17,9 +17,18 @@ number rather than measuring it, which is the thing that instruction forbids.
 
 ## Task 0.1 — the real query
 
-`src/index.js:19384` — `WHERE category = 'cc-cmd-queue' AND title LIKE 'PENDING%'`.
-The CC-CMD says ~19232; the file has moved. Text is otherwise as transcribed,
-with one addition the document does not mention:
+At the time of this probe the query lived in `src/index.js` at line 19384 and
+read `WHERE category = 'cc-cmd-queue' AND title LIKE 'PENDING%'`. The CC-CMD says
+~19232; the file had already moved.
+
+**That line number is written out rather than cited**, deliberately. The line was
+deleted by the fix in `716391d`, so a `path:line` citation pointing at it would
+be an anchor that can never resolve — the stale-citation class this repo
+ratchets against, and the one I tripped by anchoring to code I removed in the
+same commit. The replacement block is at `src/index.js:19451` —
+`out.cc_cmd_queue = {`.
+
+The old text, as it was, with one addition the CC-CMD does not mention:
 
 ```js
 const cq = await env.ARCHIVE_DB.prepare(`
