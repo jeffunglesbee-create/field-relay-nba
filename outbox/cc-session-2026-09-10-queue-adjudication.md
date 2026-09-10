@@ -147,3 +147,99 @@ my count of 70 uses a different instrument from the tree-sitter tool behind the
 118/~95 figures, so it establishes "greater than zero" — which is all the
 adjudication needed — but it does not reconcile with the prior number, and I did
 not build the bridge.
+
+---
+
+# Follow-ups, automated rather than carried forward
+
+Both recommendations from the section above are now executed, and the second is
+a standing mechanism rather than a one-off.
+
+## 1. The two standing instructions are refiled as rules
+
+```
+rule-bucket-c-sibling-citations-recheck              from bucketc-inverse-problem-confirmed
+rule-negative-results-apply-to-your-own-conclusions  from journalismbrief-endpoint-correction
+```
+
+Run 34424259532. `scripts/codex-refile-standing-rules.mjs`.
+
+**The instruction is extracted, never retyped.** Each rule body is lifted from
+its source row by a literal marker, and the extractor asserts the marker occurs
+**exactly once** before using it. Paraphrasing a standing rule while refiling it
+would be inventing a rule and attributing it to a past session — the same act
+this repo's DO NOT INVENT rule prohibits, wearing the costume of tidying up.
+
+**The point of the refiling is asserted, not assumed.** After the writes the
+script re-reads `session_health` and requires the queue counts to be unchanged:
+
+```
+queue before  total 285 open 17 undetermined 0 closed 268
+queue after   total 285 open 17 undetermined 0 closed 268
+PASS  the two new rule rows did NOT enter the cc-cmd queue
+```
+
+A standing rule counted as work is precisely the defect being removed, so the
+check that it isn't has to run, not be reasoned about.
+
+## 2. The bucket is watched, weekly
+
+`.github/workflows/codex-undetermined-watch.yml`, Mondays 07:41 UTC. First live
+reading, run 34424310055:
+
+```
+checked 285 of 285 cc-cmd-queue rows — the instrument partitions every row,
+so the denominator is the whole table
+
+{ "total": 285, "open": 17, "undetermined": 0, "closed": 268 }
+
+PASS  no queue row is undetermined
+      0 of 285 rows are undetermined
+```
+
+**Zero is not a stable state.** Nothing prevents the next queue row being written
+with a title the classifier cannot read — the instrument reports the problem, it
+cannot stop it. Ten rows accumulated over roughly two months before anybody
+counted them. Without this, the next ten accumulate identically, and the only
+thing that changed is that a better instrument was there not to be read.
+
+**It reports and fails loudly. It writes nothing to D1.** Adjudicating a row
+means reading its body and forming a judgement, and that is the owner's — this
+pass overturned three titles that were not merely vague but *wrong*, which is not
+work a schedule can do. Weekly rather than daily because the thing being watched
+for happened about once a week, and six more runs buy no information.
+
+## Mutation results, including the one that survived
+
+Three mutations against the **shipped source**, not just fixtures, each asserting
+its anchor was unique before mutating.
+
+| mutation | result |
+|---|---|
+| the watch treats `undetermined > 0` as fine | CAUGHT |
+| the refile extractor resolves an ambiguous marker to the first hit | CAUGHT |
+| the watch stops requiring `undetermined` to be a number | **SURVIVED** |
+
+**The survivor was fixed by widening the test, not by accepting the pass.** The
+fixture used a *missing* field — and `3 + undefined + 7` is `NaN`, so the
+arithmetic check failed the row regardless. The type guard was untested by its
+own test, and looked identical to a working one from the outside.
+
+`null` is the discriminating case: it coerces to `0`, sums to exactly `total`,
+sails through the arithmetic, and **only** the type check stops it. That is the
+realistic regression too — an instrument that keeps emitting the key while losing
+the value reads as a permanently healthy queue. Re-mutated against the widened
+test: CAUGHT.
+
+That is the third time this session a check that had only ever passed turned out
+not to reach what it was aimed at. Rule 90 keeps earning its place by the same
+mechanism each time: the check and the code both looked right, and only breaking
+one of them told them apart.
+
+## Confidence
+
+**97.** Both follow-ups ran live and verified by re-reading rather than by exit
+code; the queue-isolation invariant is asserted rather than argued; the one
+surviving mutation was fixed at the test rather than explained away. Same
+deduction as above stands for the empty-catch count, which is unchanged by this
+section.
