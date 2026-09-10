@@ -39,52 +39,63 @@ export const classify = (r) => {
 export const SETTLEMENTS = [
     {
         key: 'p15b-p16-getqualitytarget',
-        expectBefore: 'open',
-        want: 'closed',
-        status: 'resolved',
-        title: 'DONE — P16 settled: retroactive drama estimation SHIPPED 2026-07-02 as the drama backfill, and was tuned after shipping (settled 2026-09-10)',
+        expectBefore: 'closed',
+        want: 'open',
+        // MUST be explicit. Omitting status PRESERVES the existing value, and
+        // this row currently carries a deliberate 'resolved' that I set — which
+        // classifies closed whatever the title says. Reversing a deliberate
+        // close therefore takes a deliberate write, not a new title.
+        status: 'open',
+        title: 'OPEN — P16 REOPENED: I closed this wrongly. P16 is a RELAY analytics-cron feature and night_stars.degraded is still true (corrected 2026-09-10)',
         reason:
-`The 2026-07-13 note says P16 "confirmed still genuinely unbuilt". It is built,
-and was already running when that sentence was written.
+`I CLOSED THIS ROW ON A FALSE IDENTITY EARLIER TODAY. Reopening it, with the
+evidence I should have gone and got before writing DONE.
 
-WHAT P16 IS. The note places it 6th of 6 in a "June 20 health-monitoring table".
-That table exists nowhere in either repo — searched both — so the identity is
-established from subject and date rather than by reading it. Both halves of the
-drama-backfill pair name the same defect and the same date:
+The 2026-09-10 settlement claimed P16 ("retroactive drama estimation") was the
+2026-07-02 client drama backfill, shipped and tuned. The shipping is true. THE
+IDENTITY IS NOT. I recorded at the time that the June-20 table naming P16 "exists
+nowhere in either repo" and rested the claim on a date match plus the absence of
+another candidate — and scored it 94 for exactly that reason. The table was not
+in the repos because it was never a repo file. It is on Drive, and asking Drive
+was the step I skipped.
 
-  jubilant-bassoon docs/CC-CMD-2026-07-02-drama-backfill-client.md
-    "Retroactive Drama Backfill ... structurally, not accidentally, degraded
-     since at least 2026-06-20"
-  field-relay-nba docs/CC-CMD-2026-07-02-drama-backfill-discovery.md
-    "silently, structurally degraded since at least 2026-06-20 with zero visible
-     indication anywhere (buried in session_health's night_stars.degraded)"
+WHAT DRIVE SAYS, three documents, all predating the settlement:
 
-June 20 is the date of the table P16 was ranked in, and no other
-retroactive-drama work exists in either repo. Same feature.
+  "FIELD — Undelivered Since June 19" (2026-06-22)
+    "P16 RETROACTIVE DRAMA ESTIMATION ... Fix needed: Spec + CC-CMD FOR RELAY
+     ANALYTICS CRON. Reads completed games from D1, computes drama proxy from
+     margin/OT/etc. WRITES TO analytics_output. REMOVES DEGRADED FLAG."
 
-IT SHIPPED, AND IT WAS TUNED AFTER SHIPPING — which is stronger evidence than
-shipping alone, because tuning means somebody watched it run:
+  "FIELD — Analytics Cron Engine Spec" (2026-06-20) — this is the June-20
+  document I said did not exist
+    "If drama_peak data missing for >50% of games (P16 NOT RUN), fall back to
+     score-differential heuristic ... Log: [NIGHT STARS] degraded mode"
 
-  field.js:35096  the backfill block, citing CC-CMD-2026-07-02
-  field.js:35297  fetch(\`\${relayBase}/archive/drama-missing?limit=20\`)
-  field.js:42195  called on the boot path, best-effort, never blocks boot
-                  "Cap raised 3 -> 20 games per session: verified 2026-07-02
-                   that the original cap of 3 wasn't keeping pace with the real
-                   backlog (128 -> 137 missing games since shipping)"
+  "FIELD — Deferred Items Reconciliation" (2026-06-21)
+    "P16 IS the computation. GLYPH IS the display surface."
 
-LIVE ARTIFACT. GET /archive/drama/leaderboard?sport=MLB&limit=5 returns five
-games with real drama_peak values (100, 100, 100, 100, 99) and dense
-several-hundred-sample drama_arc series, dated 2026-05-25 through 2026-08-07.
+SO THEY ARE DIFFERENT FEATURES, in different layers, with different outputs:
 
-WHAT THAT ARTIFACT DOES AND DOES NOT PROVE. It proves the pipeline produces and
-stores real arcs. It does NOT prove any individual arc came from the backfill
-rather than from a live session, and this settlement does not claim it did —
-the mechanism is established from the code and its post-ship tuning, and the
-leaderboard is corroboration, not the proof.
+  P16              relay analytics cron -> analytics_output, clears
+                   night_stars.degraded, estimates drama from final score /
+                   margin / OT for games with no live data
+  drama backfill   client, replays dramaScoreLive() over ESPN historical plays
+                   and POSTs drama_peak to /archive/drama
 
-The row's other two residuals were already retired on 2026-09-10: getQualityTarget
-is superseded, and loadQualityCalibration is not defined anywhere in relay src/ at
-HEAD. With P16 settled, nothing is left open on this row.`,
+THE LIVE DONE-CONDITION IS UNMET. session_health at 2026-09-10T01:34Z:
+analytics_phases.night_stars = { date: '2026-09-09', degraded: true }. P16's
+whole purpose is to clear that flag. It is still true, so P16 has not run.
+
+AND MY CORROBORATION POINTED AT THE WRONG FEATURE. I cited
+/archive/drama/leaderboard returning real drama_peak values. drama_peak is what
+the CLIENT backfill writes. It is evidence for the feature that shipped, and
+none at all for the one that did not — which is precisely the limit I wrote down
+and then failed to act on.
+
+WHAT IS STILL TRUE from the earlier settlement, and does not need redoing:
+getQualityTarget is superseded, and loadQualityCalibration is not defined
+anywhere in relay src/ at HEAD, so its empty-catch residual is moot. P16 is the
+sole live item on this row, as the 2026-07-13 note said all along.`,
     },
 ];
 
@@ -184,11 +195,19 @@ for (const s of SETTLEMENTS) {
 
 const qAfter = (await call('session_health', {})).cc_cmd_queue;
 console.log(`\nqueue after: total ${qAfter.total} open ${qAfter.open} undetermined ${qAfter.undetermined} closed ${qAfter.closed}`);
+// Generalised after the first RE-OPEN. The original arithmetic only counted
+// closings, so a settlement moving a row back to open expected `open` to be
+// unchanged and would have failed a correct write. It fails loudly rather than
+// silently, but it was still wrong, and a correction is exactly when a guard
+// must not be the thing in the way.
 const closing = SETTLEMENTS.filter(s => s.want === 'closed').length;
-check('the queue moved by exactly the number of settlements, in the right direction',
+const opening = SETTLEMENTS.filter(s => s.want === 'open').length;
+const wantOpen = qBefore.open + opening - closing;
+const wantClosed = qBefore.closed + closing - opening;
+check('the queue moved by exactly the settlements, in the right direction',
     qAfter.total === qBefore.total && qAfter.undetermined === qBefore.undetermined
-    && qAfter.open === qBefore.open - closing && qAfter.closed === qBefore.closed + closing,
-    `expected open ${qBefore.open - closing} / closed ${qBefore.closed + closing}, got open ${qAfter.open} / closed ${qAfter.closed}`);
+    && qAfter.open === wantOpen && qAfter.closed === wantClosed,
+    `expected open ${wantOpen} / closed ${wantClosed}, got open ${qAfter.open} / closed ${qAfter.closed}`);
 
 console.log(`\n${failed === 0 ? 'PASS' : `${failed} FAILING`}`);
 process.exit(failed === 0 ? 0 : 1);
