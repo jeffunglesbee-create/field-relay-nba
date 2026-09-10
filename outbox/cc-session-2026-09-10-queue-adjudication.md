@@ -243,3 +243,107 @@ code; the queue-isolation invariant is asserted rather than argued; the one
 surviving mutation was fixed at the test rather than explained away. Same
 deduction as above stands for the empty-catch count, which is unchanged by this
 section.
+
+---
+
+# P16 settled — 2026-09-10
+
+The one question the adjudication above deliberately left open. Run 34424960402.
+
+```
+queue before  total 285 open 17 undetermined 0 closed 268
+queue after   total 285 open 16 undetermined 0 closed 269
+PASS  the queue moved by exactly the number of settlements, in the right direction
+```
+
+## The answer: P16 was built, and was already running when it was called unbuilt
+
+The 2026-07-13 note says P16 (retroactive drama estimation) is "confirmed still
+genuinely unbuilt". It shipped 2026-07-02.
+
+### Identity, and the limit of the argument
+
+The note ranks P16 6th of 6 in a "June 20 health-monitoring table". **That table
+exists nowhere in either repo** — both searched. So the identity is established
+from subject and date, not by reading the table it came from. Stating that limit
+matters, because the whole defect being corrected here is a claim asserted from
+something other than the source.
+
+What both halves of the drama-backfill pair say:
+
+| | |
+|---|---|
+| `jubilant-bassoon docs/CC-CMD-2026-07-02-drama-backfill-client.md` | titled **"Retroactive Drama Backfill"**; "structurally, not accidentally, degraded **since at least 2026-06-20**" |
+| `field-relay-nba docs/CC-CMD-2026-07-02-drama-backfill-discovery.md` | "silently, structurally degraded **since at least 2026-06-20** with zero visible indication anywhere" |
+
+June 20 is the date of the table P16 sat in, the subject is retroactive drama
+computation, and no other retroactive-drama work exists in either repo.
+
+### It shipped, and was tuned after shipping
+
+Tuning is the stronger evidence: it means somebody watched the thing run.
+
+```
+field.js:35096   the backfill block, citing CC-CMD-2026-07-02
+field.js:35297   fetch(`${relayBase}/archive/drama-missing?limit=20`)
+field.js:42195   called on the boot path, best-effort, never blocks boot
+                 "Cap raised 3 -> 20 games per session: verified 2026-07-02 that
+                  the original cap of 3 wasn't keeping pace with the real backlog
+                  (128 -> 137 missing games since shipping)"
+```
+
+The relay half is live too: `/archive/drama-missing` is the discovery endpoint
+that CC-CMD built, and the client calls it by name.
+
+### Live artifact, and what it does not prove
+
+`GET /archive/drama/leaderboard?sport=MLB&limit=5` returns five games with real
+`drama_peak` values (100, 100, 100, 100, 99) and dense several-hundred-sample
+`drama_arc` series, dated 2026-05-25 through 2026-08-07.
+
+**It does not show that any individual arc came from the backfill rather than
+from a live session,** and this settlement does not claim it does. The mechanism
+is established from the code and its post-ship tuning; the leaderboard
+corroborates. Saying so is the difference between this settlement and the note it
+corrects.
+
+### The row closes entirely
+
+Its other two residuals were retired earlier today — `getQualityTarget` is
+superseded, and `loadQualityCalibration` is not defined anywhere in relay `src/`
+at HEAD. With P16 answered, nothing is left open on `p15b-p16-getqualitytarget`.
+
+## Why a new script rather than the adjudication table
+
+`codex-queue-adjudicate.mjs`'s anchor requires every target to classify as
+`undetermined` before the write. That is exactly right for the ten-row pass and
+useless afterwards: an adjudicated row is now `open` or `closed`, so settling it
+again must assert a **different** before-state.
+
+`scripts/codex-queue-settle.mjs` declares the expected prior classification per
+settlement and checks it. It is the path for every settlement after the ten-row
+pass, rather than a second one-off — and it carries the same three properties:
+body round-tripped never retyped, pre-image before any write, verified by
+re-reading and then by the live instrument.
+
+It adds one guard the ten-row script did not need: **the queue must move by
+exactly the number of settlements, in the right direction.** A write that lands
+on the wrong row cannot pass that.
+
+Mutation against the shipped source, anchor asserted unique first: flipping the
+declared before-state to the state being moved *to* — a no-op settlement
+reporting success having changed nothing — CAUGHT.
+
+## A correction to my own reporting
+
+While this run was in flight I wrote that the queue would go to "17 open / 269
+closed". That is not arithmetic that can happen: closing one open row moves open
+17 → 16. The measured result is `open 16 / closed 269`.
+
+## Confidence
+
+**94.** The mechanism is read from source at HEAD and from its own post-ship
+tuning comment, and the settlement's queue-delta guard passed. The deduction is
+the identity argument: the June-20 table that named P16 does not exist in either
+repo, so "P16 is this feature" rests on a date match, a subject match, and the
+absence of any other candidate — strong, but not the same as reading the table.
