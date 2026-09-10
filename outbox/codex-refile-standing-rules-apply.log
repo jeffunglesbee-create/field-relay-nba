@@ -1,0 +1,30 @@
+mode: APPLY
+
+queue before: total 285 open 17 undetermined 0 closed 268
+
+PASS  source bucketc-inverse-problem-confirmed was read
+PASS  the standing instruction in bucketc-inverse-problem-confirmed is found exactly once
+PASS  rule-bucket-c-sibling-citations-recheck does not already exist as something else
+PASS  rule-bucket-c-sibling-citations-recheck's body contains the extract VERBATIM
+PASS  source journalismbrief-endpoint-correction was read
+PASS  the standing instruction in journalismbrief-endpoint-correction is found exactly once
+PASS  rule-negative-results-apply-to-your-own-conclusions does not already exist as something else
+PASS  rule-negative-results-apply-to-your-own-conclusions's body contains the extract VERBATIM
+
+--- rule-bucket-c-sibling-citations-recheck   (from bucketc-inverse-problem-confirmed)
+    Standing instruction for whatever Tier C cluster is drafted next: explicitly check whether each candidate's Bucket C "sibling" citations (where a queue entry references a nearby Bucket C classification as the reason it w…
+
+--- rule-negative-results-apply-to-your-own-conclusions   (from journalismbrief-endpoint-correction)
+    STANDING LESSON, third-order this time: the negative-result rule has to apply to one's OWN conclusions at the moment of writing them, not just when auditing someone else's. Writing a rule is not the same as following it.…
+
+=== APPLYING ===
+  wrote rule-bucket-c-sibling-citations-recheck
+  wrote rule-negative-results-apply-to-your-own-conclusions
+
+PASS  rule-bucket-c-sibling-citations-recheck reads back as a rule with the verbatim instruction
+PASS  rule-negative-results-apply-to-your-own-conclusions reads back as a rule with the verbatim instruction
+
+queue after: total 285 open 17 undetermined 0 closed 268
+PASS  the two new rule rows did NOT enter the cc-cmd queue
+
+PASS
