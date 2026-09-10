@@ -225,6 +225,14 @@ jobs:
       - name: the sport canonicaliser maps what was measured, and leaves labels alone
         run: node scripts/check-sport-canonicaliser.mjs --self-test
 
+      # The queue partition's ARITHMETIC is its teeth: open + undetermined +
+      # closed must account for every row. A classifier that drops one, or that
+      # quietly folds `undetermined` into `closed`, breaks the sum and cannot
+      # break it silently — which is the whole difference between this and the
+      # LIMIT 15 it replaces.
+      - name: the cc-cmd queue partition accounts for every row
+        run: node scripts/check-queue-partition.mjs --self-test
+
       # CC-CMD-2026-08-21-closing-odds-capture: the odds backfill wrote
       # closing_odds for games that had not kicked off yet, which made
       # AmbientDO._captureClosingOdds's `WHERE closing_odds IS NULL` false
@@ -1532,6 +1540,11 @@ jobs:
         env:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/check-sport-canonicaliser.mjs --live
+
+      - name: the queue partition accounts for every row in the LIVE table
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/check-queue-partition.mjs --live
 
       - name: Commit results
         run: |

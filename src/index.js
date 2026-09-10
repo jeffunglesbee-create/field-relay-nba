@@ -19376,18 +19376,104 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                             out.open_incidents = (cf.results || []).map(r => r.title);
                         } catch(_) { out.open_incidents = 'unavailable'; }
 
+                        // ── the CC-CMD queue, partitioned three ways ────────────────
+                        //
+                        // CC-CMD-2026-09-07-session-health-queue-coverage. The old query
+                        // was `title LIKE 'PENDING%' … LIMIT 15`, and on 2026-09-07 a
+                        // session opened by reporting its output as the queue's size.
+                        //
+                        // THE INSTRUMENT DOES NOT CLASSIFY. It reports what the record
+                        // supports and names what it does not. Asking "which entries are
+                        // open?" needs a judgement nobody wrote down — measured
+                        // 2026-09-09, ten of 285 rows carry a title that states no
+                        // disposition and a status nobody set. A predicate that decided
+                        // those would be CHOOSING the number, which is the defect this
+                        // exists to fix, wearing a wider LIMIT.
+                        //
+                        // So: three counts, each from a rule a reader can re-run.
+                        // `undetermined` is not a fudge — it is the queue's real health
+                        // defect, and it is the number that makes bad titles visible
+                        // instead of letting a broadened LIKE absorb them forever.
+                        //
+                        // STATUS IS TRUSTED IN EXACTLY ONE DIRECTION, and that asymmetry
+                        // is load-bearing. `ensureCodexStatusColumn` adds the column with
+                        // DEFAULT 'open', so every pre-existing row carries 'open' for
+                        // free — measured, 89 rows say 'open' while their title says
+                        // DONE. `resolved` and `done` can only arrive by a caller passing
+                        // them (codex_write does `COALESCE(?, status)`). So 'open' is a
+                        // default and carries nothing; the other two are deliberate and
+                        // carry everything.
                         try {
-                            const cq = await env.ARCHIVE_DB.prepare(`
-                                SELECT key, title, updated_at,
+                            // Leading words that unambiguously mean CLOSED, taken from a
+                            // census of all 285 titles rather than from memory. Anything
+                            // outside this list and the OPEN list below is undetermined
+                            // BY CONSTRUCTION — no word is quietly assumed either way.
+                            const CLOSED_WORDS = ['DONE', 'RESOLVED', 'SUPERSEDED', 'CLOSED',
+                                                  'WITHDRAWN', 'MERGED', 'EXECUTED'];
+                            const OPEN_WORDS = ['PENDING', 'OPEN', 'BLOCKED'];
+                            // The first word, stripped of the punctuation titles carry
+                            // ('DONE,' and 'PENDING --' are the same word as 'DONE' and
+                            // 'PENDING'). Measured: 'DONE,' is a real leading token.
+                            const firstWord = (t) => String(t || '').trim().split(/\s+/)[0]
+                                                        .toUpperCase().replace(/[^A-Z]/g, '');
+
+                            const rows = (await env.ARCHIVE_DB.prepare(`
+                                SELECT key, title, status, updated_at,
                                        ROUND((julianday('now') - julianday(updated_at)) * 24, 1) AS hours_stale
                                 FROM codex
-                                WHERE category = 'cc-cmd-queue' AND title LIKE 'PENDING%'
-                                ORDER BY updated_at ASC LIMIT 15
-                            `).all();
-                            out.stale_pending_cc_cmds = (cq.results || [])
-                                .filter(r => r.hours_stale >= 2)
-                                .map(r => ({ key: r.key, title: r.title, hours_stale: r.hours_stale }));
-                        } catch(_) { out.stale_pending_cc_cmds = 'unavailable'; }
+                                WHERE category = 'cc-cmd-queue'
+                                ORDER BY updated_at ASC
+                            `).all()).results || [];
+
+                            const classify = (r) => {
+                                // Deliberate status first: it is the only signal a human
+                                // definitely set, and it outranks a title nobody updated.
+                                if (r.status === 'resolved' || r.status === 'done') return 'closed';
+                                const w = firstWord(r.title);
+                                if (CLOSED_WORDS.includes(w)) return 'closed';
+                                if (OPEN_WORDS.includes(w)) return 'open';
+                                return 'undetermined';
+                            };
+
+                            const open = rows.filter(r => classify(r) === 'open');
+                            const undetermined = rows.filter(r => classify(r) === 'undetermined');
+                            const closed = rows.length - open.length - undetermined.length;
+
+                            // The stale cut is applied IN THE PARTITION, not after a
+                            // LIMIT. The old code took 15 rows in SQL and then filtered
+                            // `hours_stale >= 2` in JS, so `returned` could never have
+                            // meant what it said.
+                            const STALE_HOURS = 2;
+                            const CAP = 40;
+                            const stale = open.filter(r => r.hours_stale >= STALE_HOURS);
+                            const shown = stale.slice(0, CAP);
+
+                            out.cc_cmd_queue = {
+                                total: rows.length,
+                                open: open.length,
+                                undetermined: undetermined.length,
+                                closed,
+                                // Every number above is derived by `classify`, which is
+                                // eleven words of vocabulary and one status rule. Nothing
+                                // here is a judgement about an entry's prose.
+                                undetermined_note: 'title states no disposition and no status was set — '
+                                    + 'these are the queue\'s unclassified entries, not a residual bucket',
+                                stale_threshold_hours: STALE_HOURS,
+                                open_and_stale: stale.length,
+                                returned: shown.length,
+                                truncated: stale.length > CAP,
+                                cap: CAP,
+                                items: shown.map(r => ({ key: r.key, title: r.title, hours_stale: r.hours_stale })),
+                                undetermined_items: undetermined
+                                    .slice(0, CAP)
+                                    .map(r => ({ key: r.key, title: r.title })),
+                            };
+                            // The old field name, kept so a reader or script that still
+                            // looks for it gets the same shape rather than `undefined`.
+                            // Rule 63: it has a consumer — every session-start reader
+                            // written before today.
+                            out.stale_pending_cc_cmds = out.cc_cmd_queue.items;
+                        } catch(_) { out.cc_cmd_queue = 'unavailable'; out.stale_pending_cc_cmds = 'unavailable'; }
                     }
 
                     out.checked_at = new Date().toISOString();
