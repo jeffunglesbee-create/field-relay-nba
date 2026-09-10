@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'plan (read-only) | apply | refile-plan | refile'
+        description: 'plan | apply | refile-plan | refile | settle-plan | settle'
         required: true
         default: 'plan'
 
@@ -40,6 +40,9 @@ jobs:
       - name: self-test — the refile extractor refuses what it should
         run: node scripts/codex-refile-standing-rules.mjs --self-test
 
+      - name: self-test — a settlement cannot claim a state it is already in
+        run: node scripts/codex-queue-settle.mjs --self-test
+
       - name: adjudicate — ${{ inputs.mode }}
         if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
         env:
@@ -54,6 +57,21 @@ jobs:
         env:
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: node scripts/codex-refile-standing-rules.mjs --plan 2>&1 | tee outbox/codex-refile-standing-rules-plan.log
+
+      # Generic: move ONE row's disposition, asserting its DECLARED prior
+      # classification rather than assuming `undetermined` the way the ten-row
+      # pass does. This is the path for every settlement after that pass.
+      - name: settle a queue row — plan
+        if: ${{ inputs.mode == 'settle-plan' }}
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-queue-settle.mjs --plan 2>&1 | tee outbox/codex-queue-settle-plan.log
+
+      - name: settle a queue row — apply
+        if: ${{ inputs.mode == 'settle' }}
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-queue-settle.mjs --apply 2>&1 | tee outbox/codex-queue-settle-apply.log
 
       - name: refile standing rules — apply
         if: ${{ inputs.mode == 'refile' }}
