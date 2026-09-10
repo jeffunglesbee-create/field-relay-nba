@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'plan (read-only) | apply'
+        description: 'plan (read-only) | apply | refile-plan | refile'
         required: true
         default: 'plan'
 
@@ -31,15 +31,35 @@ jobs:
         with:
           node-version: '22'
 
-      # Offline, and it runs in BOTH modes. A verdict table that cannot classify
-      # its own titles must never reach the network.
+      # Offline, and both run in EVERY mode. A verdict table that cannot classify
+      # its own titles, or an extractor that cannot refuse an ambiguous marker,
+      # must never reach the network.
       - name: self-test — the verdicts classify as they claim
         run: node scripts/codex-queue-adjudicate.mjs --self-test
 
-      - name: ${{ inputs.mode }}
+      - name: self-test — the refile extractor refuses what it should
+        run: node scripts/codex-refile-standing-rules.mjs --self-test
+
+      - name: adjudicate — ${{ inputs.mode }}
+        if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
         env:
           FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
         run: node scripts/codex-queue-adjudicate.mjs --${{ inputs.mode }} 2>&1 | tee outbox/codex-queue-adjudicate-${{ inputs.mode }}.log
+
+      # Refiling the two standing instructions into category `rule`. A standing
+      # instruction never completes, so it can never leave a work queue — the fix
+      # is the category, not the disposition.
+      - name: refile standing rules — plan
+        if: ${{ inputs.mode == 'refile-plan' }}
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-refile-standing-rules.mjs --plan 2>&1 | tee outbox/codex-refile-standing-rules-plan.log
+
+      - name: refile standing rules — apply
+        if: ${{ inputs.mode == 'refile' }}
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-refile-standing-rules.mjs --apply 2>&1 | tee outbox/codex-refile-standing-rules-apply.log
 
       - name: Commit findings
         if: always()

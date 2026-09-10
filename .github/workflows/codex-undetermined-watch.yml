@@ -1,0 +1,68 @@
+# The standing check that the cc-cmd queue's `undetermined` bucket is still zero.
+#
+# 716391d made session_health partition the queue three ways so a row whose title
+# states no disposition stays VISIBLE. On 2026-09-10 the ten rows that had
+# accumulated there over roughly two months were adjudicated to zero
+# (outbox/cc-session-2026-09-10-queue-adjudication.md).
+#
+# ZERO IS NOT A STABLE STATE. Nothing prevents the next queue row being written
+# with a title the classifier cannot read — the instrument reports the problem,
+# it cannot stop it. Without this, the next ten accumulate the same way, and the
+# only thing that changed is that a better instrument was there not to be read.
+#
+# IT REPORTS AND FAILS LOUDLY. It writes NOTHING to D1. Adjudicating a row means
+# reading its body and forming a judgement, and a judgement belongs to the queue
+# owner, never to a cron — the 2026-09-10 pass overturned three titles that were
+# not merely vague but wrong, which is not work a schedule can do.
+name: codex undetermined watch
+
+on:
+  schedule:
+    # Weekly. What is being watched for is somebody writing a queue row with a
+    # dispositionless title — which happened ten times in two months, so roughly
+    # once a week. A daily run would spend Actions minutes asking the same
+    # question six more times for no extra information.
+    - cron: '41 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: codex-undetermined-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Offline. A watch that cannot fail on a dirty queue is decorative, and
+      # this proves it can before it is allowed to report on the real one.
+      - name: self-test — the watch can detect what it exists to detect
+        run: node scripts/codex-undetermined-watch.mjs --self-test
+
+      - name: the live queue partition
+        env:
+          FIELD_MCP_SECRET: ${{ secrets.FIELD_MCP_SECRET }}
+        run: node scripts/codex-undetermined-watch.mjs 2>&1 | tee outbox/codex-undetermined-watch.log
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/codex-undetermined-watch.log || true
+          git diff --cached --quiet && { echo "unchanged since last week"; exit 0; }
+          git commit -m "chore: codex undetermined watch"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed on attempt $i"; exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
