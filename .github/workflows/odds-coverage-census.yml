@@ -1,0 +1,52 @@
+# CC-CMD-2026-09-11-odds-key-map-reconcile — Task 0 diagnosis and Task 3 census.
+#
+# Reads /context/date/{date} from the live relay and reports, per sport label:
+# rows, rows with opening odds, rows with closing odds, rows with a draw price.
+# No Odds API credit is spent — this reads what the relay already stored.
+#
+# It prints the DISTINCT SPORT LABELS rather than a fixed sport list, because a
+# label the odds lookup cannot resolve produces exactly the symptom the CC-CMD
+# describes, and a census keyed on expected names would hide it.
+name: odds coverage census
+
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: 'Comma-separated dates to census'
+        required: false
+        default: '2026-09-06,2026-09-10'
+
+permissions:
+  contents: write
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: self-test — the census can tell a two-way payload from a three-way
+        run: node scripts/odds-coverage-census.mjs --self-test
+      - name: census
+        run: |
+          node scripts/odds-coverage-census.mjs \
+            --dates=${{ inputs.dates || '2026-09-06,2026-09-10' }} \
+            2>&1 | tee outbox/odds-coverage-census.log
+      - name: Commit findings
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-coverage-census.log || true
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: odds coverage census [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then exit 0; fi
+            git pull --rebase --autostash origin main || true
+            sleep $((i * 3))
+          done
+          exit 1
