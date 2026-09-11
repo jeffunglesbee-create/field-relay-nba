@@ -1,0 +1,272 @@
+{
+  "probed_at": "2026-09-11T20:09:50.036Z",
+  "probe_date": "2026-09-11",
+  "query_ok": true,
+  "key_present": false,
+  "quota": {
+    "skipped": "ODDS_API_KEY not in env — quota and sport-activity unread"
+  },
+  "sport_keys_active": null,
+  "h1_timing": [
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816899",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:13",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816890",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:13",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816888",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:14",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816894",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:15",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816889",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:16",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816891",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:17",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816892",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:18",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816893",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:19",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816895",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:20",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816897",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:20",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816898",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:21",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816896",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:21",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816901",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:22",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816902",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:22",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "MLB",
+      "id": "MLB_2026-09-11_e401816900",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:23",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "La Liga",
+      "id": "La Liga_2026-09-11_e401882878",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:23",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "Bundesliga",
+      "id": "Bundesliga_2026-09-11_e401884793",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:24",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "Ligue 1",
+      "id": "Ligue 1_2026-09-11_e401876459",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:25",
+      "opening": "set",
+      "closing": "NULL"
+    },
+    {
+      "sport": "CFB",
+      "id": "CFB_2026-09-11_e401858215",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:25",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "CFB",
+      "id": "CFB_2026-09-11_e401858220",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:26",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "CFB",
+      "id": "CFB_2026-09-11_e401858222",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:26",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "CFB",
+      "id": "CFB_2026-09-11_e401858214",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:27",
+      "opening": "NULL",
+      "closing": "NULL"
+    },
+    {
+      "sport": "CFB",
+      "id": "CFB_2026-09-11_e401856678",
+      "date": "2026-09-11",
+      "created_at": "2026-09-11 10:01:27",
+      "opening": "NULL",
+      "closing": "NULL"
+    }
+  ],
+  "h2_order_and_quota": [
+    {
+      "sport": "MLB"
+    },
+    {
+      "sport": "Bundesliga"
+    },
+    {
+      "sport": "CFB"
+    }
+  ],
+  "opening_by_sport_today": [
+    {
+      "source": "odds_api",
+      "n": 17,
+      "first_": "2026-09-11T10:01:39.879Z",
+      "last_": "2026-09-11T10:01:43.626Z"
+    }
+  ],
+  "epl_laliga_history": [
+    {
+      "sport": "MLB",
+      "rows_": 1116,
+      "with_open": 984,
+      "with_close": 941
+    },
+    {
+      "sport": "MLS",
+      "rows_": 586,
+      "with_open": 180,
+      "with_close": 109
+    },
+    {
+      "sport": "WNBA",
+      "rows_": 210,
+      "with_open": 167,
+      "with_close": 167
+    },
+    {
+      "sport": "CFB",
+      "rows_": 105,
+      "with_open": 0,
+      "with_close": 0
+    },
+    {
+      "sport": "EPL",
+      "rows_": 56,
+      "with_open": 32,
+      "with_close": 27
+    },
+    {
+      "sport": "La Liga",
+      "rows_": 52,
+      "with_open": 20,
+      "with_close": 13
+    },
+    {
+      "sport": "NFL",
+      "rows_": 50,
+      "with_open": 0,
+      "with_close": 0
+    },
+    {
+      "sport": "Ligue 1",
+      "rows_": 30,
+      "with_open": 17,
+      "with_close": 11
+    },
+    {
+      "sport": "Bundesliga",
+      "rows_": 19,
+      "with_open": 0,
+      "with_close": 0
+    }
+  ],
+  "error": null
+}
