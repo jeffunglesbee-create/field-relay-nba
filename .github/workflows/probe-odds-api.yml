@@ -1,0 +1,72 @@
+name: Probe Odds API
+
+# Dispatch-only. Answers CC-CMD-2026-09-11-odds-key-map-reconcile Task 0.4 --
+# "does the VENDOR serve soccer_usa_mls" -- which our own source cannot answer,
+# because a key existing in ARCHIVE_SPORT_TO_ODDS_KEY is evidence about us, not
+# about them. /v4/sports is the Odds API's documented ZERO-credit endpoint and
+# carries each key's own `active` flag, so the authority is read at no quota cost
+# (Rule 78).
+#
+# It also re-runs the H1 (timing) / H2 (quota short-circuit) hypotheses in the
+# probe's header against a date given at dispatch, rather than the 2026-08-21
+# literal the probe was written around.
+#
+# NO schedule:. This answers a scoped question; a cron on it would repeat the
+# waste pattern in jubilant-bassoon
+# outbox/cc-session-2026-08-16-scheduled-workflow-audit.md.
+#
+# SECURITY: ODDS_API_KEY is scoped to the one step that needs it and is never
+# printed -- the script emits counts, HTTP statuses and header-derived numbers
+# only, and records key presence as a boolean.
+on:
+  workflow_dispatch:
+    inputs:
+      probe_date:
+        description: 'YYYY-MM-DD to scope the H1/H2/change-log queries to. Blank = the probe default (2026-08-21).'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: probe-odds-api
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe the Odds API (vendor key activity + H1/H2)
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PROBE_DATE: ${{ inputs.probe_date }}
+        run: node scripts/probe-odds-api.mjs
+
+      - name: Commit manifest
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-api-probe-*.json || { echo "no manifest produced"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: odds api probe manifest [skip ci]"
+
+          # Many concurrent writers to outbox/; a lost race must not fail the run,
+          # but a permissions failure must. Same split as deploy.yml.
+          LOG=/tmp/odds-probe-push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed manifest on attempt $i."; exit 0
+            fi
+            echo "Attempt $i lost the race; retrying."; sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden|authentication' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention; result is in the log above."; exit 0

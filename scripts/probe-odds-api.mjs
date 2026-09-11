@@ -32,6 +32,15 @@ const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const ODDS_KEY = process.env.ODDS_API_KEY || '';
 
+// Date the H1/H2/change-log queries are scoped to. Default is the 2026-08-21
+// literal this probe was written against, so an unparameterised run reproduces
+// the original measurement byte for byte. PROBE_DATE=YYYY-MM-DD re-aims it.
+const PROBE_DATE = (process.env.PROBE_DATE || '2026-08-21').trim();
+if (!/^\d{4}-\d{2}-\d{2}$/.test(PROBE_DATE)) {
+    console.error(`PROBE_DATE must be YYYY-MM-DD, got ${JSON.stringify(PROBE_DATE)}`);
+    process.exit(1);
+}
+
 async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
         method: 'POST',
@@ -47,6 +56,7 @@ async function d1(sql, params = []) {
 
 const m = {
     probed_at: new Date().toISOString(),
+    probe_date: null,               // set below; scopes every dated query
     query_ok: false,
     key_present: !!ODDS_KEY,          // presence only -- never the value
     quota: null,
@@ -62,24 +72,24 @@ try {
     // ── H1: did the rows exist when the snapshot ran? ────────────────────────
     // Their own created_at against the last odds_api write of the day.
     m.h1_timing = await d1(
-        `SELECT sport, id, created_at,
+        `SELECT sport, id, date, created_at,
                 CASE WHEN opening_odds IS NULL THEN 'NULL' ELSE 'set' END AS opening,
                 CASE WHEN closing_odds IS NULL THEN 'NULL' ELSE 'set' END AS closing
          FROM regular_season_games
-         WHERE date = '2026-08-21' AND sport IN ('EPL','La Liga','Ligue 1','MLB','WNBA')
-         ORDER BY created_at ASC`);
+         WHERE date = ? AND sport IN ('EPL','La Liga','Ligue 1','MLB','WNBA','MLS','Bundesliga','CFB','NFL')
+         ORDER BY created_at ASC`, [PROBE_DATE]);
 
     m.opening_by_sport_today = await d1(
         `SELECT c.source, COUNT(*) AS n, MIN(c.ts) AS first_, MAX(c.ts) AS last_
-         FROM change_log c WHERE c.field = 'opening_odds' AND c.ts LIKE '2026-08-21%'
-         GROUP BY c.source`);
+         FROM change_log c WHERE c.field = 'opening_odds' AND c.ts LIKE ?
+         GROUP BY c.source`, [PROBE_DATE + '%']);
 
     // ── H2: what the sport list looks like, in D1's own order ────────────────
     // Reproduces snapshotCronOdds' query exactly, so the ORDER it would iterate
     // is visible rather than assumed.
     m.h2_order_and_quota = await d1(
         `SELECT DISTINCT sport FROM regular_season_games
-         WHERE date = '2026-08-21' AND opening_odds IS NULL AND sport IS NOT NULL`);
+         WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL`, [PROBE_DATE]);
 
     // Have these two EVER had an opening line? If never, this is structural
     // rather than a bad day.
@@ -89,7 +99,7 @@ try {
                 SUM(CASE WHEN opening_odds IS NOT NULL THEN 1 ELSE 0 END) AS with_open,
                 SUM(CASE WHEN closing_odds IS NOT NULL THEN 1 ELSE 0 END) AS with_close
          FROM regular_season_games
-         WHERE sport IN ('EPL','La Liga','Ligue 1','MLS','MLB','WNBA')
+         WHERE sport IN ('EPL','La Liga','Ligue 1','MLS','MLB','WNBA','Bundesliga','CFB','NFL','UCL')
          GROUP BY sport ORDER BY rows_ DESC`);
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }
@@ -107,8 +117,14 @@ if (ODDS_KEY) {
         m.quota.headroom_above_floor = m.quota.remaining - m.quota.floor;
         if (r.ok) {
             const list = await r.json();
+            // Task 0.4: the vendor, not our source, is the authority on whether
+            // a key returns markets. `active` here is the vendor's own flag.
             const want = ['soccer_epl', 'soccer_spain_la_liga', 'soccer_france_ligue_one',
-                          'baseball_mlb', 'basketball_wnba'];
+                          'baseball_mlb', 'basketball_wnba',
+                          'soccer_usa_mls', 'soccer_germany_bundesliga',
+                          'americanfootball_ncaaf', 'americanfootball_nfl',
+                          'soccer_uefa_champs_league'];
+            m.vendor_key_count = Array.isArray(list) ? list.length : null;
             m.sport_keys_active = want.map(k => {
                 const hit = (list || []).find(s => s.key === k);
                 return { key: k, present: !!hit, active: hit?.active ?? null };
@@ -118,6 +134,8 @@ if (ODDS_KEY) {
 } else {
     m.quota = { skipped: 'ODDS_API_KEY not in env — quota and sport-activity unread' };
 }
+
+m.probe_date = PROBE_DATE;
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 const out = `outbox/odds-api-probe-${stamp}.json`;
