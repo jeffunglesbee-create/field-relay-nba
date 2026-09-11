@@ -10,6 +10,12 @@
 name: odds coverage census
 
 on:
+  schedule:
+    # Daily. The coverage gap this measures (MLS/Bundesliga/CFB/NFL rows with no
+    # odds) was rediscovered from scratch on 2026-08-21 and again on 2026-09-11,
+    # each time by hand. A daily census means the next change in it is read from
+    # a log rather than re-derived, and spends no Odds API credit to do so.
+    - cron: '17 8 * * *'
   workflow_dispatch:
     inputs:
       dates:
@@ -19,6 +25,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: odds-coverage-census
+  cancel-in-progress: false
 
 jobs:
   census:
@@ -33,8 +43,12 @@ jobs:
         run: node scripts/odds-coverage-census.mjs --self-test
       - name: census
         run: |
-          node scripts/odds-coverage-census.mjs \
-            --dates=${{ inputs.dates || '2026-09-06,2026-09-10' }} \
+          DATES="${{ inputs.dates }}"
+          if [ -z "$DATES" ]; then
+            DATES="$(date -u -d 'yesterday' +%F),$(date -u +%F)"
+          fi
+          echo "censusing $DATES"
+          node scripts/odds-coverage-census.mjs --dates="$DATES" \
             2>&1 | tee outbox/odds-coverage-census.log
       - name: Commit findings
         if: always()
