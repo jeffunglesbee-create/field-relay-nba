@@ -150,10 +150,19 @@ async function insertOddsRow(row) {
 }
 
 // ── Odds API helpers ────────────────────────────────────────────────────────
+// Rule 99 (DISTINGUISHABILITY-A). null means the vendor did not tell us; a real
+// 0 stays 0. The previous form mapped both onto 0, and main() sizes the day's
+// work with `Math.min(DAILY_CEILING, remaining)` -- so one missing header made
+// the budget 0 and the entire daily backfill a silent no-op, logging
+// "remaining=0" as though the quota were exhausted.
 function readQuotaHeaders(resp) {
-  const remaining = parseInt(resp.headers.get('x-requests-remaining') || '0', 10) || 0;
-  const used      = parseInt(resp.headers.get('x-requests-used')      || '0', 10) || 0;
-  return { remaining, used };
+  const num = (h) => {
+    const raw = resp.headers.get(h);
+    if (raw === null || String(raw).trim() === '') return null;
+    const n = parseInt(String(raw), 10);
+    return Number.isFinite(n) ? n : null;
+  };
+  return { remaining: num('x-requests-remaining'), used: num('x-requests-used') };
 }
 
 async function checkQuota() {
@@ -330,8 +339,16 @@ async function main() {
   //    against DAILY_CEILING is wrong. Instead: cap daily spend at
   //    DAILY_CEILING, check against actual remaining monthly quota.
   const { remaining, used } = await checkQuota();
+  // An unknown balance is not a budget. Failing loudly beats both alternatives:
+  // silently doing nothing (what `|| 0` did), and spending up to DAILY_CEILING
+  // blind against a balance we cannot see (Rule 78).
+  if (remaining === null) {
+    throw new Error(
+      'Odds API answered 200 but sent no x-requests-remaining header — the ' +
+      'balance is unknown, not zero. Refusing to size a budget against it.');
+  }
   const backfillBudget = Math.min(DAILY_CEILING, remaining);
-  console.log(`[odds-backfill] quota: remaining=${remaining}, monthly_used=${used}, daily_budget=${backfillBudget}`);
+  console.log(`[odds-backfill] quota: remaining=${remaining}, monthly_used=${used === null ? 'unknown' : used}, daily_budget=${backfillBudget}`);
   if (backfillBudget < MIN_BUDGET) {
     console.log(`[odds-backfill] insufficient budget (${backfillBudget} < ${MIN_BUDGET}); exiting clean`);
     return;
