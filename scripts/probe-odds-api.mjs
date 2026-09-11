@@ -110,11 +110,15 @@ if (ODDS_KEY) {
         const r = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${ODDS_KEY}`);
         m.quota = {
             http: r.status,
-            remaining: parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0,
-            used: parseInt(r.headers.get('x-requests-used') || '0', 10) || 0,
+            // Rule 99: null = the vendor did not tell us, which is NOT zero
+            // credits. A probe that prints remaining: 0 on a missing header is
+            // an instrument manufacturing the finding it was sent to measure.
+            remaining: _hdrNum(r, 'x-requests-remaining'),
+            used: _hdrNum(r, 'x-requests-used'),
             floor: 50,   // ODDS_QUOTA_FLOOR, src/index.js:5960
         };
-        m.quota.headroom_above_floor = m.quota.remaining - m.quota.floor;
+        m.quota.headroom_above_floor =
+            typeof m.quota.remaining === 'number' ? m.quota.remaining - m.quota.floor : null;
         if (r.ok) {
             const list = await r.json();
             // Task 0.4: the vendor, not our source, is the authority on whether
@@ -136,6 +140,13 @@ if (ODDS_KEY) {
 }
 
 m.probe_date = PROBE_DATE;
+
+function _hdrNum(res, name) {
+    const raw = res.headers.get(name);
+    if (raw === null || String(raw).trim() === '') return null;
+    const n = parseInt(String(raw), 10);
+    return Number.isFinite(n) ? n : null;
+}
 
 const stamp = m.probed_at.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
 const out = `outbox/odds-api-probe-${stamp}.json`;

@@ -5921,7 +5921,11 @@ async function checkIncidentThresholds(env) {
     ).bind(dedupKey).first();
     let lastDraftedCount = 0;
     if (dedupRow) {
-      try { lastDraftedCount = JSON.parse(dedupRow.content).last_drafted_count || 0; } catch (e) { console.error("[ANOMALY-WATCHER] dedup state parse failed:", e.message); }
+      // absence-ok: an absent last_drafted_count and a real 0 both mean "not
+      // drafted at this count", and both take the same branch at the
+      // `count <= lastDraftedCount` gate below. The unsafe direction would be
+      // SKIPPING a draft; neither value produces that.
+      try { lastDraftedCount = JSON.parse(dedupRow.content).last_drafted_count || 0; } catch (e) { console.error("[ANOMALY-WATCHER] dedup state parse failed:", e.message); }   // absence-ok: an absent field and a real 0 take the same branch at the `count <= lastDraftedCount` gate; the unsafe direction is skipping a draft, which neither produces
     }
     if (count <= lastDraftedCount) continue; // already drafted at this count or higher
 
@@ -13262,7 +13266,7 @@ export default {
                     }
                     const rows = await env.ARCHIVE_DB.prepare(query).bind(...params).all();
                     return new Response(
-                        JSON.stringify({ ok: true, count: rows.results?.length ?? 0, rows: rows.results }),
+                        JSON.stringify({ ok: true, count: rows.results?.length ?? 0, rows: rows.results }),   // absence-ok: `rows` is passed through undistorted alongside the count, so a consumer can still tell undefined from [] — the count is a convenience, not the record
                         { headers: { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } }
                     );
                 } catch (e) {
@@ -13509,7 +13513,7 @@ export default {
             for (const r of (d1Res.results || [])) byType[r.brief_type] = { count: r.n, chars: r.chars };
             const slateCount    = byType.slate?.count       || 0;
             const gameCount     = byType.game_brief?.count  || 0;
-            const total         = (d1Res.results || []).reduce((s, r) => s + (r.n || 0), 0);
+            const total         = (d1Res.results || []).reduce((s, r) => s + (r.n || 0), 0);   // absence-ok: r.n is COUNT(*) from a GROUP BY, never null on a row that exists. The real collapse on this path is the .catch() above — see CC-CMD-2026-09-12-catch-collapse-routes.md
             const divergence    = !!kvBrief && slateCount === 0;
 
             let repaired = null;

@@ -92,7 +92,7 @@ async function scope() {
       `SELECT id, sport, league, date, home, away, espn_event_id
          FROM ${table} WHERE ${MISLABELED} ORDER BY date DESC`);
     const rows = mis.results || [];
-    const wcTotal = tot.results?.[0]?.n ?? 0;
+    const wcTotal = tot.results?.[0]?.n ?? null;   // Rule 99: no row back is not a count of zero
     grandTotal += rows.length;
 
     console.log(`\n--- ${table} ---`);
@@ -134,9 +134,17 @@ async function verify() {
   let remaining = 0;
   for (const table of ['regular_season_games', 'postseason_games']) {
     const r = await d1(`SELECT COUNT(*) AS n FROM ${table} WHERE ${MISLABELED}`);
-    const n = r.results?.[0]?.n ?? 0;
-    remaining += n;
-    console.log(`  ${table}: ${n} mislabeled row(s) remaining`);
+    // Rule 99: this is the VERIFIER. `?? 0` made "the count query returned
+    // nothing" print as "0 mislabeled remaining" -- an instrument reporting
+    // success from its own failure to measure.
+    const n = r.results?.[0]?.n ?? null;
+    if (n === null) {
+      console.log(`  ${table}: COUNT returned no row — remaining is UNKNOWN, not zero`);
+      remaining = null;
+    } else {
+      if (remaining !== null) remaining += n;
+      console.log(`  ${table}: ${n} mislabeled row(s) remaining`);
+    }
 
     const dist = await d1(
       `SELECT sport, COUNT(*) AS n FROM ${table}
@@ -144,6 +152,14 @@ async function verify() {
         GROUP BY sport ORDER BY n DESC`);
     console.log(`  ${table} sport-label distribution for soccer rows:`,
       JSON.stringify(dist.results || []));
+  }
+  // Three outcomes, not two. `null` already failed the `=== 0` test, so the
+  // exit code was right -- but the MESSAGE claimed mismatches remain when what
+  // actually happened is that the count could not be read (Rule 99).
+  if (remaining === null) {
+    console.log('\nTOTAL REMAINING MISLABELED: UNKNOWN');
+    console.log('FAIL: a COUNT query returned no row. This is not zero and not a count — it is a failure to measure.');
+    process.exit(1);
   }
   console.log(`\nTOTAL REMAINING MISLABELED: ${remaining}`);
   console.log(remaining === 0 ? 'PASS: zero mismatches.' : 'FAIL: mismatches remain.');
