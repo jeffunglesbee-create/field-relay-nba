@@ -22,7 +22,15 @@ const check = (n, ok, d) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}`); if (
 /** Draw price present? Soccer is three-outcome; a two-way payload is the 2026-08-23 defect. */
 export const hasDraw = odds => {
   if (!odds || typeof odds !== 'object') return false;
-  return ['draw', 'draw_odds', 'drawOdds', 'tie'].some(k => odds[k] !== undefined && odds[k] !== null);
+  // THE FIRST VERSION LOOKED ONLY AT THE TOP LEVEL AND REPORTED ZERO DRAWS FOR
+  // EVERY SOCCER ROW, INCLUDING ONES THE CC-CMD SAYS CARRY ONE. The real payload
+  // nests the prices: {"source":"draftkings","moneyline":{"home":-210,"away":160}}.
+  // A false zero here would have "confirmed" the 2026-08-23 two-way finding on
+  // rows that are fine, which is worse than missing it.
+  const pools = [odds, odds.moneyline, odds.h2h, odds.threeWay, odds.three_way].filter(
+    p => p && typeof p === 'object');
+  return pools.some(p => ['draw', 'draw_odds', 'drawOdds', 'tie', 'x'].some(
+    k => p[k] !== undefined && p[k] !== null));
 };
 
 export const summarise = rows => {
@@ -47,7 +55,14 @@ if (SELF_TEST) {
   check('a JSON-STRING odds column is parsed, not treated as absent',
     summarise([{ sport: 'MLS', opening_odds: '{"home":100,"draw":240,"away":260}' }]).MLS.withOpening === 1,
     'D1 returns JSON columns as strings; treating them as absent would report a false zero');
-  check('a draw price is detected', hasDraw({ home: 1, draw: 2, away: 3 }));
+  check('a draw price is detected at the top level', hasDraw({ home: 1, draw: 2, away: 3 }));
+  // The shape the relay actually stores, read from a real committed payload.
+  check('a draw price is detected INSIDE moneyline, the shape the relay stores',
+    hasDraw({ source: 'draftkings', moneyline: { home: 150, draw: 240, away: 200 } }),
+    'the first version missed this and reported zero draws for every soccer row');
+  check('MUTATION: a nested TWO-WAY moneyline still reports no draw',
+    hasDraw({ source: 'draftkings', moneyline: { home: -210, away: 160 } }) === false,
+    'if nesting made everything look three-way the check would have no teeth at all');
   // MUTATION: the whole point of the three-outcome check.
   check('MUTATION: a two-way soccer payload is NOT counted as having a draw',
     hasDraw({ home: 1, away: 3 }) === false,
