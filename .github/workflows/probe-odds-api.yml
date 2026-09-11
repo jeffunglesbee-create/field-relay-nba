@@ -25,6 +25,10 @@ on:
         description: 'YYYY-MM-DD to scope the H1/H2/change-log queries to. Blank = the probe default (2026-08-21).'
         required: false
         default: ''
+      join_probe:
+        description: "Run the identity-join probe too (4 Odds-API credits). 'false' to skip."
+        required: false
+        default: 'true'
 
 permissions:
   contents: write
@@ -46,12 +50,23 @@ jobs:
           PROBE_DATE: ${{ inputs.probe_date }}
         run: node scripts/probe-odds-api.mjs
 
+      # Distinguishes the two remaining structural causes of the CFB/NFL/
+      # Bundesliga zero: the VENDOR not serving the key, versus the identity
+      # join missing every pair. Uses the relay's OWN ODDS_API_KEY binding via
+      # GET /identity/mismatches -- no key is read here. 1 credit per sport,
+      # four sports, route-capped at five (Rule 78).
+      - name: Probe the odds identity join (CFB / NFL / Bundesliga / MLS)
+        if: inputs.join_probe != 'false'
+        env:
+          PROBE_DATE: ${{ inputs.probe_date }}
+        run: node scripts/probe-odds-join.mjs
+
       - name: Commit manifest
         if: always()
         run: |
           git config user.name "FIELD CI"
           git config user.email "claude@field.dev"
-          git add outbox/odds-api-probe-*.json || { echo "no manifest produced"; exit 0; }
+          git add outbox/odds-api-probe-*.json outbox/odds-join-probe-*.json || { echo "no manifest produced"; exit 0; }
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: odds api probe manifest [skip ci]"
 
