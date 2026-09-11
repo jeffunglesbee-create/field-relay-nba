@@ -239,3 +239,25 @@ export async function reconcileOddsCredit(env, estimated, resp, site = '') {
         return out;
     }
 }
+
+// ── Rule 99 (DISTINGUISHABILITY-A) ──────────────────────────────────────────
+// Read the vendor's remaining-credit header as `number | null`, where null means
+// "the vendor did not tell us" -- a SIBLING of the number, never a member of it.
+//
+// Why this exists. Every odds fetcher runs with `cacheEverything: true`, and a
+// Cloudflare edge cache hit returns the body WITHOUT `x-requests-remaining`.
+// The previous form, `parseInt(h || '0', 10) || 0`, mapped that onto 0, which
+// then read as "no credits left" at the quota floor. Measured 2026-09-11: MLS
+// 0/17 rows, Bundesliga 0/2, CFB 0/4, NFL 0/1 across two dates, while the
+// account sat at 44,235 of 100,000 credits used. Nothing was exhausted.
+//
+// An unparseable value is null too, for the same reason: it is not a reading.
+// Callers must gate on `typeof q === 'number'`, never on truthiness -- a
+// genuine 0 IS a reading and must stop the loop.
+export function readQuotaHeader(res) {
+    const raw = res && res.headers ? res.headers.get('x-requests-remaining') : null;
+    if (raw === null || raw === undefined || String(raw).trim() === '') return null;
+    const n = parseInt(String(raw), 10);
+    return Number.isFinite(n) ? n : null;
+}
+

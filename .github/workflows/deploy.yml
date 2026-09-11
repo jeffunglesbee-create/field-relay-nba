@@ -240,6 +240,15 @@ jobs:
           node scripts/check-odds-key-equivalence.mjs --self-test
           node scripts/check-odds-key-equivalence.mjs
 
+      # jubilant-bassoon STANDARDS.md Rule 99 (DISTINGUISHABILITY-A). Two
+      # structurally identical loops decide whether to keep calling the Odds
+      # API. Both once recorded a fabricated zero -- a cache hit strips
+      # x-requests-remaining and `|| 0` made that look like exhaustion -- and
+      # the earlier partial fix guarded only the inner of two checks, which is
+      # why this is a guard and not a comment.
+      - name: the odds quota gate distinguishes null from zero
+        run: node scripts/check-quota-gate-ordering.mjs src/index.js
+
       - name: the cc-cmd queue partition accounts for every row
         run: node scripts/check-queue-partition.mjs --self-test
 

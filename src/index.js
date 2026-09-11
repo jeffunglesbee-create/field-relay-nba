@@ -3,6 +3,7 @@
 // See src/game-do.js for full ADR-002/RUWT compliance documentation.
 import { GameDO } from './game-do.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
+import { readQuotaHeader } from './budget-helpers.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -6480,14 +6481,14 @@ async function consumeOddsCredit(env, units) {
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
 async function fetchSportOddsLive(env, sportKey) {
   const key = _oddsPrimaryKey(env);
-  if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  if (!key) return { games: [], quotaRemaining: null, ok: false };
   // 3 markets (h2h,spreads,totals) → 3 credits/call. The literal 3 is gone, not
   // because it was wrong -- oddsCreditCost returns 3 for this exact URL, which
   // is one of the two self-tests -- but so the model lives in one place and a
   // future markets= edit cannot silently keep charging the old number.
   const _liveUrl = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
   if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl)))) {
-    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+    return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   const _est = oddsCreditCost(_liveUrl);
   const r = await fetch(
@@ -6500,7 +6501,9 @@ async function fetchSportOddsLive(env, sportKey) {
   // "hit cache for free" was true of the provider and false of our ledger: the
   // guard charged the estimate whether or not the request left the edge.
   await reconcileOddsCredit(env, _est, r, 'fetchSportOddsLive');
-  const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
+  // Rule 99: null means the vendor did not tell us (a cache hit strips the
+  // header). A real 0 stays 0. See readQuotaHeader in budget-helpers.js.
+  const quotaRemaining = readQuotaHeader(r);
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
   let games = [];
   try { games = await r.json(); } catch (_) { games = []; }
@@ -6532,12 +6535,18 @@ async function snapshotCronOdds(env, dateKey) {
   for (const sport of sports) {
     const sportKey = archiveSportToOddsKey(sport);
     if (!sportKey) continue;
-    if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) return lastQuota;
+    // typeof, not `!== null`: only a genuine numeric reading gates the loop.
+    if (typeof lastQuota === 'number' && lastQuota < ODDS_QUOTA_FLOOR) return lastQuota;
 
     const { games, quotaRemaining, ok } = await fetchSportOddsLive(env, sportKey);
-    lastQuota = quotaRemaining;
     if (!ok) continue;
-    if (quotaRemaining > 0 && quotaRemaining < ODDS_QUOTA_FLOOR) return lastQuota;
+    // AFTER the ok check: a failed fetch says nothing about quota, so it must
+    // not overwrite the last real reading.
+    lastQuota = quotaRemaining;
+    // The old `> 0` guard is gone deliberately. It existed to stop a fabricated
+    // zero from tripping the floor; with null distinct from 0 there is no
+    // fabricated zero, and a genuine 0 SHOULD stop the loop.
+    if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) return lastQuota;
 
     const byPair = new Map();
     for (const g of games) {
@@ -6580,7 +6589,7 @@ async function snapshotCronOdds(env, dateKey) {
 // so callers MUST check the quota_remaining return field before iterating.
 async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const key = _oddsPrimaryKey(env);
-  if (!key) return { games: [], quotaRemaining: 0, ok: false };
+  if (!key) return { games: [], quotaRemaining: null, ok: false };
   // Historical = 10× live cost; 3 markets → 30 credits per call. Same reason as
   // above for deriving it: oddsCreditCost returns 30 for this URL (self-tested).
   // The URL is built below, after the snapshot anchor, so the cost is computed
@@ -6592,7 +6601,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
   if (!(await consumeOddsCredit(env, oddsCreditCost(url)))) {
-    return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+    return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   // cacheEverything: true is required — Odds API returns Cache-Control: private.
   // Historical snapshots for a (sport, date, snapshot-time) are immutable, so
@@ -6600,7 +6609,9 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   // hit cache for free.
   const r = await fetch(url, { cf: { cacheTtl: 86400, cacheEverything: true } });
   await reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsHistorical');
-  const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
+  // Rule 99: null means the vendor did not tell us (a cache hit strips the
+  // header). A real 0 stays 0. See readQuotaHeader in budget-helpers.js.
+  const quotaRemaining = readQuotaHeader(r);
   if (!r.ok) return { games: [], quotaRemaining, ok: false };
   let payload = null;
   try { payload = await r.json(); } catch (_) { payload = null; }
@@ -6668,13 +6679,13 @@ async function runOddsBackfillForDate(env, isoDate) {
   let stopReason   = null;
 
   for (const [sportKey, group] of buckets) {
-    if (lastQuota !== null && lastQuota < ODDS_QUOTA_FLOOR) {
+    if (typeof lastQuota === 'number' && lastQuota < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low'; break;
     }
     const { games, quotaRemaining, ok, snapshotAt } = await fetchSportOddsHistorical(env, sportKey, isoDate);
-    lastQuota = quotaRemaining;
     if (!ok) { oddsSkipped += group.rs.length + group.ps.length; continue; }
-    if (quotaRemaining > 0 && quotaRemaining < ODDS_QUOTA_FLOOR) {
+    lastQuota = quotaRemaining;   // only after ok, same reason as snapshotCronOdds
+    if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) {
       stopped = true; stopReason = 'quota_low';
       // Still apply matches from THIS sport's already-paid-for response.
     }

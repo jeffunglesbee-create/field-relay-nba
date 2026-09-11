@@ -9,7 +9,7 @@
 
 import { resolveTeamKey } from './identity-resolver.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
-import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
@@ -252,20 +252,24 @@ async function consumeOddsCredit(env, units) {
 async function fetchSportOddsLive(env, sportKey) {
     const key = env.ODDS_API_KEY || env.ODDS_API_KEY_FALLBACK || null;
     if (!key) console.error('[wp-resolver] ODDS_API_KEY is not set — this is a missing credential, not an API outage');
-    if (!key) return { games: [], quotaRemaining: 0, ok: false };
+    if (!key) return { games: [], quotaRemaining: null, ok: false };
     // Derived, not hardcoded 3. oddsCreditCost returns 3 for this exact URL, so
     // today's behaviour is unchanged; the point is that a markets= edit here can
     // no longer keep charging the old price.
     const _url = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
     if (!(await consumeOddsCredit(env, oddsCreditCost(_url)))) {
-        return { games: [], quotaRemaining: 0, ok: false, guarded: true };
+        return { games: [], quotaRemaining: null, ok: false, guarded: true };
     }
     const r = await fetch(
         _url,
         { cf: { cacheTtl: 900, cacheEverything: true } }
     );
     await reconcileOddsCredit(env, oddsCreditCost(_url), r, 'wp-resolver:fetchSportOddsLive');
-    const quotaRemaining = parseInt(r.headers.get('x-requests-remaining') || '0', 10) || 0;
+    // Rule 99: null means the vendor did not tell us. LATENT here, not live --
+    // this function's only caller (:548) destructures { games, ok } and never
+    // reads quotaRemaining. Fixed anyway: the third structurally identical site
+    // is exactly what "patched one of two identical sites" looks like.
+    const quotaRemaining = readQuotaHeader(r);
     if (!r.ok) return { games: [], quotaRemaining, ok: false };
     let games = [];
     try { games = await r.json(); } catch (_) { games = []; }
