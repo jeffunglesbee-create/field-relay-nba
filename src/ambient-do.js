@@ -54,6 +54,8 @@
 // polls hit the CF cache — zero extra upstream quota cost. Result:
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
+import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
+const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
 import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { withKvProvenance } from './kv-provenance.js';
 
@@ -64,19 +66,9 @@ const PING_MS       = 20_000;
 // ── Live In-Play Odds Constants ──────────────────────────────────────────────
 // Maps FIELD sport key → Odds API v4 sport key for live in-play endpoint.
 // Only sports with Odds API live coverage are listed.
-const ODDS_SPORT_KEYS = {
-    'nba':        'basketball_nba',
-    'nhl':        'icehockey_nhl',
-    'mlb':        'baseball_mlb',
-    'wnba':       'basketball_wnba',
-    'wc26':       'soccer_fifa_world_cup',
-    'epl':        'soccer_epl',
-    'mls':        'soccer_usa_mls',
-    'laliga':     'soccer_spain_la_liga',
-    'seriea':     'soccer_italy_serie_a',
-    'bundesliga': 'soccer_germany_bundesliga',
-    'ligue1':     'soccer_france_ligue_one',
-};
+// Moved to src/odds-sport-keys.js as AMBIENT_SPORT_TO_ODDS_KEY. Aliased below
+// so every existing read site is untouched.
+
 
 // Priority tiers: cooldown between odds fetches per game.
 // High = more frequent polling (postseason/knockout).

@@ -8,6 +8,7 @@
 // If a constant changes in index.js, update it here too.
 
 import { resolveTeamKey } from './identity-resolver.js';
+import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
@@ -50,24 +51,9 @@ const ODDS_THRESHOLDS       = [
 ];
 const ODDS_PREFERRED_BOOK   = 'draftkings';
 
-const ARCHIVE_SPORT_TO_ODDS_KEY = {
-    nba:         'basketball_nba',
-    wnba:        'basketball_wnba',
-    nhl:         'icehockey_nhl',
-    mlb:         'baseball_mlb',
-    epl:         'soccer_epl',
-    mls:         'soccer_usa_mls',
-    'la liga':   'soccer_spain_la_liga',
-    'ligue 1':   'soccer_france_ligue_one',
-    bundesliga:  'soccer_germany_bundesliga',
-    'serie a':   'soccer_italy_serie_a',
-    cfl:         'americanfootball_cfl',
-    cfb:         'americanfootball_ncaaf',
-    nfl:         'americanfootball_nfl',
-    ufl:         'americanfootball_ufl',
-    afl:         'aussierules_afl',
-    ipl:         'cricket_ipl',
-};
+// Moved to src/odds-sport-keys.js — this file and index.js declared the
+// same sixteen keys with the same sixteen values.
+
 
 // ── Helpers (keep in sync with index.js) ───────────────────────────────────
 

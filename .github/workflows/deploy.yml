@@ -230,6 +230,16 @@ jobs:
       # quietly folds `undetermined` into `closed`, breaks the sum and cannot
       # break it silently — which is the whole difference between this and the
       # LIMIT 15 it replaces.
+      # The odds-key tables were declared twice with identical contents. They
+      # are one module now, and this asserts the extraction stayed an
+      # extraction: each table byte-for-byte what it was, and the ambient
+      # coverage gap still exactly six vendor keys -- closing that gap is new
+      # Odds API spend and belongs to a budget decision, not a refactor.
+      - name: the odds-key tables are one table, and unchanged by the move
+        run: |
+          node scripts/check-odds-key-equivalence.mjs --self-test
+          node scripts/check-odds-key-equivalence.mjs
+
       - name: the cc-cmd queue partition accounts for every row
         run: node scripts/check-queue-partition.mjs --self-test
 

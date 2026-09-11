@@ -2,6 +2,7 @@
 // Built May 31 2026 — Workers Plus active.
 // See src/game-do.js for full ADR-002/RUWT compliance documentation.
 import { GameDO } from './game-do.js';
+import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -6329,46 +6330,13 @@ async function sweepKVBriefs(env) {
 // drops below the safety floor — quota is shared across the whole worker.
 // Cron LEAGUES (sport, league) -> Odds API sport_key. Used when the
 // journalism cron iterates ESPN scoreboard sports.
-const ODDS_SPORT_KEYS = {
-  'basketball|nba':       'basketball_nba',
-  'basketball|wnba':      'basketball_wnba',
-  'hockey|nhl':           'icehockey_nhl',
-  'baseball|mlb':         'baseball_mlb',
-  'soccer|eng.1':         'soccer_epl',
-  'soccer|fifa.world':    'soccer_fifa_world_cup',
-};
-// Archive `sport` column (uppercase short codes — D1 introspection
-// 2026-06-16: regular_season has MLB/WNBA/EPL/MLS/CFL/AFL/IPL/La Liga/
-// Ligue 1; postseason has NBA/NHL/UFL) -> Odds API sport_key.
-// Case-insensitive lookup applied in archiveSportToOddsKey().
-const ARCHIVE_SPORT_TO_ODDS_KEY = {
-  nba:        'basketball_nba',
-  wnba:       'basketball_wnba',
-  nhl:        'icehockey_nhl',
-  mlb:        'baseball_mlb',
-  epl:        'soccer_epl',
-  mls:        'soccer_usa_mls',
-  'la liga':  'soccer_spain_la_liga',
-  'ligue 1':  'soccer_france_ligue_one',
-  bundesliga: 'soccer_germany_bundesliga',
-  'serie a':  'soccer_italy_serie_a',
-  cfl:        'americanfootball_cfl',
-  cfb:        'americanfootball_ncaaf',
-  nfl:        'americanfootball_nfl',
-  ufl:        'americanfootball_ufl',
-  afl:        'aussierules_afl',
-  ipl:        'cricket_ipl',
-};
+// Both odds-key tables now live in src/odds-sport-keys.js — they were
+// declared here AND in wp-resolver.js with identical contents.
+
 const ODDS_QUOTA_FLOOR = 50;        // stop calling the API below this
 const ODDS_PREFERRED_BOOK = 'draftkings';
 
-function _oddsSportKeyFor(sport, league) {
-  return ODDS_SPORT_KEYS[`${sport}|${league}`] || null;
-}
-function archiveSportToOddsKey(sport) {
-  if (!sport) return null;
-  return ARCHIVE_SPORT_TO_ODDS_KEY[String(sport).toLowerCase()] || null;
-}
+const _oddsSportKeyFor = cronSportLeagueToOddsKey;
 
 function _normTeam(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -12872,8 +12840,19 @@ export default {
                 // isGameFinalByEventId uses, read from the dedup SELECT that was
                 // already happening -- no extra query, no extra Odds API credit.
                 // This block stays as the writer for sports AmbientDO does not
-                // cover (its ODDS_SPORT_KEYS is six sports); it is no longer a
-                // writer for games that still have a kickoff left to capture.
+                // cover; it is no longer a writer for games that still have a
+                // kickoff left to capture.
+                //
+                // THIS COMMENT USED TO SAY "its ODDS_SPORT_KEYS is six sports".
+                // That was wrong and it was expensive: CC-CMD-2026-09-11 read it
+                // instead of the map, concluded MLS was starved by a six-entry
+                // gate, and prescribed a fix for a cause that does not exist.
+                // AmbientDO's table has held eleven entries including
+                // `mls: 'soccer_usa_mls'` since 043f4d6 created it. The six it
+                // genuinely does not cover are americanfootball_{cfl,ncaaf,nfl,
+                // ufl}, aussierules_afl and cricket_ipl -- asserted now by
+                // scripts/check-odds-key-equivalence.mjs so this sentence cannot
+                // go stale again without a gate going red.
                 try {
                     if (start_time && env.ARCHIVE_DB && env.FIELD_JOURNALISM) {
                         const oddsSportKey = archiveSportToOddsKey(sport);
