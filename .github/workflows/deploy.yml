@@ -246,6 +246,14 @@ jobs:
       # x-requests-remaining and `|| 0` made that look like exhaustion -- and
       # the earlier partial fix guarded only the inner of two checks, which is
       # why this is a guard and not a comment.
+      # Rule 99. Eight D1 reads turned a FAILED query into an empty result set
+      # that each consumer reported as a successful answer about the data.
+      # Property B asserts `.error` is checked BEFORE `.results` is read, which
+      # is the actual invariant — a fixed line-window was the first attempt and
+      # it flagged correct code.
+      - name: a failed D1 read is distinguishable from an empty one
+        run: node scripts/check-d1-failure-distinguishable.mjs
+
       - name: the odds quota gate distinguishes null from zero
         run: node scripts/check-quota-gate-ordering.mjs src/index.js
 

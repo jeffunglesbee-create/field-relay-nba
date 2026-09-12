@@ -31,7 +31,7 @@ export class BrowserDO {
   }
 
   async fetch(request) {
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
     const { tool, args } = body;
 
     try {

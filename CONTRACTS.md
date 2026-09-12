@@ -1229,3 +1229,60 @@ judgement, and a linter guessing it would be worse than none.
 **Adding a competition to `LEAGUES` is therefore a three-repo act**: pick the
 label, add a `Sport` case matching it verbatim in field-laboratory, and make sure
 `detectSportClass` recognises it. The third was invisible until it wasn't.
+
+## A failed D1 read is a 503, never `ok: true` with empty data (relay-owned)
+
+**Added 2026-09-12, Rule 99 (DISTINGUISHABILITY-A).**
+
+Eight D1 reads in `src/index.js` used `.all().catch(() => ({ results: [] }))`.
+A query *failure* became an empty result set, and each consumer then published
+it as a successful answer about the data:
+
+| route / caller | what it said when the query threw |
+|---|---|
+| postseason cron helper | `{ok:false, skipped:true, reason:'no active postseason series'}` |
+| `GET /archive/drama/leaderboard` | HTTP 200 `{ok:true, games:[]}` |
+| `GET /archive/drama-missing` | HTTP 200 `{ok:true, games:[]}` |
+| `GET /archive/score-missing` | HTTP 200 `{ok:true, games:[], count:0}` |
+| `GET /integrity/briefs` | `slateCount: 0` → `divergence: true` → offers a repair |
+| `GET /integrity/games` | a gap reported for every league |
+| `POST /backfill/brief-scores` | `{ok:true, dry_run:true, found:0}` |
+
+### The contract
+
+A D1 read failure on any of these routes now answers:
+
+```
+HTTP 503
+{ "ok": false, "error": "query_failed", "detail": "<label>: <message>" }
+```
+
+`d1AllOrError(stmt, label)` returns `{ results, error }` where `results` is
+`null` on failure and an array on success — a sibling of the value, not a member
+of it. Callers branch on `error`, never on `results.length`.
+
+### Consumer position: no change needed, verified not assumed
+
+Checked 2026-09-12 before choosing this shape. Every consumer of every affected
+route already branches on `res.ok` and none reads a body field on failure:
+
+| consumer | what it does |
+|---|---|
+| jubilant-bassoon `src/legacy/field.js:35370` (`runDramaBackfillDiscovery`) | `if (!r.ok) return 0;` |
+| `scripts/drama-backfill.mjs:302` | `if (!res.ok) { console.error(...); break; }` |
+| `scripts/score-fill.mjs:31` | `if (!listRes.ok) throw` |
+| `scripts/verify-drama-leaderboard.mjs:10` | logs the HTTP status |
+| `scripts/check-seed-coverage.mjs`, `jq-pre-game-*.mjs` | relay-side, same repo |
+
+`/archive/drama/leaderboard`, `/archive/score-missing`, `/integrity/briefs`,
+`/integrity/games` and `/backfill/brief-scores` have **no** jubilant-bassoon
+consumer at all. `/archive/drama-missing` is the only one, and it was already
+correct.
+
+So this is a behaviour change that no consumer has to absorb: they were all
+written to distrust a non-2xx and were simply never given one. **jubilant-bassoon
+needs no matching change** (Rule 91 SCOPE-LEGIBLE-A, cross-repo radius).
+
+`scripts/check-d1-failure-distinguishable.mjs` blocks the deploy if the banned
+catch returns, or if any `d1AllOrError` result has `.results` read before
+`.error` is checked.

@@ -6339,6 +6339,43 @@ async function sweepKVBriefs(env) {
 // declared here AND in wp-resolver.js with identical contents.
 
 const ODDS_QUOTA_FLOOR = 50;        // stop calling the API below this
+
+// ── Rule 99 (DISTINGUISHABILITY-A) — a failed query is not an empty result ──
+//
+// Eight sites used an `.all()` whose catch returned an empty result set,
+// which made a D1
+// FAILURE indistinguishable from "no rows" and let each consumer report it as a
+// successful answer about the data. /archive/drama/leaderboard answered HTTP 200
+// `{ok:true, games:[]}`; the postseason cron helper answered the literal string
+// 'no active postseason series'; /integrity/briefs fed a fabricated slateCount
+// into the divergence signal that gates its repair path.
+//
+// `results` is `null` on failure and an array on success — a sibling, not a
+// member. Callers must branch on `error`, never on `results.length`.
+//
+// VERIFIED 2026-09-12 before choosing this shape: every consumer of every
+// affected route already branches on `res.ok` and none reads a body field on
+// failure — jubilant-bassoon src/legacy/field.js:35370 (`if (!r.ok) return 0`),
+// scripts/drama-backfill.mjs:302, scripts/score-fill.mjs:31,
+// scripts/verify-drama-leaderboard.mjs:10. So a 503 needs no consumer change,
+// and CONTRACTS.md gains a statement rather than a migration.
+async function d1AllOrError(stmt, label) {
+    try {
+        const r = await stmt.all();
+        return { results: r.results || [], error: null };
+    } catch (e) {
+        console.error(`[D1-FAIL] ${label}:`, e?.message || e);
+        return { results: null, error: `${label}: ${String(e?.message || e)}` };
+    }
+}
+
+// 503, not 500: the query failed, the service is degraded, and every consumer
+// already treats a non-2xx as "do not trust this answer".
+function d1FailureResponse(error) {
+    return new Response(
+        JSON.stringify({ ok: false, error: 'query_failed', detail: error }),
+        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+}
 const ODDS_PREFERRED_BOOK = 'draftkings';
 
 const _oddsSportKeyFor = cronSportLeagueToOddsKey;
@@ -6848,7 +6885,7 @@ async function executeSeriesPreviewBackfill(env) {
 
   // Find all postseason series that have at least one completed game.
   // D1 doesn't support CTEs, so use a subquery.
-  const seriesResult = await env.ARCHIVE_DB.prepare(
+  const _seriesStmt = env.ARCHIVE_DB.prepare(
     `SELECT ps.series_key, ps.sport, ps.round, ps.higher_seed, ps.lower_seed,
             ps.narrative, ps.result,
             COUNT(pg.id) AS games_played
@@ -6857,9 +6894,13 @@ async function executeSeriesPreviewBackfill(env) {
        AND pg.home_score IS NOT NULL
      GROUP BY ps.series_key
      ORDER BY ps.series_key ASC`
-  ).all().catch(() => ({ results: [] }));
+  );
+  const seriesResult = await d1AllOrError(_seriesStmt, 'postseason series scan');
+  // Distinct from the empty case: 'no active postseason series' is a claim about
+  // the postseason, and a query failure is not entitled to make it.
+  if (seriesResult.error) return { ok: false, skipped: true, reason: 'series query failed', error: seriesResult.error };
 
-  const allSeries = seriesResult.results || [];
+  const allSeries = seriesResult.results;
   if (!allSeries.length) return {ok:false, skipped:true, reason:'no active postseason series'};
 
   let series_processed = 0;
@@ -11705,7 +11746,7 @@ export default {
             const auth = (request.headers.get('Authorization') || '').replace('Bearer ', '');
             if (auth !== env.FIELD_MCP_SECRET)
                 return new Response('Unauthorized', { status: 401, headers: CORS });
-            const body = await request.json().catch(() => ({}));
+            const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             const result = await backfillWCBsdEventIds(env, {
                 leagueId: body.leagueId ? String(body.leagueId) : undefined,
                 since:    body.since ? String(body.since) : undefined,
@@ -11734,7 +11775,7 @@ export default {
             if (auth !== env.FIELD_MCP_SECRET)
                 return new Response('Unauthorized', { status: 401, headers: CORS });
 
-            const body = await request.json().catch(() => ({}));
+            const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             const sportFilter = body.sport === 'MLB' || body.sport === 'WNBA' ? body.sport : null;
             const limit = Number.isInteger(body.limit) && body.limit > 0 ? body.limit : null;
 
@@ -12144,19 +12185,22 @@ export default {
                     { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit')) || 10));
                 const currentYear = new Date().getFullYear().toString();
-                const reg = await env.ARCHIVE_DB.prepare(
+                const _regStmt = env.ARCHIVE_DB.prepare(
                     `SELECT id, sport, date, home, away, home_score, away_score, drama_peak, drama_arc, 'regular' as game_type
                      FROM regular_season_games
                      WHERE sport = ? AND drama_peak IS NOT NULL AND strftime('%Y', date) = ?
                      ORDER BY drama_peak DESC LIMIT ?`
-                ).bind(sport, currentYear, limit).all().catch(() => ({ results: [] }));
-                const ps = await env.ARCHIVE_DB.prepare(
+                ).bind(sport, currentYear, limit);
+                const reg = await d1AllOrError(_regStmt, 'drama leaderboard (regular)');
+                const _psStmt = env.ARCHIVE_DB.prepare(
                     `SELECT id, sport, date, home, away, home_score, away_score, drama_peak, drama_arc, 'postseason' as game_type
                      FROM postseason_games
                      WHERE sport = ? AND drama_peak IS NOT NULL AND strftime('%Y', date) = ?
                      ORDER BY drama_peak DESC LIMIT ?`
-                ).bind(sport, currentYear, limit).all().catch(() => ({ results: [] }));
-                const combined = [...(reg.results || []), ...(ps.results || [])]
+                ).bind(sport, currentYear, limit);
+                const ps = await d1AllOrError(_psStmt, 'drama leaderboard (postseason)');
+                if (reg.error || ps.error) return d1FailureResponse(reg.error || ps.error);
+                const combined = [...reg.results, ...ps.results]
                     .sort((a, b) => (b.drama_peak || 0) - (a.drama_peak || 0))
                     .slice(0, limit);
                 return new Response(JSON.stringify({ ok: true, sport, season: currentYear, limit, games: combined }),
@@ -12277,15 +12321,17 @@ export default {
                 // backlog beyond the active recap window has no real product value to
                 // recover urgently. Recency-first also means the client naturally
                 // clears the freshest gaps first across repeated app opens.
-                const rows = await env.ARCHIVE_DB.prepare(
+                const _dramaMissingStmt = env.ARCHIVE_DB.prepare(
                     `SELECT id, sport, date, home, away, home_score, away_score,
                             espn_event_id
                      FROM regular_season_games
                      WHERE drama_peak IS NULL AND home_score IS NOT NULL
                      ORDER BY date DESC
                      LIMIT ?`
-                ).bind(limit).all().catch(() => ({ results: [] }));
-                return new Response(JSON.stringify({ ok: true, games: rows.results || [] }),
+                ).bind(limit);
+                const rows = await d1AllOrError(_dramaMissingStmt, 'drama-missing');
+                if (rows.error) return d1FailureResponse(rows.error);
+                return new Response(JSON.stringify({ ok: true, games: rows.results }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
@@ -12297,14 +12343,16 @@ export default {
                         { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
                 }
                 const today = new Date().toISOString().slice(0, 10);
-                const rows = await env.ARCHIVE_DB.prepare(
+                const _scoreMissingStmt = env.ARCHIVE_DB.prepare(
                     `SELECT id, sport, date, home, away, espn_event_id
                      FROM regular_season_games
                      WHERE home_score IS NULL AND date < ?
                      ORDER BY sport, date
                      LIMIT 500`
-                ).bind(today).all().catch(() => ({ results: [] }));
-                return new Response(JSON.stringify({ ok: true, games: rows.results || [], count: (rows.results || []).length }),
+                ).bind(today);
+                const rows = await d1AllOrError(_scoreMissingStmt, 'score-missing');
+                if (rows.error) return d1FailureResponse(rows.error);
+                return new Response(JSON.stringify({ ok: true, games: rows.results, count: rows.results.length }),
                     { headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
 
@@ -13505,10 +13553,14 @@ export default {
             let kvBrief = null;
             try { kvBrief = kvRaw ? JSON.parse(kvRaw) : null; } catch (_) { kvBrief = null; }
 
-            const d1Res = await env.ARCHIVE_DB.prepare(
+            const _briefCensusStmt = env.ARCHIVE_DB.prepare(
                 `SELECT brief_type, COUNT(*) AS n, SUM(length(brief_text)) AS chars
                  FROM briefs WHERE date = ? GROUP BY brief_type`
-            ).bind(date).all().catch(() => ({ results: [] }));
+            ).bind(date);
+            const d1Res = await d1AllOrError(_briefCensusStmt, 'integrity/briefs census');
+            // divergence gates a repair. A fabricated slateCount of 0 would make
+            // an unread database look like a missing slate brief.
+            if (d1Res.error) return d1FailureResponse(d1Res.error);
             const byType = {};
             for (const r of (d1Res.results || [])) byType[r.brief_type] = { count: r.n, chars: r.chars };
             const slateCount    = byType.slate?.count       || 0;
@@ -13703,13 +13755,16 @@ export default {
 
             // D1 counts per sport label. Both game tables share `sport` +
             // `date` columns; sport vocabulary is the label.
-            const d1Res = await env.ARCHIVE_DB.prepare(
+            const _gameCensusStmt = env.ARCHIVE_DB.prepare(
                 `SELECT sport, COUNT(*) AS n FROM regular_season_games
                   WHERE date = ? GROUP BY sport
                  UNION ALL
                  SELECT sport, COUNT(*) AS n FROM postseason_games
                   WHERE date = ? GROUP BY sport`
-            ).bind(date, date).all().catch(() => ({ results: [] }));
+            ).bind(date, date);
+            const d1Res = await d1AllOrError(_gameCensusStmt, 'integrity/games census');
+            // Without this, a failed query reports a gap for every league.
+            if (d1Res.error) return d1FailureResponse(d1Res.error);
             const d1 = {};
             for (const r of (d1Res.results || [])) {
                 d1[r.sport] = (d1[r.sport] || 0) + (r.n || 0);
@@ -14014,7 +14069,7 @@ export default {
             const typeClause = typeFilter ? `AND brief_type = ?` : '';
             const binds = typeFilter ? [typeFilter, limit] : [limit];
 
-            const nullRows = await env.ARCHIVE_DB.prepare(`
+            const _nullRowsStmt = env.ARCHIVE_DB.prepare(`
                 SELECT id, brief_type, sport, brief_text
                 FROM briefs
                 WHERE ${rescore
@@ -14025,9 +14080,13 @@ export default {
                   ${typeClause}
                 ORDER BY created_at DESC
                 LIMIT ?
-            `).bind(...binds).all().catch(() => ({ results: [] }));
+            `).bind(...binds);
+            const nullRows = await d1AllOrError(_nullRowsStmt, 'backfill/brief-scores scan');
+            // dry_run reports `found: N`. A failed query reporting found: 0 reads
+            // as "nothing needs backfilling".
+            if (nullRows.error) return d1FailureResponse(nullRows.error);
 
-            const rows = nullRows.results || [];
+            const rows = nullRows.results;
 
             if (dryRun) {
                 return new Response(JSON.stringify({
@@ -14773,7 +14832,7 @@ export default {
                 return { teams, tablesParsed, errors, firstHtmlSample };
             }
 
-            const body = await request.json().catch(() => ({}));
+            const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             const requested = Array.isArray(body?.leagues) && body.leagues.length
                 ? body.leagues : Object.keys(FBREF_LEAGUES);
             const results = [];
@@ -15863,7 +15922,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             // sandbox verification (sandbox cannot POST to *.workers.dev).
             let body = {};
             if (request.method === 'POST') {
-                body = await request.json().catch(() => ({}));
+                body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             } else {
                 const qDate = url.searchParams.get('date');
                 if (qDate) body = { date: qDate };
@@ -16577,7 +16636,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // Remove after Step 3-4 evaluation.
         if (pathname === '/test/gemini-judge' && request.method === 'POST') {
             try {
-                const body = await request.json().catch(() => ({}));
+                const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
                 const brief = typeof body.brief === 'string' ? body.brief.trim() : '';
                 if (!brief) {
                     return new Response(JSON.stringify({ ok: false, error: 'brief required' }),
@@ -16638,7 +16697,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // Remove after Step 3-4 evaluation (test plan 2026-07-20).
         if (pathname === '/test/combined-generate-judge' && request.method === 'POST') {
             try {
-                const body = await request.json().catch(() => ({}));
+                const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
                 if (!body || typeof body.prompt !== 'string' || body.prompt.length < 10) {
                     return new Response(JSON.stringify({ ok: false, error: 'prompt required (min 10 chars)' }),
                         { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -16682,7 +16741,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // Remove after Step 3-4 evaluation (test plan 2026-07-20).
         if (pathname === '/test/prefilter' && request.method === 'POST') {
             try {
-                const body = await request.json().catch(() => ({}));
+                const body = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
                 const brief = typeof body.brief === 'string' ? body.brief.trim() : '';
                 if (!brief) {
                     return new Response(JSON.stringify({ ok: false, error: 'brief required' }),

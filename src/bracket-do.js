@@ -420,7 +420,7 @@ export class BracketDO {
                         quality_score: 0,
                         source:        'bracket_do',
                     }),
-                }).catch(() => {})
+                }).catch(() => {})   // absence-ok: fire-and-forget archive write. CLAUDE.md Rule 5 REQUIRES this — an archive failure must never break the primary function, here the WebSocket fan-out below
             );
         }
 

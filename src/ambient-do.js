@@ -195,7 +195,7 @@ export class AmbientDO {
         // outbound BSD WS on first subscription, then sends a subscribe
         // command for the given event_id. Idempotent — re-subscribing is OK.
         if (url.pathname.endsWith('/ambient/bsd/subscribe') && request.method === 'POST') {
-            const { event_id } = await request.json().catch(() => ({}));
+            const { event_id } = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             if (!event_id) return new Response(JSON.stringify({ error: 'event_id required' }), { status: 400, headers: _cors() });
             const token = this.env.BSD_API_TOKEN;
             if (!token) return new Response(JSON.stringify({ error: 'BSD not configured' }), { status: 503, headers: _cors() });
@@ -207,7 +207,7 @@ export class AmbientDO {
 
         // ── POST /ambient/bsd/unsubscribe { event_id } ────────────────────
         if (url.pathname.endsWith('/ambient/bsd/unsubscribe') && request.method === 'POST') {
-            const { event_id } = await request.json().catch(() => ({}));
+            const { event_id } = await request.json().catch(() => ({})); // absence-ok: an unparseable body and an empty one both reach the same required-field validation below, and both answer 400 — no value is decoded into a narrow type
             if (event_id) await this._bsdUnsubscribe(event_id);
             return new Response(JSON.stringify({ ok: true }),
                 { headers: _cors() });
