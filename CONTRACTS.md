@@ -1286,3 +1286,71 @@ needs no matching change** (Rule 91 SCOPE-LEGIBLE-A, cross-repo radius).
 `scripts/check-d1-failure-distinguishable.mjs` blocks the deploy if the banned
 catch returns, or if any `d1AllOrError` result has `.results` read before
 `.error` is checked.
+
+## GET /context/game/{id} — `resolved` and `id_form` (relay-owned)
+
+**Added 2026-09-12.** The response previously carried `game: null` for two
+source states that warrant different client action, and no way to tell them
+apart:
+
+| source state | what the client should do |
+|---|---|
+| the id is a form this endpoint can look up, nothing matched | render what it has; this game simply is not archived |
+| the id is not a form this endpoint can resolve at all | resolve a real id and ask again — the answer means nothing |
+
+Because `findBriefs` falls back to `id LIKE '%<id>%'`, the second state was not
+merely uninformative, it was actively wrong. Probed 2026-09-12:
+`/context/game/g19` — a jubilant-bassoon slate POSITION, reassigned to a
+different game every day, not a game identity — returned five `mlb_game`
+briefs from five different games on five different dates (Cubs/White Sox
+08-19, Phillies/Marlins 08-18, Giants/Padres 08-16 …). The client rendered one
+of them as that card's pre-game brief.
+
+### Shape
+
+Every `/context/game/{id}` response now carries two new top-level fields
+alongside the existing ones. Both are always present.
+
+```jsonc
+{
+  "ok": true,
+  "id": "espn:401816899",
+  "resolved": true,          // NEW — did findGame return a row?
+  "id_form": "resolved",     // NEW — "resolved" | "unresolved" | "unrecognized"
+  "game": { /* … */ },
+  "archive": { /* … */ }, "series": null, "enrichment": null, "bracketDelta": null
+}
+```
+
+`id_form` values:
+
+- **`resolved`** — `findGame` returned a row. `resolved: true`.
+- **`unresolved`** — the id is a form this endpoint can look up but nothing
+  matched. `resolved: false`; the archive/series/enrichment fan-out still runs
+  and may carry content. Recognised forms: `^[a-z]+:\d+$` (`espn:401816899`),
+  any id containing `YYYY-MM-DD`, any id with an `_YYYYMMDD` segment, and any
+  id with a bare 4-digit year segment (`golf_travelers_2026`,
+  `nba_finals_2026_g4`).
+- **`unrecognized`** — none of the above. The endpoint returns HTTP 200 with
+  `resolved: false` and `game`, `archive`, `series`, `enrichment` and
+  `bracketDelta` ALL null. The four lookups are not run at all: a row matching
+  an unrecognisable id matches by coincidence, and a coincidence the client
+  cannot distinguish from a match is worse than nothing.
+
+It stays a 200, not a 404, because the client's `if (!r.ok) return` would
+absorb a 404 identically to a network failure — the distinction this change
+exists to create would be destroyed by the status code carrying it.
+
+### Client position (jubilant-bassoon)
+
+`injectDebriefCards` resolves a durable id BEFORE asking, and asks for nothing
+when none resolves — so a correct client never sees `unrecognized`. The field
+is the relay's own guard against the next consumer that does.
+
+Consumers verified 2026-09-12: `injectDebriefCards`
+(`src/legacy/field.js`, sends `_gameId` / `findEspnEntry(...)._gameId`) and
+`hydrateMissedRecaps` (sends `eData._gameId`, always `espn:NNN`). Both send
+recognised forms. Neither reads the two new fields yet; both are additive.
+
+Gate: `scripts/check-context-game-id-forms.mjs`, blocking in `deploy.yml`,
+12 enumerated id forms, 3 proven mutations.

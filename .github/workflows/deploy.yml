@@ -133,6 +133,17 @@ jobs:
       - name: Every odds call is charged to the monthly ledger
         run: node scripts/check-odds-calls-guarded.mjs
 
+      # Blocking. /context/game answers a lookup for any string, and findBriefs
+      # falls back to `id LIKE '%<id>%'` -- so an id the endpoint cannot resolve
+      # is answered with whatever shares that substring. Probed 2026-09-12:
+      # /context/game/g19, a jubilant-bassoon slate POSITION rather than a game
+      # identity, returned five mlb_game briefs from five different games on
+      # five different dates, and the client rendered one of them. Three
+      # mutations are proven to fail this check, including one that makes the
+      # anchor non-unique so nothing is checked at all.
+      - name: /context/game refuses an id it cannot resolve
+        run: node scripts/check-context-game-id-forms.mjs
+
       # Blocking, and the highest blast radius of any gate here: the response
       # wrapper touches every one of the 185 responses this worker returns, so a
       # mistake in it does not break one route, it breaks all of them. Five

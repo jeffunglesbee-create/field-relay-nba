@@ -7338,6 +7338,28 @@ async function buildGolfCronContext(espnDate, env) {
 // string. Odds columns are JSON TEXT — parsed under try/catch so a malformed
 // blob never breaks the whole response. lineMovement is computed from the
 // home spread when both opening/closing parse cleanly.
+// classifyContextGameId — which of three source states an id is in, as a value
+// a caller can branch on. Rule 99: `game: null` on its own collapses two
+// states that warrant different action.
+//   'resolved'     — findGame returned a row.
+//   'unresolved'   — the id is a form this endpoint can look up (an external
+//                    event id, or an id carrying a date) but nothing matched.
+//                    The game is simply not archived; the question was valid.
+//   'unrecognized' — the id is not a form this endpoint can resolve at all.
+//                    Any row that matches it matches by coincidence, because
+//                    findBriefs falls back to `id LIKE '%<id>%'`. Probed
+//                    2026-09-12: /context/game/g19 — a jubilant-bassoon slate
+//                    position, not a game identity — returned five mlb_game
+//                    briefs from five different games on five different dates.
+function classifyContextGameId(id, game) {
+    if (game) return 'resolved';
+    if (/^[a-z]+:\d+$/i.test(id)) return 'unresolved';                    // espn:401816899
+    if (/\d{4}-\d{2}-\d{2}/.test(id)) return 'unresolved';               // MLB_2026-09-11_e401816899
+    if (/_\d{8}(_|$)/.test(id)) return 'unresolved';                      // MLB_CHC_PIT_20260911
+    if (/(^|_)\d{4}(_|$)/.test(id)) return 'unresolved';                  // golf_travelers_2026, nba_finals_2026_g4
+    return 'unrecognized';
+}
+
 async function findGame(env, id) {
     const fuzzy = `%${id}%`;
     let row = await env.ARCHIVE_DB.prepare(
@@ -11630,6 +11652,21 @@ export default {
                 if (gSettled.status === 'rejected')
                     _errors.push({ source: 'game', reason: String(gSettled.reason?.message || gSettled.reason) });
 
+                const idForm = classifyContextGameId(id, game);
+                // An id this endpoint cannot resolve gets an explicit answer and
+                // nothing else. Running the fan-out would answer it with whatever
+                // happens to share the substring, which is worse than empty — the
+                // client cannot tell a coincidence from a match.
+                if (idForm === 'unrecognized') {
+                    return new Response(JSON.stringify({
+                        ok: true, id, resolved: false, id_form: idForm,
+                        game: null, archive: null, series: null,
+                        enrichment: null, bracketDelta: null,
+                        _errors: _errors.length ? _errors : undefined,
+                    }), { status: 200, headers: { ...CORS, 'Content-Type': 'application/json',
+                                                  'Cache-Control': 'public,max-age=60' } });
+                }
+
                 // Step 2: parallel fan-out — use espn_event_id for briefs/bracketDelta if available
                 const briefId = game?.espn_event_id || id;
                 const [b, s, e, bd] = await Promise.all([
@@ -11650,6 +11687,8 @@ export default {
                 const payload = {
                     ok: true,
                     id,
+                    resolved: game !== null,
+                    id_form: idForm,
                     game,
                     archive:      b.status  === 'fulfilled' ? b.value  : null,
                     series:       s.status  === 'fulfilled' ? s.value  : null,
