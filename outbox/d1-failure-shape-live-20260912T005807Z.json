@@ -1,0 +1,48 @@
+{
+  "probed_at": "2026-09-12T00:58:07.255Z",
+  "date": "2026-09-12",
+  "routes_probed": 5,
+  "routes_changed_total": 8,
+  "not_probed": [
+    "/backfill/brief-scores (POST, mutating)",
+    "executeSeriesPreviewBackfill (cron helper, no route)"
+  ],
+  "results": [
+    {
+      "path": "/archive/drama/leaderboard?sport=MLB&limit=5",
+      "http": 200,
+      "ok_field": true,
+      "has_expected_key": true,
+      "note": null
+    },
+    {
+      "path": "/archive/drama-missing?limit=5",
+      "http": 200,
+      "ok_field": true,
+      "has_expected_key": true,
+      "note": null
+    },
+    {
+      "path": "/archive/score-missing",
+      "http": 200,
+      "ok_field": true,
+      "has_expected_key": true,
+      "note": null
+    },
+    {
+      "path": "/integrity/briefs?date=2026-09-12",
+      "http": 200,
+      "ok_field": true,
+      "has_expected_key": null,
+      "note": null
+    },
+    {
+      "path": "/integrity/games?date=2026-09-12",
+      "http": 200,
+      "ok_field": true,
+      "has_expected_key": null,
+      "note": null
+    }
+  ],
+  "error": null
+}
