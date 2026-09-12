@@ -1,0 +1,17 @@
+name: Probe the D1 failure shape (live)
+
+# Rule 61 for CC-CMD-2026-09-12-catch-collapse-routes. The failure path was
+# proven by mutation; this proves the success path still works after the change.
+# Dispatch-only — it answers a post-deploy question once.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-d1-failure-shape-live.mjs
+      commit_message: "chore: d1 failure shape live probe [skip ci]"
