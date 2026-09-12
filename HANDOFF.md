@@ -1,5 +1,62 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-12 (the odds zero was an identity join, and eight routes lied about D1)
+
+**HEAD:** `9551b6d` → `cce2cd7` · **Branch:** main throughout
+**Session docs:** `outbox/cc-session-2026-09-11-odds-cause.md`,
+`outbox/cc-session-2026-09-11-odds-key-map-reconcile.md`,
+`outbox/cc-session-2026-09-12-catch-collapse-routes.md`
+
+22 work commits since the 09-09 close-out. Four threads.
+
+### 1. The zero odds are the identity join, not the key maps or the quota
+
+MLS, Bundesliga, CFB and NFL all read zero `opening_odds`. Three hypotheses
+died: the sport-key map (the vendor serves all four keys), H1 timing, and the
+H2 quota short-circuit. The cause is the identity join — CFB's five D1 rows
+appear verbatim in the vendor sample with zero matches. Automated:
+`odds-identity-join-saturday.yml`, cron `40 23 * * 6`.
+
+### 2. Three numeric collapses, one of them a live cron
+
+`quotaRemaining` could not distinguish "vendor sent no header" from "zero
+credits left" (`src/index.js:6503`, `:6603`, `src/wp-resolver.js:268`).
+`.github/scripts/odds-backfill.js` sized a whole day's budget from that
+fabricated zero and silently no-opped at 10:00 UTC daily. `readQuotaHeader`
+in `src/budget-helpers.js` returns `number | null`; both loops gate on the
+null separately. Gate: `scripts/check-quota-gate-ordering.mjs`.
+
+### 3. Eight routes answered `ok: true` on a failed D1 query
+
+`.catch(() => ({results: []}))` at eight sites turned a query failure into an
+empty result set. `d1AllOrError` / `d1FailureResponse` make it a 503 with
+`error: 'query_failed'`. Contract in CONTRACTS.md; deploy run 34663070816;
+all five GET-reachable routes verified 200 after.
+
+### 4. `/context/game` answered a lookup for any string
+
+`findBriefs` falls back to `id LIKE '%<id>%'`, so `/context/game/g19` — a
+client slate POSITION, reassigned daily — returned five `mlb_game` briefs from
+five different games on five different dates, and the client rendered one.
+`classifyContextGameId` sorts an id into resolved / unresolved / unrecognized;
+an unrecognized id gets 200 with every content field null and the four lookups
+skipped. Gate: `scripts/check-context-game-id-forms.mjs`, 12 enumerated forms,
+3 proven mutations. Client half: jubilant-bassoon `5931418f`.
+
+### Open, each with a CC-CMD
+
+- `CC-CMD-2026-09-12-ambient-do-setalarm-swallowed.md` — `ambient-do.js:950`
+- `CC-CMD-2026-09-12-route-provenance-truncation-invisible.md`
+- `CC-CMD-2026-09-11-odds-key-map-reconcile.md` Task 2 — budget projection,
+  which also gates the `ucl`/`europa`/`conference` → `null` map gap
+
+### User-only, not carry-forwards
+
+`ODDS_API_KEY` is not set as a repo secret here — three workflows reference it
+and the probe read `key_present: false`. The Odds API key is still in git
+history in four repos and needs rotating at the provider.
+
+
 ## SESSION CLOSE-OUT — 2026-09-09 (four producers, and a canonicaliser that knew one)
 
 **HEAD:** `d3e3efe` → `9551b6d` → `f18b98c` → this · **Branch:** main throughout
