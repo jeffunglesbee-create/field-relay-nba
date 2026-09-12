@@ -103,5 +103,20 @@
     "both": 6,
     "eff_named": 186,
     "eff_stamped": 189
+  },
+  {
+    "date": "2026-09-12",
+    "dispatch_lines": 225,
+    "distinct_paths": 197,
+    "data_surfaces": 189,
+    "self_describing": 6,
+    "protocol": 8,
+    "none": 133,
+    "age-only": 19,
+    "passthrough": 24,
+    "source-only": 7,
+    "both": 6,
+    "eff_named": 186,
+    "eff_stamped": 189
   }
 ]
