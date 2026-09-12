@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-11T11:32:28.140Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-12T00:44:46.892Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -26,7 +26,7 @@ export const ROUTE_PROVENANCE = {
   "/analytics/record-streak/recompute": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/analytics/run": { k: "store", s: "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/analytics/status": { k: "store", s: "kv:FIELD_JOURNALISM" },
-  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + do:AMBIENT_DO + echo.pims.cfl.ca + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM + www.cfl.ca", p: 1 },
+  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + do:AMBIENT_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM", p: 1 },
   "/archive/backfill": { k: "trigger", s: "d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev" },
   "/archive/backfill-enrich": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/archive/bracket-replay": { k: "store", s: "d1:ARCHIVE_DB" },
