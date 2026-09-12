@@ -1,0 +1,66 @@
+name: Odds identity join — Saturday CFB slate
+
+# Automated follow-up for docs/CC-CMD-2026-09-11-odds-identity-join-cfb.md.
+#
+# That CC-CMD's Task 0 says: probe a full CFB SATURDAY slate, not a Thursday.
+# 2026-09-11 had 5 games against 100 vendor events, which is enough to show the
+# join fails but not enough to build a matcher against. A Saturday carries ~60.
+#
+# So rather than leaving "run this on a Saturday" as a thing a session has to
+# remember, this runs itself every Saturday evening UTC and leaves the slate
+# waiting in outbox/ for whoever executes the CC-CMD.
+#
+# Cost: 1 Odds-API credit per sport via /identity/mismatches, which uses the
+# relay's own key binding. CFB only — one credit (Rule 78).
+on:
+  schedule:
+    # 23:40 UTC Saturday — after the afternoon and most evening kickoffs have
+    # produced rows, before Sunday rolls the archive date.
+    - cron: '40 23 * * 6'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'YYYY-MM-DD. Blank = today (UTC).'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: odds-identity-join-saturday
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe the CFB identity join on a real Saturday slate
+        env:
+          PROBE_DATE: ${{ inputs.date }}
+        run: node scripts/probe-odds-join.mjs
+
+      - name: Commit the slate
+        if: always()
+        run: |
+          git config user.name "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-join-probe-*.json || { echo "no manifest"; exit 0; }
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "chore: saturday odds identity-join slate [skip ci]"
+          LOG=/tmp/push.log; : > "$LOG"
+          for i in 1 2 3 4 5; do
+            if git pull --rebase --autostash origin main >>"$LOG" 2>&1 \
+               && git push origin main >>"$LOG" 2>&1; then
+              echo "Pushed on attempt $i."; exit 0
+            fi
+            sleep $((i * 5))
+          done
+          echo "::group::push log"; cat "$LOG"; echo "::endgroup::"
+          if grep -qiE 'denied|403|permission|forbidden' "$LOG"; then
+            echo "Push failed on PERMISSIONS."; exit 1
+          fi
+          echo "Race contention."; exit 0
