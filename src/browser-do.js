@@ -125,7 +125,7 @@ export class BrowserDO {
           } else {
             await this.page.click(selector, { timeout: 10000 });
           }
-          await this.page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {});
+          await this.page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {}); // absence-ok: a network-idle timeout is the expected case on a live page, not a value being decoded — the screenshot proceeds either way
           break;
         }
         case 'type': {

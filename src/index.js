@@ -18330,12 +18330,12 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                     };
                     page.on('response', onResponse);
                     await page.goto(`https://www.bundesliga.com/en/bundesliga/matchday/${season}/${md}`,
-                        { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+                        { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}); // absence-ok: navigation timeout is fire-and-forget; the screenshot below captures whatever state the page reached
                     await new Promise(r => setTimeout(r, 5000));
                     page.off('response', onResponse);
 
                     const bodyText = await page.evaluate(() => document.body.innerText).catch(() => '');
-                    await page.close().catch(() => {});
+                    await page.close().catch(() => {}); // absence-ok: best-effort teardown after the response is built; a close failure cannot change what was returned
 
                     const isoDates = [];
                     let m;
@@ -18492,7 +18492,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 page.on('response', onResponse);
 
                 const targetUrl = `https://www.bundesliga.com/en/bundesliga/matchday/${season}/${matchday}`;
-                await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+                await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {}); // absence-ok: same as :18333 — navigation timeout is expected on live pages and the capture proceeds regardless
                 // Real, proven wait window (matches the decisive Playwright spec) --
                 // the broadcasts request fires asynchronously after domcontentloaded,
                 // not synchronously with it.
