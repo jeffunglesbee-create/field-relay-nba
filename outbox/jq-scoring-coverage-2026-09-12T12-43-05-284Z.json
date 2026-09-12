@@ -1,0 +1,411 @@
+{
+  "ts": "2026-09-12T12:43:05.284Z",
+  "days": 7,
+  "since": "2026-09-05",
+  "byDay": [
+    {
+      "date": "2026-09-05",
+      "total": 270,
+      "scored": 270,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-06",
+      "total": 124,
+      "scored": 124,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-07",
+      "total": 49,
+      "scored": 49,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-08",
+      "total": 69,
+      "scored": 69,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-09",
+      "total": 87,
+      "scored": 87,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-10",
+      "total": 67,
+      "scored": 67,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-11",
+      "total": 63,
+      "scored": 63,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-12",
+      "total": 223,
+      "scored": 184,
+      "unscored": 39,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-13",
+      "total": 12,
+      "scored": 3,
+      "unscored": 9,
+      "era3": 0
+    }
+  ],
+  "byType": [
+    {
+      "brief_type": "pre_game",
+      "sport": "CFB",
+      "total": 112,
+      "scored": 81,
+      "unscored": 31
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLS",
+      "total": 40,
+      "scored": 28,
+      "unscored": 12
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "La Liga",
+      "total": 14,
+      "scored": 10,
+      "unscored": 4
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "EPL",
+      "total": 3,
+      "scored": 2,
+      "unscored": 1
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "CFB",
+      "total": 158,
+      "scored": 158,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLB",
+      "total": 106,
+      "scored": 106,
+      "unscored": 0
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "total": 96,
+      "scored": 96,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "total": 70,
+      "scored": 70,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "CFB",
+      "total": 51,
+      "scored": 51,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLS",
+      "total": 40,
+      "scored": 40,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLB",
+      "total": 26,
+      "scored": 26,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "UEFA Champions League",
+      "total": 18,
+      "scored": 18,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "UEFA Champions League",
+      "total": 18,
+      "scored": 18,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "total": 17,
+      "scored": 17,
+      "unscored": 0
+    },
+    {
+      "brief_type": "slate",
+      "sport": null,
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EPL",
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Bundesliga",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "La Liga",
+      "total": 14,
+      "scored": 14,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Serie A",
+      "total": 13,
+      "scored": 13,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "Ligue 1",
+      "total": 12,
+      "scored": 12,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLB",
+      "total": 11,
+      "scored": 11,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Serie A",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "La Liga",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EPL",
+      "total": 9,
+      "scored": 9,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Bundesliga",
+      "total": 9,
+      "scored": 9,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLS",
+      "total": 7,
+      "scored": 7,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "Ligue 1",
+      "total": 7,
+      "scored": 7,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "UEFA Champions League",
+      "total": 6,
+      "scored": 6,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Cup",
+      "total": 6,
+      "scored": 6,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EFL Cup",
+      "total": 6,
+      "scored": 6,
+      "unscored": 0
+    },
+    {
+      "brief_type": "compound",
+      "sport": null,
+      "total": 4,
+      "scored": 4,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Bundesliga",
+      "total": 3,
+      "scored": 3,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "NFL",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "La Liga",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "CFL",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "EFL Trophy",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NFL",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EFL Trophy",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "MLS",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "Bundesliga",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Serie A",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "Ligue 1",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL League One",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "La Liga",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": null,
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    }
+  ],
+  "era3ByType": [
+    {
+      "brief_type": "game_live",
+      "n": 118
+    },
+    {
+      "brief_type": "game_recap",
+      "n": 62
+    },
+    {
+      "brief_type": "pre_game",
+      "n": 1
+    }
+  ],
+  "era3Total": 181,
+  "reportUnscoredTypes": [],
+  "reportUnscoredCount": 0,
+  "totals": {
+    "total": 964,
+    "scored": 916,
+    "unscored": 48
+  },
+  "scoredPct": 95,
+  "scoringHealthy": true
+}
