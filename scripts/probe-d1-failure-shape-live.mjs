@@ -23,18 +23,35 @@ const TODAY = new Date().toISOString().slice(0, 10);
 // Every route touched by the change that is reachable with a plain GET.
 // /backfill/brief-scores is POST-only and mutates; it is listed as NOT PROBED
 // rather than silently omitted.
+// `sites` is how many of the eight changed .all() call sites each route
+// exercises. The leaderboard route runs TWO queries (regular + postseason), so
+// counting routes and counting sites are different numbers — and the first
+// version of this probe printed "5 of 8" with two not-probed entries, which
+// adds to seven. A coverage line whose arithmetic does not close is exactly
+// what Rule 91 is about, in the probe written to satisfy it.
 const ROUTES = [
-    { path: `/archive/drama/leaderboard?sport=MLB&limit=5`, expect: 'games' },
-    { path: `/archive/drama-missing?limit=5`,               expect: 'games' },
-    { path: `/archive/score-missing`,                       expect: 'games' },
-    { path: `/integrity/briefs?date=${TODAY}`,              expect: null   },
-    { path: `/integrity/games?date=${TODAY}`,               expect: null   },
+    { path: `/archive/drama/leaderboard?sport=MLB&limit=5`, expect: 'games', sites: 2 },
+    { path: `/archive/drama-missing?limit=5`,               expect: 'games', sites: 1 },
+    { path: `/archive/score-missing`,                       expect: 'games', sites: 1 },
+    { path: `/integrity/briefs?date=${TODAY}`,              expect: null  , sites: 1 },
+    { path: `/integrity/games?date=${TODAY}`,               expect: null  , sites: 1 },
 ];
-const NOT_PROBED = ['/backfill/brief-scores (POST, mutating)',
-                    'executeSeriesPreviewBackfill (cron helper, no route)'];
+const NOT_PROBED = [
+    { what: '/backfill/brief-scores (POST, mutating)', sites: 1 },
+    { what: 'executeSeriesPreviewBackfill (cron helper, no route)', sites: 1 },
+];
+const SITES_PROBED     = ROUTES.reduce((n, r) => n + r.sites, 0);
+const SITES_NOT_PROBED = NOT_PROBED.reduce((n, r) => n + r.sites, 0);
+const SITES_TOTAL      = 8;
+if (SITES_PROBED + SITES_NOT_PROBED !== SITES_TOTAL) {
+    console.error(`COVERAGE DOES NOT CLOSE: ${SITES_PROBED} probed + ${SITES_NOT_PROBED} not probed != ${SITES_TOTAL}`);
+    process.exit(1);
+}
 
 const m = { probed_at: new Date().toISOString(), date: TODAY,
-            routes_probed: ROUTES.length, routes_changed_total: 8,
+            routes_probed: ROUTES.length,
+            sites_probed: SITES_PROBED, sites_not_probed: SITES_NOT_PROBED,
+            sites_changed_total: SITES_TOTAL,
             not_probed: NOT_PROBED, results: [], error: null };
 
 for (const r of ROUTES) {
@@ -61,8 +78,8 @@ const out = `outbox/d1-failure-shape-live-${stamp}.json`;
 writeFileSync(out, JSON.stringify(m, null, 2) + '\n');
 console.log(JSON.stringify(m, null, 2));
 console.log(`\nwrote ${out}`);
-console.log(`\nprobed ${ROUTES.length} of ${m.routes_changed_total} changed sites (Rule 91).`);
-console.log(`not probed: ${NOT_PROBED.join('; ')}`);
+console.log(`\nprobed ${SITES_PROBED} of ${SITES_TOTAL} changed call sites across ${ROUTES.length} route(s) (Rule 91).`);
+console.log(`not probed (${SITES_NOT_PROBED} site(s)): ${NOT_PROBED.map(n => n.what).join('; ')}`);
 
 // A 5xx or a missing expected key is a real failure of this change.
 const bad = m.results.filter(r => (r.http !== 200) || (r.has_expected_key === false));
