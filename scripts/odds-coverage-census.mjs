@@ -33,11 +33,34 @@ export const hasDraw = odds => {
     k => p[k] !== undefined && p[k] !== null));
 };
 
+/** Which of four states an (opening, closing) pair is in.
+ *
+ *  jubilant-bassoon's movement line claims "unchanged from open" or a points
+ *  shift, and both are claims about CHANGE — which needs two observations in a
+ *  known order. ODDS-PROOF.md records 2026-08-09, when the "closing" snapshot
+ *  was captured ~22 SECONDS BEFORE the opening one. Counting only how many rows
+ *  HAVE a closing snapshot cannot see that; it looked like full coverage.
+ *
+ *  'none'        — no closing snapshot at all
+ *  'untimed'     — a closing snapshot, but at least one captured_at missing or
+ *                  unparseable, so the order cannot be verified
+ *  'outOfOrder'  — both timestamped, closing NOT strictly after opening
+ *  'sequence'    — both timestamped, closing strictly after opening
+ */
+export const sequenceOf = (o, c) => {
+  if (!c) return 'none';
+  const ot = o && o.captured_at ? Date.parse(o.captured_at) : NaN;
+  const ct = c && c.captured_at ? Date.parse(c.captured_at) : NaN;
+  if (!Number.isFinite(ot) || !Number.isFinite(ct)) return 'untimed';
+  return ct > ot ? 'sequence' : 'outOfOrder';
+};
+
 export const summarise = rows => {
   const by = {};
   for (const g of rows) {
     const sport = g.sport ?? '(null)';
-    const b = by[sport] = by[sport] || { rows: 0, withOpening: 0, withClosing: 0, withDraw: 0, sample: null };
+    const b = by[sport] = by[sport] || { rows: 0, withOpening: 0, withClosing: 0, withDraw: 0,
+                                        seq: 0, untimed: 0, outOfOrder: 0, sample: null };
     b.rows++;
     let o = g.opening_odds;
     if (typeof o === 'string') { try { o = JSON.parse(o); } catch { o = null; } }
@@ -45,6 +68,10 @@ export const summarise = rows => {
     if (typeof c === 'string') { try { c = JSON.parse(c); } catch { c = null; } }
     if (o) { b.withOpening++; if (hasDraw(o)) b.withDraw++; if (!b.sample) b.sample = o; }
     if (c) b.withClosing++;
+    const state = sequenceOf(o, c);
+    if (state === 'sequence') b.seq++;
+    else if (state === 'untimed') b.untimed++;
+    else if (state === 'outOfOrder') b.outOfOrder++;
   }
   return by;
 };
@@ -68,6 +95,18 @@ if (SELF_TEST) {
     hasDraw({ home: 1, away: 3 }) === false,
     'a two-way payload counted as three-way would smooth over the 2026-08-23 finding');
   check('null odds are not a draw', hasDraw(null) === false);
+  check('no closing snapshot is not a sequence', sequenceOf({ captured_at: '2026-09-11T10:00:00Z' }, null) === 'none');
+  check('a closing snapshot strictly later IS a sequence',
+    sequenceOf({ captured_at: '2026-09-11T10:00:00Z' }, { captured_at: '2026-09-11T11:00:00Z' }) === 'sequence');
+  check('MUTATION: closing captured 22s BEFORE opening is out of order, not a sequence',
+    sequenceOf({ captured_at: '2026-09-11T10:01:39Z' }, { captured_at: '2026-09-11T10:01:17Z' }) === 'outOfOrder',
+    'this is the literal 2026-08-09 ODDS-PROOF defect — counting withClosing alone called it full coverage');
+  check('MUTATION: identical timestamps are ONE observation, not a sequence',
+    sequenceOf({ captured_at: '2026-09-11T10:00:00Z' }, { captured_at: '2026-09-11T10:00:00Z' }) === 'outOfOrder');
+  check('a missing captured_at leaves the order unverifiable',
+    sequenceOf({}, { captured_at: '2026-09-11T11:00:00Z' }) === 'untimed');
+  check('an unparseable captured_at leaves the order unverifiable',
+    sequenceOf({ captured_at: 'whenever' }, { captured_at: '2026-09-11T11:00:00Z' }) === 'untimed');
   check('distinct labels are kept apart',
     Object.keys(summarise([{ sport: 'MLS' }, { sport: 'MLS Soccer' }])).length === 2,
     'a label the odds map cannot resolve must be visible AS a distinct label');
@@ -92,11 +131,20 @@ for (const date of DATES) {
   console.log(`\n=== ${date} — ${rows.length} row(s) across regular+postseason`);
   const by = summarise(rows);
   const names = Object.keys(by).sort();
-  console.log('  sport label            rows  opening  closing  draw');
+  console.log('  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder');
   for (const s of names) {
     const b = by[s];
-    console.log(`  ${s.padEnd(22)} ${String(b.rows).padStart(4)} ${String(b.withOpening).padStart(8)} ${String(b.withClosing).padStart(8)} ${String(b.withDraw).padStart(5)}`);
+    console.log(`  ${s.padEnd(22)} ${String(b.rows).padStart(4)} ${String(b.withOpening).padStart(8)} ${String(b.withClosing).padStart(8)} ${String(b.withDraw).padStart(5)}`
+              + ` ${String(b.seq).padStart(5)} ${String(b.untimed).padStart(8)} ${String(b.outOfOrder).padStart(11)}`);
   }
+  // seq + untimed + outOfOrder should equal closing. Printed, not asserted:
+  // a mismatch is a finding about the data, not a reason to hide the row.
+  const tot = names.reduce((a, s) => ({ closing: a.closing + by[s].withClosing,
+    seq: a.seq + by[s].seq, untimed: a.untimed + by[s].untimed, ooo: a.ooo + by[s].outOfOrder }),
+    { closing: 0, seq: 0, untimed: 0, ooo: 0 });
+  console.log(`\n  of ${tot.closing} closing snapshot(s): ${tot.seq} a verified sequence, `
+            + `${tot.untimed} unverifiable, ${tot.ooo} out of order`
+            + (tot.seq + tot.untimed + tot.ooo === tot.closing ? '' : '   ← DOES NOT SUM TO closing'));
   const sample = names.map(s => by[s].sample).find(Boolean);
   if (sample) console.log(`\n  one real opening_odds payload: ${JSON.stringify(sample).slice(0, 220)}`);
   console.log(`\n  checked ${names.length} distinct sport label(s) on this date — every label present, not a sample`);
