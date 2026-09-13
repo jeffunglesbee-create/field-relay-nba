@@ -1,5 +1,24 @@
 # CC-CMD-2026-09-12 — seven routes answer `ok: true` when the query failed
 
+**STATUS: CLOSED 2026-09-13.** All seven fixed, verified at HEAD rather than
+trusted: `d1AllOrError(stmt, label)` returns `{results, error}` with `results`
+null on failure — a sibling of the value, not a member of it — and callers
+branch on `error`, never on `results.length`. Failed reads answer HTTP 503
+`{ok:false, error:'query_failed'}`. CONTRACTS.md carries the shape and the
+verified consumer position (no jubilant-bassoon change needed; six of the seven
+routes have no client consumer at all, and the seventh already branched on
+`res.ok`).
+
+**Task 4's done condition took one more commit than this document expected.**
+The census reported exactly one unsuppressed `catch-collapse` under `src/` —
+`ambient-do.js:950`, which is `CC-CMD-2026-09-12-ambient-do-setalarm-swallowed`,
+a different CC-CMD by this document's own Rule 87.4 split. Fixing that
+(`0d04e3f`) took the count to **0**, so both done conditions land together.
+
+Session doc: `outbox/cc-session-2026-09-13-ambient-alarm-and-catch-collapse.md`.
+
+---
+
 Second CC-CMD required by Rule 87.4, raised while triaging
 `check-absence-collapse.mjs`'s 263 findings.
 
