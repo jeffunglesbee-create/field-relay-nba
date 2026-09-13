@@ -1,5 +1,39 @@
 # CC-CMD-2026-09-13 — `/archive/` never balances, and it is not the window
 
+**STATUS: CLOSED 2026-09-13** (`c176266`), same day it was filed. All tasks done.
+
+**Task 0 found seven lines, not a hypothesis.** Six comments and one string
+literal, netting a residual depth of 1:
+
+```
+11978  //   { ok, date, games_found, ...             counted +1, real 0
+11979  //     quota_remaining, stopped?, reason? }    counted -1, real 0
+12879  if (kvVal && kvVal[0] === '{') {              counted +2, real +1
+12954  // ... americanfootball_{cfl,ncaaf,nfl,        counted +1, real 0
+12955  // ufl}, aussierules_afl and cricket_ipl       counted -1, real 0
+13285  // Body: { triggered_by, date, teams: [{       counted +2, real 0
+13286  // pR32, ... pChamp}] }. INSERT OR REPLACE     counted -2, real 0
+```
+
+**The window was never too small.** Stripped, `/archive/` balances at line
+13366 — 1470 lines, inside the existing 1500. `/cfl/` is at 13397, **31 lines
+past the true end**, so the cfl hosts the parent CC-CMD chased were never
+`/archive/`'s at all.
+
+**Task 2 done condition, at the unchanged window:** `t: 1` gone and
+`do:AMBIENT_DO` gone — the `/live/*` block bleeding in past the true end. Four
+sources. Truncated routes 2 of 225 → 1 of 225, and the survivor `/mcp` is
+**genuine**: 0 offending lines, raw depth 4 == real depth 4, a real block longer
+than the window, correctly flagged rather than papered over.
+
+**Regex literals are not handled**, deliberately and with a bound — see the note
+in `route-scan.mjs`. An unbalanced one degrades to the flagged partial read it
+already had, never to a silent wrong answer.
+
+Session doc: `outbox/cc-session-2026-09-13-brace-balance-defeated.md`.
+
+---
+
 Second CC-CMD from `CC-CMD-2026-09-12-route-provenance-truncation-invisible`,
 filed per Rule 87.4. That one made a partial read say so; this one is about why
 the parse is partial.

@@ -1,5 +1,31 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-13 (the brace counter read prose as syntax)
+
+**HEAD:** `5640735` → `c176266` · main throughout
+**Session doc:** `outbox/cc-session-2026-09-13-brace-balance-defeated.md`
+**CLOSED:** `CC-CMD-2026-09-13-route-scan-brace-balance-defeated` (filed and
+closed same day)
+
+`bodyOf` counted every `{` and `}` in the raw line. Seven lines inside
+`/archive/` are braces that are not structure — six comments, one string literal
+— leaving residual depth 1, so the block never balanced.
+
+**The window was never too small.** Stripped, `/archive/` balances at line 13366
+(1470 lines, inside the existing 1500). `/cfl/` is at 13397, **31 lines past the
+true end** — the cfl hosts that started this chain were never `/archive/`'s.
+
+`/archive/` lost `t: 1` and `do:AMBIENT_DO` (the `/live/*` block bleeding past
+the end). Truncated 2 of 225 → 1 of 225; `/mcp` survives and is **genuine**
+(0 offending lines, raw depth 4 == real 4) — left flagged, not papered over.
+
+Regex literals deliberately unhandled: an unbalanced one degrades to the flagged
+partial read it already had, never a silent wrong answer. Bound documented at
+the code.
+
+19 cases, 5 mutations, both in `deploy.yml`.
+
+
 ## SESSION CLOSE-OUT — 2026-09-13 (a partial route parse now says so)
 
 **HEAD:** `e30a276` → `5fa598d` · **Branch:** main throughout
