@@ -141,6 +141,17 @@ jobs:
       # five different dates, and the client rendered one of them. Three
       # mutations are proven to fail this check, including one that makes the
       # anchor non-unique so nothing is checked at all.
+      # AmbientDO's alarm() re-arms ONLY through _scheduleAlarm, so a swallowed
+      # setAlarm rejection stopped the cross-sport SSE poll with no log and no
+      # signal — a DO that looks alive and silently stops emitting, until the
+      # next client connect re-arms it. A swallowed error and a handled one are
+      # indistinguishable from outside, so the check forces the rejection.
+      # Four mutations, the first restoring `.catch(() => {})` as it shipped.
+      - name: AmbientDO reports a failed setAlarm instead of swallowing it
+        run: |
+          node scripts/check-ambient-alarm-failure.mjs
+          node scripts/mutate-ambient-alarm-failure.mjs
+
       - name: /context/game refuses an id it cannot resolve
         run: node scripts/check-context-game-id-forms.mjs
 

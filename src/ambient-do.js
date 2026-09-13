@@ -946,8 +946,45 @@ export class AmbientDO {
     }
 
     // ── Schedule next alarm (idempotent — resets if already set) ─────────
-    _scheduleAlarm(delayMs) {
-        this.ctx.storage.setAlarm(Date.now() + delayMs).catch(() => {});
+    //
+    // CC-CMD-2026-09-12-ambient-do-setalarm-swallowed. This was
+    // `.catch(() => {})`. alarm()'s ONLY re-arm is this method (line ~333,
+    // under the comment "Always reschedule — never let the alarm die
+    // silently"), so a swallowed rejection stops the poll loop with no log and
+    // no signal anywhere.
+    //
+    // TWO CORRECTIONS to that CC-CMD's own framing, both traced at HEAD:
+    //
+    //   "the DO never wakes again" — not quite. The second call site is the
+    //   client-connect path ("might be the first client today"), so a new
+    //   connection re-arms a dead instance. The damaging window is clients
+    //   already connected, alarm dead, nobody new arriving: the DO looks alive
+    //   and silently stops emitting. Real, and bounded by the next connect.
+    //
+    //   "fix the class, not the instance" — the class is one instance.
+    //   bracket-do.js and user-do.js call setAlarm nowhere; game-do.js awaits
+    //   it unguarded at :403 and :419, so a rejection there PROPAGATES out of
+    //   alarm() instead of vanishing. Loud, not silent — a different posture,
+    //   and not changed here (Rule 69).
+    //
+    // Posture: log, then retry EXACTLY ONCE. The retry is bounded by the
+    // parameter rather than by a timer or a loop — _isRetry makes two attempts
+    // total and the second failure only logs. The CC-CMD's own warning was
+    // that "a tight retry loop inside a DO burns wall-clock on every tick";
+    // this cannot loop, because the recursive call always passes true.
+    _scheduleAlarm(delayMs, _isRetry = false) {
+        this.ctx.storage.setAlarm(Date.now() + delayMs).catch(e => {
+            let id = '(id unavailable)';
+            try { id = String(this.ctx.id); } catch (_) { /* id is diagnostic only */ }
+            const msg = (e && e.message) || String(e);
+            if (_isRetry) {
+                console.error(`[AmbientDO] setAlarm retry ALSO failed id=${id} delayMs=${delayMs}: ${msg} `
+                            + `— this instance will not poll again until a client connects`);
+                return;
+            }
+            console.error(`[AmbientDO] setAlarm failed id=${id} delayMs=${delayMs}: ${msg} — retrying once`);
+            this._scheduleAlarm(delayMs, true);
+        });
     }
 
     // ── BSD WebSocket integration (CC-CMD-D) ──────────────────────────────
