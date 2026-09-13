@@ -92,6 +92,14 @@ if (!census) {
     else fail('E census body read whole', 'brace balance did not resolve');
     eq('E census emits a coverage string', /coverage:\s*`scanned \$\{/.test(body), true);
     eq('E census emits per-table complete', /complete:\s*allComplete/.test(body), true);
+    // The named-rows list is capped. A capped list that does not say so reads
+    // as complete — the first live run found 1225 and showed 100 (Rule 99).
+    eq('E census reports found alongside shown',
+       /rows_with_odds_under_a_substituted_key_found/.test(body)
+       && /rows_with_odds_under_a_substituted_key_shown/.test(body), true);
+    // sport_filter is present and null when unfiltered, so a one-sport scan
+    // cannot be read as the whole archive.
+    eq('E census always carries sport_filter', /sport_filter:\s*sportFilter \|\| null/.test(body), true);
 
     // ── F. the census is read-only ─────────────────────────────────────────
     // It exists to inform a backfill DECISION. A live mutation of archive rows

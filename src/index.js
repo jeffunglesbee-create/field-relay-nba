@@ -15160,6 +15160,12 @@ export default {
             }
             const CENSUS_TABLES = ['regular_season_games', 'postseason_games'];
             const CHUNK = 1000;
+            // ?sport= narrows the scan to one archive label. Added after the
+            // first live run: 1551 substituted rows across 28 sports made the
+            // named-rows list unreadable, and the list is the part that has to
+            // be acted on. The scan still reports the FULL table totals so the
+            // filter cannot be mistaken for the whole archive.
+            const sportFilter = url.searchParams.get('sport');
             // Bounded so a grown archive degrades into a reported partial read
             // rather than a timeout. `complete` per table is the Rule 91
             // denominator and is never inferred from a row count.
@@ -15167,6 +15173,11 @@ export default {
                 parseInt(url.searchParams.get('max') || '40000', 10) || 40000, 200000);
             const bySport = {};
             const examples = [];
+            // The cap and the true count are reported together. A list that
+            // silently stops at 100 reads as "these are all of them" — the
+            // first live run had 1225 and showed 100 (Rule 99).
+            const EXAMPLE_CAP = 100;
+            let examplesTotal = 0;
             const totals = {
                 rows_total: 0, rows_scanned: 0, rows_unnamed: 0,
                 substituted_rows: 0, substituted_sides: 0,
@@ -15175,7 +15186,9 @@ export default {
             const tables = {};
             for (const table of CENSUS_TABLES) {
                 const cRes = await d1AllOrError(
-                    env.ARCHIVE_DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`),
+                    sportFilter
+                        ? env.ARCHIVE_DB.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE sport = ?`).bind(sportFilter)
+                        : env.ARCHIVE_DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`),
                     `substitution-census count ${table}`);
                 if (cRes.error) return d1FailureResponse(cRes.error);
                 const rowsTotal = (cRes.results || [])[0]?.n || 0;
@@ -15186,10 +15199,17 @@ export default {
                 // and this column holds both shapes.
                 while (scanned < maxRows) {
                     const want = Math.min(CHUNK, maxRows - scanned);
-                    const pRes = await d1AllOrError(env.ARCHIVE_DB.prepare(
-                        `SELECT id, sport, home, away, opening_odds, closing_odds
-                           FROM ${table} ORDER BY id LIMIT ? OFFSET ?`
-                    ).bind(want, scanned), `substitution-census page ${table}`);
+                    const pRes = await d1AllOrError(
+                        sportFilter
+                            ? env.ARCHIVE_DB.prepare(
+                                `SELECT id, sport, home, away, opening_odds, closing_odds
+                                   FROM ${table} WHERE sport = ? ORDER BY id LIMIT ? OFFSET ?`
+                              ).bind(sportFilter, want, scanned)
+                            : env.ARCHIVE_DB.prepare(
+                                `SELECT id, sport, home, away, opening_odds, closing_odds
+                                   FROM ${table} ORDER BY id LIMIT ? OFFSET ?`
+                              ).bind(want, scanned),
+                        `substitution-census page ${table}`);
                     if (pRes.error) return d1FailureResponse(pRes.error);
                     const rows = pRes.results || [];
                     for (const row of rows) {
@@ -15220,7 +15240,10 @@ export default {
                         }
                         // The rows a human has to look at, named. A count alone
                         // cannot be acted on and cannot be checked.
-                        if ((row.opening_odds != null || row.closing_odds != null) && examples.length < 100) {
+                        if (row.opening_odds != null || row.closing_odds != null) {
+                            examplesTotal++;
+                        }
+                        if ((row.opening_odds != null || row.closing_odds != null) && examples.length < EXAMPLE_CAP) {
                             examples.push({
                                 table, id: row.id, sport,
                                 home: row.home, away: row.away,
@@ -15244,7 +15267,8 @@ export default {
                 // reading `substituted_rows` alone must still see what fraction
                 // of the archive it was counted over.
                 coverage: `scanned ${totals.rows_scanned} of ${totals.rows_total} rows `
-                        + `across ${CENSUS_TABLES.length} tables`,
+                        + `across ${CENSUS_TABLES.length} tables`
+                        + (sportFilter ? ` (sport=${sportFilter} only)` : ''),
                 complete: allComplete,
                 tables, totals,
                 by_sport: bySport,
@@ -15252,6 +15276,13 @@ export default {
                 // scan ran, so a reader cannot mistake "none found" for "not
                 // looked for".
                 rows_with_odds_under_a_substituted_key: examples,
+                // Shown vs found. Never just the list.
+                rows_with_odds_under_a_substituted_key_found: examplesTotal,
+                rows_with_odds_under_a_substituted_key_shown: examples.length,
+                rows_with_odds_under_a_substituted_key_omitted: examplesTotal - examples.length,
+                // Present and null when unfiltered; the field never disappears,
+                // so a reader cannot mistake a one-sport scan for the archive.
+                sport_filter: sportFilter || null,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
