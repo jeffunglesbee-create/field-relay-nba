@@ -1,0 +1,115 @@
+name: Identity Ambiguity Watch
+
+# Automates the done conditions of three open CC-CMDs so none of them waits on a
+# session to remember it:
+#
+#   CC-CMD-2026-09-13-team-key-sport-blind          Task 5
+#   CC-CMD-2026-09-13-alias-table-silent-overwrite  Task 5
+#   CC-CMD-2026-09-11-odds-identity-join-cfb        blocked until both close
+#
+# Reads GET /identity/substitution-census. Read-only, no auth, no Odds-API
+# credit — the census derives its cross-sport classification from the archive's
+# own rows, which is the whole reason it can run on a schedule.
+#
+# IT EXITS NON-ZERO ONLY WHEN THE CENSUS ITSELF FAILS. "Still open" is a
+# measurement, not a failure. A watch that cried red every six hours for the
+# months these take to close would be muted long before the condition it exists
+# to catch ever flipped, and a muted watch is worse than none.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the census and report each done condition
+        id: watch
+        run: |
+          python3 << 'PYEOF'
+          import json, os, sys, urllib.request
+          from datetime import datetime, timezone
+          sys.path.insert(0, 'scripts')
+          from identity_ambiguity_conditions import evaluate, render, CC_CMDS
+
+          # A real browser UA. Cloudflare's edge blocks bare/default-UA requests
+          # and this repo's CI has been bitten by that more than once.
+          UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+          URL = ("https://field-relay-nba.jeffunglesbee.workers.dev"
+                 "/identity/substitution-census")
+
+          req = urllib.request.Request(URL, headers={"User-Agent": UA})
+          with urllib.request.urlopen(req, timeout=120) as r:
+              d = json.loads(r.read())
+
+          if not d.get("ok"):
+              raise SystemExit(f"census returned ok={d.get('ok')}: {d.get('error')}")
+          # Rule 91: a partial scan must never be read as a whole-archive answer.
+          if not d.get("complete"):
+              raise SystemExit(f"census did not complete: {d.get('coverage')}")
+
+          conditions = evaluate(d)
+          now = datetime.now(timezone.utc)
+          summary = render(d, conditions, now.isoformat())
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write(summary + "\n")
+
+          all_done = all(m for _, m, _ in conditions)
+          artifact = {
+              "checked_at": now.isoformat(),
+              "coverage": d.get("coverage"),
+              "complete": d.get("complete"),
+              "conditions": [{"name": n, "met": m, "observed": o}
+                             for n, m, o in conditions],
+              "totals": d.get("totals"),
+              "ambiguous_keys": d.get("ambiguous_keys"),
+              "all_done": all_done,
+              "cc_cmds": CC_CMDS,
+          }
+          # TIMESTAMPED, never a rewritten `-latest.json`. Two concurrent runs
+          # rewriting one file is exactly the conflict that makes
+          # _reusable-probe.yml's commit loop unrecoverable
+          # (CC-CMD-2026-09-13-probe-commit-race-unrecoverable). A unique name
+          # per run cannot conflict, so this sidesteps that defect by
+          # construction rather than inheriting it and retrying against it.
+          path = f"outbox/identity-ambiguity-watch-{now.strftime('%Y%m%dT%H%M%SZ')}.json"
+          with open(path, "w") as fh:
+              json.dump(artifact, fh, indent=2)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"path={path}\n")
+              fh.write(f"all_done={'true' if all_done else 'false'}\n")
+          PYEOF
+
+      - name: Commit the reading
+        run: |
+          git config user.name "identity-ambiguity-watch"
+          git config user.email "actions@github.com"
+          git add outbox/
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: identity ambiguity watch [skip ci]"
+          # The filename is unique per run, so a push race resolves by pulling
+          # and replaying — there is no file for two runs to disagree about.
+          for i in 1 2 3; do
+            if git push; then exit 0; fi
+            git pull --rebase --autostash origin main || git rebase --abort || true
+            sleep $((i * 5))
+          done
+          exit 1
+
+      - name: Announce when every condition is met
+        if: steps.watch.outputs.all_done == 'true'
+        run: |
+          echo "::notice title=Identity ambiguity resolved::All done conditions met — \
+          CC-CMD-2026-09-13-team-key-sport-blind and \
+          CC-CMD-2026-09-13-alias-table-silent-overwrite can close, and \
+          CC-CMD-2026-09-11-odds-identity-join-cfb is unblocked. \
+          Artifact: ${{ steps.watch.outputs.path }}"
