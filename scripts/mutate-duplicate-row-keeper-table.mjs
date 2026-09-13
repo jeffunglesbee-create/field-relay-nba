@@ -35,9 +35,22 @@ const MUTATIONS = [
     expect: 'but it is not deletable' },
 
   { name: 'K5  a HUMAN verdict becomes deletable',
-    anchor: '      deletable: !!(dec.stale && !blocked),',
-    replace: '      deletable: !blocked,',
+    anchor: '      deletable: !!(dec.stale && !blocked && mergeRequired.length === 0),',
+    replace: '      deletable: !blocked && mergeRequired.length === 0,',
     expect: 'a HUMAN verdict is never deletable' },
+
+  { name: 'K7  the data-loss override stops blocking a delete',
+    anchor: '      ? LOSS_BEARING.filter(([, has]) => has(staleRow) && !has(keepRow)).map(([f]) => f)',
+    replace: '      ? []',
+    expect: 'but a stale row holding odds is NOT deletable' },
+
+  // The override must be DIRECTIONAL. Comparing symmetrically would refuse
+  // every collision where the two rows differ at all, which is all of them —
+  // the classifier would decide nothing and look cautious doing it.
+  { name: 'K8  the loss test becomes symmetric and refuses everything',
+    anchor: '      ? LOSS_BEARING.filter(([, has]) => has(staleRow) && !has(keepRow)).map(([f]) => f)',
+    replace: '      ? LOSS_BEARING.filter(([, has]) => has(staleRow) !== has(keepRow)).map(([f]) => f)',
+    expect: 'a keeper richer than the stale row stays deletable' },
 
   { name: 'K6  two ESPN anchors silently pick the first',
     anchor: "    if (withEspn.length === 1)\n      return { verdict: 'KEEP_ESPN', keeper: withEspn[0].id,",

@@ -76,6 +76,36 @@ const cleanCase = classify([{ table: 'regular_season_games', date: '2026-01-01',
   games: [row({ id: 'keyid', home_score: 2, away_score: 1 }), row({ id: 'nameid' })] }])[0];
 eq('an unreferenced stale row is deletable', cleanCase.deletable, true);
 
+// 6. DATA LOSS OVERRIDES A CLEAR VERDICT TOO, and this set is measured, not
+//    imagined: on the first real run, 30 of 114 "deletable" collisions would
+//    have destroyed odds, because in the 2026-07-22 MLS population each row
+//    holds half the truth — one the result and the ESPN anchor, the other the
+//    opening and closing lines.
+const halfTruth = classify([{ table: 'regular_season_games', date: '2026-07-22', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'scored', home_score: 3, away_score: 1, espn_event_id: '761674', finalized_at: '2026-07-23' }),
+          row({ id: 'priced', has_opening_odds: true, has_closing_odds: true })] }])[0];
+eq('the scored row is still the keeper', halfTruth.keeper, 'scored');
+eq('but a stale row holding odds is NOT deletable', halfTruth.deletable, false);
+eq('and the fields that would be lost are named',
+   halfTruth.merge_required, ['has_opening_odds', 'has_closing_odds']);
+
+// The mirror: loss only counts in one direction. A keeper holding MORE than the
+// stale row is the ordinary case and must stay deletable, or the override
+// swallows every collision and the classifier decides nothing.
+const keeperRicher = classify([{ table: 'regular_season_games', date: '2026-07-22', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'scored', home_score: 3, away_score: 1, has_opening_odds: true }),
+          row({ id: 'bare' })] }])[0];
+eq('a keeper richer than the stale row stays deletable', keeperRicher.deletable, true);
+eq('and nothing is listed as needing a merge', keeperRicher.merge_required, []);
+
+const bothPriced = classify([{ table: 'regular_season_games', date: '2026-07-22', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'scored', home_score: 3, away_score: 1, has_opening_odds: true }),
+          row({ id: 'alsopriced', has_opening_odds: true })] }])[0];
+eq('odds on both sides lose nothing', bothPriced.deletable, true);
+
 // A HUMAN verdict must never be deletable, whatever the brief count says.
 const humanCase = classify([{ table: 'postseason_games', date: '2026-01-01', sport: 'MLS',
   pair_key: 'a|b',
@@ -83,5 +113,5 @@ const humanCase = classify([{ table: 'postseason_games', date: '2026-01-01', spo
 eq('a HUMAN verdict is never deletable', humanCase.deletable, false);
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
-          + ` — 4 decision branches, both override paths, order-independence`);
+          + ` — 4 decision branches, 2 override paths (briefs, data loss), order-independence`);
 process.exit(failed ? 1 : 0);
