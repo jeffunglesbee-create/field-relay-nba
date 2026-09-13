@@ -1,0 +1,161 @@
+=== collision cleanup  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=false  utc=2026-09-13T22:25:03.415Z ===
+
+--- 0. live census: scanned 3237 of 3237 rows across 2 tables
+    collisions 197, rows_total 3237
+    plan: 114 delete(s), 32 merge(s), 83 skipped
+
+--- 1. briefs referencing any row in the delete set
+    referenced rows in the delete set: 0
+
+--- 2. the set, enumerated
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-atx-sea -> FIFA World Cup 2026_2026-07-22_austin_seattle  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-cin-van -> FIFA World Cup 2026_2026-07-22_cincinnati_vancouver  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-clt-atl -> FIFA World Cup 2026_2026-07-22_charlotte_atlanta  [opening_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-col-sd -> FIFA World Cup 2026_2026-07-22_colorado_sandiego  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-hou-dc -> FIFA World Cup 2026_2026-07-22_houston_dcunited  [opening_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-la-stl -> FIFA World Cup 2026_2026-07-22_lagalaxy_stlouis  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-lafc-rsl -> FIFA World Cup 2026_2026-07-22_lafc_saltlake  [opening_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-mia-chi -> FIFA World Cup 2026_2026-07-22_miami_chicago  [opening_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-ne-tor -> FIFA World Cup 2026_2026-07-22_newengland_toronto  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-nsh-mtl -> FIFA World Cup 2026_2026-07-22_nashville_cfmontral  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-por-dal -> FIFA World Cup 2026_2026-07-22_portland_dallas  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-sj-orl -> FIFA World Cup 2026_2026-07-22_sanjose_orlando  [opening_odds]
+    MERGE  regular_season_games 2026-07-22 MLS  2026-07-22-mls-skc-min -> FIFA World Cup 2026_2026-07-22_kansascity_minnesota  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor -> FIFA World Cup 2026_2026-07-25_dcunited_toronto  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-hou-atx -> FIFA World Cup 2026_2026-07-25_houston_austin  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-lafc-skc -> FIFA World Cup 2026_2026-07-25_lafc_kansascity  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-min-van -> FIFA World Cup 2026_2026-07-25_minnesota_vancouver  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-mtl-mia -> FIFA World Cup 2026_2026-07-25_cfmontral_miami  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-ne-atl -> FIFA World Cup 2026_2026-07-25_newengland_atlanta  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-nyc-chi -> FIFA World Cup 2026_2026-07-25_nycfc_chicago  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-orl-nsh -> FIFA World Cup 2026_2026-07-25_orlando_nashville  [opening_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-phi-sea -> FIFA World Cup 2026_2026-07-25_philadelphia_seattle  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-por-rsl -> FIFA World Cup 2026_2026-07-25_portland_saltlake  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-sd-dal -> FIFA World Cup 2026_2026-07-25_sandiego_dallas  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-sj-la -> FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-stl-col -> FIFA World Cup 2026_2026-07-25_stlouis_colorado  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-07-31 MLS  2026-07-31-mls-nyc-tor -> FIFA World Cup 2026_2026-07-31_nycfc_toronto  [opening_odds]
+    MERGE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-cin-sj -> FIFA World Cup 2026_2026-08-01_cincinnati_sanjose  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh -> FIFA World Cup 2026_2026-08-01_dcunited_nashville  [opening_odds]
+    MERGE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-mtl-ne -> FIFA World Cup 2026_2026-08-01_cfmontral_newengland  [opening_odds, closing_odds]
+    MERGE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-phi-atl -> FIFA World Cup 2026_2026-08-01_philadelphia_atlanta  [opening_odds]
+    MERGE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-van-lafc -> FIFA World Cup 2026_2026-08-01_vancouver_lafc  [opening_odds, closing_odds]
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-atx-sea  (keeper FIFA World Cup 2026_2026-07-22_austin_seattle)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-cin-van  (keeper FIFA World Cup 2026_2026-07-22_cincinnati_vancouver)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-clb-nyc  (keeper FIFA World Cup 2026_2026-07-22_columbus_nycfc)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-clt-atl  (keeper FIFA World Cup 2026_2026-07-22_charlotte_atlanta)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-col-sd  (keeper FIFA World Cup 2026_2026-07-22_colorado_sandiego)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-hou-dc  (keeper FIFA World Cup 2026_2026-07-22_houston_dcunited)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-la-stl  (keeper FIFA World Cup 2026_2026-07-22_lagalaxy_stlouis)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-lafc-rsl  (keeper FIFA World Cup 2026_2026-07-22_lafc_saltlake)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-mia-chi  (keeper FIFA World Cup 2026_2026-07-22_miami_chicago)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-ne-tor  (keeper FIFA World Cup 2026_2026-07-22_newengland_toronto)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-nsh-mtl  (keeper FIFA World Cup 2026_2026-07-22_nashville_cfmontral)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-por-dal  (keeper FIFA World Cup 2026_2026-07-22_portland_dallas)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-sj-orl  (keeper FIFA World Cup 2026_2026-07-22_sanjose_orlando)
+    DELETE regular_season_games 2026-07-22 MLS  2026-07-22-mls-skc-min  (keeper FIFA World Cup 2026_2026-07-22_kansascity_minnesota)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-clb-cin  (keeper FIFA World Cup 2026_2026-07-25_columbus_cincinnati)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor  (keeper FIFA World Cup 2026_2026-07-25_dcunited_toronto)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-hou-atx  (keeper FIFA World Cup 2026_2026-07-25_houston_austin)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-lafc-skc  (keeper FIFA World Cup 2026_2026-07-25_lafc_kansascity)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-min-van  (keeper FIFA World Cup 2026_2026-07-25_minnesota_vancouver)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-mtl-mia  (keeper FIFA World Cup 2026_2026-07-25_cfmontral_miami)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-ne-atl  (keeper FIFA World Cup 2026_2026-07-25_newengland_atlanta)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-nyc-chi  (keeper FIFA World Cup 2026_2026-07-25_nycfc_chicago)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-orl-nsh  (keeper FIFA World Cup 2026_2026-07-25_orlando_nashville)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-phi-sea  (keeper FIFA World Cup 2026_2026-07-25_philadelphia_seattle)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-por-rsl  (keeper FIFA World Cup 2026_2026-07-25_portland_saltlake)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-sd-dal  (keeper FIFA World Cup 2026_2026-07-25_sandiego_dallas)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-sj-la  (keeper FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy)
+    DELETE regular_season_games 2026-07-25 MLS  2026-07-25-mls-stl-col  (keeper FIFA World Cup 2026_2026-07-25_stlouis_colorado)
+    DELETE regular_season_games 2026-07-31 MLS  2026-07-31-mls-nyc-tor  (keeper FIFA World Cup 2026_2026-07-31_nycfc_toronto)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-cin-sj  (keeper FIFA World Cup 2026_2026-08-01_cincinnati_sanjose)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh  (keeper FIFA World Cup 2026_2026-08-01_dcunited_nashville)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-mia-clb  (keeper FIFA World Cup 2026_2026-08-01_miami_columbus)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-mtl-ne  (keeper FIFA World Cup 2026_2026-08-01_cfmontral_newengland)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-phi-atl  (keeper FIFA World Cup 2026_2026-08-01_philadelphia_atlanta)
+    DELETE regular_season_games 2026-08-01 MLS  2026-08-01-mls-van-lafc  (keeper FIFA World Cup 2026_2026-08-01_vancouver_lafc)
+    DELETE regular_season_games 2026-08-08 MLS  2026-08-08-mls-ne-hou  (keeper MLS_2026-08-08_newengland_houston)
+    DELETE regular_season_games 2026-08-15 MLS  2026-08-15-mls-clt-clb  (keeper MLS_2026-08-15_charlotte_columbus)
+    DELETE regular_season_games 2026-08-15 MLS  2026-08-15-mls-lafc-sd  (keeper MLS_2026-08-15_lafc_sandiego)
+    DELETE regular_season_games 2026-08-15 MLS  2026-08-15-mls-mtl-dc  (keeper MLS_2026-08-15_cfmontral_dcunited)
+    DELETE regular_season_games 2026-08-15 MLS  2026-08-15-mls-orl-cin  (keeper MLS_2026-08-15_orlando_cincinnati)
+    DELETE regular_season_games 2026-08-15 MLS  2026-08-15-mls-tor-ne  (keeper MLS_2026-08-15_toronto_newengland)
+    DELETE regular_season_games 2026-08-16 MLS  2026-08-16-mls-chi-por  (keeper MLS_2026-08-16_chicago_portland)
+    DELETE regular_season_games 2026-08-16 MLS  2026-08-16-mls-nyc-phi  (keeper MLS_2026-08-16_nycfc_philadelphia)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-cin-nyc  (keeper MLS_2026-08-19_cincinnati_nycfc)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-clb-mtl  (keeper MLS_2026-08-19_columbus_cfmontral)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-col-lafc  (keeper MLS_2026-08-19_colorado_lafc)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-dc-ne  (keeper MLS_2026-08-19_dcunited_newengland)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-orl-chi  (keeper MLS_2026-08-19_orlando_chicago)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-phi-mia  (keeper MLS_2026-08-19_philadelphia_miami)
+    DELETE regular_season_games 2026-08-19 MLS  2026-08-19-mls-tor-clt  (keeper MLS_2026-08-19_toronto_charlotte)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-cin-sea  (keeper MLS_2026-08-22_cincinnati_seattle)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-clt-dc  (keeper MLS_2026-08-22_charlotte_dcunited)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-lafc-por  (keeper MLS_2026-08-22_lafc_portland)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-mia-tor  (keeper MLS_2026-08-22_miami_toronto)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-mtl-la  (keeper MLS_2026-08-22_cfmontral_lagalaxy)
+    DELETE regular_season_games 2026-08-22 MLS  2026-08-22-mls-orl-rsl  (keeper MLS_2026-08-22_orlando_saltlake)
+    DELETE regular_season_games 2026-08-23 MLS  2026-08-23-mls-atl-skc  (keeper MLS_2026-08-23_atlanta_kansascity)
+    DELETE regular_season_games 2026-08-23 MLS  2026-08-23-mls-ne-nyc  (keeper MLS_2026-08-23_newengland_nycfc)
+    DELETE regular_season_games 2026-08-29 MLS  2026-08-29-mls-atl-clt  (keeper MLS_2026-08-29_atlanta_charlotte)
+    DELETE regular_season_games 2026-08-29 MLS  2026-08-29-mls-dc-lafc  (keeper MLS_2026-08-29_dcunited_lafc)
+    DELETE regular_season_games 2026-08-29 MLS  2026-08-29-mls-mia-mtl  (keeper MLS_2026-08-29_miami_cfmontral)
+    DELETE regular_season_games 2026-08-29 MLS  2026-08-29-mls-sea-chi  (keeper MLS_2026-08-29_seattle_chicago)
+    DELETE regular_season_games 2026-08-29 MLS  2026-08-29-mls-tor-nyc  (keeper MLS_2026-08-29_toronto_nycfc)
+    DELETE regular_season_games 2026-08-30 MLS  2026-08-30-mls-clb-ne  (keeper MLS_2026-08-30_columbus_newengland)
+    DELETE regular_season_games 2026-08-30 MLS  2026-08-30-mls-stl-dal  (keeper MLS_2026-08-30_stlouis_dallas)
+    DELETE regular_season_games 2026-09-04 MLS  2026-09-04-mls-nyc-nsh  (keeper MLS_2026-09-04_e761770)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-cin-dc  (keeper MLS_2026-09-05_e761773)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-clb-col  (keeper MLS_2026-09-05_e761775)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-clt-hou  (keeper MLS_2026-09-05_e761774)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-mia-atl  (keeper MLS_2026-09-05_e761777)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-orl-sd  (keeper MLS_2026-09-05_e761771)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-phi-mtl  (keeper MLS_2026-09-05_e761772)
+    DELETE regular_season_games 2026-09-05 MLS  2026-09-05-mls-tor-chi  (keeper MLS_2026-09-05_e761776)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-atl-orl  (keeper MLS_2026-09-09_e761787)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-atx-col  (keeper MLS_2026-09-09_e761794)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-chi-mia  (keeper MLS_2026-09-09_e761792)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-dc-clb  (keeper MLS_2026-09-09_e761789)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-hou-rsl  (keeper MLS_2026-09-09_e761791)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-min-dal  (keeper MLS_2026-09-09_e761793)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-mtl-clt  (keeper MLS_2026-09-09_e761785)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-nyc-ne  (keeper MLS_2026-09-09_e761788)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-phi-cin  (keeper MLS_2026-09-09_e761786)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-por-stl  (keeper MLS_2026-09-09_e761796)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-sd-sj  (keeper MLS_2026-09-09_e761797)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-tor-nsh  (keeper MLS_2026-09-09_e761790)
+    DELETE regular_season_games 2026-09-09 MLS  2026-09-09-mls-van-la  (keeper MLS_2026-09-09_e761799)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-cin-clt  (keeper MLS_2026-09-12_e761802)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-col-mtl  (keeper MLS_2026-09-12_e761808)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-dal-por  (keeper MLS_2026-09-12_e761805)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-dc-atl  (keeper MLS_2026-09-12_e761803)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-la-sea  (keeper MLS_2026-09-12_e761811)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-mia-nsh  (keeper MLS_2026-09-12_e761800)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-orl-tor  (keeper MLS_2026-09-12_e761801)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-rsl-nyc  (keeper MLS_2026-09-12_e761809)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-sj-hou  (keeper MLS_2026-09-12_e761810)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-skc-lafc  (keeper MLS_2026-09-12_e761806)
+    DELETE regular_season_games 2026-09-12 MLS  2026-09-12-mls-stl-min  (keeper MLS_2026-09-12_e761807)
+    DELETE regular_season_games 2026-09-13 MLS  2026-09-13-mls-chi-ne  (keeper MLS_2026-09-13_e761812)
+    DELETE regular_season_games 2026-09-13 MLS  2026-09-13-mls-van-atx  (keeper MLS_2026-09-13_e761813)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_angels_yankees  (keeper MLB_2026-09-02_e401816785)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_astros_whitesox  (keeper MLB_2026-09-02_e401816780)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_cubs_brewers  (keeper MLB_2026-09-02_e401816783)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_diamondbacks_phillies  (keeper MLB_2026-09-02_e401816786)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_dodgers_cardinals  (keeper MLB_2026-09-02_e401816787)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_nationals_braves  (keeper MLB_2026-09-02_e401816773)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_rays_mets  (keeper MLB_2026-09-02_e401816774)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_reds_padres  (keeper MLB_2026-09-02_e401816775)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_redsox_mariners  (keeper MLB_2026-09-02_e401816776)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_pirates_giants  (keeper MLB_2026-09-02_e401816777)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_guardians_bluejays  (keeper MLB_2026-09-02_e401816778)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_rangers_athletics  (keeper MLB_2026-09-02_e401816779)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_twins_tigers  (keeper MLB_2026-09-02_e401816781)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_royals_marlins  (keeper MLB_2026-09-02_e401816782)
+    DELETE regular_season_games 2026-09-02 MLB  MLB_2026-09-02_rockies_orioles  (keeper MLB_2026-09-02_e401816784)
+
+    skipped (83):
+        83  no safe answer
+
+DRY RUN. Nothing was written. Re-run with --apply to execute.
