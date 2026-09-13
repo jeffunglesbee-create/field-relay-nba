@@ -18,6 +18,18 @@ on:
         description: 'Type APPLY to execute. Anything else is a dry run.'
         required: false
         default: 'dry-run'
+      repair_changelog:
+        description: 'Path to a collision-cleanup-failed-*.log to repair change_log from. Empty = skip.'
+        required: false
+        default: ''
+      keeper_table:
+        description: 'Path to the keeper-table JSON captured before that run (names live here).'
+        required: false
+        default: ''
+      skip_cleanup:
+        description: 'Type SKIP to run only the repair step.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -36,6 +48,7 @@ jobs:
           node scripts/mutate-duplicate-row-keeper-table.mjs
 
       - name: Run
+        if: github.event.inputs.skip_cleanup != 'SKIP'
         env:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: |
@@ -45,6 +58,17 @@ jobs:
           else
             node scripts/run-collision-cleanup.mjs
           fi
+
+      # The 2026-09-13 run deleted 82 rows and then died on the change_log
+      # batch, leaving the archive changed and the record of it unwritten. This
+      # step repairs that from the two committed artifacts. It refuses any id
+      # that still exists and refuses to write twice.
+      - name: Repair a missing change_log, when asked
+        if: github.event.inputs.repair_changelog != ''
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          node scripts/repair-collision-cleanup-changelog.mjs             "${{ github.event.inputs.repair_changelog }}"             "${{ github.event.inputs.keeper_table }}"             ${{ github.event.inputs.apply == 'APPLY' && '--apply' || '' }}
 
       - name: Commit the log
         if: always()

@@ -146,7 +146,16 @@ const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) =
   // folded into goes in new_value.
   say(`\n--- 4b. change_log`);
   let logged = 0;
-  for (const c of chunk(plan.deletes, 40)) {
+  // 16, NOT 40, AND THE NUMBER IS DERIVED. D1 caps bound parameters per
+  // statement at 100. 40 rows x 6 columns is 240 and the first live run died on
+  // exactly that — AFTER the 82 deletes had already committed, leaving the
+  // archive changed and the record of it unwritten. The delete chunk of 50 was
+  // fine only because it binds one parameter per row; the difference is the
+  // column count, so the cap is computed from it rather than chosen.
+  const D1_MAX_BOUND_PARAMS = 100;
+  const CHANGELOG_COLUMNS = 6;
+  const LOG_CHUNK = Math.floor(D1_MAX_BOUND_PARAMS / CHANGELOG_COLUMNS);
+  for (const c of chunk(plan.deletes, LOG_CHUNK)) {
     const values = c.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const params = [];
     for (const d of c) {
