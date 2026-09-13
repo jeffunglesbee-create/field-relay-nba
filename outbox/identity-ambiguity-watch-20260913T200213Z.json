@@ -1,0 +1,1158 @@
+{
+  "checked_at": "2026-09-13T20:02:13.102524+00:00",
+  "coverage": "scanned 3237 of 3237 rows across 2 tables",
+  "complete": true,
+  "conditions": [
+    {
+      "name": "hullcity claimed by one family",
+      "met": true,
+      "observed": "one family"
+    },
+    {
+      "name": "no substituted name reaches another sport's club",
+      "met": true,
+      "observed": "0 failing of 123 probed"
+    },
+    {
+      "name": "ambiguous_key_count == 0",
+      "met": false,
+      "observed": 11
+    }
+  ],
+  "totals": {
+    "rows_total": 3237,
+    "rows_scanned": 3237,
+    "rows_unnamed": 16,
+    "substituted_rows": 1569,
+    "substituted_sides": 2777,
+    "substituted_with_opening_odds": 1273,
+    "substituted_with_closing_odds": 1147,
+    "ambiguous_key_count": 11,
+    "ambiguous_rows": 573,
+    "ambiguous_rows_with_odds": 329
+  },
+  "ambiguous_keys": [
+    {
+      "key": "charlottefc",
+      "families": {
+        "soccer": {
+          "rows": 43,
+          "names": [
+            "Charlotte",
+            "Charlotte FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Charlotte"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "coloradorapids",
+      "families": {
+        "soccer": {
+          "rows": 50,
+          "names": [
+            "Colorado",
+            "Colorado Rapids"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Colorado"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "fccincinnati",
+      "families": {
+        "soccer": {
+          "rows": 46,
+          "names": [
+            "Cincinnati",
+            "FC Cincinnati"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Cincinnati"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "houstondynamofc",
+      "families": {
+        "soccer": {
+          "rows": 52,
+          "names": [
+            "Houston",
+            "Houston Dynamo FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Houston"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "intermiamicf",
+      "families": {
+        "soccer": {
+          "rows": 45,
+          "names": [
+            "Inter Miami CF",
+            "Miami"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Miami"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "minnesotaunitedfc",
+      "families": {
+        "soccer": {
+          "rows": 50,
+          "names": [
+            "Minnesota",
+            "Minnesota United FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Minnesota"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "newyorkliberty",
+      "families": {
+        "WNBA": {
+          "rows": 35,
+          "names": [
+            "Liberty",
+            "New York Liberty"
+          ],
+          "sports": [
+            "WNBA",
+            "wnba"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Liberty"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "richmond",
+      "families": {
+        "AFL": {
+          "rows": 16,
+          "names": [
+            "Richmond"
+          ],
+          "sports": [
+            "AFL"
+          ]
+        },
+        "CFB": {
+          "rows": 1,
+          "names": [
+            "Richmond"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "sanfranciscogiants",
+      "families": {
+        "MLB": {
+          "rows": 77,
+          "names": [
+            "Giants",
+            "San Francisco Giants"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "NFL": {
+          "rows": 4,
+          "names": [
+            "Giants"
+          ],
+          "sports": [
+            "NFL"
+          ]
+        }
+      }
+    },
+    {
+      "key": "stlouiscardinals",
+      "families": {
+        "MLB": {
+          "rows": 77,
+          "names": [
+            "Cardinals",
+            "St. Louis Cardinals"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "NFL": {
+          "rows": 4,
+          "names": [
+            "Cardinals"
+          ],
+          "sports": [
+            "NFL"
+          ]
+        }
+      }
+    },
+    {
+      "key": "texasrangers",
+      "families": {
+        "MLB": {
+          "rows": 79,
+          "names": [
+            "Rangers",
+            "Texas Rangers"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "soccer": {
+          "rows": 2,
+          "names": [
+            "Rangers"
+          ],
+          "sports": [
+            "UEFA Europa Conference League Qualifying"
+          ]
+        }
+      }
+    }
+  ],
+  "odds_gaps": {
+    "2026-02-04": {
+      "MLS": 2
+    },
+    "2026-02-11": {
+      "MLS": 2
+    },
+    "2026-02-18": {
+      "MLS": 6
+    },
+    "2026-02-19": {
+      "MLS": 4
+    },
+    "2026-02-20": {
+      "MLS": 2
+    },
+    "2026-02-25": {
+      "MLS": 4
+    },
+    "2026-02-26": {
+      "MLS": 6
+    },
+    "2026-02-27": {
+      "MLS": 2
+    },
+    "2026-03-05": {
+      "AFL": 1
+    },
+    "2026-03-07": {
+      "MLS": 1,
+      "AFL": 1
+    },
+    "2026-03-08": {
+      "AFL": 1
+    },
+    "2026-03-10": {
+      "MLS": 2
+    },
+    "2026-03-11": {
+      "MLS": 4
+    },
+    "2026-03-12": {
+      "AFL": 2,
+      "MLS": 4
+    },
+    "2026-03-13": {
+      "AFL": 1,
+      "MLS": 4
+    },
+    "2026-03-14": {
+      "AFL": 4
+    },
+    "2026-03-15": {
+      "AFL": 3
+    },
+    "2026-03-18": {
+      "MLS": 4
+    },
+    "2026-03-19": {
+      "AFL": 2,
+      "MLS": 8
+    },
+    "2026-03-20": {
+      "AFL": 1,
+      "MLS": 2
+    },
+    "2026-03-21": {
+      "AFL": 3
+    },
+    "2026-03-22": {
+      "AFL": 2
+    },
+    "2026-03-26": {
+      "AFL": 1
+    },
+    "2026-03-27": {
+      "AFL": 1
+    },
+    "2026-03-28": {
+      "AFL": 3
+    },
+    "2026-03-29": {
+      "AFL": 2
+    },
+    "2026-04-02": {
+      "AFL": 1
+    },
+    "2026-04-03": {
+      "AFL": 2
+    },
+    "2026-04-04": {
+      "AFL": 2
+    },
+    "2026-04-05": {
+      "AFL": 2
+    },
+    "2026-04-06": {
+      "AFL": 1
+    },
+    "2026-04-08": {
+      "MLS": 4
+    },
+    "2026-04-09": {
+      "AFL": 1,
+      "MLS": 4
+    },
+    "2026-04-10": {
+      "AFL": 1
+    },
+    "2026-04-11": {
+      "MLS": 1,
+      "AFL": 4
+    },
+    "2026-04-12": {
+      "AFL": 3
+    },
+    "2026-04-14": {
+      "MLS": 8
+    },
+    "2026-04-15": {
+      "MLS": 22
+    },
+    "2026-04-16": {
+      "AFL": 1,
+      "MLS": 10
+    },
+    "2026-04-17": {
+      "AFL": 2
+    },
+    "2026-04-18": {
+      "AFL": 3
+    },
+    "2026-04-19": {
+      "AFL": 3
+    },
+    "2026-04-23": {
+      "AFL": 1
+    },
+    "2026-04-24": {
+      "AFL": 1
+    },
+    "2026-04-25": {
+      "AFL": 4
+    },
+    "2026-04-26": {
+      "AFL": 3
+    },
+    "2026-04-28": {
+      "MLS": 2
+    },
+    "2026-04-29": {
+      "MLS": 10
+    },
+    "2026-04-30": {
+      "AFL": 1,
+      "MLS": 8
+    },
+    "2026-05-01": {
+      "AFL": 2
+    },
+    "2026-05-02": {
+      "AFL": 4
+    },
+    "2026-05-03": {
+      "AFL": 2
+    },
+    "2026-05-05": {
+      "MLS": 2
+    },
+    "2026-05-06": {
+      "MLS": 4
+    },
+    "2026-05-07": {
+      "AFL": 1,
+      "MLS": 2
+    },
+    "2026-05-08": {
+      "AFL": 2,
+      "MLS": 2
+    },
+    "2026-05-09": {
+      "EPL": 5,
+      "IPL": 1,
+      "AFL": 4,
+      "MLS": 4
+    },
+    "2026-05-10": {
+      "EPL": 4,
+      "AFL": 2,
+      "MLS": 4
+    },
+    "2026-05-11": {
+      "IPL": 1
+    },
+    "2026-05-13": {
+      "EPL": 1,
+      "Ligue 1": 2
+    },
+    "2026-05-14": {
+      "AFL": 1
+    },
+    "2026-05-15": {
+      "AFL": 2
+    },
+    "2026-05-16": {
+      "AFL": 3
+    },
+    "2026-05-17": {
+      "EPL": 2,
+      "AFL": 3
+    },
+    "2026-05-19": {
+      "WNBA": 1,
+      "MLS": 2
+    },
+    "2026-05-20": {
+      "UEFA Europa League": 1,
+      "WNBA": 2,
+      "MLS": 4
+    },
+    "2026-05-21": {
+      "AFL": 1,
+      "MLS": 2
+    },
+    "2026-05-22": {
+      "WNBA": 2,
+      "AFL": 2
+    },
+    "2026-05-23": {
+      "MLS": 2,
+      "WNBA": 4,
+      "AFL": 4
+    },
+    "2026-05-24": {
+      "EPL": 8,
+      "La Liga": 10,
+      "MLS": 6,
+      "WNBA": 2,
+      "AFL": 2
+    },
+    "2026-05-25": {
+      "UFL": 1
+    },
+    "2026-05-26": {
+      "WNBA": 1,
+      "NBA": 1
+    },
+    "2026-05-27": {
+      "UEFA Europa Conference League": 1,
+      "MLB": 6,
+      "NHL": 1
+    },
+    "2026-05-28": {
+      "MLB": 4,
+      "WNBA": 1,
+      "AFL": 1
+    },
+    "2026-05-29": {
+      "MLB": 1,
+      "WNBA": 1,
+      "AFL": 1
+    },
+    "2026-05-30": {
+      "UEFA Champions League": 1,
+      "AFL": 3,
+      "NHL": 1,
+      "UFL": 1
+    },
+    "2026-05-31": {
+      "MLB": 14,
+      "WNBA": 2,
+      "AFL": 2,
+      "NBA": 1
+    },
+    "2026-06-02": {
+      "WNBA": 2
+    },
+    "2026-06-03": {
+      "MLB": 1
+    },
+    "2026-06-04": {
+      "AFL": 1
+    },
+    "2026-06-05": {
+      "AFL": 1
+    },
+    "2026-06-06": {
+      "AFL": 3,
+      "CFL": 2,
+      "WNBA": 4
+    },
+    "2026-06-07": {
+      "AFL": 2,
+      "WNBA": 1
+    },
+    "2026-06-08": {
+      "AFL": 1
+    },
+    "2026-06-09": {
+      "WNBA": 1
+    },
+    "2026-06-10": {
+      "WNBA": 2
+    },
+    "2026-06-11": {
+      "AFL": 1,
+      "FIFA World Cup": 2,
+      "WNBA": 1
+    },
+    "2026-06-12": {
+      "AFL": 1,
+      "FIFA World Cup": 2,
+      "WNBA": 2
+    },
+    "2026-06-13": {
+      "AFL": 3,
+      "FIFA World Cup": 3,
+      "WNBA": 1
+    },
+    "2026-06-14": {
+      "AFL": 2,
+      "FIFA World Cup": 5
+    },
+    "2026-06-15": {
+      "FIFA World Cup": 4
+    },
+    "2026-06-16": {
+      "FIFA World Cup": 3
+    },
+    "2026-06-17": {
+      "FIFA World Cup": 5
+    },
+    "2026-06-18": {
+      "AFL": 1,
+      "FIFA World Cup": 4
+    },
+    "2026-06-19": {
+      "AFL": 1,
+      "FIFA World Cup": 4,
+      "golf": 1
+    },
+    "2026-06-20": {
+      "AFL": 3,
+      "FIFA World Cup": 3,
+      "MLB": 7,
+      "golf": 3
+    },
+    "2026-06-21": {
+      "AFL": 2,
+      "FIFA World Cup": 5,
+      "MLB": 13,
+      "WNBA": 1,
+      "golf": 2
+    },
+    "2026-06-22": {
+      "FIFA World Cup": 4,
+      "golf": 1
+    },
+    "2026-06-23": {
+      "FIFA World Cup": 4
+    },
+    "2026-06-24": {
+      "FIFA World Cup": 6
+    },
+    "2026-06-25": {
+      "AFL": 1,
+      "FIFA World Cup": 6,
+      "golf": 1
+    },
+    "2026-06-26": {
+      "AFL": 1,
+      "FIFA World Cup": 6,
+      "PGA Tour": 1,
+      "golf": 2
+    },
+    "2026-06-27": {
+      "AFL": 3,
+      "FIFA World Cup": 6,
+      "golf": 1
+    },
+    "2026-06-28": {
+      "AFL": 2,
+      "FIFA World Cup": 1
+    },
+    "2026-06-29": {
+      "FIFA World Cup": 2,
+      "PGA Tour": 1,
+      "golf": 1
+    },
+    "2026-06-30": {
+      "FIFA World Cup": 2,
+      "MLB": 15,
+      "WNBA": 1,
+      "golf": 1
+    },
+    "2026-07-01": {
+      "FIFA World Cup": 3
+    },
+    "2026-07-02": {
+      "AFL": 1,
+      "FIFA World Cup": 1,
+      "PGA Tour": 1,
+      "golf": 1
+    },
+    "2026-07-03": {
+      "AFL": 2,
+      "FIFA World Cup": 1,
+      "PGA Tour": 1,
+      "golf": 1
+    },
+    "2026-07-04": {
+      "FIFA World Cup": 2,
+      "golf": 2
+    },
+    "2026-07-05": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-06": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-07": {
+      "FIFA World Cup": 2
+    },
+    "2026-07-08": {
+      "MLS": 4
+    },
+    "2026-07-09": {
+      "FIFA World Cup": 1,
+      "PGA Tour": 2,
+      "golf": 1,
+      "MLS": 4
+    },
+    "2026-07-10": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-11": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-12": {
+      "golf": 1,
+      "MLS": 4
+    },
+    "2026-07-13": {
+      "golf": 1
+    },
+    "2026-07-14": {
+      "FIFA World Cup": 1,
+      "MLB": 1,
+      "MLS": 2
+    },
+    "2026-07-15": {
+      "FIFA World Cup": 1,
+      "wnba": 2
+    },
+    "2026-07-16": {
+      "MLS": 4,
+      "PGA Tour": 2,
+      "golf": 1
+    },
+    "2026-07-17": {
+      "MLS": 2,
+      "golf": 1
+    },
+    "2026-07-18": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-19": {
+      "FIFA World Cup": 1,
+      "golf": 1
+    },
+    "2026-07-20": {
+      "golf": 1
+    },
+    "2026-07-22": {
+      "MLS": 16
+    },
+    "2026-07-23": {
+      "MLS": 10,
+      "PGA Tour": 1,
+      "golf": 1
+    },
+    "2026-07-24": {
+      "golf": 1
+    },
+    "2026-07-25": {
+      "MLS": 16,
+      "WNBA": 1
+    },
+    "2026-07-26": {
+      "MLS": 8,
+      "golf": 1
+    },
+    "2026-07-27": {
+      "golf": 1
+    },
+    "2026-07-29": {
+      "MLS": 1
+    },
+    "2026-07-30": {
+      "PGA Tour": 1,
+      "golf": 1
+    },
+    "2026-07-31": {
+      "MLS": 2,
+      "golf": 1
+    },
+    "2026-08-01": {
+      "MLS": 15,
+      "golf": 1
+    },
+    "2026-08-02": {
+      "MLS": 8,
+      "golf": 2
+    },
+    "2026-08-03": {
+      "golf": 1
+    },
+    "2026-08-04": {
+      "MLS": 2
+    },
+    "2026-08-05": {
+      "MLB": 15,
+      "WNBA": 4,
+      "MLS": 6
+    },
+    "2026-08-06": {
+      "MLB": 11,
+      "WNBA": 3,
+      "MLS": 6
+    },
+    "2026-08-07": {
+      "EFL Cup": 3,
+      "MLB": 15,
+      "WNBA": 3,
+      "MLS": 7
+    },
+    "2026-08-08": {
+      "MLS": 5,
+      "CFL": 2,
+      "EFL Cup": 29,
+      "PGA Tour": 1,
+      "golf": 1,
+      "wnba": 1
+    },
+    "2026-08-09": {
+      "EFL Cup": 1,
+      "golf": 1,
+      "MLS": 7
+    },
+    "2026-08-10": {
+      "EFL Cup": 1,
+      "MLS": 5
+    },
+    "2026-08-11": {
+      "MLS": 3
+    },
+    "2026-08-12": {
+      "MLS": 8
+    },
+    "2026-08-13": {
+      "NFL": 6,
+      "PGA Tour": 1,
+      "MLS": 7
+    },
+    "2026-08-14": {
+      "CFL": 1,
+      "NFL": 3,
+      "golf": 1,
+      "MLS": 3
+    },
+    "2026-08-15": {
+      "MLS": 6,
+      "CFL": 2,
+      "La Liga": 1,
+      "NFL": 7,
+      "golf": 1,
+      "wnba": 1
+    },
+    "2026-08-16": {
+      "MLS": 7,
+      "La Liga": 1,
+      "golf": 2
+    },
+    "2026-08-17": {
+      "MLS": 2,
+      "La Liga": 1,
+      "golf": 1
+    },
+    "2026-08-18": {
+      "EFL Trophy": 6
+    },
+    "2026-08-19": {
+      "MLS": 7,
+      "EFL Trophy": 1,
+      "La Liga": 1,
+      "UEFA Champions League Qualifying": 4
+    },
+    "2026-08-20": {
+      "MLS": 8,
+      "La Liga": 1,
+      "NFL": 2,
+      "PGA Tour": 1,
+      "UEFA Europa Conference League Qualifying": 24,
+      "UEFA Europa League Qualifying": 12,
+      "golf": 1
+    },
+    "2026-08-21": {
+      "EPL": 1,
+      "La Liga": 1,
+      "NFL": 3,
+      "golf": 2
+    },
+    "2026-08-22": {
+      "CFL": 1,
+      "EPL": 1,
+      "La Liga": 1,
+      "Ligue 1": 2,
+      "MLS": 1,
+      "NFL": 10,
+      "golf": 1
+    },
+    "2026-08-23": {
+      "MLS": 7,
+      "CFL": 1,
+      "La Liga": 2,
+      "Ligue 1": 1,
+      "NFL": 1,
+      "Serie A": 2,
+      "golf": 1
+    },
+    "2026-08-24": {
+      "La Liga": 2,
+      "golf": 1
+    },
+    "2026-08-25": {
+      "EFL Cup": 17,
+      "EFL Trophy": 2,
+      "UEFA Champions League Qualifying": 3,
+      "MLS": 1
+    },
+    "2026-08-26": {
+      "EFL Cup": 4,
+      "UEFA Champions League Qualifying": 4,
+      "UEFA Europa Conference League Qualifying": 1,
+      "MLS": 3
+    },
+    "2026-08-27": {
+      "EFL Cup": 2,
+      "La Liga": 2,
+      "NFL": 4,
+      "PGA Tour": 1,
+      "UEFA Europa Conference League Qualifying": 23,
+      "UEFA Europa League Qualifying": 12,
+      "golf": 1,
+      "MLS": 3
+    },
+    "2026-08-28": {
+      "Bundesliga": 1,
+      "EPL": 1,
+      "La Liga": 1,
+      "NFL": 10,
+      "Serie A": 1,
+      "golf": 1
+    },
+    "2026-08-29": {
+      "MLS": 1,
+      "Bundesliga": 6,
+      "CFB": 8,
+      "CFL": 1,
+      "Ligue 1": 2,
+      "NFL": 2
+    },
+    "2026-08-30": {
+      "MLS": 9,
+      "Bundesliga": 2,
+      "La Liga": 2,
+      "Ligue 1": 2,
+      "golf": 1
+    },
+    "2026-08-31": {
+      "La Liga": 1,
+      "Serie A": 1,
+      "golf": 1
+    },
+    "2026-09-01": {
+      "MLS": 3
+    },
+    "2026-09-02": {
+      "MLS": 1
+    },
+    "2026-09-03": {
+      "CFB": 11,
+      "MLS": 1
+    },
+    "2026-09-04": {
+      "MLS": 1,
+      "Bundesliga": 1,
+      "CFB": 8,
+      "Ligue 1": 1
+    },
+    "2026-09-05": {
+      "MLS": 3,
+      "Bundesliga": 6,
+      "CFB": 68,
+      "EPL": 1,
+      "La Liga": 3,
+      "Ligue 1": 3,
+      "Serie A": 1
+    },
+    "2026-09-06": {
+      "MLS": 8,
+      "Bundesliga": 2,
+      "CFB": 3,
+      "La Liga": 1,
+      "Serie A": 1
+    },
+    "2026-09-07": {
+      "CFB": 1,
+      "La Liga": 1
+    },
+    "2026-09-08": {
+      "EFL Cup": 5,
+      "EFL Trophy": 2,
+      "UEFA Champions League": 6
+    },
+    "2026-09-09": {
+      "MLS": 4,
+      "EFL Cup": 1,
+      "NFL": 1,
+      "UEFA Champions League": 6
+    },
+    "2026-09-10": {
+      "MLS": 9,
+      "CFB": 1,
+      "NFL": 1,
+      "UEFA Champions League": 6
+    },
+    "2026-09-11": {
+      "Bundesliga": 1,
+      "CFB": 5
+    },
+    "2026-09-12": {
+      "MLS": 2,
+      "Bundesliga": 6,
+      "CFB": 80,
+      "EPL": 1,
+      "La Liga": 3,
+      "Ligue 1": 2,
+      "Serie A": 2
+    },
+    "2026-09-13": {
+      "MLS": 7,
+      "Bundesliga": 2,
+      "CFL": 1,
+      "La Liga": 1,
+      "Ligue 1": 1,
+      "NFL": 13
+    },
+    "2026-09-14": {
+      "MLS": 1
+    },
+    "2026-09-15": {
+      "MLS": 3
+    },
+    "2026-09-16": {
+      "MLS": 3
+    },
+    "2026-09-17": {
+      "MLS": 2
+    },
+    "2026-09-18": {
+      "MLS": 15
+    },
+    "2026-09-19": {
+      "MLS": 4
+    },
+    "2026-09-20": {
+      "MLS": 10
+    },
+    "2026-09-24": {
+      "MLS": 1
+    },
+    "2026-09-26": {
+      "MLS": 15
+    },
+    "2026-09-27": {
+      "MLS": 10
+    },
+    "2026-10-02": {
+      "MLS": 1
+    },
+    "2026-10-07": {
+      "MLS": 1
+    },
+    "2026-10-10": {
+      "MLS": 15
+    },
+    "2026-10-11": {
+      "MLS": 6
+    },
+    "2026-10-14": {
+      "MLS": 15
+    },
+    "2026-10-15": {
+      "MLS": 9
+    },
+    "2026-10-17": {
+      "MLS": 15
+    },
+    "2026-10-18": {
+      "MLS": 8
+    },
+    "2026-10-21": {
+      "MLS": 1
+    },
+    "2026-10-24": {
+      "MLS": 15
+    },
+    "2026-10-25": {
+      "MLS": 7
+    },
+    "2026-10-26": {
+      "MLS": 1
+    },
+    "2026-10-28": {
+      "MLS": 14
+    },
+    "2026-10-29": {
+      "MLS": 9
+    },
+    "2026-10-31": {
+      "MLS": 15
+    },
+    "2026-11-01": {
+      "MLS": 5
+    },
+    "2026-11-02": {
+      "MLS": 3
+    },
+    "2026-11-05": {
+      "MLS": 1
+    },
+    "2026-11-07": {
+      "MLS": 8
+    }
+  },
+  "odds_gap_rows": 1632,
+  "all_done": false,
+  "cc_cmds": [
+    "docs/CC-CMD-2026-09-13-team-key-sport-blind.md",
+    "docs/CC-CMD-2026-09-13-alias-table-silent-overwrite.md",
+    "docs/CC-CMD-2026-09-11-odds-identity-join-cfb.md"
+  ]
+}
