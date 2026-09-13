@@ -361,6 +361,15 @@ jobs:
           node scripts/check-odds-writers-sport-scoped.mjs
           node scripts/mutate-odds-writers-sport-scoped.mjs
 
+      # The keeper table decides which of two duplicate archive rows survives,
+      # and its output feeds a DELETE. A classifier that answers every case is
+      # the failure mode: the set it refuses to decide is the set a delete must
+      # not touch. Gated here because nothing else would notice that rule going.
+      - name: the duplicate-row keeper table still refuses what it cannot decide
+        run: |
+          node scripts/check-duplicate-row-keeper-table.mjs
+          node scripts/mutate-duplicate-row-keeper-table.mjs
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the
