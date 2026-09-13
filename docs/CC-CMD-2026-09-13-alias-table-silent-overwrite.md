@@ -107,3 +107,89 @@ because it assumed the alias had always been what it is now. **The probe was run
 anyway, because this repo's rule is that a cross-boundary fact is not verified by
 reading, and it returned `has_opening_odds: true`.** The contradiction between a
 sound argument and a measured fact is what exposed the 2026-08-21 regression.
+
+
+---
+
+# RESOLVED 2026-09-13
+
+| task | state | evidence |
+|---|---|---|
+| 0 · enumerate duplicate keys in every identity table | **done** | 333 pairs across 5 tables, exactly 1 collision. Became a permanent gate: `scripts/check-identity-table-collisions.mjs` (+3 mutations) |
+| 1 · confirm or refute the date story | **done — CONFIRMED** | `outbox/tigers-forensics-20260913T143322Z.json`: 69 rows named Tigers, 52 with odds, **0 unaccounted for** |
+| 2 · builder refuses a silent overwrite | **done** | records the collision and removes the key; writing the same canonical twice is still allowed |
+| 3 · decide what `Tigers` means | **done** | neither club. See below |
+| 4 · mutation | **done** | 7 mutations, `scripts/mutate-ambiguous-team-identity.mjs`; N1 restores the old builder verbatim |
+| 5 · done condition | **done, restated** | see below |
+| 6 · outbox manifest | **done** | `outbox/cc-session-2026-09-13-tigers-resolution-and-backfill.md` |
+
+## Task 1 — CONFIRMED, per row rather than by argument
+
+Every odds-carrying row named `Tigers` is accounted for by a write that happened
+outside the regression window:
+
+```
+written before the alias flip        41
+written after the fix (live cron)     1
+backfilled after the fix (tranche 1) 10
+UNACCOUNTED FOR                       0
+```
+
+**The first run of this measurement said REFUTED and was wrong.** It classified
+rows by GAME DATE falling inside the window — using the date of play as a proxy
+for when the odds were written. Ten of its eleven "refuting" rows were dates
+backfilled by hand three hours earlier, after the fix. The eleventh was captured
+`2026-08-21T10:00:53Z`, thirteen hours before `0faf37f` landed at `23:17:42Z`.
+
+Recorded because the failure is the same family as the trap this CC-CMD already
+documents: `captured_at` is not a write time for a backfilled row, and game date
+is further from the write than `captured_at` is. Writing the warning did not
+stop me reaching for the worse proxy an hour later.
+
+The corrected discriminator is durable and needs no memory of what anyone ran: a
+historical backfill requests noon UTC on the game's own date, so its stamp lands
+within minutes of it; a live capture does not.
+
+## Task 3 — `Tigers` means neither club
+
+A map from variant to canonical cannot hold a variant that means two things, so
+it answered by file order. Nobody chose Hull City.
+
+The table now records the ambiguity and removes the key, so `resolveTeamKey`
+falls through to the bare fold (`tigers`) — an honest unknown that can miss a
+join but can never assert a team that was not named. The odds join resolves it
+from the vendor payload it already holds (`resolveTeamKeyIn`), which is
+unambiguous and one sport per response.
+
+## Task 5 — RESTATED, because the fix is not the shape the condition assumed
+
+**As written:** "`/identity/substitution-census?key=hullcity` reports `hullcity`
+claimed by ONE family, and a second probe shows Detroit Tigers rows resolving to
+`detroittigers`."
+
+**The second half cannot be met by the fix that was chosen, and should not be.**
+All 69 rows resolve to `tigers`, deliberately: the resolver refuses to name
+either club standalone, and the payload decides at join time. A condition
+requiring `detroittigers` presumes the fix picks a winner — which is the
+approach this CC-CMD's own Task 3 rejected.
+
+**Restated, and met:**
+
+1. `hullcity` is claimed by one family — watch artifacts either side of the
+   deploy, identical archive (3237 rows both runs):
+   `identity-ambiguity-watch-20260913T122853Z.json` (OPEN: soccer 6 + MLB 69)
+   → `identity-ambiguity-watch-20260913T131526Z.json` (**DONE**), and
+   `ambiguous_key_count` 12 → 11.
+
+2. **A Detroit Tigers game received odds through the repaired join.**
+   `MLB_2026-09-13_e401816920` (Comerica Park), `opening_odds.captured_at`
+   `2026-09-13T13:16:54Z` — a live cron write **eight minutes after the fix
+   deployed at ~13:09Z**. That is the end-to-end proof (Rule 61) the fix commit
+   could not yet claim, and it is stronger than the original wording asked for:
+   not "the key looks right" but "the market data arrived".
+
+## Residual
+
+None for this CC-CMD. The one-shot `tigers-forensics.yml` is deleted as its own
+header instructed; `?name=` on the census is the durable instrument and the
+committed artifact is the durable answer.
