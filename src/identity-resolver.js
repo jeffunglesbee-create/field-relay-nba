@@ -621,12 +621,43 @@ function resolveTeamCandidates(name) {
 function resolveTeamKeyIn(name, availableKeys) {
     const k = _strip(name);
     if (!k) return '';
-    const options = AMBIGUOUS_TEAM[k];
-    if (!options || !availableKeys || typeof availableKeys.has !== 'function') {
+    if (!availableKeys || typeof availableKeys.has !== 'function') {
         return resolveTeamKey(name);
     }
-    const present = options.filter(o => availableKeys.has(o));
-    return present.length === 1 ? present[0] : resolveTeamKey(name);
+    const options = AMBIGUOUS_TEAM[k];
+    if (options) {
+        const present = options.filter(o => availableKeys.has(o));
+        return present.length === 1 ? present[0] : resolveTeamKey(name);
+    }
+
+    // NEVER RETURN A KEY THIS PAYLOAD DOES NOT CONTAIN.
+    //
+    // This is the sport-blind defect, fixed where the sport is actually known.
+    // 94 of 281 aliases are a short form that means one club only inside its own
+    // sport — `Colorado` is the Rapids in MLS and a university in CFB, `Liberty`
+    // is the WNBA side and a college. The alias table cannot tell which, because
+    // nothing in `Colorado` says.
+    //
+    // The payload can. A vendor response is one sport, and it is resolved before
+    // any D1 row is read. So if the alias names a team this response does not
+    // contain, returning it would assert into a join a club from a sport that is
+    // not being joined — which is exactly what would let a pair matcher attach
+    // MLS odds to a college game, the failure the parent CC-CMD warns about.
+    //
+    // Falling back to the name's own text cannot lose a match: if the alias is
+    // absent from the payload, the pair lookup was going to miss either way.
+    // What it removes is the false assertion on the way to that miss.
+    //
+    // DELIBERATELY NOT a change to resolveTeamKey itself. Three call sites —
+    // ambient-do.js:822, wp-resolver.js:62, index.js:1219 — use the plain
+    // resolver to bridge a vendor name to a FIELD name with no payload in hand,
+    // and rely on exactly these aliases to do it. Making the standalone resolver
+    // honest without giving those sites context would break three working joins
+    // to fix a key nobody stores. scripts/check-vendor-bridge-callers.mjs holds
+    // that set closed so a fourth cannot appear unnoticed.
+    const alias = resolveTeamKey(name);
+    if (availableKeys.has(alias)) return alias;
+    return foldTeamName(name);
 }
 
 // ── Is a resolved key derived from the name's own text? ────────────────────

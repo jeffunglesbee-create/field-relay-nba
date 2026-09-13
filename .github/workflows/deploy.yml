@@ -336,6 +336,19 @@ jobs:
           node scripts/check-ambiguous-team-identity.mjs
           node scripts/mutate-ambiguous-team-identity.mjs
 
+      # 94 of 281 aliases are a short form that means one club only inside its
+      # own sport — `Colorado` is the Rapids in MLS and a university in CFB.
+      # Nothing in the string says which, so the table answered the same way
+      # everywhere and 14 CFB rows resolved to MLS clubs. Fixed where the sport
+      # IS known: a vendor payload is one sport, so the join refuses to return a
+      # key that payload does not contain. resolveTeamKey itself is unchanged —
+      # three call sites bridge vendor names to FIELD names with no payload and
+      # rely on these aliases, and the check holds that set closed.
+      - name: a short form means its club only inside its own sport
+        run: |
+          node scripts/check-sport-blind-resolution.mjs
+          node scripts/mutate-sport-blind-resolution.mjs
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the

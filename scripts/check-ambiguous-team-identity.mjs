@@ -43,7 +43,17 @@ eq('B absent from the payload is a miss, not a guess',
 eq('B both present refuses to pick',
    resolveTeamKeyIn('Tigers', new Set(['detroittigers', 'hullcity'])), 'tigers');
 eq('B no payload behaves as the plain resolver', resolveTeamKeyIn('Tigers', undefined), 'tigers');
-eq('B an unambiguous name ignores the payload', resolveTeamKeyIn('Braves', EPL), 'atlantabraves');
+// CONTRACT CHANGED 2026-09-13, deliberately. This asserted that an unambiguous
+// name IGNORES the payload — `Braves` returned atlantabraves even when asked
+// against an EPL response, asserting an MLB club into a soccer join. The
+// sport-blind fix (CC-CMD-2026-09-13-team-key-sport-blind Task 2) makes the
+// scoping universal: never return a key the payload does not contain. Nothing
+// is lost, because if the alias is absent the pair lookup was going to miss
+// either way; what goes is the cross-sport assertion on the way to that miss.
+eq('B an unambiguous name is scoped to the payload too',
+   resolveTeamKeyIn('Braves', EPL), 'braves');
+eq('B and resolves normally when the payload does contain it',
+   resolveTeamKeyIn('Braves', new Set(['atlantabraves', 'newyorkmets'])), 'atlantabraves');
 eq('B empty input stays empty', resolveTeamKeyIn('', MLB), '');
 
 // ── C. end to end, through the REAL join ───────────────────────────────────
