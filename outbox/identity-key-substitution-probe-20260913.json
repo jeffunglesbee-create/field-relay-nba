@@ -1,0 +1,41 @@
+{
+  "_what": "CC-CMD-2026-09-13-team-key-sport-blind Task 0 artifact. Committed responses from GET /identity/mismatches after deploy 935 added the cross-sport classification.",
+  "_method": "A D1 team key that does not fold to its own display name is a SUBSTITUTION. It is SUSPECT only when that key also appears in another probed sport's vendor key set; otherwise it is an unremarkable within-sport alias. also_in names which other sports. Only sports probed together can be compared, so also_in [] means unclassified, never benign-by-default.",
+  "probe_1": {
+    "route": "/identity/mismatches?date=2026-09-12&sports=CFB,MLS,EPL,NFL",
+    "sports_compared": ["CFB", "MLS", "EPL", "NFL"],
+    "key_substituted": 9,
+    "key_substituted_cross_sport": 5,
+    "CFB": [
+      { "name": "Liberty",    "key": "newyorkliberty",    "also_in": [] },
+      { "name": "Minnesota",  "key": "minnesotaunitedfc", "also_in": ["MLS"] },
+      { "name": "Colorado",   "key": "coloradorapids",    "also_in": ["MLS"] },
+      { "name": "Houston",    "key": "houstondynamofc",   "also_in": ["MLS"] },
+      { "name": "Cincinnati", "key": "fccincinnati",      "also_in": ["MLS"] },
+      { "name": "Charlotte",  "key": "charlottefc",       "also_in": ["MLS"] }
+    ],
+    "MLS": [
+      { "name": "Red Bull New York", "key": "newyorkredbulls", "also_in": [] },
+      { "name": "Columbus",          "key": "columbuscrew",    "also_in": [] }
+    ],
+    "EPL": [
+      { "name": "Ipswich", "key": "ipswichtown", "also_in": [] }
+    ],
+    "NFL": [],
+    "_reading": "5 CONFIRMED cross-sport, all CFB->MLS. The three MLS/EPL rows are correct within-sport aliases and are NOT defects. NFL had 0 substitutions across 212 vendor events and 0 D1 rows missing odds."
+  },
+  "probe_2": {
+    "route": "/identity/mismatches?date=2026-09-07&sports=CFB,WNBA,MLS",
+    "sports_compared": ["CFB", "WNBA", "MLS"],
+    "key_substituted": 0,
+    "key_substituted_cross_sport": 0,
+    "_reading": "Attempted to confirm Liberty->newyorkliberty by probing WNBA alongside CFB. That date carries 1 CFB row and the WNBA slate does not include the New York Liberty, so the pair did not co-occur. The sixth case is UNCONFIRMED BY THIS METHOD."
+  },
+  "_totals": {
+    "confirmed_cross_sport": 5,
+    "unconfirmed_but_indicated": 1,
+    "_note": "newyorkliberty is self-evidently the WNBA New York Liberty by name, and Liberty University's team is the Flames. The tool did not confirm it, so it is counted separately rather than folded into 5. Confirming it needs a date where a CFB Liberty game and a WNBA Liberty game are both in the archive.",
+    "sports_with_zero": ["NFL", "WNBA"],
+    "sports_not_yet_probed": ["NBA", "NHL", "MLB", "La Liga", "Serie A", "Bundesliga", "Ligue 1", "CFL", "UFL", "AFL", "IPL"]
+  }
+}
