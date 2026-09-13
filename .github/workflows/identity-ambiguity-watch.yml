@@ -72,6 +72,13 @@ jobs:
                              for n, m, o in conditions],
               "totals": d.get("totals"),
               "ambiguous_keys": d.get("ambiguous_keys"),
+              # The historical backfill's own input: every (date, sport) with a
+              # NULL-odds row. Recorded here because the relay's response is too
+              # large to read through a probe, and because a backfill costs ~30
+              # Odds credits per entry — the plan has to be readable before it is
+              # run, and re-readable afterwards to prove what it closed.
+              "odds_gaps": d.get("odds_gaps"),
+              "odds_gap_rows": d.get("odds_gap_rows"),
               "all_done": all_done,
               "cc_cmds": CC_CMDS,
           }
