@@ -150,6 +150,16 @@ jobs:
       # The partial-read flag was SET correctly by the scanner and never READ, so
       # a truncated parse and a complete one landed in the manifest identically.
       # These mutations break the set / carry / emit wiring at each point.
+      # bodyOf counted every { and } in the raw line, so braces in comments and in
+      # one string literal were read as syntax. Seven such lines inside /archive/
+      # left a residual depth of 1, the block never balanced, and the route's
+      # declared sources became "whatever fell inside 1500 lines". Five mutations,
+      # the first restoring the raw counter.
+      - name: The brace counter reads structure, not prose
+        run: |
+          node scripts/check-brace-balance.mjs
+          node scripts/mutate-brace-balance.mjs
+
       - name: A partial route parse says so in the manifest
         run: node scripts/mutate-route-provenance-truncation.mjs
 

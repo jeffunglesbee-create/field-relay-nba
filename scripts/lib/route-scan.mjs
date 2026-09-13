@@ -95,6 +95,39 @@ lines.forEach((line, i) => {
 // ── For each route, find the code that answers it ────────────────────────────
 // Either a named handler (`return handleFoo(...)`) whose body we then read, or
 // the inline block that follows.
+// Line comments, block-comment bodies and quoted spans removed, so a brace in
+// prose or in a string is not read as structure. Carries block-comment state
+// across lines because a /* ... */ spanning lines is one span, not one per line.
+//
+// REGEX LITERALS ARE NOT HANDLED, deliberately and with a bound. Telling a regex
+// from a division needs the preceding token, which is a parser, and the CC-CMD's
+// own instruction was not to write one. It is safe in practice because regex
+// braces are quantifiers -- /^\\d{4}-\\d{2}-\\d{2}$/ at src/index.js:11982 is four
+// braces that cancel -- and safe in principle because an unbalanced one (a bare
+// /\\{/) leaves residual depth, which makes the block fail to balance, which
+// sets `truncated: true`. The failure mode degrades to the flagged partial read
+// it already had, never to a silent wrong answer.
+function stripNonCode(line, inBlockComment) {
+  let code = '', i = 0, quote = null, blk = inBlockComment;
+  while (i < line.length) {
+    const c = line[i], n = line[i + 1];
+    if (blk) {
+      if (c === '*' && n === '/') { blk = false; i += 2; continue; }
+      i++; continue;
+    }
+    if (!quote) {
+      if (c === '/' && n === '/') break;                       // rest of line is comment
+      if (c === '/' && n === '*') { blk = true; i += 2; continue; }
+      if (c === '"' || c === "'" || c === '`') { quote = c; i++; continue; }
+      code += c; i++; continue;
+    }
+    if (c === '\\') { i += 2; continue; }                      // escape: skip the pair
+    if (c === quote) { quote = null; i++; continue; }
+    i++;                                                       // inside a string
+  }
+  return { code, inBlockComment: blk };
+}
+
 function bodyOf(startLine) {
   // Delegation: `return someHandler(` on the dispatch line or the next few.
   for (let j = startLine - 1; j < Math.min(startLine + 3, lines.length); j++) {
@@ -129,11 +162,26 @@ function bodyOf(startLine) {
   // sources, so the route was reported as reading nothing. An unbalanced block
   // must say it did not parse, not hand back an empty answer that reads as fact.
   const WINDOW = 1500;
-  let depth = 0, started = false, end = startLine, balanced = false;
+  let depth = 0, started = false, end = startLine, balanced = false, inBlockComment = false;
   for (let k = startLine - 1; k < Math.min(startLine + WINDOW, lines.length); k++) {
     let line = lines[k];
     if (k === startLine - 1) line = line.replace(/^(\s*)\}/, '$1');
-    for (const ch of line) {
+    // COUNT STRUCTURE, NOT TEXT (CC-CMD-2026-09-13-route-scan-brace-balance-defeated).
+    // This loop used to count every { and } on the line. Seven lines inside
+    // /archive/ alone are braces in comments and one string literal:
+    //
+    //   11978  //   { ok, date, games_found, ...          counted +1, real 0
+    //   12879  if (kvVal && kvVal[0] === '{') {           counted +2, real +1
+    //   13285  // ... Body: { triggered_by, date, ...     counted +2, real 0
+    //
+    // They left a residual depth of 1, so the block never balanced, the scan ran
+    // to the window edge, and /archive/ was declared TRUNCATED with the hosts of
+    // whatever routes happened to fall inside 1500 lines. Stripped, it balances
+    // at line 13366 — 1470 lines, INSIDE the existing window. The window was
+    // never too small; the counter was reading prose as syntax.
+    const stripped = stripNonCode(line, inBlockComment);
+    inBlockComment = stripped.inBlockComment;
+    for (const ch of stripped.code) {
       if (ch === '{') { depth++; started = true; }
       else if (ch === '}') depth--;
     }
@@ -222,4 +270,4 @@ export function decomment(text) {
     .join('\n');
 }
 
-export { AGE, SRC_F, AGE_RE, SRC_RE, responseRegions, PASSTHROUGH, PROTOCOL, routes, bodyOf, functionBody, withHelpers };
+export { AGE, SRC_F, AGE_RE, SRC_RE, responseRegions, PASSTHROUGH, PROTOCOL, routes, bodyOf, functionBody, withHelpers, stripNonCode };

@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-13T03:18:13.527Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-13T03:25:21.598Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -26,7 +26,7 @@ export const ROUTE_PROVENANCE = {
   "/analytics/record-streak/recompute": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/analytics/run": { k: "store", s: "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/analytics/status": { k: "store", s: "kv:FIELD_JOURNALISM" },
-  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + do:AMBIENT_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM", p: 1, t: 1 },
+  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM", p: 1 },
   "/archive/backfill": { k: "trigger", s: "d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev" },
   "/archive/backfill-enrich": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/archive/bracket-replay": { k: "store", s: "d1:ARCHIVE_DB" },
@@ -39,7 +39,7 @@ export const ROUTE_PROVENANCE = {
   "/archive/drama-missing": { k: "store", s: "d1:ARCHIVE_DB" },
   "/archive/drama/leaderboard": { k: "store", s: "d1:ARCHIVE_DB" },
   "/archive/drama/percentile": { k: "store", s: "d1:ARCHIVE_DB" },
-  "/archive/game": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM" },
+  "/archive/game": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/archive/last-meeting": { k: "store", s: "d1:ARCHIVE_DB" },
   "/archive/odds-backfill": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/archive/query": { k: "store", s: "d1:ARCHIVE_DB" },
@@ -219,7 +219,7 @@ export const ROUTE_PROVENANCE = {
 // `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
 // forward at most 1500 lines looking for brace balance; when a handler block is
 // longer than that the scan gives up, and `s` describes only what fitted inside
-// the window. 2 of 189 entries are in that state.
+// the window. 1 of 189 entries are in that state.
 //
 // It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
 // so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
