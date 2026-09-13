@@ -243,8 +243,9 @@ summary and in a committed artifact:
 | condition | CC-CMD | met when |
 |---|---|---|
 | `hullcity` claimed by one family | alias-table-silent-overwrite, Task 5 | `Tigers` no longer resolves to an English club |
-| CFB `substituted_rows` == 0 | team-key-sport-blind, Task 5 | resolver is sport-aware |
-| NFL `substituted_rows` == 0 | team-key-sport-blind, Task 5 | same |
+| ~~CFB `substituted_rows` == 0~~ | team-key-sport-blind, Task 5 | ~~resolver is sport-aware~~ |
+| ~~NFL `substituted_rows` == 0~~ | team-key-sport-blind, Task 5 | ~~same~~ |
+| `cross_sport_reach_failures` == 0 | team-key-sport-blind, Task 5 | **RESTATED — see the close-out below.** The two struck conditions can never be met under the fix that shipped, because `resolveTeamKey` is deliberately unchanged. |
 | `ambiguous_key_count` == 0 | both | every key claimed by one family |
 
 The watch writes a TIMESTAMPED file per run rather than rewriting a
@@ -256,3 +257,147 @@ this watch sidesteps that defect by construction instead of inheriting it.
 It exits non-zero only when the census itself fails. "Still open" is a
 measurement, not a failure, and a watch that cried red for months would be
 muted long before the condition it exists to catch ever flipped.
+
+---
+
+## Close-out — Tasks 5 and 6 (2026-09-13, appended)
+
+### Task 5 was not satisfiable as written, and that is the finding
+
+Its wording:
+
+> `/identity/mismatches` reports `key_substituted: 0` for every sport probed in
+> Task 0.
+
+`key_substituted` / `substituted_rows` is computed with `substitutedKey`, and
+**`substitutedKey` IS standalone `resolveTeamKey`.** Task 3 enumerated every
+caller of that function and found three — `ambient-do.js:822`,
+`wp-resolver.js:62`, `index.js:1219` — that bridge a vendor name to a FIELD name
+with **no payload in hand**, relying on exactly the short-form aliases in
+question. So the shipped fix (`9366af9`) left `resolveTeamKey` alone on purpose,
+CFB still reports 14, and **no correct fix could have zeroed that number.**
+
+The condition measured the alias table's shape. The defect was in the join's
+behaviour. Those are different things, and the wording could not tell them
+apart — a spec failure at the point it was written (Rule 89), not an execution
+shortfall at the point it was checked.
+
+**Second time today.** `CC-CMD-2026-09-13-alias-table-silent-overwrite`'s Task 5
+needed the same treatment for the same reason: both were written before the fix
+was chosen, and both encoded an assumed fix as if it were the property. The
+pattern worth carrying forward is narrower than "write better conditions" — it
+is **a done condition must name a property of the system, never a value of an
+instrument that may itself be replaced by the fix.**
+
+### The restated condition
+
+> No substituted display name can reach another sport's club through a join, and
+> every name that legitimately joined before still does.
+
+**Artifact:** `GET /identity/substitution-census`'s `cross_sport_reach` block.
+It runs once per distinct `(sport, name)` pair the scan itself classified
+substituted — a measured denominator, not a chosen list — and it exercises the
+**deployed** `resolveTeamKeyIn` and the **real** `src/odds-join.js`, rather than
+re-implementing either.
+
+| field | must be | meaning |
+|---|---|---|
+| `escapes_into_a_payload_without_it` | `false` | the defect. Before `9366af9` this was `true` for every one of them |
+| `own_club_payload_still_joins` | `true` | nothing lost — the club's own payload still matches on the short form |
+| `cross_sport_reach_failures` | `0` | the headline |
+
+`cross_sport_reach_coverage` carries the denominator (Rule 91).
+`cross_sport_reach_probed` / `_shown` / `_omitted` sit beside the list so the
+50-row display cap cannot be read as the count. **Failures are never capped.**
+
+### Live probe output — CFB, 16:39:08Z, HEAD `2952d14`, deploy run 949
+
+```
+coverage:                     scanned 185 of 185 rows across 2 tables (sport=CFB only)
+cross_sport_reach_coverage:   probed 7 of 7 distinct (sport, name) pairs
+                              classified substituted by this scan
+cross_sport_reach_failures:   0
+cross_sport_reach_failing:    []
+
+Colorado    -> coloradorapids     (Colorado Rapids)      escapes=false  joins=true
+Minnesota   -> minnesotaunitedfc  (Minnesota United FC)  escapes=false  joins=true
+Miami       -> intermiamicf       (Inter Miami CF)       escapes=false  joins=true
+Cincinnati  -> fccincinnati       (FC Cincinnati)        escapes=false  joins=true
+Houston     -> houstondynamofc    (Houston Dynamo FC)    escapes=false  joins=true
+Charlotte   -> charlottefc        (Charlotte FC)         escapes=false  joins=true
+Liberty     -> newyorkliberty     (New York Liberty)     escapes=false  joins=true
+```
+
+`substituted_rows` is still **14** for CFB in the same response, unchanged and
+expected. That is the exposure, not the defect.
+
+### Both halves were made to fail before either was trusted (Rule 90)
+
+| mutation | result |
+|---|---|
+| `resolveTeamKeyIn` → `return resolveTeamKey(name)` (the shipped defect, restored) | `escapes` **true** 7/7, `joins` unchanged |
+| `if (availableKeys.has(alias)) return alias;` disabled | `joins` **false** 7/7, `escapes` unchanged |
+
+The two halves move independently, so neither is carrying the other. Durable
+coverage is S1 and S2 in `scripts/mutate-sport-blind-resolution.mjs`.
+
+### The watch carried the same unmeetable wording
+
+`identity-ambiguity-watch.yml` evaluated `CFB substituted_rows == 0` and
+`NFL substituted_rows == 0`. Under the shipped fix **neither can ever flip to
+DONE** — it would have reported OPEN every six hours forever, and a watch that
+never goes green is muted long before the thing it exists to catch happens.
+
+Both are replaced by the reach condition in
+`scripts/identity_ambiguity_conditions.py`. The exposure count is **demoted, not
+deleted**: it is the denominator the probe runs over, so it stays in the run
+summary as a readout, labelled `(not a condition)`.
+
+### Four mutations on the conditions module, and P2 found a real gap
+
+`scripts/mutate-identity-ambiguity-conditions.py`:
+
+| mutation | caught by |
+|---|---|
+| P1 old wording restored (`CFB substituted_rows == 0`) | `every condition met, exposure unchanged` — whose CFB/NFL counts are deliberately 14 and 6 |
+| P2 reach condition hard-wired `True` | `reach is the only open condition` |
+| P3 absence collapsed to zero (Rule 99) | `reach fields absent from the response` |
+| P4 exposure readout dropped from the summary | `summary omits` |
+
+**P2 failed on its first run with WRONG REASON, and the harness was right.**
+Hard-wiring the condition to `True` left every existing fixture green, because
+in each of them something else was already open — so the check could not tell a
+live condition from a constant. The fixture `reach is the only open condition`
+exists for that and nothing else: every other condition is met in it, so
+`all_done` turns on the reach condition alone.
+
+### Commits
+
+| commit | what |
+|---|---|
+| `9366af9` | Tasks 2, 3, 4 — payload-scoped resolution |
+| `2952d14` | Task 5 restated; live reach probe; watch conditions replaced; conditions-module mutation harness |
+| `b3b5b24` | untrack `scripts/__pycache__`, committed by accident in `e58f7bb` |
+
+### Checks at close
+
+| check | result |
+|---|---|
+| `check-sport-blind-resolution.mjs` | PASS 26/26 · 4 mutations caught |
+| `check-ambiguous-team-identity.mjs` | PASS 41/41 · 7 mutations caught |
+| `check-team-key-substitution.mjs` | PASS 59/59 |
+| `check-identity-table-collisions.mjs` | 333 pairs, 5 tables · 1 colliding key, 1 recorded, 0 silent |
+| `check-identity-ambiguity-conditions.py` | PASS · 5 fixtures × 3 conditions · 4 mutations caught |
+
+### Residual
+
+**One, and it is not deferred work.** The CFB reach probe covers the 7 pairs in
+that sport. The archive-wide figure comes from the watch's own unfiltered run,
+committed as `outbox/identity-ambiguity-watch-*.json` — dispatched at close and
+recorded there rather than transcribed here, because that file is the artifact
+the condition is read from.
+
+**Not fixed, and out of scope by the CC-CMD's own boundary:** all 185 CFB rows
+still lack odds, and only 14 were substituted. The other 171 miss for reasons
+this fix does not touch. The deliverable was correctness — the join can no
+longer name another sport's club — not coverage.
