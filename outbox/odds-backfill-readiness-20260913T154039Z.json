@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-09-13T15:40:39.926479+00:00",
+  "authorised_batch": "CC-CMD-2026-09-13-alias-table-silent-overwrite tranche 2",
+  "this_workflow_does_not_mutate": true,
+  "daily_remaining": 0,
+  "headroom_reserved_for_crons": 600,
+  "pending_dates": [
+    "2026-08-22",
+    "2026-08-23",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-28",
+    "2026-08-29",
+    "2026-08-30",
+    "2026-09-05",
+    "2026-09-06",
+    "2026-09-09",
+    "2026-09-12"
+  ],
+  "pending_cost_credits": 2310,
+  "affordable_in_full_today": false,
+  "affordable_subset_today": [],
+  "run_these": []
+}
