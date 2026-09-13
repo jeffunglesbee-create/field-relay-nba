@@ -1,0 +1,182 @@
+{
+  "probed_at": "2026-09-13T01:24:30.500Z",
+  "probe_date": "2026-09-13",
+  "sports_requested": [
+    "CFB",
+    "NFL",
+    "Bundesliga",
+    "MLS"
+  ],
+  "http": 200,
+  "report": {
+    "date": "2026-09-13",
+    "probed": 4,
+    "matched": 9,
+    "unmatched": 0,
+    "sports": {
+      "CFB": {
+        "sport_key": "americanfootball_ncaaf",
+        "odds_events": 47,
+        "d1_missing": 0,
+        "matched": 0,
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Florida International Panthers",
+            "odds_away": "Buffalo Bulls",
+            "key": "floridainternationalpanthers|buffalobulls"
+          },
+          {
+            "odds_home": "Ohio Bobcats",
+            "odds_away": "Jacksonville State Gamecocks",
+            "key": "ohiobobcats|jacksonvillestategamecocks"
+          },
+          {
+            "odds_home": "Boise State Broncos",
+            "odds_away": "Memphis Tigers",
+            "key": "boisestatebroncos|memphistigers"
+          },
+          {
+            "odds_home": "Western Michigan Broncos",
+            "odds_away": "Monmouth Hawks",
+            "key": "westernmichiganbroncos|monmouthhawks"
+          },
+          {
+            "odds_home": "Arkansas State Red Wolves",
+            "odds_away": "West Georgia Wolves",
+            "key": "arkansasstateredwolves|westgeorgiawolves"
+          },
+          {
+            "odds_home": "Cincinnati Bearcats",
+            "odds_away": "Western Carolina Catamounts",
+            "key": "cincinnatibearcats|westerncarolinacatamounts"
+          }
+        ]
+      },
+      "NFL": {
+        "sport_key": "americanfootball_nfl",
+        "odds_events": 212,
+        "d1_missing": 0,
+        "matched": 0,
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "Pittsburgh Steelers",
+            "odds_away": "Atlanta Falcons",
+            "key": "pittsburghsteelers|atlantafalcons"
+          },
+          {
+            "odds_home": "Indianapolis Colts",
+            "odds_away": "Baltimore Ravens",
+            "key": "indianapoliscolts|baltimoreravens"
+          },
+          {
+            "odds_home": "Houston Texans",
+            "odds_away": "Buffalo Bills",
+            "key": "houstontexans|buffalobills"
+          },
+          {
+            "odds_home": "Carolina Panthers",
+            "odds_away": "Chicago Bears",
+            "key": "carolinapanthers|chicagobears"
+          },
+          {
+            "odds_home": "Cincinnati Bengals",
+            "odds_away": "Tampa Bay Buccaneers",
+            "key": "cincinnatibengals|tampabaybuccaneers"
+          },
+          {
+            "odds_home": "Jacksonville Jaguars",
+            "odds_away": "Cleveland Browns",
+            "key": "jacksonvillejaguars|clevelandbrowns"
+          }
+        ]
+      },
+      "Bundesliga": {
+        "sport_key": "soccer_germany_bundesliga",
+        "odds_events": 11,
+        "d1_missing": 0,
+        "matched": 0,
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "RB Leipzig",
+            "odds_away": "Hamburger SV",
+            "key": "rbleipzig|hamburgersv"
+          },
+          {
+            "odds_home": "Elversberg",
+            "odds_away": "Bayern Munich",
+            "key": "elversberg|bayernmunich"
+          },
+          {
+            "odds_home": "Bayern Munich",
+            "odds_away": "Union Berlin",
+            "key": "bayernmunich|unionberlin"
+          },
+          {
+            "odds_home": "Hamburger SV",
+            "odds_away": "1. FC Köln",
+            "key": "hamburgersv|1fckoln"
+          },
+          {
+            "odds_home": "Werder Bremen",
+            "odds_away": "Augsburg",
+            "key": "werderbremen|augsburg"
+          },
+          {
+            "odds_home": "Borussia Monchengladbach",
+            "odds_away": "FSV Mainz 05",
+            "key": "borussiamonchengladbach|fsvmainz05"
+          }
+        ]
+      },
+      "MLS": {
+        "sport_key": "soccer_usa_mls",
+        "odds_events": 25,
+        "d1_missing": 9,
+        "matched": 9,
+        "unmatched": [],
+        "odds_sample": [
+          {
+            "odds_home": "D.C. United",
+            "odds_away": "Atlanta United FC",
+            "key": "dcunited|atlantaunited"
+          },
+          {
+            "odds_home": "Columbus Crew SC",
+            "odds_away": "New York Red Bulls",
+            "key": "columbuscrewsc|newyorkredbulls"
+          },
+          {
+            "odds_home": "Orlando City SC",
+            "odds_away": "Toronto FC",
+            "key": "orlandocity|torontofc"
+          },
+          {
+            "odds_home": "FC Cincinnati",
+            "odds_away": "Charlotte FC",
+            "key": "fccincinnati|charlottefc"
+          },
+          {
+            "odds_home": "Inter Miami CF",
+            "odds_away": "Nashville SC",
+            "key": "intermiamicf|nashvillesc"
+          },
+          {
+            "odds_home": "FC Dallas",
+            "odds_away": "Portland Timbers",
+            "key": "fcdallas|portlandtimbers"
+          }
+        ]
+      }
+    }
+  },
+  "verdict": {
+    "CFB": "NO_ROWS: no NULL-opening rows on 2026-09-13 (vendor had 47 events)",
+    "NFL": "NO_ROWS: no NULL-opening rows on 2026-09-13 (vendor had 212 events)",
+    "Bundesliga": "NO_ROWS: no NULL-opening rows on 2026-09-13 (vendor had 11 events)",
+    "MLS": "COVERED: 9 matched of 9 rows (25 vendor events, 0 unmatched)"
+  },
+  "error": null
+}
