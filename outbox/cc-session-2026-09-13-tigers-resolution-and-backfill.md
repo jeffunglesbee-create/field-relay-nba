@@ -141,6 +141,63 @@ regression, it demanded it. And its sibling asserts over a curated list that
    names, so it failed on a variant listed twice — which is the very thing that
    makes it collide.
 
+## Task 1 — CONFIRMED, and the first answer was wrong
+
+`outbox/tigers-forensics-20260913T143322Z.json`. 69 rows named `Tigers`, 52 with
+opening odds, every one accounted for by a write outside the regression window:
+
+```
+written before the alias flip        41
+written after the fix (live cron)     1
+backfilled after the fix (tranche 1) 10
+UNACCOUNTED FOR                       0
+```
+
+**The first run returned REFUTED.** It classified rows by GAME DATE inside the
+window — the date of play standing in for the moment of writing. Ten of its
+eleven rows were dates I had backfilled by hand three hours earlier, after the
+fix: my own work read back as evidence of a defect. The eleventh was captured at
+`2026-08-21T10:00:53Z`, thirteen hours before `0faf37f` landed at `23:17:42Z`.
+
+I had written `captured_at IS NOT A WRITE TIME` into the source two commits
+earlier and then reached for a date further from the write than `captured_at`
+is. The wrong artifact was deleted rather than left beside the right one — an
+outbox file saying REFUTED is read as a finding by whoever opens it next.
+
+The corrected discriminator needs no memory of what anyone ran: a historical
+backfill requests noon UTC on the game's own date, so its stamp lands within
+minutes of it; a live capture does not.
+
+## The end-to-end proof arrived, unprompted
+
+The fix commit could not claim Rule 61 — I wrote "I have not observed the live
+cron attach odds to a Detroit row", because `d1_missing` was 0 for MLB that
+afternoon and there was nothing to watch fill.
+
+It is in the Task 1 artifact. `MLB_2026-09-13_e401816920` — Comerica Park, a
+Detroit home game — carries `opening_odds.captured_at`
+**`2026-09-13T13:16:54Z`**, a live cron write **eight minutes after the fix
+deployed at ~13:09Z**.
+
+Not "the key looks right". The market data arrived, through the repaired join,
+on the team the bug had silenced for three weeks.
+
+## Task 5 restated, because the fix was not the shape the condition assumed
+
+The done condition asked for "Detroit Tigers rows resolving to `detroittigers`".
+All 69 resolve to `tigers`, deliberately — the resolver refuses to name either
+club standalone and the payload decides at join time. A condition requiring
+`detroittigers` presumes a fix that picks a winner, which Task 3 rejected.
+
+Restated as: `hullcity` claimed by one family (watch artifacts either side of
+the deploy, identical archive both runs), AND a Detroit game receiving odds
+through the repaired join (above). Both met.
+
+Worth keeping as a pattern rather than an excuse: **a done condition written
+before the fix can encode an assumption about the fix.** This one did, and a
+session reading it literally would either have mis-implemented the resolver to
+satisfy it, or declared the task unfinished while the real requirement was met.
+
 ## A CC-CMD I filed and retracted, and why it is recorded rather than deleted
 
 I read `/budget/odds` beside the provider dashboard and filed
@@ -189,10 +246,8 @@ from outside, and did not guess. Raising it as a number to check, not a finding.
 
 ## Carry-forward
 
-- `CC-CMD-2026-09-13-alias-table-silent-overwrite`: Tasks 0, 2, 3, 4, 5 done.
-  Task 1 (confirm the date story for all 68 rows) is now strongly supported —
-  every MLB gap in the archive sat inside the regression window — but not
-  exhaustively proven per row.
+- `CC-CMD-2026-09-13-alias-table-silent-overwrite`: **CLOSED.** All six tasks
+  done; Task 1 proven per row, 0 unaccounted for.
 - `CC-CMD-2026-09-13-team-key-sport-blind` Tasks 2-6 open; 185 CFB rows wait on
   it.
 - `CC-CMD-2026-09-13-probe-commit-race-unrecoverable` open.
