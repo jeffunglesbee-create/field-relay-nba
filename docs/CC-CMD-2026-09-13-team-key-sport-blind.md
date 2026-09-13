@@ -27,6 +27,27 @@ football game was played by the Colorado Rapids. That is DO NOT INVENT at the
 source, and strictly worse than the join it breaks: an unmatched row is a
 missing fact, a substituted key is a false one.
 
+> **CORRECTED 2026-09-13 during Task 1 — the paragraph above is wrong and is
+> kept, struck, because the reasoning it caused is worth being able to retrace.**
+> Checked at HEAD across all 20 `resolveTeamKey` call sites (`src/index.js`
+> 1218, 6597, 6610, 6739, 6748, 12987, 12989, 15038, 15049, 15078;
+> `context-assembler.js` 449-461; `ambient-do.js` 822-825; `wp-resolver.js`
+> 62-63): **not one writes a key.** Every one builds a transient `byPair` join
+> key or compares two names. `regular_season_games` stores `home`/`away`
+> display names; the key is computed at join time and discarded. The archive
+> does not assert the Rapids played a college game.
+>
+> The real harm is **asymmetry**, and it is the opposite direction from the one
+> claimed. The join resolves BOTH sides, so a substitution is harmless when
+> symmetric. Measured: D1 holds `Colorado` → `coloradorapids`, the NCAAF vendor
+> holds `Colorado Buffaloes` → `coloradobuffaloes`, the pair misses, the row
+> keeps NULL odds. **A missing fact, not a false one** — exactly the milder of
+> the two outcomes this paragraph contrasted.
+>
+> It does not make the fix less necessary. It relocates it: the failure is the
+> zero-coverage join the parent CC-CMD is about, not a corrupted archive. And
+> it renames Task 1's artifact — see below.
+
 `San José St → sanjosest` is correctly NOT flagged — accent folding, not
 substitution. The distinction is the check's whole job.
 
@@ -48,11 +69,27 @@ exact failure the parent CC-CMD's own gate section warns about.
    slate is a lower bound on one day of one sport; NFL (`Houston Texans` vs
    `Houston Dynamo`), NBA and NHL share city names with MLS sides too.
 
-1. **Count the rows already written.** `SELECT sport, home, away FROM
-   regular_season_games` where a resolved key is not derived from its own name.
-   **The artifact is that count by sport.** It decides whether this is a
-   forward-only fix or also a backfill — and the backfill is a live D1 mutation,
-   which is the user's call, not this CC-CMD's (see "Out of scope").
+1. **Count the rows already written.** ~~`SELECT sport, home, away FROM
+   regular_season_games` where a resolved key is not derived from its own
+   name.~~ **RESPECIFIED 2026-09-13** once the premise above was corrected. No
+   key is stored, so there is no stored-key count to take. What the backfill
+   decision actually turns on is the mirror case:
+
+   - **the exposure** — rows whose display name resolves to a key that is not
+     derived from that name, by sport. Harmless on its own; it is the
+     denominator.
+   - **the rows that matter** — of those, the ones that **carry odds**. Odds on
+     a substituted row means something matched under a key that is not the
+     row's own name. That is the only way a false fact could have been written,
+     and each such row is named, not counted, because a count cannot be acted
+     on or checked.
+
+   **The artifact is `GET /identity/substitution-census`'s committed response**:
+   `by_sport` for the exposure, `rows_with_odds_under_a_substituted_key` for the
+   rows needing a human look, and a `coverage` string carrying the denominator
+   (Rule 91). Read-only, no Odds-API credit. If that list is empty, this is a
+   forward-only fix and no backfill question arises — and the backfill would be
+   a live D1 mutation, the user's call, not this CC-CMD's (see "Out of scope").
 
 2. **Make the resolver sport-aware, or make the alias map refuse to guess.**
    Two candidate shapes, and the choice needs Task 0's numbers:
