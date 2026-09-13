@@ -11,6 +11,11 @@
 // the set it REFUSES to decide, because that is the set a DELETE must not touch.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+// The relay's OWN scheme classifier, imported rather than restated. It already
+// encodes which shape is ours and which belongs to the external writer, and a
+// second copy here would be the source-versus-copy substitution this repo's
+// rules prohibit.
+import { idScheme } from '../src/d1-provenance.js';
 
 const scored = r => r.home_score != null || r.away_score != null;
 const sameScore = (a, b) => a.home_score === b.home_score && a.away_score === b.away_score;
@@ -79,6 +84,27 @@ const LOSS_BEARING = [
 //                  DELETE on exactly this.
 //   data loss    — a row holding a field the keeper lacks is a merge, not a
 //                  delete. See LOSS_BEARING.
+// THE THREE POPULATIONS, and they are not one problem.
+//
+//   external-vs-ours  one row is dash-scheme, which src/d1-provenance.js
+//                     establishes no path in this repository can write.
+//                     Converging id schemes is not available for these — we do
+//                     not control the other writer.
+//   ours-vs-ours      both rows are ours: the residue of our own id migrations.
+//   two-real-games    both carry a DIFFERENT espn_event_id. Not duplicates at
+//                     all — a doubleheader is two real games, and a dedupe on
+//                     (sport, date, home, away) would merge them.
+//
+// Computed in classify() rather than at print time so it is reachable by the
+// check. A classification that only exists inside a CLI body is untestable.
+export function population(rows) {
+  const [x, y] = rows;
+  if (idScheme(x.id) === 'dash' || idScheme(y.id) === 'dash') return 'external-vs-ours';
+  if (x.espn_event_id && y.espn_event_id && x.espn_event_id !== y.espn_event_id)
+    return 'two-real-games';
+  return 'ours-vs-ours';
+}
+
 export function classify(collisions) {
   return collisions.map(c => {
     const [a, b] = c.games;
@@ -91,12 +117,14 @@ export function classify(collisions) {
       : [];
     return {
       table: c.table, date: c.date, sport: c.sport, pair_key: c.pair_key,
+      population: population([a, b]),
       ...dec,
       deletable: !!(dec.stale && !blocked && mergeRequired.length === 0),
       merge_required: mergeRequired,
       blocked_by_briefs: blocked ? staleRow.briefs_referencing : 0,
       rows: [a, b].map(r => ({
         id: r.id, home: r.home, away: r.away, league: r.league ?? null,
+        id_scheme: idScheme(r.id),
         score: r.home_score == null && r.away_score == null ? null : `${r.home_score}-${r.away_score}`,
         espn_event_id: r.espn_event_id ?? null,
         series_key: r.series_key ?? null,
@@ -107,6 +135,12 @@ export function classify(collisions) {
     };
   });
 }
+
+const POPULATION = {
+  'external-vs-ours': 'one row is dash-scheme — no path in this repo can write it',
+  'ours-vs-ours': 'both ours; the residue of an id-scheme migration',
+  'two-real-games': 'different ESPN event ids — a doubleheader, not a duplicate',
+};
 
 const MEANING = {
   KEEP_SCORED: 'one row carries the result, the other is permanently unscored',
@@ -133,6 +167,9 @@ function main() {
   const rows = classify(collisions);
   const byVerdict = {};
   for (const r of rows) byVerdict[r.verdict] = (byVerdict[r.verdict] || 0) + 1;
+  const byPopulation = {};
+  for (const r of rows) byPopulation[r.population] = (byPopulation[r.population] || 0) + 1;
+
   const deletable = rows.filter(r => r.deletable);
   const blocked = rows.filter(r => r.blocked_by_briefs > 0);
   const merge = rows.filter(r => r.merge_required.length);
@@ -143,7 +180,7 @@ function main() {
   const jsonPath = `outbox/duplicate-row-keeper-table-${stamp}.json`;
   writeFileSync(jsonPath, JSON.stringify({
     source_artifact: src, archive_coverage: coverage,
-    collisions: rows.length, by_verdict: byVerdict,
+    collisions: rows.length, by_verdict: byVerdict, by_population: byPopulation,
     deletable: deletable.length, blocked_by_briefs: blocked.length,
     needs_merge: merge.length, needs_human: human.length,
     rows_referenced_by_a_brief: rows.reduce((n, r) =>
@@ -158,6 +195,9 @@ function main() {
     `**${rows.length} collisions.** ${deletable.length} have a stale row safe to delete, `
     + `${merge.length} need a merge first because the stale row holds a field the keeper lacks, `
     + `${blocked.length} are blocked by a brief reference, ${human.length} have no safe answer.`,
+    '', '| population | n | what it is |', '|---|---:|---|',
+    ...Object.entries(byPopulation).sort((x, y) => y[1] - x[1]).map(([k, v]) =>
+      `| \`${k}\` | ${v} | ${POPULATION[k]} |`),
     '', '| verdict | n | meaning |', '|---|---:|---|'];
   for (const [k, v] of Object.entries(byVerdict).sort((x, y) => y[1] - x[1]))
     md.push(`| \`${k}\` | ${v} | ${MEANING[k] || ''} |`);
@@ -174,6 +214,9 @@ function main() {
   // Rule 91: the denominator in the printed result, not only in the file.
   console.log(`${rows.length} collisions decided over ${coverage}`);
   for (const [k, v] of Object.entries(byVerdict).sort((x, y) => y[1] - x[1]))
+    console.log(`  ${String(v).padStart(4)}  ${k}`);
+  console.log('  ----');
+  for (const [k, v] of Object.entries(byPopulation).sort((x, y) => y[1] - x[1]))
     console.log(`  ${String(v).padStart(4)}  ${k}`);
   console.log('  ----');
   console.log(`  ${String(deletable.length).padStart(4)}  stale row safe to delete`);

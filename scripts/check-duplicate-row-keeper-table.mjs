@@ -4,7 +4,7 @@
 // Imports the REAL decide() and classify(). The fixtures are one per branch plus
 // the two cases that must NOT produce a keeper, because a classifier that always
 // answers is worse than one that admits it cannot: the answer feeds a DELETE.
-import { decide, classify } from './duplicate-row-keeper-table.mjs';
+import { decide, classify, population } from './duplicate-row-keeper-table.mjs';
 
 let checked = 0, failed = 0;
 const eq = (label, got, want) => {
@@ -112,6 +112,26 @@ const humanCase = classify([{ table: 'postseason_games', date: '2026-01-01', spo
   games: [row({ id: 'a', home_score: 2, away_score: 1 }), row({ id: 'b', home_score: 3, away_score: 1 })] }])[0];
 eq('a HUMAN verdict is never deletable', humanCase.deletable, false);
 
+// 7. THE THREE POPULATIONS. The doubleheader case is the one that matters: two
+//    real games sharing a team pair and a date. A dedupe on (sport, date, home,
+//    away) would merge them, and the 2026-08-08 session scored exactly that
+//    option as viable having found no doubleheaders in its window.
+eq('a dash-scheme sibling means the external writer',
+   population([row({ id: '2026-08-30-mls-stl-dal' }), row({ id: 'MLS_2026-08-30_stlouis_dallas' })]),
+   'external-vs-ours');
+eq('two different ESPN ids are two real games, not a duplicate',
+   population([row({ id: 'MLB_2026-09-04_e401816801', espn_event_id: '401816801' }),
+               row({ id: 'MLB_2026-09-04_e401877193', espn_event_id: '401877193' })]),
+   'two-real-games');
+eq('the same ESPN id on both sides is one game stored twice',
+   population([row({ id: 'MLB_2026-09-04_e401816801', espn_event_id: '401816801' }),
+               row({ id: 'MLB_2026-09-04_angels_yankees', espn_event_id: '401816801' })]),
+   'ours-vs-ours');
+eq('dash outranks the doubleheader test',
+   population([row({ id: '2026-09-04-mlb-cle-det', espn_event_id: '401816801' }),
+               row({ id: 'MLB_2026-09-04_e401877193', espn_event_id: '401877193' })]),
+   'external-vs-ours');
+
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
-          + ` — 4 decision branches, 2 override paths (briefs, data loss), order-independence`);
+          + ` — 4 decision branches, 2 override paths, 3 populations, order-independence`);
 process.exit(failed ? 1 : 0);

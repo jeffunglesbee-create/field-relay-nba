@@ -52,6 +52,20 @@ const MUTATIONS = [
     replace: '      ? LOSS_BEARING.filter(([, has]) => has(staleRow) !== has(keepRow)).map(([f]) => f)',
     expect: 'a keeper richer than the stale row stays deletable' },
 
+  // A doubleheader read as a duplicate is how two real games become one.
+  { name: 'K9  the doubleheader test is dropped',
+    anchor: "  if (x.espn_event_id && y.espn_event_id && x.espn_event_id !== y.espn_event_id)\n    return 'two-real-games';",
+    replace: "  if (false)\n    return 'two-real-games';",
+    expect: 'two different ESPN ids are two real games' },
+
+  // Precedence: an external row that also differs by espn id must still read as
+  // external, or the population that CANNOT be fixed here gets filed under the
+  // one that can.
+  { name: 'K10 the doubleheader test outranks the external test',
+    anchor: "  if (idScheme(x.id) === 'dash' || idScheme(y.id) === 'dash') return 'external-vs-ours';",
+    replace: "  if (false) return 'external-vs-ours';",
+    expect: 'a dash-scheme sibling means the external writer' },
+
   { name: 'K6  two ESPN anchors silently pick the first',
     anchor: "    if (withEspn.length === 1)\n      return { verdict: 'KEEP_ESPN', keeper: withEspn[0].id,",
     replace: "    if (withEspn.length >= 1)\n      return { verdict: 'KEEP_ESPN', keeper: withEspn[0].id,",

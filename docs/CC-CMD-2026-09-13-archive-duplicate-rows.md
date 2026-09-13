@@ -17,8 +17,18 @@ coverage:    scanned 3237 of 3237 rows across 2 tables
 collisions:  197, over 3024 distinct join keys across 625 slates
 ```
 
-Every one is exactly 2 rows. **Every one is the same real game stored twice**,
-written by producers using four different id schemes:
+~~Every one is exactly 2 rows. **Every one is the same real game stored twice**,
+written by producers using four different id schemes:~~
+
+**CORRECTED 2026-09-13 by Task 1.** Both halves of that sentence are wrong.
+There are **two producers, not four** — this relay has exactly one INSERT path
+into these tables (`/archive/game`, minting three id shapes from one ternary) and
+one external writer that this repository cannot write from at all. And **one of
+the 197 is not a duplicate**: 2026-09-04 Guardians–Tigers is a doubleheader, two
+real games. The original table is kept below because the id-scheme counts in it
+are accurate; only the inference from scheme to producer was wrong.
+
+
 
 | n | id scheme A | id scheme B | example |
 |---:|---|---|---|
@@ -70,6 +80,56 @@ row loop in both.
    197 is a doubleheader, but the next collision might be, which is why the
    condition is stated as a count to be investigated, not a count to be zeroed
    by deletion reflex.
+
+## Task 1 and Task 2 — DONE 2026-09-13, read-only
+
+**Task 1. There are two producers, not four.** `INSERT INTO regular_season_games`
+and `INSERT INTO postseason_games` appear exactly twice in this repository, both
+inside `/archive/game`, both fed by one id ternary:
+
+```
+series_key ? `${sport}_${series_key}_${round}_${date}`
+           : isEspnEventId(source_id) ? `${sport}_${date}_e${source_id}`
+                                      : `${sport}_${date}_${idTail}`
+```
+
+The fourth shape — `2026-07-22-mls-atx-sea` — matches no branch. `src/d1-provenance.js`
+already establishes why: it is the **external writer's** shape, and Task 1 of
+`CC-CMD-2026-09-02-d1-write-provenance` enumerated all 285 `prepare()` sites (87
+writes) to prove no path here can produce it.
+
+Classified with that module's own `idScheme()`, not a restatement of it:
+
+| population | n | dates | what it is |
+|---|---:|---|---|
+| `external-vs-ours` | **99** | 2026-07-22 → 09-13, all MLS | one row dash-scheme; **in all 99 the stale row is the external one and the keeper is ours — zero exceptions** |
+| `ours-vs-ours`, series-key sibling | 82 | 2026-02-04 → 07-14, postseason MLS | residue of the 2026-07-15 id-scheme migration |
+| `ours-vs-ours`, espn-id sibling | 15 | 2026-09-02 → 09-04, MLB | residue of the 2026-09-01 numeric-espn upsert key |
+| `two-real-games` | 1 | 2026-09-04 MLB | a doubleheader |
+
+**So "converge the id schemes" is not available for half the population.** 99 of
+197 involve a writer this repository does not control. That was the decision this
+task existed to make, and the data makes it for us.
+
+**And read-time dedupe on `(sport, date, home, away)` is now ruled out too.** The
+2026-08-08 session scored it as the stronger option having found a null-team PGA
+hazard and no doubleheaders *in its window*. There is one: it would merge the two
+Guardians–Tigers games into a single row. The option dies on a case its own
+window could not see — the same shape of error as the probe scope in Task 0.
+
+**Task 2. The `FIFA World Cup 2026_` rows are not a second bug.** All 35 carry
+`league = MLS` and an `espn_event_id`, and **35 of 35 of those ids appear in the
+`UPDATE ... SET sport = league` list** in
+`outbox/soccer-league-mislabel-scope-2026-08-06T14-49-49-767Z.sql`. That file
+says why the id was left alone:
+
+> `id` deliberately untouched (analytics-engine.js JOINs briefs.game_id against g.id)
+
+So the `sport = MLS` column is the **corrected** value and the FIFA prefix in the
+id is inert text from before the correction. Nothing to fix; the first hypothesis
+here — that the sport column was wrong — was checked against
+`canonicalizeBriefSport`, which maps `FIFA World Cup 2026` to `FIFA World Cup`
+and never to `MLS`, and was refuted.
 
 ## Tasks
 
