@@ -15166,6 +15166,9 @@ export default {
             // Added to answer one question by command instead of by deduction:
             // do the 68 MLB rows named `Tigers` (-> hullcity) carry odds?
             const keyFilter = url.searchParams.get('key');
+            // Narrows the reported gap list only — never the scan, so the row
+            // totals stay whole-archive and cannot be mistaken for a window.
+            const gapsSince = url.searchParams.get('gaps_since');
             // Bounded so a grown archive degrades into a reported partial read
             // rather than a timeout. `complete` per table is the Rule 91
             // denominator and is never inferred from a row count.
@@ -15191,6 +15194,8 @@ export default {
             // and their qualifying rounds...), so `Brighton` appearing under both
             // EPL and Europa Conference qualifying is one club in two competitions,
             // not two clubs. Derived from SOCCER_LEAGUE_LABELS, not relisted.
+            const gaps = {};
+            let gapRows = 0;
             const keyOwners = new Map();
             // CASE-INSENSITIVE, because `wnba` and `WNBA` are BOTH real archive
             // labels — canonicalizeBriefSport deliberately leaves the lowercase
@@ -15229,11 +15234,11 @@ export default {
                     const pRes = await d1AllOrError(
                         sportFilter
                             ? env.ARCHIVE_DB.prepare(
-                                `SELECT id, sport, home, away, opening_odds, closing_odds
+                                `SELECT id, sport, date, home, away, opening_odds, closing_odds
                                    FROM ${table} WHERE sport = ? ORDER BY id LIMIT ? OFFSET ?`
                               ).bind(sportFilter, want, scanned)
                             : env.ARCHIVE_DB.prepare(
-                                `SELECT id, sport, home, away, opening_odds, closing_odds
+                                `SELECT id, sport, date, home, away, opening_odds, closing_odds
                                    FROM ${table} ORDER BY id LIMIT ? OFFSET ?`
                               ).bind(want, scanned),
                         `substitution-census page ${table}`);
@@ -15241,6 +15246,18 @@ export default {
                     const rows = pRes.results || [];
                     for (const row of rows) {
                         const sport = row.sport || '(null sport)';
+                        // ODDS GAPS BY (date, sport) — the historical backfill's own
+                        // input, read-only. runOddsBackfillForDate fetches ONE
+                        // historical payload per sport per date at ~30 credits a
+                        // call, so running it across a date range blind can cost
+                        // thousands. This says exactly which (date, sport) pairs
+                        // have anything to fill, so the spend is known before it
+                        // is made rather than discovered from the budget after.
+                        if (row.opening_odds == null) {
+                            const g = gaps[row.date] || (gaps[row.date] = {});
+                            g[sport] = (g[sport] || 0) + 1;
+                            gapRows++;
+                        }
                         const e = bySport[sport] || (bySport[sport] = {
                             rows: 0, rows_unnamed: 0,
                             substituted_rows: 0, substituted_sides: 0,
@@ -15376,6 +15393,11 @@ export default {
                     has_opening_odds: r.hasOpening, has_closing_odds: r.hasClosing,
                 });
             }
+            const gapsOut = {};
+            for (const d of Object.keys(gaps).sort()) {
+                if (gapsSince && d < gapsSince) continue;
+                gapsOut[d] = gaps[d];
+            }
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
@@ -15412,6 +15434,12 @@ export default {
                 // Present and null when unfiltered, so a narrowed row list cannot
                 // be read as every row.
                 key_filter: keyFilter || null,
+                // Every (date, sport) with at least one NULL-odds row, and the
+                // row count. `?gaps_since=YYYY-MM-DD` narrows it; the totals
+                // above always cover the whole archive either way.
+                odds_gaps: gapsOut,
+                odds_gap_rows: gapRows,
+                odds_gaps_since: gapsSince || null,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }

@@ -160,6 +160,19 @@ if (!census) {
     eq('E every row is kept for classification, not only substituted ones',
        /for \(const r of allRows\)/.test(body), true);
     eq('E census always carries key_filter', /key_filter:\s*keyFilter \|\| null/.test(body), true);
+    // The gap list is the historical backfill's own input and each (date, sport)
+    // it names costs ~30 Odds credits to fill. It must be derived from the SCAN,
+    // never from a narrowed query, or a spend plan would be built from a window
+    // mistaken for the archive.
+    eq('E odds gaps are counted during the whole-archive scan',
+       /if \(row\.opening_odds == null\) \{/.test(body), true);
+    eq('E the gap filter narrows the report, not the scan',
+       /if \(gapsSince && d < gapsSince\) continue;/.test(body), true);
+    eq('E census always carries odds_gaps_since',
+       /odds_gaps_since:\s*gapsSince \|\| null/.test(body), true);
+    // date must be selected, or every gap lands under `undefined`.
+    eq('E the scan selects the date column',
+       (body.match(/SELECT id, sport, date, home, away/g) || []).length, 2);
 
     ok('E (classification behaviour is proven by the committed live response, not here)');
 
