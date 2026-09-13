@@ -1,0 +1,311 @@
+{
+  "checked_at": "2026-09-13T13:15:26.543844+00:00",
+  "coverage": "scanned 3237 of 3237 rows across 2 tables",
+  "complete": true,
+  "conditions": [
+    {
+      "name": "hullcity claimed by one family",
+      "met": true,
+      "observed": "one family"
+    },
+    {
+      "name": "CFB substituted_rows == 0",
+      "met": false,
+      "observed": 14
+    },
+    {
+      "name": "NFL substituted_rows == 0",
+      "met": false,
+      "observed": 8
+    },
+    {
+      "name": "ambiguous_key_count == 0",
+      "met": false,
+      "observed": 11
+    }
+  ],
+  "totals": {
+    "rows_total": 3237,
+    "rows_scanned": 3237,
+    "rows_unnamed": 16,
+    "substituted_rows": 1569,
+    "substituted_sides": 2777,
+    "substituted_with_opening_odds": 1240,
+    "substituted_with_closing_odds": 1147,
+    "ambiguous_key_count": 11,
+    "ambiguous_rows": 573,
+    "ambiguous_rows_with_odds": 323
+  },
+  "ambiguous_keys": [
+    {
+      "key": "charlottefc",
+      "families": {
+        "soccer": {
+          "rows": 43,
+          "names": [
+            "Charlotte",
+            "Charlotte FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Charlotte"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "coloradorapids",
+      "families": {
+        "soccer": {
+          "rows": 50,
+          "names": [
+            "Colorado",
+            "Colorado Rapids"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Colorado"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "fccincinnati",
+      "families": {
+        "soccer": {
+          "rows": 46,
+          "names": [
+            "Cincinnati",
+            "FC Cincinnati"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Cincinnati"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "houstondynamofc",
+      "families": {
+        "soccer": {
+          "rows": 52,
+          "names": [
+            "Houston",
+            "Houston Dynamo FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Houston"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "intermiamicf",
+      "families": {
+        "soccer": {
+          "rows": 45,
+          "names": [
+            "Inter Miami CF",
+            "Miami"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Miami"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "minnesotaunitedfc",
+      "families": {
+        "soccer": {
+          "rows": 50,
+          "names": [
+            "Minnesota",
+            "Minnesota United FC"
+          ],
+          "sports": [
+            "MLS"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Minnesota"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "newyorkliberty",
+      "families": {
+        "WNBA": {
+          "rows": 35,
+          "names": [
+            "Liberty",
+            "New York Liberty"
+          ],
+          "sports": [
+            "WNBA",
+            "wnba"
+          ]
+        },
+        "CFB": {
+          "rows": 2,
+          "names": [
+            "Liberty"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "richmond",
+      "families": {
+        "AFL": {
+          "rows": 16,
+          "names": [
+            "Richmond"
+          ],
+          "sports": [
+            "AFL"
+          ]
+        },
+        "CFB": {
+          "rows": 1,
+          "names": [
+            "Richmond"
+          ],
+          "sports": [
+            "CFB"
+          ]
+        }
+      }
+    },
+    {
+      "key": "sanfranciscogiants",
+      "families": {
+        "MLB": {
+          "rows": 77,
+          "names": [
+            "Giants",
+            "San Francisco Giants"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "NFL": {
+          "rows": 4,
+          "names": [
+            "Giants"
+          ],
+          "sports": [
+            "NFL"
+          ]
+        }
+      }
+    },
+    {
+      "key": "stlouiscardinals",
+      "families": {
+        "MLB": {
+          "rows": 77,
+          "names": [
+            "Cardinals",
+            "St. Louis Cardinals"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "NFL": {
+          "rows": 4,
+          "names": [
+            "Cardinals"
+          ],
+          "sports": [
+            "NFL"
+          ]
+        }
+      }
+    },
+    {
+      "key": "texasrangers",
+      "families": {
+        "MLB": {
+          "rows": 79,
+          "names": [
+            "Rangers",
+            "Texas Rangers"
+          ],
+          "sports": [
+            "MLB"
+          ]
+        },
+        "soccer": {
+          "rows": 2,
+          "names": [
+            "Rangers"
+          ],
+          "sports": [
+            "UEFA Europa Conference League Qualifying"
+          ]
+        }
+      }
+    }
+  ],
+  "all_done": false,
+  "cc_cmds": [
+    "docs/CC-CMD-2026-09-13-team-key-sport-blind.md",
+    "docs/CC-CMD-2026-09-13-alias-table-silent-overwrite.md",
+    "docs/CC-CMD-2026-09-11-odds-identity-join-cfb.md"
+  ]
+}
