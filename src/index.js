@@ -15533,6 +15533,78 @@ export default {
                                            rows: rows.length, games: rows });
                 }
             }
+            // DECISION COLUMNS FOR COLLIDING ROWS ONLY.
+            //
+            // Deliberately not widened into the page SELECT above: that runs over
+            // every row of the archive on every call, including this endpoint's
+            // six-hourly watch, and 3237 rows do not need score/venue columns to
+            // answer the ambiguity questions. The collision set is a few hundred
+            // rows at most, so it gets its own targeted read.
+            //
+            // `SELECT *` on purpose. regular_season_games and postseason_games do
+            // NOT carry the same columns — series_key/round/game_number exist only
+            // on the postseason table, and finalized_at is added at runtime by
+            // ensureFinalizedAtColumn — so a hand-written column list is a SQL
+            // error waiting for whichever table it was not written against. The
+            // odds blobs are dropped in JS rather than left out of the query, so
+            // the projection below is the only place the field set is decided.
+            const COLLISION_FIELDS = ['id', 'sport', 'league', 'date', 'home', 'away',
+                                      'home_score', 'away_score', 'finalized_at',
+                                      'espn_event_id', 'start_time', 'venue',
+                                      'series_key', 'round', 'game_number'];
+            const collisionIds = [];
+            for (const c of slateCollisions) for (const g of c.games) collisionIds.push(g.id);
+            const detailById = new Map();
+            let detailError = null;
+            if (collisionIds.length) {
+                for (const table of CENSUS_TABLES) {
+                    for (let i = 0; i < collisionIds.length; i += 100) {
+                        const chunk = collisionIds.slice(i, i + 100);
+                        const q = await d1AllOrError(
+                            env.ARCHIVE_DB.prepare(
+                                `SELECT * FROM ${table} WHERE id IN (${chunk.map(() => '?').join(',')})`
+                            ).bind(...chunk),
+                            `collision detail ${table}`);
+                        if (q.error) { detailError = q.error; break; }
+                        for (const r of (q.results || [])) {
+                            const out = { _table: table };
+                            for (const f of COLLISION_FIELDS) if (f in r) out[f] = r[f];
+                            out.has_opening_odds = r.opening_odds != null;
+                            out.has_closing_odds = r.closing_odds != null;
+                            detailById.set(r.id, out);
+                        }
+                    }
+                    if (detailError) break;
+                }
+            }
+            // JOIN SAFETY. The 2026-08-09 cleanup gated its DELETE on this exact
+            // question — does any brief reference the row about to be removed —
+            // because briefs.game_id joins games.id in src/analytics-engine.js.
+            // Reported here so the answer travels with the collision list instead
+            // of having to be asked again by whoever acts on it.
+            const briefRefs = {};
+            if (collisionIds.length && !detailError) {
+                for (let i = 0; i < collisionIds.length; i += 100) {
+                    const chunk = collisionIds.slice(i, i + 100);
+                    const q = await d1AllOrError(
+                        env.ARCHIVE_DB.prepare(
+                            `SELECT game_id, COUNT(*) AS n FROM briefs
+                              WHERE game_id IN (${chunk.map(() => '?').join(',')})
+                              GROUP BY game_id`
+                        ).bind(...chunk),
+                        'collision brief refs');
+                    if (q.error) { detailError = q.error; break; }
+                    for (const r of (q.results || [])) briefRefs[r.game_id] = r.n;
+                }
+            }
+            for (const c of slateCollisions) {
+                c.games = c.games.map(g => ({
+                    ...g,
+                    ...(detailById.get(g.id) || {}),
+                    // 0, not absent, when the lookup ran and found none (Rule 99).
+                    briefs_referencing: detailError ? null : (briefRefs[g.id] || 0),
+                }));
+            }
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
@@ -15618,6 +15690,11 @@ export default {
                     `checked ${pairsScanned} distinct join keys across `
                     + `${slatesScanned} (table, date, sport) slates`,
                 same_slate_pair_collisions: slateCollisions.length,
+                // null when the detail reads succeeded. A string here means every
+                // `briefs_referencing` in the list below is null and no deletion
+                // decision may be made from this response (Rule 99 — a failed read
+                // must not read as "no briefs reference it").
+                same_slate_pair_detail_error: detailError,
                 same_slate_pair_colliding: slateCollisions,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });

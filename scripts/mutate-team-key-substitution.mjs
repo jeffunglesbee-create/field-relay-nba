@@ -140,6 +140,15 @@ const MUTATIONS = [
     anchor: "env.ARCHIVE_DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`)",
     replace: "env.ARCHIVE_DB.prepare(`UPDATE ${table} SET sport = sport`)",
     expect: 'F census contains no UPDATE' },
+
+  // The read-only guard now decomments before matching, because the route's own
+  // comments describe a DELETE. This proves decommenting did not defang it: a
+  // real DELETE in executable code must still be caught.
+  { file: INDEX,
+    name: 'M12 a real DELETE in the census survives the decomment',
+    anchor: "                            `SELECT * FROM ${table} WHERE id IN (${chunk.map(() => '?').join(',')})`",
+    replace: "                            `DELETE FROM ${table} WHERE id IN (${chunk.map(() => '?').join(',')})`",
+    expect: 'F census contains no DELETE' },
 ];
 
 let bad = 0;

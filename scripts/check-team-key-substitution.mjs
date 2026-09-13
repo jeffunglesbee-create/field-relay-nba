@@ -199,11 +199,23 @@ if (!census) {
     // ── F. the census is read-only ─────────────────────────────────────────
     // It exists to inform a backfill DECISION. A live mutation of archive rows
     // is the user's call, case by case, and is never wired into a diagnostic.
+    // DECOMMENTED FIRST, and the reason is a defect this very check produced
+    // twice. The route's comments explain what it must not do, and explaining a
+    // DELETE reads identically to performing one when the haystack is raw
+    // source: the sibling assertion "census spends no Odds-API credit" went red
+    // on prose about `captured_at`, and this one went red on a comment citing
+    // the 2026-08-09 cleanup's DELETE gate. A checker that cannot tell code from
+    // writing about code will eventually block a correct change.
+    //
+    // It does not weaken the guard — decomment() drops comment LINES only, so a
+    // real write verb in executable code is still matched. Mutation M12 pushes a
+    // genuine DELETE into the route and must go red.
+    const code = decomment(body);
     for (const verb of ['UPDATE ', 'INSERT ', 'DELETE ', 'DROP ', 'ALTER ']) {
-        eq(`F census contains no ${verb.trim()}`, body.includes(verb), false);
+        eq(`F census contains no ${verb.trim()}`, code.includes(verb), false);
     }
     eq('F census calls no write helper',
-       /\b(reconcile|recordD1Write)\s*\(/.test(body), false);
+       /\b(reconcile|recordD1Write)\s*\(/.test(code), false);
 }
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
