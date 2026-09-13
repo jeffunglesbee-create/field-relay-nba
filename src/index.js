@@ -15178,6 +15178,10 @@ export default {
             // first live run had 1225 and showed 100 (Rule 99).
             const EXAMPLE_CAP = 100;
             let examplesTotal = 0;
+            // Per-sport resolved-key sets, and every substituted row kept so the
+            // cross-sport classification can run after all sports are seen.
+            const keySetBySport = new Map();
+            const substitutedRows = [];
             const totals = {
                 rows_total: 0, rows_scanned: 0, rows_unnamed: 0,
                 substituted_rows: 0, substituted_sides: 0,
@@ -15219,12 +15223,25 @@ export default {
                             substituted_rows: 0, substituted_sides: 0,
                             substituted_with_opening_odds: 0,
                             substituted_with_closing_odds: 0,
+                            cross_sport_rows: 0,
                             keys: {},
                         });
                         e.rows++;
                         if (!row.home || !row.away) { e.rows_unnamed++; totals.rows_unnamed++; }
+                        // Every key this sport produces, substituted or not. This is
+                        // the set the cross-sport pass below compares against, and it
+                        // is why that classification costs no Odds-API call:
+                        // /identity/mismatches needs a vendor response to know that
+                        // coloradorapids is an MLS side, but the archive already
+                        // contains MLS rows that say so.
+                        const ks = keySetBySport.get(sport) || keySetBySport.set(sport, new Set()).get(sport);
+                        const hResolved = resolveTeamKey(row.home), aResolved = resolveTeamKey(row.away);
+                        if (hResolved) ks.add(hResolved);
+                        if (aResolved) ks.add(aResolved);
                         const hk = substitutedKey(row.home), ak = substitutedKey(row.away);
                         if (!hk && !ak) continue;
+                        substitutedRows.push({ sport, table, id: row.id, home: row.home, away: row.away, hk, ak,
+                                               hasOpening: row.opening_odds != null, hasClosing: row.closing_odds != null });
                         const sides = (hk ? 1 : 0) + (ak ? 1 : 0);
                         e.substituted_rows++; e.substituted_sides += sides;
                         totals.substituted_rows++; totals.substituted_sides += sides;
@@ -15260,6 +15277,45 @@ export default {
                 totals.rows_scanned += scanned;
                 tables[table] = { rows_total: rowsTotal, rows_scanned: scanned, complete };
             }
+            // CLASSIFY. A key that is not its own name is two different things:
+            //
+            //   BENIGN  a correct within-sport alias. MLB `Braves` ->
+            //           atlantabraves, EPL `Spurs` -> tottenhamhotspur.
+            //   SUSPECT the key names a team in a DIFFERENT sport. MLB `Tigers`
+            //           -> hullcity is Detroit resolving to an English club that
+            //           shares the nickname; CFB `Colorado` -> coloradorapids is
+            //           a school resolving to an MLS side.
+            //
+            // Same vocabulary as /identity/mismatches (`also_in`), and the same
+            // Rule 99 position: a sport whose key set is the only one scanned has
+            // nothing to compare against, so also_in is [] and the row stays
+            // unclassified rather than being called benign by default.
+            const totalsCross = { cross_sport_rows: 0, cross_sport_with_odds: 0 };
+            const crossRows = [];
+            for (const r of substitutedRows) {
+                const alsoIn = (k) => {
+                    if (!k) return [];
+                    const out = [];
+                    for (const [other, keys] of keySetBySport) {
+                        if (other !== r.sport && keys.has(k)) out.push(other);
+                    }
+                    return out;
+                };
+                const hIn = alsoIn(r.hk), aIn = alsoIn(r.ak);
+                if (!hIn.length && !aIn.length) continue;
+                const e = bySport[r.sport];
+                if (e) e.cross_sport_rows++;
+                totalsCross.cross_sport_rows++;
+                const withOdds = r.hasOpening || r.hasClosing;
+                if (withOdds) totalsCross.cross_sport_with_odds++;
+                crossRows.push({
+                    table: r.table, id: r.id, sport: r.sport,
+                    home: r.home, away: r.away,
+                    home_key: r.hk, home_key_also_in: hIn,
+                    away_key: r.ak, away_key_also_in: aIn,
+                    has_opening_odds: r.hasOpening, has_closing_odds: r.hasClosing,
+                });
+            }
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
@@ -15270,7 +15326,14 @@ export default {
                         + `across ${CENSUS_TABLES.length} tables`
                         + (sportFilter ? ` (sport=${sportFilter} only)` : ''),
                 complete: allComplete,
-                tables, totals,
+                tables,
+                totals: { ...totals, ...totalsCross },
+                // The sports whose key sets were available to compare against.
+                // A one-sport scan can classify nothing, and says so here.
+                sports_compared: [...keySetBySport.keys()],
+                // Every cross-sport row, uncapped — this is the list the fix is
+                // aimed at and it is small enough to print whole.
+                cross_sport_rows: crossRows,
                 by_sport: bySport,
                 // [] means checked and none; the field is never absent when the
                 // scan ran, so a reader cannot mistake "none found" for "not

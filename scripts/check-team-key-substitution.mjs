@@ -100,6 +100,25 @@ if (!census) {
     // sport_filter is present and null when unfiltered, so a one-sport scan
     // cannot be read as the whole archive.
     eq('E census always carries sport_filter', /sport_filter:\s*sportFilter \|\| null/.test(body), true);
+    // The cross-sport classification is derived from the archive's own rows,
+    // not from a vendor response — that is what makes it free. If it ever
+    // reached for fetchSportOddsLive it would cost a credit per sport.
+    eq('E census classifies from its own key sets', /keySetBySport/.test(body), true);
+    eq('E census spends no Odds-API credit', /fetchSportOdds/.test(body), false);
+    eq('E census reports which sports it could compare',
+       /sports_compared:\s*\[\.\.\.keySetBySport\.keys\(\)\]/.test(body), true);
+    // The cross-sport list is the one the fix is aimed at. Unlike the
+    // odds-carrying list it is NOT capped, and must not become so silently.
+    eq('E cross-sport rows are uncapped',
+       /cross_sport_rows:\s*crossRows,/.test(body) && !/crossRows\.slice/.test(body), true);
+
+    // BEHAVIOURAL PROOF LIVES ELSEWHERE, and saying so here is the point.
+    // These four assertions read the source. They would all still pass if
+    // alsoIn() returned [] for every key — a source check cannot see that.
+    // The classification is proven instead by the committed live response in
+    // outbox/, which must contain a named row whose also_in is non-empty
+    // (Rule 89: the artifact, not the action).
+    ok('E (classification behaviour is proven by the committed live response, not here)');
 
     // ── F. the census is read-only ─────────────────────────────────────────
     // It exists to inform a backfill DECISION. A live mutation of archive rows
