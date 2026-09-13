@@ -336,6 +336,17 @@ jobs:
           node scripts/check-ambiguous-team-identity.mjs
           node scripts/mutate-ambiguous-team-identity.mjs
 
+      # The guard that should have caught `Tigers` asserted over a curated list
+      # that `Tigers` was not on. This reads every pair in every identity table
+      # instead — 333 of them — because a hand-written sample cannot find the
+      # collision it was not told to look for. Only the team table records an
+      # ambiguity; the other four still fold last-write-wins, so for them a
+      # collision has no mechanism behind it and must never ship.
+      - name: no identity table silently overwrites its own key
+        run: |
+          node scripts/check-identity-table-collisions.mjs
+          node scripts/mutate-identity-table-collisions.mjs
+
       # Layer 2f: a brief must never quote a number that exists only as an
       # example in the style rules. Two live EPL briefs did on 2026-08-22.
       - name: prompt-example numbers cannot leak into prose
