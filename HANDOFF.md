@@ -1,5 +1,35 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-13 (a partial route parse now says so)
+
+**HEAD:** `e30a276` → `5fa598d` · **Branch:** main throughout
+**Session doc:** `outbox/cc-session-2026-09-13-route-provenance-truncation.md`
+
+**CLOSED:** `CC-CMD-2026-09-12-route-provenance-truncation-invisible`
+**FILED:** `CC-CMD-2026-09-13-route-scan-brace-balance-defeated`
+
+`bodyOf` set `truncated: true` correctly and nothing downstream read it, so a
+partial parse and a complete one landed in the manifest identically — Rule 99
+inside the provenance instrument itself. Now carried through the merge and
+emitted as `t: 1`, with the gate re-deriving truncation from the scanner rather
+than trusting the committed file:
+`ok every partial read says so (scanner 2, manifest 2, of 189 entries)`.
+
+**2 of 225 routes truncate:** `/archive/` and `/mcp`. Four mutations break the
+set / carry / emit wiring at each point; all caught.
+
+**Raising `WINDOW` is strictly worse, measured:** 1500 → 2 truncated, 3000 → 1,
+6000 → 1, 12000 → 0 — but at 12000 `/archive/` claims **50 hosts** (ATP, WHOOP,
+Dropbox, Wikimedia, Bundesliga, every upstream in the worker; it fetches ~5) and
+loses its `t: 1`. Under-reporting-and-flagged becomes
+over-reporting-and-confident, on a value stamped onto live responses. WONTDO.
+
+A block needing 12,000 lines to balance is not a 12,000-line block — the brace
+counter is being defeated. Filed with a Task 0 that must print the line numbers
+where depth crosses back above zero before anyone reaches for a fix; the
+"it's the string literals" hypothesis is explicitly not claimed.
+
+
 ## SESSION CLOSE-OUT — 2026-09-13 (AmbientDO's swallowed alarm; two CC-CMDs close together)
 
 **HEAD:** `af260f9` → `6089766` · **Branch:** main throughout

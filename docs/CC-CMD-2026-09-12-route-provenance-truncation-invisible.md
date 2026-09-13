@@ -1,5 +1,32 @@
 # CC-CMD-2026-09-12 — a truncated route parse is indistinguishable from a complete one
 
+**STATUS: CLOSED 2026-09-13** (`5fa598d`). Tasks 0, 1, 3, 4 done. **Task 2
+answered WONTDO on evidence** and its root cause filed as
+`CC-CMD-2026-09-13-route-scan-brace-balance-defeated.md`.
+
+- **Task 0:** 2 of 225 routes truncate — `/archive/` and `/mcp`. This document
+  said not to assume `/archive/` was the only one; `/mcp` is the second.
+- **Task 1:** the flag is carried through the merge and emitted as `t: 1`,
+  sticky across merges. The builder prints the partial reads **by name** beside
+  the count.
+- **Task 4 gate:** `check-route-provenance.mjs` re-derives truncation from the
+  scanner rather than trusting the committed file —
+  `ok every partial read says so (scanner 2, manifest 2, of 189 entries)`.
+- **Task 3:** four mutations breaking the set / carry / emit wiring at each
+  point, plus a forced truncation at `WINDOW=200`. All caught.
+
+**Task 2 — raising `WINDOW` is strictly worse, measured:** 1500 → 2 truncated,
+3000 → 1, 6000 → 1, 12000 → 0. But at 12000 `/archive/` claims **50 hosts** —
+ATP, WHOOP, Dropbox, Wikimedia, Bundesliga, every upstream in the worker — and
+loses its `t: 1`. Under-reporting-and-flagged becomes
+over-reporting-and-confident, on a value stamped onto live responses. This
+document predicted the shape (*"changes which routes are wrong without making
+any of them say so"*); the measurement is worse than the prediction.
+
+Session doc: `outbox/cc-session-2026-09-13-route-provenance-truncation.md`.
+
+---
+
 Rule 87.4 successor, raised while regenerating the route-provenance manifest
 after `CC-CMD-2026-09-12-catch-collapse-routes`.
 
