@@ -15198,7 +15198,19 @@ export default {
             // EPL and Europa Conference qualifying is one club in two competitions,
             // not two clubs. Derived from SOCCER_LEAGUE_LABELS, not relisted.
             const keyOwners = new Map();
-            const sportFamily = (sp) => SOCCER_SPORT_LABEL_SET.has(sp) ? 'soccer' : sp;
+            // CASE-INSENSITIVE, because `wnba` and `WNBA` are BOTH real archive
+            // labels — canonicalizeBriefSport deliberately leaves the lowercase
+            // ones alone (live joins depend on them), so this function cannot
+            // borrow it. Without the uppercase, `Aces` under WNBA and
+            // `Las Vegas Aces` under wnba are two families claiming one key and
+            // every WNBA club reads as ambiguous.
+            //
+            // `golf` and `PGA Tour` are also one sport under two labels and are
+            // NOT merged here. Measured 2026-09-13: PGA Tour's 14 rows have no
+            // team names at all (rows_unnamed 14), so the two cannot collide and
+            // a rule for them would be untestable. If PGA Tour ever carries
+            // names, this needs a real label-family map rather than a case fold.
+            const sportFamily = (sp) => SOCCER_SPORT_LABEL_SET.has(sp) ? 'soccer' : String(sp).toUpperCase();
             const totals = {
                 rows_total: 0, rows_scanned: 0, rows_unnamed: 0,
                 substituted_rows: 0, substituted_sides: 0,

@@ -131,6 +131,10 @@ if (!census) {
     // Brighton is also in EPL — the same club in another competition.
     eq('E soccer competitions count as one family',
        /sportFamily = \(sp\) => SOCCER_SPORT_LABEL_SET\.has\(sp\)/.test(body), true);
+    // `wnba` and `WNBA` are both real archive labels; without a case fold every
+    // WNBA club reads as two families claiming one key.
+    eq('E labels differing only by case are one family',
+       /String\(sp\)\.toUpperCase\(\)/.test(body), true);
     // AMBIGUITY, NOT VERDICT. This census compares against the ARCHIVE's own key
     // sets, which the substitutions themselves pollute — CFB's wrong row and
     // MLS's correct one each make the other look cross-sport. The data supports
