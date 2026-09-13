@@ -349,6 +349,18 @@ jobs:
           node scripts/check-sport-blind-resolution.mjs
           node scripts/mutate-sport-blind-resolution.mjs
 
+      # The 11 keys the census reports as claimed by two sport families are facts
+      # about how sport names teams — Richmond is an AFL club and a CFB
+      # programme, Giants are MLB and NFL — and no edit to this repo can zero
+      # them. They are inert for one reason only: all three odds writers fetch
+      # the payload for the ROW'S OWN sport, so a CFB row is never offered an MLS
+      # response. That protection lives in three SELECT/dispatch shapes a fourth
+      # writer could fail to copy, and nothing was holding it. This is it.
+      - name: every odds writer fetches its own sport's payload
+        run: |
+          node scripts/check-odds-writers-sport-scoped.mjs
+          node scripts/mutate-odds-writers-sport-scoped.mjs
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the

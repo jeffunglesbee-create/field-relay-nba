@@ -15232,6 +15232,10 @@ export default {
             // substituted. The cross-sport reach probe below is run over
             // exactly this set, so its denominator is measured, not chosen.
             const substitutedNames = new Map();
+            // slate -> pair key -> the rows that produce it. See the comment at
+            // the push site for why this, and not ambiguous_key_count, is the
+            // ambiguity question that can actually be answered and acted on.
+            const slatePairs = new Map();
             const tables = {};
             for (const table of CENSUS_TABLES) {
                 const cRes = await d1AllOrError(
@@ -15316,6 +15320,35 @@ export default {
                         // contains MLS rows that say so.
                         const ks = keySetBySport.get(sport) || keySetBySport.set(sport, new Set()).get(sport);
                         const hResolved = resolveTeamKey(row.home), aResolved = resolveTeamKey(row.away);
+                        // SAME-SLATE PAIR COLLISION — the one way an ambiguous key
+                        // can still do harm, and the only ambiguity question that
+                        // is both reachable and answerable from the archive alone.
+                        //
+                        // The join is `byPair.get(`${hk}|${ak}`)`. If two rows in
+                        // the SAME (table, date, sport) produce the same pair key,
+                        // they are indistinguishable to it BEFORE any payload is
+                        // consulted, and one vendor game satisfies both. That is a
+                        // false fact, not a missing one.
+                        //
+                        // WHY THIS IS THE RIGHT QUESTION AND `ambiguous_key_count`
+                        // IS NOT. All 11 ambiguous keys are CROSS-sport, and all
+                        // three odds writers fetch the payload for the ROW'S OWN
+                        // sport — snapshotCronOdds selects `WHERE date=? AND
+                        // sport=?`, runOddsBackfillForDate buckets rows through
+                        // archiveSportToOddsKey before fetching, /archive/game
+                        // resolves that one game's key. A CFB row is never offered
+                        // an MLS payload, so cross-sport ambiguity cannot reach a
+                        // join however the alias table is shaped. WITHIN one slate
+                        // there is no such protection, and nothing had ever asked.
+                        const slateKey = `${table}|${row.date}|${sport}`;
+                        const pairKey = `${hResolved}|${aResolved}`;
+                        if (hResolved && aResolved) {
+                            const sl = slatePairs.get(slateKey) || slatePairs.set(slateKey, new Map()).get(slateKey);
+                            (sl.get(pairKey) || sl.set(pairKey, []).get(pairKey))
+                                .push({ id: row.id, home: row.home, away: row.away,
+                                        has_opening_odds: row.opening_odds != null,
+                                        has_closing_odds: row.closing_odds != null });
+                        }
                         for (const [nm, k] of [[row.home, hResolved], [row.away, aResolved]]) {
                             if (!k) continue;
                             ks.add(k);
@@ -15486,6 +15519,20 @@ export default {
                 });
             }
             const reachFailures = crossSportReach.filter(r => !r.ok);
+            // Every slate where two rows share one join key. Uncapped and fully
+            // named: this list is either empty or it is a bug report.
+            const slateCollisions = [];
+            let slatesScanned = 0, pairsScanned = 0;
+            for (const [slateKey, pairs] of slatePairs) {
+                slatesScanned++;
+                for (const [pairKey, rows] of pairs) {
+                    pairsScanned++;
+                    if (rows.length < 2) continue;
+                    const [table, date, sport] = slateKey.split('|');
+                    slateCollisions.push({ table, date, sport, pair_key: pairKey,
+                                           rows: rows.length, games: rows });
+                }
+            }
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
@@ -15560,6 +15607,18 @@ export default {
                 cross_sport_reach_shown: Math.min(crossSportReach.length, 50),
                 cross_sport_reach_omitted: Math.max(0, crossSportReach.length - 50),
                 cross_sport_reach: crossSportReach.slice(0, 50),
+                // SAME-SLATE PAIR COLLISIONS. `ambiguous_key_count` counts keys
+                // claimed by two SPORT FAMILIES, which no writer can act on
+                // (each fetches the payload for the row's own sport) and which
+                // no code change can zero — Richmond is an AFL club and a CFB
+                // programme, Giants are MLB and NFL. It is a fact about the
+                // world, reported as a readout. THIS is the reachable one: two
+                // rows on one slate that the join cannot tell apart.
+                same_slate_pair_collision_coverage:
+                    `checked ${pairsScanned} distinct join keys across `
+                    + `${slatesScanned} (table, date, sport) slates`,
+                same_slate_pair_collisions: slateCollisions.length,
+                same_slate_pair_colliding: slateCollisions,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
