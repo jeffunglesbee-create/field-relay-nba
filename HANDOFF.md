@@ -1,5 +1,55 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-13 (AmbientDO's swallowed alarm; two CC-CMDs close together)
+
+**HEAD:** `af260f9` → `6089766` · **Branch:** main throughout
+**Session doc:** `outbox/cc-session-2026-09-13-ambient-alarm-and-catch-collapse.md`
+
+**CLOSED:** `CC-CMD-2026-09-12-catch-collapse-routes` ·
+`CC-CMD-2026-09-12-ambient-do-setalarm-swallowed`
+
+Done condition for both, and the artifact:
+
+```
+check-absence-collapse.mjs . --json
+catch-collapse under src/ (unsuppressed): 0     (was 1)
+suppressed total: 18
+```
+
+`ambient-do.js` is **clean, not suppressed** — the CC-CMD asked for that
+explicitly, since *"suppressing a known concern to make a count go down is the
+failure this whole rule exists to prevent."*
+
+**The seven routes were already fixed and unclosed.** Verified at HEAD:
+`d1AllOrError(stmt, label)` returns `{results, error}` with `results` null on
+failure, callers branch on `error` never `results.length`, failed reads answer
+HTTP 503 `{ok:false, error:'query_failed'}`. Its last blocking finding belonged
+to the *other* CC-CMD by its own Rule 87.4 split.
+
+**AmbientDO:** `_scheduleAlarm` was `.catch(() => {})`, and `alarm()`'s only
+re-arm is that method — so a swallowed rejection stopped the cross-sport SSE
+poll with no log anywhere. Now logs the DO id and delay, then retries **exactly
+once**, bounded by a parameter rather than a timer or a loop.
+
+**Two corrections to that CC-CMD's own framing**, from tracing rather than
+repeating it: a dead instance IS re-armed by the next client connect (the second
+call site), so the window is "clients connected, alarm dead, nobody new
+arriving"; and the class is one instance — `bracket-do.js` and `user-do.js` call
+`setAlarm` nowhere, `game-do.js` awaits it unguarded so a rejection there
+propagates. Loud, not silent; left alone (Rule 69).
+
+**Three harness defects fixed before the mutation result was trusted:** the stub
+`this` lacked `_scheduleAlarm` so the retry path threw and the harness blamed
+the product; dropping the retry guard made the check HANG rather than fail,
+leaving the mutated file on disk (now bounded at 50 stub attempts, with a 20s
+timeout reporting caught-but-HUNG); and `logs.some(...)` passed with the delay
+deleted from the first line because the retry line also carried it — split
+per-line, since an assertion over a collection proves something weaker than what
+it was meant to say.
+
+11 assertions, 4 mutations, all caught. Both wired into `deploy.yml`.
+
+
 ## SESSION CLOSE-OUT — 2026-09-12 (the odds zero was an identity join, and eight routes lied about D1)
 
 **HEAD:** `9551b6d` → `cce2cd7` · **Branch:** main throughout
