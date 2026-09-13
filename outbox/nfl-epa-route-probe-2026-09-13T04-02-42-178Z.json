@@ -1,0 +1,212 @@
+{
+  "probed_at": "2026-09-13T04:02:42.577Z",
+  "game": {
+    "id": "401872657",
+    "name": "San Francisco 49ers at Los Angeles Rams",
+    "date": "20260910",
+    "state": "post"
+  },
+  "route": "https://field-relay-nba.jeffunglesbee.workers.dev/nfl/epa/plays?event=401872657",
+  "route_plays": 137,
+  "client_plays": 137,
+  "disagreements": 0,
+  "pairs": [
+    {
+      "i": 0,
+      "id": "40187265763",
+      "drive": 0,
+      "relay": -0.45,
+      "client": -0.45,
+      "agree": true
+    },
+    {
+      "i": 1,
+      "id": "40187265786",
+      "drive": 0,
+      "relay": -0.23,
+      "client": -0.23,
+      "agree": true
+    },
+    {
+      "i": 2,
+      "id": "401872657108",
+      "drive": 0,
+      "relay": -0.75,
+      "client": -0.75,
+      "agree": true
+    },
+    {
+      "i": 3,
+      "id": "401872657133",
+      "drive": 0,
+      "relay": -0.95,
+      "client": -0.95,
+      "agree": true
+    },
+    {
+      "i": 4,
+      "id": "401872657164",
+      "drive": 1,
+      "relay": 0.24,
+      "client": 0.24,
+      "agree": true
+    },
+    {
+      "i": 5,
+      "id": "401872657186",
+      "drive": 1,
+      "relay": -0.8,
+      "client": -0.8,
+      "agree": true
+    },
+    {
+      "i": 6,
+      "id": "401872657221",
+      "drive": 1,
+      "relay": 1.2,
+      "client": 1.2,
+      "agree": true
+    },
+    {
+      "i": 7,
+      "id": "401872657246",
+      "drive": 1,
+      "relay": 0.61,
+      "client": 0.61,
+      "agree": true
+    },
+    {
+      "i": 8,
+      "id": "401872657271",
+      "drive": 1,
+      "relay": 0.36,
+      "client": 0.36,
+      "agree": true
+    },
+    {
+      "i": 9,
+      "id": "401872657305",
+      "drive": 1,
+      "relay": -0.22,
+      "client": -0.22,
+      "agree": true
+    },
+    {
+      "i": 10,
+      "id": "401872657327",
+      "drive": 1,
+      "relay": 0.1,
+      "client": 0.1,
+      "agree": true
+    },
+    {
+      "i": 11,
+      "id": "401872657352",
+      "drive": 1,
+      "relay": 1.15,
+      "client": 1.15,
+      "agree": true
+    }
+  ],
+  "verdict": "ROUTE MATCHES CLIENT",
+  "trigger": "deploy",
+  "checks_passed": 19,
+  "checks_failed": 0,
+  "checks": [
+    {
+      "check": "the route returns 200",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "check": "the payload carries a plays array",
+      "ok": true,
+      "detail": "object"
+    },
+    {
+      "check": "the plays array is NOT empty",
+      "ok": true,
+      "detail": "137 play(s)"
+    },
+    {
+      "check": "every entry has finite epa / ep_start / ep_end",
+      "ok": true,
+      "detail": "0 non-finite epa"
+    },
+    {
+      "check": "every entry has a boolean scoringPlay",
+      "ok": true,
+      "detail": "0 non-boolean"
+    },
+    {
+      "check": "every entry carries its drive index",
+      "ok": true,
+      "detail": "currentDrive=null"
+    },
+    {
+      "check": "every entry carries the three lookup inputs, in range",
+      "ok": true,
+      "detail": "0 bad down"
+    },
+    {
+      "check": "currentDrive is the last drive index or null, and driveCount agrees",
+      "ok": true,
+      "detail": "currentDrive=null driveCount=19"
+    },
+    {
+      "check": "the EP table is readable through the relay",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "check": "the EP table unwraps to a populated lookup",
+      "ok": true,
+      "detail": "1120 key(s) — the document has ~8 top-level keys, the table ~1120"
+    },
+    {
+      "check": "the summary is readable through the relay",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "check": "the client reference produced plays to compare against",
+      "ok": true,
+      "detail": "137"
+    },
+    {
+      "check": "the route and the client agree on how many plays have an EPA",
+      "ok": true,
+      "detail": "route 137, client 137"
+    },
+    {
+      "check": "at least 10 pairs are available to enumerate",
+      "ok": true,
+      "detail": "12"
+    },
+    {
+      "check": "every play agrees with the client to 2dp",
+      "ok": true,
+      "detail": "0 of 137 differ"
+    },
+    {
+      "check": "every situation label rebuilds from the served numbers, on live data",
+      "ok": true,
+      "detail": "0 of 137 differ"
+    },
+    {
+      "check": "...across distinct labels, not one repeated",
+      "ok": true,
+      "detail": "117 distinct label(s)"
+    },
+    {
+      "check": "the route returns real EPA, not a field of zeros",
+      "ok": true,
+      "detail": "135 of 137 plays have a non-zero epa"
+    },
+    {
+      "check": "...and ep_start is a looked-up value, not the `?? 0` miss",
+      "ok": true,
+      "detail": "137 of 137 plays have a non-zero ep_start"
+    }
+  ]
+}
