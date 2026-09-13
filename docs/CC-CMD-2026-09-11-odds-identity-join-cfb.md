@@ -1,5 +1,33 @@
 # CC-CMD-2026-09-11 — the odds identity join drops every CFB and Bundesliga row
 
+**STATUS: Task 0 DONE. Tasks 1-5 BLOCKED on
+`CC-CMD-2026-09-13-team-key-sport-blind.md`.**
+
+Task 0 probed a real Saturday (2026-09-12, 80 games / 24 vendor events / 0
+matched) as this document instructed, and the sample did not survive:
+
+1. **Six of eighty D1 rows carry another sport's team.** `Liberty →
+   newyorkliberty` (WNBA); Minnesota, Colorado, Houston, Cincinnati and
+   Charlotte → MLS clubs. `resolveTeamKey`'s alias map is sport-blind and those
+   keys are WRITTEN INTO D1. A matcher that "succeeds" on
+   `coloradorapids|weberst` would write MLS odds onto a college football game —
+   the exact failure this document's own gate section warns about. Fixed first,
+   separately.
+2. **The prescribed rule fails on 35 of 80 rows.** *"Every D1 token must appear
+   in the vendor's token list, in order, starting at its first token"* does not
+   hold for `cmichigan` vs `centralmichiganchippewas`, nor for `GA Southern`,
+   `Jax State`, `UT Martin`, `N Dakota St`, `ETSU`, `MTSU`, `App State`,
+   `Western KY`, `Miami OH`. The five pairs below happen to contain only
+   mascot-suffix and `st`→`state` cases, which the rule does handle — which is
+   precisely why Task 0 said not to write the matcher against them.
+
+`/identity/mismatches` now reports `key_substituted` so the first finding is
+visible to anyone who opens this again. Verified live, deploy 934.
+
+Session doc: `outbox/cc-session-2026-09-13-odds-join-task0-cfb.md`.
+
+---
+
 Second CC-CMD required by Rule 87.4. `CC-CMD-2026-09-11-odds-key-map-reconcile`
 stopped at Task 0 because its causal premise — the sport-key maps — was
 disproven. This one carries the real cause forward.

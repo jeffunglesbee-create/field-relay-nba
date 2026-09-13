@@ -1,5 +1,39 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-13 (Task 0 disproved the matcher)
+
+**HEAD:** `8a84ab4` → `2a783df` · main throughout · deploy 934
+**Session doc:** `outbox/cc-session-2026-09-13-odds-join-task0-cfb.md`
+**Task 0 done, Tasks 1-5 BLOCKED:** `CC-CMD-2026-09-11-odds-identity-join-cfb`
+**FILED:** `CC-CMD-2026-09-13-team-key-sport-blind`
+
+Probed a real Saturday CFB slate as that CC-CMD instructed — 80 games, 24 vendor
+events, 0 matched — and its five-pair sample did not survive.
+
+**Six of eighty D1 rows carry another sport's team.** `Liberty →
+newyorkliberty` (WNBA); Minnesota, Colorado, Houston, Cincinnati, Charlotte →
+MLS clubs. `resolveTeamKey`'s alias map is sport-blind, and **those keys are
+written into D1** — the archive asserts a college football game was played by
+the Colorado Rapids. An unmatched row is a missing fact; a substituted key is a
+false one.
+
+It **blocks** the matcher: one that "succeeds" on `coloradorapids|weberst`
+writes MLS odds onto a college football game, worse than the zero coverage it
+replaces.
+
+**The prescribed matcher rule fails on 35 of 80 rows** — `cmichigan` is not a
+prefix of `centralmichiganchippewas`. The sample held only mascot-suffix and
+`st`→`state` cases, which the rule does handle.
+
+`/identity/mismatches` now reports `key_substituted` (6, verified live).
+`San José St → sanjosest` correctly not flagged — accent-folded, so the check
+separates a rendering artifact from a substitution.
+
+**Backfilling existing D1 rows is NOT decided here.** The new CC-CMD's Task 1
+produces the count so the call can be made; a live archive mutation is the
+user's, case by case.
+
+
 ## SESSION CLOSE-OUT — 2026-09-13 (the brace counter read prose as syntax)
 
 **HEAD:** `5640735` → `c176266` · main throughout
