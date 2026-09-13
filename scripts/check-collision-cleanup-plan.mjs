@@ -75,6 +75,17 @@ eq('and the merge names COLUMNS, not census flags',
 eq('and the delete targets the same stale row the merge drained',
    merged.deletes[0]?.id, merged.merges[0]?.stale);
 
+// WITH MERGES OFF, a merge pair must be REFUSED — not deleted unmerged, which
+// would destroy the odds this whole override exists to protect.
+const held = buildPlan([pair(row({ id: 'keep', home_score: 3, away_score: 1, espn_event_id: '761674' }),
+                             row({ id: 'stale', has_opening_odds: true }))], { mergesAllowed: false });
+eq('with merges off a merge pair is held back, not deleted',
+   [held.counts.deletes, held.counts.merges, held.counts.skipped], [0, 0, 1]);
+eq('and the hold says why', held.skipped[0]?.reason, 'merge pair held back (owner: 82 only)');
+eq('a clean pair is unaffected by merges being off',
+   buildPlan([pair(row({ id: 'k', home_score: 2, away_score: 1 }), row({ id: 's' }))],
+             { mergesAllowed: false }).counts.deletes, 1);
+
 // EVERY DELETE MUST BE PRECEDED BY ITS MERGE. A delete of a row whose fields
 // were never copied is the exact data loss this whole pass exists to avoid.
 const allMergedFirst = merged.deletes.every(d =>

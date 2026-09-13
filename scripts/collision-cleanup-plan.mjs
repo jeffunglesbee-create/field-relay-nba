@@ -26,7 +26,7 @@ export const FIELD_COLUMN = {
  * is defined by a classifier, so the only way the DELETE can match the
  * enumeration is to name the rows.
  */
-export function buildPlan(collisions) {
+export function buildPlan(collisions, { mergesAllowed = true } = {}) {
   const rows = classify(collisions);
   const merges = [], deletes = [], skipped = [];
 
@@ -39,6 +39,15 @@ export function buildPlan(collisions) {
     const stale = r.rows.find(g => g.id === r.stale);
     if (!keeper || !stale) { skipped.push({ ...r, reason: 'keeper or stale row missing from the pair' }); continue; }
 
+    if (r.merge_required.length && !mergesAllowed) {
+      // OWNER DECISION 2026-09-13: "82 only". The merge pairs keep the
+      // FIFA-prefixed row and delete the better-named one — `Austin` survives,
+      // `Austin FC` does not — so they wait for a name-aware pass. Refused
+      // here rather than filtered by the caller, so the DELETE list this plan
+      // returns can never contain one.
+      skipped.push({ ...r, reason: 'merge pair held back (owner: 82 only)' });
+      continue;
+    }
     if (r.merge_required.length) {
       const columns = r.merge_required.map(f => FIELD_COLUMN[f]).filter(Boolean);
       // An unmapped field would silently drop from the merge and the delete

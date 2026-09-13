@@ -48,6 +48,13 @@ const MUTATIONS = [
     replace: '                   });',
     expect: 'a delete carries the names it is about to remove' },
 
+  // The one that matters for "82 only": a merge pair that slips through with
+  // merges off is deleted WITHOUT its odds being copied anywhere.
+  { name: 'C9  merges-off stops holding merge pairs back',
+    anchor: "    if (r.merge_required.length && !mergesAllowed) {",
+    replace: '    if (false) {',
+    expect: 'with merges off a merge pair is held back, not deleted' },
+
   { name: 'C7  the DELETE becomes a predicate instead of an id list',
     anchor: '    sql: `DELETE FROM ${table} WHERE id IN (${ids.map(() => \'?\').join(\',\')})`,',
     replace: '    sql: `DELETE FROM ${table} WHERE 1=1`,',

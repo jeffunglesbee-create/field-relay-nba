@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // CC-CMD-2026-09-13-archive-duplicate-rows Task 3.
 //
-// Owner approval, 2026-09-13: "Task 3 approved, 82 deletes and 32 merges."
+// Owner approval, 2026-09-13: "Task 3 approved, 82 deletes and 32 merges",
+// then narrowed the same day to "82 only" once the merge pairs were shown to
+// keep the worse-named row (`Austin` survives, `Austin FC` does not).
+//
+// SO MERGES ARE OFF. buildPlan refuses them outright rather than the caller
+// filtering them out, which means the delete list cannot contain one.
 //
 // DRY RUN UNLESS --apply. Nothing here writes without that flag.
 //
@@ -20,7 +25,7 @@ const GATE = process.env.RELAY_SHARED_SECRET;
 // The counts the owner approved. A plan that does not match them is a different
 // plan and does not have approval — so it stops rather than proceeding with
 // whatever it happens to find.
-const APPROVED = { deletes: 114, merges: 32 };
+const APPROVED = { deletes: 82, merges: 0 };
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const log = [];
@@ -56,7 +61,7 @@ const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) =
   const before = await census();
   say(`\n--- 0. live census: ${before.coverage}`);
   say(`    collisions ${before.same_slate_pair_collisions}, rows_total ${before.totals.rows_total}`);
-  const plan = buildPlan(before.same_slate_pair_colliding || []);
+  const plan = buildPlan(before.same_slate_pair_colliding || [], { mergesAllowed: false });
   say(`    plan: ${plan.counts.deletes} delete(s), ${plan.counts.merges} merge(s), ${plan.counts.skipped} skipped`);
 
   if (plan.counts.deletes !== APPROVED.deletes || plan.counts.merges !== APPROVED.merges) {
