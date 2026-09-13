@@ -121,8 +121,14 @@ eq('D Tigers alone moved, from a club to an honest unknown', resolveTeamKey('Tig
 const idx = readFileSync('src/index.js', 'utf8');
 eq('E no join resolves a row without the payload in hand',
    (idx.match(/byPair\.get\(`\$\{resolveTeamKey\(/g) || []).length, 0);
-eq('E all three joins go through the one helper',
-   (idx.match(/findOddsForRow\(/g) || []).length, 3);
+// 3 joins + 1 census probe = 4, and the probe is pinned by its own call shape
+// on the next line so the total cannot quietly absorb a FOURTH JOIN. A new join
+// site pushes this to 5 and goes red; the reach probe is accounted for by name,
+// not by loosening the number.
+eq('E three joins and the census reach probe go through the one helper',
+   (idx.match(/findOddsForRow\(/g) || []).length, 4);
+eq('E the extra call is the census cross-sport reach probe, not a join',
+   (idx.match(/findOddsForRow\(present, name, REACH_CONTROL_B\)/g) || []).length, 1);
 eq('E and index.js no longer carries its own copy',
    /function indexOddsByPair/.test(idx), false);
 

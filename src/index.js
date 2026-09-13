@@ -102,7 +102,7 @@ import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
@@ -15228,6 +15228,10 @@ export default {
                 substituted_rows: 0, substituted_sides: 0,
                 substituted_with_opening_odds: 0, substituted_with_closing_odds: 0,
             };
+            // Every distinct (sport, display name) the scan classified as
+            // substituted. The cross-sport reach probe below is run over
+            // exactly this set, so its denominator is measured, not chosen.
+            const substitutedNames = new Map();
             const tables = {};
             for (const table of CENSUS_TABLES) {
                 const cRes = await d1AllOrError(
@@ -15338,6 +15342,8 @@ export default {
                         totals.substituted_rows++; totals.substituted_sides += sides;
                         if (hk) e.keys[`${row.home} -> ${hk}`] = (e.keys[`${row.home} -> ${hk}`] || 0) + 1;
                         if (ak) e.keys[`${row.away} -> ${ak}`] = (e.keys[`${row.away} -> ${ak}`] || 0) + 1;
+                        if (hk) substitutedNames.set(`${sport}|${row.home}`, { sport, name: row.home, club_key: hk });
+                        if (ak) substitutedNames.set(`${sport}|${row.away}`, { sport, name: row.away, club_key: ak });
                         if (row.opening_odds != null) {
                             e.substituted_with_opening_odds++;
                             totals.substituted_with_opening_odds++;
@@ -15434,6 +15440,52 @@ export default {
                 if (gapsSince && d < gapsSince) continue;
                 gapsOut[d] = gaps[d];
             }
+            // CROSS-SPORT REACH — the live artifact for
+            // CC-CMD-2026-09-13-team-key-sport-blind Task 5, exercised through
+            // the DEPLOYED resolver rather than asserted about it.
+            //
+            // WHY IT IS NOT `substituted_rows == 0`. That was the CC-CMD's
+            // original done condition and it can never be met, because the fix
+            // deliberately left `resolveTeamKey` alone: three callers
+            // (ambient-do.js:822, wp-resolver.js:62, index.js:1219) bridge a
+            // vendor name to a FIELD name with no payload in hand and depend on
+            // exactly these short forms. `substitutedKey` — what this census
+            // counts with — IS standalone `resolveTeamKey`, so it reports the
+            // alias table's shape, not the join's behaviour. It stays a
+            // measurement of exposure; it was never a measurement of the defect.
+            //
+            // What the fix actually establishes, and what is probed here, is
+            // per substituted name:
+            //
+            //   escapes_into_a_payload_without_it — resolve the name against a
+            //     payload that does NOT contain its club. Must NOT return the
+            //     club key. This is the defect: before 9366af9 it did, and any
+            //     consumer grouping by that key held a false cross-sport claim.
+            //   own_club_payload_still_joins — the same name against a payload
+            //     that DOES hold its club, through findOddsForRow, the real
+            //     join. Must MATCH: the fix must not cost a working join.
+            //
+            // Rule 91: `cross_sport_reach_coverage` carries the denominator, and
+            // it is the set the scan measured, not a list chosen here.
+            const REACH_CONTROL_A = 'Zzzz Reach Control Alpha';
+            const REACH_CONTROL_B = 'Zzzz Reach Control Bravo';
+            const crossSportReach = [];
+            for (const { sport, name, club_key } of substitutedNames.values()) {
+                const clubName = resolveTeamName(name);
+                // A payload holding neither the name nor its club.
+                const absent = indexOddsByPair([{ home_team: REACH_CONTROL_A, away_team: REACH_CONTROL_B }]);
+                const escaped = resolveTeamKeyIn(name, absent.vendorKeys) === club_key;
+                // A payload holding the club under its full vendor name.
+                const present = indexOddsByPair([{ home_team: clubName, away_team: REACH_CONTROL_B, odds: 'sentinel' }]);
+                const joins = findOddsForRow(present, name, REACH_CONTROL_B) != null;
+                crossSportReach.push({
+                    sport, name, club_key, club_name: clubName,
+                    escapes_into_a_payload_without_it: escaped,
+                    own_club_payload_still_joins: joins,
+                    ok: !escaped && joins,
+                });
+            }
+            const reachFailures = crossSportReach.filter(r => !r.ok);
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
@@ -15489,6 +15541,25 @@ export default {
                     ? (named.filter(r => r.has_opening_odds)
                             .map(r => r.date).sort().pop() ?? null)
                     : null,
+                // Task 5's done condition. `cross_sport_reach_failures` is the
+                // number that must be 0; the per-name rows are printed so a
+                // reader can see WHICH names were probed and that both halves
+                // were asked, not just the verdict.
+                cross_sport_reach_coverage:
+                    `probed ${crossSportReach.length} of ${crossSportReach.length} distinct `
+                    + `(sport, name) pairs classified substituted by this scan`,
+                cross_sport_reach_failures: reachFailures.length,
+                // Uncapped. A failure is the actionable set and must never be
+                // the thing that gets truncated.
+                cross_sport_reach_failing: reachFailures,
+                // The passing rows are evidence, not an action list, so they
+                // are capped — with found/shown/omitted beside them, the same
+                // convention as the named-rows list above, so a reader cannot
+                // mistake the cap for the count.
+                cross_sport_reach_probed: crossSportReach.length,
+                cross_sport_reach_shown: Math.min(crossSportReach.length, 50),
+                cross_sport_reach_omitted: Math.max(0, crossSportReach.length - 50),
+                cross_sport_reach: crossSportReach.slice(0, 50),
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }

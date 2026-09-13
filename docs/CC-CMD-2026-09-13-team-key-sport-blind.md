@@ -108,8 +108,58 @@ exact failure the parent CC-CMD's own gate section warns about.
    must resolve differently per sport, and the check must go red if it does not.
    `Colorado` under CFB and `Colorado` under MLS is the enumerated pair.
 
-5. **Done condition.** `/identity/mismatches` reports `key_substituted: 0` for
-   every sport probed in Task 0, with the committed responses as the artifact.
+5. **Done condition.** ~~`/identity/mismatches` reports `key_substituted: 0`
+   for every sport probed in Task 0, with the committed responses as the
+   artifact.~~ **RESTATED 2026-09-13**, after the fix shipped (`9366af9`) and
+   before it was checked against this wording — which it can never meet.
+
+   `key_substituted` / `substituted_rows` is computed with `substitutedKey`,
+   and `substitutedKey` IS standalone `resolveTeamKey`. Task 3 enumerated every
+   caller and found three — `ambient-do.js:822`, `wp-resolver.js:62`,
+   `index.js:1219` — that bridge a vendor name to a FIELD name with **no payload
+   in hand** and depend on exactly these short forms. So `resolveTeamKey` was
+   left alone deliberately, and CFB still reports 14. **The original wording
+   measured the alias table's shape, not the join's behaviour, and no correct
+   fix could have zeroed it.** Writing it that way was a spec failure at the
+   point it was written (Rule 89), not an execution shortfall now.
+
+   What the fix does establish, and what this condition now says:
+
+   > **No substituted display name can reach another sport's club through a
+   > join, and every name that legitimately joined before still does.**
+
+   **The artifact is `GET /identity/substitution-census`'s
+   `cross_sport_reach` block**, which exercises the **deployed** resolver and
+   the **real** `src/odds-join.js` — not an assertion about them — once per
+   distinct `(sport, name)` pair the scan itself classified substituted:
+
+   - `cross_sport_reach_failures` must be **0**;
+   - each row shows both halves, so a reader sees what was asked:
+     `escapes_into_a_payload_without_it` must be `false` (the defect: before
+     `9366af9` it was `true` for all of them) and
+     `own_club_payload_still_joins` must be `true` (nothing lost);
+   - `cross_sport_reach_coverage` carries the denominator (Rule 91), and
+     `cross_sport_reach_probed` / `_shown` / `_omitted` sit beside the list so
+     the 50-row display cap cannot be read as the count. Failures are never
+     capped.
+
+   Both halves were shown to discriminate before the probe was trusted
+   (Rule 90): reverting `resolveTeamKeyIn` to `return resolveTeamKey(name)`
+   turns `escapes_into_a_payload_without_it` true for 7/7 CFB names with
+   `own_club_payload_still_joins` unchanged, and disabling the
+   `availableKeys.has(alias)` return turns `own_club_payload_still_joins` false
+   with `escapes` unchanged. Durable coverage is S1/S2 in
+   `scripts/mutate-sport-blind-resolution.mjs`.
+
+   **The exposure count is not deleted, it is demoted.** `substituted_rows`
+   stays in the census and in the watch's summary as a readout, because it is
+   the denominator the reach probe runs over. It is no longer a condition.
+
+   `identity-ambiguity-watch.yml` carried this wording too, as two conditions
+   that could never flip to DONE. Both are replaced by the reach condition in
+   `scripts/identity_ambiguity_conditions.py`; the fixture that proves the old
+   wording was unmeetable is `every condition met, exposure unchanged`, whose
+   CFB and NFL counts are deliberately 14 and 6.
 
 6. **Outbox manifest** per Rule 67.
 
