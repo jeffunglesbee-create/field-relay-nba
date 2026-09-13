@@ -1,0 +1,105 @@
+name: Tigers Forensics (one-shot)
+
+# Task 1 of CC-CMD-2026-09-13-alias-table-silent-overwrite:
+#
+#   "Confirm or refute the date story for all 68 rows. The artifact is the max
+#    date among odds-carrying `Tigers` rows. If any post-dates 2026-08-21, the
+#    'no false data' paragraph is wrong and this becomes a data-integrity
+#    question, not just a coverage one."
+#
+# A workflow rather than a probe because the census response carrying the answer
+# is ~44KB and the answer sits at the end of it. Runs here, commits the answer,
+# and the artifact outlives both.
+#
+# ONE-SHOT: workflow_dispatch only, no schedule. It exists to close a task, not
+# to watch anything. Delete it when the CC-CMD closes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ask the census for every row named Tigers
+        run: |
+          python3 << 'PYEOF'
+          import json, os, urllib.request
+          from datetime import datetime, timezone
+
+          UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+          URL = ("https://field-relay-nba.jeffunglesbee.workers.dev"
+                 "/identity/substitution-census?sport=MLB&name=Tigers")
+
+          req = urllib.request.Request(URL, headers={"User-Agent": UA})
+          with urllib.request.urlopen(req, timeout=180) as r:
+              d = json.loads(r.read())
+          if not d.get("ok") or not d.get("complete"):
+              raise SystemExit(f"census incomplete: ok={d.get('ok')} {d.get('coverage')}")
+
+          rows = d.get("named_rows") or []
+          with_odds = [r for r in rows if r.get("has_opening_odds")]
+          # The regression window: the day the alias flipped, to the day it was fixed.
+          FLIP, FIX = "2026-08-21", "2026-09-13"
+          inside = [r for r in with_odds if FLIP <= r["date"] < FIX]
+
+          out = {
+              "measured_at": datetime.now(timezone.utc).isoformat(),
+              "question": "max game date among odds-carrying rows named Tigers",
+              "coverage": d.get("coverage"),
+              "rows_named_tigers": len(rows),
+              "of_those_with_opening_odds": len(with_odds),
+              "max_date_with_opening_odds": d.get("named_max_date_with_opening_odds"),
+              "regression_window": {"alias_flipped": FLIP, "fix_deployed": FIX},
+              # THE REFUTATION SET. A row here carries odds for a game played
+              # while `Tigers` resolved to hullcity — which the join could not
+              # have written, because the pair key could not match. Non-empty
+              # means something wrote odds by a path that does not use
+              # resolveTeamKey, and the "no false data" claim is wrong.
+              "odds_carrying_rows_inside_the_window": inside,
+              "verdict": ("REFUTED — odds exist on games played during the regression"
+                          if inside else
+                          "CONFIRMED — no odds-carrying row falls inside the window"),
+              # captured_at is NOT a write time for a historically backfilled row
+              # (fetchSportOddsHistorical anchors it to noon UTC on the game's own
+              # date). Carried for completeness, not used for the verdict.
+              "all_rows": rows,
+          }
+          stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+          path = f"outbox/tigers-forensics-{stamp}.json"
+          with open(path, "w") as fh:
+              json.dump(out, fh, indent=2)
+
+          summary = [
+              "### Tigers forensics — CC-CMD-2026-09-13-alias-table-silent-overwrite Task 1",
+              "", f"`{d.get('coverage')}`", "",
+              f"- rows named Tigers: **{len(rows)}**",
+              f"- of those carrying opening odds: **{len(with_odds)}**",
+              f"- max game date with odds: **{out['max_date_with_opening_odds']}**",
+              f"- odds-carrying rows inside {FLIP}..{FIX}: **{len(inside)}**",
+              "", f"**{out['verdict']}**",
+          ]
+          print("\n".join(summary))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write("\n".join(summary) + "\n")
+          PYEOF
+
+      - name: Commit the answer
+        run: |
+          git config user.name "tigers-forensics"
+          git config user.email "actions@github.com"
+          git add outbox/
+          git diff --cached --quiet && exit 0
+          git commit -m "probe: tigers forensics — CC-CMD Task 1 [skip ci]"
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase --autostash origin main || git rebase --abort || true
+            sleep $((i * 5))
+          done
+          exit 1
