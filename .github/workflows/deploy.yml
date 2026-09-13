@@ -347,6 +347,18 @@ jobs:
           node scripts/check-identity-table-collisions.mjs
           node scripts/mutate-identity-table-collisions.mjs
 
+      # A one-day budget grant must expire by construction. The tempting way to
+      # spend an approved one-off is to raise the standing ceiling, use it, and
+      # lower it back — which leaves a permanently raised guard the moment the
+      # second deploy is skipped, and a guard that quietly stopped guarding is
+      # worse than none because the number still looks deliberate. The grant
+      # carries its own date; on any other date it contributes nothing and
+      # expires with no action required.
+      - name: a budget grant cannot outlive its day
+        run: |
+          node scripts/check-odds-ceiling-grant.mjs
+          node scripts/mutate-odds-ceiling-grant.mjs
+
       # Layer 2f: a brief must never quote a number that exists only as an
       # example in the style rules. Two live EPL briefs did on 2026-08-22.
       - name: prompt-example numbers cannot leak into prose

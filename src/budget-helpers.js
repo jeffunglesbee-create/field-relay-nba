@@ -17,6 +17,33 @@
 
 const ODDS_DAILY_CEILING = 3800; // 85K/month ÷ ~22 active days ≈ 3864/day
 
+// A ONE-DAY GRANT THAT CANNOT OUTLIVE ITS DAY.
+//
+// The obvious way to spend an approved one-off is to raise the constant, use
+// it, and lower it again. That leaves a permanently raised guard the moment
+// anyone forgets the second deploy — and a budget guard that quietly stopped
+// guarding is worse than none, because the number still looks deliberate.
+//
+// So the grant carries its own date. On any other date it contributes nothing
+// and no action is required to expire it: the stale entry simply goes inert.
+// Reverting is the default rather than a task someone has to remember.
+//
+// Granted by the account owner 2026-09-13 to complete an approved archive
+// backfill (CC-CMD-2026-09-13-alias-table-silent-overwrite tranche 2, 11 dates,
+// 2310 credits) after the day's normal ceiling was exhausted. Provider quota
+// was not the constraint — 47,245 requests remained.
+const ODDS_CEILING_GRANTS = [
+    { date: '2026-09-13', extra: 2500, why: 'tranche 2 archive backfill, owner-approved' },
+];
+
+/** Today's ceiling: the standing one, plus any grant issued FOR TODAY. */
+function _dailyCeiling(today = new Date().toISOString().slice(0, 10)) {
+    const extra = ODDS_CEILING_GRANTS
+        .filter(g => g.date === today)
+        .reduce((n, g) => n + g.extra, 0);
+    return ODDS_DAILY_CEILING + extra;
+}
+
 function _dailyKey() {
     return `odds:daily:${new Date().toISOString().slice(0, 10)}`;
 }
@@ -36,13 +63,14 @@ async function checkAndIncrementDailyOdds(env, units = 1) {
         const key = _dailyKey();
         const raw = await env.FIELD_JOURNALISM.get(key);
         const used = raw ? parseInt(raw, 10) || 0 : 0;
-        if (used + units > ODDS_DAILY_CEILING) {
+        const ceiling = _dailyCeiling();
+        if (used + units > ceiling) {
             // One warn per day per ceiling-hit isolate. The monthly guard
             // emits its own warn separately.
             const warnedKey = `${key}:warned`;
             const already = await env.FIELD_JOURNALISM.get(warnedKey);
             if (!already) {
-                console.warn(`[odds-daily-guard] daily ceiling reached — used=${used} + ${units} > ${ODDS_DAILY_CEILING}; suppressing further fetches`);
+                console.warn(`[odds-daily-guard] daily ceiling reached — used=${used} + ${units} > ${ceiling}; suppressing further fetches`);
                 await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 86400 });
             }
             return false;
@@ -68,11 +96,21 @@ async function peekDailyOdds(env) {
         const key = `odds:daily:${date}`;
         const raw = await env.FIELD_JOURNALISM.get(key);
         const used = raw ? parseInt(raw, 10) || 0 : 0;
+        // THE REPORT MUST MATCH THE GUARD. Reporting the standing ceiling while
+        // the guard enforces a granted one would show 0 remaining on a day when
+        // 2500 more are allowed — a budget readout that disagrees with the
+        // budget is worse than none, because it is the number people act on.
+        const ceiling = _dailyCeiling(date);
+        const grants = ODDS_CEILING_GRANTS.filter(g => g.date === date);
         return {
             date,
             used,
-            ceiling: ODDS_DAILY_CEILING,
-            remaining: Math.max(0, ODDS_DAILY_CEILING - used),
+            ceiling,
+            remaining: Math.max(0, ceiling - used),
+            // Present and null on an ordinary day, so an unusual ceiling always
+            // carries its own explanation rather than looking like drift.
+            standing_ceiling: ODDS_DAILY_CEILING,
+            grant_today: grants.length ? grants : null,
         };
     } catch (_) {
         return null;
