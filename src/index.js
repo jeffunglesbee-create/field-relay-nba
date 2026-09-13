@@ -15014,7 +15014,9 @@ export default {
 
             // key_substituted counts rows whose resolved team key is not derived
             // from their own display name — a wrong row, not a naming difference.
-            const report = { date, probed: 0, matched: 0, unmatched: 0, key_substituted: 0, sports: {} };
+            const vendorKeysBySport = new Map();
+            const report = { date, probed: 0, matched: 0, unmatched: 0, key_substituted: 0,
+                             key_substituted_cross_sport: 0, sports: {} };
             for (const sport of sports) {
                 const sportKey = archiveSportToOddsKey(sport);
                 if (!sportKey) {
@@ -15028,10 +15030,16 @@ export default {
                     continue;
                 }
                 const oddsByKey = new Map();
+                // Per-sport set of the TEAM keys the vendor uses, kept so a
+                // substitution can be classified after the loop — see the
+                // cross-sport pass below.
+                const vendorTeamKeys = new Set();
                 for (const g of oddsGames) {
-                    oddsByKey.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`,
-                                  { odds_home: g.home_team, odds_away: g.away_team });
+                    const hk = resolveTeamKey(g.home_team), ak = resolveTeamKey(g.away_team);
+                    vendorTeamKeys.add(hk); vendorTeamKeys.add(ak);
+                    oddsByKey.set(`${hk}|${ak}`, { odds_home: g.home_team, odds_away: g.away_team });
                 }
+                vendorKeysBySport.set(sport, vendorTeamKeys);
                 const d1Res = await env.ARCHIVE_DB.prepare(
                     `SELECT id, home, away FROM regular_season_games
                      WHERE date = ? AND sport = ? AND opening_odds IS NULL`
@@ -15088,6 +15096,38 @@ export default {
                         ({ odds_home: v.odds_home, odds_away: v.odds_away, key: k })),
                 };
             }
+            // CLASSIFY THE SUBSTITUTIONS. A key that is not its own name is TWO
+            // different things and the raw count collapsed them:
+            //
+            //   BENIGN  a correct within-sport alias. MLS Columbus -> columbuscrew,
+            //           EPL Ipswich -> ipswichtown. The alias map doing its job.
+            //   SUSPECT the key names a team in a DIFFERENT sport. CFB Colorado ->
+            //           coloradorapids, which is the MLS side probed in the same
+            //           request. That is a wrong row, not a naming convention.
+            //
+            // Measured 2026-09-12: reporting the raw count alone read as "3 more
+            // defects" for a probe whose three substitutions were all correct.
+            // The discriminator is whether the resolved key appears in ANOTHER
+            // probed sport's vendor key set — computed from data already fetched,
+            // so it costs no extra call.
+            //
+            // It only works across sports probed TOGETHER. A single-sport request
+            // has nothing to compare against, so also_in is [] and the row stays
+            // unclassified rather than being called benign by default — absent
+            // evidence is not evidence of absence (Rule 99).
+            for (const [sport, entry] of Object.entries(report.sports)) {
+                if (!entry || !Array.isArray(entry.key_substituted)) continue;
+                for (const sub of entry.key_substituted) {
+                    const alsoIn = [];
+                    for (const [other, keys] of vendorKeysBySport) {
+                        if (other !== sport && keys.has(sub.key)) alsoIn.push(other);
+                    }
+                    sub.also_in = alsoIn;
+                    if (alsoIn.length) report.key_substituted_cross_sport++;
+                }
+            }
+            report.sports_compared = [...vendorKeysBySport.keys()];
+
             return new Response(JSON.stringify(report),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
