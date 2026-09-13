@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-12T10:56:53.328Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-13T03:18:13.527Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -26,7 +26,7 @@ export const ROUTE_PROVENANCE = {
   "/analytics/record-streak/recompute": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/analytics/run": { k: "store", s: "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/analytics/status": { k: "store", s: "kv:FIELD_JOURNALISM" },
-  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + do:AMBIENT_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM", p: 1 },
+  "/archive/": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + do:AMBIENT_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM", p: 1, t: 1 },
   "/archive/backfill": { k: "trigger", s: "d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev" },
   "/archive/backfill-enrich": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/archive/bracket-replay": { k: "store", s: "d1:ARCHIVE_DB" },
@@ -121,7 +121,7 @@ export const ROUTE_PROVENANCE = {
   "/laliga-apim/clasificacion": { k: "proxy", s: "apim.laliga.com + www.laliga.com" },
   "/live-wp/": { k: "durable-object", s: "do:AMBIENT_DO", p: 1 },
   "/live/ambient": { k: "durable-object", s: "do:AMBIENT_DO" },
-  "/mcp": { k: "store", s: "api.github.com + cdn.nba.com + d1:ARCHIVE_DB + kv:MCP_OAUTH + site.web.api.espn.com + stat-job-watcher.jeffunglesbee.workers.dev" },
+  "/mcp": { k: "store", s: "api.github.com + cdn.nba.com + d1:ARCHIVE_DB + kv:MCP_OAUTH + site.web.api.espn.com + stat-job-watcher.jeffunglesbee.workers.dev", t: 1 },
   "/mlb-savant-update": { k: "store", s: "r2:FIELD_DATA" },
   "/mlb-stats": { k: "proxy", s: "r2:FIELD_DATA + raw.githubusercontent.com + statsapi.mlb.com", p: 1 },
   "/mlb-umpire-scrape": { k: "trigger", s: "baseballsavant.mlb.com" },
@@ -215,6 +215,21 @@ export const ROUTE_PROVENANCE = {
 // them as mapped, which is the worst of both: a gap that reports as covered.
 // Caught by the runtime probe, not by any static check, because /odds is in the
 // manifest and /odds/v4/sports is what a client actually asks for.
+//
+// `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
+// forward at most 1500 lines looking for brace balance; when a handler block is
+// longer than that the scan gives up, and `s` describes only what fitted inside
+// the window. 2 of 189 entries are in that state.
+//
+// It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
+// so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
+// fetches. Adding ~40 unrelated lines to src/index.js pushed those routes out of
+// the window and the hosts silently vanished from the manifest. NEITHER value
+// was a fact about /archive/; both were artifacts of where an arbitrary boundary
+// landed, and the churn read as a real provenance change in review.
+//
+// Raising the window would change WHICH entries are wrong without making any of
+// them say so, which is why the flag came first.
 export function provenanceFor(pathname) {
   const exact = ROUTE_PROVENANCE[pathname];
   if (exact) return exact;

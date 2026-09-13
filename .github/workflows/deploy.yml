@@ -147,6 +147,12 @@ jobs:
       # next client connect re-arms it. A swallowed error and a handled one are
       # indistinguishable from outside, so the check forces the rejection.
       # Four mutations, the first restoring `.catch(() => {})` as it shipped.
+      # The partial-read flag was SET correctly by the scanner and never READ, so
+      # a truncated parse and a complete one landed in the manifest identically.
+      # These mutations break the set / carry / emit wiring at each point.
+      - name: A partial route parse says so in the manifest
+        run: node scripts/mutate-route-provenance-truncation.mjs
+
       - name: AmbientDO reports a failed setAlarm instead of swallowing it
         run: |
           node scripts/check-ambient-alarm-failure.mjs

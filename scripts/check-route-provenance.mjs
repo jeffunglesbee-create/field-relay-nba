@@ -48,6 +48,33 @@ if (census) {
 // The manifest is only worth stamping if it is true. A host named here that the
 // handler never contacts is a confident wrong answer, which is the exact failure
 // the Germany v Ecuador row was.
+// CC-CMD-2026-09-12-route-provenance-truncation-invisible. bodyOf gives up after
+// 1500 lines and returns what it saw with `truncated: true`; the builder now
+// carries that to the manifest as `t: 1`. This gate holds the wiring, because a
+// flag that is set and never read is the defect being fixed, one layer up.
+//
+// It re-derives truncation from the scanner rather than trusting the file: if
+// the builder ever stops carrying the flag, the two disagree and this fails.
+{
+  const { routes: _routes, bodyOf: _bodyOf } = await import('./lib/route-scan.mjs');
+  const _rs = typeof _routes === 'function' ? _routes() : _routes;
+  const _list = Array.isArray(_rs) ? _rs : Object.values(_rs);
+  const scannerSays = new Set();
+  for (const r of _list) {
+    if (/^\/(\.well-known|oauth)\//.test(r.path)) continue;
+    let b = null;
+    try { b = _bodyOf(r.line); } catch { continue; }
+    if (b && b.truncated) scannerSays.add(r.path);
+  }
+  const manifestSays = new Set(Object.entries(ROUTE_PROVENANCE).filter(([, v]) => v.t).map(([p]) => p));
+  const missing = [...scannerSays].filter(p => !manifestSays.has(p));
+  const extra   = [...manifestSays].filter(p => !scannerSays.has(p));
+  check(`every partial read says so (scanner ${scannerSays.size}, manifest ${manifestSays.size}, of ${Object.keys(ROUTE_PROVENANCE).length} entries)`,
+        missing.length === 0 && extra.length === 0,
+        missing.length ? `truncated but NOT flagged t:1 — its sources are a partial read presented as fact: ${missing.join(', ')}`
+                       : `flagged t:1 but the scanner parses it whole: ${extra.join(', ')}`);
+}
+
 const src = readFileSync('src/index.js', 'utf8') + readFileSync('src/ambient-do.js', 'utf8');
 const bogus = [];
 // The label vocabulary grew, and this check caught every new form -- which is

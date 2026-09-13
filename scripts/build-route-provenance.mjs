@@ -283,6 +283,16 @@ for (const r of routes) {
   seen.set(r.path, {
     sources: merged,
     declared: mergedDeclared,
+    // CC-CMD-2026-09-12-route-provenance-truncation-invisible. bodyOf sets
+    // `truncated` when its 1500-line window never balanced, and its own comment
+    // says "An unbalanced block must say it did not parse, not hand back an
+    // empty answer that reads as fact." Nothing downstream read the flag, so a
+    // partial parse and a complete one landed in the manifest in the identical
+    // shape — Rule 99 inside the provenance instrument itself.
+    //
+    // Sticky across the merge: if ANY sighting of this path was truncated, the
+    // entry's sources are a partial read. Two of 225 routes truncate at HEAD.
+    truncated: !!(prev && prev.truncated) || !!b.truncated,
     // Kind stays the most specific one seen: a path answered by both a guard and
     // a real handler is what the handler does.
     kind: prev && prev.kind !== 'computed' && prev.kind !== 'trigger' ? prev.kind : kind,
@@ -322,8 +332,11 @@ const readsNothing = entries.filter(([, v]) => v.declared === null).length;
 const undeclared   = entries.filter(([, v]) => v.declared && v.declared.startsWith('undeclared')).length;
 const delegated    = entries.filter(([, v]) => v.declared && v.declared.includes('delegated to')).length;
 
+const truncatedCount = entries.filter(([, v]) => v.truncated).length;
+
 const body = entries.map(([path, v]) =>
-  `  ${JSON.stringify(path)}: { k: ${JSON.stringify(v.kind)}, s: ${JSON.stringify(v.declared)}${v.match === 'prefix' ? ', p: 1' : ''} },`
+  `  ${JSON.stringify(path)}: { k: ${JSON.stringify(v.kind)}, s: ${JSON.stringify(v.declared)}`
+  + `${v.match === 'prefix' ? ', p: 1' : ''}${v.truncated ? ', t: 1' : ''} },`
 ).join('\n');
 
 const out = `// GENERATED FILE — do not edit by hand.
@@ -355,6 +368,21 @@ ${body}
 // them as mapped, which is the worst of both: a gap that reports as covered.
 // Caught by the runtime probe, not by any static check, because /odds is in the
 // manifest and /odds/v4/sports is what a client actually asks for.
+//
+// \`t: 1\` marks an entry whose sources are a PARTIAL READ. The scanner walks
+// forward at most 1500 lines looking for brace balance; when a handler block is
+// longer than that the scan gives up, and \`s\` describes only what fitted inside
+// the window. ${truncatedCount} of ${entries.length} entries are in that state.
+//
+// It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
+// so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
+// fetches. Adding ~40 unrelated lines to src/index.js pushed those routes out of
+// the window and the hosts silently vanished from the manifest. NEITHER value
+// was a fact about /archive/; both were artifacts of where an arbitrary boundary
+// landed, and the churn read as a real provenance change in review.
+//
+// Raising the window would change WHICH entries are wrong without making any of
+// them say so, which is why the flag came first.
 export function provenanceFor(pathname) {
   const exact = ROUTE_PROVENANCE[pathname];
   if (exact) return exact;
@@ -370,6 +398,11 @@ export function provenanceFor(pathname) {
 
 writeFileSync('src/route-provenance.js', out);
 console.log(`  src/route-provenance.js: ${entries.length} routes — ${withSource} named, ${readsNothing} read nothing, ${undeclared} undeclared (${delegated} of them delegating)`);
+// Rule 91: the partial reads are named where the result is read, not left for
+// someone to notice in the diff. A count with no names is a count nobody acts on.
+console.log(`  ${truncatedCount} of ${entries.length} entries are a PARTIAL READ (t: 1) — `
+          + `the scan window ended before the handler block did, so \`s\` lists only what fitted: `
+          + `${entries.filter(([, v]) => v.truncated).map(([p]) => p).join(', ') || '(none)'}`);
 const byKind = {};
 for (const [, v] of entries) byKind[v.kind] = (byKind[v.kind] || 0) + 1;
 for (const [k, n] of Object.entries(byKind).sort((a, b) => b[1] - a[1])) console.log(`    ${String(n).padStart(3)}  ${k}`);
