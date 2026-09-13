@@ -95,16 +95,77 @@ date          all sports        MLB
 Budget: daily used 1058 -> 1951 = **893 credits** against an 840 estimate (the
 delta is cron traffic in the same window). 1849 left on the day.
 
-### Remaining, and why it is NOT wired to a cron
+### Tranche 2, run 2026-09-13 under an owner-approved one-day grant
 
-11 dates, **2,310 credits**: `08-22, 08-23, 08-25, 08-26, 08-28, 08-29, 08-30,
-09-05, 09-06, 09-09, 09-12`.
+The remaining 11 dates could not start when approved: at 15:39Z the daily
+ceiling was exhausted, 3800 of 3800. Provider quota was never the constraint —
+47,245 requests remained. The 3800 is a self-imposed guard.
 
-This is a live mutation of archive rows. The standing rule is that those are
-authorised case by case by the user and **never wired to a cron by a session**,
-so the remainder is left for an explicit go-ahead rather than scheduled. The
-`odds_gaps` list makes the cost of that decision readable in advance, and the
-watch re-reads it every 6 hours so the number cannot go stale.
+**2500 additional credits were granted for the day.** Not by raising
+ODDS_DAILY_CEILING and lowering it back — that leaves a permanently disabled
+guard the moment the second deploy is skipped, and a guard that quietly stopped
+guarding is worse than none because the number still looks deliberate. The grant
+carries its own date (`ODDS_CEILING_GRANTS`), so on any other date it
+contributes nothing and expires with no action required. Thirteen assertions and
+six mutations hold that, including one that raises the standing constant instead
+and must be refused.
+
+Measured from two independent watch artifacts either side of the run:
+
+```
+date          all sports        MLB
+2026-08-22      24 -> 17        1 -> 0
+2026-08-23      18 -> 15        1 -> 0
+2026-08-25      24 -> 23        1 -> 0
+2026-08-26      13 -> 12        1 -> 0
+2026-08-28      16 -> 15        1 -> 0
+2026-08-29      28 -> 20        1 -> 0
+2026-08-30      20 -> 16        1 -> 0
+2026-09-05      86 -> 85        1 -> 0
+2026-09-06      16 -> 15        1 -> 0
+2026-09-09      13 -> 12        1 -> 0
+2026-09-12     100 -> 96        1 -> 0
+               358 -> 326       11 -> 0
+```
+
+32 rows filled. Archive-wide NULL-odds rows 1664 -> 1632.
+Grant used: **2330 of 2500**, leaving 170. Daily 6130/6300 at close.
+
+**The estimate was high on cheap dates and close on expensive ones.** The first
+four cost 390 against a 630 projection, because a date's sports that have no
+Odds-API key mapping are skipped at no cost — the per-sport-per-date model
+prices them anyway. Running in cost order with a budget re-check between batches
+is what kept this inside the envelope instead of discovering the ceiling
+part-way, which is the failure the sizing existed to prevent.
+
+### Both tranches together
+
+19 dates, 53 rows, and **every MLB row in the 2026-08-21..09-13 window now
+carries odds**. The coverage gap the alias collision opened is closed end to
+end: the resolver fixed, forward coverage proven by a live cron write eight
+minutes after deploy, and the backlog filled.
+
+### What was NOT backfilled, deliberately
+
+- **Future fixtures.** A historical odds snapshot for an unplayed game is
+  meaningless; the live cron fills these at kickoff.
+- **CFB, 185 rows.** Still blocked on the sport-blind resolver fix. The join
+  would re-run and still miss on the bare-city aliases, so the credits buy
+  almost nothing until `CC-CMD-2026-09-13-team-key-sport-blind` Task 2 lands.
+
+### Why the remainder was never wired to a cron
+
+A live mutation of archive rows is authorised case by case and **never wired to
+a cron by a session**. "Approved" is not "schedulable": the approval covered a
+batch, and a cron re-deciding each morning whether to mutate the archive would be
+a session converting one approval into a standing permission.
+
+So `odds-backfill-readiness.yml` automated the SIGNAL and not the act — it
+priced the remaining dates daily and named them, and a person ran them. With
+nothing pending it has been deleted, as its own header instructed; its final
+artifact (`odds-backfill-readiness-20260913T160236Z.json`, 0 pending, 0 cost) is
+the record. The census's `odds_gaps` is the durable capability; the workflow was
+scaffolding around one approved batch.
 
 **Two slices that must NOT be backfilled, and would have been by a date range:**
 
@@ -251,4 +312,5 @@ from outside, and did not guess. Raising it as a number to check, not a finding.
 - `CC-CMD-2026-09-13-team-key-sport-blind` Tasks 2-6 open; 185 CFB rows wait on
   it.
 - `CC-CMD-2026-09-13-probe-commit-race-unrecoverable` open.
-- Backfill tranche 2 (11 dates, 2,310 credits) awaits an explicit go-ahead.
+- Backfill: **COMPLETE.** Both tranches run, 19 dates, 53 rows, every MLB row
+  in the regression window now carries odds.
