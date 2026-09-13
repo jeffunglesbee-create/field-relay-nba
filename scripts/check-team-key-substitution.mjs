@@ -72,6 +72,14 @@ eq('C CF Montréal folds to its plain form',
 
 // ── D. one definition, not two ─────────────────────────────────────────────
 const indexSrc = readFileSync('src/index.js', 'utf8');
+// Rule 62: one list of soccer labels. A second hand-written one would drift the
+// moment a competition is added — EFL Cup and the three UEFA qualifying labels
+// were all added after their first consumer was written.
+if (/const SOCCER_SPORT_LABEL_SET = new Set\(Object\.values\(SOCCER_LEAGUE_LABELS\)\)/.test(indexSrc)) {
+    ok('D the soccer family set is derived from SOCCER_LEAGUE_LABELS');
+} else {
+    fail('D the soccer family set is derived from SOCCER_LEAGUE_LABELS', 'relisted or missing');
+}
 if (/\bsubstitutedKey\b/.test(indexSrc) && /from '\.\/identity-resolver\.js'/.test(indexSrc)) {
     ok('D index.js imports the shared predicate');
 } else {
@@ -118,6 +126,14 @@ if (!census) {
     // The classification is proven instead by the committed live response in
     // outbox/, which must contain a named row whose also_in is non-empty
     // (Rule 89: the artifact, not the action).
+    // Soccer is one sport across many archive labels. Without the family test,
+    // `Brighton` in Europa Conference qualifying reads as cross-sport because
+    // Brighton is also in EPL — the same club in another competition.
+    eq('E soccer competitions count as one family',
+       /SOCCER_SPORT_LABEL_SET\.has\(other\)\s*&&\s*SOCCER_SPORT_LABEL_SET\.has\(r\.sport\)/.test(body), true);
+    eq('E suppressed same-family matches are counted, not dropped',
+       /same_family_matches_suppressed:\s*sameFamilySuppressed/.test(body), true);
+
     ok('E (classification behaviour is proven by the committed live response, not here)');
 
     // ── F. the census is read-only ─────────────────────────────────────────

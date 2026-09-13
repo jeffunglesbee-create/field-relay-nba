@@ -2015,6 +2015,12 @@ const NON_SOCCER_SPORT_LABELS = [
     'PGA Tour', 'UFL', 'WNBA', 'golf', 'wnba',
 ];
 
+/// The soccer labels as a set. Soccer is one SPORT spread across many archive
+/// `sport` values (EPL, EFL Cup, UEFA Champions League, Ligue 1...), so any
+/// check asking "is this a different sport" has to treat them as one family.
+/// Derived from SOCCER_LEAGUE_LABELS rather than relisted (Rule 62).
+const SOCCER_SPORT_LABEL_SET = new Set(Object.values(SOCCER_LEAGUE_LABELS));
+
 /// Every label the archive recognises, soccer and otherwise.
 const ARCHIVE_SPORT_LABELS = new Set([
     ...Object.values(SOCCER_LEAGUE_LABELS),
@@ -15292,12 +15298,30 @@ export default {
             // unclassified rather than being called benign by default.
             const totalsCross = { cross_sport_rows: 0, cross_sport_with_odds: 0 };
             const crossRows = [];
+            // Counted rather than discarded: a suppression the reader cannot see
+            // is the same collapse as an absent count (Rule 99).
+            let sameFamilySuppressed = 0;
             for (const r of substitutedRows) {
                 const alsoIn = (k) => {
                     if (!k) return [];
                     const out = [];
                     for (const [other, keys] of keySetBySport) {
-                        if (other !== r.sport && keys.has(k)) out.push(other);
+                        if (other === r.sport || !keys.has(k)) continue;
+                        // SAME SPORT, DIFFERENT COMPETITION IS NOT A SUBSTITUTION.
+                        // The archive's `sport` column mixes sports with soccer
+                        // COMPETITIONS — EPL, EFL Cup, UEFA Champions League,
+                        // Ligue 1 are all soccer. Without this, `Brighton` ->
+                        // brightonhovealbion in Europa Conference qualifying reads
+                        // as cross-sport because Brighton also appears under EPL.
+                        // It is the same club in another competition, which is the
+                        // system working. `Rangers` -> texasrangers in the same
+                        // competition is NOT suppressed: MLB is not a soccer label,
+                        // and that one is a real substitution.
+                        if (SOCCER_SPORT_LABEL_SET.has(other) && SOCCER_SPORT_LABEL_SET.has(r.sport)) {
+                            sameFamilySuppressed++;
+                            continue;
+                        }
+                        out.push(other);
                     }
                     return out;
                 };
@@ -15331,6 +15355,10 @@ export default {
                 // The sports whose key sets were available to compare against.
                 // A one-sport scan can classify nothing, and says so here.
                 sports_compared: [...keySetBySport.keys()],
+                // Soccer competitions are one family; a key shared across them is
+                // the same club, not a substitution. How many such matches were
+                // dropped, so the suppression is visible rather than assumed.
+                same_family_matches_suppressed: sameFamilySuppressed,
                 // Every cross-sport row, uncapped — this is the list the fix is
                 // aimed at and it is small enough to print whole.
                 cross_sport_rows: crossRows,
