@@ -1,0 +1,87 @@
+#!/usr/bin/env node
+// Rule 90 for scripts/duplicate-row-keeper-table.mjs.
+//
+// Imports the REAL decide() and classify(). The fixtures are one per branch plus
+// the two cases that must NOT produce a keeper, because a classifier that always
+// answers is worse than one that admits it cannot: the answer feeds a DELETE.
+import { decide, classify } from './duplicate-row-keeper-table.mjs';
+
+let checked = 0, failed = 0;
+const eq = (label, got, want) => {
+  checked++;
+  const ok = JSON.stringify(got) === JSON.stringify(want);
+  if (!ok) failed++;
+  console.log(`${ok ? 'ok  ' : 'FAIL'}  ${label}${ok ? '' : ` — got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`}`);
+};
+
+const row = (o = {}) => ({
+  id: 'x', home: 'A', away: 'B', home_score: null, away_score: null,
+  espn_event_id: null, series_key: null, finalized_at: null,
+  has_opening_odds: false, has_closing_odds: false, briefs_referencing: 0, ...o });
+
+// 1. one scored, one not — the 2026-08 migration shape
+eq('one scored sibling wins',
+   decide([row({ id: 'keyid', home_score: 2, away_score: 1 }), row({ id: 'nameid' })]).verdict,
+   'KEEP_SCORED');
+eq('and the unscored one is named stale',
+   decide([row({ id: 'keyid', home_score: 2, away_score: 1 }), row({ id: 'nameid' })]).stale,
+   'nameid');
+// ORDER MUST NOT MATTER. A rule that only works when the keeper is first would
+// pass every fixture written in one order and mis-delete in production.
+eq('order does not decide it',
+   decide([row({ id: 'nameid' }), row({ id: 'keyid', home_score: 2, away_score: 1 })]).keeper,
+   'keyid');
+// A 0-0 draw is SCORED. `home_score: 0` is falsy and this is the classic way a
+// real result gets treated as absent.
+eq('a 0-0 result is a result, not an absence',
+   decide([row({ id: 'drawn', home_score: 0, away_score: 0 }), row({ id: 'empty' })]).keeper,
+   'drawn');
+
+// 2. scores disagree — deleting either destroys a result
+eq('disagreeing scores are never auto-resolved',
+   decide([row({ id: 'a', home_score: 2, away_score: 1 }), row({ id: 'b', home_score: 3, away_score: 1 })]).verdict,
+   'HUMAN');
+eq('and no stale row is nominated',
+   decide([row({ id: 'a', home_score: 2, away_score: 1 }), row({ id: 'b', home_score: 3, away_score: 1 })]).stale,
+   null);
+
+// 3. both scored, identical, one ESPN anchor
+eq('identical scores fall back to the ESPN anchor',
+   decide([row({ id: 'a', home_score: 1, away_score: 1, espn_event_id: '401' }),
+           row({ id: 'b', home_score: 1, away_score: 1 })]).keeper, 'a');
+eq('two ESPN anchors distinguish nothing',
+   decide([row({ id: 'a', home_score: 1, away_score: 1, espn_event_id: '401' }),
+           row({ id: 'b', home_score: 1, away_score: 1, espn_event_id: '402' })]).verdict, 'HUMAN');
+eq('no ESPN anchor distinguishes nothing',
+   decide([row({ id: 'a', home_score: 1, away_score: 1 }),
+           row({ id: 'b', home_score: 1, away_score: 1 })]).verdict, 'HUMAN');
+
+// 4. neither scored
+eq('unscored pair with one anchor',
+   decide([row({ id: 'a', espn_event_id: '401' }), row({ id: 'b' })]).verdict, 'KEEP_ESPN_UNSCORED');
+eq('unscored pair with no anchor needs a human',
+   decide([row({ id: 'a' }), row({ id: 'b' })]).verdict, 'HUMAN');
+
+// 5. JOIN SAFETY OVERRIDES A CLEAR VERDICT. This is the assertion that stops a
+//    correct-looking DELETE from orphaning a brief.
+const blockedCase = classify([{ table: 'regular_season_games', date: '2026-01-01', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'keyid', home_score: 2, away_score: 1 }), row({ id: 'nameid', briefs_referencing: 3 })] }])[0];
+eq('a brief-referenced stale row is still identified', blockedCase.stale, 'nameid');
+eq('but it is not deletable', blockedCase.deletable, false);
+eq('and the block is reported with its count', blockedCase.blocked_by_briefs, 3);
+
+const cleanCase = classify([{ table: 'regular_season_games', date: '2026-01-01', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'keyid', home_score: 2, away_score: 1 }), row({ id: 'nameid' })] }])[0];
+eq('an unreferenced stale row is deletable', cleanCase.deletable, true);
+
+// A HUMAN verdict must never be deletable, whatever the brief count says.
+const humanCase = classify([{ table: 'postseason_games', date: '2026-01-01', sport: 'MLS',
+  pair_key: 'a|b',
+  games: [row({ id: 'a', home_score: 2, away_score: 1 }), row({ id: 'b', home_score: 3, away_score: 1 })] }])[0];
+eq('a HUMAN verdict is never deletable', humanCase.deletable, false);
+
+console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
+          + ` — 4 decision branches, both override paths, order-independence`);
+process.exit(failed ? 1 : 0);
