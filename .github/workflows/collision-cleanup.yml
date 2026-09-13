@@ -1,0 +1,62 @@
+name: Collision cleanup (duplicate archive rows)
+
+# CC-CMD-2026-09-13-archive-duplicate-rows Task 3.
+#
+# DRY RUN BY DEFAULT. The `apply` input must be typed as the literal word
+# APPLY — not a checkbox, not `true`. A destructive run should be impossible to
+# start by clicking the wrong thing.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev
+# is blocked, which this session confirmed the expensive way: three curl probes
+# returned empty and were read as "the field is absent" when they were in fact
+# refused connections.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plan checks must pass before the plan may run
+        run: |
+          node scripts/check-collision-cleanup-plan.mjs
+          node scripts/mutate-collision-cleanup-plan.mjs
+          node scripts/check-duplicate-row-keeper-table.mjs
+          node scripts/mutate-duplicate-row-keeper-table.mjs
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            echo "::warning title=Applying::destructive run authorised by input"
+            node scripts/run-collision-cleanup.mjs --apply
+          else
+            node scripts/run-collision-cleanup.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          git config user.name "collision-cleanup"
+          git config user.email "actions@github.com"
+          git add outbox/
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: collision cleanup log [skip ci]"
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase --autostash origin main || git rebase --abort || true
+            sleep $((i * 5))
+          done
+          exit 1

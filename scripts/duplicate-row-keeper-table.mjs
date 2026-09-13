@@ -65,7 +65,7 @@ export function decide([a, b]) {
 // closing lines and the properly-formed team names. `Austin` vs `Austin FC`.
 // Deleting either loses something real, so neither is a delete; it is a merge,
 // and a merge is a different authorisation.
-const LOSS_BEARING = [
+export const LOSS_BEARING = [
   ['has_opening_odds', r => r.has_opening_odds],
   ['has_closing_odds', r => r.has_closing_odds],
   ['espn_event_id', r => r.espn_event_id != null],
