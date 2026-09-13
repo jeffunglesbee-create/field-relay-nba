@@ -102,7 +102,7 @@ import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey } from './identity-resolver.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
@@ -15068,16 +15068,14 @@ export default {
                 // unmatched row reads as a naming difference whatever the cause.
                 // Accent-folded before comparing, so San José St -> sanjosest is
                 // correctly NOT flagged (CC-CMD-2026-09-13-team-key-sport-blind).
-                const _fold = (t) => (t || '').normalize('NFKD')
-                    .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
                 const substituted = [];
                 for (const row of (d1Res.results || [])) {
                     // ONE argument, exactly as the join above calls it. Passing a
                     // `sport` here would imply the resolver is sport-aware, and its
                     // not being sport-aware is the entire finding.
-                    const hk = resolveTeamKey(row.home), ak = resolveTeamKey(row.away);
-                    if (hk && _fold(row.home) && hk !== _fold(row.home)) substituted.push({ name: row.home, key: hk });
-                    if (ak && _fold(row.away) && ak !== _fold(row.away)) substituted.push({ name: row.away, key: ak });
+                    const hk = substitutedKey(row.home), ak = substitutedKey(row.away);
+                    if (hk) substituted.push({ name: row.home, key: hk });
+                    if (ak) substituted.push({ name: row.away, key: ak });
                 }
                 report.key_substituted += substituted.length;
 
@@ -15130,6 +15128,132 @@ export default {
 
             return new Response(JSON.stringify(report),
                 { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
+        // GET /identity/substitution-census — how many ARCHIVED rows carry a
+        // display name whose resolved key is not derived from that name.
+        //
+        // WHY THIS IS NOT "how many wrong keys are stored". Verified at HEAD
+        // across all 20 resolveTeamKey call sites (index.js 1218/6597/6610/
+        // 6739/6748/12987/12989/15038/15049/15078, context-assembler 449-461,
+        // ambient-do 822-825, wp-resolver 62-63): not one writes a key. Every
+        // one builds a transient `byPair` join key or compares two names. The
+        // games tables store display names; the key is computed at join time
+        // and discarded. CC-CMD-2026-09-13-team-key-sport-blind said the keys
+        // are written into D1 and that is wrong — see its Task 1 correction.
+        //
+        // WHAT THE SUBSTITUTION ACTUALLY COSTS. The join resolves BOTH sides,
+        // so a substitution is only harmful when it is ASYMMETRIC. Measured:
+        // D1 holds `Colorado` -> coloradorapids while the NCAAF vendor holds
+        // `Colorado Buffaloes` -> coloradobuffaloes, so the pair misses and the
+        // row keeps NULL odds. A missing fact, not a false one. The dangerous
+        // case is the other one, and it is what this census exists to count:
+        // a substituted row that DOES carry odds means something matched under
+        // a key that is not the row's own name, and each of those needs a human
+        // look before any backfill decision.
+        //
+        // Read-only. No Odds-API credit. No writes.
+        if (pathname === '/identity/substitution-census' && request.method === 'GET') {
+            if (!env.ARCHIVE_DB) {
+                return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
+                    { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            const CENSUS_TABLES = ['regular_season_games', 'postseason_games'];
+            const CHUNK = 1000;
+            // Bounded so a grown archive degrades into a reported partial read
+            // rather than a timeout. `complete` per table is the Rule 91
+            // denominator and is never inferred from a row count.
+            const maxRows = Math.min(
+                parseInt(url.searchParams.get('max') || '40000', 10) || 40000, 200000);
+            const bySport = {};
+            const examples = [];
+            const totals = {
+                rows_total: 0, rows_scanned: 0, rows_unnamed: 0,
+                substituted_rows: 0, substituted_sides: 0,
+                substituted_with_opening_odds: 0, substituted_with_closing_odds: 0,
+            };
+            const tables = {};
+            for (const table of CENSUS_TABLES) {
+                const cRes = await d1AllOrError(
+                    env.ARCHIVE_DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`),
+                    `substitution-census count ${table}`);
+                if (cRes.error) return d1FailureResponse(cRes.error);
+                const rowsTotal = (cRes.results || [])[0]?.n || 0;
+                totals.rows_total += rowsTotal;
+                let scanned = 0, complete = false;
+                // OFFSET, not keyset. SQLite orders INTEGER before TEXT, so a
+                // keyset cursor seeded with '' skips every integer id outright —
+                // and this column holds both shapes.
+                while (scanned < maxRows) {
+                    const want = Math.min(CHUNK, maxRows - scanned);
+                    const pRes = await d1AllOrError(env.ARCHIVE_DB.prepare(
+                        `SELECT id, sport, home, away, opening_odds, closing_odds
+                           FROM ${table} ORDER BY id LIMIT ? OFFSET ?`
+                    ).bind(want, scanned), `substitution-census page ${table}`);
+                    if (pRes.error) return d1FailureResponse(pRes.error);
+                    const rows = pRes.results || [];
+                    for (const row of rows) {
+                        const sport = row.sport || '(null sport)';
+                        const e = bySport[sport] || (bySport[sport] = {
+                            rows: 0, rows_unnamed: 0,
+                            substituted_rows: 0, substituted_sides: 0,
+                            substituted_with_opening_odds: 0,
+                            substituted_with_closing_odds: 0,
+                            keys: {},
+                        });
+                        e.rows++;
+                        if (!row.home || !row.away) { e.rows_unnamed++; totals.rows_unnamed++; }
+                        const hk = substitutedKey(row.home), ak = substitutedKey(row.away);
+                        if (!hk && !ak) continue;
+                        const sides = (hk ? 1 : 0) + (ak ? 1 : 0);
+                        e.substituted_rows++; e.substituted_sides += sides;
+                        totals.substituted_rows++; totals.substituted_sides += sides;
+                        if (hk) e.keys[`${row.home} -> ${hk}`] = (e.keys[`${row.home} -> ${hk}`] || 0) + 1;
+                        if (ak) e.keys[`${row.away} -> ${ak}`] = (e.keys[`${row.away} -> ${ak}`] || 0) + 1;
+                        if (row.opening_odds != null) {
+                            e.substituted_with_opening_odds++;
+                            totals.substituted_with_opening_odds++;
+                        }
+                        if (row.closing_odds != null) {
+                            e.substituted_with_closing_odds++;
+                            totals.substituted_with_closing_odds++;
+                        }
+                        // The rows a human has to look at, named. A count alone
+                        // cannot be acted on and cannot be checked.
+                        if ((row.opening_odds != null || row.closing_odds != null) && examples.length < 100) {
+                            examples.push({
+                                table, id: row.id, sport,
+                                home: row.home, away: row.away,
+                                home_key: hk, away_key: ak,
+                                has_opening_odds: row.opening_odds != null,
+                                has_closing_odds: row.closing_odds != null,
+                            });
+                        }
+                    }
+                    scanned += rows.length;
+                    if (rows.length < want) { complete = true; break; }
+                }
+                if (scanned >= rowsTotal) complete = true;
+                totals.rows_scanned += scanned;
+                tables[table] = { rows_total: rowsTotal, rows_scanned: scanned, complete };
+            }
+            const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
+            return new Response(JSON.stringify({
+                ok: true,
+                // Rule 91: the denominator travels with the result. A caller
+                // reading `substituted_rows` alone must still see what fraction
+                // of the archive it was counted over.
+                coverage: `scanned ${totals.rows_scanned} of ${totals.rows_total} rows `
+                        + `across ${CENSUS_TABLES.length} tables`,
+                complete: allComplete,
+                tables, totals,
+                by_sport: bySport,
+                // [] means checked and none; the field is never absent when the
+                // scan ran, so a reader cannot mistake "none found" for "not
+                // looked for".
+                rows_with_odds_under_a_substituted_key: examples,
+                checkedAt: new Date().toISOString(),
+            }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
 
         // GET /freshness/{date} — staleness annotations for per-game briefs.

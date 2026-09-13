@@ -545,6 +545,47 @@ function resolveTeamKey(name) {
     return resolveEntity('team', name);
 }
 
+// ── Is a resolved key derived from the name's own text? ────────────────────
+//
+// ONE definition, used by /identity/mismatches and /identity/substitution-census.
+// It was written twice for a day — the second copy is the thing this repo
+// extracted src/odds-sport-keys.js to stop (Rule 62).
+//
+// foldTeamName is NOT a resolver and must never be used as one. It is the
+// comparison baseline: the name reduced to letters and digits with accents
+// removed, so `San José St` folds to `sanjosest` and matches its own key.
+// Accent folding is the discriminator — without it every accented name reads as
+// a substitution and the five real CFB->MLS rows drown in eighty false ones.
+//
+// WHICH HALF CARRIES IT: `normalize('NFKD')`. Measured while writing the
+// mutation for it — decomposition splits é into `e` + U+0301 and the final
+// `[^a-z0-9]` class then drops the mark on its own, so deleting the explicit
+// combining-mark replace changes no output at all (`sanjosest` either way).
+// Delete NFKD instead and the base letter goes with the accent: `sanjosst`.
+// The replace stays because it states the intent and because it is what still
+// holds if that final class is ever widened, but it is not the load-bearing
+// half and scripts/mutate-team-key-substitution.mjs mutates NFKD, not it.
+function foldTeamName(name) {
+    return String(name || '').normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// Returns the resolved key when it does NOT derive from the name's own text,
+// else null. `Colorado` -> `coloradorapids` is a substitution; `San José St`
+// -> `sanjosest` is not.
+//
+// null covers two cases and the caller must not conflate them with a clean row
+// (Rule 99): an unnamed row has no key AND no substitution, which is why every
+// caller counts unnamed rows on their own line rather than folding them into
+// the clean count.
+function substitutedKey(name) {
+    const folded = foldTeamName(name);
+    if (!folded) return null;
+    const key = resolveTeamKey(name);
+    if (!key || key === folded) return null;
+    return key;
+}
+
 // ── Soccer player identity — separate algorithm from both _strip() and
 // _stripPlayer() (MLB) ──────────────────────────────────────────────
 // MLB's _stripPlayer strips Jr/Sr/II/III/IV suffixes and takes only the
@@ -730,4 +771,4 @@ function resolveMLSClubId(name) {
     return MLS_CLUB_ID_BY_NAME[key] || null;
 }
 
-export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId };
+export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, foldTeamName, substitutedKey };
