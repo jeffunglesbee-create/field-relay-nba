@@ -30,8 +30,8 @@ const MUTATIONS = [
     expect: 'the merge fills a gap and cannot overwrite' },
 
   { name: 'C5  the delete targets the keeper instead of the stale row',
-    anchor: '    deletes.push({ table: r.table, id: r.stale, keeper: r.keeper, date: r.date, sport: r.sport });',
-    replace: '    deletes.push({ table: r.table, id: r.keeper, keeper: r.keeper, date: r.date, sport: r.sport });',
+    anchor: '    deletes.push({ table: r.table, id: r.stale, keeper: r.keeper, date: r.date, sport: r.sport,',
+    replace: '    deletes.push({ table: r.table, id: r.keeper, keeper: r.keeper, date: r.date, sport: r.sport,',
     expect: 'it deletes the stale row, not the keeper' },
 
   // The guard exists for future drift, so the mutation is the drift itself:
@@ -42,6 +42,11 @@ const MUTATIONS = [
     anchor: "  has_closing_odds: 'closing_odds',",
     replace: '',
     expect: 'every loss-bearing field maps to a real column' },
+
+  { name: 'C8  the delete stops carrying the names it removes',
+    anchor: "                   home: stale.home, away: stale.away });",
+    replace: '                   });',
+    expect: 'a delete carries the names it is about to remove' },
 
   { name: 'C7  the DELETE becomes a predicate instead of an id list',
     anchor: '    sql: `DELETE FROM ${table} WHERE id IN (${ids.map(() => \'?\').join(\',\')})`,',

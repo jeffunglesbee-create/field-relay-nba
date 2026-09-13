@@ -145,7 +145,13 @@ const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) =
     const values = c.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const params = [];
     for (const d of c) {
-      params.push(d.id, 'collision_cleanup', 'row_deleted', d.table, d.keeper, new Date().toISOString());
+      // old_value carries what the row WAS, not just which table it sat in.
+      // The display names are the part that cannot be reconstructed from the
+      // keeper, and in the 32 merge pairs they are the better ones.
+      params.push(d.id, 'collision_cleanup', 'row_deleted',
+                  JSON.stringify({ table: d.table, date: d.date, sport: d.sport,
+                                   home: d.home, away: d.away }),
+                  d.keeper, new Date().toISOString());
     }
     await d1(`INSERT INTO change_log (game_id, source, field, old_value, new_value, ts) VALUES ${values}`, params);
     logged += c.length;

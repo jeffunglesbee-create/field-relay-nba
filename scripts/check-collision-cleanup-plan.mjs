@@ -86,6 +86,13 @@ eq('no delete exists for a merge that was not planned', allMergedFirst, true);
 // harness as caught while hiding which assertion actually noticed. A destructive
 // script's check must fail, not crash.
 
+// THE DELETED ROW'S NAMES MUST SURVIVE IT. In all 32 merge pairs the row being
+// deleted carries the better display names; LOSS_BEARING cannot see that,
+// because both rows have names and neither is absent. change_log is the only
+// place they can go, so the plan has to carry them.
+eq('a delete carries the names it is about to remove',
+   [clean.deletes[0]?.home, clean.deletes[0]?.away], ['A', 'B']);
+
 // SQL SHAPE. COALESCE is the difference between filling a gap and overwriting.
 const { sql, params } = mergeSql({ table: 'regular_season_games', keeper: 'K', stale: 'S',
                                    columns: ['opening_odds'] });

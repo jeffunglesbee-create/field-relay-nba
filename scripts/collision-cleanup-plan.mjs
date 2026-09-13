@@ -49,7 +49,14 @@ export function buildPlan(collisions) {
       }
       merges.push({ table: r.table, keeper: r.keeper, stale: r.stale, columns, date: r.date, sport: r.sport });
     }
-    deletes.push({ table: r.table, id: r.stale, keeper: r.keeper, date: r.date, sport: r.sport });
+    // home/away travel with the delete so change_log can preserve them.
+    // MEASURED REASON: in all 32 merge pairs the row being deleted carries the
+    // BETTER display names — `Austin FC` and `Seattle Sounders FC` against the
+    // keeper's `Austin` and `Seattle`. That is not a loss LOSS_BEARING can see,
+    // because both values are present; it is a quality difference, and the
+    // delete makes it unrecoverable unless the old values are written down.
+    deletes.push({ table: r.table, id: r.stale, keeper: r.keeper, date: r.date, sport: r.sport,
+                   home: stale.home, away: stale.away });
   }
 
   return {
