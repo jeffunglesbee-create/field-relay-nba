@@ -325,6 +325,17 @@ jobs:
           node scripts/check-team-key-substitution.mjs
           node scripts/mutate-team-key-substitution.mjs
 
+      # A nickname two clubs share has no single right answer. `Tigers` is
+      # Detroit's and Hull City's; the alias table could only store one, so the
+      # winner was whichever line sat lower in the file, and from 2026-08-21
+      # every Detroit Tigers game silently stopped matching its own odds. The
+      # table now records the ambiguity and the odds join resolves it from the
+      # vendor payload it already holds.
+      - name: a shared nickname is recorded, not resolved by file order
+        run: |
+          node scripts/check-ambiguous-team-identity.mjs
+          node scripts/mutate-ambiguous-team-identity.mjs
+
       # Layer 2f: a brief must never quote a number that exists only as an
       # example in the style rules. Two live EPL briefs did on 2026-08-22.
       - name: prompt-example numbers cannot leak into prose

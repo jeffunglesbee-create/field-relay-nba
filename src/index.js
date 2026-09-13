@@ -103,6 +103,7 @@ import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } f
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey } from './identity-resolver.js';
+import { indexOddsByPair, findOddsForRow } from './odds-join.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
@@ -6595,13 +6596,7 @@ async function snapshotCronOdds(env, dateKey) {
     // fabricated zero, and a genuine 0 SHOULD stop the loop.
     if (typeof quotaRemaining === 'number' && quotaRemaining < ODDS_QUOTA_FLOOR) return lastQuota;
 
-    const byPair = new Map();
-    for (const g of games) {
-      // Centralised identity resolution: same canonical key from
-      // either side (Odds-API name OR D1 name) — handles aliases
-      // (Brighton & Hove Albion, Aces, Athletics, Türkiye, …).
-      byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
-    }
+    const oddsIndex = indexOddsByPair(games);
     for (const table of ['regular_season_games', 'postseason_games']) {
       const rows = await env.ARCHIVE_DB.prepare(
         `SELECT id, home, away FROM ${table}
@@ -6613,7 +6608,7 @@ async function snapshotCronOdds(env, dateKey) {
       // applied change is observable via /changelog/{date}.
       const updates = [];
       for (const row of (rows.results || [])) {
-        const og = byPair.get(`${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`);
+        const og = findOddsForRow(oddsIndex, row.home, row.away);
         if (!og) continue;
         const odds = extractOddsForGame(og);
         if (!odds) continue;
@@ -6737,13 +6732,9 @@ async function runOddsBackfillForDate(env, isoDate) {
       // Still apply matches from THIS sport's already-paid-for response.
     }
 
-    const byPair = new Map();
-    for (const g of games) {
-      // Same centralised identity resolution as snapshotCronOdds —
-      // historical backfill needs the same alias coverage so a
-      // single deploy fixes both the live snapshot and the catch-up.
-      byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
-    }
+    // Same index as snapshotCronOdds, so one deploy fixes the live snapshot
+    // and the catch-up together.
+    const oddsIndex = indexOddsByPair(games);
     // Build per-row updates for both tables, then dispatch via
     // reconcile() so the UPDATE + change_log INSERTs are batched and
     // a 100-row backfill makes one DB round-trip per table per chunk
@@ -6751,7 +6742,7 @@ async function runOddsBackfillForDate(env, isoDate) {
     const apply = async (rows, table) => {
       const updates = [];
       for (const row of rows) {
-        const og = byPair.get(`${resolveTeamKey(row.home)}|${resolveTeamKey(row.away)}`);
+        const og = findOddsForRow(oddsIndex, row.home, row.away);
         if (!og) { oddsSkipped++; continue; }
         // Historical payload: stamp the snapshot's own time, not the moment
         // this backfill happened to run.
@@ -12988,11 +12979,8 @@ export default {
                             if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal) {
                                 const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
-                                    const byPair = new Map();
-                                    for (const g of games) {
-                                        byPair.set(`${resolveTeamKey(g.home_team)}|${resolveTeamKey(g.away_team)}`, g);
-                                    }
-                                    const matched = byPair.get(`${resolveTeamKey(home)}|${resolveTeamKey(away)}`);
+                                    const matched = findOddsForRow(
+                                        indexOddsByPair(games), home, away);
                                     if (matched) {
                                         const odds = extractOddsForGame(matched, ODDS_PREFERRED_BOOK, snapshotAt);
                                         if (odds) {

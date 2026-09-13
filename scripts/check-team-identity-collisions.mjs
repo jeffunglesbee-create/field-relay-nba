@@ -52,7 +52,19 @@ const MUST_MATCH = [
     ['Tractors',         'Ipswich Town'],
     ['Hull',             'Hull City'],
     ['the Tigers',       'Hull City'],
-    ['Tigers',           'Hull City'],
+    // ['Tigers', 'Hull City'] WAS HERE, AND IT ASSERTED THE BUG.
+    //
+    // `Tigers` is Detroit's nickname and Hull City's. This line demanded it mean
+    // Hull, which is exactly what the alias table did from 2026-08-21 — and what
+    // stopped every Detroit Tigers game matching its own odds for three weeks.
+    // The guard was not missing the regression; it was requiring it.
+    //
+    // A shared nickname has no single right answer, so `Tigers` now resolves to
+    // neither club and the odds join decides from the payload in hand
+    // (resolveTeamKeyIn). Asserted in scripts/check-ambiguous-team-identity.mjs,
+    // which owns this case in both directions; a MUST_MATCH line here could only
+    // ever re-pick a winner.
+    // See docs/CC-CMD-2026-09-13-alias-table-silent-overwrite.md.
     // Owner-stated convention: unqualified "Real" is Real Madrid; Betis and
     // Real Sociedad go by their own short forms.
     ['Real',             'Real Madrid'],

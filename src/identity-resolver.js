@@ -28,7 +28,7 @@ function _strip(name) {
 // stripForm → canonical stripForm. Canonical entries map to themselves
 // so the lookup is idempotent. Built from D1 + Odds-API observed names
 // (probe in outbox/cc-identity-resolver-2026-06-21.md).
-const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
+const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY, AMBIGUOUS_TEAM } = (() => {
     // Build helper: declare {variant: canonical_human} pairs; encode
     // both sides to strip-form. Canonical also maps to itself.
     // CANONICAL_TEAM: strip-form → canonical strip-form (for resolveTeamKey matching)
@@ -400,12 +400,42 @@ const { CANONICAL_TEAM, CANONICAL_TEAM_DISPLAY } = (() => {
     ];
     const strip = {};
     const display = {};
+    // A VARIANT THAT MEANS TWO TEAMS IS RECORDED, NOT RESOLVED.
+    //
+    // `Tigers` is Detroit's nickname and Hull City's. The old builder assigned
+    // both into one slot, so the answer was decided by which line sat lower in
+    // the file: ['Tigers','Hull City'] was added 2026-08-21 (0faf37f, the three
+    // promoted PL clubs) and took over MLB's entry, silently, three weeks before
+    // anyone noticed Detroit had stopped matching its own odds.
+    //
+    // Nobody chose Hull City. That is the point: a map from variant to canonical
+    // CANNOT represent a variant that means two things, so it answers anyway —
+    // and a structure that cannot say "ambiguous" will always invent a winner.
+    // Measured: exactly one of 269 keys collides today, so this records the truth
+    // about one key rather than restructuring a table that is otherwise correct.
+    const ambiguous = {};
     for (const [variant, canonical] of pairs) {
-        const k = _strip(variant);
-        strip[k] = _strip(canonical);
+        const k = _strip(variant), v = _strip(canonical);
+        if (k in strip && strip[k] !== v) {
+            (ambiguous[k] || (ambiguous[k] = new Set([strip[k]]))).add(v);
+            continue;
+        }
+        if (k in ambiguous) { ambiguous[k].add(v); continue; }
+        strip[k] = v;
         display[k] = canonical;
     }
-    return { CANONICAL_TEAM: strip, CANONICAL_TEAM_DISPLAY: display };
+    // Removed from the resolving map entirely, so resolveEntity's `map[k] || k`
+    // falls through to the bare fold: `Tigers` -> `tigers`. An honest "I do not
+    // know which", which can miss a join but can never assert a team that is not
+    // the one named. A wrong assertion outranks a missing one as a harm — that is
+    // this repo's DO NOT INVENT, applied to identity.
+    const AMBIGUOUS_TEAM = {};
+    for (const k of Object.keys(ambiguous)) {
+        delete strip[k];
+        delete display[k];
+        AMBIGUOUS_TEAM[k] = [...ambiguous[k]].sort();
+    }
+    return { CANONICAL_TEAM: strip, CANONICAL_TEAM_DISPLAY: display, AMBIGUOUS_TEAM };
 })();
 
 function resolveTeamName(name) {
@@ -543,6 +573,60 @@ function resolveEntity(type, name) {
  */
 function resolveTeamKey(name) {
     return resolveEntity('team', name);
+}
+
+/**
+ * Every team an ambiguous name could mean, sorted. One entry for an ordinary
+ * name; two or more only for a variant the table records as ambiguous.
+ *
+ * @param {string|null|undefined} name
+ * @returns {string[]}
+ */
+function resolveTeamCandidates(name) {
+    const k = _strip(name);
+    if (!k) return [];
+    return AMBIGUOUS_TEAM[k] ? [...AMBIGUOUS_TEAM[k]] : [resolveTeamKey(name)];
+}
+
+/**
+ * Resolve a name USING THE CONTEXT THE CALLER ALREADY HOLDS.
+ *
+ * THE INSIGHT THIS EXISTS FOR. Every odds join resolves the VENDOR's names into
+ * a pair map before it ever looks at a D1 row — and the vendor sends
+ * unambiguous full names (`Detroit Tigers`, `Hull City`), one sport per
+ * response. So at the moment an ambiguous D1 name needs a meaning, the caller is
+ * already holding the set of teams this sport actually fielded. The ambiguity
+ * is resolvable from data in hand.
+ *
+ * That is why this takes a key SET and not a `sport` string. A sport parameter
+ * would have to be threaded through call sites that do not have one, and would
+ * trust the archive's `sport` column, which is known dirty (rows carrying
+ * `FIFA World Cup 2026_` ids under sport `MLS`). The vendor payload is neither
+ * absent nor dirty: it is the thing being joined against.
+ *
+ * It cannot invent a cross-sport match. The only keys it can return are keys
+ * this response actually contains, so `Tigers` in a baseball payload cannot
+ * become an English football club however the alias table is edited later. That
+ * is a structural guarantee, not a careful choice.
+ *
+ * EXACTLY ONE candidate must be present. Zero means this sport did not field the
+ * team and the row should miss; more than one means the payload genuinely
+ * contains both and picking either would be a guess. Both return the bare fold —
+ * a miss, never a guess (Rule 76: this is context-or-nothing, not a chain).
+ *
+ * @param {string|null|undefined} name
+ * @param {Set<string>} availableKeys resolved keys the payload in hand contains
+ * @returns {string}
+ */
+function resolveTeamKeyIn(name, availableKeys) {
+    const k = _strip(name);
+    if (!k) return '';
+    const options = AMBIGUOUS_TEAM[k];
+    if (!options || !availableKeys || typeof availableKeys.has !== 'function') {
+        return resolveTeamKey(name);
+    }
+    const present = options.filter(o => availableKeys.has(o));
+    return present.length === 1 ? present[0] : resolveTeamKey(name);
 }
 
 // ── Is a resolved key derived from the name's own text? ────────────────────
@@ -771,4 +855,4 @@ function resolveMLSClubId(name) {
     return MLS_CLUB_ID_BY_NAME[key] || null;
 }
 
-export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, foldTeamName, substitutedKey };
+export { resolveTeamKey, resolveTeamName, resolveAFLTeamKey, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, foldTeamName, substitutedKey, resolveTeamCandidates, resolveTeamKeyIn, AMBIGUOUS_TEAM };
