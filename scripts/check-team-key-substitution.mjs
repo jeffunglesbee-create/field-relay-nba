@@ -16,7 +16,7 @@
 // scripts/mutate-team-key-substitution.mjs.
 import { readFileSync } from 'node:fs';
 import { foldTeamName, substitutedKey } from '../src/identity-resolver.js';
-import { routes, bodyOf } from './lib/route-scan.mjs';
+import { routes, bodyOf, decomment } from './lib/route-scan.mjs';
 
 let failed = 0, checked = 0;
 const ok   = (label) => { checked++; console.log(`ok    ${label}`); };
@@ -112,7 +112,12 @@ if (!census) {
     // not from a vendor response — that is what makes it free. If it ever
     // reached for fetchSportOddsLive it would cost a credit per sport.
     eq('E census classifies from its own key sets', /keySetBySport/.test(body), true);
-    eq('E census spends no Odds-API credit', /fetchSportOdds/.test(body), false);
+    // DECOMMENTED. This assertion read raw source and went red on a COMMENT
+    // that named fetchSportOddsHistorical while explaining what captured_at
+    // means — prose about a call, read as the call. Same shape as the
+    // `// Date coverage:` comment once parsed as a key: a checker that cannot
+    // tell code from writing about code will eventually stop a correct change.
+    eq('E census spends no Odds-API credit', /fetchSportOdds/.test(decomment(body)), false);
     eq('E census reports which sports it could compare',
        /sports_compared:\s*\[\.\.\.keySetBySport\.keys\(\)\]/.test(body), true);
     // The cross-sport list is the one the fix is aimed at. Unlike the
@@ -160,6 +165,21 @@ if (!census) {
     eq('E every row is kept for classification, not only substituted ones',
        /for \(const r of allRows\)/.test(body), true);
     eq('E census always carries key_filter', /key_filter:\s*keyFilter \|\| null/.test(body), true);
+    // `?name=` is forensics: it survives any resolver change, because it keys on
+    // the stored display name rather than on a classification. It exists because
+    // fixing the `Tigers` collision made `Tigers` neither substituted nor
+    // ambiguous, so the fix erased the instrument that could measure its own
+    // history.
+    eq('E census always carries name_filter', /name_filter:\s*nameFilter \|\| null/.test(body), true);
+    // null when not asked, [] when asked and none matched. A reader must be able
+    // to tell those apart (Rule 99).
+    eq('E named rows are null when unfiltered, not empty',
+       /named_rows:\s*nameFilter \? named : null/.test(body), true);
+    // The CC-CMD's artifact is the max date among rows CARRYING ODDS. Computing
+    // it over all matching rows would answer a different question with the same
+    // field name.
+    eq('E the max-date artifact counts only odds-carrying rows',
+       /named_max_date_with_opening_odds[\s\S]{0,180}filter\(r => r\.has_opening_odds\)/.test(body), true);
     // The gap list is the historical backfill's own input and each (date, sport)
     // it names costs ~30 Odds credits to fill. It must be derived from the SCAN,
     // never from a narrowed query, or a spend plan would be built from a window

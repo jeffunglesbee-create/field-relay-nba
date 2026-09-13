@@ -102,7 +102,7 @@ import { assembleContext, findBracketImpact } from './context-assembler.js';
 import { ensureChangeLogTable, reconcile, getRecentChanges, cleanupChangelog } from './sync-reconciler.js';
 import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
-import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey } from './identity-resolver.js';
+import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
 import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
@@ -15169,6 +15169,18 @@ export default {
             // Narrows the reported gap list only — never the scan, so the row
             // totals stay whole-archive and cannot be mistaken for a window.
             const gapsSince = url.searchParams.get('gaps_since');
+            // ?name= reports every row whose home or away folds to this name,
+            // with its date and odds state. Forensics, not classification.
+            //
+            // WHY IT HAD TO BE ADDED TO ANSWER A QUESTION ABOUT `Tigers`: fixing
+            // the collision removed the instrument that could measure its
+            // history. `Tigers` now folds to its own name, so it is neither
+            // SUBSTITUTED nor AMBIGUOUS, and appears in neither existing row
+            // list. A fix that erases the evidence of what it fixed is a
+            // recurring shape, not a one-off — hence a filter keyed on the NAME,
+            // which survives any resolver change.
+            const nameFilter = url.searchParams.get('name');
+            const nameFolded = nameFilter ? foldTeamName(nameFilter) : null;
             // Bounded so a grown archive degrades into a reported partial read
             // rather than a timeout. `complete` per table is the Rule 91
             // denominator and is never inferred from a row count.
@@ -15195,6 +15207,7 @@ export default {
             // EPL and Europa Conference qualifying is one club in two competitions,
             // not two clubs. Derived from SOCCER_LEAGUE_LABELS, not relisted.
             const gaps = {};
+            const named = [];
             let gapRows = 0;
             const keyOwners = new Map();
             // CASE-INSENSITIVE, because `wnba` and `WNBA` are BOTH real archive
@@ -15253,6 +15266,29 @@ export default {
                         // thousands. This says exactly which (date, sport) pairs
                         // have anything to fill, so the spend is known before it
                         // is made rather than discovered from the budget after.
+                        if (nameFolded && (foldTeamName(row.home) === nameFolded
+                                        || foldTeamName(row.away) === nameFolded)) {
+                            // captured_at IS NOT A WRITE TIME for a historically
+                            // backfilled row: fetchSportOddsHistorical anchors it
+                            // to noon UTC on the game's own date, deliberately, so
+                            // the stamp records when the MARKET data is from. Only
+                            // change_log.ts records when the row was written.
+                            // Reported as-is and labelled, because a reader
+                            // checking "was this written before date X" would
+                            // otherwise read the game date back as its own answer.
+                            let capturedAt = null;
+                            try { capturedAt = JSON.parse(row.opening_odds)?.captured_at ?? null; }
+                            catch (_) { capturedAt = '(unparseable)'; }
+                            named.push({
+                                table, id: row.id, date: row.date, sport,
+                                home: row.home, away: row.away,
+                                resolved_home: resolveTeamKey(row.home),
+                                resolved_away: resolveTeamKey(row.away),
+                                has_opening_odds: row.opening_odds != null,
+                                has_closing_odds: row.closing_odds != null,
+                                opening_captured_at: capturedAt,
+                            });
+                        }
                         if (row.opening_odds == null) {
                             const g = gaps[row.date] || (gaps[row.date] = {});
                             g[sport] = (g[sport] || 0) + 1;
@@ -15440,6 +15476,19 @@ export default {
                 odds_gaps: gapsOut,
                 odds_gap_rows: gapRows,
                 odds_gaps_since: gapsSince || null,
+                // Present and null when unfiltered; [] when filtered and nothing
+                // matched. A reader must be able to tell "not asked" from "asked
+                // and none" (Rule 99).
+                name_filter: nameFilter || null,
+                named_rows: nameFilter ? named : null,
+                named_rows_with_opening_odds: nameFilter
+                    ? named.filter(r => r.has_opening_odds).length : null,
+                // The CC-CMD's stated artifact: the newest game date among rows
+                // matching the name that carry odds.
+                named_max_date_with_opening_odds: nameFilter
+                    ? (named.filter(r => r.has_opening_odds)
+                            .map(r => r.date).sort().pop() ?? null)
+                    : null,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
