@@ -1,0 +1,11 @@
+=== changelog repair  apply=true  utc=2026-09-13T22:50:38.052Z ===
+
+--- parsed 82 DELETE line(s) from outbox/collision-cleanup-failed-1789339650693.log
+    names recovered for 82 of 82
+
+--- confirming every id is actually gone
+    still present: 0
+    change_log entries already present for this source: 0
+
+--- wrote 82 change_log entries in chunks of 16
+    change_log now holds 82 entries for this source
