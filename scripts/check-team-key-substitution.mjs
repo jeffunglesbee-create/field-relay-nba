@@ -130,9 +130,18 @@ if (!census) {
     // `Brighton` in Europa Conference qualifying reads as cross-sport because
     // Brighton is also in EPL — the same club in another competition.
     eq('E soccer competitions count as one family',
-       /SOCCER_SPORT_LABEL_SET\.has\(other\)\s*&&\s*SOCCER_SPORT_LABEL_SET\.has\(r\.sport\)/.test(body), true);
-    eq('E suppressed same-family matches are counted, not dropped',
-       /same_family_matches_suppressed:\s*sameFamilySuppressed/.test(body), true);
+       /sportFamily = \(sp\) => SOCCER_SPORT_LABEL_SET\.has\(sp\)/.test(body), true);
+    // AMBIGUITY, NOT VERDICT. This census compares against the ARCHIVE's own key
+    // sets, which the substitutions themselves pollute — CFB's wrong row and
+    // MLS's correct one each make the other look cross-sport. The data supports
+    // "two families claim this key", not "this one is wrong", and the report
+    // must name BOTH sides rather than pick one.
+    eq('E a key is ambiguous only when two FAMILIES claim it',
+       /if \(owners\.size < 2\) continue;/.test(body), true);
+    eq('E both claimants are named, not just the suspect one',
+       /names:\s*\[\.\.\.o\.names\]\.sort\(\)/.test(body)
+       && /sports:\s*\[\.\.\.o\.sports\]\.sort\(\)/.test(body), true);
+    eq('E the enumerated pair list is served', /ambiguous_keys:\s*ambiguousKeys/.test(body), true);
 
     ok('E (classification behaviour is proven by the committed live response, not here)');
 

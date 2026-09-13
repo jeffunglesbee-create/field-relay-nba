@@ -15188,6 +15188,17 @@ export default {
             // cross-sport classification can run after all sports are seen.
             const keySetBySport = new Map();
             const substitutedRows = [];
+            // key -> family -> { rows, names, sports }. A key produced under more
+            // than one FAMILY is ambiguous: two different teams are competing for
+            // one identity and at most one of them can be right.
+            //
+            // WHY FAMILY AND NOT SPORT. Soccer is one sport spread across fourteen
+            // archive labels (EPL, EFL Cup, Ligue 1, the three UEFA competitions
+            // and their qualifying rounds...), so `Brighton` appearing under both
+            // EPL and Europa Conference qualifying is one club in two competitions,
+            // not two clubs. Derived from SOCCER_LEAGUE_LABELS, not relisted.
+            const keyOwners = new Map();
+            const sportFamily = (sp) => SOCCER_SPORT_LABEL_SET.has(sp) ? 'soccer' : sp;
             const totals = {
                 rows_total: 0, rows_scanned: 0, rows_unnamed: 0,
                 substituted_rows: 0, substituted_sides: 0,
@@ -15229,7 +15240,7 @@ export default {
                             substituted_rows: 0, substituted_sides: 0,
                             substituted_with_opening_odds: 0,
                             substituted_with_closing_odds: 0,
-                            cross_sport_rows: 0,
+                            ambiguous_rows: 0,
                             keys: {},
                         });
                         e.rows++;
@@ -15242,8 +15253,14 @@ export default {
                         // contains MLS rows that say so.
                         const ks = keySetBySport.get(sport) || keySetBySport.set(sport, new Set()).get(sport);
                         const hResolved = resolveTeamKey(row.home), aResolved = resolveTeamKey(row.away);
-                        if (hResolved) ks.add(hResolved);
-                        if (aResolved) ks.add(aResolved);
+                        for (const [nm, k] of [[row.home, hResolved], [row.away, aResolved]]) {
+                            if (!k) continue;
+                            ks.add(k);
+                            const fam = sportFamily(sport);
+                            const owners = keyOwners.get(k) || keyOwners.set(k, new Map()).get(k);
+                            const o = owners.get(fam) || owners.set(fam, { rows: 0, names: new Set(), sports: new Set() }).get(fam);
+                            o.rows++; o.names.add(nm); o.sports.add(sport);
+                        }
                         const hk = substitutedKey(row.home), ak = substitutedKey(row.away);
                         if (!hk && !ak) continue;
                         substitutedRows.push({ sport, table, id: row.id, home: row.home, away: row.away, hk, ak,
@@ -15283,60 +15300,56 @@ export default {
                 totals.rows_scanned += scanned;
                 tables[table] = { rows_total: rowsTotal, rows_scanned: scanned, complete };
             }
-            // CLASSIFY. A key that is not its own name is two different things:
+            // CLASSIFY BY AMBIGUITY, NOT BY VERDICT.
             //
-            //   BENIGN  a correct within-sport alias. MLB `Braves` ->
-            //           atlantabraves, EPL `Spurs` -> tottenhamhotspur.
-            //   SUSPECT the key names a team in a DIFFERENT sport. MLB `Tigers`
-            //           -> hullcity is Detroit resolving to an English club that
-            //           shares the nickname; CFB `Colorado` -> coloradorapids is
-            //           a school resolving to an MLS side.
+            // The obvious classification — "this key belongs to another sport,
+            // therefore this row is the wrong one" — cannot be made from this
+            // data, and shipping it would have repeated the collapse b86b3e8
+            // fixed a day ago in /identity/mismatches. That route compares
+            // against the VENDOR's key set, which is authoritative. This census
+            // compares against the ARCHIVE's, which is polluted by the very
+            // substitutions it is measuring: CFB rows put `coloradorapids` into
+            // CFB's key set, so CFB's wrong row and MLS's correct one each make
+            // the other look cross-sport. Symmetric evidence, no verdict in it.
             //
-            // Same vocabulary as /identity/mismatches (`also_in`), and the same
-            // Rule 99 position: a sport whose key set is the only one scanned has
-            // nothing to compare against, so also_in is [] and the row stays
-            // unclassified rather than being called benign by default.
-            const totalsCross = { cross_sport_rows: 0, cross_sport_with_odds: 0 };
+            // What the data DOES support is that the key is AMBIGUOUS: two teams
+            // in different sport families resolve to one identity, and at most
+            // one of them can be right. That is the finding, it is exactly the
+            // enumerated pair list Task 2's fix has to resolve, and it names both
+            // sides instead of guessing which one is wrong.
+            const ambiguousKeys = [];
+            const ambiguous = new Set();
+            for (const [key, owners] of keyOwners) {
+                if (owners.size < 2) continue;
+                ambiguous.add(key);
+                const families = {};
+                for (const [fam, o] of owners) {
+                    families[fam] = {
+                        rows: o.rows,
+                        names: [...o.names].sort(),
+                        sports: [...o.sports].sort(),
+                    };
+                }
+                ambiguousKeys.push({ key, families });
+            }
+            ambiguousKeys.sort((x, y) => x.key.localeCompare(y.key));
+
+            const totalsCross = { ambiguous_keys: ambiguousKeys.length, ambiguous_rows: 0, ambiguous_rows_with_odds: 0 };
             const crossRows = [];
-            // Counted rather than discarded: a suppression the reader cannot see
-            // is the same collapse as an absent count (Rule 99).
-            let sameFamilySuppressed = 0;
             for (const r of substitutedRows) {
-                const alsoIn = (k) => {
-                    if (!k) return [];
-                    const out = [];
-                    for (const [other, keys] of keySetBySport) {
-                        if (other === r.sport || !keys.has(k)) continue;
-                        // SAME SPORT, DIFFERENT COMPETITION IS NOT A SUBSTITUTION.
-                        // The archive's `sport` column mixes sports with soccer
-                        // COMPETITIONS — EPL, EFL Cup, UEFA Champions League,
-                        // Ligue 1 are all soccer. Without this, `Brighton` ->
-                        // brightonhovealbion in Europa Conference qualifying reads
-                        // as cross-sport because Brighton also appears under EPL.
-                        // It is the same club in another competition, which is the
-                        // system working. `Rangers` -> texasrangers in the same
-                        // competition is NOT suppressed: MLB is not a soccer label,
-                        // and that one is a real substitution.
-                        if (SOCCER_SPORT_LABEL_SET.has(other) && SOCCER_SPORT_LABEL_SET.has(r.sport)) {
-                            sameFamilySuppressed++;
-                            continue;
-                        }
-                        out.push(other);
-                    }
-                    return out;
-                };
-                const hIn = alsoIn(r.hk), aIn = alsoIn(r.ak);
-                if (!hIn.length && !aIn.length) continue;
+                const hAmb = r.hk && ambiguous.has(r.hk);
+                const aAmb = r.ak && ambiguous.has(r.ak);
+                if (!hAmb && !aAmb) continue;
                 const e = bySport[r.sport];
-                if (e) e.cross_sport_rows++;
-                totalsCross.cross_sport_rows++;
+                if (e) e.ambiguous_rows++;
+                totalsCross.ambiguous_rows++;
                 const withOdds = r.hasOpening || r.hasClosing;
-                if (withOdds) totalsCross.cross_sport_with_odds++;
+                if (withOdds) totalsCross.ambiguous_rows_with_odds++;
                 crossRows.push({
                     table: r.table, id: r.id, sport: r.sport,
                     home: r.home, away: r.away,
-                    home_key: r.hk, home_key_also_in: hIn,
-                    away_key: r.ak, away_key_also_in: aIn,
+                    home_key: r.hk, home_key_ambiguous: !!hAmb,
+                    away_key: r.ak, away_key_ambiguous: !!aAmb,
                     has_opening_odds: r.hasOpening, has_closing_odds: r.hasClosing,
                 });
             }
@@ -15355,12 +15368,11 @@ export default {
                 // The sports whose key sets were available to compare against.
                 // A one-sport scan can classify nothing, and says so here.
                 sports_compared: [...keySetBySport.keys()],
-                // Soccer competitions are one family; a key shared across them is
-                // the same club, not a substitution. How many such matches were
-                // dropped, so the suppression is visible rather than assumed.
-                same_family_matches_suppressed: sameFamilySuppressed,
-                // Every cross-sport row, uncapped — this is the list the fix is
-                // aimed at and it is small enough to print whole.
+                // Every ambiguous key with BOTH sides named — the enumerated
+                // pair list Task 2's fix has to resolve.
+                ambiguous_keys: ambiguousKeys,
+                // Every row touching an ambiguous key, uncapped — this is the
+                // list the fix is aimed at and it is small enough to print whole.
                 cross_sport_rows: crossRows,
                 by_sport: bySport,
                 // [] means checked and none; the field is never absent when the
