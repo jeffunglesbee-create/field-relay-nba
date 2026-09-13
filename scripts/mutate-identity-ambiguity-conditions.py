@@ -37,6 +37,30 @@ MUTATIONS = [
          anchor='         d.get("cross_sport_reach_failures") == 0,',
          replace='         (d.get("cross_sport_reach_failures") or 0) == 0,',
          expect='reach fields absent from the response'),
+    # Same shape as P2, on the condition added hours later. Written because P2
+    # had already proved this family of gap exists in this very file.
+    dict(name='P5 collision condition always met',
+         anchor='         d.get("same_slate_pair_collisions") == 0,',
+         replace='         True,',
+         expect='a same-slate collision is the only open condition'),
+    # Rule 99 again, on the new field: a relay too old to send it must not read
+    # as an archive with no collisions.
+    dict(name='P6 collision absence read as zero',
+         anchor='         d.get("same_slate_pair_collisions") == 0,',
+         replace='         (d.get("same_slate_pair_collisions") or 0) == 0,',
+         expect='collision field absent from the response'),
+    # The 11 are demoted, not deleted. If the readout stops printing them, a
+    # TWELFTH ambiguous key arrives with nothing to notice it — which is the
+    # actual risk of turning a condition into a readout.
+    dict(name='P7 the demoted ambiguity count stops being printed',
+         # Anchored on BOTH lines of the readout. Anchoring the first alone left
+         # the count itself still printed by the second, and the mutation passed.
+         anchor=(
+             '              f"cross-sport ambiguity (not a condition): "\n'
+             '              f"{t.get(\'ambiguous_key_count\')} keys claimed by two families \u00b7 "'
+         ),
+         replace='              f"cross-sport ambiguity: "',
+         expect='summary omits'),
     # The exposure readout is the denominator the probe ran over. Drop it and a
     # reader sees a green condition with no idea what it covered (Rule 91).
     dict(name='P4 exposure readout dropped from the summary',

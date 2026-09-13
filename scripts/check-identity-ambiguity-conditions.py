@@ -18,12 +18,16 @@ TODAY = {  # measured live 2026-09-13, before any fix
     "totals": {"ambiguous_key_count": 12, "ambiguous_rows": 636,
                "ambiguous_rows_with_odds": 363, "substituted_rows": 1551},
     "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 94,
+    "same_slate_pair_collisions": 0,
+    "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates",
 }
 FIXED = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
          "by_sport": {"CFB": {"substituted_rows": 14}, "NFL": {"substituted_rows": 6}},
          "ambiguous_keys": [],
          "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
-         "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0}
+         "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
+         "same_slate_pair_collisions": 0,
+         "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # THE ONLY FIXTURE IN WHICH THE REACH CONDITION DECIDES THE ANSWER. Every other
 # condition is met here, so all_done turns on that one alone. Without it, a reach
 # condition hard-wired to True is indistinguishable from one that reads the
@@ -33,9 +37,34 @@ REACH_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
               "by_sport": {"CFB": {"substituted_rows": 14}, "NFL": {"substituted_rows": 6}},
               "ambiguous_keys": [],
               "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
-              "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 3}
-ABSENT = {"coverage": "scanned 0 of 0 rows across 2 tables",
-          "by_sport": {}, "ambiguous_keys": [], "totals": {"ambiguous_key_count": 0}}
+              "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 3,
+              "same_slate_pair_collisions": 0,
+              "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
+# The mirror of REACH_ONLY, for the same reason: without it, a collision
+# condition hard-wired to True is indistinguishable from one that reads the
+# response, because every other fixture already has something else open.
+COLLISION_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
+                  "by_sport": {"CFB": {"substituted_rows": 14}, "NFL": {"substituted_rows": 6}},
+                  "ambiguous_keys": [],
+                  "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
+                  "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
+                  "same_slate_pair_collisions": 2,
+                  "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
+# TWO absence fixtures, not one, and the reason is a defect this file already
+# produced: with a single fixture missing BOTH new fields, collapsing either
+# one's absence to zero left the other still open, all_done still False, and the
+# check still green. Mutations P3 and P6 both walked through it. Each absence
+# now gets a fixture where the OTHER condition is satisfied, so the missing
+# field is the only thing deciding the answer.
+REACH_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
+                "by_sport": {}, "ambiguous_keys": [],
+                "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
+                "same_slate_pair_collisions": 0,
+                "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
+COLLISION_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
+                    "by_sport": {}, "ambiguous_keys": [],
+                    "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
+                    "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0}
 EMPTY = {}  # must not raise
 
 CASES = [
@@ -47,7 +76,9 @@ CASES = [
     # reported OPEN for a defect that no longer existed.
     ("every condition met, exposure unchanged", FIXED, True),
     ("reach is the only open condition", REACH_ONLY, False),
-    ("reach fields absent from the response", ABSENT, False),
+    ("a same-slate collision is the only open condition", COLLISION_ONLY, False),
+    ("reach fields absent from the response", REACH_ABSENT, False),
+    ("collision field absent from the response", COLLISION_ABSENT, False),
     ("empty response", EMPTY, False),
 ]
 
@@ -64,8 +95,11 @@ for label, fixture, want in CASES:
 # The rendered summary must name every condition, or a reader sees a green run
 # and infers more than it measured.
 text = render(TODAY, evaluate(TODAY), "fixture")
-for needle in ["hullcity", "CFB", "NFL", "ambiguous_key_count", "3191",
-               "not a condition", "1551", "94"]:
+# THE FIXED 11 MUST STILL BE VISIBLE. They are no longer a condition, and the
+# whole risk of demoting a number is that it stops being printed at all — after
+# which a TWELFTH ambiguous key would arrive with nothing to notice it.
+for needle in ["hullcity", "CFB", "NFL", "claimed by two families", "3191",
+               "not a condition", "1551", "94", "12 keys"]:
     if needle in text:
         print(f"ok   summary names {needle}")
     else:

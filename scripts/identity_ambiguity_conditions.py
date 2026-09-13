@@ -65,9 +65,37 @@ def evaluate(d):
          "{} failing of {} probed".format(
              d.get("cross_sport_reach_failures"),
              d.get("cross_sport_reach_probed"))),
-        ("ambiguous_key_count == 0",
-         totals.get("ambiguous_key_count") == 0,
-         totals.get("ambiguous_key_count")),
+        # RESTATED 2026-09-13, hours after the one above, and for a different
+        # reason — this one's blocker is the world, not a design choice.
+        #
+        # This condition read `ambiguous_key_count == 0`. All 11 keys it counts
+        # were read from the live census rather than assumed, and every one is a
+        # fact about how sport names teams: `richmond` is an AFL club and a CFB
+        # programme; `sanfranciscogiants` is claimed by MLB's Giants and the
+        # NFL's; `texasrangers` by MLB and a Scottish football side; seven MLS
+        # and WNBA short forms are also CFB programme names. NO EDIT TO THIS
+        # REPO MAKES THAT ZERO. Only sport-qualifying every join key would, and
+        # that rewrites every join in the system.
+        #
+        # It is also inert, for a reason that has nothing to do with the alias
+        # table: all three odds writers fetch the payload for the ROW'S OWN
+        # sport, so a CFB row is never offered an MLS response. That is held by
+        # scripts/check-odds-writers-sport-scoped.mjs in CI, where it belongs —
+        # it is a property of the source, checkable without a live call, and a
+        # six-hourly probe of production is the wrong instrument for it.
+        #
+        # WHAT A LIVE WATCH CAN SEE THAT CI CANNOT is the archive itself. Cross-
+        # sport ambiguity cannot reach a join; WITHIN one slate there is no such
+        # protection, and nothing had ever asked. Two rows in one (table, date,
+        # sport) whose `${hk}|${ak}` join key is identical are indistinguishable
+        # to byPair.get before any payload is consulted, and one vendor game
+        # satisfies both — a false fact, not a missing one. Zero is reachable,
+        # non-zero is a named bug report, and only the live archive can answer it.
+        ("no two rows on one slate share a join key",
+         d.get("same_slate_pair_collisions") == 0,
+         "{} collision(s); {}".format(
+             d.get("same_slate_pair_collisions"),
+             d.get("same_slate_pair_collision_coverage"))),
     ]
 
 
@@ -87,7 +115,11 @@ def render(d, conditions, when):
         return (by.get(sport) or {}).get("substituted_rows")
 
     lines += ["",
-              f"ambiguous keys: {t.get('ambiguous_key_count')} · "
+              # Readout, not a condition — see the restatement above. Kept
+              # visible because a NEW ambiguous key is worth seeing even though
+              # the existing 11 are inert and permanent.
+              f"cross-sport ambiguity (not a condition): "
+              f"{t.get('ambiguous_key_count')} keys claimed by two families · "
               f"rows touching one: {t.get('ambiguous_rows')} · "
               f"of those carrying odds: {t.get('ambiguous_rows_with_odds')}",
               "",

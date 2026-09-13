@@ -7,6 +7,14 @@ name: Identity Ambiguity Watch
 #   CC-CMD-2026-09-13-alias-table-silent-overwrite  Task 5
 #   CC-CMD-2026-09-11-odds-identity-join-cfb        blocked until both close
 #
+# Two of its conditions were restated on 2026-09-13 because neither could ever
+# be met. This watch reports what the LIVE ARCHIVE can answer and nothing else:
+# whether a substituted name reaches another sport's club, and whether two rows
+# on one slate share a join key. The source-level guarantee they depend on —
+# every odds writer fetches its own sport's payload — is checked in CI by
+# scripts/check-odds-writers-sport-scoped.mjs, where it costs nothing and cannot
+# drift between runs.
+#
 # Reads GET /identity/substitution-census. Read-only, no auth, no Odds-API
 # credit — the census derives its cross-sport classification from the archive's
 # own rows, which is the whole reason it can run on a schedule.
@@ -72,6 +80,17 @@ jobs:
                              for n, m, o in conditions],
               "totals": d.get("totals"),
               "ambiguous_keys": d.get("ambiguous_keys"),
+              # The two live conditions, with their denominators, so the
+              # artifact answers on its own and a reader never has to re-run
+              # the census to learn what a DONE covered (Rule 91).
+              "cross_sport_reach_probed": d.get("cross_sport_reach_probed"),
+              "cross_sport_reach_failures": d.get("cross_sport_reach_failures"),
+              "cross_sport_reach_failing": d.get("cross_sport_reach_failing"),
+              "same_slate_pair_collision_coverage": d.get("same_slate_pair_collision_coverage"),
+              "same_slate_pair_collisions": d.get("same_slate_pair_collisions"),
+              # Uncapped and fully named. A non-zero here is a bug report, and a
+              # bug report that says only "2" cannot be acted on.
+              "same_slate_pair_colliding": d.get("same_slate_pair_colliding"),
               # The historical backfill's own input: every (date, sport) with a
               # NULL-odds row. Recorded here because the relay's response is too
               # large to read through a probe, and because a backfill costs ~30
