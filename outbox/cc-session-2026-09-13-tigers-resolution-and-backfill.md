@@ -141,6 +141,52 @@ regression, it demanded it. And its sibling asserts over a curated list that
    names, so it failed on a variant listed twice — which is the very thing that
    makes it collide.
 
+## A CC-CMD I filed and retracted, and why it is recorded rather than deleted
+
+I read `/budget/odds` beside the provider dashboard and filed
+`CC-CMD-2026-09-13-odds-ledger-undercounts` claiming the relay's monthly ledger
+undercounted real spend by 16,506 — a third — and that a second error in the
+configured `limit` was masking it.
+
+**Both halves were wrong, and the source says so in a comment ten lines above
+the constant.** `src/budget-helpers.js:86`:
+
+> 100 K paid plan minus 15 K reserved for special projects
+
+So `limit = 85000` is the relay's deliberate SHARE of a 100,000 plan, and
+`monthly.used` counts RELAY spend only. The provider counts everything. The
+difference is special-project consumption that the relay correctly does not
+track. Nothing was broken; the two numbers measure different scopes and both are
+right.
+
+**How I got there is the part worth keeping.** I compared two fields of a JSON
+response and reasoned about their relationship without reading the function that
+produces them. That is reading a copy instead of the source — the exact
+substitution this session built three guards against, committed while writing
+about it. The rule was in my hands the whole time and I applied it to identity
+keys and not to a budget field, because the budget field did not look like code.
+
+The CC-CMD is deleted rather than struck: unlike the sport-blind premise
+correction, it had no surviving work, and an actionable-looking spec built on a
+false premise is worse in `docs/` than absent. The reasoning lives here instead.
+
+## One real question the retraction leaves
+
+Neither source reports it, so it is derived:
+
+```
+provider (all spend)      50,958
+relay ledger (relay only) 34,452
+                          ------
+non-relay spend           16,506   against a 15,000 reserve
+```
+
+Special projects appear to be ~1,500 over their reserve, eating into the relay's
+85,000. **But that figure is only sound if every relay call increments the
+ledger** — if any bypass it, the relay's own spend is understated and the
+"non-relay" residual is inflated by the same amount. I cannot separate those
+from outside, and did not guess. Raising it as a number to check, not a finding.
+
 ## Carry-forward
 
 - `CC-CMD-2026-09-13-alias-table-silent-overwrite`: Tasks 0, 2, 3, 4, 5 done.
