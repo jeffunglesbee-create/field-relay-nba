@@ -391,11 +391,26 @@ exists for that and nothing else: every other condition is met in it, so
 
 ### Residual
 
-**One, and it is not deferred work.** The CFB reach probe covers the 7 pairs in
-that sport. The archive-wide figure comes from the watch's own unfiltered run,
-committed as `outbox/identity-ambiguity-watch-*.json` — dispatched at close and
-recorded there rather than transcribed here, because that file is the artifact
-the condition is read from.
+**None on Task 5.** The CFB probe covers the 7 pairs in that sport; the
+archive-wide run is `outbox/identity-ambiguity-watch-20260913T163926Z.json`,
+dispatched at close:
+
+```
+coverage:  scanned 3237 of 3237 rows across 2 tables
+DONE  hullcity claimed by one family                     -> one family
+DONE  no substituted name reaches another sport's club   -> 0 failing of 123 probed
+OPEN  ambiguous_key_count == 0                           -> 11
+```
+
+**123 pairs probed archive-wide, 0 failing. Task 5's condition is met.**
+
+The one OPEN line is not this CC-CMD's. `ambiguous_key_count == 0` belongs to
+`CC-CMD-2026-09-11-odds-identity-join-cfb`, which stays blocked on 11 keys still
+claimed by more than one sport family. The watch keeps reporting it every six
+hours; nothing here waits on a session to remember it.
+
+`substituted_rows` archive-wide is **1569** in the same response — the exposure
+the reach probe ran over, and still not a defect count.
 
 **Not fixed, and out of scope by the CC-CMD's own boundary:** all 185 CFB rows
 still lack odds, and only 14 were substituted. The other 171 miss for reasons
