@@ -163,25 +163,55 @@ U+0301 and the final `[^a-z0-9]` class drops the mark anyway. The load-bearing
 half is `normalize('NFKD')`. The comment claiming accent folding was the
 discriminator was true of the wrong half.
 
-## Residual — one open question, named
+## Residual — RESOLVED, and the answer was the opposite of the prediction
 
-**Do any of the 68 MLB rows named `Tigers` (-> hullcity) carry odds?**
+**Question:** do any of the 68 MLB rows named `Tigers` (-> hullcity) carry odds?
 
-Deduction says no: the vendor sends `Detroit Tigers` -> detroittigers, the pair
-misses. But this repo's own rule is that a cross-boundary fact is not verified by
-reading, and "are these 68 D1 rows' `opening_odds` NULL" is exactly such a fact.
-`?key=` was added to answer it by command. UNRESOLVED at the time of writing —
-the deploy carrying `?key=` was still queued.
+**Predicted: no.** The reasoning was sound — the vendor sends `Detroit Tigers`
+-> detroittigers, the D1 pair key is `hullcity|...`, the pair misses, nothing is
+written.
 
-**Verify when it lands:**
+**Measured: YES.** `GET /identity/substitution-census?key=hullcity`, 2026-09-13:
+`MLB_2026-06-27_tigers_astros` and most rows after it carry
+`has_opening_odds: true`, many `has_closing_odds: true` as well.
+
+The argument was valid and its conclusion false, because it assumed the alias
+had always been what it is now. It has not:
+
 ```
-GET /identity/substitution-census?key=hullcity
-  -> cross_sport_rows[] filtered to rows touching hullcity
-  -> assert every row with sport == "MLB" has has_opening_odds == false
+src/identity-resolver.js:253   ['Tigers',  'Detroit Tigers'],
+src/identity-resolver.js:399   ['Tigers',  'Hull City'],
 ```
-If any MLB `Tigers` row DOES carry odds, the forward-only conclusion above holds
-for CFB and NFL but not for MLB, and that becomes a backfill question for the
-user — not for a session.
+
+One flat `pairs` array, one loop, one `strip` object. Same key, **last write
+wins, no warning.** Line 399 arrived 2026-08-21 in `0faf37f` ("all three PL
+promoted clubs") and silently took over MLB's entry. The odds on those rows were
+attached in June and July, while `Tigers` still resolved to `detroittigers`.
+
+**Since 2026-08-21 every Detroit Tigers game misses the odds join**, writing
+nothing and logging nothing.
+
+Filed as `docs/CC-CMD-2026-09-13-alias-table-silent-overwrite.md` — a different
+class from sport-blindness (neither entry is a bare city, so this CC-CMD's
+candidate fix (b) does not touch it) with a different fix. It does strengthen
+fix (a): sport-scoping resolves both defects at once.
+
+**Not claimed: that the stored odds are wrong.** Every odds-carrying `Tigers`
+row observed pre-dates the regression, and a Hull City line cannot reach a
+baseball game through this path in any case — `byPair` is built from the
+`baseball_mlb` vendor response alone. "Observed" is not "all 68"; confirming it
+is Task 1 of the new CC-CMD, not an assertion here.
+
+**Why the existing guard missed it.** `check-team-identity-collisions.mjs`
+asserts no two clubs share a key, but over a curated list. `Tigers` is not on it.
+A check over a hand-written sample cannot find the collision it was not told to
+look for.
+
+**The part worth keeping.** Running the probe was, at the moment of running it,
+redundant — the answer was already deduced and the deduction was correct in every
+step. This repo's rule says a cross-boundary fact is not verified by reading, and
+the rule earned itself here: a sound argument contradicted by a measured fact is
+what exposed a three-week-old silent regression that nothing else was looking for.
 
 ## Also observed, not acted on
 
@@ -197,8 +227,32 @@ user — not for a session.
   what is live when a run deploys and then fails a later verify step. The
   response shape is the source; `/deploy/verify` is a copy.
 
-## Carry-forward
+## Carry-forward, and what verifies it without a session
 
 Task 2 (make the resolver sport-aware) through Task 6 remain open under the same
 CC-CMD. `CC-CMD-2026-09-11-odds-identity-join-cfb` Tasks 1-5 stay blocked until
-`key_substituted` reaches 0.
+`key_substituted` reaches 0. A third CC-CMD,
+`CC-CMD-2026-09-13-alias-table-silent-overwrite`, is open on the `Tigers`
+regression.
+
+**These do not wait on a session to remember them.**
+`.github/workflows/identity-ambiguity-watch.yml` runs every 6 hours against the
+live census and reports each done condition as DONE or OPEN in its own run
+summary and in a committed artifact:
+
+| condition | CC-CMD | met when |
+|---|---|---|
+| `hullcity` claimed by one family | alias-table-silent-overwrite, Task 5 | `Tigers` no longer resolves to an English club |
+| CFB `substituted_rows` == 0 | team-key-sport-blind, Task 5 | resolver is sport-aware |
+| NFL `substituted_rows` == 0 | team-key-sport-blind, Task 5 | same |
+| `ambiguous_key_count` == 0 | both | every key claimed by one family |
+
+The watch writes a TIMESTAMPED file per run rather than rewriting a
+`-latest.json`. That is deliberate: the race filed in
+`CC-CMD-2026-09-13-probe-commit-race-unrecoverable` happens because concurrent
+runs conflict on one regenerated file. A unique name per run cannot conflict, so
+this watch sidesteps that defect by construction instead of inheriting it.
+
+It exits non-zero only when the census itself fails. "Still open" is a
+measurement, not a failure, and a watch that cried red for months would be
+muted long before the condition it exists to catch ever flipped.
