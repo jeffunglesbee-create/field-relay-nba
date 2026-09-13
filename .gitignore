@@ -1,2 +1,8 @@
 node_modules/
 .wrangler/
+
+# Bytecode. scripts/__pycache__ was committed by accident in e58f7bb; it is a
+# build product of scripts/identity_ambiguity_conditions.py and it changes on
+# every run of the checks that import it.
+__pycache__/
+*.pyc
