@@ -15012,7 +15012,9 @@ export default {
             const sportParam = (url.searchParams.get('sports') || 'EPL,MLS,WNBA,MLB,La Liga').trim();
             const sports = sportParam.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5);
 
-            const report = { date, probed: 0, matched: 0, unmatched: 0, sports: {} };
+            // key_substituted counts rows whose resolved team key is not derived
+            // from their own display name — a wrong row, not a naming difference.
+            const report = { date, probed: 0, matched: 0, unmatched: 0, key_substituted: 0, sports: {} };
             for (const sport of sports) {
                 const sportKey = archiveSportToOddsKey(sport);
                 if (!sportKey) {
@@ -15042,6 +15044,35 @@ export default {
                         d1_home: row.home, d1_away: row.away, d1_key: k,
                     });
                 }
+                // A D1 key that does not derive from its OWN display name is not a
+                // join problem — it is a wrong row. resolveTeamKey's alias map is
+                // sport-blind, so a CFB school resolves to a pro club of the same
+                // city: measured 2026-09-12 on an 80-game slate, 6 rows carried
+                // Liberty -> newyorkliberty (WNBA), Minnesota -> minnesotaunitedfc,
+                // Colorado -> coloradorapids, Houston -> houstondynamofc,
+                // Cincinnati -> fccincinnati, Charlotte -> charlottefc (all MLS).
+                // Those keys are WRITTEN INTO D1, so the archive asserts a college
+                // football game was played by the Colorado Rapids — DO NOT INVENT
+                // at the source, and strictly worse than the join it breaks.
+                //
+                // Reported here because this is the endpoint anyone debugging the
+                // join already calls, and the count was invisible in it: an
+                // unmatched row reads as a naming difference whatever the cause.
+                // Accent-folded before comparing, so San José St -> sanjosest is
+                // correctly NOT flagged (CC-CMD-2026-09-13-team-key-sport-blind).
+                const _fold = (t) => (t || '').normalize('NFKD')
+                    .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const substituted = [];
+                for (const row of (d1Res.results || [])) {
+                    // ONE argument, exactly as the join above calls it. Passing a
+                    // `sport` here would imply the resolver is sport-aware, and its
+                    // not being sport-aware is the entire finding.
+                    const hk = resolveTeamKey(row.home), ak = resolveTeamKey(row.away);
+                    if (hk && _fold(row.home) && hk !== _fold(row.home)) substituted.push({ name: row.home, key: hk });
+                    if (ak && _fold(row.away) && ak !== _fold(row.away)) substituted.push({ name: row.away, key: ak });
+                }
+                report.key_substituted += substituted.length;
+
                 report.matched   += matched.length;
                 report.unmatched += unmatched.length;
                 report.sports[sport] = {
@@ -15049,6 +15080,9 @@ export default {
                     odds_events: oddsGames.length,
                     d1_missing: (d1Res.results || []).length,
                     matched: matched.length,
+                    // Names whose resolved key is not their own name. null would be
+                    // wrong here: [] means checked and none, absent means not checked.
+                    key_substituted: substituted,
                     unmatched,
                     odds_sample: [...oddsByKey.entries()].slice(0, 6).map(([k, v]) =>
                         ({ odds_home: v.odds_home, odds_away: v.odds_away, key: k })),
