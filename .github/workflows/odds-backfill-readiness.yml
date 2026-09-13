@@ -1,0 +1,136 @@
+name: Odds Backfill Readiness
+
+# SAYS WHETHER THE APPROVED BACKFILL CAN RUN. DOES NOT RUN IT.
+#
+# The standing rule is that a live mutation of archive rows is authorised case
+# by case by the user and is NEVER wired to a cron by a session. Tranche 2 is
+# approved, but "approved" is not "schedulable": the approval was for a batch,
+# and a cron that re-decides daily whether to mutate the archive is a session
+# handing itself a standing permission it was not given.
+#
+# So this automates the SIGNAL and not the act. It answers the two questions
+# that otherwise need a session to recompute:
+#
+#   1. has the daily budget reset far enough to afford the remaining dates?
+#   2. which dates are still pending, and what will they actually cost?
+#
+# The second is not a stored list. It is derived from the census every run, so
+# it shrinks as dates get done and cannot go stale — and it prices the job the
+# way the route really bills, per SPORT per DATE, which is what made the naive
+# estimate wrong by 5.5x the first time.
+
+on:
+  schedule:
+    - cron: '10 0 * * *'   # just after the provider's 00:00 UTC daily reset
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Price the remaining backfill against the budget
+        run: |
+          python3 << 'PYEOF'
+          import json, os, urllib.request
+          from datetime import datetime, timezone
+
+          UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+          BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
+
+          def get(path):
+              req = urllib.request.Request(BASE + path, headers={"User-Agent": UA})
+              with urllib.request.urlopen(req, timeout=180) as r:
+                  return json.loads(r.read())
+
+          budget = get("/budget/odds")
+          census = get("/identity/substitution-census?gaps_since=2026-08-21")
+          if not census.get("complete"):
+              raise SystemExit(f"census incomplete: {census.get('coverage')}")
+
+          WINDOW_START, TODAY = "2026-08-21", datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          PER_CALL = 30          # historical odds: 10x live, three markets
+          gaps = census.get("odds_gaps") or {}
+
+          # Only dates that still have an MLB gap, and only dates already played.
+          # A future fixture cannot have a historical odds snapshot; billing for
+          # one buys nothing.
+          pending = {d: s for d, s in gaps.items()
+                     if WINDOW_START <= d < TODAY and "MLB" in s}
+          # THE ROUTE FILLS EVERY SPORT ON A DATE, not the one being asked about,
+          # so the price is per sport per date. Costing this as len(dates)*30
+          # understated it 5.5x on 2026-09-13 and would have blown the ceiling
+          # part-way through with no record of where it stopped.
+          cost = sum(len(s) * PER_CALL for s in pending.values())
+
+          remaining = (budget.get("daily") or {}).get("remaining")
+          # Leave room for the live crons, which also spend from this ceiling.
+          HEADROOM = 600
+          affordable = remaining is not None and remaining - HEADROOM >= cost
+          partial = []
+          if not affordable and remaining is not None:
+              spend = 0
+              for d in sorted(pending, key=lambda d: len(pending[d])):
+                  c = len(pending[d]) * PER_CALL
+                  if spend + c > max(0, remaining - HEADROOM):
+                      break
+                  partial.append(d); spend += c
+
+          now = datetime.now(timezone.utc)
+          out = {
+              "checked_at": now.isoformat(),
+              "authorised_batch": "CC-CMD-2026-09-13-alias-table-silent-overwrite tranche 2",
+              "this_workflow_does_not_mutate": True,
+              "daily_remaining": remaining,
+              "headroom_reserved_for_crons": HEADROOM,
+              "pending_dates": sorted(pending),
+              "pending_cost_credits": cost,
+              "affordable_in_full_today": affordable,
+              "affordable_subset_today": partial,
+              "run_these": [f"/archive/odds-backfill?date={d}"
+                            for d in (sorted(pending) if affordable else partial)],
+          }
+          stamp = now.strftime("%Y%m%dT%H%M%SZ")
+          with open(f"outbox/odds-backfill-readiness-{stamp}.json", "w") as fh:
+              json.dump(out, fh, indent=2)
+
+          state = ("READY — the whole batch fits" if affordable
+                   else (f"PARTIAL — {len(partial)} of {len(pending)} dates fit"
+                         if partial else "NOT READY — no headroom"))
+          lines = [
+              "### Odds backfill readiness", "",
+              f"**{state}**", "",
+              f"- pending dates: **{len(pending)}**",
+              f"- cost, priced per sport per date: **{cost}** credits",
+              f"- daily remaining: **{remaining}** (reserving {HEADROOM} for crons)",
+              "",
+              "This workflow reports. It does not mutate — an archive backfill is",
+              "authorised case by case, never by a schedule.",
+          ]
+          if out["run_these"]:
+              lines += ["", "Dates a session can run now:", ""] + [f"- `{r}`" for r in out["run_these"]]
+          if not pending:
+              lines += ["", "**Nothing pending — tranche 2 is complete.** This workflow can be deleted."]
+          print("\n".join(lines))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write("\n".join(lines) + "\n")
+          PYEOF
+
+      - name: Commit the reading
+        run: |
+          git config user.name "odds-backfill-readiness"
+          git config user.email "actions@github.com"
+          git add outbox/
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: odds backfill readiness [skip ci]"
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase --autostash origin main || git rebase --abort || true
+            sleep $((i * 5))
+          done
+          exit 1
