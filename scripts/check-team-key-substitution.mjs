@@ -146,6 +146,20 @@ if (!census) {
        /names:\s*\[\.\.\.o\.names\]\.sort\(\)/.test(body)
        && /sports:\s*\[\.\.\.o\.sports\]\.sort\(\)/.test(body), true);
     eq('E the enumerated pair list is served', /ambiguous_keys:\s*ambiguousKeys/.test(body), true);
+    // A count and a list must not share a name in one response. `totals`
+    // carried `ambiguous_keys` as a number beside the list of the same name;
+    // it was live for one deploy.
+    eq('E the count and the list have different names',
+       /ambiguous_key_count:\s*ambiguousKeys\.length/.test(body), true);
+    // Rows are classified on the RESOLVED key, not the substituted one. AFL
+    // `Richmond` and CFB `Richmond` both derive from their own name, so neither
+    // is a substitution — classifying on the substituted key reports the
+    // collision and none of the rows it affects.
+    eq('E rows are classified on the resolved key',
+       /const hAmb = r\.hResolved && ambiguous\.has\(r\.hResolved\)/.test(body), true);
+    eq('E every row is kept for classification, not only substituted ones',
+       /for \(const r of allRows\)/.test(body), true);
+    eq('E census always carries key_filter', /key_filter:\s*keyFilter \|\| null/.test(body), true);
 
     ok('E (classification behaviour is proven by the committed live response, not here)');
 

@@ -15172,6 +15172,12 @@ export default {
             // be acted on. The scan still reports the FULL table totals so the
             // filter cannot be mistaken for the whole archive.
             const sportFilter = url.searchParams.get('sport');
+            // ?key= narrows the REPORTED rows to one resolved key while still
+            // scanning and classifying the whole archive — unlike ?sport=, which
+            // narrows the scan and therefore leaves nothing to compare against.
+            // Added to answer one question by command instead of by deduction:
+            // do the 68 MLB rows named `Tigers` (-> hullcity) carry odds?
+            const keyFilter = url.searchParams.get('key');
             // Bounded so a grown archive degrades into a reported partial read
             // rather than a timeout. `complete` per table is the Rule 91
             // denominator and is never inferred from a row count.
@@ -15187,7 +15193,7 @@ export default {
             // Per-sport resolved-key sets, and every substituted row kept so the
             // cross-sport classification can run after all sports are seen.
             const keySetBySport = new Map();
-            const substitutedRows = [];
+            const allRows = [];
             // key -> family -> { rows, names, sports }. A key produced under more
             // than one FAMILY is ambiguous: two different teams are competing for
             // one identity and at most one of them can be right.
@@ -15274,9 +15280,18 @@ export default {
                             o.rows++; o.names.add(nm); o.sports.add(sport);
                         }
                         const hk = substitutedKey(row.home), ak = substitutedKey(row.away);
+                        // EVERY row is kept for the ambiguity pass, not only the
+                        // substituted ones. `richmond` is why: AFL's Richmond
+                        // Tigers and CFB's Richmond Spiders both resolve to their
+                        // OWN name, so neither is a substitution and the predicate
+                        // cannot see the collision — only the two claims on one key
+                        // can. Listing rows from substituted rows alone would report
+                        // the key and none of the rows it affects.
+                        allRows.push({ sport, table, id: row.id, home: row.home, away: row.away,
+                                       hk, ak, hResolved, aResolved,
+                                       hasOpening: row.opening_odds != null,
+                                       hasClosing: row.closing_odds != null });
                         if (!hk && !ak) continue;
-                        substitutedRows.push({ sport, table, id: row.id, home: row.home, away: row.away, hk, ak,
-                                               hasOpening: row.opening_odds != null, hasClosing: row.closing_odds != null });
                         const sides = (hk ? 1 : 0) + (ak ? 1 : 0);
                         e.substituted_rows++; e.substituted_sides += sides;
                         totals.substituted_rows++; totals.substituted_sides += sides;
@@ -15346,22 +15361,30 @@ export default {
             }
             ambiguousKeys.sort((x, y) => x.key.localeCompare(y.key));
 
-            const totalsCross = { ambiguous_keys: ambiguousKeys.length, ambiguous_rows: 0, ambiguous_rows_with_odds: 0 };
+            // ambiguous_key_COUNT, not ambiguous_keys. The list of that name sits
+            // beside it in the same response; one name for a number and a list in
+            // one object is a reader's trap, and this one was live for one deploy.
+            const totalsCross = { ambiguous_key_count: ambiguousKeys.length, ambiguous_rows: 0, ambiguous_rows_with_odds: 0 };
             const crossRows = [];
-            for (const r of substitutedRows) {
-                const hAmb = r.hk && ambiguous.has(r.hk);
-                const aAmb = r.ak && ambiguous.has(r.ak);
+            for (const r of allRows) {
+                // The RESOLVED key, not the substituted one — a row can touch an
+                // ambiguous key without being a substitution (see `richmond`).
+                const hAmb = r.hResolved && ambiguous.has(r.hResolved);
+                const aAmb = r.aResolved && ambiguous.has(r.aResolved);
                 if (!hAmb && !aAmb) continue;
                 const e = bySport[r.sport];
                 if (e) e.ambiguous_rows++;
                 totalsCross.ambiguous_rows++;
                 const withOdds = r.hasOpening || r.hasClosing;
                 if (withOdds) totalsCross.ambiguous_rows_with_odds++;
+                if (keyFilter && r.hResolved !== keyFilter && r.aResolved !== keyFilter) continue;
                 crossRows.push({
                     table: r.table, id: r.id, sport: r.sport,
                     home: r.home, away: r.away,
-                    home_key: r.hk, home_key_ambiguous: !!hAmb,
-                    away_key: r.ak, away_key_ambiguous: !!aAmb,
+                    home_key: r.hResolved, home_key_ambiguous: !!hAmb,
+                    home_key_substituted: !!r.hk,
+                    away_key: r.aResolved, away_key_ambiguous: !!aAmb,
+                    away_key_substituted: !!r.ak,
                     has_opening_odds: r.hasOpening, has_closing_odds: r.hasClosing,
                 });
             }
@@ -15398,6 +15421,9 @@ export default {
                 // Present and null when unfiltered; the field never disappears,
                 // so a reader cannot mistake a one-sport scan for the archive.
                 sport_filter: sportFilter || null,
+                // Present and null when unfiltered, so a narrowed row list cannot
+                // be read as every row.
+                key_filter: keyFilter || null,
                 checkedAt: new Date().toISOString(),
             }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
         }
