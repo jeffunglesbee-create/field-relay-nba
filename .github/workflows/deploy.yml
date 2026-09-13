@@ -314,6 +314,17 @@ jobs:
       - name: team identity — no two clubs share a key
         run: node scripts/check-team-identity-collisions.mjs
 
+      # The same resolver, one step earlier: is the key it returns derived from
+      # the name it was given? resolveTeamKey's alias map is sport-blind, so CFB
+      # `Colorado` resolves to coloradorapids (MLS) — measured on five CFB rows
+      # on 2026-09-12. The predicate that separates that from an ordinary accent
+      # difference (`San José St` -> sanjosest, NOT a substitution) is the whole
+      # diagnostic, and it is also the one that got written twice.
+      - name: a resolved key derives from its own name
+        run: |
+          node scripts/check-team-key-substitution.mjs
+          node scripts/mutate-team-key-substitution.mjs
+
       # Layer 2f: a brief must never quote a number that exists only as an
       # example in the style rules. Two live EPL briefs did on 2026-08-22.
       - name: prompt-example numbers cannot leak into prose
