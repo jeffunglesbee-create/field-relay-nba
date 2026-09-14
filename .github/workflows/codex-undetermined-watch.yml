@@ -55,14 +55,9 @@ jobs:
       - name: Commit the reading
         if: always()
         run: |
-          git config user.name "FIELD CI"
-          git config user.email "claude@field.dev"
-          git add outbox/codex-undetermined-watch.log || true
-          git diff --cached --quiet && { echo "unchanged since last week"; exit 0; }
-          git commit -m "chore: codex undetermined watch"
-          for i in 1 2 3 4 5; do
-            if git push; then echo "pushed on attempt $i"; exit 0; fi
-            git pull --rebase --autostash origin main || true
-            sleep $((i * 3))
-          done
-          exit 1
+          # Narrow on purpose: widening to outbox/ would sweep outbox/.drive-uploaded,
+          # the appended Drive ledger, into this commit.
+          PROBE_PATHS="outbox/codex-undetermined-watch.log" \
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          bash scripts/probe-commit-retry.sh "chore: codex undetermined watch"

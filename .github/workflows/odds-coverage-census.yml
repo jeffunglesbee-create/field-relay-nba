@@ -53,14 +53,8 @@ jobs:
       - name: Commit findings
         if: always()
         run: |
-          git config user.name "FIELD CI"
-          git config user.email "claude@field.dev"
-          git add outbox/odds-coverage-census.log || true
-          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
-          git commit -m "chore: odds coverage census [skip ci]"
-          for i in 1 2 3 4 5; do
-            if git push; then exit 0; fi
-            git pull --rebase --autostash origin main || true
-            sleep $((i * 3))
-          done
-          exit 1
+          # Narrow on purpose — see codex-undetermined-watch.
+          PROBE_PATHS="outbox/odds-coverage-census.log" \
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          bash scripts/probe-commit-retry.sh "chore: odds coverage census [skip ci]"

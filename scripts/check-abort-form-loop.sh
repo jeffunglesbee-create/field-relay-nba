@@ -76,10 +76,15 @@ race() {   # $1 = loop script path -> echoes "<rc>|<branch>|<midrebase>|<landed>
   echo "$rc|$branch|$mid|$landed"
 }
 
-# CONVERTED — must now call the shared loop. Named explicitly because these two
-# were the argument for the exclusion, and an exclusion that quietly becomes a
-# conversion that quietly becomes neither is how a gate rots.
-for wf in identity-ambiguity-watch collision-cleanup; do
+# CONVERTED — each must call the shared loop and keep no private one. Named
+# explicitly rather than discovered: a list derived from "workflows that call the
+# shared loop" would pass trivially when one stops calling it, which is the whole
+# failure being guarded against.
+for wf in identity-ambiguity-watch collision-cleanup \
+          brief-sport-authority-census codex-overwrite-diagnostics \
+          codex-queue-adjudicate codex-undetermined-watch \
+          odds-coverage-census provenance-census \
+          session-health-queue-probe timetravel-window-watch; do
   f="$REPO/.github/workflows/$wf.yml"
   if grep -q 'scripts/probe-commit-retry.sh' "$f"; then
     ok "$wf: converted to the shared loop"
@@ -115,6 +120,6 @@ echo
 if [ "$failed" -eq 0 ]; then
   # Rule 91: zero remaining abort-form loops must read as "none left", never as
   # "nothing was looked at".
-  echo "PASS: $((checked-failed))/$checked assertions — 2 converted, $remaining abort-form loop(s) still raced"
+  echo "PASS: $((checked-failed))/$checked assertions — 10 converted, $remaining abort-form loop(s) still raced"
   exit 0
 else echo "FAILED: $((checked-failed))/$checked assertions"; exit 1; fi

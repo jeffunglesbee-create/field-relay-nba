@@ -12,26 +12,21 @@
 // failures with real sleeps between them, and the run reports the symptom of its
 // own damage rather than the original race.
 //
-// A RATCHET, NOT A CLEAN SWEEP. Eight workflows carried this shape when the
-// check was written. Fixing them is CC-CMD-2026-09-14-git-state-swallow-sweep's
-// job, not this file's; what this file does is stop a NINTH appearing, and shrink
-// the allowance as each one is fixed. A gate that goes red on day one gets
-// disabled, and a disabled gate protects nothing.
+// A RATCHET THAT REACHED ZERO. Eight workflows carried this shape when the check
+// was written; all eight are converted. The allowance is now empty, so any
+// workflow that grows the shape fails the build outright — which is what a
+// ratchet is for, and why it was worth starting at eight rather than at zero. A
+// gate that goes red on day one gets disabled, and a disabled gate protects
+// nothing.
 import { readFileSync, readdirSync } from 'node:fs';
 
 // Measured 2026-09-13, `grep -rn "pull --rebase --autostash.*|| true"`. Every
 // entry is a known defect awaiting its own CC-CMD. Removing one is the only
 // edit this list should ever receive.
-const KNOWN = new Set([
-  'brief-sport-authority-census.yml',
-  'codex-overwrite-diagnostics.yml',
-  'codex-queue-adjudicate.yml',
-  'codex-undetermined-watch.yml',
-  'odds-coverage-census.yml',
-  'provenance-census.yml',
-  'session-health-queue-probe.yml',
-  'timetravel-window-watch.yml',
-]);
+// EMPTY, 2026-09-14. All eight converted to scripts/probe-commit-retry.sh under
+// CC-CMD-2026-09-14-git-state-swallow-sweep. The set stays here rather than
+// being deleted with the check: the ratchet's job now is that it never refills.
+const KNOWN = new Set([]);
 
 // `git rebase --abort || true` is NOT this defect: it returns to a clean branch,
 // which is the thing `|| true` on a pull fails to do. The pattern below matches
@@ -73,5 +68,5 @@ eq(`every fixed workflow has been removed from KNOWN (${fixed.join(', ') || 'non
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
           + ` — scanned ${files.length} workflow(s), ${offenders.length} still swallow, `
-          + `${KNOWN.size} allowed pending CC-CMD-2026-09-14-git-state-swallow-sweep`);
+          + `${KNOWN.size} allowed`);
 process.exit(failed ? 1 : 0);

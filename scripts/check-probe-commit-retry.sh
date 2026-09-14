@@ -138,6 +138,35 @@ setup
 author="$(cd "$WORK/b"; git log -1 --format=%an)"
 eq "and the template's default still applies when not" "$author" "reusable-probe-bot"
 
+# ── 3f. STAGING IS A PARAMETER, AND NARROW STAYS NARROW ────────────────────
+# Three callers stage one named file on purpose. If the shared loop widened that
+# to outbox/ it would sweep the appended Drive ledger into their commits — the
+# one file it refuses to auto-resolve.
+setup
+(cd "$WORK/b"
+ echo 'wanted' > outbox/odds-coverage-census.log
+ echo 'unrelated' > outbox/.drive-uploaded
+ PROBE_PATHS="outbox/odds-coverage-census.log" PROBE_SLEEP_UNIT=0    bash "$SCRIPT" "chore: narrow" >/dev/null 2>&1)
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | sort | tr '\n' ' ')"
+eq "a narrow PROBE_PATHS stages only that file" "$staged" "outbox/odds-coverage-census.log "
+
+# More than one path, including one outside outbox/ — provenance-census's shape.
+setup
+(cd "$WORK/b"
+ mkdir -p src; echo 'x' > src/route-provenance.js
+ echo 'y' > outbox/provenance-census-latest.json
+ echo 'z' > outbox/.drive-uploaded
+ PROBE_PATHS="outbox/provenance-census-latest.json src/route-provenance.js"    PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: multi" >/dev/null 2>&1)
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | sort | tr '\n' ' ')"
+eq "several paths stage together, including outside outbox/"    "$staged" "outbox/provenance-census-latest.json src/route-provenance.js "
+
+# And the default is unchanged for every caller that passes nothing.
+setup
+(cd "$WORK/b"; echo 'd' > outbox/whatever.json
+ PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: default" >/dev/null 2>&1)
+staged="$(cd "$WORK/b"; git show --name-only --format= HEAD | tr '\n' ' ')"
+eq "the default still stages outbox/" "$staged" "outbox/whatever.json "
+
 # ── 4. a non-race push failure is loud and immediate ───────────────────────
 setup
 out="$(cd "$WORK/b"; echo '{"run":"x"}' > outbox/provenance-runtime-probe-latest.json

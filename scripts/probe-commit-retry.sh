@@ -39,6 +39,15 @@ BRANCH="${PROBE_BRANCH:-main}"
 ATTEMPTS="${PROBE_ATTEMPTS:-5}"
 SLEEP_UNIT="${PROBE_SLEEP_UNIT:-3}"
 MESSAGE="${1:?usage: probe-commit-retry.sh <commit message>}"
+# WHAT TO STAGE, and it is a parameter because widening is not safe. Three
+# callers stage a SINGLE NAMED FILE on purpose; replacing that with `outbox/`
+# would sweep outbox/.drive-uploaded — the appended Drive ledger — into their
+# commits, which is the exact file this loop refuses to auto-resolve. One caller
+# also stages a path outside outbox/ entirely.
+#
+# Deliberately word-split: callers pass several paths.
+# shellcheck disable=SC2206
+PATHS=(${PROBE_PATHS:-outbox/})
 
 # Regenerated whole by every run, so the newer copy supersedes and a textual
 # merge of two complete JSON documents is meaningless — which is why git raises
@@ -56,7 +65,7 @@ is_regenerated() {
 # row — provenance this repo spent a whole CC-CMD recovering once already.
 git config user.name "${PROBE_AUTHOR_NAME:-reusable-probe-bot}"
 git config user.email "${PROBE_AUTHOR_EMAIL:-actions@github.com}"
-git add outbox/
+git add -- "${PATHS[@]}"
 if git diff --cached --quiet; then
   echo "nothing to commit"
   exit 0

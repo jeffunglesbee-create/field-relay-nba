@@ -71,25 +71,8 @@ jobs:
       - name: Commit only a CHANGED answer
         if: always()
         run: |
-          git config user.name "FIELD CI"
-          git config user.email "claude@field.dev"
-          STATE=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('outbox/timetravel-window-watch-status.json','utf8')).state)}catch(e){console.log('UNKNOWN')}")
-          # Ignore a timestamp-only diff. `git diff` on the status file would
-          # report a change every single run because checked_at always moves.
-          git add outbox/timetravel-window-watch-status.json outbox/timetravel-window-watch.log
-          if git diff --cached -U0 -- outbox/timetravel-window-watch-status.json \
-             | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' \
-             | grep -vE '"(answer_recorded_at|checked_at|raw_output)"' | grep -q .; then
-            echo "state changed to ${STATE} — committing"
-          else
-            echo "still ${STATE}, nothing but timestamps moved — no commit"
-            git reset -q
-            exit 0
-          fi
-          git commit -m "chore: time travel window watch — ${STATE}"
-          for i in 1 2 3 4 5; do
-            if git push; then echo "pushed on attempt $i"; exit 0; fi
-            git pull --rebase --autostash origin main || true
-            sleep $((i * 3))
-          done
-          exit 1
+          # Two named files, not the directory.
+          PROBE_PATHS="outbox/timetravel-window-watch-status.json outbox/timetravel-window-watch.log" \
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          bash scripts/probe-commit-retry.sh "chore: time travel window watch — ${STATE}"

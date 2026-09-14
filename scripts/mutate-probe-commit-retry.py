@@ -84,6 +84,19 @@ MUTATIONS = [
          anchor='git config user.name "${PROBE_AUTHOR_NAME:-reusable-probe-bot}"',
          replace='git config user.name "reusable-probe-bot"',
          expect="the caller's identity is used when given"),
+    # Widening a narrow caller sweeps outbox/.drive-uploaded into its commit —
+    # the appended ledger this loop refuses to auto-resolve. The staging
+    # parameter exists to prevent exactly that.
+    dict(name='R9  the staging parameter is ignored and outbox/ is always staged',
+         anchor='git add -- "${PATHS[@]}"',
+         replace='git add outbox/',
+         expect='a narrow PROBE_PATHS stages only that file'),
+
+    # A single unquoted default would stage one path and silently drop the rest.
+    dict(name='R10 several paths collapse to the first',
+         anchor='PATHS=(${PROBE_PATHS:-outbox/})',
+         replace='PATHS=("${PROBE_PATHS:-outbox/}")',
+         expect='several paths stage together, including outside outbox/'),
 ]
 
 bad = 0
