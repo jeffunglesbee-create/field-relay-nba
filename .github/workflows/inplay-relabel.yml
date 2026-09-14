@@ -1,0 +1,63 @@
+name: In-play relabel (move a post-kickoff price out of closing_odds)
+
+# OWNER DECISION 2026-09-14: "Relabel".
+#
+# Two collision pairs each hold two DIFFERENT prices in one odds column. Placed
+# against the twin's start_time (23:30Z) both were captured AFTER kickoff — +11
+# and +25 minutes. Neither is a closing line, so there was nothing to choose
+# between them, and choosing would have enshrined an in-play price as the close.
+#
+# MOVES VALUES, REMOVES NONE. The script refuses a plan carrying a delete.
+#
+# DRY RUN BY DEFAULT. `apply` must be the literal word APPLY.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  relabel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plan checks must pass before the plan may run
+        run: |
+          node scripts/check-d1-batch-param-cap.mjs
+          node scripts/check-collision-cleanup-plan.mjs
+          node scripts/mutate-collision-cleanup-plan.mjs
+          node scripts/check-collision-reach.mjs
+          node scripts/mutate-collision-reach.mjs
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            echo "::warning title=Applying::live D1 writes authorised by input (moves only, no deletes)"
+            node scripts/run-inplay-relabel.mjs --apply
+          else
+            node scripts/run-inplay-relabel.mjs
+          fi
+
+      # The prices, whichever way the run went. On a refusal these are what a
+      # human needs; on success they are the record of what moved.
+      - name: Print both lines for any remaining conflict
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-collision-odds-conflict.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="inplay-relabel" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: in-play relabel log [skip ci]"

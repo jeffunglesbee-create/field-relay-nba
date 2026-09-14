@@ -136,6 +136,40 @@ const MUTATIONS = [
     replace: "    if (false) {",
     expect: 'and say so' },
 
+  // Relabelling one row of the pair leaves the other standing as the answer —
+  // which is the choosing this decision exists to avoid.
+  { name: 'R1  only one row of the conflicting pair is relabelled',
+    anchor: "    for (const id of k.ids)",
+    replace: "    for (const id of k.ids.slice(0, 1))",
+    expect: 'a conflicting pair relabels both rows' },
+
+  // A gap is the fill's job. Relabelling it moves a real closing line out of
+  // the column it belongs in.
+  { name: 'R2  fillable gaps get relabelled too',
+    anchor: "  const { conflicts } = buildSymmetricPlan(collisions);",
+    replace: "  const { conflicts, merges } = buildSymmetricPlan(collisions); conflicts.push(...merges.map(m => ({ ...m, ids: [m.keeper, m.stale] })));",
+    expect: 'a fillable gap is not relabelled' },
+
+  // A copy leaves the blob in BOTH columns, which reads as "there is a closing
+  // line AND it is in-play" and satisfies every consumer of either.
+  { name: 'R3  the relabel copies instead of moving',
+    anchor: "    sql: `UPDATE ${table} SET inplay_odds = ${column}, ${column} = NULL",
+    replace: "    sql: `UPDATE ${table} SET inplay_odds = ${column}",
+    expect: 'the relabel moves in one statement and clears the source' },
+
+  // Without the destination guard, a re-run moves a NULL over a value that was
+  // already relabelled and the observation is gone.
+  { name: 'R4  the relabel loses its re-run guard',
+    anchor: "           WHERE id = ? AND ${column} IS NOT NULL AND inplay_odds IS NULL`,",
+    replace: "           WHERE id = ?`,",
+    expect: 'the relabel moves in one statement and clears the source' },
+
+  // An agreeing column is not a mislabelled price.
+  { name: 'R5  every odds column moves, not just the clashing one',
+    anchor: "    const cols = k.columns.filter(c => c === 'opening_odds' || c === 'closing_odds');",
+    replace: "    const cols = ['opening_odds', 'closing_odds'];",
+    expect: 'only the clashing column moves, not the agreeing one' },
+
   { name: 'C7  the DELETE becomes a predicate instead of an id list',
     anchor: '    sql: `DELETE FROM ${table} WHERE id IN (${ids.map(() => \'?\').join(\',\')})`,',
     replace: '    sql: `DELETE FROM ${table} WHERE 1=1`,',

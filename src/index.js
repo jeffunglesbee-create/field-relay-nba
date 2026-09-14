@@ -6099,6 +6099,33 @@ async function ensureFinalizedAtColumn(env) {
   _finalizedAtReady = true;
 }
 
+// A PRICE TAKEN AFTER KICKOFF IS NOT A CLOSING PRICE, AND IT NEEDS SOMEWHERE
+// HONEST TO LIVE.
+//
+// MEASURED 2026-09-14: two collision pairs each held two DIFFERENT closing
+// lines. Placing both against the twin's start_time (23:30Z) showed one captured
+// +11 min and the other +25 min — both in-play, neither a close. There was
+// nothing to choose between them, and choosing would have enshrined an in-play
+// price as the close, which is worse than the visible disagreement: a wrong
+// value that agrees with itself stops anyone looking again.
+//
+// So the observations are kept and the LABEL is corrected. Clearing them would
+// have destroyed two real prices; leaving them would have left two wrong ones in
+// a column consumers read as the close.
+let _inplayOddsColReady = false;
+async function ensureInPlayOddsColumn(env) {
+  if (_inplayOddsColReady) return;
+  if (!env.ARCHIVE_DB) return;
+  for (const table of ['regular_season_games', 'postseason_games']) {
+    try {
+      await env.ARCHIVE_DB.prepare(
+        `ALTER TABLE ${table} ADD COLUMN inplay_odds TEXT DEFAULT NULL`
+      ).run();
+    } catch (e) { /* column already exists — expected on every run after the first */ }
+  }
+  _inplayOddsColReady = true;
+}
+
 let _importanceColReady = false;
 async function ensureImportanceColumn(env) {
   if (_importanceColReady) return;
@@ -12966,8 +12993,9 @@ export default {
                             // called again on future score/status updates for the same game).
                             let rowCheck, rowCheckOk = true;
                             try {
+                                await ensureInPlayOddsColumn(env);
                                 rowCheck = await env.ARCHIVE_DB.prepare(
-                                    `SELECT closing_odds, finalized_at FROM ${oddsTable} WHERE id = ?`
+                                    `SELECT closing_odds, inplay_odds, finalized_at FROM ${oddsTable} WHERE id = ?`
                                 ).bind(id).first();
                             } catch (e) {
                                 console.error("[ARCHIVE-GAME] closing-odds dedup check failed:", e.message);
@@ -12977,7 +13005,15 @@ export default {
                             // out yet, so its closing line does not exist to be
                             // captured and AmbientDO still owns the kickoff moment.
                             const _rowIsFinal = rowCheck?.finalized_at != null;
-                            if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal) {
+                            // A ROW WITH inplay_odds HAS ALREADY BEEN ADJUDICATED.
+                            // Its line was moved out of closing_odds because it was
+                            // captured after kickoff, which leaves closing_odds NULL —
+                            // exactly the condition this writer treats as "no line yet".
+                            // Without this, the relabel arms the refill and quietly
+                            // undoes itself. THIS ROUTE IS NOT DATE-SCOPED, so the
+                            // window never closes.
+                            const _relabelled = rowCheck?.inplay_odds != null;
+                            if (rowCheckOk && !rowCheck?.closing_odds && _rowIsFinal && !_relabelled) {
                                 const { games, ok: oddsOk, snapshotAt } = await fetchSportOddsHistorical(env, oddsSportKey, date);
                                 if (oddsOk && games.length) {
                                     const matched = findOddsForRow(
@@ -15153,6 +15189,11 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB not bound' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
+            // So `SELECT *` below actually returns inplay_odds. Without this the
+            // column is absent from the row, `r.inplay_odds` is undefined, and
+            // has_inplay_odds reports false for every row — a confident "nothing
+            // was relabelled" from a question that was never asked (Rule 99).
+            await ensureInPlayOddsColumn(env);
             const CENSUS_TABLES = ['regular_season_games', 'postseason_games'];
             const CHUNK = 1000;
             // ?sport= narrows the scan to one archive label. Added after the
@@ -15570,6 +15611,10 @@ export default {
                             for (const f of COLLISION_FIELDS) if (f in r) out[f] = r[f];
                             out.has_opening_odds = r.opening_odds != null;
                             out.has_closing_odds = r.closing_odds != null;
+                            // Reported so a relabelled row is visible as relabelled
+                            // rather than as a row that simply never had a line. A
+                            // column nothing reads is a column nobody can audit.
+                            out.has_inplay_odds = r.inplay_odds != null;
                             // A BOOLEAN CANNOT ANSWER THE QUESTION THE CONDITION ASKS.
                             // Two rows both reading has_opening_odds:true can hold
                             // DIFFERENT lines, and that is the false fact this whole

@@ -4,8 +4,8 @@
 // This plan drives DELETEs against the live archive. Every assertion below is
 // about something the plan must REFUSE to touch, or about SQL that must not be
 // able to overwrite. There is no second chance on a delete.
-import { buildPlan, buildSymmetricPlan, mergeSql, deleteSql, FIELD_COLUMN,
-         FILL_FIELDS } from './collision-cleanup-plan.mjs';
+import { buildPlan, buildSymmetricPlan, buildRelabelPlan, mergeSql, deleteSql,
+         relabelSql, relabelVerifySql, FIELD_COLUMN, FILL_FIELDS } from './collision-cleanup-plan.mjs';
 import { LOSS_BEARING } from './duplicate-row-keeper-table.mjs';
 
 let checked = 0, failed = 0;
@@ -209,6 +209,41 @@ const dh2 = buildSymmetricPlan([pair(
   row({ id: 'g2', home_score: 7, away_score: 6, espn_event_id: '2' }))]);
 eq('a doubleheader is never merged', dh2.merges.length, 0);
 eq('and is skipped as two real games', dh2.skipped[0]?.reason, 'two real games, not a duplicate');
+
+// ── RELABEL ────────────────────────────────────────────────────────────────
+// Owner decision 2026-09-14. The conflicting pairs hold two prices both
+// captured after kickoff; the observation is kept and the label corrected.
+const rel = buildRelabelPlan([pair(row({ id: 'p', ...odds('aa', 'cc') }),
+                                   row({ id: 'q', ...odds('aa', 'dd') }))]);
+// BOTH ROWS. Relabelling one leaves the other standing as the answer, which is
+// exactly the choosing this decision exists to avoid.
+eq('a conflicting pair relabels both rows', rel.moves.map(m => m.id), ['p', 'q']);
+eq('and only the column that clashed', [...new Set(rel.moves.map(m => m.column))], ['closing_odds']);
+eq('it never deletes anything', [rel.deletes.length, rel.counts.deletes], [0, 0]);
+
+// A pair that merely has a gap is the FILL's job. Relabelling it would move a
+// real closing line out of the column it belongs in.
+const relGap = buildRelabelPlan([pair(row({ id: 'p', ...odds('aa', 'cc') }),
+                                      row({ id: 'q' }))]);
+eq('a fillable gap is not relabelled', relGap.moves.length, 0);
+
+// An agreeing column is not a mislabelled price.
+const relBoth = buildRelabelPlan([pair(row({ id: 'p', ...odds('aa', 'cc') }),
+                                       row({ id: 'q', ...odds('bb', 'cc') }))]);
+eq('only the clashing column moves, not the agreeing one',
+   [...new Set(relBoth.moves.map(m => m.column))], ['opening_odds']);
+
+// MOVE, NEVER COPY, and guarded on both ends so a re-run cannot move a NULL
+// over a value that was already relabelled.
+const rsql = relabelSql({ table: 'regular_season_games', id: 'p', column: 'closing_odds' });
+eq('the relabel moves in one statement and clears the source',
+   rsql.sql.replace(/\s+/g, ' ').trim(),
+   'UPDATE regular_season_games SET inplay_odds = closing_odds, closing_odds = NULL '
+ + 'WHERE id = ? AND closing_odds IS NOT NULL AND inplay_odds IS NULL');
+eq('and binds only the id', rsql.params, ['p']);
+eq('the verify reads both ends',
+   relabelVerifySql({ table: 'regular_season_games', id: 'p', column: 'closing_odds' }).sql,
+   'SELECT closing_odds AS src, inplay_odds AS dst FROM regular_season_games WHERE id = ?');
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
           + ` — 5 refusal paths, symmetric merge, field-map coverage, COALESCE, id-list DELETE`);

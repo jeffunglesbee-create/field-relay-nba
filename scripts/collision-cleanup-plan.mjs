@@ -224,3 +224,61 @@ export function buildSymmetricPlan(collisions) {
            counts: { merges: merges.length, skipped: skipped.length,
                      conflicts: conflicts.length, deletes: 0 } };
 }
+
+// ── RELABEL ────────────────────────────────────────────────────────────────
+//
+// OWNER DECISION 2026-09-14: "Relabel", chosen from clear-both / relabel /
+// leave-and-stop-asking-them-to-agree.
+//
+// The conflicting pairs hold two prices that are both real and both captured
+// after kickoff. Clearing them destroys real observations; leaving them leaves
+// two wrong values in a column consumers read as the close. Relabelling keeps
+// the observation and corrects the claim.
+//
+// ONLY CONFLICTS, AND ONLY THE CLASHING COLUMN. A pair that merely has a gap is
+// the fill's job and is not touched here; a column that agrees is not a
+// mislabelled price and is left alone.
+export function buildRelabelPlan(collisions) {
+  const { conflicts } = buildSymmetricPlan(collisions);
+  const moves = [], skipped = [];
+  for (const k of conflicts) {
+    // The plan names COLUMNS. `unmapped field X` is pushed into the same list
+    // by buildSymmetricPlan when FIELD_COLUMN has no entry, and moving a column
+    // called "unmapped field has_foo" would be a SQL error at best.
+    const cols = k.columns.filter(c => c === 'opening_odds' || c === 'closing_odds');
+    if (cols.length !== k.columns.length) {
+      skipped.push({ ...k, reason: `conflict names something that is not an odds column: ${k.columns.join(', ')}` });
+      continue;
+    }
+    // BOTH ROWS, NOT ONE. The pair conflicts because each holds a price; both
+    // were captured after kickoff, so both labels are wrong. Relabelling one
+    // would leave the other standing as the answer — which is the choosing this
+    // decision exists to avoid.
+    for (const id of k.ids)
+      for (const col of cols)
+        moves.push({ table: k.table, date: k.date, sport: k.sport, id, column: col });
+  }
+  return { moves, skipped, deletes: [],
+           counts: { moves: moves.length, skipped: skipped.length, deletes: 0 } };
+}
+
+/**
+ * MOVE, NEVER COPY. One statement, so a row can never hold the same blob in
+ * both columns — which would read as "there is a closing line AND it is in-play"
+ * and satisfy every consumer of either.
+ *
+ * GUARDED ON BOTH ENDS. Re-running must not move a NULL over a value already
+ * relabelled: the source must still be present and the destination still empty.
+ */
+export function relabelSql({ table, id, column }) {
+  return {
+    sql: `UPDATE ${table} SET inplay_odds = ${column}, ${column} = NULL
+           WHERE id = ? AND ${column} IS NOT NULL AND inplay_odds IS NULL`,
+    params: [id],
+  };
+}
+
+/** Proves the move landed: the source empty, the destination full. */
+export function relabelVerifySql({ table, id, column }) {
+  return { sql: `SELECT ${column} AS src, inplay_odds AS dst FROM ${table} WHERE id = ?`, params: [id] };
+}
