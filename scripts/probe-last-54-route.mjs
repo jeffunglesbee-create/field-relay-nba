@@ -114,6 +114,41 @@ async function d1(sql, params = []) {
       say(`    AMBIGUOUS  ${s.sport} ${s.date}: ${events.length} event(s) vs ${s.rows.length} row(s)`);
     }
   }
+  // ── ROUTE B2: the same slate, asked differently ─────────────────────────
+  //
+  // MEASURED ABOVE: NBA/NHL slates in May return one event and every June slate
+  // returns zero — and those June dates are the Finals, so "no game" is not a
+  // possible reading. A 200 with an empty list is ESPN answering a different
+  // question from the one intended, which is worth one bounded test before 19
+  // rows are called unroutable.
+  //
+  // seasontype 3 is postseason in ESPN's scheme; `season` pins the season the
+  // date is read against, which is the candidate explanation for a boundary
+  // that falls between May and June rather than between old and recent.
+  const zeroSlates = [...slates.values()].filter(s => SLUG[s.sport] && s.rows.length >= 1);
+  const VARIANTS = [['seasontype=3', 'postseason'], ['season=2026', 'season pinned'],
+                    ['season=2026&seasontype=3', 'both']];
+  say(`\n--- B2. variants, on the slates that returned zero events`);
+  let recovered = 0, triedSlates = 0;
+  for (const s of zeroSlates) {
+    if (s.sport === 'MLS') continue;            // MLS is ambiguous by count, not empty
+    triedSlates++;
+    if (triedSlates > 4) break;                  // Rule 91: a sample, and it says so
+    for (const [q, label] of VARIANTS) {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${SLUG[s.sport]}/scoreboard`
+                + `?dates=${String(s.date).replace(/-/g, '')}&${q}`;
+      let n = null, status = 0;
+      try { const r = await fetch(url, { headers: { 'User-Agent': ESPN_UA, Accept: 'application/json' } });
+            status = r.status;
+            if (r.ok) { const b = await r.json().catch(() => null); n = b ? (b.events || []).length : null; } }
+      catch { status = -1; }
+      say(`    ${s.sport} ${s.date}  ${label.padEnd(14)} HTTP ${status}  events=${n === null ? 'unreadable' : n}`);
+      if (n) recovered++;
+    }
+  }
+  say(`    variants tried on ${Math.min(triedSlates, 4)} slate(s) — a sample, not all of them.`);
+  say(`    ${recovered} variant call(s) returned any event at all.`);
+
   say(`\n    ${solo} row(s) matched by cardinality alone.`);
   say(`    ${ambiguous} ambiguous, ${noSlug} no slug, ${failed} not measured.`);
   say(`\nCOVERAGE: every one of the ${rows.length} rows was considered; `
