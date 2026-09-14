@@ -51,6 +51,18 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-last-54-route.mjs
 
+      # The 25 of the 54 with a proven route. The other 19 are left alone and
+      # the script says why.
+      - name: Resolve the last 54 where a route is proven
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            node scripts/run-last-54-resolve.mjs --apply
+          else
+            node scripts/run-last-54-resolve.mjs
+          fi
+
       - name: Commit the log
         if: always()
         run: |
