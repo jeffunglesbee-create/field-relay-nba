@@ -27,6 +27,14 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/verify-postseason-escalations.mjs
 
+      # Can these rows ever receive odds? The collision check exists to stop a
+      # false ODDS fact; if a league never gets odds, a collision inside it
+      # cannot produce one.
+      - name: Odds reachability by league
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-odds-reachability-by-league.mjs
+
       - name: Commit the reading
         if: always()
         run: |
