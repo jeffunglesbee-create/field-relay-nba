@@ -1,0 +1,35 @@
+name: Closing-odds capture timing (read-only)
+
+# Is a `closing_odds` blob actually a CLOSING line, or a price taken after
+# kickoff? See scripts/probe-closing-odds-capture-timing.mjs for why this
+# question replaced "which of these two lines is right".
+#
+# READ-ONLY. The probe refuses any SQL that is not a SELECT. No apply input,
+# because there is nothing here to apply.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev
+# is blocked.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-closing-odds-capture-timing.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="closing-odds-capture-timing" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: closing-odds capture timing [skip ci]"
