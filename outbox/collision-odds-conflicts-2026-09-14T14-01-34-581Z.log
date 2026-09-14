@@ -1,0 +1,29 @@
+=== collision odds conflicts  2026-09-14T14:01:34.289Z ===
+2 conflicting pair(s) of 115 collisions
+
+--- regular_season_games 2026-07-25 MLS  [closing_odds]
+    2026-07-25-mls-dc-tor
+      D.C. United null - null Toronto FC   espn=none
+      start_time=none  finalized_at=none
+      closing_odds: {"source":"betmgm","captured_at":"2026-07-25T23:55:28Z","moneyline":{"home":100,"away":220,"draw":225},"total":{"over":2.5,"under":2.5}}
+    FIFA World Cup 2026_2026-07-25_dcunited_toronto
+      D.C. United 2 - 1 Toronto   espn=761681
+      start_time=2026-07-25T23:30Z  finalized_at=2026-07-26 01:45:42
+      closing_odds: {"source":"betmgm","captured_at":"2026-07-25T23:41:27.699Z","moneyline":{"home":-105,"away":220,"draw":250},"spread":{"home":null,"away":null},"total":{"over":2.5,"under":2.5}}
+      kickoff (from whichever row has it): 2026-07-25T23:30Z
+      2026-07-25-mls-dc-tor closing_odds: captured 2026-07-25T23:55:28Z -> AFTER kickoff: an IN-PLAY price
+      FIFA World Cup 2026_2026-07-25_dcunited_toronto closing_odds: captured 2026-07-25T23:41:27.699Z -> AFTER kickoff: an IN-PLAY price
+
+--- regular_season_games 2026-08-01 MLS  [closing_odds]
+    2026-08-01-mls-dc-nsh
+      D.C. United null - null Nashville SC   espn=none
+      start_time=none  finalized_at=none
+      closing_odds: {"source":"betmgm","captured_at":"2026-08-01T23:55:28Z","moneyline":{"home":170,"away":135,"draw":210},"total":{"over":2.5,"under":2.5}}
+    FIFA World Cup 2026_2026-08-01_dcunited_nashville
+      D.C. United 2 - 2 Nashville   espn=761699
+      start_time=2026-08-01T23:30Z  finalized_at=2026-08-02 01:45:02
+      closing_odds: {"source":"betmgm","captured_at":"2026-08-01T23:41:07.783Z","moneyline":{"home":160,"away":125,"draw":250},"spread":{"home":null,"away":null},"total":{"over":2.5,"under":2.5}}
+      kickoff (from whichever row has it): 2026-08-01T23:30Z
+      2026-08-01-mls-dc-nsh closing_odds: captured 2026-08-01T23:55:28Z -> AFTER kickoff: an IN-PLAY price
+      FIFA World Cup 2026_2026-08-01_dcunited_nashville closing_odds: captured 2026-08-01T23:41:07.783Z -> AFTER kickoff: an IN-PLAY price
+
