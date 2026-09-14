@@ -1,0 +1,35 @@
+name: Verify the postseason escalations
+
+# Checks the keeper table's verdict on the 82 postseason MLS collisions —
+# "nothing distinguishes them" — against EVERY column of both rows.
+#
+# That verdict was formed from the census's 19-field projection. The table has
+# more columns than that, and "nothing distinguishes them" is a claim about the
+# whole row. Read-only: the script refuses any statement that is not a SELECT.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read both rows of every escalated pair
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/verify-postseason-escalations.mjs
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          bash scripts/probe-commit-retry.sh "chore: postseason escalation verification [skip ci]"
