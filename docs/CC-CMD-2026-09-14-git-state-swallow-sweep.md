@@ -77,18 +77,74 @@ eight above are allowed, a ninth fails the build, and a fixed workflow must be
 removed from the list or the check goes red for a stale entry. So this cannot
 get worse while it waits.
 
+## Task 0 — DONE 2026-09-14. The artifact, and it changes Task 1.
+
+Every one of the eight, read rather than assumed:
+
+| workflow | stages | class | converts as-is? |
+|---|---|---|---|
+| `brief-sport-authority-census` | `outbox/` | REGENERATED (stamped json + rewritten log) | yes |
+| `codex-overwrite-diagnostics` | `outbox/` | REGENERATED | yes |
+| `codex-queue-adjudicate` | `outbox/` | REGENERATED | yes |
+| `session-health-queue-probe` | `outbox/` | REGENERATED | yes |
+| `codex-undetermined-watch` | `outbox/codex-undetermined-watch.log` | REGENERATED | **no — narrow staging** |
+| `odds-coverage-census` | `outbox/odds-coverage-census.log` | REGENERATED | **no — narrow staging** |
+| `timetravel-window-watch` | 2 named files | REGENERATED | **no — narrow staging** |
+| `provenance-census` | 3 outbox files **+ `src/route-provenance.js`** | **MIXED — see below** | **no** |
+
+Not one of the eight appends to a `.log`: every workflow writes with `>` or
+`tee`, none with `>>`. Checked, because "log" reads like "appended" and the fix
+differs.
+
+### The one that is not like the others
+
+**`outbox/provenance-census-history.json` IS APPENDED.**
+`scripts/provenance-census.mjs:212-219` reads the file, drops today's row,
+pushes a new one and rewrites — it accumulates a series across days, and its own
+comment says why: *"a single census says how bad it is, a series says whether
+anything is being done about it."*
+
+Two runs racing across a day boundary each hold a different history, and
+take-ours would discard the other's reading. `is_regenerated` in
+`scripts/probe-commit-retry.sh` matches `outbox/*-latest.json`, which this file
+is not, so the shared loop would refuse it and abort — **correct by
+construction, and now confirmed rather than hoped.**
+
+`provenance-census` also stages `src/route-provenance.js`, outside `outbox/`
+entirely. The shared loop stages `outbox/` and would silently drop it.
+
+### What that means for Task 1
+
+**`scripts/probe-commit-retry.sh` needs a staging parameter before four of these
+eight can convert.** Three stage a single named file deliberately, and widening
+them to `outbox/` would sweep unrelated artifacts into their commits — including
+`outbox/.drive-uploaded`, which is the appended ledger this whole CC-CMD exists
+to protect. `provenance-census` needs that plus a path outside `outbox/`.
+
+Four convert with no change at all.
+
 ## Tasks
 
-0. **Read each of the eight before changing it.** They do not all stage the same
+0. ~~**Read each of the eight before changing it.**~~ **DONE — see above.** They do not all stage the same
    paths or write the same commit message, and two are not probes at all. **The
    artifact is a per-workflow line: what it stages, what message it commits, and
    whether any file it writes is APPENDED rather than regenerated.** The
    appended case exists in this repo — `outbox/.drive-uploaded` — and a
    take-ours applied to it discards another run's Drive deliveries.
 
-1. **Convert each to `scripts/probe-commit-retry.sh`** where its staging matches
-   (`git add outbox/`). Where it does not, either widen the script's inputs or
-   record why that workflow keeps its own loop.
+1. **Convert the four whose staging already matches** — `brief-sport-authority-census`,
+   `codex-overwrite-diagnostics`, `codex-queue-adjudicate`,
+   `session-health-queue-probe`. No script change needed.
+
+1b. **Give the script a staging parameter**, then convert the three that stage a
+   single named file. Widening them to `outbox/` is not an option: it would
+   sweep `outbox/.drive-uploaded` into their commits, which is the appended
+   ledger this CC-CMD exists to protect.
+
+1c. **`provenance-census` last, and possibly not at all.** It stages a path
+   outside `outbox/` and writes an APPENDED history. Either the script grows
+   both capabilities or this workflow keeps its own loop with the `|| true`
+   replaced by an abort — **record which, and why**, rather than forcing it.
 
 2. **Remove each converted workflow from `KNOWN`** in
    `scripts/check-git-state-swallow.mjs` in the same commit. The check fails on
