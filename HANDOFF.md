@@ -55,6 +55,16 @@ as a finding.
 **New blocking gates in deploy.yml:** `check-odds-consumer-rules.mjs` (32
 assertions / 12 mutations) and `check-odds-consumer-wiring.mjs` (14 / 8).
 
+**The citation checker's "the anchor gives the repair" line was itself a
+premise.** Its anchor is the first quoted fragment within 400 chars that the
+file contains — proximity, not meaning. All four rows it listed on 2026-09-14
+were mis-paired, not stale: HANDOFF's `INSERT OR IGNORE` citation was paired
+with `CREATE TRIGGER` from the sentence before, and applying the offered repair
+would have pointed it at a trigger definition. Two numbers WERE stale and are
+fixed — the `INSERT OR IGNORE INTO ${table}` site in `src/index.js` and
+`function resolveAbbr(teamName)` in `src/context-assembler.js` — and the other
+two were correct all along. The advisory now says it is guessing.
+
 **`/archive/` handler: 9 lines of headroom** before the 1500-line brace-scan
 window. `1207013` failed that gate at exactly 1500.
 
@@ -814,7 +824,7 @@ template literals, so `grep -n 'INSERT INTO'` finds the line a word is on and
 nothing about which binding it runs against. The enumerator balances parens and
 tracks string state. Its first run reported one UNREADABLE — `CREATE TRIGGER`
 behind a twelve-line indented comment, a write that would have been silently
-missing. And it found `src/index.js:17571`,
+missing. And it found `src/index.js:19459` (`:17571` when this was written),
 `INSERT OR IGNORE INTO ${table} (${cols.join(',')}) VALUES (${placeholders})`,
 reached from `POST /savant/sync` — a fully dynamic INSERT that no search for
 `INSERT INTO regular_season_games` could ever have found. It is excluded by an

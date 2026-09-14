@@ -1152,7 +1152,7 @@ key spaces with separate coverage; a claim about one says nothing about the othe
 
 **If FIELD ever mints its own EPL short codes, Sunderland must not be `SUN`.**
 Use **`SND`** (or `SUND` where four characters are acceptable). The live hazard
-is `resolveAbbr()` at `src/context-assembler.js:119`, which passes any
+is `resolveAbbr()` at `src/context-assembler.js:123`, which passes any
 `/^[A-Z]{2,4}$/` string through unchanged — so an EPL code added to that table
 would inherit the collision silently. That resolver currently covers MLB, NHL
 and NBA only.

@@ -193,7 +193,14 @@ console.log(`  no file    ${noFile}  (cross-repo or deleted — reported, never 
 console.log(`  path only  ${pathOnly}\n`);
 
 if (stale.length) {
-  console.log('ANCHORED BUT THE NUMBER MOVED — the anchor gives the repair:');
+  console.log('ANCHORED BUT THE NUMBER MOVED — advisory, and the anchor is a GUESS:');
+  console.log('  The anchor is the first quoted fragment within 400 chars that the file');
+  console.log('  contains — proximity, not meaning. It can belong to a NEIGHBOURING');
+  console.log('  sentence, and then the line it suggests is not this citation\'s line.');
+  console.log('  Measured 2026-09-14: HANDOFF cites an `INSERT OR IGNORE` site and this');
+  console.log('  list paired it with `CREATE TRIGGER` from the sentence before, offering');
+  console.log('  a repair that would have pointed the citation at a trigger definition.');
+  console.log('  READ THE CITING SENTENCE BEFORE APPLYING ANY LINE BELOW.\n');
   for (const s of stale.slice(0, 20)) console.log(`  ${s}`);
   console.log('');
 }
