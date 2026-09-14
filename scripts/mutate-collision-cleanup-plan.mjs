@@ -55,6 +55,37 @@ const MUTATIONS = [
     replace: '    if (false) {',
     expect: 'with merges off a merge pair is held back, not deleted' },
 
+  // The whole point of the symmetric form is that nothing is taken away. A plan
+  // that grew a delete would be the old approach wearing the new name.
+  { name: 'S1  the symmetric plan starts emitting deletes',
+    anchor: "  return { merges, skipped, deletes: [], counts: { merges: merges.length, skipped: skipped.length, deletes: 0 } };",
+    replace: "  return { merges, skipped, deletes: merges.map(m => ({ table: m.table, id: m.stale })), counts: { merges: merges.length, skipped: skipped.length, deletes: merges.length } };",
+    expect: 'a symmetric plan contains no deletes at all' },
+
+  // Filling only one way leaves the rows still disagreeing — the hazard intact,
+  // and now with a write that reported success.
+  { name: 'S2  it fills one direction only',
+    anchor: "    if (bToA.length) merges.push({ table: c.table, date: c.date, sport: c.sport,",
+    replace: "    if (false) merges.push({ table: c.table, date: c.date, sport: c.sport,",
+    expect: 'and the anchor goes back the other way' },
+
+  // Two real games are not two halves of one. Filling one from the other would
+  // invent a fact instead of completing one.
+  { name: 'S3  doubleheaders get merged into each other',
+    anchor: "    if (c.population === 'two-real-games') {\n      skipped.push({ ...c, reason: 'two real games, not a duplicate' });\n      continue;\n    }",
+    replace: "    if (false) { }",
+    expect: 'a doubleheader is never merged' },
+
+  // DEFENCE IN DEPTH, AND THE MUTATION PROVED IT. Removing this skip does NOT
+  // cause a write — the two empty-gap guards below stop it independently, so
+  // the merge count stays 0 and that assertion passes. What is lost is the
+  // REASON, and a dry run whose skipped list says nothing is a dry run a human
+  // cannot audit. So S4 is pinned on the explanation, not the count.
+  { name: 'S4  rows that already agree stop saying why they were skipped',
+    anchor: "    if (!aToB.length && !bToA.length) {",
+    replace: "    if (false) {",
+    expect: 'and say so' },
+
   { name: 'C7  the DELETE becomes a predicate instead of an id list',
     anchor: '    sql: `DELETE FROM ${table} WHERE id IN (${ids.map(() => \'?\').join(\',\')})`,',
     replace: '    sql: `DELETE FROM ${table} WHERE 1=1`,',

@@ -4,7 +4,7 @@
 // lives here and can be exercised with fixtures; the executor only issues what
 // this returns. A destructive script whose target set is computed inline cannot
 // be tested before it runs, and this one gets exactly one chance to be right.
-import { classify } from './duplicate-row-keeper-table.mjs';
+import { classify, LOSS_BEARING } from './duplicate-row-keeper-table.mjs';
 
 // The census reports odds as booleans. These are the real columns behind them,
 // and the merge copies COLUMNS, not flags.
@@ -106,4 +106,50 @@ export function deleteSql(table, ids) {
     sql: `DELETE FROM ${table} WHERE id IN (${ids.map(() => '?').join(',')})`,
     params: ids,
   };
+}
+
+// ── SYMMETRIC MERGE ────────────────────────────────────────────────────────
+//
+// The other way to end a disagreement.
+//
+// Every resolution in this file until now picked a winner and deleted the loser,
+// and picking a winner is what made B hard: each row holds half the truth, so
+// whichever side loses takes something real with it — the odds, or the properly
+// formed team names.
+//
+// A collision is harmful because the two rows DISAGREE: the join can attach a
+// line to one and not its twin. Deleting is one way to end that. Filling both
+// is the other, and it is not lossy in either direction.
+//
+// NO DELETES. This function cannot produce one — it returns updates only.
+export function buildSymmetricPlan(collisions) {
+  const merges = [], skipped = [];
+  for (const c of classify(collisions)) {
+    if (c.population === 'two-real-games') {
+      skipped.push({ ...c, reason: 'two real games, not a duplicate' });
+      continue;
+    }
+    const [a, b] = c.rows.length ? c.rows : [];
+    const raw = collisions.find(x => x.pair_key === c.pair_key && x.date === c.date);
+    const [ra, rb] = raw.games;
+    const gaps = (from, to) => LOSS_BEARING
+      .filter(([, has]) => has(from) && !has(to))
+      .map(([f]) => FIELD_COLUMN[f]);
+    const aToB = gaps(ra, rb), bToA = gaps(rb, ra);
+    // An unmapped field would drop silently and the rows would still disagree
+    // while the plan reported success.
+    if (aToB.includes(undefined) || bToA.includes(undefined)) {
+      skipped.push({ ...c, reason: 'unmapped loss-bearing field' });
+      continue;
+    }
+    if (!aToB.length && !bToA.length) {
+      skipped.push({ ...c, reason: 'rows already agree' });
+      continue;
+    }
+    if (aToB.length) merges.push({ table: c.table, date: c.date, sport: c.sport,
+                                   keeper: rb.id, stale: ra.id, columns: aToB, direction: 'a->b' });
+    if (bToA.length) merges.push({ table: c.table, date: c.date, sport: c.sport,
+                                   keeper: ra.id, stale: rb.id, columns: bToA, direction: 'b->a' });
+  }
+  return { merges, skipped, deletes: [], counts: { merges: merges.length, skipped: skipped.length, deletes: 0 } };
 }

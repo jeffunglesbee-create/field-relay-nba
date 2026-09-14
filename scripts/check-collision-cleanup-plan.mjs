@@ -4,7 +4,7 @@
 // This plan drives DELETEs against the live archive. Every assertion below is
 // about something the plan must REFUSE to touch, or about SQL that must not be
 // able to overwrite. There is no second chance on a delete.
-import { buildPlan, mergeSql, deleteSql, FIELD_COLUMN } from './collision-cleanup-plan.mjs';
+import { buildPlan, buildSymmetricPlan, mergeSql, deleteSql, FIELD_COLUMN } from './collision-cleanup-plan.mjs';
 import { LOSS_BEARING } from './duplicate-row-keeper-table.mjs';
 
 let checked = 0, failed = 0;
@@ -117,6 +117,36 @@ eq('the delete names ids and carries no predicate',
    del.sql, 'DELETE FROM regular_season_games WHERE id IN (?,?)');
 eq('and binds exactly the enumerated ids', del.params, ['a', 'b']);
 
+// ── SYMMETRIC MERGE ────────────────────────────────────────────────────────
+// The other way to end a disagreement. Every assertion here is about the fact
+// that it takes NOTHING away.
+const B = pair(row({ id: 'dash', has_opening_odds: true, has_closing_odds: true }),
+               row({ id: 'fifa', home_score: 3, away_score: 1,
+                     espn_event_id: '761674', finalized_at: '2026-07-23' }));
+const sym = buildSymmetricPlan([B]);
+eq('a symmetric plan contains no deletes at all', sym.deletes.length, 0);
+eq('and it has no counts.deletes either', sym.counts.deletes, 0);
+eq('it fills in both directions', sym.merges.length, 2);
+eq('odds go to the row that lacks them',
+   sym.merges.find(m => m.keeper === 'fifa')?.columns, ['opening_odds', 'closing_odds']);
+eq('and the anchor goes back the other way',
+   sym.merges.find(m => m.keeper === 'dash')?.columns, ['espn_event_id', 'finalized_at']);
+
+// Rows that already agree are left alone — a merge that rewrites what is
+// already there is a write with no purpose and a conflict surface.
+const agreed = buildSymmetricPlan([pair(row({ id: 'x', has_opening_odds: true }),
+                                        row({ id: 'y', has_opening_odds: true }))]);
+eq('rows that already agree produce no merge', agreed.merges.length, 0);
+eq('and say so', agreed.skipped[0]?.reason, 'rows already agree');
+
+// A doubleheader is two real games; filling one from the other would invent a
+// fact rather than complete one.
+const dh2 = buildSymmetricPlan([pair(
+  row({ id: 'g1', home_score: 4, away_score: 3, espn_event_id: '1', has_opening_odds: true }),
+  row({ id: 'g2', home_score: 7, away_score: 6, espn_event_id: '2' }))]);
+eq('a doubleheader is never merged', dh2.merges.length, 0);
+eq('and is skipped as two real games', dh2.skipped[0]?.reason, 'two real games, not a duplicate');
+
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
-          + ` — 5 refusal paths, field-map coverage, merge-before-delete, COALESCE, id-list DELETE`);
+          + ` — 5 refusal paths, symmetric merge, field-map coverage, COALESCE, id-list DELETE`);
 process.exit(failed ? 1 : 0);
