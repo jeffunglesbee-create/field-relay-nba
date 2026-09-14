@@ -1,0 +1,52 @@
+name: Resolve start_time from ESPN (for rows that have none)
+
+# CC-CMD-2026-09-14-closing-odds-captured-after-kickoff, Task 0 residual.
+#
+# 530 closing lines cannot be asked whether they preceded kickoff because their
+# row has no start_time. 476 carry an espn_event_id, and that route was proven
+# on 2026-09-14: 5 of 5 sports, 33 of 33 stored ids found with dates.
+#
+# RUNS HERE BECAUSE IT MUST. CC-CMD-2026-08-08-espn-site-api-403-p0 measured
+# Akamai returning 403 to Cloudflare Worker egress on site.api.espn.com while a
+# bare fetch from a GitHub runner succeeds.
+#
+# Writes one column, start_time, only where it is NULL. No odds are read or
+# changed. DRY RUN unless `apply` is the literal word APPLY.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Batch cap must hold before any write loop runs
+        run: node scripts/check-d1-batch-param-cap.mjs
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            echo "::warning title=Applying::live D1 writes authorised by input (fills start_time where NULL)"
+            node scripts/run-start-time-resolve.mjs --apply
+          else
+            node scripts/run-start-time-resolve.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="start-time-resolve" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: start_time resolve log [skip ci]"
