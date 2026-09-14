@@ -303,3 +303,48 @@ its committed artifact — `checked 6 of 186 routes` — not in a comment, not i
 commit message, not in the reader's head. A PASS whose denominator is invisible
 is a claim about everything.
 
+
+## Rule 100 — A premise is not probed until one command has tried to refute it (PREMISE-FIRST-A)
+
+Rule 87.1 says probe before writing — and it works, on **inputs**: what shape
+does this endpoint return, what is this function actually named, what is on line
+5504. What it does not reach is the **premise**: whether that input is the right
+one to use, whether the number is what it appears to be, whether the check being
+written can fail for the reason claimed.
+
+Premises never get written down, so they never get tested. They live in prose,
+travel into commit messages as assertions, and are only falsified when something
+downstream falls over.
+
+**This rule is written from a count, not a principle.** On 2026-09-14, one
+session published five conclusions whose refutation was already in hand or one
+command away:
+
+| premise | what refuted it | cost to check first |
+|---|---|---|
+| `LOSS_BEARING` is the right field set for a fill | its own header comment says *delete* — nothing disappears in a fill | one read |
+| re-deriving the plan verifies the apply | it uses the same booleans the apply just used; a check that re-derives its subject verifies the copy | one question |
+| `23:55:28` on two dates is a defaulted timestamp | `GROUP BY substr(captured_at,12,8)` — a 40-second cron window, six rows on that second | one query |
+| kickoff was ~23:45, from `finalized_at` minus a two-hour match | `start_time` on the twin says 23:30, and it was already in the payload that had been read | **zero** |
+| `dash: 0` late captures means that writer is punctual | those rows carry no `start_time` and were never in the denominator | one question |
+
+Every one was caught, mostly by gates the same session built. The code was fine.
+What was spent was the reader's trust, five times, on findings that arrived and
+were then withdrawn.
+
+### The rule
+
+**Before building, list the load-bearing premises and the ONE command that would
+refute each. Run those commands first.** Not a probe of the code — an
+enumeration of the claims the design rests on.
+
+The fourth row is the one to remember: the refuting value was a column on a row
+already fetched and read. It was derived instead.
+
+### The corollary, which is the more expensive half
+
+**An untested premise is not reported as a finding.** Believing one briefly
+costs nothing. Publishing it — to a CC-CMD, a commit message, a status report —
+converts a private guess into something a reader now has to un-learn. The
+"defaulted timestamp" claim above was filed in a CC-CMD and stated to the owner
+before the one query was spent. That publication, not the belief, was the defect.
