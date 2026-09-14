@@ -81,8 +81,17 @@ for (const [label, line, want] of CASES) {
   check('/archive/ is found in the route table', !!arch);
   if (arch) {
     const b = bodyOf(arch.line);
+    // THE MARGIN, NOT JUST THE VERDICT. On 2026-09-14 this assertion went red
+    // because /archive/ had grown to exactly 1500 lines and a three-line change
+    // inside it crossed the window. A bare "still truncated" sent the author
+    // hunting for a brace imbalance — the failure this check was written for —
+    // when the cause was length. The number says which it is on sight.
+    const _bodyLines = b.text.split('\n').length;
     check('/archive/ parses whole — no truncation at WINDOW 1500', !b.truncated,
-          'still truncated; the counter fix did not take');
+          `still truncated at ${_bodyLines} lines; if that is 1501 the block is`
+        + ` LONGER than the window, not unbalanced — the counter fix is not the suspect`);
+    console.log(`        /archive/ body is ${_bodyLines} lines; ${1500 - _bodyLines}`
+              + ` line(s) of headroom before this gate goes red.`);
     check('/archive/ body does not reach the /cfl/ routes',
           !/pathname\.startsWith\('\/cfl\//.test(b.text),
           'the parsed block still swallows /cfl/, so its hosts are not its own');

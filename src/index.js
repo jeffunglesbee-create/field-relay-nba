@@ -13021,21 +13021,10 @@ export default {
                                         indexOddsByPair(games), home, away);
                                     if (matched) {
                                         const odds = extractOddsForGame(matched, ODDS_PREFERRED_BOOK, snapshotAt);
-                                        // A CLOSING LINE IS THE LAST PRICE BEFORE KICKOFF. This route
-                                        // captured whenever it was asked, with no reference to when the
-                                        // match started, and MEASURED 2026-09-14 it produced prices up to
-                                        // five days late — the count was 91 of 877 askable rows archive-wide.
-                                        //
-                                        // COMPARED AS INSTANTS, NEVER AS TEXT. start_time arrives both as
-                                        // `2026-07-25T20:05Z` and `2026-06-06T23:00:00+00:00`; as strings
-                                        // 'Z' (0x5A) sorts above ':' (0x3A), so a capture thirty seconds
-                                        // after a minute-precision kickoff compares as before it. That
-                                        // defect shipped in the probe that found this one.
-                                        //
-                                        // AN UNPARSEABLE DATE GIVES NaN AND EVERY COMPARISON IS FALSE, so
-                                        // this refuses the write rather than allowing it (Rule 99): a
-                                        // kickoff that could not be read is not a kickoff that has not
-                                        // happened.
+                                        // A closing line is the last price before kickoff; this route used
+                                        // to capture whenever asked. Instants not text, and NaN refuses the
+                                        // write rather than allowing it — see src/odds-kickoff.js for both
+                                        // and for the measurements.
                                         const _capMs = Date.parse(odds?.captured_at ?? '');
                                         const _kickMs = Date.parse(start_time);
                                         const _preKickoff = Number.isFinite(_capMs)
@@ -13045,12 +13034,7 @@ export default {
                                             console.warn(`[ARCHIVE-GAME] refusing closing_odds for ${id}: `
                                               + `captured_at ${odds?.captured_at} is not before kickoff ${start_time}`);
                                         }
-                                        // The row carries the evidence of its own
-                                        // validity. This path refuses a late capture,
-                                        // so the mark it writes is always verified —
-                                        // but it is written from the same comparison
-                                        // rather than asserted, because a mark that
-                                        // cannot disagree with the guard proves nothing.
+                                        // Computed, not asserted: see src/odds-kickoff.js.
                                         if (odds) stampKickoff(odds, odds.captured_at, start_time);
                                         if (odds && _preKickoff) {
                                             const _oddsJson = JSON.stringify(odds);
