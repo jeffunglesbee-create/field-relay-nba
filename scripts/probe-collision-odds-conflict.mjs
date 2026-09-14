@@ -42,15 +42,48 @@ async function d1(sql, params = []) {
 
   for (const k of conflicts) {
     say(`--- ${k.table} ${k.date} ${k.sport}  [${k.columns.join(', ')}]`);
+    const got = [];
     for (const id of k.ids) {
       const rows = await d1(
-        `SELECT id, home, away, home_score, away_score, espn_event_id, finalized_at,
+        `SELECT id, home, away, home_score, away_score, espn_event_id, start_time, finalized_at,
                 opening_odds, closing_odds
            FROM ${k.table} WHERE id = ?`, [id]);
       const g = rows[0] || {};
+      got.push(g);
       say(`    ${g.id}`);
-      say(`      ${g.home} ${g.home_score} - ${g.away_score} ${g.away}   espn=${g.espn_event_id ?? 'none'}  finalized=${g.finalized_at ?? 'none'}`);
+      say(`      ${g.home} ${g.home_score} - ${g.away_score} ${g.away}   espn=${g.espn_event_id ?? 'none'}`);
+      say(`      start_time=${g.start_time ?? 'none'}  finalized_at=${g.finalized_at ?? 'none'}`);
       for (const col of k.columns) say(`      ${col}: ${g[col]}`);
+    }
+
+    // THE TEST THAT REPLACES CHOOSING A WRITER.
+    //
+    // A closing line is the last price BEFORE kickoff. That is not a preference
+    // between two sources, it is what the column means, and it is decidable
+    // from the row — so the question stops being "which line is right" and
+    // becomes "is this a closing line at all".
+    //
+    // ONE ROW OF A COLLISION PAIR MAY CARRY NO start_time. That is exactly why
+    // the pair exists: the two rows are the same match split across two
+    // writers, so the twin's kickoff IS this row's kickoff. Taking it from the
+    // twin is not an assumption; it is the definition of the pair.
+    const kickoff = got.map(g => g.start_time).find(Boolean);
+    if (!kickoff) {
+      // Rule 99: neither row could be asked. That is not "both are fine".
+      say(`      VERDICT: neither row carries start_time — the test cannot be run on this pair.`);
+    } else {
+      say(`      kickoff (from whichever row has it): ${kickoff}`);
+      const norm = (t) => String(t).replace('T', ' ').replace('Z', '').replace('+00:00', '').slice(0, 19);
+      const k0 = norm(kickoff);
+      for (const g of got) {
+        for (const col of k.columns) {
+          let cap = null;
+          try { cap = JSON.parse(g[col] || '{}').captured_at ?? null; } catch { cap = null; }
+          if (!cap) { say(`      ${g.id} ${col}: no captured_at — cannot place it against kickoff`); continue; }
+          const late = norm(cap) >= k0;
+          say(`      ${g.id} ${col}: captured ${cap} -> ${late ? 'AFTER kickoff: an IN-PLAY price' : 'before kickoff: a closing price'}`);
+        }
+      }
     }
     say('');
   }
