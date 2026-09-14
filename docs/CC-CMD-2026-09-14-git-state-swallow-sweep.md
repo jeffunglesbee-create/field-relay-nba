@@ -1,5 +1,11 @@
 # CC-CMD-2026-09-14 — eight workflows still hide a failed pull behind `|| true`
 
+> **CLOSED 2026-09-14.** All eight converted; the ratchet reads
+> `0 still swallow, 0 allowed`. The done condition's second half was restated —
+> the conflict path is proven once against the shared script all ten now call,
+> not ten times over. Result:
+> `outbox/cc-session-2026-09-14-git-state-swallow-sweep.md`.
+
 Filed per Rule 87.4 from `CC-CMD-2026-09-13-probe-commit-race-unrecoverable`,
 which fixed this shape in `_reusable-probe.yml` and measured where else it lives.
 Not deferred without a spec, and not silently folded into that CC-CMD's scope.
