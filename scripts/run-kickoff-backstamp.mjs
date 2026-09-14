@@ -77,11 +77,22 @@ async function d1(sql, params = []) {
   const late = todo.filter(r => !r.mark.verified && r.mark.late_minutes !== null).length;
   const unreadable = todo.filter(r => !r.mark.verified && r.mark.late_minutes === null).length;
   say(`\n--- 0. ${todo.length} row(s): ${verified} verified pre-kickoff, ${late} late, ${unreadable} unreadable`);
-  // The 91 is the number this CC-CMD has been about. If the computation here
-  // does not reproduce it, the mark and the probe disagree and one of them is
-  // wrong — so it stops rather than writing either answer.
-  if (todo.length && late !== 91)
-    say(`    NOTE: ${late} late, where the probe measured 91. Investigate before --apply.`);
+  // 91 WAS MEASURED ON A POPULATION THAT HAS SINCE GROWN, AND PINNING AN
+  // ASSERTION TO IT WOULD NOW FIRE FOR THE RIGHT REASON AND READ AS A DEFECT.
+  //
+  // On 2026-09-14 the askable set was 877 rows and 91 were late. Then
+  // run-start-time-resolve.mjs gave 476 more rows a start_time from ESPN, so
+  // the denominator moved. A number that was a cross-check against the probe
+  // becomes a stale constant the moment the set it described changes.
+  //
+  // So it is reported as a comparison, not a verdict: a difference is expected
+  // here and the line says why, rather than telling a reader to investigate
+  // something that is working.
+  const PRE_RESOLVE_LATE = 91, PRE_RESOLVE_ASKABLE = 877;
+  if (todo.length)
+    say(`    (${late} late of ${todo.length} to stamp. Before ESPN start_time resolution the`
+      + ` askable set was ${PRE_RESOLVE_ASKABLE} with ${PRE_RESOLVE_LATE} late —`
+      + ` a difference here is the wider population, not a disagreement.)`);
   for (const r of todo.filter(x => x.mark.late_minutes !== null)
                      .sort((a, b) => b.mark.late_minutes - a.mark.late_minutes).slice(0, 5))
     say(`    latest: ${r.id}  +${r.mark.late_minutes} min`);
