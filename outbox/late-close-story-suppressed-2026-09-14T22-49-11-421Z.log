@@ -1,0 +1,20 @@
+=== late-close story suppression  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-14T22:49:00.626Z ===
+
+--- 0. 130 pair(s) with a post-kickoff closing blob
+    of those, 42 would have carried a story under the old rule
+    mlb_2026-06-08_baltimoreo_seattlemar  (+80 min)  [ODDS STORY] Total moved 2.5 (opened 9, closed 6.5) — under pressure.
+    mlb_2026-06-08_tampabayra_bostonreds  (+75 min)  [ODDS STORY] ML moved 37 pts favorite-ward (opened -102, closed -139). Total moved 2.5 (op
+    mlb_2026-06-08_clevelandg_newyorkyan  (+75 min)  [ODDS STORY] Total moved 3.0 (opened 7.5, closed 10.5) — over pressure.
+    wnba_2026-06-08_connecticu_newyorklib  (+55 min)  [ODDS STORY] ML moved 175 pts favorite-ward (opened +575, closed +400). Total moved 5.0 (o
+    wnba_2026-06-28_goldenstat_newyorklib  (+55 min)  [ODDS STORY] ML moved 212 pts underdog-ward (opened -112, closed +100). Total moved 12.0 (
+
+--- 1. live /odds-story/preview over 20 date(s)
+    rows checked           : 42 of 42
+    rows not returned      : 0
+    STILL NARRATING        : 0
+
+COVERAGE: every date carrying one of the 42 changed rows was asked
+    — 20 date(s), no sampling. Rows whose blobs compute no story either
+    way (88 of 130) are excluded: suppressing them would prove nothing.
+
+OK: 42 row(s) that used to narrate a pre->in-play movement now return no story.

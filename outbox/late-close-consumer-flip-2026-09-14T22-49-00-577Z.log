@@ -1,0 +1,66 @@
+=== late-close consumer flip  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-14T22:48:59.505Z ===
+
+--- regular_season_games: 1386 row(s) with a closing_odds value
+
+--- postseason_games: 26 row(s) with a closing_odds value
+
+--- 1. what the mark says about the 1412 closing values
+    verified pre-kickoff : 1164
+    marked post-kickoff  : 219
+    unmarked (unknown)   : 29
+
+--- 2. upset detection  (analytics-engine.js:459, winner ML >= +200)
+    decided games measured : 1294
+    upsets found, today    : 66
+    upsets found, rule     : 59
+    FABRICATED (today says upset, pre-kickoff line does not): 7
+    ERASED     (pre-kickoff line says upset, today does not): 0
+      fabricated: FIFA World Cup 2026_2026-07-05_brazil_norway  Brazil 1-2 Norway  in-play +360 (2 min late) vs pre-kickoff no line
+      fabricated: FIFA World Cup 2026_2026-07-14_france_spain  France 0-2 Spain  in-play +210 (1 min late) vs pre-kickoff no line
+      fabricated: FIFA World Cup 2026_2026-07-15_england_argentina  England 1-2 Argentina  in-play +200 (1 min late) vs pre-kickoff no line
+      fabricated: FIFA World Cup 2026_2026-07-18_france_england  France 4-6 England  in-play +310 (1 min late) vs pre-kickoff no line
+      fabricated: WNBA_2026-08-07_sun_mercury  Sun 75-72 Mercury  in-play +205 (857 min late) vs pre-kickoff no line
+      fabricated: WNBA_2026-08-06_lynx_sparks  Lynx 82-89 Sparks  in-play +850 (5819 min late) vs pre-kickoff no line
+      fabricated: CFL_2026-08-15_hamiltontigercats_saskatchewanroughriders  Hamilton Tiger-Cats 26-19 Saskatchewan Roughriders  in-play +250 (180 min late) vs pre-kickoff -4800
+
+--- 3. tight line  (analytics-engine.js:795, |spread| < 3)
+    rows with a spread under both rules : 936
+    tight today / tight under rule      : 877 / 816
+    FLIPPED                             : 69
+      mlb_2026-06-08_baltimoreo_seattlemar  spread null -> 1.5
+      mlb_2026-06-08_tampabayra_bostonreds  spread null -> 1.5
+      mlb_2026-06-08_clevelandg_newyorkyan  spread null -> 1.5
+      wnba_2026-06-28_goldenstat_newyorklib  spread null -> -1.5
+      MLB_2026-06-30_orioles_whitesox  spread -1.5 -> none
+
+--- 4. prose and narrative
+    debrief rows that would print an in-play price as "closed" : 126
+    opening+closing pairs                                      : 1323
+    of those, closing is post-kickoff (movement is pre->in-play): 130  (9.8%)
+
+--- 4b. how late is late, over the 219 marked rows
+    <= 2 min                 23
+    3 - 10 min               16
+    11 - 30 min              30
+    31 - 120 min             54
+    > 120 min                96
+    marked late, no minutes  0
+
+--- 4c. candidate tolerances (a blob late by <= T minutes is still read)
+    T(min)   upset findings still resting on a late price   decided rows with no price
+      0        0                                           88
+      2        5                                           77
+     10        7                                           72
+     30        9                                           72
+
+--- 5. cost of the rule
+    decided rows left with NO usable price : 88
+      MLB_2026-06-30_orioles_whitesox
+      MLB_2026-06-30_phillies_pirates
+      MLB_2026-06-30_guardians_rangers
+      WNBA_2026-06-30_liberty_aces
+      MLB_2026-06-30_bluejays_mets
+
+COVERAGE: every row in regular_season_games + postseason_games with a non-NULL closing_odds was read
+    — 1412 of 1412 parsed; no sampling. Rows with closing_odds
+    NULL are outside the question and are not counted in any figure above.
