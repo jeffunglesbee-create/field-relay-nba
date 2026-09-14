@@ -1,0 +1,14 @@
+=== in-play relabel  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=false  utc=2026-09-14T15:29:32.752Z ===
+
+--- 0. live census: scanned 3171 of 3171 rows across 2 tables
+    collisions 115, rows_total 3171
+    odds_disagree 2
+    plan: 4 move(s), 0 skipped
+
+--- 1. the set, enumerated
+    MOVE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-07-25 MLS  FIFA World Cup 2026_2026-07-25_dcunited_toronto  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-08-01 MLS  FIFA World Cup 2026_2026-08-01_dcunited_nashville  closing_odds -> inplay_odds
+
+DRY RUN. Nothing was written. Re-run with --apply to execute.
