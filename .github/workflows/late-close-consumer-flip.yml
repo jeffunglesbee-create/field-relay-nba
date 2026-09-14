@@ -1,0 +1,37 @@
+name: Late-close consumer flip (read-only)
+
+# The 219 closing lines captured after kickoff are real captures of real
+# prices; what is wrong is the column they sit in, and `_kickoff` already says
+# so on every askable row. This probe does not repair them. It counts the
+# consumer decisions that change once a reader honours that mark — upsets
+# fabricated or erased, tight-line scores flipped, prose that would print an
+# in-play price as "closed".
+#
+# READ-ONLY. The probe refuses any SQL that is not a SELECT.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev
+# is blocked.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flip count
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-late-close-consumer-flip.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="late-close-consumer-flip" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: late-close consumer flip count"
