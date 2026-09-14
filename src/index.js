@@ -15519,6 +15519,41 @@ export default {
                 });
             }
             const reachFailures = crossSportReach.filter(r => !r.ok);
+            // WHICH COLLISIONS CAN ACTUALLY PRODUCE A FALSE FACT.
+            //
+            // This check exists to stop the odds join attaching one game's line
+            // to another. A collision between two rows that carry no odds cannot
+            // do that, and MEASURED 2026-09-14 it never will for most of them:
+            // postseason_games at sport='MLS' holds 243 rows across five cup
+            // competitions — CONCACAF Champions Cup, Leagues Cup, U.S. Open Cup,
+            // TELUS Canadian Championship, Campeones Cup — with ZERO opening and
+            // ZERO closing odds, ever, while 534 MLS-LEAGUE rows in
+            // regular_season_games carry 172. runOddsBackfillForDate buckets by
+            // SPORT, so those cup rows are matched against a soccer_usa_mls
+            // payload that carries league fixtures and never contains them.
+            //
+            // So 82 of the collisions were being escalated by PROXY rather than
+            // by cause. The count stays, as a readout of archive hygiene; the
+            // CONDITION narrows to the ones a false fact can reach.
+            //
+            // "Carries odds" rather than "could ever carry odds": it is readable
+            // from the row instead of inferred from a league table, and it
+            // tracks live — the moment either row receives a line the pair
+            // becomes reachable and the condition reopens.
+            // TWO DIFFERENT ESPN EVENT IDS IS A DOUBLEHEADER, not a duplicate:
+            // two real games sharing a team pair and a date. Tested here rather
+            // than reusing the keeper script's `population`, because that field
+            // is computed in the script and does NOT exist on these rows — a
+            // filter written against it would have been vacuously true and
+            // quietly counted the doubleheader as a defect forever.
+            const twoRealGames = (c) => {
+                const [x, y] = c.games;
+                return !!(x?.espn_event_id && y?.espn_event_id
+                          && x.espn_event_id !== y.espn_event_id);
+            };
+            const reachableCollisions = slateCollisions.filter(c =>
+                !twoRealGames(c)
+                && c.games.some(g => g.has_opening_odds || g.has_closing_odds));
             // Every slate where two rows share one join key. Uncapped and fully
             // named: this list is either empty or it is a bug report.
             const slateCollisions = [];
@@ -15690,6 +15725,12 @@ export default {
                     `checked ${pairsScanned} distinct join keys across `
                     + `${slatesScanned} (table, date, sport) slates`,
                 same_slate_pair_collisions: slateCollisions.length,
+                // The condition. Collisions where neither row carries odds
+                // cannot produce a false odds fact; a doubleheader is two real
+                // games and is never a duplicate.
+                same_slate_pair_collisions_with_odds: reachableCollisions.length,
+                same_slate_pair_collisions_inert:
+                    slateCollisions.length - reachableCollisions.length,
                 // null when the detail reads succeeded. A string here means every
                 // `briefs_referencing` in the list below is null and no deletion
                 // decision may be made from this response (Rule 99 — a failed read

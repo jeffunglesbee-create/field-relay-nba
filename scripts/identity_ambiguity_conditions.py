@@ -91,11 +91,25 @@ def evaluate(d):
         # to byPair.get before any payload is consulted, and one vendor game
         # satisfies both — a false fact, not a missing one. Zero is reachable,
         # non-zero is a named bug report, and only the live archive can answer it.
-        ("no two rows on one slate share a join key",
-         d.get("same_slate_pair_collisions") == 0,
-         "{} collision(s); {}".format(
+        # NARROWED 2026-09-14, on a measurement rather than a preference.
+        #
+        # This condition read `same_slate_pair_collisions == 0` and sat at 115.
+        # 82 of those are cup competitions filed under sport='MLS' — CONCACAF
+        # Champions Cup, Leagues Cup, U.S. Open Cup, TELUS Canadian
+        # Championship, Campeones Cup. Measured: 243 such rows, ZERO odds ever,
+        # against 534 MLS-league rows carrying 172. The odds backfill buckets by
+        # SPORT and matches them against a league payload that never contains
+        # them, so a collision between two of them CANNOT produce the false odds
+        # fact this check exists to stop. They were escalated by proxy.
+        #
+        # The raw count stays below as a readout — archive hygiene is worth
+        # seeing. The CONDITION is the collisions a false fact can reach.
+        ("no collision that can reach the odds join",
+         d.get("same_slate_pair_collisions_with_odds") == 0,
+         "{} reachable of {} total ({} inert)".format(
+             d.get("same_slate_pair_collisions_with_odds"),
              d.get("same_slate_pair_collisions"),
-             d.get("same_slate_pair_collision_coverage"))),
+             d.get("same_slate_pair_collisions_inert"))),
     ]
 
 

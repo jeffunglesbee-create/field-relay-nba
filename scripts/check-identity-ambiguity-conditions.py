@@ -18,7 +18,8 @@ TODAY = {  # measured live 2026-09-13, before any fix
     "totals": {"ambiguous_key_count": 12, "ambiguous_rows": 636,
                "ambiguous_rows_with_odds": 363, "substituted_rows": 1551},
     "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 94,
-    "same_slate_pair_collisions": 0,
+    "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+    "same_slate_pair_collisions_inert": 0,
     "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates",
 }
 FIXED = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
@@ -26,7 +27,8 @@ FIXED = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
          "ambiguous_keys": [],
          "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
          "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
-         "same_slate_pair_collisions": 0,
+         "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+         "same_slate_pair_collisions_inert": 0,
          "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # THE ONLY FIXTURE IN WHICH THE REACH CONDITION DECIDES THE ANSWER. Every other
 # condition is met here, so all_done turns on that one alone. Without it, a reach
@@ -38,7 +40,8 @@ REACH_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
               "ambiguous_keys": [],
               "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
               "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 3,
-              "same_slate_pair_collisions": 0,
+              "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+              "same_slate_pair_collisions_inert": 0,
               "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # The mirror of REACH_ONLY, for the same reason: without it, a collision
 # condition hard-wired to True is indistinguishable from one that reads the
@@ -48,7 +51,8 @@ COLLISION_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
                   "ambiguous_keys": [],
                   "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
                   "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
-                  "same_slate_pair_collisions": 2,
+                  "same_slate_pair_collisions": 2, "same_slate_pair_collisions_with_odds": 2,
+                  "same_slate_pair_collisions_inert": 0,
                   "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # TWO absence fixtures, not one, and the reason is a defect this file already
 # produced: with a single fixture missing BOTH new fields, collapsing either
@@ -59,12 +63,26 @@ COLLISION_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
 REACH_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
                 "by_sport": {}, "ambiguous_keys": [],
                 "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
-                "same_slate_pair_collisions": 0,
+                "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+                "same_slate_pair_collisions_inert": 0,
                 "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 COLLISION_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
                     "by_sport": {}, "ambiguous_keys": [],
                     "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
                     "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0}
+# THE FIXTURE THE NARROWING IS FOR. 115 collisions, none of them able to reach
+# the odds join: 82 cup rows that can never carry odds, plus a doubleheader.
+# Under the raw count this reads OPEN forever; under the narrowed condition it is
+# DONE, and the raw count is still printed in the readout.
+INERT_ONLY = {"coverage": "scanned 3155 of 3155 rows across 2 tables",
+              "by_sport": {"CFB": {"substituted_rows": 14}, "NFL": {"substituted_rows": 6}},
+              "ambiguous_keys": [],
+              "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
+              "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
+              "same_slate_pair_collisions": 115,
+              "same_slate_pair_collisions_with_odds": 0,
+              "same_slate_pair_collisions_inert": 115,
+              "same_slate_pair_collision_coverage": "checked 3024 distinct join keys across 625 slates"}
 EMPTY = {}  # must not raise
 
 CASES = [
@@ -76,7 +94,8 @@ CASES = [
     # reported OPEN for a defect that no longer existed.
     ("every condition met, exposure unchanged", FIXED, True),
     ("reach is the only open condition", REACH_ONLY, False),
-    ("a same-slate collision is the only open condition", COLLISION_ONLY, False),
+    ("115 collisions, none of them reachable", INERT_ONLY, True),
+    ("a reachable collision is the only open condition", COLLISION_ONLY, False),
     ("reach fields absent from the response", REACH_ABSENT, False),
     ("collision field absent from the response", COLLISION_ABSENT, False),
     ("empty response", EMPTY, False),
