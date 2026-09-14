@@ -1,0 +1,37 @@
+=== does an espn_event_id yield a kickoff?  2026-09-14T20:39:03.244Z ===
+
+85 slate(s) carry ids; probing the largest of each of 5 sport(s).
+
+--- MLB  2026-06-30  (15 row(s) on this slate)
+    HTTP 200, 15 event(s) returned
+        MLB_2026-06-30_orioles_whitesox  espn=401815964  ->  date=2026-06-30T22:35Z  (Chicago White Sox at Baltimore Orioles)
+        MLB_2026-06-30_phillies_pirates  espn=401815967  ->  date=2026-06-30T22:40Z  (Pittsburgh Pirates at Philadelphia Phillies)
+    15 of 15 stored ids found in the response; 15 carry a date.
+
+--- MLS  2026-07-22  (8 row(s) on this slate)
+    HTTP 200, 15 event(s) returned
+        FIFA World Cup 2026_2026-07-22_cincinnati_vancouver  espn=761669  ->  date=2026-07-22T23:30Z  (Vancouver Whitecaps at FC Cincinnati)
+        FIFA World Cup 2026_2026-07-22_newengland_toronto  espn=761666  ->  date=2026-07-22T23:30Z  (Toronto FC at New England Revolution)
+    8 of 8 stored ids found in the response; 8 carry a date.
+
+--- WNBA  2026-07-22  (6 row(s) on this slate)
+    HTTP 200, 6 event(s) returned
+        WNBA_2026-07-22_sparks_mercury  espn=401857086  ->  date=2026-07-22T19:00Z  (Phoenix Mercury at Los Angeles Sparks)
+        WNBA_2026-07-22_storm_lynx  espn=401857087  ->  date=2026-07-22T19:00Z  (Minnesota Lynx at Seattle Storm)
+    6 of 6 stored ids found in the response; 6 carry a date.
+
+--- EPL  2026-05-24  (2 row(s) on this slate)
+    HTTP 200, 10 event(s) returned
+        2026-05-24-epl-burnle-wolver  espn=740967  ->  date=2026-05-24T15:00Z  (Wolverhampton Wanderers at Burnley)
+        2026-05-24-epl-totten-everto  espn=740974  ->  date=2026-05-24T15:00Z  (Everton at Tottenham Hotspur)
+    2 of 2 stored ids found in the response; 2 carry a date.
+
+--- FIFA World Cup  2026-07-02  (2 row(s) on this slate)
+    HTTP 200, 3 event(s) returned
+        FIFA World Cup 2026_2026-07-02_portugal_croatia  espn=760496  ->  date=2026-07-02T23:00Z  (Croatia at Portugal)
+        FIFA World Cup 2026_2026-07-02_switzerland_algeria  espn=760498  ->  date=2026-07-03T03:00Z  (Algeria at Switzerland)
+    2 of 2 stored ids found in the response; 2 carry a date.
+
+COVERAGE (Rule 91): probed ONE slate per sport — 5 of 85 slates.
+Route proven for 5 of 5 sport(s) probed, on 33 row(s).
+A green result here is a claim about the slates checked, not about all 530.
