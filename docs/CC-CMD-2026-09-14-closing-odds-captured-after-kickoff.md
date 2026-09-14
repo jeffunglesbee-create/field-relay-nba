@@ -1,9 +1,12 @@
 # CC-CMD-2026-09-14-closing-odds-captured-after-kickoff
 
-**Task 0 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
+**Tasks 0 and 1 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
 after kickoff; 530 not askable; the dash-scheme writer measured 0 of 0 — never
 tested at all. Two measurement defects fixed first; both had produced a number
-that was quoted. Task 1 next.
+that was quoted. Task 1 found the slow mode has no author at all: 62 of 91 late rows
+carry no `change_log` entry and `odds_backfill` appears zero times, so this
+document's own "backfill writes the present into a past column" framing is
+unconfirmed. Task 2 is reshaped — naming the author comes before any guard.
 
 Rule 87.4. Found while resolving two collision pairs
 (`CC-CMD-2026-09-14-collision-closing-odds-conflict.md`); larger than that
@@ -94,14 +97,78 @@ zero. Nothing in the aggregate below describes that writer at all.
 `postseason_games` is the same: 26 closing lines, none askable, neither route
 available. Genuinely unknowable today.
 
-## Task 1 — separate the two causes
+## Task 1 — DONE 2026-09-14
 
-Partition the 90 (plus whatever Task 0 adds) into backfill-written and
-cron-timing, by capture-to-kickoff distance: days versus minutes. They do not
-share a remedy and a single number hides that.
+Artifact: `outbox/closing-odds-capture-timing-2026-09-14T15-5*.log`, steps 4 and 4b.
 
-Artifact: a committed histogram of lateness in minutes, with the cut point
-stated and justified from the data rather than chosen.
+### The task as written would have produced a copy
+
+Task 1 asked for the partition to be made "by capture-to-kickoff distance: days
+versus minutes". `change_log` records `source` for every odds write —
+`src/brief-freshness.js` names five — so the archive already states which writer
+produced each row. Splitting on lateness infers an answer the data gives
+outright, and is wrong for any backfill that ran promptly or any cron that ran
+very late. **Attribution is the partition; distance is the cross-check.**
+
+### The distribution, every late row (not the top ten)
+
+| bucket | rows | observed range |
+|---|---:|---|
+| `<1 min` | 3 | 0..0 |
+| `1-5 min` | 20 | 1..4 |
+| `5-15 min` | 3 | 5..12 |
+| `15-60 min` | 4 | 24..25 |
+| `1-6 h` | 8 | 110..316 |
+| `6-24 h` | 19 | 681..906 |
+| `1-7 d` | 33 | 5758..7668 |
+| `>7 d` | 1 | 92393 |
+
+**Bimodal — measured, not assumed.** A peak of 20 at 1-5 min, a trough of 7
+across 5-60 min, then a second mass of 53 from 6 h out. Only the top ten had
+ever been looked at, and ten days-late rows is also what a unimodal tail looks
+like from that end.
+
+### The cut point, justified by two independent signals
+
+**60 minutes.** The count trough sits there (7 rows across 5-60 min), and the
+attribution agrees without being asked to:
+
+| | rows | `closing_odds_capture` | `archive_game_closing` | no `change_log` |
+|---|---:|---:|---:|---:|
+| **< 60 min** | 30 | **25 (83%)** | 1 (3%) | 4 (13%) |
+| **≥ 60 min** | 61 | 1 (2%) | 2 (3%) | **58 (95%)** |
+
+### THE FINDING THAT CONTRADICTS THIS CC-CMD'S OWN FRAMING
+
+This document asserted two causes, the first being "backfill writes the present
+into a past column". **`odds_backfill` appears zero times among the 91.**
+
+**62 of 91 late rows have no `change_log` entry at all** — including 53 of the
+54 rows more than six hours late. The slow mode is not attributed to a backfill;
+it is not attributed to anything. Its shape is consistent with a backfill
+(ten rows stamped `2026-08-11T01:58` for games played 2026-08-05), but shape is
+not authorship, and this CC-CMD already spent a correction on reading a pattern
+as a cause.
+
+One known mechanism would explain part of it: `archive_game_closing` wrote no
+`change_log` entry at all until 2026-09 — its own source comment says so, and
+names that silence as the reason it stayed hidden. How many of the 62 that
+accounts for is **not measured**.
+
+### What is actually established
+
+1. **Cron timing, named:** `closing_odds_capture` (AmbientDO), 25 rows, all
+   ≤ 15 min late. It captures on its own schedule with no reference to kickoff.
+2. **Unattributed slow mass:** 58 rows ≥ 60 min late with no author in
+   `change_log`, up to 64 days. Cause unknown.
+3. **`archive_game_closing`:** 3 rows, 15 min to 6 h.
+
+### This reshapes Task 2
+
+Task 2 is "stop the writers producing more". Two of the three groups have no
+writer to stop. **Naming the author of the 62 comes before any guard**, or the
+guard is written against the one writer that does log and the larger group
+continues unobserved.
 
 ## Task 2 — stop the writers producing more
 
