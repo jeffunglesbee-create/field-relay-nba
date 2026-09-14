@@ -90,6 +90,9 @@ const FINGERPRINT = `CASE
     WHEN ${SAME_CAPTURE}                   THEN 'backfill (same captured_at)'
     WHEN ${HISTORICAL}                     THEN 'backfill (historical source)'
     ELSE 'not backfill' END`;
+const SOURCE = (t) => `(SELECT cl.source FROM change_log cl
+                         WHERE cl.game_id = ${t}.id AND cl.field = 'closing_odds'
+                         ORDER BY cl.ts DESC LIMIT 1)`;
 const CAP = `json_extract(closing_odds,'$.captured_at')`;
 
 (async () => {
