@@ -1,0 +1,8 @@
+=== start_time resolve  apply=false  utc=2026-09-14T22:21:08.983Z ===
+
+--- 0. 0 row(s) across 0 slate(s)
+
+--- 1. scoreboard
+    resolved 0, unresolved 0, failed slates 0 (0 row(s) not attempted)
+
+DRY RUN. Nothing was written. Re-run with --apply.
