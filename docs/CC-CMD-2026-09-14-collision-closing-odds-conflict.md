@@ -1,4 +1,7 @@
-# CC-CMD-2026-09-14-collision-closing-odds-conflict
+# CC-CMD-2026-09-14-collision-closing-odds-conflict — CLOSED 2026-09-14
+
+**Owner chose: relabel.** Four rows moved, `same_slate_pair_collisions_odds_disagree`
+0 of 115, watch `all_done: true`. Evidence at the foot of this document.
 
 Rule 87.4: the symmetric merge closed 30 of 32 pairs and refused 2. This is the
 second CC-CMD that refusal requires, not a carry-forward.
@@ -134,32 +137,68 @@ second inside a 40-second cron window. Artifact
 `outbox/closing-odds-capture-timing-2026-09-14T14-00-08*.log`. The conclusion it
 was written to support was wrong and is corrected above.
 
-## Task 1 — the remedy, on the owner's instruction only
+## Task 1 — DONE. Relabel.
 
-Picking a line is off the table: both are in-play. The live options are:
+Owner decision 2026-09-14: **relabel**, from clear-both / relabel /
+leave-and-stop-asking-them-to-agree.
 
-- **Clear both.** `closing_odds = NULL` on both rows of both pairs. Honest —
-  the archive holds no closing line for these matches — and it makes the pairs
-  agree, closing the watch condition. Destroys two real in-play observations.
-- **Relabel.** Move both blobs to an in-play column and leave `closing_odds`
-  NULL. Keeps the observations, costs a schema change and a consumer audit.
-- **Leave both, and stop asking them to agree.** Record the finding and exclude
-  the two pairs from the condition by id. Cheapest; leaves two wrong values in
-  a column consumers read as the close.
+Shipped in `8309fc4`:
 
-A session must not choose. This is odds data, and CLAUDE.md forbids correcting
-or inventing it.
+- `inplay_odds` on both archive tables, via `ensureInPlayOddsColumn` on the
+  established `ensureFinalizedAtColumn` pattern.
+- `buildRelabelPlan` / `relabelSql` in `scripts/collision-cleanup-plan.mjs`.
+  Moves in ONE statement so no row holds the blob in both columns, guarded on
+  both ends so a re-run cannot move a NULL over a value already relabelled, and
+  moves BOTH rows of a pair — relabelling one leaves the other standing as the
+  answer, which is the choosing this decision exists to avoid.
+- `scripts/run-inplay-relabel.mjs` and `.github/workflows/inplay-relabel.yml`.
+- The census serves `has_inplay_odds` and ensures the column before its
+  `SELECT *`, so the flag answers a question that was actually asked (Rule 99).
 
-## Done condition
+### The consumer audit found what would have undone it
 
-Under **clear both** or **relabel**:
-`same_slate_pair_collisions_odds_disagree` reads `0` in a committed
-`outbox/identity-ambiguity-watch-*.json`, with `same_slate_pair_collisions`
-still `115` — the fix resolves values, it does not remove rows.
+`archive_game_closing` (src/index.js) fires on `/archive/game` for any id where
+`closing_odds IS NULL` and `finalized_at` is set. **It is not date-scoped**, so
+the window never closes — and emptying the column is precisely the condition it
+reads as "no line yet". It would have refilled these rows from the same source.
+It now skips any row carrying `inplay_odds`: that row has been adjudicated.
+AmbientDO's `_captureClosingOdds` is scoped to `date = today` and cannot reach
+them.
 
-Under **leave both**: a committed note naming the two pairs, the condition
-amended to exclude them by id, and a mutation proving the exclusion is by id
-and not a blanket suppression.
+## Done condition — MET, three independent measurements
+
+`outbox/inplay-relabel-applied-2026-09-14T15-30*.log`:
+
+```
+moved  2026-07-25-mls-dc-tor                              closing_odds -> inplay_odds
+moved  FIFA World Cup 2026_2026-07-25_dcunited_toronto    closing_odds -> inplay_odds
+moved  2026-08-01-mls-dc-nsh                              closing_odds -> inplay_odds
+moved  FIFA World Cup 2026_2026-08-01_dcunited_nashville  closing_odds -> inplay_odds
+
+rows_total 3171 -> 3171          (unchanged — the fix moves values, it removes nothing)
+relay says odds_disagree = 0     (was 2)
+rows now carrying inplay_odds: 4
+residual moves: 0
+```
+
+`outbox/collision-odds-conflicts-2026-09-14T15-30-04-827Z.log`, run after by a
+separate script: **0 conflicting pair(s) of 115 collisions**.
+
+`outbox/identity-ambiguity-watch-20260914T153037Z.json`, a third process reading
+the relay's own count:
+
+```
+all_done: true
+  DONE  no collision whose rows disagree about odds
+        0 disagreeing of 115 total (115 agree or excluded)
+```
+
+Four `change_log` entries under source `inplay_relabel` carry the moved blobs,
+read before the move — once the column is NULL that record is the only copy.
+
+Client impact: `field.js:2453` reads `closing_odds_parsed` from the relay
+response, so those two games now render the no-odds state. Correct — the archive
+holds no closing line for them, because none was ever captured.
 
 ## Scope boundary
 

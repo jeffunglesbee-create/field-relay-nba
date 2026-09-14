@@ -107,7 +107,7 @@ they are wanted.
 
 ## Outcome
 
-30 of 32 pairs resolved. 2 refused, awaiting a human decision:
+32 of 32 pairs resolved. 30 by filling a gap; 2 by relabelling a post-kickoff price as in-play (owner decision, `8309fc4`):
 
 | date | pair | opening | closing |
 |---|---|---|---|
@@ -115,6 +115,23 @@ they are wanted.
 | 2026-08-01 | `2026-08-01-mls-dc-nsh` vs `FIFA World Cup 2026_2026-08-01_dcunited_nashville` | identical | `f0c6bfa7` vs `f5bc090d` |
 
 The executor refuses to apply at all while either stands.
+
+**`8309fc4` — relabel, on the owner's decision.**
+
+Both D.C. United pairs held two prices captured after a 23:30Z kickoff, +11 and
++25 minutes. Neither was a closing line, so the owner chose to correct the label
+rather than pick a price: both blobs moved from `closing_odds` to a new
+`inplay_odds` column, four rows, zero removed.
+
+The consumer audit is the part worth keeping: `archive_game_closing` fires on
+`/archive/game` wherever `closing_odds IS NULL` and `finalized_at` is set, and
+is **not** date-scoped — emptying the column is exactly its trigger, so the
+relabel would have refilled itself from the same source. It now skips rows
+carrying `inplay_odds`.
+
+Verified three ways: the executor (`odds_disagree 2 -> 0`, 4 rows relabelled,
+`rows_total` unchanged), a separate conflict probe (0 of 115), and the watch
+(`all_done: true`).
 
 ## Verification
 
