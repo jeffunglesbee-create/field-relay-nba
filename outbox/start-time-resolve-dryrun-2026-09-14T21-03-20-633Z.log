@@ -1,0 +1,11 @@
+=== start_time resolve  apply=false  utc=2026-09-14T21:03:08.131Z ===
+
+--- 0. 476 row(s) across 85 slate(s)
+
+--- 1. scoreboard
+    resolved 476, unresolved 0, failed slates 0 (0 row(s) not attempted)
+    e.g. 2026-05-25-mlb-pittsb-chicag  ->  2026-05-25T17:35Z  (Chicago Cubs at Pittsburgh Pirates)
+    e.g. 2026-05-25-mlb-baltim-tampa  ->  2026-05-25T17:35Z  (Tampa Bay Rays at Baltimore Orioles)
+    e.g. 2026-05-25-mlb-milwau-stlo  ->  2026-05-25T18:10Z  (St. Louis Cardinals at Milwaukee Brewers)
+
+DRY RUN. Nothing was written. Re-run with --apply.
