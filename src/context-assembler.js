@@ -14,6 +14,10 @@
 // Same pattern as the existing buildFinalsContextBlock + buildWCTeamContextBlock.
 
 import { computeOddsStory } from './odds-story.js';
+// A closing line captured after kickoff is an in-play price; a movement that
+// ends at one is not line movement. MEASURED 2026-09-14: 130 of 1323
+// opening+closing pairs in the archive are that shape.
+import { knownPostKickoff, parseOddsJSON } from './odds-consumer-rules.js';
 import { resolveTeamKey, resolveEntity } from './identity-resolver.js';
 
 // ── R2 helpers ───────────────────────────────────────────────────────────
@@ -459,6 +463,7 @@ async function buildOddsStoryContext(env, game) {
             for (const row of (rows.results || [])) {
                 if (resolveTeamKey(row.home) !== homeKey) continue;
                 if (resolveTeamKey(row.away) !== awayKey) continue;
+                if (knownPostKickoff(parseOddsJSON(row.closing_odds))) continue;
                 const story = computeOddsStory(row.opening_odds, row.closing_odds);
                 if (story) {
                     // Directive travels with the data — every prompt template gets it

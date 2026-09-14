@@ -6,6 +6,9 @@ import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOdds
 import { readQuotaHeader } from './budget-helpers.js';
 import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
 import { stampKickoff } from './odds-kickoff.js';
+// A closing line captured after kickoff is an in-play price. Prose must not
+// call it a close -- MEASURED 2026-09-14: 126 debrief rows would have.
+import { knownPostKickoff, parseOddsJSON } from './odds-consumer-rules.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -5634,7 +5637,8 @@ function buildGameCompletePrompt({ sport, home, away, homeScore, awayScore, debr
       const oddsStr = o.moneyline
         ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}`
         : '';
-      const closeStr = (c && c.moneyline)
+      // A price taken after kickoff is not a close, and this line is prose.
+      const closeStr = (c && c.moneyline && !knownPostKickoff(c))
         ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}`
         : '';
       const otStr = debriefCtx.went_to_ot ? ' Went to OT.' : '';
@@ -9256,7 +9260,8 @@ async function handleJournalismCycle(env, opts = {}) {
                       const o = _dc.opening_odds_parsed;
                       const c = _dc.closing_odds_parsed;
                       const oddsStr  = o.moneyline ? `home ${o.moneyline.home > 0 ? '+' : ''}${o.moneyline.home} / away ${o.moneyline.away > 0 ? '+' : ''}${o.moneyline.away}` : '';
-                      const closeStr = (c && c.moneyline) ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}` : '';
+                      // Same guard as buildGameCompletePrompt: an in-play price is not a close.
+                      const closeStr = (c && c.moneyline && !knownPostKickoff(c)) ? `, closed home ${c.moneyline.home > 0 ? '+' : ''}${c.moneyline.home} / away ${c.moneyline.away > 0 ? '+' : ''}${c.moneyline.away}` : '';
                       const otStr    = _dc.went_to_ot ? ' Went to OT.' : '';
                       _lines.push(` Odds: opened ${oddsStr}${closeStr}.${otStr}`);
                     }
@@ -11257,7 +11262,11 @@ export default {
                         const hasClosing = !!row.closing_odds;
                         if (!hasOpening) missingOpening++;
                         else if (!hasClosing) missingClosing++;
-                        const story = (hasOpening && hasClosing)
+                        // Same guard as buildOddsStoryContext, so this view and the
+                        // prompt it exists to explain cannot disagree: a movement
+                        // ending at an in-play price is not line movement.
+                        const lateClose = knownPostKickoff(parseOddsJSON(row.closing_odds));
+                        const story = (hasOpening && hasClosing && !lateClose)
                             ? computeOddsStory(row.opening_odds, row.closing_odds) : '';
                         if (story) withStory++; else if (hasOpening && hasClosing) withoutStory++;
                         games.push({

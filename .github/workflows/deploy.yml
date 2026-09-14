@@ -235,6 +235,17 @@ jobs:
       - name: Every charged odds call is reconciled against the receipt
         run: node scripts/check-odds-reconciled.mjs
 
+      # Blocking. 219 of 1412 archived closing lines were captured after kickoff
+      # (outbox/late-close-consumer-flip-*.log). Read as closing lines they
+      # manufactured 7 upset findings and would have printed an in-play price as
+      # "closed" in 126 debrief prompts, while losing 0 real upsets. The rule is
+      # one predicate; what breaks is a read site quietly going back to the
+      # column name, so both the rule and its five call sites are checked.
+      - name: Consumers read the last PRE-KICKOFF price, not the closing column
+        run: |
+          node scripts/check-odds-consumer-rules.mjs
+          node scripts/check-odds-consumer-wiring.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

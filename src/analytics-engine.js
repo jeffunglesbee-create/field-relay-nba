@@ -9,6 +9,16 @@
 // No interest level, no editorial verdict — just a counted-and-bucketed
 // summary the browser may render however it likes.
 
+// Which odds blob a consumer should read, and why it is not always the one in
+// `closing_odds`. MEASURED 2026-09-14 (outbox/late-close-consumer-flip-*.log):
+// 219 of 1412 closing values were captured after kickoff, and reading them as
+// closing lines manufactured 7 upset findings -- among them a CFL row where the
+// pre-kickoff price was -4800 and the in-play price, taken three hours after
+// kickoff, was +250. Published, that reads "beat X as a +250 underdog" about
+// the heaviest favourite on the card. The same measurement found 0 real upsets
+// lost, so the rule costs no finding it did not invent.
+import { winnerMoneylinePrice, lineSpread } from './odds-consumer-rules.js';
+
 const PHASE_NAMES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4', 'phase5', 'phase7', 'phase8', 'phase9', 'phase10a', 'phase10b', 'phase6a', 'phase6b', 'phase6c', 'phase6d', 'phase11', 'phase12', 'phase13'];
 const STATUS_KV_KEY = 'field:analytics:status';
 const SELF_HEAL_CAP = 7;
@@ -414,25 +424,6 @@ const HAT_TRICK_RE    = /\bhat[-\s]?trick\b/i;
 const NO_HITTER_RE    = /\bno[-\s]?hit(?:ter)?\b/i;
 const PERFECT_GAME_RE = /\bperfect game\b/i;
 
-function parseOddsJSON(raw) {
-    if (!raw) return null;
-    try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (_) { return null; }
-}
-
-// Extract the moneyline price for the winning side, if present, so we can
-// flag upsets. Returns the underdog price (positive American odds style)
-// or null when odds are missing/unparseable.
-function winnerMoneylinePrice(game) {
-    const odds = parseOddsJSON(game.closing_odds) || parseOddsJSON(game.opening_odds);
-    if (!odds) return null;
-    const hWon = (game.home_score | 0) > (game.away_score | 0);
-    const ml = odds.moneyline || odds.h2h || odds.ml;
-    if (!ml) return null;
-    const winnerPrice = hWon ? (ml.home ?? ml.h ?? ml[0]) : (ml.away ?? ml.a ?? ml[1]);
-    if (winnerPrice == null) return null;
-    return Number(winnerPrice);
-}
-
 // Sport-specific blowout thresholds — picked conservatively so only truly
 // lopsided games surface. NBA/WNBA: 25+, MLB: 8+, NHL: 5+, soccer: 4+.
 function blowoutThreshold(sport) {
@@ -789,9 +780,9 @@ function scoreCandidatePick(game) {
     if (note.includes('rivalry') || note.includes('rival')) {
         score += 1; reasons.push('rivalry');
     }
-    // Tight closing line (spread < 3) — closing_odds may be embedded or absent
-    const odds = parseOddsJSON(game.closing_odds) || parseOddsJSON(game.opening_odds);
-    const spread = odds && (odds.spread?.home ?? odds.spread?.away ?? odds.line ?? null);
+    // Tight pre-kickoff line (|spread| < 3). A spread taken after kickoff has
+    // already moved toward whoever is ahead, so it is not the line this scores.
+    const spread = lineSpread(game);
     if (spread != null && Math.abs(Number(spread)) < 3) {
         score += 2; reasons.push(`tight line (${Math.abs(Number(spread)).toFixed(1)})`);
     }
