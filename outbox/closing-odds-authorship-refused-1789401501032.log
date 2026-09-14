@@ -1,0 +1,13 @@
+=== closing-odds authorship  2026-09-14T15:58:20.567Z ===
+_oddsProof has been stamped by extractOddsForGame since 2026-06-29 (3f0fe3d).
+
+--- 0. signature vs change_log source, on rows change_log NAMES
+    regular_season_games  neither          odds_backfill            36  (2026-06-28 .. 2026-08-15)
+    regular_season_games  proof            archive_game_closing    314  (2026-08-23 .. 2026-09-13)
+    regular_season_games  proof            odds_backfill            22  (2026-08-15 .. 2026-08-22)
+    regular_season_games  spread-no-proof  closing_odds_capture     41  (2026-07-04 .. 2026-08-31)
+    CONTRADICTION: signature 'proof' appears under archive_game_closing and odds_backfill
+    postseason_games: no attributed rows
+
+STOP: a signature maps to more than one writer, so it does not identify one.
+      No classification is printed. The mapping read from source is wrong or incomplete.
