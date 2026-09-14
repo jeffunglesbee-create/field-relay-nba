@@ -337,6 +337,17 @@ jobs:
           node scripts/check-collision-reach.mjs
           node scripts/mutate-collision-reach.mjs
 
+      # `closing_odds` claims to be the last price before kickoff. Measured
+      # 2026-09-14, 91 of 877 askable rows were captured at or after it, one by
+      # 64 days, because no writer compared its snapshot against the start time.
+      # The existing rows are a separate, owner-authorised job; this stops more
+      # being made — and pins the comparison to instants, since a guard that
+      # compares these timestamps as text is worse than no guard.
+      - name: no writer can stamp a post-kickoff price as the close
+        run: |
+          node scripts/check-closing-odds-kickoff-guard.mjs
+          node scripts/mutate-closing-odds-kickoff-guard.mjs
+
       # A nickname two clubs share has no single right answer. `Tigers` is
       # Detroit's and Hull City's; the alias table could only store one, so the
       # winner was whichever line sat lower in the file, and from 2026-08-21

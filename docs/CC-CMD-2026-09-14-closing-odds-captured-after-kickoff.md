@@ -1,6 +1,6 @@
 # CC-CMD-2026-09-14-closing-odds-captured-after-kickoff
 
-**Tasks 0 and 1 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
+**Tasks 0, 1 and 2 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
 after kickoff; 530 not askable; the dash-scheme writer measured 0 of 0 — never
 tested at all. Two measurement defects fixed first; both had produced a number
 that was quoted. Task 1 found the slow mode has no author at all: 62 of 91 late rows
@@ -230,13 +230,56 @@ between the snapshot time and kickoff**. That is the guard to write. The
 `.catch(() => {})` on the backfill's change_log insert is a second, separate
 defect: a write that can lose its own record.
 
-## Task 2 — stop the writers producing more
+## Task 2 — DONE 2026-09-14
 
-Only after the precondition above, which is now met. Backfill must not write
-`closing_odds` for a match already played; `archive_game_closing` must place its
-snapshot against kickoff before writing. Both need a mutation proving the guard
-bites. The swallowed `change_log` insert gets its own fix — a write that cannot
-record itself recreates this whole investigation.
+### A sentence in this document was wrong and is corrected here
+
+Task 2 originally read *"Backfill must not write `closing_odds` for a match
+already played"*. **That is wrong**, and `.github/scripts/odds-backfill.js`
+already says why, in a guard added 2026-08-21 with its own measured rationale:
+for a game in the past there is no kickoff left to capture, so writing the one
+historical data point to both columns is correct there. Forbidding it would have
+removed working behaviour.
+
+The real defect was one line up: `captured_at: row.snapshot_time || new
+Date().toISOString()`.
+
+### What shipped
+
+**`archive_game_closing` (src/index.js ~13022)** — writes only when the
+capture precedes kickoff. Compared as **instants**, never as text: `start_time`
+arrives both as `2026-07-25T20:05Z` and `2026-06-06T23:00:00+00:00`, and as
+strings `'Z'` (0x5A) sorts above `':'` (0x3A), so a capture thirty seconds after
+a minute-precision kickoff compares as before it. That defect shipped in the
+probe that found this one. An unparseable date yields NaN, every comparison is
+false, and the guard **refuses** the write — a kickoff that could not be read is
+not a kickoff that has not happened (Rule 99).
+
+**`.github/scripts/odds-backfill.js`** — `measuredCapture` separates a snapshot
+time the provider gave from one this process invented. `closing_odds` is written
+only when it was measured; `opening_odds` keeps the fallback, where an invented
+`captured_at` is a provenance wart rather than a false claim. Skipped rows are
+counted and named in the run log.
+
+**The write that could lose its own record** — the `change_log` insert's
+`.catch(() => {})` now reports the failure and names the row it could not
+attribute. Reconstructing the authorship of 62 such rows took two failed
+fingerprints and a dated elimination argument; that silence is what made it
+necessary.
+
+### Done condition — met
+
+`scripts/check-closing-odds-kickoff-guard.mjs`, 9 assertions, gated in
+`deploy.yml`. `scripts/mutate-closing-odds-kickoff-guard.mjs`, **7 mutations,
+all caught** — including K2, which restores the text comparison, and K6, which
+removes the `opening_odds` fallback and would silently drop coverage.
+
+### Residual
+
+How many `odds_history` rows carry no `snapshot_time` is **not measured**, so
+the coverage cost of the new `closing_odds` skip is unknown. It is bounded — the
+skip only withholds a column that would otherwise carry a false claim — but the
+number should be counted before anyone reads the backfill's output as complete.
 
 ## Task 3 — the existing rows
 

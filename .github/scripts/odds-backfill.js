@@ -427,11 +427,25 @@ async function syncOddsToGameTables() {
     return;
   }
 
-  let attempted = 0;
+  let attempted = 0, skippedUndated = 0;
   for (const row of candidates) {
+    // A CAPTURED_AT THIS PROCESS INVENTED IS NOT A MEASUREMENT.
+    //
+    // `row.snapshot_time || new Date().toISOString()` stamped the moment THIS
+    // RUN happened whenever the provider row carried no snapshot time — so a
+    // game played five days earlier got a five-day-late "closing" capture.
+    // MEASURED 2026-09-14: ten rows stamped 2026-08-11T01:58:26..39 for games
+    // played 2026-08-05, thirteen seconds apart and sequential, which is what a
+    // loop calling new Date() per row looks like.
+    //
+    // The fallback stays for `opening_odds`, where it is only a provenance
+    // wart. It is removed for `closing_odds`, where it is a false fact: that
+    // column claims to be the last price before kickoff and a run-time stamp
+    // cannot support the claim.
+    const measuredCapture = row.snapshot_time || null;
     const odds = {
       source: row.bookmaker || 'odds-api-historical',
-      captured_at: row.snapshot_time || new Date().toISOString(),
+      captured_at: measuredCapture || new Date().toISOString(),
       moneyline: {
         home: decimalToAmerican(row.home_ml),
         away: decimalToAmerican(row.away_ml),
@@ -468,8 +482,17 @@ async function syncOddsToGameTables() {
     // Driven by the row's own date rather than by the UPDATE's guard alone, so
     // the change_log insert below cannot record a write that never matched.
     const isPast = !!row.game_date && row.game_date < TODAY_UTC;
-    const fields = isPast ? ['opening_odds', 'closing_odds'] : ['opening_odds'];
+    // AND ONLY WHEN THE SNAPSHOT TIME IS A MEASUREMENT (added 2026-09-14).
+    // Without it the blob's captured_at is this run's clock, and a closing
+    // column carrying a run-time stamp is a false fact rather than a stale one.
+    const fields = (isPast && measuredCapture)
+      ? ['opening_odds', 'closing_odds'] : ['opening_odds'];
     if (!isPast) skippedClosing++;
+    else if (!measuredCapture) {
+      skippedUndated++;
+      console.log(`[odds-backfill] closing_odds skipped for ${row.game_id}: `
+        + `odds_history row carries no snapshot_time, so captured_at would be this run's clock`);
+    }
 
     for (const table of ['regular_season_games', 'postseason_games']) {
       for (const field of fields) {
@@ -488,7 +511,15 @@ async function syncOddsToGameTables() {
             `INSERT INTO change_log (game_id, source, field, old_value, new_value, ts)
              VALUES (?, 'odds_backfill', ?, NULL, ?, datetime('now'))`,
             [row.game_id, field, json]
-          ).catch(() => {}); // change_log table may not exist yet
+          ).catch(e => {
+            // NOT SWALLOWED. A write that cannot record itself is a write
+            // nobody can attribute later, and reconstructing the authorship of
+            // 62 such rows on 2026-09-14 took two failed fingerprints and a
+            // dated elimination argument. The write itself already succeeded;
+            // this only makes its silence audible.
+            console.warn(`[odds-backfill] change_log insert FAILED for `
+              + `${row.game_id}.${field} — this row will be unattributable: ${e.message}`);
+          });
         } catch (_) { /* table may not have this game */ }
       }
     }
@@ -502,6 +533,7 @@ async function syncOddsToGameTables() {
   const afterPostClose = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE closing_odds IS NOT NULL`);
 
   console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedClosing} game(s) dated ${TODAY_UTC} or later — AmbientDO._captureClosingOdds owns those.`);
+  console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedUndated} past game(s) whose odds_history row carries no snapshot_time — a run-time captured_at cannot support a closing claim.`);
   console.log(`[odds-backfill] sync: attempted=${attempted}, opening_odds=${(afterRegOpen[0]?.c||0)+(afterPostOpen[0]?.c||0)} (reg=${afterRegOpen[0]?.c||0}, post=${afterPostOpen[0]?.c||0}), closing_odds=${(afterRegClose[0]?.c||0)+(afterPostClose[0]?.c||0)} (reg=${afterRegClose[0]?.c||0}, post=${afterPostClose[0]?.c||0})`);
 }
 
