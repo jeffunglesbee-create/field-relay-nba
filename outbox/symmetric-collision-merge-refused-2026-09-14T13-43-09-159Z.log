@@ -1,0 +1,11 @@
+=== symmetric collision merge  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=false  utc=2026-09-14T13:43:07.974Z ===
+
+--- 0. live census: scanned 3171 of 3171 rows across 2 tables
+    collisions 115, rows_total 3171
+    plan: 0 update(s) across 0 pair(s), 113 skipped, 2 conflict(s)
+    CONFLICT regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor vs FIFA World Cup 2026_2026-07-25_dcunited_toronto  both rows carry DIFFERENT closing_odds — no fill can resolve this
+    CONFLICT regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh vs FIFA World Cup 2026_2026-08-01_dcunited_nashville  both rows carry DIFFERENT closing_odds — no fill can resolve this
+
+STOP: 2 pair(s) hold two DIFFERENT lines in the same column.
+      No fill resolves that — COALESCE writes only into a NULL, and overwriting
+      either side destroys a real price. These need a human.
