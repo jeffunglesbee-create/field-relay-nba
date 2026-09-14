@@ -201,6 +201,64 @@ const JD_START = JD(`start_time`);
     if (!rows.length) say(`    ${t}: none`);
   }
 
+  // ── 4. WHO WROTE THE LATE ONES ───────────────────────────────────────────
+  //
+  // CC-CMD Task 1 asks for the 91 to be partitioned into backfill-written and
+  // cron-timing "by capture-to-kickoff distance: days versus minutes".
+  //
+  // THAT WOULD HAVE BEEN A COPY. change_log records `source` for every odds
+  // write — src/brief-freshness.js names five of them — so the archive already
+  // says which writer produced each row. Splitting on lateness would infer an
+  // answer the data states outright, and would be wrong for any backfill that
+  // happened to run promptly or any cron that ran very late.
+  //
+  // Lateness is still bucketed below, as a CROSS-CHECK on the attribution and
+  // as the only evidence about rows change_log does not cover. It is not the
+  // partition.
+  const BUCKET = (d) => `CASE
+      WHEN ${d} < 1 THEN 'a <1 min'      WHEN ${d} < 5    THEN 'b 1-5 min'
+      WHEN ${d} < 15 THEN 'c 5-15 min'   WHEN ${d} < 60   THEN 'd 15-60 min'
+      WHEN ${d} < 360 THEN 'e 1-6 h'     WHEN ${d} < 1440 THEN 'f 6-24 h'
+      WHEN ${d} < 10080 THEN 'g 1-7 d'   ELSE 'h >7 d' END`;
+  const LATE_MIN = `((${JD_CAP} - ${JD_START}) * 1440)`;
+  const LATE_WHERE = `closing_odds IS NOT NULL AND start_time IS NOT NULL
+      AND ${JD_CAP} IS NOT NULL AND ${JD_START} IS NOT NULL AND ${JD_CAP} >= ${JD_START}`;
+
+  say(`\n--- 4. the late ones, by writer and by distance`);
+  for (const t of TABLES) {
+    const rows = await d1(
+      `SELECT source, bucket, COUNT(*) n FROM (
+         SELECT (SELECT cl.source FROM change_log cl
+                  WHERE cl.game_id = g.id AND cl.field = 'closing_odds'
+                  ORDER BY cl.ts DESC LIMIT 1) AS source,
+                ${BUCKET(LATE_MIN)} AS bucket
+           FROM ${t} g WHERE ${LATE_WHERE}
+       ) GROUP BY source, bucket ORDER BY source, bucket`);
+    if (!rows.length) { say(`    ${t}: no late rows`); continue; }
+    say(`    ${t}:`);
+    // A NULL source is NOT "written by nobody" (Rule 99). It means change_log
+    // has no entry for this row — which is itself a finding, since a writer
+    // that leaves no trace cannot be attributed when it misbehaves.
+    for (const r of rows)
+      say(`        ${String(r.source ?? 'NO change_log ENTRY').padEnd(24)} ${r.bucket}  ${r.n}`);
+  }
+
+  // ── 4b. THE SHAPE OF THE WHOLE DISTRIBUTION ──────────────────────────────
+  //
+  // Whether there are two modes at all is a question, not an assumption. Only
+  // the top ten were ever looked at, and all ten were days-late; a unimodal
+  // distribution would look identical from that end.
+  say(`\n--- 4b. lateness distribution, every late row`);
+  for (const t of TABLES) {
+    const rows = await d1(
+      `SELECT ${BUCKET(LATE_MIN)} AS bucket, COUNT(*) n,
+              CAST(MIN(${LATE_MIN}) AS INT) lo, CAST(MAX(${LATE_MIN}) AS INT) hi
+         FROM ${t} WHERE ${LATE_WHERE} GROUP BY bucket ORDER BY bucket`);
+    if (!rows.length) { say(`    ${t}: none`); continue; }
+    for (const r of rows)
+      say(`    ${t}  ${r.bucket.padEnd(12)} ${String(r.n).padStart(4)}  (${r.lo}..${r.hi} min)`);
+  }
+
   say(`\nTOTAL: ${after} of ${comparable} askable closing lines were captured at or after kickoff.`);
   say(`       ${noStart} sit on rows with no start_time and were NOT asked.`);
   say(`       ${unparsed} have a start_time julianday() could not parse and were NOT asked.`);
