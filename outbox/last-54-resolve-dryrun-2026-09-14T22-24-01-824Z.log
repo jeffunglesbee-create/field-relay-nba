@@ -1,0 +1,13 @@
+=== last-54 resolve  apply=false  utc=2026-09-14T22:23:59.734Z ===
+
+--- 0. 54 row(s) with neither field
+--- 1. twin route: 18
+--- 2. sole-event route: 7
+    plan 25; 29 ambiguous, 0 not measured, 0 otherwise unaccounted
+    2026-07-25-mls-stl-col  ->  2026-07-26T00:30Z  via twin FIFA World Cup 2026_2026-07-25_stlouis_colorado
+    2026-07-25-mls-sj-la  ->  2026-07-26T02:30Z  via twin FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy
+    2026-07-25-mls-sd-dal  ->  2026-07-26T01:30Z  via twin FIFA World Cup 2026_2026-07-25_sandiego_dallas
+    2026-07-25-mls-por-rsl  ->  2026-07-26T02:30Z  via twin FIFA World Cup 2026_2026-07-25_portland_saltlake
+    2026-07-25-mls-min-van  ->  2026-07-26T00:30Z  via twin FIFA World Cup 2026_2026-07-25_minnesota_vancouver
+
+DRY RUN. Nothing written.
