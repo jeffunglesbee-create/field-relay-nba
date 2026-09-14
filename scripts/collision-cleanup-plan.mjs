@@ -144,8 +144,26 @@ export function deleteSql(table, ids) {
 // espn_event_id disagreeing is untidy; it is not a false fact, and none of them
 // is what the join reads.
 export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];
+
+// THE DIGEST IS THE VALUE; THE BOOLEAN IS A PROJECTION OF IT.
+//
+// MEASURED 2026-09-14, ONE MINUTE AFTER THE FIRST APPLY. This function filled
+// 32 pairs, re-derived itself against a fresh census, found nothing left, and
+// reported success. The watch then read TWO pairs still disagreeing.
+//
+// Both were pairs whose rows carried IDENTICAL opening lines and two DIFFERENT
+// closing lines. `has_closing_odds` is true on both sides, so the gap test saw
+// nothing to fill and skipped them as "already agree" — and the done condition,
+// being this same function run again, agreed with itself.
+//
+// A check that re-derives its subject verifies the copy. So agreement is now
+// decided on the digest the census serves, which is the same evidence the watch
+// condition uses.
+const DIGEST_OF = { has_opening_odds: 'opening_odds_digest',
+                    has_closing_odds: 'closing_odds_digest' };
+
 export function buildSymmetricPlan(collisions) {
-  const merges = [], skipped = [];
+  const merges = [], skipped = [], conflicts = [];
   const fields = LOSS_BEARING.filter(([f]) => FILL_FIELDS.includes(f));
   // TOTAL DRIFT THROWS; PARTIAL DRIFT IS THE CHECK'S JOB. A rename in
   // LOSS_BEARING that matched nothing would leave `fields` empty and the plan
@@ -163,14 +181,34 @@ export function buildSymmetricPlan(collisions) {
     }
     const raw = collisions.find(x => x.pair_key === c.pair_key && x.date === c.date);
     const [ra, rb] = raw.games;
-    const gaps = (from, to) => fields
-      .filter(([, has]) => has(from) && !has(to))
-      .map(([f]) => FIELD_COLUMN[f]);
-    const aToB = gaps(ra, rb), bToA = gaps(rb, ra);
-    // An unmapped field would drop silently and the rows would still disagree
-    // while the plan reported success.
-    if (aToB.includes(undefined) || bToA.includes(undefined)) {
-      skipped.push({ ...c, reason: 'unmapped loss-bearing field' });
+
+    // A ROW WITH NO DIGEST FIELD AT ALL IS NOT A ROW THAT AGREES (Rule 99). An
+    // older census, or a failed detail read, serves the booleans without them;
+    // reading that absence as "both null, therefore equal" would close every
+    // pair on data nobody read.
+    const missing = fields.filter(([f]) =>
+      !(DIGEST_OF[f] in ra) || !(DIGEST_OF[f] in rb)).map(([f]) => DIGEST_OF[f]);
+    if (missing.length) {
+      skipped.push({ ...c, reason: `census served no ${missing.join(', ')}; cannot compare values` });
+      continue;
+    }
+
+    const aToB = [], bToA = [], clash = [];
+    for (const [f] of fields) {
+      const col = FIELD_COLUMN[f], dig = DIGEST_OF[f];
+      const da = ra[dig] ?? null, db = rb[dig] ?? null;
+      if (!col) { clash.push(`unmapped field ${f}`); continue; }
+      if (da === db) continue;              // both absent, or the same line
+      if (da && !db) { aToB.push(col); continue; }
+      if (db && !da) { bToA.push(col); continue; }
+      // BOTH ROWS CARRY A LINE AND THE LINES DIFFER. No fill can resolve this:
+      // COALESCE writes only into a NULL, and overwriting either side would
+      // destroy a real price. Escalated, never silently skipped.
+      clash.push(col);
+    }
+    if (clash.length) {
+      conflicts.push({ ...c, columns: clash, ids: [ra.id, rb.id],
+                       reason: `both rows carry DIFFERENT ${clash.join(', ')} — no fill can resolve this` });
       continue;
     }
     if (!aToB.length && !bToA.length) {
@@ -182,5 +220,7 @@ export function buildSymmetricPlan(collisions) {
     if (bToA.length) merges.push({ table: c.table, date: c.date, sport: c.sport,
                                    keeper: ra.id, stale: rb.id, columns: bToA, direction: 'b->a' });
   }
-  return { merges, skipped, deletes: [], counts: { merges: merges.length, skipped: skipped.length, deletes: 0 } };
+  return { merges, skipped, conflicts, deletes: [],
+           counts: { merges: merges.length, skipped: skipped.length,
+                     conflicts: conflicts.length, deletes: 0 } };
 }

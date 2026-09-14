@@ -58,17 +58,52 @@ const MUTATIONS = [
   // The whole point of the symmetric form is that nothing is taken away. A plan
   // that grew a delete would be the old approach wearing the new name.
   { name: 'S1  the symmetric plan starts emitting deletes',
-    anchor: "  return { merges, skipped, deletes: [], counts: { merges: merges.length, skipped: skipped.length, deletes: 0 } };",
-    replace: "  return { merges, skipped, deletes: merges.map(m => ({ table: m.table, id: m.stale })), counts: { merges: merges.length, skipped: skipped.length, deletes: merges.length } };",
+    anchor: "  return { merges, skipped, conflicts, deletes: [],",
+    replace: "  return { merges, skipped, conflicts, deletes: merges.map(m => ({ table: m.table, id: m.stale })),",
     expect: 'a symmetric plan contains no deletes at all' },
 
-  // THE MUTATION IS THE VERSION THAT SHIPPED FOR ONE DRY RUN. Widening the fill
-  // back to every LOSS_BEARING field writes espn_event_id into the twin, and
-  // nineteen `WHERE espn_event_id = ? LIMIT 1` lookups stop having one answer.
-  { name: 'S2  the fill widens past odds and writes the ESPN anchor into the twin',
+  // THE MUTATION IS THE VERSION THAT SHIPPED FOR ONE DRY RUN — widening the fill
+  // back to every LOSS_BEARING field, which wrote espn_event_id into the twin
+  // and would have left nineteen `WHERE espn_event_id = ? LIMIT 1` lookups
+  // without one answer.
+  //
+  // IT CANNOT REACH THAT ANY MORE, AND THE MUTATION IS HOW I KNOW. DIGEST_OF is
+  // a second, independent guard: the four non-odds fields have no digest, so
+  // the widened plan is refused for lack of evidence rather than writing
+  // anything. The red line is the refusal, not an unwanted update — which is a
+  // better failure than the one this mutation was written for.
+  { name: 'S2  the fill widens past every loss-bearing field',
     anchor: "  const fields = LOSS_BEARING.filter(([f]) => FILL_FIELDS.includes(f));",
     replace: "  const fields = LOSS_BEARING;",
-    expect: 'nothing but odds is ever written back the other way' },
+    expect: 'odds go to the row that lacks them' },
+
+  // THE DEFECT THAT SHIPPED, REINSTATED. Comparing the boolean instead of the
+  // digest is exactly what let two pairs with different closing lines be filed
+  // as agreeing, and let the done condition agree with itself.
+  { name: 'S7  agreement goes back to comparing the booleans',
+    anchor: "      const da = ra[dig] ?? null, db = rb[dig] ?? null;",
+    replace: "      const da = ra[f] ? 'y' : null, db = rb[f] ? 'y' : null;",
+    expect: 'they are escalated as a conflict' },
+
+  // A conflict quietly filed as a skip is a hazard reported as housekeeping.
+  { name: 'S8  a value clash is downgraded to an ordinary skip',
+    anchor: "      clash.push(col);",
+    replace: "      continue;",
+    expect: 'they are escalated as a conflict' },
+
+  // Filling one column of a pair that still clashes on the other reports
+  // progress while the hazard stays exactly where it was.
+  { name: 'S9  a conflict stops blocking the fill on the other column',
+    anchor: "    if (clash.length) {\n      conflicts.push({ ...c, columns: clash, ids: [ra.id, rb.id],",
+    replace: "    if (false) {\n      conflicts.push({ ...c, columns: clash, ids: [ra.id, rb.id],",
+    expect: 'a conflict on one column blocks the fill on the other' },
+
+  // RULE 99. Absent digests read as two nulls, two nulls compare equal, and
+  // every pair closes on evidence the census never served.
+  { name: 'S10 a census with no digests reads as agreement',
+    anchor: "    if (missing.length) {\n      skipped.push({ ...c, reason: `census served no ${missing.join(', ')}; cannot compare values` });\n      continue;\n    }",
+    replace: "    if (false) { }",
+    expect: 'and the skip names the missing evidence' },
 
   // Half the fill set is still a fill set: no throw, no error, and every pair
   // with only a closing line reported as already agreeing.
@@ -80,8 +115,8 @@ const MUTATIONS = [
   // A name LOSS_BEARING does not have. One survivor means no throw, so the
   // check is the only thing standing between this and a silent half-fill.
   { name: 'S6  a fill field is misspelled',
-    anchor: "export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];\nexport function buildSymmetricPlan",
-    replace: "export const FILL_FIELDS = ['has_opening_odds', 'has_clsoing_odds'];\nexport function buildSymmetricPlan",
+    anchor: "export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];\n\n// THE DIGEST IS THE VALUE",
+    replace: "export const FILL_FIELDS = ['has_opening_odds', 'has_clsoing_odds'];\n\n// THE DIGEST IS THE VALUE",
     expect: 'every fill field is a real LOSS_BEARING field' },
 
   // Two real games are not two halves of one. Filling one from the other would

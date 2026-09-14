@@ -16,10 +16,22 @@ const eq = (label, got, want) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${label}${ok ? '' : ` — got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`}`);
 };
 
+// THE DIGEST KEYS ARE PRESENT AND NULL BY DEFAULT, never absent. The plan now
+// refuses a pair whose census served no digest (Rule 99), so a fixture that
+// omitted them would exercise the refusal path instead of the case it is named
+// for — and every other assertion in this file would go green for the wrong
+// reason.
 const row = (o = {}) => ({
   id: 'x', home: 'A', away: 'B', home_score: null, away_score: null,
   espn_event_id: null, venue: null, start_time: null, finalized_at: null,
-  has_opening_odds: false, has_closing_odds: false, briefs_referencing: 0, ...o });
+  has_opening_odds: false, has_closing_odds: false,
+  opening_odds_digest: null, closing_odds_digest: null,
+  briefs_referencing: 0, ...o });
+// Sets the flag AND the digest together, the way the census serves them. A
+// fixture that sets only the flag is describing a row that cannot exist.
+const odds = (opening, closing) => ({
+  has_opening_odds: opening != null, opening_odds_digest: opening ?? null,
+  has_closing_odds: closing != null, closing_odds_digest: closing ?? null });
 const pair = (a, b, o = {}) => ({ table: 'regular_season_games', date: '2026-07-22',
   sport: 'MLS', pair_key: 'a|b', games: [a, b], ...o });
 
@@ -121,7 +133,7 @@ eq('and binds exactly the enumerated ids', del.params, ['a', 'b']);
 // ── SYMMETRIC MERGE ────────────────────────────────────────────────────────
 // The other way to end a disagreement. Every assertion here is about the fact
 // that it takes NOTHING away.
-const B = pair(row({ id: 'dash', has_opening_odds: true, has_closing_odds: true }),
+const B = pair(row({ id: 'dash', ...odds('aa', 'bb') }),
                row({ id: 'fifa', home_score: 3, away_score: 1,
                      espn_event_id: '761674', finalized_at: '2026-07-23' }));
 const sym = buildSymmetricPlan([B]);
@@ -142,8 +154,8 @@ eq('and no update names a non-odds column',
 
 // Rows that already agree are left alone — a merge that rewrites what is
 // already there is a write with no purpose and a conflict surface.
-const agreed = buildSymmetricPlan([pair(row({ id: 'x', has_opening_odds: true }),
-                                        row({ id: 'y', has_opening_odds: true }))]);
+const agreed = buildSymmetricPlan([pair(row({ id: 'x', ...odds('aa', null) }),
+                                        row({ id: 'y', ...odds('aa', null) }))]);
 eq('rows that already agree produce no merge', agreed.merges.length, 0);
 eq('and say so', agreed.skipped[0]?.reason, 'rows already agree on odds');
 
@@ -151,20 +163,49 @@ eq('and say so', agreed.skipped[0]?.reason, 'rows already agree on odds');
 eq('every fill field is a real LOSS_BEARING field',
    FILL_FIELDS.filter(f => !LOSS_BEARING.some(([g]) => g === f)), []);
 
-// AGREEING ON ODDS IS THE WHOLE TEST. These two disagree on four other
-// loss-bearing fields and are still left alone, because none of them is what
-// the odds join reads.
-const oddsAgreed = buildSymmetricPlan([pair(
-  row({ id: 'p', has_opening_odds: true, espn_event_id: '9', venue: 'X' }),
-  row({ id: 'q', has_opening_odds: true, start_time: '20:00', finalized_at: '2026-07-23' }))]);
-eq('four non-odds disagreements do not make a fill', oddsAgreed.merges.length, 0);
-eq('and it still says the rows agree on odds',
-   oddsAgreed.skipped[0]?.reason, 'rows already agree on odds');
+// TWO DIFFERENT CLOSING LINES. THE CASE THAT SHIPPED.
+//
+// MEASURED LIVE 2026-09-14: two pairs carried identical opening lines and two
+// DIFFERENT closing lines. Both `has_closing_odds` flags read true, so the
+// boolean gap test saw nothing to fill and called them agreed — and the done
+// condition, which re-derived with this same function, agreed with itself while
+// the watch read them as open. A fill cannot resolve this: COALESCE writes only
+// into a NULL, and overwriting either side destroys a real price.
+const clash = buildSymmetricPlan([pair(row({ id: 'p', ...odds('aa', 'cc') }),
+                                       row({ id: 'q', ...odds('aa', 'dd') }))]);
+eq('two different closing lines are not a fill', clash.merges.length, 0);
+eq('and they are NOT filed as agreeing', clash.skipped.length, 0);
+eq('they are escalated as a conflict', clash.counts.conflicts, 1);
+eq('naming the column that clashes', clash.conflicts[0]?.columns, ['closing_odds']);
+eq('and both row ids, because a human has to look at them',
+   clash.conflicts[0]?.ids, ['p', 'q']);
+// A pair can need a fill on one column and be in conflict on the other. The
+// conflict wins: filling half of a pair that still disagrees would report
+// progress while leaving the hazard exactly where it was.
+const mixed = buildSymmetricPlan([pair(row({ id: 'p', ...odds('aa', 'cc') }),
+                                       row({ id: 'q', ...odds(null, 'dd') }))]);
+eq('a conflict on one column blocks the fill on the other', mixed.merges.length, 0);
+eq('and the pair is a conflict, not a skip', mixed.counts.conflicts, 1);
+
+// RULE 99. A census that served no digests cannot be read as "both null,
+// therefore equal" — that would close every pair on data nobody read.
+const noDigest = buildSymmetricPlan([pair(
+  { id: 'p', home: 'A', away: 'B', home_score: null, away_score: null, espn_event_id: null,
+    has_opening_odds: true, has_closing_odds: false, briefs_referencing: 0 },
+  { id: 'q', home: 'A', away: 'B', home_score: null, away_score: null, espn_event_id: null,
+    has_opening_odds: false, has_closing_odds: false, briefs_referencing: 0 })]);
+eq('a pair with no digests is not filled', noDigest.merges.length, 0);
+eq('and the skip names the missing evidence',
+   noDigest.skipped[0]?.reason?.includes('census served no'), true);
 
 // A doubleheader is two real games; filling one from the other would invent a
 // fact rather than complete one.
+// ITS ODDS DIGEST IS REAL, not just the flag. With both digests null the pair
+// agrees anyway, so deleting the doubleheader guard would change nothing and
+// the assertion below would pass without testing it — mutation S3 walked
+// straight through the earlier version for exactly that reason.
 const dh2 = buildSymmetricPlan([pair(
-  row({ id: 'g1', home_score: 4, away_score: 3, espn_event_id: '1', has_opening_odds: true }),
+  row({ id: 'g1', home_score: 4, away_score: 3, espn_event_id: '1', ...odds('aa', null) }),
   row({ id: 'g2', home_score: 7, away_score: 6, espn_event_id: '2' }))]);
 eq('a doubleheader is never merged', dh2.merges.length, 0);
 eq('and is skipped as two real games', dh2.skipped[0]?.reason, 'two real games, not a duplicate');

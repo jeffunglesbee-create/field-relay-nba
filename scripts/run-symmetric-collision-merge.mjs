@@ -79,13 +79,21 @@ const pairsOf = (merges) =>
   say(`    collisions ${before.same_slate_pair_collisions}, rows_total ${before.totals.rows_total}`);
   const plan = buildSymmetricPlan(before.same_slate_pair_colliding || []);
   const pairs = pairsOf(plan.merges);
-  say(`    plan: ${plan.counts.merges} update(s) across ${pairs} pair(s), ${plan.counts.skipped} skipped`);
+  say(`    plan: ${plan.counts.merges} update(s) across ${pairs} pair(s), `
+    + `${plan.counts.skipped} skipped, ${plan.counts.conflicts} conflict(s)`);
+  for (const k of plan.conflicts) say(`    CONFLICT ${k.table} ${k.date} ${k.sport}  ${k.ids.join(' vs ')}  ${k.reason}`);
 
   // ── 0a. The structural guarantee, asserted rather than assumed ──────────
   // buildSymmetricPlan has no code path that emits a delete. This asserts it
   // anyway, here, at the only place where being wrong is irreversible.
   if (plan.deletes.length || plan.counts.deletes) {
     say(`\nSTOP: the plan contains ${plan.deletes.length} delete(s). This executor issues UPDATEs only.`);
+    dump('refused'); process.exit(1);
+  }
+  if (plan.counts.conflicts) {
+    say(`\nSTOP: ${plan.counts.conflicts} pair(s) hold two DIFFERENT lines in the same column.`);
+    say(`      No fill resolves that — COALESCE writes only into a NULL, and overwriting`);
+    say(`      either side destroys a real price. These need a human.`);
     dump('refused'); process.exit(1);
   }
   if (pairs !== APPROVED_PAIRS) {
@@ -157,20 +165,37 @@ const pairsOf = (merges) =>
 
   // ── 4. Done condition, measured from the source ─────────────────────────
   //
-  // NOT "the updates succeeded" — that is the copy. The claim is that the 32
-  // pairs no longer disagree, and the way to check it is to re-derive the plan
-  // from a fresh census and find nothing left to fill.
+  // THE RELAY'S OWN COUNT IS THE VERDICT, NOT THIS SCRIPT'S RE-DERIVATION.
+  //
+  // MEASURED 2026-09-14: the first apply filled 32 pairs, re-derived itself
+  // against a fresh census, found nothing left to fill and printed OK. The
+  // watch, one minute later, read TWO pairs still disagreeing — a check that
+  // re-derives its subject verifies the copy, and this one agreed with itself
+  // by construction. So the condition now comes from
+  // `same_slate_pair_collisions_odds_disagree`, which the relay computes from
+  // the digests independently of anything here.
+  //
+  // The re-derivation still runs, as a second and weaker signal: it names WHICH
+  // pairs, which the count alone cannot.
   say(`\n--- 4. re-census`);
   const after = await census();
   const residual = buildSymmetricPlan(after.same_slate_pair_colliding || []);
   const dRows = before.totals.rows_total - after.totals.rows_total;
+  const disagree = after.same_slate_pair_collisions_odds_disagree;
   say(`    rows_total ${before.totals.rows_total} -> ${after.totals.rows_total}  (delta ${dRows}, expected 0)`);
   say(`    collisions ${before.same_slate_pair_collisions} -> ${after.same_slate_pair_collisions}  (a fill does not remove a row)`);
+  say(`    relay says odds_disagree = ${disagree === undefined ? 'ABSENT' : disagree}  (expected 0)`);
   say(`    residual fills: ${residual.counts.merges} across ${pairsOf(residual.merges)} pair(s), expected 0`);
+  say(`    residual conflicts: ${residual.counts.conflicts}, expected 0`);
   for (const m of residual.merges)
     say(`      STILL OPEN  ${m.table} ${m.date} ${m.stale} -> ${m.keeper} [${m.columns.join(', ')}]`);
-  const ok = dRows === 0 && residual.counts.merges === 0;
-  say(ok ? `\nOK: every pair agrees on both odds columns, and no row was removed.`
+  for (const k of residual.conflicts)
+    say(`      CONFLICT    ${k.table} ${k.date} ${k.ids.join(' vs ')}  ${k.reason}`);
+  // ABSENT IS NOT ZERO (Rule 99). A relay predating the field must not let this
+  // report done.
+  const ok = dRows === 0 && disagree === 0
+          && residual.counts.merges === 0 && residual.counts.conflicts === 0;
+  say(ok ? `\nOK: the relay counts 0 collisions whose rows disagree about odds, and no row was removed.`
          : `\nMISMATCH: investigate before any further write.`);
   dump(ok ? 'applied' : 'mismatch');
   process.exit(ok ? 0 : 1);
