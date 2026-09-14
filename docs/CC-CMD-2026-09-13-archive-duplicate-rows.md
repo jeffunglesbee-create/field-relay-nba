@@ -131,6 +131,15 @@ here — that the sport column was wrong — was checked against
 `canonicalizeBriefSport`, which maps `FIFA World Cup 2026` to `FIFA World Cup`
 and never to `MLS`, and was refuted.
 
+## Tasks 3, 4 and 5 — DONE 2026-09-13/14
+
+Owner-approved, then narrowed to **82 only**. 82 rows deleted from
+`regular_season_games`; `rows_total` 3237 -> 3155 and collisions 197 -> 115,
+both deltas exactly 82. The run failed AFTER the deletes on a change_log batch
+that exceeded D1's bound-parameter cap; repaired to 82 entries from committed
+artifacts. Full account in
+`outbox/cc-session-2026-09-13-duplicate-rows-task3-5.md`.
+
 ## Tasks
 
 0. **Probe, do not assume, which row is canonical.** For each of the 197, read
