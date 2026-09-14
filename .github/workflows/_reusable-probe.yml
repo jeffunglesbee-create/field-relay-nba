@@ -87,21 +87,23 @@ jobs:
         continue-on-error: true
         run: node "${{ inputs.script }}"
 
-      # The proven commit-with-retry shape, identical to the one already
-      # fixed for deploy.yml's own verify job on 2026-08-06 -- a lost
-      # race against a concurrent writer must not fail the run; a real
-      # permission failure must still fail loudly, not be swallowed.
+      # MOVED OUT OF THIS FILE 2026-09-13, and that is the point. Inline here
+      # the loop could only be exercised by dispatching real runs and hoping two
+      # collided; it never was, and it shipped unable to recover from the race
+      # it existed for (runs 34737627491 and its NFL EPA sibling: both probes
+      # succeeded, both runs concluded failure).
+      #
+      # scripts/check-probe-commit-retry.sh now drives the real script through a
+      # real conflict between two real clones, and five mutations prove each
+      # assertion is load-bearing — including restoring the old `|| true` shape.
+      #
+      # NO `concurrency:` GROUP, decided on Task 0's evidence rather than by
+      # preference: eleven workflows call this template, all eleven write a
+      # timestamped file that cannot collide, and exactly ONE also writes
+      # outbox/provenance-runtime-probe-latest.json. Serialising twelve
+      # workflows to protect one artifact would trade a resolvable conflict for
+      # cancelled or queued runs, and a cancelled probe is a missing
+      # measurement. The conflict is resolved where it occurs instead.
       - name: Commit result
         if: always()
-        run: |
-          git config user.name "reusable-probe-bot"
-          git config user.email "actions@github.com"
-          git add outbox/
-          git diff --cached --quiet && exit 0
-          git commit -m "${{ inputs.commit_message }}"
-          for i in 1 2 3 4 5; do
-            if git push; then echo "pushed on attempt $i"; exit 0; fi
-            git pull --rebase --autostash origin main || true
-            sleep $((i * 3))
-          done
-          exit 1
+        run: bash scripts/probe-commit-retry.sh "${{ inputs.commit_message }}"

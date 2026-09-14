@@ -370,6 +370,14 @@ jobs:
           node scripts/check-duplicate-row-keeper-table.mjs
           node scripts/mutate-duplicate-row-keeper-table.mjs
 
+      # The probe commit loop shipped unable to recover from the race it existed
+      # for, because inline in YAML nothing could exercise it. It is a script
+      # now, and this drives it through a real conflict between two real clones.
+      - name: the probe commit loop can still recover from a real race
+        run: |
+          bash scripts/check-probe-commit-retry.sh
+          python3 scripts/mutate-probe-commit-retry.py
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the
