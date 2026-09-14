@@ -1,0 +1,55 @@
+name: Kickoff backstamp (say whether an existing closing line preceded kickoff)
+
+# CC-CMD-2026-09-14-closing-odds-captured-after-kickoff Task 3.
+#
+# ADDITIVE METADATA ONLY. It writes one key, `_kickoff`, computed from data
+# already on the row — captured_at from the blob, start_time from the column.
+# No price is read, moved, or changed; json_set adds the key without a round
+# trip through JS that could alter one.
+#
+# It does NOT touch the 530 rows with no start_time. Those cannot be asked, and
+# stamping them would turn "never checked" into "checked, unknown" for rows
+# where a kickoff may still be recoverable from an espn_event_id.
+#
+# DRY RUN BY DEFAULT. `apply` must be the literal word APPLY.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  backstamp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The mark and the writers must be gated before the mark is applied
+        run: |
+          node scripts/check-d1-batch-param-cap.mjs
+          node scripts/check-closing-odds-kickoff-guard.mjs
+          node scripts/mutate-closing-odds-kickoff-guard.mjs
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            echo "::warning title=Applying::live D1 writes authorised by input (adds one metadata key, changes no price)"
+            node scripts/run-kickoff-backstamp.mjs --apply
+          else
+            node scripts/run-kickoff-backstamp.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="kickoff-backstamp" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: kickoff backstamp log [skip ci]"
