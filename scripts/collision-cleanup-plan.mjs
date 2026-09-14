@@ -129,7 +129,6 @@ export function buildSymmetricPlan(collisions) {
       skipped.push({ ...c, reason: 'two real games, not a duplicate' });
       continue;
     }
-    const [a, b] = c.rows.length ? c.rows : [];
     const raw = collisions.find(x => x.pair_key === c.pair_key && x.date === c.date);
     const [ra, rb] = raw.games;
     const gaps = (from, to) => LOSS_BEARING
