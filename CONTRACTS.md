@@ -205,6 +205,27 @@ Renders only when `espnGame.state === 'in'`
 Producer: odds-backfill.js sync step + relay live capture
 Consumer: jubilant-bassoon buildOddsStory()
 
+**`_kickoff` — whether the blob may call itself a closing line.**
+`closing_odds` means the last price before kickoff, and MEASURED 2026-09-14 no
+writer had ever enforced it: 91 of 877 askable rows were captured at or after
+kickoff, one by 64 days. All three writers now stamp `_kickoff` from one shared
+rule (`src/odds-kickoff.js`), comparing instants rather than text — `start_time`
+arrives as both `2026-07-25T20:05Z` and `2026-06-06T23:00:00+00:00`, and as
+strings `'Z'` sorts above `':'`.
+
+- `verified: true` — the capture provably precedes kickoff.
+- `verified: false, late_minutes: n` — captured n minutes after kickoff. An
+  in-play price, not a close. `closing_odds_capture` is here by construction:
+  it fires on the pre-to-live transition, measured 0-25 min late.
+- `verified: false, late_minutes: null` — kickoff unknown or unreadable.
+  Unverified, NOT on time (Rule 99).
+- **`_kickoff` absent entirely** — written before 2026-09-14, when nothing
+  checked. That is every row in the archive as of that date, and it is the
+  honest answer for all of them. A consumer must not read absence as verified.
+
+Consumers may treat an unverified closing line as they choose; the relay states
+the fact and does not decide (Rule 60, ADR-002 pull-only).
+
 ```
 opening_odds: JSON string
 closing_odds: JSON string
@@ -212,6 +233,11 @@ closing_odds: JSON string
 {
   source:      string    // "draftkings", "odds-api-historical", etc.
   captured_at: string    // ISO timestamp
+  _kickoff: {            // added 2026-09-14 — see below. ABSENT on every row
+    at:           string|null   // written before 2026-09-14.
+    verified:     boolean
+    late_minutes: number|null
+  }
   moneyline: {
     home: number         // American format (-150, +130)
     away: number

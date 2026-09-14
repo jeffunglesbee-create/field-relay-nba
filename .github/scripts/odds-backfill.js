@@ -22,6 +22,11 @@
 
 'use strict';
 
+// The kickoff mark, shared with the worker's two writers so all three label a
+// closing line by the same rule. Relative because this script runs from a
+// checkout, not from the bundled worker.
+import { stampKickoff } from '../../src/odds-kickoff.js';
+
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
 const ODDS_KEY    = process.env.ODDS_API_KEY;
 const RELAY_BASE  = process.env.RELAY_BASE        || 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -412,7 +417,14 @@ async function syncOddsToGameTables() {
             COALESCE(
               (SELECT date FROM regular_season_games WHERE id = oh.game_id),
               (SELECT date FROM postseason_games     WHERE id = oh.game_id)
-            ) AS game_date
+            ) AS game_date,
+            -- Kickoff, so the blob can say whether it has the right to call
+            -- itself a closing line. This writer is the only source for old
+            -- games, so it labels rather than refuses.
+            COALESCE(
+              (SELECT start_time FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT start_time FROM postseason_games     WHERE id = oh.game_id)
+            ) AS game_start_time
      FROM odds_history oh
      WHERE oh.game_id IN (
        SELECT id FROM regular_season_games WHERE opening_odds IS NULL OR closing_odds IS NULL
@@ -456,6 +468,7 @@ async function syncOddsToGameTables() {
       odds.total = { over: row.over_under, under: row.over_under };
     }
 
+    stampKickoff(odds, odds.captured_at, row.game_start_time);
     const json = JSON.stringify(odds);
 
     // Try BOTH tables — UPDATE is idempotent (WHERE opening_odds IS NULL)

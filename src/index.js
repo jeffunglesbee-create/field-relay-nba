@@ -5,6 +5,7 @@ import { GameDO } from './game-do.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
 import { readQuotaHeader } from './budget-helpers.js';
 import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
+import { stampKickoff } from './odds-kickoff.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -13044,6 +13045,13 @@ export default {
                                             console.warn(`[ARCHIVE-GAME] refusing closing_odds for ${id}: `
                                               + `captured_at ${odds?.captured_at} is not before kickoff ${start_time}`);
                                         }
+                                        // The row carries the evidence of its own
+                                        // validity. This path refuses a late capture,
+                                        // so the mark it writes is always verified —
+                                        // but it is written from the same comparison
+                                        // rather than asserted, because a mark that
+                                        // cannot disagree with the guard proves nothing.
+                                        if (odds) stampKickoff(odds, odds.captured_at, start_time);
                                         if (odds && _preKickoff) {
                                             const _oddsJson = JSON.stringify(odds);
                                             await env.ARCHIVE_DB.prepare(

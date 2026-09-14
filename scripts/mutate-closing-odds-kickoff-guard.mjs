@@ -56,6 +56,40 @@ const MUTATIONS = [
     anchor: '          ).catch(e => {',
     replace: '          ).catch(() => {}); if (0) (e => {',
     expect: 'a failed change_log insert is reported, not swallowed' },
+  // THE CLASS THAT node --check CANNOT SEE, HIT TWICE ON 2026-09-14: a deleted
+  // `SOURCE` builder and this very import. Both parsed cleanly and both failed
+  // at the first execution.
+  { file: '.github/scripts/odds-backfill.js',
+    name: 'K8  the backfill calls the mark without importing it',
+    anchor: "import { stampKickoff } from '../../src/odds-kickoff.js';",
+    replace: '',
+    expect: 'backfill imports the shared kickoff mark' },
+
+  { file: 'src/ambient-do.js',
+    name: 'K9  ambient-do stops stamping the odds it writes',
+    anchor: 'stampKickoff({ ...baseOdds }, baseOdds.captured_at, match.start_time)',
+    replace: '{ ...baseOdds }',
+    expect: 'ambient-do stamps it onto the odds it writes' },
+
+  // Without start_time in the SELECT, match.start_time is undefined and every
+  // row this writer produces is unverified for a reason that is not the game's.
+  { file: 'src/ambient-do.js',
+    name: 'K10 ambient-do stops reading the kickoff it marks against',
+    anchor: 'SELECT id, start_time FROM ${table}',
+    replace: 'SELECT id FROM ${table}',
+    expect: 'ambient-do reads start_time for the row it is about to write' },
+
+  { file: '.github/scripts/odds-backfill.js',
+    name: 'K11 the backfill stops reading kickoff',
+    anchor: '            ) AS game_start_time',
+    replace: '            ) AS unused_start_time',
+    expect: 'the backfill reads start_time alongside the game date' },
+
+  { file: 'src/ambient-do.js',
+    name: 'K12 ambient-do goes back to swallowing its change_log failure',
+    anchor: '                ).catch(e => {',
+    replace: '                ).catch(() => {}); if (0) (e => {',
+    expect: 'ambient-do reports a failed change_log insert too' },
 ];
 
 let bad = 0;
@@ -84,7 +118,7 @@ for (const m of MUTATIONS) {
   } else console.log(`  caught  ${m.name}\n          by "${m.expect}" (${red.length} red)`);
 }
 
-for (const f of ['src/index.js', '.github/scripts/odds-backfill.js'])
+for (const f of ['src/index.js', '.github/scripts/odds-backfill.js', 'src/ambient-do.js'])
   execFileSync('node', ['--check', f]);
 console.log(`\nran ${MUTATIONS.length} mutation(s) against ${CHECK}; both writers restored and parsing`);
 process.exit(bad ? 1 : 0);

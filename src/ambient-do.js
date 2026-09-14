@@ -54,6 +54,7 @@
 // polls hit the CF cache — zero extra upstream quota cost. Result:
 // AmbientDO detects score changes within 15s of upstream updating.
 import { resolveTeamKey } from './identity-resolver.js';
+import { stampKickoff } from './odds-kickoff.js';
 import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
 import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
@@ -847,7 +848,13 @@ export class AmbientDO {
                 under: to?.outcomes?.find(o => o.name === 'Under')?.point ?? null,
             },
         };
-        const oddsJson = JSON.stringify(odds);
+        // THIS WRITER IS LATE BY CONSTRUCTION AND THE MARK SAYS SO.
+        // It fires on the pre-to-live transition, so its capture is at or after
+        // kickoff every time — measured 2026-09-14 at 0 to 25 minutes across 25
+        // rows. Refusing here would delete the only near-kickoff capture that
+        // exists, so it writes and labels instead. `startTime` is read from the
+        // matched row below; until then the mark is unverified, which is true.
+        const baseOdds = odds;
 
         // FIXED 2026-07-03: today, nH, nA were referenced below but never
         // defined anywhere in this function -- a genuine ReferenceError
@@ -866,7 +873,7 @@ export class AmbientDO {
         for (const table of ['regular_season_games', 'postseason_games']) {
             try {
                 const candidates = await this._d1Query(
-                    `SELECT id FROM ${table}
+                    `SELECT id, start_time FROM ${table}
                      WHERE date = ? AND closing_odds IS NULL LIMIT 50`,
                     [today]
                 );
@@ -874,6 +881,10 @@ export class AmbientDO {
                     r.id && (r.id.includes(nH) || r.id.includes(nA))
                 );
                 if (!match) continue;
+                // Stamped per matched row, because start_time is a property of
+                // the game and this loop may match a different one per table.
+                const oddsJson = JSON.stringify(
+                    stampKickoff({ ...baseOdds }, baseOdds.captured_at, match.start_time));
                 await this._d1Query(
                     `UPDATE ${table} SET closing_odds = ?
                      WHERE id = ? AND closing_odds IS NULL`,
@@ -886,7 +897,14 @@ export class AmbientDO {
                        (game_id, source, field, old_value, new_value, ts)
                      VALUES (?, 'closing_odds_capture', 'closing_odds', NULL, ?, datetime('now'))`,
                     [match.id, oddsJson]
-                ).catch(() => { /* change_log may be absent on cold deploy */ });
+                ).catch(e => {
+                    // NOT SWALLOWED — the same defect as odds-backfill.js's, and
+                    // this is the other writer whose silence made 62 rows
+                    // unattributable. The write already succeeded; this only
+                    // makes its record's absence audible.
+                    console.warn(`[closing-odds] change_log insert FAILED for `
+                      + `${match.id} — this row will be unattributable: ${e.message}`);
+                });
                 console.log(`[closing-odds] captured ${home} vs ${away} → ${table}/${match.id}`);
             } catch (e) {
                 console.warn(`[closing-odds] ${table} update failed: ${e.message}`);

@@ -13,6 +13,8 @@ import { readFileSync } from 'node:fs';
 
 const RELAY = 'src/index.js';
 const BACKFILL = '.github/scripts/odds-backfill.js';
+const AMBIENT = 'src/ambient-do.js';
+const MARK = 'src/odds-kickoff.js';
 let checked = 0, failed = 0;
 const ok = (name, cond) => {
   checked++; if (!cond) failed++;
@@ -25,6 +27,7 @@ const decomment = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$
 
 const relay = decomment(src(RELAY));
 const backfill = decomment(src(BACKFILL));
+const ambient = decomment(src(AMBIENT));
 
 // ── archive_game_closing ───────────────────────────────────────────────────
 ok('the relay compares the capture against kickoff before writing closing_odds',
@@ -64,6 +67,46 @@ ok('a failed change_log insert is reported, not swallowed',
 ok('and it names the row it could not attribute',
    /unattributable/.test(backfill));
 
+// ── THE MARK: every writer labels by the same rule ─────────────────────────
+// The 91 late rows are not a population, they are the subset where the defect
+// is provable — 877 had a start_time to check against, 530 did not. A row that
+// carries its own verdict is readable without that asymmetry.
+const WRITERS = [['relay', relay, RELAY], ['backfill', backfill, BACKFILL],
+                 ['ambient-do', ambient, AMBIENT]];
+for (const [name, body, file] of WRITERS) {
+  // IMPORTED, NOT JUST CALLED. `node --check` parses a call to an undefined
+  // identifier without complaint — it did exactly that for a deleted `SOURCE`
+  // and again for this very import on 2026-09-14. A syntax check is not an
+  // execution, so the import is asserted separately from the call.
+  ok(`${name} imports the shared kickoff mark`,
+     /import \{[^}]*stampKickoff[^}]*\} from ['"][^'"]*odds-kickoff\.js['"]/.test(body));
+  ok(`${name} stamps it onto the odds it writes`, /stampKickoff\(/.test(body));
+}
+// One rule in one file. Three copies of a comparison is three chances to
+// disagree, and this repo has the cost model case study for that.
+ok('and the rule lives in exactly one module',
+   /export function kickoffMark/.test(src(MARK))
+   && WRITERS.every(([, b]) => !/Date\.parse\(.*captured_at.*\)[\s\S]{0,80}Date\.parse/.test(b) || b === relay));
+
+// The two writers that cannot verify must still be able to READ kickoff, or
+// the mark they write is unverified for a reason that is not the game's.
+ok('ambient-do reads start_time for the row it is about to write',
+   /SELECT id, start_time FROM/.test(ambient));
+ok('the backfill reads start_time alongside the game date',
+   /AS game_start_time/.test(backfill));
+
+// Both writers whose silence made 62 rows unattributable now say so.
+//
+// THE SHAPE, NOT THE WORD. The first version of this assertion only looked for
+// "unattributable", and mutation K12 walked straight through it: re-adding the
+// empty catch left the word sitting in a dead arrow function beside it. A check
+// that a string exists somewhere in a file is not a check that a code path is
+// gone.
+ok('ambient-do reports a failed change_log insert too',
+   !/\)\.catch\(\(\)\s*=>\s*\{\s*\/\*[\s\S]*?\*\/\s*\}\)/.test(ambient)
+   && !/\)\.catch\(\(\)\s*=>\s*\{\}\)/.test(ambient));
+ok('and names the row it could not attribute', /unattributable/.test(ambient));
+
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked} assertions`
-          + ` — 2 writers gated on kickoff, 1 swallowed record opened`);
+          + ` — 3 writers marking kickoff, 2 gated, 2 swallowed records opened`);
 process.exit(failed ? 1 : 0);
