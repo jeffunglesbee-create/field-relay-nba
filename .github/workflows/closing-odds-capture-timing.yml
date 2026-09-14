@@ -34,6 +34,13 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-closing-odds-authorship.mjs
 
+      # The 530 that cannot be asked. Sizing the route before building it.
+      - name: What a kickoff would cost for the rows that have none
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-missing-start-time.mjs
+
       - name: Commit the log
         if: always()
         run: |
