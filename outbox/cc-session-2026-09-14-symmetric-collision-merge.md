@@ -74,6 +74,48 @@ The response serves `same_slate_pair_collisions_odds_disagree` and keeps the old
 key as an alias for one cycle. The watch reads only the new name, so a relay
 predating the deploy reads OPEN rather than silently DONE (Rule 99).
 
+**`40ad6ca` — the done condition verified the copy, and the watch caught it.**
+
+THE APPLY REPORTED OK WHILE THE CONDITION READ OPEN. The apply filled 32 pairs,
+re-derived the plan against a fresh census, found nothing left, and printed
+*"every pair agrees on both odds columns"*. The identity watch, fifty-five
+seconds later, read **2 pairs still disagreeing**.
+
+Both carry identical opening lines and two DIFFERENT closing lines, both
+non-null. `has_closing_odds` is true on each side, so the boolean gap test saw
+nothing to fill and filed them as already agreeing — and the done condition,
+being the same function run a second time, agreed with itself.
+
+A check that re-derives its subject verifies the copy. That is this repo's own
+rule, and it was broken inside the verification written to prove that rule's
+fix. The condition, which computes from digests in the relay, was the only thing
+that could see it, and it saw it within a minute.
+
+| | before | after |
+|---|---|---|
+| agreement decided on | `has_*_odds` booleans | the digest the census serves |
+| two different values in one column | filed as "rows already agree" | escalated as a named CONFLICT with both ids |
+| a census serving no digests | two nulls, compared equal | refused; cannot compare values (Rule 99) |
+| the executor's done condition | its own re-derivation | the relay's `same_slate_pair_collisions_odds_disagree` |
+| a conflict on one column | the other column still filled | the whole pair is blocked |
+
+**`04b16c6` — the prices, for the pairs no fill can resolve.** A digest proves
+two rows differ; it cannot say which line is right, and this repo does not
+correct or invent odds. A read-only probe (SELECT only, enforced) prints both
+lines for every refused pair, on `always()`, because a refusal is exactly when
+they are wanted.
+
+## Outcome
+
+30 of 32 pairs resolved. 2 refused, awaiting a human decision:
+
+| date | pair | opening | closing |
+|---|---|---|---|
+| 2026-07-25 | `2026-07-25-mls-dc-tor` vs `FIFA World Cup 2026_2026-07-25_dcunited_toronto` | identical | `2f4bc588` vs `3877e33e` |
+| 2026-08-01 | `2026-08-01-mls-dc-nsh` vs `FIFA World Cup 2026_2026-08-01_dcunited_nashville` | identical | `f0c6bfa7` vs `f5bc090d` |
+
+The executor refuses to apply at all while either stands.
+
 ## Verification
 
 | what | artifact |
