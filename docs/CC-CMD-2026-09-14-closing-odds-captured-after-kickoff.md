@@ -1,5 +1,10 @@
 # CC-CMD-2026-09-14-closing-odds-captured-after-kickoff
 
+**Task 0 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
+after kickoff; 530 not askable; the dash-scheme writer measured 0 of 0 — never
+tested at all. Two measurement defects fixed first; both had produced a number
+that was quoted. Task 1 next.
+
 Rule 87.4. Found while resolving two collision pairs
 (`CC-CMD-2026-09-14-collision-closing-odds-conflict.md`); larger than that
 CC-CMD and separate from it.
@@ -44,16 +49,50 @@ everything (Rule 91). The probe now prints `N late of M asked — K not asked` p
 scheme. **Any count in this CC-CMD that is not accompanied by its unaskable set
 is not usable.**
 
-## Task 0 — close the blind spot before measuring anything else
+## Task 0 — DONE 2026-09-14
 
-532 of 1411 closing lines cannot be tested. Establish how many of those rows
-have a twin, a scheduled fixture, or an ESPN event that supplies a kickoff, and
-how many are genuinely unknowable. A percentage computed over 879 while 532 sit
-unasked is not a percentage of the archive.
+Artifact: `outbox/closing-odds-capture-timing-2026-09-14T15-4*.log`.
 
-Artifact: a committed log giving, per table and id scheme, the three counts —
-asked, late, unaskable — and the unaskable set broken down by whether a kickoff
-is recoverable.
+### Two measurement defects fixed before any number was trusted
+
+**The comparison was text.** `start_time` arrives as `2026-07-25T20:05Z`
+(minute precision) and `2026-06-06T23:00:00+00:00` (offset form); `captured_at`
+as `2026-07-25T20:05:30.000Z`. As text, `'Z'` (0x5A) sorts above `':'` (0x3A),
+so a capture thirty seconds AFTER a minute-precision kickoff read as before it.
+Both formats were printed by the probe's own step 0 and read past. Now
+`julianday()` on both sides, with unparseable start_times counted separately
+rather than folded into "not late" (Rule 99). **This moved the headline from
+90 of 879 to 91 of 877.**
+
+**The twin test could not find the case it was built for.** It joined on exact
+`(date, sport, home, away)` and returned 0 — the only possible answer, since the
+pairs it was modelled on differ on exactly those columns (`Toronto FC` against
+`Toronto`). The question now goes to `/identity/substitution-census`, which
+already pairs rows with the relay's own normaliser. **0 became 10.**
+
+### The measured state
+
+| | regular_season | postseason |
+|---|---:|---:|
+| closing lines, total | 1381 | 26 |
+| **askable** (start_time present and parseable) | **877** | 0 |
+| **late** — captured at or after kickoff | **91** | 0 |
+| unaskable (no start_time) | 504 | 26 |
+| of those, with a census-paired twin carrying start_time — **PROVEN route** | 10 | 0 |
+| of those, carrying an espn_event_id — an anchor, **resolvability UNTESTED** | 476 | 0 |
+
+Overlap between the twin and espn sets is **not measured**; they cannot be added.
+
+### The finding that changes the shape of this CC-CMD
+
+**The dash-scheme writer has never been measured. 0 late of 0 asked — all 70 of
+its rows carrying a closing line lack `start_time`.** Earlier today that `0` was
+read as "that writer is punctual" while the D.C. United pairs showed it
+**25 minutes past kickoff**. The denominator is not merely invisible; it is
+zero. Nothing in the aggregate below describes that writer at all.
+
+`postseason_games` is the same: 26 closing lines, none askable, neither route
+available. Genuinely unknowable today.
 
 ## Task 1 — separate the two causes
 
