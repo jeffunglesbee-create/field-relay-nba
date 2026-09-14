@@ -4,6 +4,7 @@
 import { GameDO } from './game-do.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOddsKey } from './odds-sport-keys.js';
 import { readQuotaHeader } from './budget-helpers.js';
+import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
 export { GameDO };
 
 // ── Durable Object: UserDO (per-user FIELD state, June 11 2026) ─────────────
@@ -15569,6 +15570,14 @@ export default {
                             for (const f of COLLISION_FIELDS) if (f in r) out[f] = r[f];
                             out.has_opening_odds = r.opening_odds != null;
                             out.has_closing_odds = r.closing_odds != null;
+                            // A BOOLEAN CANNOT ANSWER THE QUESTION THE CONDITION ASKS.
+                            // Two rows both reading has_opening_odds:true can hold
+                            // DIFFERENT lines, and that is the false fact this whole
+                            // route exists to find. The blobs stay out of the response
+                            // — they are large and nothing downstream reads them — so
+                            // what travels is a digest of the value itself.
+                            out.opening_odds_digest = oddsDigest(r.opening_odds);
+                            out.closing_odds_digest = oddsDigest(r.closing_odds);
                             detailById.set(r.id, out);
                         }
                     }
@@ -15628,24 +15637,21 @@ export default {
             // by cause. The count stays, as a readout of archive hygiene; the
             // CONDITION narrows to the ones a false fact can reach.
             //
-            // "Carries odds" rather than "could ever carry odds": it is readable
-            // from the row instead of inferred from a league table, and it
-            // tracks live — the moment either row receives a line the pair
-            // becomes reachable and the condition reopens.
-            // TWO DIFFERENT ESPN EVENT IDS IS A DOUBLEHEADER, not a duplicate:
-            // two real games sharing a team pair and a date. Tested here rather
-            // than reusing the keeper script's `population`, because that field
-            // is computed in the script and does NOT exist on these rows — a
-            // filter written against it would have been vacuously true and
-            // quietly counted the doubleheader as a defect forever.
-            const twoRealGames = (c) => {
-                const [x, y] = c.games;
-                return !!(x?.espn_event_id && y?.espn_event_id
-                          && x.espn_event_id !== y.espn_event_id);
-            };
-            const reachableCollisions = slateCollisions.filter(c =>
-                !twoRealGames(c)
-                && c.games.some(g => g.has_opening_odds || g.has_closing_odds));
+            // READ FROM THE ROWS, not inferred from a league table, so it tracks
+            // live: the moment one row of a pair receives a line its twin does
+            // not have, the pair is reachable again and the condition reopens.
+            // THE THREE PREDICATES LIVE IN src/collision-reach.js, not here.
+            // Every earlier version sat inline in this route and two of them
+            // shipped broken — a filter against a field these rows do not carry,
+            // and a block placed above the `const` it read. Neither could be
+            // exercised by anything; both are now mutation-covered by
+            // scripts/check-collision-reach.mjs.
+            //
+            // detailError is passed rather than checked here because absence is
+            // not zero (Rule 99): a failed detail read leaves every digest
+            // undefined, which would otherwise read as agreement and close the
+            // condition on data that was never read.
+            const reachableCollisions = reachableOf(slateCollisions, detailError);
             // Every slate where two rows share one join key. Uncapped and fully
             // named: this list is either empty or it is a bug report.
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
@@ -15733,9 +15739,14 @@ export default {
                     `checked ${pairsScanned} distinct join keys across `
                     + `${slatesScanned} (table, date, sport) slates`,
                 same_slate_pair_collisions: slateCollisions.length,
-                // The condition. Collisions where neither row carries odds
-                // cannot produce a false odds fact; a doubleheader is two real
-                // games and is never a duplicate.
+                // The condition. Collisions whose two rows hold DIFFERENT odds —
+                // including one holding a line and the other none. Rows that
+                // agree cannot produce a false odds fact whichever one the join
+                // picks; a doubleheader is two real games and never a duplicate.
+                same_slate_pair_collisions_odds_disagree: reachableCollisions.length,
+                // KEPT UNDER THE OLD NAME FOR ONE CYCLE. The watch reads this
+                // key; renaming both at once would leave a deployed relay and a
+                // committed watch disagreeing for as long as it took to notice.
                 same_slate_pair_collisions_with_odds: reachableCollisions.length,
                 same_slate_pair_collisions_inert:
                     slateCollisions.length - reachableCollisions.length,

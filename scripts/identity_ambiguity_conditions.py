@@ -104,10 +104,24 @@ def evaluate(d):
         #
         # The raw count stays below as a readout — archive hygiene is worth
         # seeing. The CONDITION is the collisions a false fact can reach.
-        ("no collision that can reach the odds join",
-         d.get("same_slate_pair_collisions_with_odds") == 0,
-         "{} reachable of {} total ({} inert)".format(
-             d.get("same_slate_pair_collisions_with_odds"),
+        #
+        # DISAGREEMENT, NOT PRESENCE. The earlier form counted a collision as
+        # reachable if EITHER row carried a line, which is a condition that can
+        # never close: filling the 32 half-truth pairs removes the hazard and
+        # leaves both rows carrying odds, so the watch would read OPEN forever
+        # for a defect that no longer exists. What makes the join dangerous is
+        # that the two rows say DIFFERENT things; rows that agree are safe
+        # whichever one it reaches. The relay compares digests of the odds
+        # blobs, not the has_*_odds booleans, because two rows can both be true
+        # and hold different numbers.
+        #
+        # No fallback to the old key (Rule 99 / Rule 76). If the relay serving
+        # this response predates the rename, the value is absent, absent is not
+        # zero, and the condition reads OPEN until the deploy lands.
+        ("no collision whose rows disagree about odds",
+         d.get("same_slate_pair_collisions_odds_disagree") == 0,
+         "{} disagreeing of {} total ({} agree or excluded)".format(
+             d.get("same_slate_pair_collisions_odds_disagree"),
              d.get("same_slate_pair_collisions"),
              d.get("same_slate_pair_collisions_inert"))),
     ]

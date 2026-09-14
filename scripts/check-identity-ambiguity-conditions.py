@@ -18,7 +18,7 @@ TODAY = {  # measured live 2026-09-13, before any fix
     "totals": {"ambiguous_key_count": 12, "ambiguous_rows": 636,
                "ambiguous_rows_with_odds": 363, "substituted_rows": 1551},
     "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 94,
-    "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+    "same_slate_pair_collisions": 0, "same_slate_pair_collisions_odds_disagree": 0,
     "same_slate_pair_collisions_inert": 0,
     "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates",
 }
@@ -27,7 +27,7 @@ FIXED = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
          "ambiguous_keys": [],
          "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
          "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
-         "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+         "same_slate_pair_collisions": 0, "same_slate_pair_collisions_odds_disagree": 0,
          "same_slate_pair_collisions_inert": 0,
          "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # THE ONLY FIXTURE IN WHICH THE REACH CONDITION DECIDES THE ANSWER. Every other
@@ -40,7 +40,7 @@ REACH_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
               "ambiguous_keys": [],
               "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
               "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 3,
-              "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+              "same_slate_pair_collisions": 0, "same_slate_pair_collisions_odds_disagree": 0,
               "same_slate_pair_collisions_inert": 0,
               "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # The mirror of REACH_ONLY, for the same reason: without it, a collision
@@ -51,7 +51,7 @@ COLLISION_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
                   "ambiguous_keys": [],
                   "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
                   "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
-                  "same_slate_pair_collisions": 2, "same_slate_pair_collisions_with_odds": 2,
+                  "same_slate_pair_collisions": 2, "same_slate_pair_collisions_odds_disagree": 2,
                   "same_slate_pair_collisions_inert": 0,
                   "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 # TWO absence fixtures, not one, and the reason is a defect this file already
@@ -63,7 +63,7 @@ COLLISION_ONLY = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
 REACH_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
                 "by_sport": {}, "ambiguous_keys": [],
                 "totals": {"ambiguous_key_count": 11, "substituted_rows": 1551},
-                "same_slate_pair_collisions": 0, "same_slate_pair_collisions_with_odds": 0,
+                "same_slate_pair_collisions": 0, "same_slate_pair_collisions_odds_disagree": 0,
                 "same_slate_pair_collisions_inert": 0,
                 "same_slate_pair_collision_coverage": "checked 3100 distinct join keys across 900 slates"}
 COLLISION_ABSENT = {"coverage": "scanned 3191 of 3191 rows across 2 tables",
@@ -80,7 +80,7 @@ INERT_ONLY = {"coverage": "scanned 3155 of 3155 rows across 2 tables",
               "totals": {"ambiguous_key_count": 0, "substituted_rows": 1551},
               "cross_sport_reach_probed": 94, "cross_sport_reach_failures": 0,
               "same_slate_pair_collisions": 115,
-              "same_slate_pair_collisions_with_odds": 0,
+              "same_slate_pair_collisions_odds_disagree": 0,
               "same_slate_pair_collisions_inert": 115,
               "same_slate_pair_collision_coverage": "checked 3024 distinct join keys across 625 slates"}
 EMPTY = {}  # must not raise

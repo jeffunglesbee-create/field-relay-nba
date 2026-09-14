@@ -31,6 +31,8 @@ jobs:
       - name: Plan checks must pass before the plan may run
         run: |
           node scripts/check-d1-batch-param-cap.mjs
+          node scripts/check-collision-reach.mjs
+          node scripts/mutate-collision-reach.mjs
           node scripts/check-collision-cleanup-plan.mjs
           node scripts/mutate-collision-cleanup-plan.mjs
 

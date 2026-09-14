@@ -40,20 +40,20 @@ MUTATIONS = [
     # Same shape as P2, on the condition added hours later. Written because P2
     # had already proved this family of gap exists in this very file.
     dict(name='P5 collision condition always met',
-         anchor='         d.get("same_slate_pair_collisions_with_odds") == 0,',
+         anchor='         d.get("same_slate_pair_collisions_odds_disagree") == 0,',
          replace='         True,',
          expect='a reachable collision is the only open condition'),
     # Rule 99 again, on the new field: a relay too old to send it must not read
     # as an archive with no collisions.
     dict(name='P6 collision absence read as zero',
-         anchor='         d.get("same_slate_pair_collisions_with_odds") == 0,',
-         replace='         (d.get("same_slate_pair_collisions_with_odds") or 0) == 0,',
+         anchor='         d.get("same_slate_pair_collisions_odds_disagree") == 0,',
+         replace='         (d.get("same_slate_pair_collisions_odds_disagree") or 0) == 0,',
          expect='collision field absent from the response'),
 
     # The narrowing is the point: a condition keyed back on the RAW count reads
     # OPEN on 115 collisions that cannot produce the fact it guards.
     dict(name='P8 the condition reverts to the raw collision count',
-         anchor='         d.get("same_slate_pair_collisions_with_odds") == 0,',
+         anchor='         d.get("same_slate_pair_collisions_odds_disagree") == 0,',
          replace='         d.get("same_slate_pair_collisions") == 0,',
          expect='115 collisions, none of them reachable'),
     # The 11 are demoted, not deleted. If the readout stops printing them, a

@@ -325,6 +325,18 @@ jobs:
           node scripts/check-team-key-substitution.mjs
           node scripts/mutate-team-key-substitution.mjs
 
+      # The three predicates behind the same-slate collision watch condition.
+      # They used to live inline in /identity/substitution-census where nothing
+      # could run them, and two shipped broken from there: a filter against a
+      # field the rows do not carry, and a block above the const it read (a
+      # temporal dead zone, HTTP 500 on every request, caught only by the
+      # six-hourly watch failing). Gated here because the condition they decide
+      # is what tells a human the archive is clean.
+      - name: a collision is reachable only if its rows disagree about odds
+        run: |
+          node scripts/check-collision-reach.mjs
+          node scripts/mutate-collision-reach.mjs
+
       # A nickname two clubs share has no single right answer. `Tigers` is
       # Detroit's and Hull City's; the alias table could only store one, so the
       # winner was whichever line sat lower in the file, and from 2026-08-21
