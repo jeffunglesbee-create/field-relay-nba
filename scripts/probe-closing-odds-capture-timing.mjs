@@ -103,11 +103,24 @@ const TABLES = ['regular_season_games', 'postseason_games'];
     // that could not be asked, and it is reported separately rather than folded
     // into the denominator.
     for (const [label, pred] of [['dash', DASH], ['ours', `NOT (${DASH})`]]) {
+      // RULE 91: THE DENOMINATOR TRAVELS WITH THE NUMERATOR, AND SO DOES THE
+      // SET THAT COULD NOT BE ASKED.
+      //
+      // MEASURED 2026-09-14: this line first printed `dash: 0` and was read as
+      // "the dash writer is punctual". It is not — the two D.C. United
+      // collision pairs put it 25 minutes past kickoff. Its MLS rows carry no
+      // start_time, so they were never in the denominator at all, and a bare
+      // zero over an invisible denominator is a claim about everything.
       const q = (await d1(
-        `SELECT COUNT(*) n FROM ${t}
-          WHERE closing_odds IS NOT NULL AND start_time IS NOT NULL
-            AND json_extract(closing_odds,'$.captured_at') >= start_time AND ${pred}`))[0] || {};
-      say(`        ${label}: ${q.n}`);
+        `SELECT
+           SUM(CASE WHEN start_time IS NOT NULL
+                     AND json_extract(closing_odds,'$.captured_at') >= start_time
+                THEN 1 ELSE 0 END) AS late,
+           SUM(CASE WHEN start_time IS NOT NULL THEN 1 ELSE 0 END) AS asked,
+           SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS unaskable
+         FROM ${t} WHERE closing_odds IS NOT NULL AND ${pred}`))[0] || {};
+      say(`        ${label}: ${q.late} late of ${q.asked} asked`
+        + `  — ${q.unaskable} row(s) have no start_time and were NOT asked`);
     }
   }
 
