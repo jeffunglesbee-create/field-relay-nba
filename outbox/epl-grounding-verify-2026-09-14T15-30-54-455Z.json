@@ -1,0 +1,85 @@
+{
+  "probed_at": "2026-09-14T15:30:54.455Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 4,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Alysson (AVL), Delap (NFO), Igor Jesus (NFO)\nAssists: McGinn (AVL), Murillo (NFO), Gibbs-White (NFO)\nYellow cards: Mings (AVL), N.Jackson (AVL), Delap (NFO), Murillo (NFO), Ndoye (NFO), McAtee (NFO), Schlager (NFO)\nSaves: Suzuki (AVL) 5, Sels (NFO) 5\nFPL bonus: Gibbs-White (NFO) +3, Igor Jesus (NFO) +2, McGinn (AVL) +1\nTop BPS: Gibbs-White (NFO) 42, Igor Jesus (NFO) 34, McGinn (AVL) 30\nLeague table: Aston Villa 17th on 0 points from 0 | Nott'm Forest 16th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879278",
+      "game_recap_epl_401879282",
+      "game_recap_epl_401878779",
+      "game_recap_epl_401879281",
+      "game_recap_epl_401879283",
+      "game_recap_epl_401879284",
+      "game_recap_epl_401879292",
+      "game_recap_epl_401879291",
+      "game_recap_epl_401878781",
+      "game_recap_epl_401879311",
+      "game_recap_epl_401878780",
+      "game_recap_epl_401879287",
+      "game_recap_epl_401879289",
+      "game_recap_epl_401879290",
+      "game_recap_epl_401879286",
+      "game_recap_epl_401879295"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [
+      "game_recap_epl_401879277"
+    ],
+    "banned_phrases": [
+      "game_recap_epl_401879278: result moves",
+      "game_recap_epl_401879278: extended their",
+      "game_recap_epl_401879311: secured the win",
+      "game_recap_epl_401879311: result moves"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879278, game_recap_epl_401879282, game_recap_epl_401878779 | archived briefs say stalemate: game_recap_epl_401879277 | archived briefs use a banned phrase: game_recap_epl_401879278: result moves, game_recap_epl_401879278: extended their, game_recap_epl_401879311: secured the win"
+}
