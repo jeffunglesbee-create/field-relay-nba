@@ -351,6 +351,61 @@ before the blind spot was opened.
 Both would need name matching, and name matching is what broke the twin test
 earlier in this same session (`Toronto FC` against `Toronto`). Not attempted.
 
+## The last 54 — CLOSED 2026-09-14. 25 resolved, 29 with no route, and the reason is evidence.
+
+### Two routes, neither comparing a string
+
+This session claimed both populations "would need name matching" — the thing
+that broke the twin test earlier the same day. **That claim was wrong.**
+
+| route | rows | why it is safe |
+|---|---:|---|
+| census-paired twin carrying `start_time` | **18** | same match, so the twin's kickoff IS this row's — proven on the D.C. United pairs. The census owns the pairing. |
+| sole event on the slate, sole row in the archive | **7** | unambiguous by count; no name compared |
+
+Applied: 25 written, `29 unrouted, exactly the 29 this run had no proven route
+for`. Then stamped: 18 verified pre-kickoff, **7 late**.
+
+### THE WRITER THAT HAD NEVER BEEN MEASURED IS LATE
+
+Task 0 recorded the dash-scheme writer at `0 late of 0 asked` — untestable,
+because not one of its rows carried a `start_time`. Those rows now do, and **all
+7 late rows here are 25-26 minutes past kickoff**: the `:55` cron against a
+23:30 MLS kickoff, exactly the shape the D.C. United pair showed. Inferred in
+the morning, measured by the evening.
+
+### Three hypotheses for the 19, each refuted by measurement
+
+The NBA/NHL Finals slates return HTTP 200 with zero events. Recorded because the
+refutations are the reason the rows are left alone rather than guessed at:
+
+| hypothesis | what refuted it |
+|---|---|
+| a season or seasontype parameter | 12 calls across 4 genuinely empty slates, **0 events every time** |
+| "May works, June does not" | the empty slates **are** May dates — 05-20/21/23/24/25 work, 05-17/27/28/29 do not |
+| a UTC/local day shift | day −1 **and** day +1 each return exactly one event. In a playoff series that is two real games and **no discriminator** — worse than the zero, which was at least honest |
+
+The UTC reading is dead on its own evidence too: `nba-ecf-2026-g1` on slate
+`2026-05-20` matched an event at `2026-05-21T00:30Z`, a 20:30 ET tip-off, so the
+archive's date is **already** the local date. Either that date is wrong for those
+specific rows or something else is, and nothing measured separates the two. A
+fourth guess would be fitting, not measuring.
+
+**A methodological note worth keeping:** the day-shift test printed
+`8 shifted call(s) returned any event at all` — which reads as success and is
+the opposite. Every candidate found was a second candidate.
+
+### Final state
+
+| | rows |
+|---|---:|
+| askable and marked | **1383** |
+| verified pre-kickoff | 1164 |
+| **late** | **219** (91 + 121 + 7) |
+| unaskable, no proven route | **29** — 10 MLS on ambiguous slates, 19 NBA/NHL Finals |
+
+Archive-wide late rate: **15.8%**.
+
 ## Scope boundary
 
 Do not modify any `closing_odds` value under this CC-CMD — Task 3 is
