@@ -41,6 +41,14 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-missing-start-time.mjs
 
+      # Tests the claim Task 0 left as UNTESTED, from a runner because
+      # CC-CMD-2026-08-08 measured site.api 403s from Worker egress.
+      - name: Does an espn_event_id yield a kickoff
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-espn-kickoff-route.mjs
+
       - name: Commit the log
         if: always()
         run: |
