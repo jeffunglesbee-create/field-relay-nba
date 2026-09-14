@@ -1,0 +1,53 @@
+name: Symmetric collision merge (fill both directions)
+
+# CC-CMD-2026-09-13-archive-duplicate-rows, category B.
+#
+# SEPARATE FROM collision-cleanup.yml ON PURPOSE. That workflow can delete. This
+# one cannot — `run-symmetric-collision-merge.mjs` emits UPDATEs only and refuses
+# a plan containing a delete. Two authorisations, two buttons.
+#
+# DRY RUN BY DEFAULT. `apply` must be the literal word APPLY.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev is
+# blocked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type APPLY to execute. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plan checks must pass before the plan may run
+        run: |
+          node scripts/check-d1-batch-param-cap.mjs
+          node scripts/check-collision-cleanup-plan.mjs
+          node scripts/mutate-collision-cleanup-plan.mjs
+
+      - name: Run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.apply }}" = "APPLY" ]; then
+            echo "::warning title=Applying::live D1 writes authorised by input (UPDATEs only)"
+            node scripts/run-symmetric-collision-merge.mjs --apply
+          else
+            node scripts/run-symmetric-collision-merge.mjs
+          fi
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="symmetric-collision-merge" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: symmetric collision merge log [skip ci]"
