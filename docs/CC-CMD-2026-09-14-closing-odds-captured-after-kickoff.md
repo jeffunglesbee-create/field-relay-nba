@@ -411,3 +411,122 @@ Archive-wide late rate: **15.8%**.
 Do not modify any `closing_odds` value under this CC-CMD — Task 3 is
 authorisation, not execution. Do not touch `opening_odds`. Do not change the
 collision condition; that is the other CC-CMD.
+
+---
+
+## Task 4 — the 219 late rows (Rule 42)
+
+Approved: *"Resolve the 219 late rows with novel thinking. Rule 42."*
+
+### The move
+
+Three obvious options were on the table and all three share a premise:
+relabel them (move the value to `inplay_odds`), re-fetch them (ask the
+provider for a historical price at kickoff), or leave them. Each treats
+*the stored value* as the defect.
+
+The stored value is a real capture of a real price. What is false is the name
+of the column it sits in — and that was already corrected this morning, on
+every askable row, as `_kickoff: { at, verified, late_minutes }`.
+
+**Nothing read it.** Five sites read `closing_odds` by name:
+
+| site | what it decides |
+|---|---|
+| `analytics-engine.js` `winnerMoneylinePrice` | an upset finding at winner ML >= +200 |
+| `analytics-engine.js` `scoreGame` | +2 for a tight line, `\|spread\| < 3` |
+| `index.js` 5637 `buildGameCompletePrompt` | prints `closed home X / away Y` into prose |
+| `index.js` 9259, the cron debrief path | the same line, second copy |
+| `context-assembler.js` `buildOddsStoryContext` | narrates the opening→closing movement |
+
+Every one wants the same property — **the last price before kickoff** — and
+every one was asking for it by column name. So the question stopped being
+"how do we fix 219 rows" and became "what do those rows change, and does the
+mark change it back".
+
+### What they change
+
+`outbox/late-close-consumer-flip-2026-09-14T22-42-02-201Z.log`, over all
+1412 archived closing values, no sampling:
+
+| | today | under the rule |
+|---|---:|---:|
+| upset findings (>= +200) | 66 | 59 |
+| tight lines (`\|spread\| < 3`) | 877 | 816 |
+
+**7 upset findings are fabricated. 0 are erased.** The rule removes nothing
+that was ever a pre-kickoff fact.
+
+The CFL row is the one to read:
+
+```
+CFL_2026-08-15_hamiltontigercats_saskatchewanroughriders
+  pre-kickoff  -4800
+  in-play      +250   (180 min late)
+```
+
+Published, that is *"Hamilton beat Saskatchewan 26-19 as a +250 underdog"* —
+about the heaviest favourite on the card. Two WNBA rows rest on prices taken
+**857** and **5819** minutes after kickoff.
+
+Elsewhere: **126** debrief prompts would print an in-play price as `closed`,
+and **130 of 1323** opening+closing pairs narrate a "movement" that ends
+in-play.
+
+### No tolerance, and that is measured too
+
+A price taken one minute into a 0-0 match is not the same object as one taken
+fourteen hours after full time, and the first pass of the probe counted them
+together. The histogram decides:
+
+| lateness | rows |
+|---|---:|
+| <= 2 min | 23 |
+| 3 – 10 min | 16 |
+| 11 – 30 min | 30 |
+| 31 – 120 min | 54 |
+| > 120 min | **96** |
+
+| T (min) | upset findings still resting on a late price | decided rows with no price |
+|---:|---:|---:|
+| 0 | **0** | 88 |
+| 2 | 5 | 77 |
+| 10 | 7 | 72 |
+| 30 | 9 | 72 |
+
+A two-minute grace buys back 11 rows of scoring signal and readmits 5 wrong
+claims. The distribution is not clustered near zero, so there is no threshold
+that separates "basically the close" from "after the game ended" — the rule is
+the boolean.
+
+### Cost
+
+**88 decided rows lose their only price.** They are now *unknown* rather than
+wrongly known. Nothing else is lost: 0 real upsets, and the 29 rows whose
+kickoff was never established stay usable, because an unmarked blob is unknown
+and not guilty (Rule 99).
+
+### What shipped
+
+- `src/odds-consumer-rules.js` — the selection rule, 32 assertions, 12
+  mutations, all caught. Two of those mutations found harness defects first.
+- Five read sites rewired; 14 wiring assertions, 8 mutations, all caught —
+  among them reverting one of the two identical prose sites and leaving the
+  other.
+- Both checks blocking in `deploy.yml`.
+- `scripts/verify-late-close-story-suppressed.mjs` — the done condition,
+  with a vacuity guard: it fails if no row *would* have carried a story, so a
+  route returning `''` for everything cannot satisfy it.
+
+### Done condition
+
+`/odds-story/preview` returns `story: ''` for every pair whose closing blob is
+marked post-kickoff and whose blobs still compute a non-empty story, with the
+count of such rows printed beside the result.
+
+### Not done under this task
+
+The 219 values are **not modified**. No D1 write of any kind. Relabelling them
+into `inplay_odds` remains available and is now optional rather than urgent:
+the mark already makes every consumer read them correctly, and a relabel would
+move data no reader is being misled by.
