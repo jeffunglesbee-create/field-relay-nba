@@ -1,0 +1,38 @@
+=== what a kickoff would cost for the rows that have none  2026-09-14T20:36:18.076Z ===
+
+--- 1. rows, and the slates they span
+    regular_season_games: 504 row(s) across 89 (sport, date) slate(s)
+        476 carry an espn_event_id · dates 2026-05-22 .. 2026-08-15
+    postseason_games: 26 row(s) across 25 (sport, date) slate(s)
+        0 carry an espn_event_id · dates 2026-05-17 .. 2026-06-20
+
+    530 rows / 114 slates.  Per-event lookups: 530. Per-slate: 114.  Ratio 4.6x.
+
+--- 2. by sport
+    regular_season_games MLB           370 row(s),  36 date(s), 370 with espn_event_id
+    regular_season_games WNBA           73 row(s),  32 date(s), 73 with espn_event_id
+    regular_season_games MLS            38 row(s),   6 date(s), 10 with espn_event_id
+    regular_season_games FIFA World Cup   21 row(s),  14 date(s), 21 with espn_event_id
+    regular_season_games EPL             2 row(s),   1 date(s), 2 with espn_event_id
+    postseason_games NBA            13 row(s),  13 date(s), 0 with espn_event_id
+    postseason_games NHL            13 row(s),  12 date(s), 0 with espn_event_id
+
+--- 3. rows with neither start_time nor espn_event_id
+    regular_season_games: 28
+        2026-08-15-mls-atx-dal  MLS 2026-08-15  Austin FC v FC Dallas
+        2026-08-15-mls-sea-van  MLS 2026-08-15  Seattle Sounders FC v Vancouver Whitecaps FC
+        2026-08-01-mls-cin-sj  MLS 2026-08-01  FC Cincinnati v San Jose Earthquakes
+        2026-08-01-mls-mtl-ne  MLS 2026-08-01  CF Montréal v New England Revolution
+        2026-08-01-mls-van-lafc  MLS 2026-08-01  Vancouver Whitecaps FC v Los Angeles Football Club
+        2026-07-31-mls-cin-sj  MLS 2026-07-31  FC Cincinnati v San Jose Earthquakes
+        2026-07-31-mls-dc-nsh  MLS 2026-07-31  D.C. United v Nashville SC
+        2026-07-31-mls-mtl-ne  MLS 2026-07-31  CF Montréal v New England Revolution
+    postseason_games: 26
+        nba_finals_2026_g7  NBA 2026-06-20  San Antonio Spurs v New York Knicks
+        nba_finals_2026_g6  NBA 2026-06-17  New York Knicks v San Antonio Spurs
+        scf_2026_g6  NHL 2026-06-15  Vegas Golden Knights v Carolina Hurricanes
+        nba_finals_2026_g5  NBA 2026-06-14  San Antonio Spurs v New York Knicks
+        scf_2026_g5  NHL 2026-06-12  Carolina Hurricanes v Vegas Golden Knights
+        nba_finals_2026_g4  NBA 2026-06-11  New York Knicks v San Antonio Spurs
+        scf_2026_g4  NHL 2026-06-10  Vegas Golden Knights v Carolina Hurricanes
+        nba_finals_2026_g3  NBA 2026-06-09  New York Knicks v San Antonio Spurs
