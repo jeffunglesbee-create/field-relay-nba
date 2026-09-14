@@ -88,6 +88,21 @@ jobs:
               "cross_sport_reach_failing": d.get("cross_sport_reach_failing"),
               "same_slate_pair_collision_coverage": d.get("same_slate_pair_collision_coverage"),
               "same_slate_pair_collisions": d.get("same_slate_pair_collisions"),
+              # THE NUMBER THE CONDITION ACTUALLY TURNS ON, as a field rather
+              # than inside a rendered sentence. Measured 2026-09-14: this
+              # artifact carried `same_slate_pair_collisions` (115) as the only
+              # collision figure while the condition was deciding on 32, so a
+              # reader parsing the artifact got the denominator and not the
+              # numerator — the inverse of the Rule 91 failure, and the same
+              # cause. Absent from an older relay's response reads as None, not
+              # zero (Rule 99).
+              "same_slate_pair_collisions_odds_disagree":
+                  d.get("same_slate_pair_collisions_odds_disagree"),
+              "same_slate_pair_collisions_inert": d.get("same_slate_pair_collisions_inert"),
+              # A failed detail read makes every briefs_referencing null. It
+              # belongs in the artifact because anyone acting on the collision
+              # list below has to know whether its join-safety data was read.
+              "same_slate_pair_detail_error": d.get("same_slate_pair_detail_error"),
               # Uncapped and fully named. A non-zero here is a bug report, and a
               # bug report that says only "2" cannot be acted on.
               "same_slate_pair_colliding": d.get("same_slate_pair_colliding"),
