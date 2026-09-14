@@ -4,7 +4,8 @@
 // This plan drives DELETEs against the live archive. Every assertion below is
 // about something the plan must REFUSE to touch, or about SQL that must not be
 // able to overwrite. There is no second chance on a delete.
-import { buildPlan, buildSymmetricPlan, mergeSql, deleteSql, FIELD_COLUMN } from './collision-cleanup-plan.mjs';
+import { buildPlan, buildSymmetricPlan, mergeSql, deleteSql, FIELD_COLUMN,
+         FILL_FIELDS } from './collision-cleanup-plan.mjs';
 import { LOSS_BEARING } from './duplicate-row-keeper-table.mjs';
 
 let checked = 0, failed = 0;
@@ -126,18 +127,39 @@ const B = pair(row({ id: 'dash', has_opening_odds: true, has_closing_odds: true 
 const sym = buildSymmetricPlan([B]);
 eq('a symmetric plan contains no deletes at all', sym.deletes.length, 0);
 eq('and it has no counts.deletes either', sym.counts.deletes, 0);
-eq('it fills in both directions', sym.merges.length, 2);
 eq('odds go to the row that lacks them',
    sym.merges.find(m => m.keeper === 'fifa')?.columns, ['opening_odds', 'closing_odds']);
-eq('and the anchor goes back the other way',
-   sym.merges.find(m => m.keeper === 'dash')?.columns, ['espn_event_id', 'finalized_at']);
+// THE ASSERTION THAT COST A DRY RUN TO LEARN. `fifa` carries espn_event_id and
+// finalized_at that `dash` lacks, so a LOSS_BEARING-wide fill emits a second
+// update writing espn_event_id into `dash`. Nineteen `WHERE espn_event_id = ?
+// LIMIT 1` lookups in src/index.js are single-valued only for as long as that
+// does not happen.
+eq('nothing but odds is ever written back the other way',
+   sym.merges.filter(m => m.keeper === 'dash').length, 0);
+eq('so one pair produces one update, not two', sym.merges.length, 1);
+eq('and no update names a non-odds column',
+   sym.merges.flatMap(m => m.columns).filter(c => !['opening_odds', 'closing_odds'].includes(c)), []);
 
 // Rows that already agree are left alone — a merge that rewrites what is
 // already there is a write with no purpose and a conflict surface.
 const agreed = buildSymmetricPlan([pair(row({ id: 'x', has_opening_odds: true }),
                                         row({ id: 'y', has_opening_odds: true }))]);
 eq('rows that already agree produce no merge', agreed.merges.length, 0);
-eq('and say so', agreed.skipped[0]?.reason, 'rows already agree');
+eq('and say so', agreed.skipped[0]?.reason, 'rows already agree on odds');
+
+// The one drift that empties the fill set without changing a line of this file.
+eq('every fill field is a real LOSS_BEARING field',
+   FILL_FIELDS.filter(f => !LOSS_BEARING.some(([g]) => g === f)), []);
+
+// AGREEING ON ODDS IS THE WHOLE TEST. These two disagree on four other
+// loss-bearing fields and are still left alone, because none of them is what
+// the odds join reads.
+const oddsAgreed = buildSymmetricPlan([pair(
+  row({ id: 'p', has_opening_odds: true, espn_event_id: '9', venue: 'X' }),
+  row({ id: 'q', has_opening_odds: true, start_time: '20:00', finalized_at: '2026-07-23' }))]);
+eq('four non-odds disagreements do not make a fill', oddsAgreed.merges.length, 0);
+eq('and it still says the rows agree on odds',
+   oddsAgreed.skipped[0]?.reason, 'rows already agree on odds');
 
 // A doubleheader is two real games; filling one from the other would invent a
 // fact rather than complete one.

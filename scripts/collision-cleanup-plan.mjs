@@ -122,8 +122,40 @@ export function deleteSql(table, ids) {
 // is the other, and it is not lossy in either direction.
 //
 // NO DELETES. This function cannot produce one — it returns updates only.
+//
+// ODDS ONLY, AND THE NARROWING IS THE WHOLE POINT.
+//
+// LOSS_BEARING answers "what disappears if this row is deleted". Nothing is
+// deleted here, so nothing disappears, and that is the wrong question. The
+// question a fill has to answer is narrower: WHAT MUST THE TWO ROWS AGREE ON.
+//
+// MEASURED 2026-09-14, from the first dry run against the live archive. The
+// full LOSS_BEARING set produced 64 updates across the 32 pairs, and the second
+// direction wrote `espn_event_id` into the twin. src/index.js holds NINETEEN
+// `WHERE espn_event_id = ? LIMIT 1` lookups that are deterministic today
+// because exactly one row carries each id; the two rows disagree on team names
+// (`Austin` against `Austin FC`), so filling that column would have made all
+// nineteen return whichever row SQLite reached first. A fill that creates a new
+// ambiguity has not ended one.
+//
+// The hazard this exists to remove is the odds join attaching one game's line
+// to its twin. Two rows carrying the SAME line cannot produce a false fact
+// whichever one the join picks. start_time, venue, finalized_at and
+// espn_event_id disagreeing is untidy; it is not a false fact, and none of them
+// is what the join reads.
+export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];
 export function buildSymmetricPlan(collisions) {
   const merges = [], skipped = [];
+  const fields = LOSS_BEARING.filter(([f]) => FILL_FIELDS.includes(f));
+  // TOTAL DRIFT THROWS; PARTIAL DRIFT IS THE CHECK'S JOB. A rename in
+  // LOSS_BEARING that matched nothing would leave `fields` empty and the plan
+  // would report all 32 pairs as already agreeing — a silent no-op that looks
+  // exactly like success. That refusal cannot be reached from a fixture, so it
+  // throws here; a rename that breaks only ONE name is caught by the check's
+  // `every fill field is a real LOSS_BEARING field` assertion, which runs
+  // against the real import before this plan is allowed to run at all.
+  if (!fields.length)
+    throw new Error('FILL_FIELDS matched no LOSS_BEARING field; refusing to plan a no-op');
   for (const c of classify(collisions)) {
     if (c.population === 'two-real-games') {
       skipped.push({ ...c, reason: 'two real games, not a duplicate' });
@@ -131,7 +163,7 @@ export function buildSymmetricPlan(collisions) {
     }
     const raw = collisions.find(x => x.pair_key === c.pair_key && x.date === c.date);
     const [ra, rb] = raw.games;
-    const gaps = (from, to) => LOSS_BEARING
+    const gaps = (from, to) => fields
       .filter(([, has]) => has(from) && !has(to))
       .map(([f]) => FIELD_COLUMN[f]);
     const aToB = gaps(ra, rb), bToA = gaps(rb, ra);
@@ -142,7 +174,7 @@ export function buildSymmetricPlan(collisions) {
       continue;
     }
     if (!aToB.length && !bToA.length) {
-      skipped.push({ ...c, reason: 'rows already agree' });
+      skipped.push({ ...c, reason: 'rows already agree on odds' });
       continue;
     }
     if (aToB.length) merges.push({ table: c.table, date: c.date, sport: c.sport,

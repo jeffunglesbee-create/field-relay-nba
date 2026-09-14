@@ -62,12 +62,27 @@ const MUTATIONS = [
     replace: "  return { merges, skipped, deletes: merges.map(m => ({ table: m.table, id: m.stale })), counts: { merges: merges.length, skipped: skipped.length, deletes: merges.length } };",
     expect: 'a symmetric plan contains no deletes at all' },
 
-  // Filling only one way leaves the rows still disagreeing — the hazard intact,
-  // and now with a write that reported success.
-  { name: 'S2  it fills one direction only',
-    anchor: "    if (bToA.length) merges.push({ table: c.table, date: c.date, sport: c.sport,",
-    replace: "    if (false) merges.push({ table: c.table, date: c.date, sport: c.sport,",
-    expect: 'and the anchor goes back the other way' },
+  // THE MUTATION IS THE VERSION THAT SHIPPED FOR ONE DRY RUN. Widening the fill
+  // back to every LOSS_BEARING field writes espn_event_id into the twin, and
+  // nineteen `WHERE espn_event_id = ? LIMIT 1` lookups stop having one answer.
+  { name: 'S2  the fill widens past odds and writes the ESPN anchor into the twin',
+    anchor: "  const fields = LOSS_BEARING.filter(([f]) => FILL_FIELDS.includes(f));",
+    replace: "  const fields = LOSS_BEARING;",
+    expect: 'nothing but odds is ever written back the other way' },
+
+  // Half the fill set is still a fill set: no throw, no error, and every pair
+  // with only a closing line reported as already agreeing.
+  { name: 'S5  the fill set loses closing odds',
+    anchor: "export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];",
+    replace: "export const FILL_FIELDS = ['has_opening_odds'];",
+    expect: 'odds go to the row that lacks them' },
+
+  // A name LOSS_BEARING does not have. One survivor means no throw, so the
+  // check is the only thing standing between this and a silent half-fill.
+  { name: 'S6  a fill field is misspelled',
+    anchor: "export const FILL_FIELDS = ['has_opening_odds', 'has_closing_odds'];\nexport function buildSymmetricPlan",
+    replace: "export const FILL_FIELDS = ['has_opening_odds', 'has_clsoing_odds'];\nexport function buildSymmetricPlan",
+    expect: 'every fill field is a real LOSS_BEARING field' },
 
   // Two real games are not two halves of one. Filling one from the other would
   // invent a fact instead of completing one.

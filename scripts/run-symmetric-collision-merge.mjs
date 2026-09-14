@@ -8,8 +8,13 @@
 // script's merge is one half of a delete: it fills the keeper so the stale row
 // can be destroyed. These 32 pairs have no stale row. Each holds half the truth
 // — one carries the odds, the other the ESPN anchor and the properly-formed
-// team names — so every keeper choice destroys something real. Filling BOTH
-// directions ends the disagreement without choosing.
+// team names — so every keeper choice destroys something real. Filling the gap
+// ends the disagreement without choosing.
+//
+// ODDS ONLY. The first dry run planned 64 updates, the second direction writing
+// espn_event_id into the twin; src/index.js holds nineteen
+// `WHERE espn_event_id = ? LIMIT 1` lookups that have one answer today only
+// because one row carries each id. See buildSymmetricPlan's header.
 //
 // DRY RUN UNLESS --apply.
 //
@@ -107,9 +112,9 @@ const pairsOf = (merges) =>
   //
   // NO ORDERING HAZARD, AND THAT IS THE POINT OF THE SHAPE. Every statement is
   // `COALESCE(col, (SELECT col FROM t WHERE id = ?))`, which only ever writes
-  // into a NULL. A->B cannot clobber what B->A just wrote, because by then the
-  // target is no longer null. An interrupted run leaves a partially-agreeing
-  // pair, which is the state it started in — never a lost value.
+  // into a NULL, so no update can clobber a value — its own or another's. An
+  // interrupted run leaves a pair that agrees on one line and not the other,
+  // which is the state it started in; never a lost value.
   say(`\n--- 2. updates (${plan.merges.length})`);
   const applied = [];
   for (const m of plan.merges) {
@@ -141,7 +146,7 @@ const pairsOf = (merges) =>
     const values = c.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const params = [];
     for (const m of c)
-      params.push(m.keeper, 'symmetric_collision_merge', 'gap_filled',
+      params.push(m.keeper, 'symmetric_collision_merge', 'odds_gap_filled',
                   JSON.stringify({ table: m.table, date: m.date, sport: m.sport,
                                    columns: m.columns, were: 'null' }),
                   m.stale, new Date().toISOString());
@@ -165,7 +170,7 @@ const pairsOf = (merges) =>
   for (const m of residual.merges)
     say(`      STILL OPEN  ${m.table} ${m.date} ${m.stale} -> ${m.keeper} [${m.columns.join(', ')}]`);
   const ok = dRows === 0 && residual.counts.merges === 0;
-  say(ok ? `\nOK: every pair agrees on all six loss-bearing fields, and no row was removed.`
+  say(ok ? `\nOK: every pair agrees on both odds columns, and no row was removed.`
          : `\nMISMATCH: investigate before any further write.`);
   dump(ok ? 'applied' : 'mismatch');
   process.exit(ok ? 0 : 1);
