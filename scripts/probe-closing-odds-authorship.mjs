@@ -130,9 +130,49 @@ const CAP = `json_extract(closing_odds,'$.captured_at')`;
         + ` finds some of that writer's rows, not all of them (it is sufficient, not necessary)`);
   }
   if (contradicted) {
-    say(`\nSTOP: the fingerprint marks rows another writer is named for. It does not identify odds_backfill.`);
-    writeFileSync(`outbox/closing-odds-authorship-refused-${Date.now()}.log`, log.join('\n') + '\n');
-    process.exit(1);
+    say(`\n    NO CLASSIFICATION IS OFFERED. The fingerprint marks rows another writer`);
+    say(`    is named for, so it does not identify odds_backfill. The descriptive`);
+    say(`    steps below still run — a failed classifier is a reason to withhold a`);
+    say(`    verdict, not a reason to withhold the data.`);
+  }
+
+  // ── 0b. WHEN DID EACH WRITER START LEAVING A TRACE? ──────────────────────
+  //
+  // THIS REPLACES THE FINGERPRINT, AND IT IS DATED RATHER THAN INFERRED.
+  // Two independent blob signatures have now failed this probe's own step 0:
+  // the key-set (a builder is shared between writers) and same-captured_at
+  // (archive_game_closing also reads historical snapshots). Three writers, two
+  // shared builders, overlapping timestamps — the blob does not carry
+  // authorship, and a third guess would be fitting rather than measuring.
+  //
+  // What IS measurable: a row written before its writer began inserting into
+  // change_log is unattributable BY CONSTRUCTION, not by loss. The first
+  // attributed row per source dates that boundary.
+  say(`\n--- 0b. first and last change_log entry per writer`);
+  const starts = {};
+  for (const t of TABLES) {
+    const rows = await d1(
+      `SELECT ${SOURCE(t)} src, COUNT(*) n, MIN(${CAP}) first_cap, MAX(${CAP}) last_cap
+         FROM ${t} WHERE closing_odds IS NOT NULL AND ${SOURCE(t)} IS NOT NULL
+        GROUP BY src ORDER BY first_cap`);
+    for (const r of rows) {
+      starts[r.src] = r.first_cap;
+      say(`    ${t}  ${String(r.src).padEnd(22)} ${String(r.n).padStart(4)}`
+        + `  ${String(r.first_cap).slice(0,10)} .. ${String(r.last_cap).slice(0,10)}`);
+    }
+  }
+  const latestStart = Object.entries(starts).sort((a, b) => (a[1] < b[1] ? 1 : -1))[0];
+  if (latestStart) {
+    say(`\n    The last writer to start logging is ${latestStart[0]}, at ${String(latestStart[1]).slice(0,10)}.`);
+    for (const t of TABLES) {
+      const r = (await d1(
+        `SELECT COUNT(*) n,
+                SUM(CASE WHEN ${CAP} < ? THEN 1 ELSE 0 END) before_last_start
+           FROM ${t} WHERE closing_odds IS NOT NULL AND ${SOURCE(t)} IS NULL`,
+        [latestStart[1]]))[0] || {};
+      say(`    ${t}: ${r.before_last_start} of ${r.n} unattributed rows were captured BEFORE that date`);
+      say(`        — unattributable by construction, not by a lost write.`);
+    }
   }
 
   // ── 1. THE UNATTRIBUTED ROWS, BY SIGNATURE ───────────────────────────────
