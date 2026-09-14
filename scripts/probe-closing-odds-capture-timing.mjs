@@ -138,29 +138,50 @@ const JD_START = JD(`start_time`);
 
   // ── 2b. CAN THE UNASKABLE BE ASKED? ──────────────────────────────────────
   //
-  // A percentage over 879 while 532 sit unasked is not a percentage of the
+  // A percentage over 877 while 530 sit unasked is not a percentage of the
   // archive. This counts what could supply a kickoff for those rows.
   //
-  // A TWIN IS PROVEN; AN ESPN ID IS NOT. The D.C. United pairs were resolved
-  // from the twin's start_time — same match, so the twin's kickoff IS the
-  // kickoff. Whether an espn_event_id can be turned into one without an API
-  // call is UNTESTED, so it is counted as an anchor a later task might resolve,
-  // not as a recoverable kickoff.
+  // THE TWIN TEST IS ASKED OF THE CENSUS, NOT WRITTEN AS SQL, AND THAT IS THE
+  // WHOLE POINT. The first version joined on exact (date, sport, home, away)
+  // and returned 0. It could not have returned anything else: the pairs it was
+  // modelled on differ on precisely those columns — `Toronto FC` against
+  // `Toronto`, `Nashville SC` against `Nashville`. A query that cannot find the
+  // case it exists for reports 0 and looks like an answer.
+  //
+  // /identity/substitution-census already pairs rows with the relay's own
+  // normaliser. Re-implementing that here would verify the copy.
+  //
+  // A TWIN IS A PROVEN ROUTE; AN ESPN ID IS NOT. The D.C. United pairs were
+  // resolved from the twin's start_time — same match, so the twin's kickoff IS
+  // the kickoff. Whether an espn_event_id can be turned into one without an API
+  // call is UNTESTED and is counted as an anchor a later task might resolve,
+  // never as a recoverable kickoff.
   say(`\n--- 2b. of the rows with no start_time, what could supply one`);
-  for (const t of TABLES) {
-    const q = (await d1(
-      `SELECT COUNT(*) AS n,
-              SUM(CASE WHEN a.espn_event_id IS NOT NULL THEN 1 ELSE 0 END) AS has_espn,
-              SUM(CASE WHEN EXISTS (
-                    SELECT 1 FROM ${t} b
-                     WHERE b.date = a.date AND b.sport = a.sport
-                       AND b.home = a.home AND b.away = a.away
-                       AND b.id <> a.id AND b.start_time IS NOT NULL)
-                  THEN 1 ELSE 0 END) AS has_twin
-         FROM ${t} a
-        WHERE a.closing_odds IS NOT NULL AND a.start_time IS NULL`))[0] || {};
-    say(`    ${t}: ${q.n} unaskable — ${q.has_twin} have a same-slate twin carrying start_time (PROVEN route),`);
-    say(`        ${q.has_espn} carry an espn_event_id (an anchor, resolvability UNTESTED)`);
+  const cen = await (await fetch(`${RELAY}/identity/substitution-census`,
+                                 { headers: { 'User-Agent': UA } })).json();
+  if (!cen.ok || cen.same_slate_pair_detail_error) {
+    // Rule 99: a failed read is not "no twins".
+    say(`    CENSUS UNAVAILABLE (${cen.error || cen.same_slate_pair_detail_error})`
+      + ` — the twin route could not be measured, which is not the same as zero.`);
+  } else {
+    // Every row the census considers half of a pair, and whether its partner
+    // carries a start_time.
+    const partnerHasStart = new Map();
+    for (const c of (cen.same_slate_pair_colliding || [])) {
+      const [x, y] = c.games;
+      if (x && y) { partnerHasStart.set(x.id, y.start_time != null);
+                    partnerHasStart.set(y.id, x.start_time != null); }
+    }
+    say(`    census pairs ${partnerHasStart.size} row(s) across ${(cen.same_slate_pair_colliding || []).length} collision(s)`);
+    for (const t of TABLES) {
+      const rows = await d1(
+        `SELECT id, espn_event_id FROM ${t}
+          WHERE closing_odds IS NOT NULL AND start_time IS NULL`);
+      const twin = rows.filter(r => partnerHasStart.get(r.id) === true).length;
+      const espn = rows.filter(r => r.espn_event_id != null).length;
+      say(`    ${t}: ${rows.length} unaskable — ${twin} have a census-paired twin carrying start_time (PROVEN route),`);
+      say(`        ${espn} carry an espn_event_id (an anchor, resolvability UNTESTED)`);
+    }
   }
 
   // ── 3. HOW LATE, IN MINUTES ──────────────────────────────────────────────
