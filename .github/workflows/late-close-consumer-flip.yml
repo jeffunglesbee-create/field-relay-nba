@@ -29,6 +29,14 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-late-close-consumer-flip.mjs
 
+      # The done condition. Runs after the flip count so a failure here is read
+      # against the population it is measured over.
+      - name: Live — no story narrates a movement ending in-play
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/verify-late-close-story-suppressed.mjs
+
       - name: Commit the log
         if: always()
         run: |
