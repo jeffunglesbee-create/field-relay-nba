@@ -170,11 +170,73 @@ writer to stop. **Naming the author of the 62 comes before any guard**, or the
 guard is written against the one writer that does log and the larger group
 continues unobserved.
 
+## Task 2 precondition — DONE 2026-09-14. The author is named.
+
+Artifact: `outbox/closing-odds-authorship-2026-09-14T16-03*.log`.
+
+### 58 of the 62 are `archive_game_closing`
+
+Not observed directly — the archive does not record it — but established by
+elimination, with every step measured:
+
+1. **58 of the 62 carry `_oddsProof`**, captured 2026-08-08 .. 2026-08-21.
+2. `_oddsProof` is stamped by `extractOddsForGame` and nothing else, added in
+   `3f0fe3d` on 2026-06-29 — before every one of those captures.
+3. `extractOddsForGame` has three call sites. Two (src/index.js ~6641, ~6777)
+   write **`opening_odds` only**, source `odds_api`. The third is
+   `archive_game_closing`. `git log -S` over 2026-07-15..2026-09-01 shows three
+   commits touching the function and **none adding a caller**; 4 occurrences at
+   HEAD = 1 definition + 3 call sites.
+4. `.github/scripts/odds-backfill.js` also emits proof-carrying closing rows
+   from 2026-08-15 — but it logged to `change_log` **continuously** from
+   2026-06-28 to 2026-08-22, so its writes in that window are attributed. These
+   are not.
+5. `archive_game_closing`'s first `change_log` entry is **2026-08-23**. Its own
+   source comment says it "logged NOTHING until now, which is precisely why it
+   stayed hidden".
+
+### The number that makes it structural rather than incidental
+
+**968 of 968** unattributed regular-season closing rows, and **26 of 26**
+postseason, were captured before 2026-08-23. Every single one. The
+unattributed set is not a scatter of lost writes; it is the shape of one
+writer's silence, and it ends on the day that writer started logging.
+
+### Two blob fingerprints were tried and both refuted themselves
+
+Recorded because the failures are the reason the dated argument exists:
+
+| fingerprint | why it failed |
+|---|---|
+| key-set (`_oddsProof` / `spread` / neither) | `proof` appeared under BOTH `archive_game_closing` and `odds_backfill` — the backfill adopted `extractOddsForGame` mid-August. A builder is not a writer. |
+| identical `captured_at` in both odds columns | 16 `archive_game_closing` rows carry it (it reads historical snapshots too), and it misses 50 of 58 `odds_backfill` rows. Neither necessary nor sufficient. |
+
+A third guess would have been fitting rather than measuring, so there isn't one.
+
+### Residual, stated rather than closed
+
+**4 of the 62 are not named by this chain** — 3 `neither`, 1
+`spread-no-proof`, captured 2026-07-25 .. 2026-08-01. The argument rests on two
+assumptions it does not prove: that no removed writer stamped `_oddsProof` in
+August (git log finds no such caller, which is evidence, not proof), and that
+`odds-backfill.js`'s `change_log` insert — which carries `.catch(() => {})` and
+swallows failures silently — did not fail for exactly these rows.
+
+### Task 2 can now proceed, against a named writer
+
+`archive_game_closing` (src/index.js ~13022) captures whenever `/archive/game`
+is called for a finalized row with no closing line, with **no comparison
+between the snapshot time and kickoff**. That is the guard to write. The
+`.catch(() => {})` on the backfill's change_log insert is a second, separate
+defect: a write that can lose its own record.
+
 ## Task 2 — stop the writers producing more
 
-Only after Tasks 0 and 1. Backfill must not write `closing_odds` for a match
-already played; a cron must place its capture against kickoff before writing.
-Both need a mutation proving the guard bites.
+Only after the precondition above, which is now met. Backfill must not write
+`closing_odds` for a match already played; `archive_game_closing` must place its
+snapshot against kickoff before writing. Both need a mutation proving the guard
+bites. The swallowed `change_log` insert gets its own fix — a write that cannot
+record itself recreates this whole investigation.
 
 ## Task 3 — the existing rows
 
