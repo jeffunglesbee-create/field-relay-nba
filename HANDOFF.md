@@ -1,5 +1,69 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-14 (a closing line that was not one)
+
+**HEAD:** `d30138f` → `4ab995a` · main throughout · 0 PRs · deploy 960 green
+**Session docs:**
+`outbox/cc-session-2026-09-14-closing-odds-kickoff.md` (this arc),
+`outbox/cc-session-2026-09-14-symmetric-collision-merge.md`,
+`outbox/cc-session-2026-09-14-git-state-swallow-sweep.md`,
+`outbox/cc-session-2026-09-14-probe-commit-race.md`
+**Gate:** `CC-CMD-2026-09-14-closing-odds-captured-after-kickoff` — Tasks 0–4
+and both residuals closed in-document.
+
+Two D.C. United collision pairs each held two different closing lines and no
+merge rule could pick between them. Three dead ends is the Rule 42 signal, and
+what the rows were showing was not a tie: one capture was four minutes before
+kickoff and the other ten minutes into the match. **Neither column was lying
+about its value. The column name was wrong.**
+
+**Archive-wide: 219 of 1412 closing values were captured after kickoff.**
+1164 verified pre-kickoff, 29 unaskable. Late rate 15.8% — against the 10.4%
+that looked like the answer while a third of the archive could not be asked.
+
+**Three writers, not two.** `.github/scripts/odds-backfill.js` is the third and
+runs in CI; `scripts/diagnose-staged-fails-2026-08-22.mjs:81` (`Three writers can set closing_odds`) already said so.
+All three now compare capture against kickoff as **instants** — the first probe
+compared them as text, where `'Z'` sorts above `':'` and a capture 30 s after a
+minute-precision kickoff reads as before it.
+
+**Every closing blob now carries `_kickoff: { at, verified, late_minutes }`,**
+shipped to all three writers and backstamped onto 1383 existing rows. 476 rows
+with no `start_time` were resolved from ESPN (476/476), 25 more by
+twin/cardinality; **29 have no proven route** and their refusals are recorded as
+evidence.
+
+**Nothing read the mark until Task 4.** Five sites read `closing_odds` by name
+and all five want the same property — the last price before kickoff. Wiring them
+to it removes **7 fabricated upset findings and 0 real ones**, stops **126**
+debrief prompts printing an in-play price as `closed`, and stops **130 of 1323**
+pairs narrating a movement that ends in-play. The CFL row is the one to read:
+pre-kickoff **−4800**, published in-play **+250** taken 180 minutes late.
+
+No tolerance, measured: 23 rows are ≤ 2 min late, **96 are over two hours**.
+Cost is **88 decided rows with no price** — unknown rather than wrongly known.
+
+**Live proof:** `outbox/late-close-story-suppressed-2026-09-14T22-49-*.log` —
+42 of 42 rows that used to compute a story now return none, 20 dates, 0 still
+narrating. The verifier fails if the would-have count is zero, so an empty route
+cannot satisfy it.
+
+**Rule 100 (PREMISE-FIRST-A) written this session**, from a count of five
+published-then-refuted premises. Corollary: an untested premise is not reported
+as a finding.
+
+**New blocking gates in deploy.yml:** `check-odds-consumer-rules.mjs` (32
+assertions / 12 mutations) and `check-odds-consumer-wiring.mjs` (14 / 8).
+
+**`/archive/` handler: 9 lines of headroom** before the 1500-line brace-scan
+window. `1207013` failed that gate at exactly 1500.
+
+**Open:** 29 unaskable rows; the 219 values are unmodified and a relabel into
+`inplay_odds` is now optional; `CC-CMD-2026-09-14-cup-competitions-under-mls`
+unstarted; the 49 brief-repoint pairs unstarted;
+`odds_history.snapshot_time` NULL count still unmeasured.
+
+
 ## SESSION CLOSE-OUT — 2026-09-13 (Task 0 disproved the matcher)
 
 **HEAD:** `8a84ab4` → `2a783df` · main throughout · deploy 934
