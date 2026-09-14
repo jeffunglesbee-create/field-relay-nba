@@ -1,0 +1,2804 @@
+{
+  "checked_at": "2026-09-14T12:58:44.577Z",
+  "census_coverage": "scanned 3171 of 3171 rows across 2 tables",
+  "pairs": 82,
+  "columns_present": [
+    "away",
+    "away_score",
+    "closing_odds",
+    "created_at",
+    "crew",
+    "date",
+    "drama_arc",
+    "drama_peak",
+    "espn_event_id",
+    "finalized_at",
+    "game_number",
+    "home",
+    "home_score",
+    "id",
+    "importance",
+    "league",
+    "note",
+    "opening_odds",
+    "round",
+    "series_key",
+    "series_margins",
+    "series_record",
+    "sport",
+    "start_time",
+    "streams",
+    "venue",
+    "went_to_ot"
+  ],
+  "differs_in_all": [
+    "id",
+    "created_at",
+    "finalized_at"
+  ],
+  "differs_in_some": [],
+  "per_column": {
+    "away": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "away_score": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "closing_odds": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "created_at": {
+      "differs": 82,
+      "identical": 0,
+      "both_null": 0
+    },
+    "crew": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "date": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "drama_arc": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "drama_peak": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "espn_event_id": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "finalized_at": {
+      "differs": 82,
+      "identical": 0,
+      "both_null": 0
+    },
+    "game_number": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "home": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "home_score": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "id": {
+      "differs": 82,
+      "identical": 0,
+      "both_null": 0
+    },
+    "importance": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "league": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "note": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "opening_odds": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "round": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "series_key": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "series_margins": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "series_record": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "sport": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "start_time": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "streams": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    },
+    "venue": {
+      "differs": 0,
+      "identical": 82,
+      "both_null": 0
+    },
+    "went_to_ot": {
+      "differs": 0,
+      "identical": 0,
+      "both_null": 82
+    }
+  },
+  "pairs_with_change_log": 0,
+  "detail": [
+    {
+      "date": "2026-02-04",
+      "pair_key": "sandiegofc|pumas",
+      "a": "MLS_2026-02-04_sandiegofc_pumas",
+      "b": "MLS_MLS-COM-00000K_R32-02_round1_2026-02-04",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-04_sandiegofc_pumas",
+          "b": "MLS_MLS-COM-00000K_R32-02_round1_2026-02-04"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-04_sandiegofc_pumas": 0,
+        "MLS_MLS-COM-00000K_R32-02_round1_2026-02-04": 0
+      }
+    },
+    {
+      "date": "2026-02-11",
+      "pair_key": "pumas|sandiegofc",
+      "a": "MLS_2026-02-11_pumas_sandiegofc",
+      "b": "MLS_MLS-COM-00000K_R32-02_round1_2026-02-11",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-11_pumas_sandiegofc",
+          "b": "MLS_MLS-COM-00000K_R32-02_round1_2026-02-11"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-11_pumas_sandiegofc": 0,
+        "MLS_MLS-COM-00000K_R32-02_round1_2026-02-11": 0
+      }
+    },
+    {
+      "date": "2026-02-18",
+      "pair_key": "atleticoottawa|nashvillesc",
+      "a": "MLS_2026-02-18_atlticoottawa_nashvillesc",
+      "b": "MLS_MLS-COM-00000K_R32-10_round1_2026-02-18",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-18_atlticoottawa_nashvillesc",
+          "b": "MLS_MLS-COM-00000K_R32-10_round1_2026-02-18"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-18_atlticoottawa_nashvillesc": 0,
+        "MLS_MLS-COM-00000K_R32-10_round1_2026-02-18": 0
+      }
+    },
+    {
+      "date": "2026-02-18",
+      "pair_key": "defenceforcefootballclub|philadelphiaunion",
+      "a": "MLS_2026-02-18_defenceforcefootballclub_philadelphiaunion",
+      "b": "MLS_MLS-COM-00000K_R32-12_round1_2026-02-18",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-18_defenceforcefootballclub_philadelphiaunion",
+          "b": "MLS_MLS-COM-00000K_R32-12_round1_2026-02-18"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-18_defenceforcefootballclub_philadelphiaunion": 0,
+        "MLS_MLS-COM-00000K_R32-12_round1_2026-02-18": 0
+      }
+    },
+    {
+      "date": "2026-02-18",
+      "pair_key": "realclubdeportivoespana|losangelesfc",
+      "a": "MLS_2026-02-18_realclubdeportivoespaa_losangelesfootballclub",
+      "b": "MLS_MLS-COM-00000K_R32-08_round1_2026-02-18",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-18_realclubdeportivoespaa_losangelesfootballclub",
+          "b": "MLS_MLS-COM-00000K_R32-08_round1_2026-02-18"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-18_realclubdeportivoespaa_losangelesfootballclub": 0,
+        "MLS_MLS-COM-00000K_R32-08_round1_2026-02-18": 0
+      }
+    },
+    {
+      "date": "2026-02-19",
+      "pair_key": "clubsportcartaginesdeportivasa|vancouverwhitecapsfc",
+      "a": "MLS_2026-02-19_clubsportcartaginsdeportivasa_vancouverwhitecapsfc",
+      "b": "MLS_MLS-COM-00000K_R32-16_round1_2026-02-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-19_clubsportcartaginsdeportivasa_vancouverwhitecapsfc",
+          "b": "MLS_MLS-COM-00000K_R32-16_round1_2026-02-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-19_clubsportcartaginsdeportivasa_vancouverwhitecapsfc": 0,
+        "MLS_MLS-COM-00000K_R32-16_round1_2026-02-19": 0
+      }
+    },
+    {
+      "date": "2026-02-19",
+      "pair_key": "omfutbolclub|fccincinnati",
+      "a": "MLS_2026-02-19_omftbolclub_fccincinnati",
+      "b": "MLS_MLS-COM-00000K_R32-14_round1_2026-02-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-19_omftbolclub_fccincinnati",
+          "b": "MLS_MLS-COM-00000K_R32-14_round1_2026-02-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:14",
+          "b": "2026-07-16 12:23:52"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-19_omftbolclub_fccincinnati": 0,
+        "MLS_MLS-COM-00000K_R32-14_round1_2026-02-19": 0
+      }
+    },
+    {
+      "date": "2026-02-20",
+      "pair_key": "academiadefutbolsportingsanmiguelito|lagalaxy",
+      "a": "MLS_2026-02-20_academiadefutbolsportingsanmiguelito_lagalaxy",
+      "b": "MLS_MLS-COM-00000K_R32-04_round1_2026-02-20",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-20_academiadefutbolsportingsanmiguelito_lagalaxy",
+          "b": "MLS_MLS-COM-00000K_R32-04_round1_2026-02-20"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-20_academiadefutbolsportingsanmiguelito_lagalaxy": 0,
+        "MLS_MLS-COM-00000K_R32-04_round1_2026-02-20": 0
+      }
+    },
+    {
+      "date": "2026-02-25",
+      "pair_key": "losangelesfc|realclubdeportivoespana",
+      "a": "MLS_2026-02-25_losangelesfootballclub_realclubdeportivoespaa",
+      "b": "MLS_MLS-COM-00000K_R32-08_round1_2026-02-25",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-25_losangelesfootballclub_realclubdeportivoespaa",
+          "b": "MLS_MLS-COM-00000K_R32-08_round1_2026-02-25"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-25_losangelesfootballclub_realclubdeportivoespaa": 0,
+        "MLS_MLS-COM-00000K_R32-08_round1_2026-02-25": 0
+      }
+    },
+    {
+      "date": "2026-02-25",
+      "pair_key": "nashvillesc|atleticoottawa",
+      "a": "MLS_2026-02-25_nashvillesc_atlticoottawa",
+      "b": "MLS_MLS-COM-00000K_R32-10_round1_2026-02-25",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-25_nashvillesc_atlticoottawa",
+          "b": "MLS_MLS-COM-00000K_R32-10_round1_2026-02-25"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-25_nashvillesc_atlticoottawa": 0,
+        "MLS_MLS-COM-00000K_R32-10_round1_2026-02-25": 0
+      }
+    },
+    {
+      "date": "2026-02-26",
+      "pair_key": "fccincinnati|omfutbolclub",
+      "a": "MLS_2026-02-26_fccincinnati_omftbolclub",
+      "b": "MLS_MLS-COM-00000K_R32-14_round1_2026-02-26",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-26_fccincinnati_omftbolclub",
+          "b": "MLS_MLS-COM-00000K_R32-14_round1_2026-02-26"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-26_fccincinnati_omftbolclub": 0,
+        "MLS_MLS-COM-00000K_R32-14_round1_2026-02-26": 0
+      }
+    },
+    {
+      "date": "2026-02-26",
+      "pair_key": "lagalaxy|academiadefutbolsportingsanmiguelito",
+      "a": "MLS_2026-02-26_lagalaxy_academiadefutbolsportingsanmiguelito",
+      "b": "MLS_MLS-COM-00000K_R32-04_round1_2026-02-26",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-26_lagalaxy_academiadefutbolsportingsanmiguelito",
+          "b": "MLS_MLS-COM-00000K_R32-04_round1_2026-02-26"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-26_lagalaxy_academiadefutbolsportingsanmiguelito": 0,
+        "MLS_MLS-COM-00000K_R32-04_round1_2026-02-26": 0
+      }
+    },
+    {
+      "date": "2026-02-26",
+      "pair_key": "vancouverwhitecapsfc|clubsportcartaginesdeportivasa",
+      "a": "MLS_2026-02-26_vancouverwhitecapsfc_clubsportcartaginsdeportivasa",
+      "b": "MLS_MLS-COM-00000K_R32-16_round1_2026-02-26",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-26_vancouverwhitecapsfc_clubsportcartaginsdeportivasa",
+          "b": "MLS_MLS-COM-00000K_R32-16_round1_2026-02-26"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-26_vancouverwhitecapsfc_clubsportcartaginsdeportivasa": 0,
+        "MLS_MLS-COM-00000K_R32-16_round1_2026-02-26": 0
+      }
+    },
+    {
+      "date": "2026-02-27",
+      "pair_key": "philadelphiaunion|defenceforcefootballclub",
+      "a": "MLS_2026-02-27_philadelphiaunion_defenceforcefootballclub",
+      "b": "MLS_MLS-COM-00000K_R32-12_round1_2026-02-27",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-02-27_philadelphiaunion_defenceforcefootballclub",
+          "b": "MLS_MLS-COM-00000K_R32-12_round1_2026-02-27"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-02-27_philadelphiaunion_defenceforcefootballclub": 0,
+        "MLS_MLS-COM-00000K_R32-12_round1_2026-02-27": 0
+      }
+    },
+    {
+      "date": "2026-03-10",
+      "pair_key": "philadelphiaunion|clubamerica",
+      "a": "MLS_2026-03-10_philadelphiaunion_clubamrica",
+      "b": "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-10",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-10_philadelphiaunion_clubamrica",
+          "b": "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-10"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-10_philadelphiaunion_clubamrica": 0,
+        "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-10": 0
+      }
+    },
+    {
+      "date": "2026-03-11",
+      "pair_key": "losangelesfc|ligadeportivaalajuelense",
+      "a": "MLS_2026-03-11_losangelesfootballclub_ligadeportivaalajuelense",
+      "b": "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-11",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-11_losangelesfootballclub_ligadeportivaalajuelense",
+          "b": "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-11"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-11_losangelesfootballclub_ligadeportivaalajuelense": 0,
+        "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-11": 0
+      }
+    },
+    {
+      "date": "2026-03-11",
+      "pair_key": "nashvillesc|intermiamicf",
+      "a": "MLS_2026-03-11_nashvillesc_intermiamicf",
+      "b": "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-11",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-11_nashvillesc_intermiamicf",
+          "b": "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-11"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-11_nashvillesc_intermiamicf": 0,
+        "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-11": 0
+      }
+    },
+    {
+      "date": "2026-03-12",
+      "pair_key": "lagalaxy|mountpleasantfootballacademy",
+      "a": "MLS_2026-03-12_lagalaxy_mountpleasantfootballacademy",
+      "b": "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-12",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-12_lagalaxy_mountpleasantfootballacademy",
+          "b": "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-12"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-12_lagalaxy_mountpleasantfootballacademy": 0,
+        "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-12": 0
+      }
+    },
+    {
+      "date": "2026-03-12",
+      "pair_key": "sandiegofc|tolucafc",
+      "a": "MLS_2026-03-12_sandiegofc_tolucafc",
+      "b": "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-12",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-12_sandiegofc_tolucafc",
+          "b": "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-12"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:13",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-12_sandiegofc_tolucafc": 0,
+        "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-12": 0
+      }
+    },
+    {
+      "date": "2026-03-13",
+      "pair_key": "fccincinnati|clubtigres",
+      "a": "MLS_2026-03-13_fccincinnati_clubtigres",
+      "b": "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-13",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-13_fccincinnati_clubtigres",
+          "b": "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-13"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-13_fccincinnati_clubtigres": 0,
+        "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-13": 0
+      }
+    },
+    {
+      "date": "2026-03-13",
+      "pair_key": "vancouverwhitecapsfc|seattlesoundersfc",
+      "a": "MLS_2026-03-13_vancouverwhitecapsfc_seattlesoundersfc",
+      "b": "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-13",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-13_vancouverwhitecapsfc_seattlesoundersfc",
+          "b": "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-13"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:51"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:51"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-13_vancouverwhitecapsfc_seattlesoundersfc": 0,
+        "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-13": 0
+      }
+    },
+    {
+      "date": "2026-03-18",
+      "pair_key": "intermiamicf|nashvillesc",
+      "a": "MLS_2026-03-18_intermiamicf_nashvillesc",
+      "b": "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-18",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-18_intermiamicf_nashvillesc",
+          "b": "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-18"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-18_intermiamicf_nashvillesc": 0,
+        "MLS_MLS-COM-00000K_R16-05_roundof16_2026-03-18": 0
+      }
+    },
+    {
+      "date": "2026-03-18",
+      "pair_key": "ligadeportivaalajuelense|losangelesfc",
+      "a": "MLS_2026-03-18_ligadeportivaalajuelense_losangelesfootballclub",
+      "b": "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-18",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-18_ligadeportivaalajuelense_losangelesfootballclub",
+          "b": "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-18"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-18_ligadeportivaalajuelense_losangelesfootballclub": 0,
+        "MLS_MLS-COM-00000K_R16-04_roundof16_2026-03-18": 0
+      }
+    },
+    {
+      "date": "2026-03-19",
+      "pair_key": "clubamerica|philadelphiaunion",
+      "a": "MLS_2026-03-19_clubamrica_philadelphiaunion",
+      "b": "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-19_clubamrica_philadelphiaunion",
+          "b": "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-19_clubamrica_philadelphiaunion": 0,
+        "MLS_MLS-COM-00000K_R16-06_roundof16_2026-03-19": 0
+      }
+    },
+    {
+      "date": "2026-03-19",
+      "pair_key": "mountpleasantfootballacademy|lagalaxy",
+      "a": "MLS_2026-03-19_mountpleasantfootballacademy_lagalaxy",
+      "b": "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-19_mountpleasantfootballacademy_lagalaxy",
+          "b": "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-19_mountpleasantfootballacademy_lagalaxy": 0,
+        "MLS_MLS-COM-00000K_R16-02_roundof16_2026-03-19": 0
+      }
+    },
+    {
+      "date": "2026-03-19",
+      "pair_key": "seattlesoundersfc|vancouverwhitecapsfc",
+      "a": "MLS_2026-03-19_seattlesoundersfc_vancouverwhitecapsfc",
+      "b": "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-19_seattlesoundersfc_vancouverwhitecapsfc",
+          "b": "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-19_seattlesoundersfc_vancouverwhitecapsfc": 0,
+        "MLS_MLS-COM-00000K_R16-08_roundof16_2026-03-19": 0
+      }
+    },
+    {
+      "date": "2026-03-19",
+      "pair_key": "tolucafc|sandiegofc",
+      "a": "MLS_2026-03-19_tolucafc_sandiegofc",
+      "b": "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-19_tolucafc_sandiegofc",
+          "b": "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-19_tolucafc_sandiegofc": 0,
+        "MLS_MLS-COM-00000K_R16-01_roundof16_2026-03-19": 0
+      }
+    },
+    {
+      "date": "2026-03-20",
+      "pair_key": "clubtigres|fccincinnati",
+      "a": "MLS_2026-03-20_clubtigres_fccincinnati",
+      "b": "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-20",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-03-20_clubtigres_fccincinnati",
+          "b": "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-20"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-03-20_clubtigres_fccincinnati": 0,
+        "MLS_MLS-COM-00000K_R16-07_roundof16_2026-03-20": 0
+      }
+    },
+    {
+      "date": "2026-04-08",
+      "pair_key": "losangelesfc|cruzazul",
+      "a": "MLS_2026-04-08_losangelesfootballclub_cruzazul",
+      "b": "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-08",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-08_losangelesfootballclub_cruzazul",
+          "b": "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-08"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-08_losangelesfootballclub_cruzazul": 0,
+        "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-08": 0
+      }
+    },
+    {
+      "date": "2026-04-08",
+      "pair_key": "nashvillesc|clubamerica",
+      "a": "MLS_2026-04-08_nashvillesc_clubamrica",
+      "b": "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-08",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-08_nashvillesc_clubamrica",
+          "b": "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-08"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-08_nashvillesc_clubamrica": 0,
+        "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-08": 0
+      }
+    },
+    {
+      "date": "2026-04-09",
+      "pair_key": "clubtigres|seattlesoundersfc",
+      "a": "MLS_2026-04-09_clubtigres_seattlesoundersfc",
+      "b": "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-09_clubtigres_seattlesoundersfc",
+          "b": "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-09_clubtigres_seattlesoundersfc": 0,
+        "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-09": 0
+      }
+    },
+    {
+      "date": "2026-04-09",
+      "pair_key": "tolucafc|lagalaxy",
+      "a": "MLS_2026-04-09_tolucafc_lagalaxy",
+      "b": "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-09_tolucafc_lagalaxy",
+          "b": "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:12",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-09_tolucafc_lagalaxy": 0,
+        "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-09": 0
+      }
+    },
+    {
+      "date": "2026-04-14",
+      "pair_key": "detroitcityfc|chicagofirefc",
+      "a": "MLS_2026-04-14_detroitcityfc_chicagofirefc",
+      "b": "MLS_MLS-COM-00002U_R32-09_roundof32_2026-04-14",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-14_detroitcityfc_chicagofirefc",
+          "b": "MLS_MLS-COM-00002U_R32-09_roundof32_2026-04-14"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-14_detroitcityfc_chicagofirefc": 0,
+        "MLS_MLS-COM-00002U_R32-09_roundof32_2026-04-14": 0
+      }
+    },
+    {
+      "date": "2026-04-14",
+      "pair_key": "louisvillecityfc|austinfc",
+      "a": "MLS_2026-04-14_louisvillecityfc_austinfc",
+      "b": "MLS_MLS-COM-00002U_R32-11_roundof32_2026-04-14",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-14_louisvillecityfc_austinfc",
+          "b": "MLS_MLS-COM-00002U_R32-11_roundof32_2026-04-14"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-14_louisvillecityfc_austinfc": 0,
+        "MLS_MLS-COM-00002U_R32-11_roundof32_2026-04-14": 0
+      }
+    },
+    {
+      "date": "2026-04-14",
+      "pair_key": "newenglandrevolution|rhodeislandfc",
+      "a": "MLS_2026-04-14_newenglandrevolution_rhodeislandfc",
+      "b": "MLS_MLS-COM-00002U_R32-02_roundof32_2026-04-14",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-14_newenglandrevolution_rhodeislandfc",
+          "b": "MLS_MLS-COM-00002U_R32-02_roundof32_2026-04-14"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-14_newenglandrevolution_rhodeislandfc": 0,
+        "MLS_MLS-COM-00002U_R32-02_roundof32_2026-04-14": 0
+      }
+    },
+    {
+      "date": "2026-04-14",
+      "pair_key": "westchestersc|newyorkcityfc",
+      "a": "MLS_2026-04-14_westchestersc_newyorkcityfootballclub",
+      "b": "MLS_MLS-COM-00002U_R32-05_roundof32_2026-04-14",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-14_westchestersc_newyorkcityfootballclub",
+          "b": "MLS_MLS-COM-00002U_R32-05_roundof32_2026-04-14"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-14_westchestersc_newyorkcityfootballclub": 0,
+        "MLS_MLS-COM-00002U_R32-05_roundof32_2026-04-14": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "charlottefc|charlotteindependence",
+      "a": "MLS_2026-04-15_charlottefc_charlotteindependence",
+      "b": "MLS_MLS-COM-00002U_R32-08_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_charlottefc_charlotteindependence",
+          "b": "MLS_MLS-COM-00002U_R32-08_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_charlottefc_charlotteindependence": 0,
+        "MLS_MLS-COM-00002U_R32-08_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "chattanoogafc|atlantaunited",
+      "a": "MLS_2026-04-15_chattanoogafc_atlantaunited",
+      "b": "MLS_MLS-COM-00002U_R32-07_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_chattanoogafc_atlantaunited",
+          "b": "MLS_MLS-COM-00002U_R32-07_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_chattanoogafc_atlantaunited": 0,
+        "MLS_MLS-COM-00002U_R32-07_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "clubamerica|nashvillesc",
+      "a": "MLS_2026-04-15_clubamrica_nashvillesc",
+      "b": "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_clubamrica_nashvillesc",
+          "b": "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_clubamrica_nashvillesc": 0,
+        "MLS_MLS-COM-00000K_QF-03_quarterfinals_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "coloradorapids|unionomaha",
+      "a": "MLS_2026-04-15_coloradorapids_unionomaha",
+      "b": "MLS_MLS-COM-00002U_R32-14_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_coloradorapids_unionomaha",
+          "b": "MLS_MLS-COM-00002U_R32-14_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_coloradorapids_unionomaha": 0,
+        "MLS_MLS-COM-00002U_R32-14_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "coloradospringsswitchbacks|sportingkansascity",
+      "a": "MLS_2026-04-15_coloradospringsswitchbacks_sportingkansascity",
+      "b": "MLS_MLS-COM-00002U_R32-13_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_coloradospringsswitchbacks_sportingkansascity",
+          "b": "MLS_MLS-COM-00002U_R32-13_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_coloradospringsswitchbacks_sportingkansascity": 0,
+        "MLS_MLS-COM-00002U_R32-13_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "cruzazul|losangelesfc",
+      "a": "MLS_2026-04-15_cruzazul_losangelesfootballclub",
+      "b": "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_cruzazul_losangelesfootballclub",
+          "b": "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:50"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_cruzazul_losangelesfootballclub": 0,
+        "MLS_MLS-COM-00000K_QF-02_quarterfinals_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "dcunited|oneknoxvillesc",
+      "a": "MLS_2026-04-15_dcunited_oneknoxvillesc",
+      "b": "MLS_MLS-COM-00002U_R32-04_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_dcunited_oneknoxvillesc",
+          "b": "MLS_MLS-COM-00002U_R32-04_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_dcunited_oneknoxvillesc": 0,
+        "MLS_MLS-COM-00002U_R32-04_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "fcnaples|orlandocity",
+      "a": "MLS_2026-04-15_fcnaples_orlandocity",
+      "b": "MLS_MLS-COM-00002U_R32-01_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_fcnaples_orlandocity",
+          "b": "MLS_MLS-COM-00002U_R32-01_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_fcnaples_orlandocity": 0,
+        "MLS_MLS-COM-00002U_R32-01_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "newyorkredbulls|pittsburghriverhoundssc",
+      "a": "MLS_2026-04-15_redbullnewyork_pittsburghriverhoundssc",
+      "b": "MLS_MLS-COM-00002U_R32-06_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_redbullnewyork_pittsburghriverhoundssc",
+          "b": "MLS_MLS-COM-00002U_R32-06_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_redbullnewyork_pittsburghriverhoundssc": 0,
+        "MLS_MLS-COM-00002U_R32-06_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "richmondkickers|columbuscrew",
+      "a": "MLS_2026-04-15_richmondkickers_columbuscrew",
+      "b": "MLS_MLS-COM-00002U_R32-03_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_richmondkickers_columbuscrew",
+          "b": "MLS_MLS-COM-00002U_R32-03_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:17",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_richmondkickers_columbuscrew": 0,
+        "MLS_MLS-COM-00002U_R32-03_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-15",
+      "pair_key": "sacramentorepublicfc|minnesotaunitedfc",
+      "a": "MLS_2026-04-15_sacramentorepublicfc_minnesotaunitedfc",
+      "b": "MLS_MLS-COM-00002U_R32-15_roundof32_2026-04-15",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-15_sacramentorepublicfc_minnesotaunitedfc",
+          "b": "MLS_MLS-COM-00002U_R32-15_roundof32_2026-04-15"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:56"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:56"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-15_sacramentorepublicfc_minnesotaunitedfc": 0,
+        "MLS_MLS-COM-00002U_R32-15_roundof32_2026-04-15": 0
+      }
+    },
+    {
+      "date": "2026-04-16",
+      "pair_key": "houstondynamofc|elpasolocomotive",
+      "a": "MLS_2026-04-16_houstondynamofc_elpasolocomotive",
+      "b": "MLS_MLS-COM-00002U_R32-12_roundof32_2026-04-16",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-16_houstondynamofc_elpasolocomotive",
+          "b": "MLS_MLS-COM-00002U_R32-12_roundof32_2026-04-16"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-16_houstondynamofc_elpasolocomotive": 0,
+        "MLS_MLS-COM-00002U_R32-12_roundof32_2026-04-16": 0
+      }
+    },
+    {
+      "date": "2026-04-16",
+      "pair_key": "lagalaxy|tolucafc",
+      "a": "MLS_2026-04-16_lagalaxy_tolucafc",
+      "b": "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-16",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-16_lagalaxy_tolucafc",
+          "b": "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-16"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-16_lagalaxy_tolucafc": 0,
+        "MLS_MLS-COM-00000K_QF-01_quarterfinals_2026-04-16": 0
+      }
+    },
+    {
+      "date": "2026-04-16",
+      "pair_key": "sanjoseearthquakes|phoenixrisingfc",
+      "a": "MLS_2026-04-16_sanjoseearthquakes_phoenixrisingfc",
+      "b": "MLS_MLS-COM-00002U_R32-16_roundof32_2026-04-16",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-16_sanjoseearthquakes_phoenixrisingfc",
+          "b": "MLS_MLS-COM-00002U_R32-16_roundof32_2026-04-16"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-16_sanjoseearthquakes_phoenixrisingfc": 0,
+        "MLS_MLS-COM-00002U_R32-16_roundof32_2026-04-16": 0
+      }
+    },
+    {
+      "date": "2026-04-16",
+      "pair_key": "seattlesoundersfc|clubtigres",
+      "a": "MLS_2026-04-16_seattlesoundersfc_clubtigres",
+      "b": "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-16",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-16_seattlesoundersfc_clubtigres",
+          "b": "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-16"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-16_seattlesoundersfc_clubtigres": 0,
+        "MLS_MLS-COM-00000K_QF-04_quarterfinals_2026-04-16": 0
+      }
+    },
+    {
+      "date": "2026-04-16",
+      "pair_key": "stlouiscitysc|fctulsa",
+      "a": "MLS_2026-04-16_stlouiscitysc_fctulsa",
+      "b": "MLS_MLS-COM-00002U_R32-10_roundof32_2026-04-16",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-16_stlouiscitysc_fctulsa",
+          "b": "MLS_MLS-COM-00002U_R32-10_roundof32_2026-04-16"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-16_stlouiscitysc_fctulsa": 0,
+        "MLS_MLS-COM-00002U_R32-10_roundof32_2026-04-16": 0
+      }
+    },
+    {
+      "date": "2026-04-28",
+      "pair_key": "charlottefc|atlantaunited",
+      "a": "MLS_2026-04-28_charlottefc_atlantaunited",
+      "b": "MLS_MLS-COM-00002U_R16-04_roundof16_2026-04-28",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-28_charlottefc_atlantaunited",
+          "b": "MLS_MLS-COM-00002U_R16-04_roundof16_2026-04-28"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-28_charlottefc_atlantaunited": 0,
+        "MLS_MLS-COM-00002U_R16-04_roundof16_2026-04-28": 0
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "pair_key": "columbuscrew|oneknoxvillesc",
+      "a": "MLS_2026-04-29_columbuscrew_oneknoxvillesc",
+      "b": "MLS_MLS-COM-00002U_R16-02_roundof16_2026-04-29",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-29_columbuscrew_oneknoxvillesc",
+          "b": "MLS_MLS-COM-00002U_R16-02_roundof16_2026-04-29"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-29_columbuscrew_oneknoxvillesc": 0,
+        "MLS_MLS-COM-00002U_R16-02_roundof16_2026-04-29": 0
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "pair_key": "nashvillesc|clubtigres",
+      "a": "MLS_2026-04-29_nashvillesc_clubtigres",
+      "b": "MLS_MLS-COM-00000K_SF-02_semifinals_2026-04-29",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-29_nashvillesc_clubtigres",
+          "b": "MLS_MLS-COM-00000K_SF-02_semifinals_2026-04-29"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-29_nashvillesc_clubtigres": 0,
+        "MLS_MLS-COM-00000K_SF-02_semifinals_2026-04-29": 0
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "pair_key": "newenglandrevolution|orlandocity",
+      "a": "MLS_2026-04-29_newenglandrevolution_orlandocity",
+      "b": "MLS_MLS-COM-00002U_R16-01_roundof16_2026-04-29",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-29_newenglandrevolution_orlandocity",
+          "b": "MLS_MLS-COM-00002U_R16-01_roundof16_2026-04-29"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-29_newenglandrevolution_orlandocity": 0,
+        "MLS_MLS-COM-00002U_R16-01_roundof16_2026-04-29": 0
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "pair_key": "newyorkredbulls|newyorkcityfc",
+      "a": "MLS_2026-04-29_redbullnewyork_newyorkcityfootballclub",
+      "b": "MLS_MLS-COM-00002U_R16-03_roundof16_2026-04-29",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-29_redbullnewyork_newyorkcityfootballclub",
+          "b": "MLS_MLS-COM-00002U_R16-03_roundof16_2026-04-29"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:55"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-29_redbullnewyork_newyorkcityfootballclub": 0,
+        "MLS_MLS-COM-00002U_R16-03_roundof16_2026-04-29": 0
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "pair_key": "sanjoseearthquakes|minnesotaunitedfc",
+      "a": "MLS_2026-04-29_sanjoseearthquakes_minnesotaunitedfc",
+      "b": "MLS_MLS-COM-00002U_R16-08_roundof16_2026-04-29",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-29_sanjoseearthquakes_minnesotaunitedfc",
+          "b": "MLS_MLS-COM-00002U_R16-08_roundof16_2026-04-29"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-29_sanjoseearthquakes_minnesotaunitedfc": 0,
+        "MLS_MLS-COM-00002U_R16-08_roundof16_2026-04-29": 0
+      }
+    },
+    {
+      "date": "2026-04-30",
+      "pair_key": "chicagofirefc|stlouiscitysc",
+      "a": "MLS_2026-04-30_chicagofirefc_stlouiscitysc",
+      "b": "MLS_MLS-COM-00002U_R16-05_roundof16_2026-04-30",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-30_chicagofirefc_stlouiscitysc",
+          "b": "MLS_MLS-COM-00002U_R16-05_roundof16_2026-04-30"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-30_chicagofirefc_stlouiscitysc": 0,
+        "MLS_MLS-COM-00002U_R16-05_roundof16_2026-04-30": 0
+      }
+    },
+    {
+      "date": "2026-04-30",
+      "pair_key": "coloradorapids|coloradospringsswitchbacks",
+      "a": "MLS_2026-04-30_coloradorapids_coloradospringsswitchbacks",
+      "b": "MLS_MLS-COM-00002U_R16-07_roundof16_2026-04-30",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-30_coloradorapids_coloradospringsswitchbacks",
+          "b": "MLS_MLS-COM-00002U_R16-07_roundof16_2026-04-30"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-30_coloradorapids_coloradospringsswitchbacks": 0,
+        "MLS_MLS-COM-00002U_R16-07_roundof16_2026-04-30": 0
+      }
+    },
+    {
+      "date": "2026-04-30",
+      "pair_key": "houstondynamofc|louisvillecityfc",
+      "a": "MLS_2026-04-30_houstondynamofc_louisvillecityfc",
+      "b": "MLS_MLS-COM-00002U_R16-06_roundof16_2026-04-30",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-30_houstondynamofc_louisvillecityfc",
+          "b": "MLS_MLS-COM-00002U_R16-06_roundof16_2026-04-30"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:16",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-30_houstondynamofc_louisvillecityfc": 0,
+        "MLS_MLS-COM-00002U_R16-06_roundof16_2026-04-30": 0
+      }
+    },
+    {
+      "date": "2026-04-30",
+      "pair_key": "losangelesfc|tolucafc",
+      "a": "MLS_2026-04-30_losangelesfootballclub_tolucafc",
+      "b": "MLS_MLS-COM-00000K_SF-01_semifinals_2026-04-30",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-04-30_losangelesfootballclub_tolucafc",
+          "b": "MLS_MLS-COM-00000K_SF-01_semifinals_2026-04-30"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-04-30_losangelesfootballclub_tolucafc": 0,
+        "MLS_MLS-COM-00000K_SF-01_semifinals_2026-04-30": 0
+      }
+    },
+    {
+      "date": "2026-05-05",
+      "pair_key": "torontofc|atleticoottawa",
+      "a": "MLS_2026-05-05_torontofc_atlticoottawa",
+      "b": "MLS_MLS-COM-00002V_R16-07_preliminaryround_2026-05-05",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-05_torontofc_atlticoottawa",
+          "b": "MLS_MLS-COM-00002V_R16-07_preliminaryround_2026-05-05"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-05_torontofc_atlticoottawa": 0,
+        "MLS_MLS-COM-00002V_R16-07_preliminaryround_2026-05-05": 0
+      }
+    },
+    {
+      "date": "2026-05-06",
+      "pair_key": "cfmontreal|calgaryblizzardsoccerclub",
+      "a": "MLS_2026-05-06_cfmontral_calgaryblizzardsoccerclub",
+      "b": "MLS_MLS-COM-00002V_R16-03_preliminaryround_2026-05-06",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-06_cfmontral_calgaryblizzardsoccerclub",
+          "b": "MLS_MLS-COM-00002V_R16-03_preliminaryround_2026-05-06"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-06_cfmontral_calgaryblizzardsoccerclub": 0,
+        "MLS_MLS-COM-00002V_R16-03_preliminaryround_2026-05-06": 0
+      }
+    },
+    {
+      "date": "2026-05-06",
+      "pair_key": "clubtigres|nashvillesc",
+      "a": "MLS_2026-05-06_clubtigres_nashvillesc",
+      "b": "MLS_MLS-COM-00000K_SF-02_semifinals_2026-05-06",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-06_clubtigres_nashvillesc",
+          "b": "MLS_MLS-COM-00000K_SF-02_semifinals_2026-05-06"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-06_clubtigres_nashvillesc": 0,
+        "MLS_MLS-COM-00000K_SF-02_semifinals_2026-05-06": 0
+      }
+    },
+    {
+      "date": "2026-05-07",
+      "pair_key": "tolucafc|losangelesfc",
+      "a": "MLS_2026-05-07_tolucafc_losangelesfootballclub",
+      "b": "MLS_MLS-COM-00000K_SF-01_semifinals_2026-05-07",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-07_tolucafc_losangelesfootballclub",
+          "b": "MLS_MLS-COM-00000K_SF-01_semifinals_2026-05-07"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:11",
+          "b": "2026-07-16 12:23:49"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-07_tolucafc_losangelesfootballclub": 0,
+        "MLS_MLS-COM-00000K_SF-01_semifinals_2026-05-07": 0
+      }
+    },
+    {
+      "date": "2026-05-08",
+      "pair_key": "fcsupraduquebec|woodbridgestrikerssoccerclub",
+      "a": "MLS_2026-05-08_fcsupraduqubec_woodbridgestrikerssoccerclub",
+      "b": "MLS_MLS-COM-00002V_R16-08_preliminaryround_2026-05-08",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-08_fcsupraduqubec_woodbridgestrikerssoccerclub",
+          "b": "MLS_MLS-COM-00002V_R16-08_preliminaryround_2026-05-08"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-08_fcsupraduqubec_woodbridgestrikerssoccerclub": 0,
+        "MLS_MLS-COM-00002V_R16-08_preliminaryround_2026-05-08": 0
+      }
+    },
+    {
+      "date": "2026-05-09",
+      "pair_key": "forgefc|hfxwanderersfc",
+      "a": "MLS_2026-05-09_forgefc_hfxwanderersfc",
+      "b": "MLS_MLS-COM-00002V_R16-05_preliminaryround_2026-05-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-09_forgefc_hfxwanderersfc",
+          "b": "MLS_MLS-COM-00002V_R16-05_preliminaryround_2026-05-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-09_forgefc_hfxwanderersfc": 0,
+        "MLS_MLS-COM-00002V_R16-05_preliminaryround_2026-05-09": 0
+      }
+    },
+    {
+      "date": "2026-05-09",
+      "pair_key": "pacificfc|cavalryfc",
+      "a": "MLS_2026-05-09_pacificfc_cavalryfc",
+      "b": "MLS_MLS-COM-00002V_R16-01_preliminaryround_2026-05-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-09_pacificfc_cavalryfc",
+          "b": "MLS_MLS-COM-00002V_R16-01_preliminaryround_2026-05-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-09_pacificfc_cavalryfc": 0,
+        "MLS_MLS-COM-00002V_R16-01_preliminaryround_2026-05-09": 0
+      }
+    },
+    {
+      "date": "2026-05-10",
+      "pair_key": "intertorontofc|cssaintlaurent",
+      "a": "MLS_2026-05-10_intertorontofc_cssaintlaurent",
+      "b": "MLS_MLS-COM-00002V_R16-06_preliminaryround_2026-05-10",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-10_intertorontofc_cssaintlaurent",
+          "b": "MLS_MLS-COM-00002V_R16-06_preliminaryround_2026-05-10"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-10_intertorontofc_cssaintlaurent": 0,
+        "MLS_MLS-COM-00002V_R16-06_preliminaryround_2026-05-10": 0
+      }
+    },
+    {
+      "date": "2026-05-10",
+      "pair_key": "vancouverfc|langleyunited",
+      "a": "MLS_2026-05-10_vancouverfc_langleyunited",
+      "b": "MLS_MLS-COM-00002V_R16-04_preliminaryround_2026-05-10",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-10_vancouverfc_langleyunited",
+          "b": "MLS_MLS-COM-00002V_R16-04_preliminaryround_2026-05-10"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:59"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-10_vancouverfc_langleyunited": 0,
+        "MLS_MLS-COM-00002V_R16-04_preliminaryround_2026-05-10": 0
+      }
+    },
+    {
+      "date": "2026-05-19",
+      "pair_key": "orlandocity|atlantaunited",
+      "a": "MLS_2026-05-19_orlandocity_atlantaunited",
+      "b": "MLS_MLS-COM-00002U_QF-01_quarterfinal_2026-05-19",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-19_orlandocity_atlantaunited",
+          "b": "MLS_MLS-COM-00002U_QF-01_quarterfinal_2026-05-19"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-19_orlandocity_atlantaunited": 0,
+        "MLS_MLS-COM-00002U_QF-01_quarterfinal_2026-05-19": 0
+      }
+    },
+    {
+      "date": "2026-05-20",
+      "pair_key": "columbuscrew|newyorkcityfc",
+      "a": "MLS_2026-05-20_columbuscrew_newyorkcityfootballclub",
+      "b": "MLS_MLS-COM-00002U_QF-02_quarterfinal_2026-05-20",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-20_columbuscrew_newyorkcityfootballclub",
+          "b": "MLS_MLS-COM-00002U_QF-02_quarterfinal_2026-05-20"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-20_columbuscrew_newyorkcityfootballclub": 0,
+        "MLS_MLS-COM-00002U_QF-02_quarterfinal_2026-05-20": 0
+      }
+    },
+    {
+      "date": "2026-05-20",
+      "pair_key": "stlouiscitysc|houstondynamofc",
+      "a": "MLS_2026-05-20_stlouiscitysc_houstondynamofc",
+      "b": "MLS_MLS-COM-00002U_QF-03_quarterfinal_2026-05-20",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-20_stlouiscitysc_houstondynamofc",
+          "b": "MLS_MLS-COM-00002U_QF-03_quarterfinal_2026-05-20"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:54"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-20_stlouiscitysc_houstondynamofc": 0,
+        "MLS_MLS-COM-00002U_QF-03_quarterfinal_2026-05-20": 0
+      }
+    },
+    {
+      "date": "2026-05-21",
+      "pair_key": "coloradorapids|sanjoseearthquakes",
+      "a": "MLS_2026-05-21_coloradorapids_sanjoseearthquakes",
+      "b": "MLS_MLS-COM-00002U_QF-04_quarterfinal_2026-05-21",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-05-21_coloradorapids_sanjoseearthquakes",
+          "b": "MLS_MLS-COM-00002U_QF-04_quarterfinal_2026-05-21"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:53"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:15",
+          "b": "2026-07-16 12:23:53"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-05-21_coloradorapids_sanjoseearthquakes": 0,
+        "MLS_MLS-COM-00002U_QF-04_quarterfinal_2026-05-21": 0
+      }
+    },
+    {
+      "date": "2026-07-08",
+      "pair_key": "cssaintlaurent|forgefc",
+      "a": "MLS_2026-07-08_cssaintlaurent_forgefc",
+      "b": "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-08",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-08_cssaintlaurent_forgefc",
+          "b": "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-08"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-08_cssaintlaurent_forgefc": 0,
+        "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-08": 0
+      }
+    },
+    {
+      "date": "2026-07-08",
+      "pair_key": "fcsupraduquebec|atleticoottawa",
+      "a": "MLS_2026-07-08_fcsupraduqubec_atlticoottawa",
+      "b": "MLS_MLS-COM-00002V_QF-04_quarterfinals_2026-07-08",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-08_fcsupraduqubec_atlticoottawa",
+          "b": "MLS_MLS-COM-00002V_QF-04_quarterfinals_2026-07-08"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-08_fcsupraduqubec_atlticoottawa": 0,
+        "MLS_MLS-COM-00002V_QF-04_quarterfinals_2026-07-08": 0
+      }
+    },
+    {
+      "date": "2026-07-09",
+      "pair_key": "vancouverfc|cfmontreal",
+      "a": "MLS_2026-07-09_vancouverfc_cfmontral",
+      "b": "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-09_vancouverfc_cfmontral",
+          "b": "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-06-30 19:27:11",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-09_vancouverfc_cfmontral": 0,
+        "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-09": 0
+      }
+    },
+    {
+      "date": "2026-07-09",
+      "pair_key": "vancouverwhitecapsfc|cavalryfc",
+      "a": "MLS_2026-07-09_vancouverwhitecapsfc_cavalryfc",
+      "b": "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-09",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-09_vancouverwhitecapsfc_cavalryfc",
+          "b": "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-09"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-06-30 19:27:11",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:19",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-09_vancouverwhitecapsfc_cavalryfc": 0,
+        "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-09": 0
+      }
+    },
+    {
+      "date": "2026-07-12",
+      "pair_key": "cfmontreal|vancouverfc",
+      "a": "MLS_2026-07-12_cfmontral_vancouverfc",
+      "b": "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-12",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-12_cfmontral_vancouverfc",
+          "b": "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-12"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-06-30 19:27:11",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:18",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-12_cfmontral_vancouverfc": 0,
+        "MLS_MLS-COM-00002V_QF-02_quarterfinals_2026-07-12": 0
+      }
+    },
+    {
+      "date": "2026-07-12",
+      "pair_key": "forgefc|cssaintlaurent",
+      "a": "MLS_2026-07-12_forgefc_cssaintlaurent",
+      "b": "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-12",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-12_forgefc_cssaintlaurent",
+          "b": "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-12"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-07-15 02:58:18",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-15 02:58:18",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-12_forgefc_cssaintlaurent": 0,
+        "MLS_MLS-COM-00002V_QF-03_quarterfinals_2026-07-12": 0
+      }
+    },
+    {
+      "date": "2026-07-14",
+      "pair_key": "cavalryfc|vancouverwhitecapsfc",
+      "a": "MLS_2026-07-14_cavalryfc_vancouverwhitecapsfc",
+      "b": "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-14",
+      "differing_columns": [
+        "id",
+        "created_at",
+        "finalized_at"
+      ],
+      "diffs": [
+        {
+          "col": "id",
+          "a": "MLS_2026-07-14_cavalryfc_vancouverwhitecapsfc",
+          "b": "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-14"
+        },
+        {
+          "col": "created_at",
+          "a": "2026-06-30 19:27:11",
+          "b": "2026-07-16 12:23:58"
+        },
+        {
+          "col": "finalized_at",
+          "a": "2026-07-14 12:18:03",
+          "b": "2026-07-16 12:23:58"
+        }
+      ],
+      "change_log": {
+        "MLS_2026-07-14_cavalryfc_vancouverwhitecapsfc": 0,
+        "MLS_MLS-COM-00002V_QF-01_quarterfinals_2026-07-14": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "checked_at": "2026-09-14T12:58:45.024Z",
+  "by_table": {
+    "postseason_games": [
+      {
+        "league": "CONCACAF Champions Cup",
+        "rows": 80,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-02-04",
+        "last_date": "2026-05-07"
+      },
+      {
+        "league": "Leagues Cup",
+        "rows": 63,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-08-04",
+        "last_date": "2026-08-27"
+      },
+      {
+        "league": "U.S. Open Cup",
+        "rows": 58,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-04-14",
+        "last_date": "2026-09-17"
+      },
+      {
+        "league": "TELUS Canadian Championship",
+        "rows": 40,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-05-05",
+        "last_date": "2026-10-21"
+      },
+      {
+        "league": "Campeones Cup",
+        "rows": 2,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-09-16",
+        "last_date": "2026-09-17"
+      }
+    ],
+    "regular_season_games": [
+      {
+        "league": "(null)",
+        "rows": 367,
+        "with_opening": 74,
+        "with_closing": 30,
+        "first_date": "2026-03-07",
+        "last_date": "2026-11-07"
+      },
+      {
+        "league": "MLS",
+        "rows": 157,
+        "with_opening": 96,
+        "with_closing": 90,
+        "first_date": "2026-07-16",
+        "last_date": "2026-09-13"
+      },
+      {
+        "league": "MLS — Matchday 15 · Last Before World Cup Break",
+        "rows": 6,
+        "with_opening": 2,
+        "with_closing": 2,
+        "first_date": "2026-05-23",
+        "last_date": "2026-05-24"
+      },
+      {
+        "league": "MLS — Matchday 15",
+        "rows": 4,
+        "with_opening": 0,
+        "with_closing": 0,
+        "first_date": "2026-05-23",
+        "last_date": "2026-05-24"
+      }
+    ]
+  }
+}
