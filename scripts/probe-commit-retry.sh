@@ -51,8 +51,11 @@ is_regenerated() {
   esac
 }
 
-git config user.name "reusable-probe-bot"
-git config user.email "actions@github.com"
+# The committing identity is the caller's, not this script's. A shared loop that
+# stamped every commit "reusable-probe-bot" would erase which workflow wrote a
+# row — provenance this repo spent a whole CC-CMD recovering once already.
+git config user.name "${PROBE_AUTHOR_NAME:-reusable-probe-bot}"
+git config user.email "${PROBE_AUTHOR_EMAIL:-actions@github.com}"
 git add outbox/
 if git diff --cached --quiet; then
   echo "nothing to commit"

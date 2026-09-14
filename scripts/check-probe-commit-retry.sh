@@ -124,6 +124,20 @@ eq "a push refused forever exhausts the attempts and fails" "$?" "1"
 case "$out" in *"exhausted 2 attempts"*) ok "and says how many it tried";; *) bad "and says how many it tried — $out";; esac
 rm -f "$WORK/remote.git/hooks/pre-receive"
 
+# ── 3e. THE COMMITTING IDENTITY IS THE CALLER'S ────────────────────────────
+# Three workflows now share this loop. If it stamped its own name on every
+# commit, `git log --author` would stop telling you which one wrote a row.
+setup
+(cd "$WORK/b"; echo '{"run":"who"}' > outbox/provenance-runtime-probe-latest.json
+ PROBE_AUTHOR_NAME="identity-ambiguity-watch" PROBE_AUTHOR_EMAIL="w@x"  PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: who" >/dev/null 2>&1)
+author="$(cd "$WORK/b"; git log -1 --format=%an)"
+eq "the caller's identity is used when given" "$author" "identity-ambiguity-watch"
+setup
+(cd "$WORK/b"; echo '{"run":"dflt"}' > outbox/provenance-runtime-probe-latest.json
+ PROBE_SLEEP_UNIT=0 bash "$SCRIPT" "chore: dflt" >/dev/null 2>&1)
+author="$(cd "$WORK/b"; git log -1 --format=%an)"
+eq "and the template's default still applies when not" "$author" "reusable-probe-bot"
+
 # ── 4. a non-race push failure is loud and immediate ───────────────────────
 setup
 out="$(cd "$WORK/b"; echo '{"run":"x"}' > outbox/provenance-runtime-probe-latest.json

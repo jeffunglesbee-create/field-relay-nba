@@ -117,19 +117,16 @@ jobs:
 
       - name: Commit the reading
         run: |
-          git config user.name "identity-ambiguity-watch"
-          git config user.email "actions@github.com"
-          git add outbox/
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: identity ambiguity watch [skip ci]"
-          # The filename is unique per run, so a push race resolves by pulling
-          # and replaying — there is no file for two runs to disagree about.
-          for i in 1 2 3; do
-            if git push; then exit 0; fi
-            git pull --rebase --autostash origin main || git rebase --abort || true
-            sleep $((i * 5))
-          done
-          exit 1
+          # Shared loop, converted 2026-09-14. The filename is unique per run, so
+          # the ordinary race is a non-fast-forward that replays cleanly — and
+          # the abort form this replaced handled that correctly. What it could
+          # not handle was two runs landing in the SAME SECOND, which produces
+          # the same filename with different content: measured, it recovers state
+          # and still loses the run. A watch that silently fails to record looks
+          # identical to a watch with nothing to report.
+          PROBE_AUTHOR_NAME="identity-ambiguity-watch" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: identity ambiguity watch [skip ci]"
 
       - name: Announce when every condition is met
         if: steps.watch.outputs.all_done == 'true'

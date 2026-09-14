@@ -74,14 +74,7 @@ jobs:
       - name: Commit the log
         if: always()
         run: |
-          git config user.name "collision-cleanup"
-          git config user.email "actions@github.com"
-          git add outbox/
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: collision cleanup log [skip ci]"
-          for i in 1 2 3; do
-            git push && exit 0
-            git pull --rebase --autostash origin main || git rebase --abort || true
-            sleep $((i * 5))
-          done
-          exit 1
+          # Shared loop, same reason as the watch — and this one commits the record of a DELETE, which is the worst artifact to lose.
+          PROBE_AUTHOR_NAME="collision-cleanup" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: collision cleanup log [skip ci]"

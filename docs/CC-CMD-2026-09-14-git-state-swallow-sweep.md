@@ -40,9 +40,25 @@ So the exclusion is earned: it recovers state. **And the cost is larger than
 For `identity-ambiguity-watch` that is a lost measurement, and a lost
 measurement in a watch is exactly the failure the watch exists to prevent.
 
-Converting these two is therefore worth more than the `|| true` eight in one
-respect: those eight fail loudly and visibly, while a watch that silently fails
-to record looks identical to a watch with nothing to report.
+**AND THE URGENCY WAS OVERSTATED, corrected 2026-09-14 before acting on it.**
+The conflicting race is not the shape these two can ordinarily produce. Both
+write a filename unique per run, so the everyday race is a plain
+non-fast-forward that the abort form replays cleanly — measured:
+
+```
+a race with no content conflict succeeds    rc 0
+and this run's artifact lands               yes
+```
+
+A conflict needs two runs of the SAME workflow landing in the same second, which
+produces the same filename with different content. Rare, and real: three probe
+runs were dispatched within nine seconds on 2026-09-13.
+
+**CONVERTED ANYWAY, 2026-09-14** — `scripts/probe-commit-retry.sh`, with
+`PROBE_AUTHOR_NAME` so each keeps its own committing identity. Defence in depth
+against a rare failure, not a live outage, and the doc says which.
+
+Both are now off this CC-CMD's list. Remaining: the eight.
 
 ## Why it matters
 

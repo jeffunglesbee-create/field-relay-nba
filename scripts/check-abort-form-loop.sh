@@ -20,6 +20,33 @@ eq()  { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1 — got '$2', want '$3'";
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 
+# A race with NO content conflict: the other run wrote a DIFFERENT file, so the
+# push is rejected non-fast-forward and the rebase replays cleanly. This is the
+# shape these two workflows can actually produce — both write a filename unique
+# per run — and it must be distinguished from the conflicting shape before the
+# conflicting one is used to argue urgency.
+race_clean() {   # $1 = loop script -> "<rc>|<landed>"
+  rm -rf "$WORK"/c; mkdir -p "$WORK"/c
+  git init -q --bare "$WORK/c/remote.git"
+  git clone -q "$WORK/c/remote.git" "$WORK/c/seed" 2>/dev/null
+  (cd "$WORK/c/seed"; git config user.email t@t; git config user.name t
+   mkdir -p outbox; echo seed > outbox/seed.txt
+   git add -A; git commit -qm seed; git push -q origin HEAD:main) >/dev/null 2>&1
+  git clone -q "$WORK/c/remote.git" "$WORK/c/a" 2>/dev/null
+  git clone -q "$WORK/c/remote.git" "$WORK/c/b" 2>/dev/null
+  for d in a b; do (cd "$WORK/c/$d"; git config user.email t@t; git config user.name t
+    git checkout -q main 2>/dev/null || git checkout -q -b main origin/main
+    git branch --set-upstream-to=origin/main main) >/dev/null 2>&1; done
+  (cd "$WORK/c/a"; echo A > outbox/run-A-20260914T000001Z.json
+   git add -A; git commit -qm A; git push -q origin HEAD:main) >/dev/null 2>&1
+  local rc
+  ( cd "$WORK/c/b"; echo B > outbox/run-B-20260914T000002Z.json; bash "$1" ) >/dev/null 2>&1
+  rc=$?
+  local landed=no
+  (cd "$WORK/c/seed" && git fetch -q origin && git cat-file -e origin/main:outbox/run-B-20260914T000002Z.json 2>/dev/null) && landed=yes
+  echo "$rc|$landed"
+}
+
 race() {   # $1 = loop script path -> echoes "<rc>|<branch>|<midrebase>|<landed>"
   rm -rf "$WORK"/r; mkdir -p "$WORK"/r
   git init -q --bare "$WORK/r/remote.git"
@@ -49,34 +76,45 @@ race() {   # $1 = loop script path -> echoes "<rc>|<branch>|<midrebase>|<landed>
   echo "$rc|$branch|$mid|$landed"
 }
 
+# CONVERTED — must now call the shared loop. Named explicitly because these two
+# were the argument for the exclusion, and an exclusion that quietly becomes a
+# conversion that quietly becomes neither is how a gate rots.
 for wf in identity-ambiguity-watch collision-cleanup; do
   f="$REPO/.github/workflows/$wf.yml"
-  [ -f "$f" ] || { bad "$wf.yml exists"; continue; }
-  loop="$WORK/$wf.sh"
-  if ! python3 "$REPO/scripts/extract-commit-loop.py" "$f" > "$loop" 2>/dev/null; then
-    bad "$wf: a commit-retry step could be extracted"; continue
+  if grep -q 'scripts/probe-commit-retry.sh' "$f"; then
+    ok "$wf: converted to the shared loop"
+  else
+    bad "$wf: no longer calls scripts/probe-commit-retry.sh"
   fi
-  ok "$wf: commit-retry step extracted from the workflow itself"
-  # The claim only holds for the abort form; if one of these ever loses its
-  # abort, this test must stop vouching for it.
-  if grep -q "rebase --abort" "$loop"; then ok "$wf: still uses the abort form"
-  else bad "$wf: no longer uses the abort form — it must go on the ratchet"; continue; fi
+  # And it must not have kept a second, private loop alongside it.
+  if python3 "$REPO/scripts/extract-commit-loop.py" "$f" >/dev/null 2>&1; then
+    bad "$wf: still carries its own retry loop"
+  else
+    ok "$wf: carries no retry loop of its own"
+  fi
+done
 
+# ANY REMAINING ABORT-FORM LOOP, found by shape rather than by name, so a
+# workflow that grows one is raced too instead of being trusted.
+remaining=0
+for f in "$REPO"/.github/workflows/*.yml; do
+  loop="$WORK/$(basename "$f" .yml).sh"
+  python3 "$REPO/scripts/extract-commit-loop.py" "$f" > "$loop" 2>/dev/null || continue
+  grep -q 'rebase --abort' "$loop" || continue
+  remaining=$((remaining+1))
+  wf="$(basename "$f" .yml)"
+  IFS='|' read -r crc clanded <<< "$(race_clean "$loop")"
+  eq "$wf: a race with no content conflict succeeds" "$crc" "0"
+  eq "$wf: and this run's artifact lands" "$clanded" "yes"
   IFS='|' read -r rc branch mid landed <<< "$(race "$loop")"
-
-  # THE CLAIM. State is recovered: a branch, no half-rebase.
   eq "$wf: ends on a branch, not detached" "$branch" "main"
   eq "$wf: leaves no half-rebased tree" "$mid" "no"
-  # THE COST, measured rather than glossed. It does not corrupt — and it also
-  # does not land. The run's artifact is lost and the run reports failure.
-  eq "$wf: exits non-zero rather than silently succeeding" "$rc" "1"
-  eq "$wf: and the losing run's content does NOT land" "$landed" '{"run":"A"}'
 done
 
 echo
 if [ "$failed" -eq 0 ]; then
-  echo "PASS: $((checked-failed))/$checked assertions — 2 workflows, real loop text, real race"
-  echo "MEASURED: the abort form recovers state and still loses the run. It is a"
-  echo "lesser defect than the || true form, not a working loop."
+  # Rule 91: zero remaining abort-form loops must read as "none left", never as
+  # "nothing was looked at".
+  echo "PASS: $((checked-failed))/$checked assertions — 2 converted, $remaining abort-form loop(s) still raced"
   exit 0
 else echo "FAILED: $((checked-failed))/$checked assertions"; exit 1; fi

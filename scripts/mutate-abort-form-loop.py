@@ -12,19 +12,19 @@ VICTIM = '.github/workflows/identity-ambiguity-watch.yml'
 BAK = VICTIM + '.mutbak'
 
 MUTATIONS = [
-    # The exclusion rests entirely on the abort. Remove it and the workflow is
-    # the plain `|| true` defect, which this check must refuse to vouch for.
-    dict(name='A1  the watch loses its rebase --abort',
-         anchor='git pull --rebase --autostash origin main || git rebase --abort || true',
-         replace='git pull --rebase --autostash origin main || true',
-         expect='no longer uses the abort form'),
+    # The conversion is the whole point. If a workflow stops calling the shared
+    # loop the check must say so, not pass because nothing was left to race.
+    dict(name='A1  the watch stops calling the shared loop',
+         anchor='bash scripts/probe-commit-retry.sh "chore: identity ambiguity watch [skip ci]"',
+         replace='git push',
+         expect='no longer calls scripts/probe-commit-retry.sh'),
 
-    # If the step stops being findable the check must fail, not silently vouch
-    # for zero workflows.
-    dict(name='A2  the commit-retry step disappears',
-         anchor='          for i in 1 2 3; do\n            if git push; then exit 0; fi',
-         replace='          for i in 1 2 3; do\n            if true; then exit 0; fi',
-         expect='a commit-retry step could be extracted'),
+    # A workflow that calls the shared loop AND keeps a private one would pass
+    # a naive grep while still carrying the defect.
+    dict(name='A2  it calls the shared loop and keeps a private one too',
+         anchor='          bash scripts/probe-commit-retry.sh "chore: identity ambiguity watch [skip ci]"',
+         replace='          bash scripts/probe-commit-retry.sh "chore: identity ambiguity watch [skip ci]"\\n          for i in 1 2 3; do\\n            if git push; then exit 0; fi\\n            git pull --rebase --autostash origin main || git rebase --abort || true\\n          done\\n          exit 1'.replace('\\n', chr(10)),
+         expect='still carries its own retry loop'),
 ]
 
 bad = 0

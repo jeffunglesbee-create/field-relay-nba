@@ -79,6 +79,11 @@ MUTATIONS = [
          anchor='echo "exhausted $ATTEMPTS attempts"\nexit 1',
          replace='echo "exhausted $ATTEMPTS attempts"\nexit 0',
          expect='a push refused forever exhausts the attempts and fails'),
+    # A shared loop that stamps its own name erases which workflow wrote a row.
+    dict(name='R8  the shared loop stamps its own name on every commit',
+         anchor='git config user.name "${PROBE_AUTHOR_NAME:-reusable-probe-bot}"',
+         replace='git config user.name "reusable-probe-bot"',
+         expect="the caller's identity is used when given"),
 ]
 
 bad = 0
