@@ -15519,43 +15519,6 @@ export default {
                 });
             }
             const reachFailures = crossSportReach.filter(r => !r.ok);
-            // WHICH COLLISIONS CAN ACTUALLY PRODUCE A FALSE FACT.
-            //
-            // This check exists to stop the odds join attaching one game's line
-            // to another. A collision between two rows that carry no odds cannot
-            // do that, and MEASURED 2026-09-14 it never will for most of them:
-            // postseason_games at sport='MLS' holds 243 rows across five cup
-            // competitions — CONCACAF Champions Cup, Leagues Cup, U.S. Open Cup,
-            // TELUS Canadian Championship, Campeones Cup — with ZERO opening and
-            // ZERO closing odds, ever, while 534 MLS-LEAGUE rows in
-            // regular_season_games carry 172. runOddsBackfillForDate buckets by
-            // SPORT, so those cup rows are matched against a soccer_usa_mls
-            // payload that carries league fixtures and never contains them.
-            //
-            // So 82 of the collisions were being escalated by PROXY rather than
-            // by cause. The count stays, as a readout of archive hygiene; the
-            // CONDITION narrows to the ones a false fact can reach.
-            //
-            // "Carries odds" rather than "could ever carry odds": it is readable
-            // from the row instead of inferred from a league table, and it
-            // tracks live — the moment either row receives a line the pair
-            // becomes reachable and the condition reopens.
-            // TWO DIFFERENT ESPN EVENT IDS IS A DOUBLEHEADER, not a duplicate:
-            // two real games sharing a team pair and a date. Tested here rather
-            // than reusing the keeper script's `population`, because that field
-            // is computed in the script and does NOT exist on these rows — a
-            // filter written against it would have been vacuously true and
-            // quietly counted the doubleheader as a defect forever.
-            const twoRealGames = (c) => {
-                const [x, y] = c.games;
-                return !!(x?.espn_event_id && y?.espn_event_id
-                          && x.espn_event_id !== y.espn_event_id);
-            };
-            const reachableCollisions = slateCollisions.filter(c =>
-                !twoRealGames(c)
-                && c.games.some(g => g.has_opening_odds || g.has_closing_odds));
-            // Every slate where two rows share one join key. Uncapped and fully
-            // named: this list is either empty or it is a bug report.
             const slateCollisions = [];
             let slatesScanned = 0, pairsScanned = 0;
             for (const [slateKey, pairs] of slatePairs) {
@@ -15640,6 +15603,51 @@ export default {
                     briefs_referencing: detailError ? null : (briefRefs[g.id] || 0),
                 }));
             }
+            // WHICH COLLISIONS CAN ACTUALLY PRODUCE A FALSE FACT.
+            //
+            // POSITION IS LOAD-BEARING AND IT COST A 500. This block first sat
+            // above `const slateCollisions`, which is a temporal dead zone —
+            // `node --check` parses it happily and the route threw on every
+            // request until the six-hourly watch failed loudly and said so. It
+            // also has to run AFTER the collision detail read, because
+            // espn_event_id does not exist on these rows until then and the
+            // doubleheader test would silently see undefined on both sides.
+            //
+            // This check exists to stop the odds join attaching one game's line
+            // to another. A collision between two rows that carry no odds cannot
+            // do that, and MEASURED 2026-09-14 it never will for most of them:
+            // postseason_games at sport='MLS' holds 243 rows across five cup
+            // competitions — CONCACAF Champions Cup, Leagues Cup, U.S. Open Cup,
+            // TELUS Canadian Championship, Campeones Cup — with ZERO opening and
+            // ZERO closing odds, ever, while 534 MLS-LEAGUE rows in
+            // regular_season_games carry 172. runOddsBackfillForDate buckets by
+            // SPORT, so those cup rows are matched against a soccer_usa_mls
+            // payload that carries league fixtures and never contains them.
+            //
+            // So 82 of the collisions were being escalated by PROXY rather than
+            // by cause. The count stays, as a readout of archive hygiene; the
+            // CONDITION narrows to the ones a false fact can reach.
+            //
+            // "Carries odds" rather than "could ever carry odds": it is readable
+            // from the row instead of inferred from a league table, and it
+            // tracks live — the moment either row receives a line the pair
+            // becomes reachable and the condition reopens.
+            // TWO DIFFERENT ESPN EVENT IDS IS A DOUBLEHEADER, not a duplicate:
+            // two real games sharing a team pair and a date. Tested here rather
+            // than reusing the keeper script's `population`, because that field
+            // is computed in the script and does NOT exist on these rows — a
+            // filter written against it would have been vacuously true and
+            // quietly counted the doubleheader as a defect forever.
+            const twoRealGames = (c) => {
+                const [x, y] = c.games;
+                return !!(x?.espn_event_id && y?.espn_event_id
+                          && x.espn_event_id !== y.espn_event_id);
+            };
+            const reachableCollisions = slateCollisions.filter(c =>
+                !twoRealGames(c)
+                && c.games.some(g => g.has_opening_odds || g.has_closing_odds));
+            // Every slate where two rows share one join key. Uncapped and fully
+            // named: this list is either empty or it is a bug report.
             const allComplete = CENSUS_TABLES.every(t => tables[t].complete);
             return new Response(JSON.stringify({
                 ok: true,
