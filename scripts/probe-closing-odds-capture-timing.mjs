@@ -259,6 +259,35 @@ const JD_START = JD(`start_time`);
       say(`    ${t}  ${r.bucket.padEnd(12)} ${String(r.n).padStart(4)}  (${r.lo}..${r.hi} min)`);
   }
 
+  // ── 5. HOW MANY ROWS CAN SPEAK FOR THEMSELVES YET ────────────────────────
+  //
+  // `_kickoff` is stamped by all three writers from 2026-09-14 (33b42a1). It
+  // lands on NEW writes only, so this starts at zero and is meant to: every
+  // existing row was written before anything checked, and the honest label for
+  // all of them is "unverified", not "fine".
+  //
+  // This number is the done condition for the marking work — it rising above
+  // zero is the only proof that the deployed stamp actually reaches a row, and
+  // no assertion about the source can stand in for it.
+  say(`\n--- 5. rows carrying the _kickoff mark`);
+  let marked = 0, closingTotal = 0;
+  for (const t of TABLES) {
+    const r = (await d1(
+      `SELECT COUNT(*) total,
+              SUM(CASE WHEN json_extract(closing_odds,'$._kickoff') IS NOT NULL
+                   THEN 1 ELSE 0 END) marked,
+              SUM(CASE WHEN json_extract(closing_odds,'$._kickoff.verified') = 1
+                   THEN 1 ELSE 0 END) verified
+         FROM ${t} WHERE closing_odds IS NOT NULL`))[0] || {};
+    say(`    ${t}: ${r.marked} of ${r.total} carry _kickoff, ${r.verified} of those verified`);
+    marked += r.marked ?? 0; closingTotal += r.total ?? 0;
+  }
+  say(`    ${marked} of ${closingTotal} archive-wide.`
+    + (marked === 0
+       ? `  ZERO IS THE EXPECTED START — the stamp reaches new writes only, and`
+         + ` every existing row predates it. It is not yet proof that the stamp works.`
+       : `  The stamp reaches live rows.`));
+
   say(`\nTOTAL: ${after} of ${comparable} askable closing lines were captured at or after kickoff.`);
   say(`       ${noStart} sit on rows with no start_time and were NOT asked.`);
   say(`       ${unparsed} have a start_time julianday() could not parse and were NOT asked.`);
