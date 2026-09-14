@@ -152,6 +152,27 @@ E2E VERIFIED — the dry runs ran against the live archive through a GitHub Acti
 runner (sandbox egress to `*.workers.dev` is blocked) and read the deployed
 census.
 
+## What the relabel uncovered, tracked separately
+
+`docs/CC-CMD-2026-09-14-closing-odds-captured-after-kickoff.md` — Tasks 0, 1 and
+2 done in this session, Task 3 awaiting owner authorisation.
+
+- **Task 0:** 91 of 877 askable closing lines captured at or after kickoff; 530
+  not askable; the dash-scheme writer measured 0 of 0 — never tested. Two
+  measurement defects fixed first, both of which had already produced a quoted
+  number: a text comparison where `'Z'` sorts above `':'`, and a twin test that
+  joined on the exact columns the pairs it was built for differ on.
+- **Task 1:** bimodal, cut at 60 min, justified by a count trough and by
+  attribution agreeing independently. `odds_backfill` wrote none of the 91, and
+  62 had no author at all — contradicting that CC-CMD's own framing.
+- **Author named:** `archive_game_closing`, 58 of the 62, by dated elimination
+  after two blob fingerprints each refuted themselves. 968 of 968 unattributed
+  rows predate the day that writer started logging.
+- **Task 2:** both writers now gated on kickoff, compared as instants; the
+  backfill will not stamp a `captured_at` it did not measure; the swallowed
+  `change_log` failure is audible. 9 assertions, 7 mutations, in `deploy.yml`,
+  deployed `48a19dc`.
+
 ## Carry-forwards
 
 None from this work. Separately filed and unstarted:
