@@ -1,0 +1,21 @@
+=== last-54 resolve  apply=true  utc=2026-09-14T22:25:15.035Z ===
+
+--- 0. 54 row(s) with neither field
+--- 1. twin route: 18
+--- 2. sole-event route: 7
+    plan 25; 29 ambiguous, 0 not measured, 0 otherwise unaccounted
+    2026-07-25-mls-stl-col  ->  2026-07-26T00:30Z  via twin FIFA World Cup 2026_2026-07-25_stlouis_colorado
+    2026-07-25-mls-sj-la  ->  2026-07-26T02:30Z  via twin FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy
+    2026-07-25-mls-sd-dal  ->  2026-07-26T01:30Z  via twin FIFA World Cup 2026_2026-07-25_sandiego_dallas
+    2026-07-25-mls-por-rsl  ->  2026-07-26T02:30Z  via twin FIFA World Cup 2026_2026-07-25_portland_saltlake
+    2026-07-25-mls-min-van  ->  2026-07-26T00:30Z  via twin FIFA World Cup 2026_2026-07-25_minnesota_vancouver
+
+--- 3. writing
+    25 written
+    25 change_log entries
+
+--- 4. re-read
+    regular_season_games: 10 still unrouted
+    postseason_games: 19 still unrouted
+
+OK: 29 unrouted, exactly the 29 this run had no proven route for.

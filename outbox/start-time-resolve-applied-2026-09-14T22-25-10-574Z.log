@@ -1,0 +1,18 @@
+=== start_time resolve  apply=true  utc=2026-09-14T22:25:09.933Z ===
+
+--- 0. 0 row(s) across 0 slate(s)
+
+--- 1. scoreboard
+    resolved 0, unresolved 0, failed slates 0 (0 row(s) not attempted)
+
+--- 2. writing start_time
+    0 written
+
+--- 3. change_log
+    0 entries
+
+--- 4. re-read
+    regular_season_games: 0 row(s) still have an espn id and no start_time
+    postseason_games: 0 row(s) still have an espn id and no start_time
+
+OK: 0 unresolved, which is exactly the 0 this run could not resolve.
