@@ -51,6 +51,23 @@ const TABLES = ['regular_season_games', 'postseason_games'];
 const LEGACY = { requirePreKickoff: false };   // closing || opening
 const RULE   = { requirePreKickoff: true };    // skip a blob marked post-kickoff
 
+// A price taken one minute into a 0-0 match is not the same object as one
+// taken fourteen hours after full time, and the first pass of this probe
+// counted them together. `late_minutes` is on every marked row, so the
+// distribution decides whether one boolean is the right shape or whether a
+// consumer should name how much lateness it can live with. These candidates
+// are reported, not chosen: the histogram below is what a threshold has to be
+// argued from.
+const TOLERANCES = [0, 2, 10, 30];
+const BUCKETS = [
+  ['<= 2 min',      (m) => m != null && m <= 2],
+  ['3 - 10 min',    (m) => m != null && m > 2 && m <= 10],
+  ['11 - 30 min',   (m) => m != null && m > 10 && m <= 30],
+  ['31 - 120 min',  (m) => m != null && m > 30 && m <= 120],
+  ['> 120 min',     (m) => m != null && m > 120],
+  ['marked late, no minutes', (m) => m == null],
+];
+
 const tally = {
   rows: 0, withClosing: 0,
   closingVerified: 0, closingLate: 0, closingUnmarked: 0,
@@ -63,6 +80,10 @@ const tally = {
   fallbackBlanked: 0,
 };
 const examples = { fabricated: [], erased: [], tight: [], blanked: [] };
+const lateHist = new Map(BUCKETS.map(([n]) => [n, 0]));
+// Per tolerance: how many upset findings still rest on a late price, and how
+// many decided rows are left with no price at all.
+const byTol = new Map(TOLERANCES.map(t => [t, { restsOnLate: 0, blanked: 0 }]));
 
 (async () => {
   say(`=== late-close consumer flip  relay=${RELAY}  utc=${new Date().toISOString()} ===`);
@@ -86,6 +107,11 @@ const examples = { fabricated: [], erased: [], tight: [], blanked: [] };
       if (close._kickoff?.verified === true) tally.closingVerified++;
       else if (knownPostKickoff(close))      tally.closingLate++;
       else                                    tally.closingUnmarked++;
+
+      if (knownPostKickoff(close)) {
+        const m = lateMinutes(close);
+        for (const [name, test] of BUCKETS) if (test(m)) { lateHist.set(name, lateHist.get(name) + 1); break; }
+      }
 
       // --- odds-story.js: a movement narrated from a pre -> in-play pair
       if (open && close) {
@@ -113,7 +139,7 @@ const examples = { fabricated: [], erased: [], tight: [], blanked: [] };
       if (upRule)   tally.upsetRule++;
       if (upLegacy && !upRule) {
         tally.upsetFabricated++;
-        if (examples.fabricated.length < 5)
+        if (examples.fabricated.length < 12)
           examples.fabricated.push(`${r.id}  ${r.home} ${r.home_score}-${r.away_score} ${r.away}  `
             + `in-play +${Math.round(mlLegacy)} (${lateMinutes(close)} min late) vs pre-kickoff `
             + `${mlRule == null ? 'no line' : (mlRule > 0 ? '+' : '') + Math.round(mlRule)}`);
@@ -136,6 +162,30 @@ const examples = { fabricated: [], erased: [], tight: [], blanked: [] };
         tally.tightFlipped++;
         if (examples.tight.length < 5)
           examples.tight.push(`${r.id}  spread ${spLegacy} -> ${spRule == null ? 'none' : spRule}`);
+      }
+
+      // What each candidate tolerance would cost and buy. A tolerance of T
+      // means: a blob late by <= T minutes is still read. Measured by asking
+      // the source rule with the late mark relaxed on the row's own copy.
+      for (const t of TOLERANCES) {
+        const relax = (blob) => {
+          const o = parseOddsJSON(blob);
+          if (o && knownPostKickoff(o)) {
+            const m = lateMinutes(o);
+            if (m != null && m <= t) return JSON.stringify({ ...o, _kickoff: { ...o._kickoff, verified: true } });
+          }
+          return blob;
+        };
+        const relaxed = { ...r, closing_odds: relax(r.closing_odds), opening_odds: relax(r.opening_odds) };
+        const ml = winnerMoneylinePrice(relaxed, RULE);
+        const chosen = selectLineOdds(relaxed, RULE);
+        const rec = byTol.get(t);
+        // A finding at this tolerance whose price was in fact taken late.
+        if (ml != null && ml >= UPSET_AT) {
+          const src = chosen.source ? parseOddsJSON(r[`${chosen.source}_odds`]) : null;
+          if (src && knownPostKickoff(src)) rec.restsOnLate++;
+        }
+        if (!chosen.odds) rec.blanked++;
       }
 
       // Rows where applying the rule leaves NO usable price at all.
@@ -174,6 +224,16 @@ const examples = { fabricated: [], erased: [], tight: [], blanked: [] };
   say(`    opening+closing pairs                                      : ${tally.storyPairs}`);
   say(`    of those, closing is post-kickoff (movement is pre->in-play): ${tally.storyFromLateClose}`
       + `  (${pc(tally.storyFromLateClose, tally.storyPairs)})`);
+
+  say(`\n--- 4b. how late is late, over the ${tally.closingLate} marked rows`);
+  for (const [name, count] of lateHist) say(`    ${name.padEnd(24)} ${count}`);
+
+  say(`\n--- 4c. candidate tolerances (a blob late by <= T minutes is still read)`);
+  say(`    T(min)   upset findings still resting on a late price   decided rows with no price`);
+  for (const t of TOLERANCES) {
+    const rec = byTol.get(t);
+    say(`    ${String(t).padStart(3)}      ${String(rec.restsOnLate).padStart(3)}                                           ${rec.blanked}`);
+  }
 
   say(`\n--- 5. cost of the rule`);
   say(`    decided rows left with NO usable price : ${tally.fallbackBlanked}`);
