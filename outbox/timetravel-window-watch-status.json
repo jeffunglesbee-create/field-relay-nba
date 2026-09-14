@@ -1,5 +1,6 @@
 {
-  "checked_at": "2026-09-08T22:28:55.742Z",
+  "answer_recorded_at": "2026-09-14T02:28:32.950Z",
+  "every_check_is_recorded_at": "https://github.com/jeffunglesbee-create/field-relay-nba/actions/workflows/timetravel-window-watch.yml",
   "database": "field-archive",
   "incident": "2026-09-08T03:11:00Z",
   "state": "AUTH_REFUSED",
