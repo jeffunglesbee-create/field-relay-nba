@@ -1,0 +1,25 @@
+=== start_time resolve  apply=true  utc=2026-09-14T21:04:06.036Z ===
+
+--- 0. 476 row(s) across 85 slate(s)
+
+--- 1. scoreboard
+    resolved 476, unresolved 0, failed slates 0 (0 row(s) not attempted)
+    e.g. 2026-05-25-mlb-pittsb-chicag  ->  2026-05-25T17:35Z  (Chicago Cubs at Pittsburgh Pirates)
+    e.g. 2026-05-25-mlb-baltim-tampa  ->  2026-05-25T17:35Z  (Tampa Bay Rays at Baltimore Orioles)
+    e.g. 2026-05-25-mlb-milwau-stlo  ->  2026-05-25T18:10Z  (St. Louis Cardinals at Milwaukee Brewers)
+
+--- 2. writing start_time
+    100/476
+    200/476
+    300/476
+    400/476
+    476 written
+
+--- 3. change_log
+    476 entries
+
+--- 4. re-read
+    regular_season_games: 0 row(s) still have an espn id and no start_time
+    postseason_games: 0 row(s) still have an espn id and no start_time
+
+OK: 0 unresolved, which is exactly the 0 this run could not resolve.
