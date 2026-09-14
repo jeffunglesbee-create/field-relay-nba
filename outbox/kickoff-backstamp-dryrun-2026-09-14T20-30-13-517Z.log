@@ -1,0 +1,12 @@
+=== kickoff backstamp  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=false  utc=2026-09-14T20:30:12.202Z ===
+    regular_season_games: 877 to stamp  (504 have no start_time and are NOT touched, 2 already carry the mark)
+    postseason_games: 0 to stamp  (26 have no start_time and are NOT touched, 0 already carry the mark)
+
+--- 0. 877 row(s): 786 verified pre-kickoff, 91 late, 0 unreadable
+    latest: CFL_2026-06-06_ottawaredblacks_edmontonelks  +92393 min
+    latest: MLB_2026-08-05_astros_bluejays  +7668 min
+    latest: MLB_2026-08-05_cubs_dodgers  +7658 min
+    latest: MLB_2026-08-05_rangers_giants  +7643 min
+    latest: MLB_2026-08-05_rockies_rays  +7608 min
+
+DRY RUN. Nothing was written. Re-run with --apply.
