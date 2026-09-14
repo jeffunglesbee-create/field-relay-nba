@@ -378,6 +378,15 @@ jobs:
           bash scripts/check-probe-commit-retry.sh
           python3 scripts/mutate-probe-commit-retry.py
 
+      # A ratchet, not a sweep. Eight workflows still hide a failed pull behind
+      # `|| true`; fixing them is CC-CMD-2026-09-14-git-state-swallow-sweep's
+      # job. This stops a ninth, and shrinks as each is fixed. A gate that goes
+      # red on day one gets disabled, and a disabled gate protects nothing.
+      - name: no NEW workflow swallows a mutating git failure
+        run: |
+          node scripts/check-git-state-swallow.mjs
+          node scripts/mutate-git-state-swallow.mjs
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the
