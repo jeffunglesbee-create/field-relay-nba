@@ -1,0 +1,29 @@
+=== in-play relabel  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-09-14T15:30:01.030Z ===
+
+--- 0. live census: scanned 3171 of 3171 rows across 2 tables
+    collisions 115, rows_total 3171
+    odds_disagree 2
+    plan: 4 move(s), 0 skipped
+
+--- 1. the set, enumerated
+    MOVE  regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-07-25 MLS  FIFA World Cup 2026_2026-07-25_dcunited_toronto  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh  closing_odds -> inplay_odds
+    MOVE  regular_season_games 2026-08-01 MLS  FIFA World Cup 2026_2026-08-01_dcunited_nashville  closing_odds -> inplay_odds
+
+--- 2. moves (4)
+    moved 2026-07-25-mls-dc-tor closing_odds -> inplay_odds
+    moved FIFA World Cup 2026_2026-07-25_dcunited_toronto closing_odds -> inplay_odds
+    moved 2026-08-01-mls-dc-nsh closing_odds -> inplay_odds
+    moved FIFA World Cup 2026_2026-08-01_dcunited_nashville closing_odds -> inplay_odds
+
+--- 3. change_log
+    4 entries, each carrying the blob that was moved
+
+--- 4. re-census
+    rows_total 3171 -> 3171  (expected unchanged)
+    relay says odds_disagree = 0  (expected 0)
+    rows now carrying inplay_odds: 4  (expected 4)
+    residual moves: 0  (expected 0)
+
+OK: no collision's rows disagree about odds, 4 row(s) carry a relabelled in-play price, and no row was removed.
