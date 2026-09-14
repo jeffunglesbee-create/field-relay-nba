@@ -47,6 +47,14 @@ jobs:
             node scripts/run-symmetric-collision-merge.mjs
           fi
 
+      # READ-ONLY, and it runs whether or not the merge step stopped — a
+      # refusal is precisely when the prices are needed.
+      - name: Print both lines for any refused pair
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-collision-odds-conflict.mjs
+
       - name: Commit the log
         if: always()
         run: |
