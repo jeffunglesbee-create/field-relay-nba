@@ -94,6 +94,7 @@ async function d1(sql, params = []) {
     slates.get(k).rows.push(r);
   }
   let solo = 0, ambiguous = 0, noSlug = 0, failed = 0;
+  const emptySlates = [];
   for (const s of slates.values()) {
     const slug = SLUG[s.sport];
     if (!slug) { noSlug += s.rows.length; say(`    NO SLUG  ${s.sport} ${s.date}`); continue; }
@@ -111,6 +112,12 @@ async function d1(sql, params = []) {
       if (solo <= 4) say(`    ${s.rows[0].id}  <-  sole event ${events[0].id}  ${events[0].date}  (${events[0].name})`);
     } else {
       ambiguous += s.rows.length;
+      // RECORDED HERE, where emptiness is actually observed. The variant block
+      // below first re-derived this set from a filter that tested neither the
+      // event count nor anything else — it selected every non-MLS slate, took
+      // the first four, and they were all May dates that already worked. The
+      // variable was named for the intent and then trusted for the behaviour.
+      if (events.length === 0) emptySlates.push(s);
       say(`    AMBIGUOUS  ${s.sport} ${s.date}: ${events.length} event(s) vs ${s.rows.length} row(s)`);
     }
   }
@@ -125,13 +132,12 @@ async function d1(sql, params = []) {
   // seasontype 3 is postseason in ESPN's scheme; `season` pins the season the
   // date is read against, which is the candidate explanation for a boundary
   // that falls between May and June rather than between old and recent.
-  const zeroSlates = [...slates.values()].filter(s => SLUG[s.sport] && s.rows.length >= 1);
   const VARIANTS = [['seasontype=3', 'postseason'], ['season=2026', 'season pinned'],
                     ['season=2026&seasontype=3', 'both']];
   say(`\n--- B2. variants, on the slates that returned zero events`);
   let recovered = 0, triedSlates = 0;
-  for (const s of zeroSlates) {
-    if (s.sport === 'MLS') continue;            // MLS is ambiguous by count, not empty
+  say(`    ${emptySlates.length} slate(s) returned HTTP 200 with zero events.`);
+  for (const s of emptySlates) {
     triedSlates++;
     if (triedSlates > 4) break;                  // Rule 91: a sample, and it says so
     for (const [q, label] of VARIANTS) {
@@ -146,7 +152,8 @@ async function d1(sql, params = []) {
       if (n) recovered++;
     }
   }
-  say(`    variants tried on ${Math.min(triedSlates, 4)} slate(s) — a sample, not all of them.`);
+  say(`    variants tried on ${Math.min(triedSlates, 4)} of ${emptySlates.length} EMPTY slate(s) — a sample, and only empty ones.`);
+  if (!emptySlates.length) say(`    (none were empty, so the variants tested nothing — that is the correct outcome, not a pass.)`);
   say(`    ${recovered} variant call(s) returned any event at all.`);
 
   say(`\n    ${solo} row(s) matched by cardinality alone.`);
