@@ -52,13 +52,44 @@ async function d1(sql, params = []) {
 }
 
 const TABLES = ['regular_season_games', 'postseason_games'];
+
+// THE KEY-SET SIGNATURE FAILED ITS OWN STEP 0 AND IS KEPT AS A SECONDARY.
+// `proof` appeared under BOTH archive_game_closing and odds_backfill, because
+// odds_backfill adopted extractOddsForGame mid-August. A builder is not a
+// writer. That refusal is the reason this file now has a better fingerprint.
 const SIG = `CASE
     WHEN json_extract(closing_odds,'$._oddsProof') IS NOT NULL THEN 'proof'
     WHEN json_extract(closing_odds,'$.spread')    IS NOT NULL THEN 'spread-no-proof'
     ELSE 'neither' END`;
-const SOURCE = (t) => `(SELECT cl.source FROM change_log cl
-                         WHERE cl.game_id = ${t}.id AND cl.field = 'closing_odds'
-                         ORDER BY cl.ts DESC LIMIT 1)`;
+
+// THE POSITIVE FINGERPRINT, READ OUT OF THE WRITER RATHER THAN FITTED TO DATA.
+//
+// .github/scripts/odds-backfill.js — a THIRD writer, in CI rather than in the
+// worker, which is why `grep src/*.js` found only two — builds ONE odds object
+// per game and writes it to BOTH columns (`fields = isPast ? ['opening_odds',
+// 'closing_odds'] : ['opening_odds']`). No other writer touches both. So an
+// identical `captured_at` in the two columns is that writer's signature, and
+// nothing else can produce it.
+//
+// Its `source` is `row.bookmaker || 'odds-api-historical'`, so the literal
+// 'odds-api-historical' is a second, independent marker — present only when the
+// provider row carried no bookmaker.
+//
+// AND ITS captured_at IS NOT A WRITE TIME. `row.snapshot_time || new
+// Date().toISOString()` — when the provider gives no snapshot time it stamps
+// the moment the backfill RAN, which for a game played days earlier is a
+// days-late "closing" capture. Ten rows stamped 2026-08-11T01:58:26..39 for
+// games played 2026-08-05, thirteen seconds apart and sequential, is what a
+// loop calling new Date() per row looks like.
+const SAME_CAPTURE = `(json_extract(opening_odds,'$.captured_at') IS NOT NULL
+     AND json_extract(opening_odds,'$.captured_at')
+       = json_extract(closing_odds,'$.captured_at'))`;
+const HISTORICAL = `(json_extract(closing_odds,'$.source') = 'odds-api-historical')`;
+const FINGERPRINT = `CASE
+    WHEN ${SAME_CAPTURE} AND ${HISTORICAL} THEN 'backfill (both marks)'
+    WHEN ${SAME_CAPTURE}                   THEN 'backfill (same captured_at)'
+    WHEN ${HISTORICAL}                     THEN 'backfill (historical source)'
+    ELSE 'not backfill' END`;
 const CAP = `json_extract(closing_odds,'$.captured_at')`;
 
 (async () => {
@@ -69,30 +100,34 @@ const CAP = `json_extract(closing_odds,'$.captured_at')`;
   // Signature crossed with the source change_log records. A signature that
   // appears under two different sources does not identify a writer, and the
   // classification below would be worthless. This runs first so it can say so.
-  say(`\n--- 0. signature vs change_log source, on rows change_log NAMES`);
+  say(`\n--- 0. signature AND fingerprint vs change_log source, where the answer is known`);
   let contradicted = false;
   for (const t of TABLES) {
     const rows = await d1(
-      `SELECT ${SIG} sig, ${SOURCE(t)} src, COUNT(*) n,
+      `SELECT ${SIG} sig, ${FINGERPRINT} fp, ${SOURCE(t)} src, COUNT(*) n,
               MIN(${CAP}) first_cap, MAX(${CAP}) last_cap
          FROM ${t}
         WHERE closing_odds IS NOT NULL AND ${SOURCE(t)} IS NOT NULL
-        GROUP BY sig, src ORDER BY sig, src`);
+        GROUP BY sig, fp, src ORDER BY src, fp, sig`);
     if (!rows.length) { say(`    ${t}: no attributed rows`); continue; }
     for (const r of rows)
-      say(`    ${t}  ${r.sig.padEnd(16)} ${String(r.src).padEnd(22)} ${String(r.n).padStart(4)}`
-        + `  (${String(r.first_cap).slice(0,10)} .. ${String(r.last_cap).slice(0,10)})`);
-    const bySig = {};
-    for (const r of rows) (bySig[r.sig] ||= new Set()).add(r.src);
-    for (const [sig, srcs] of Object.entries(bySig))
-      if (srcs.size > 1) {
-        contradicted = true;
-        say(`    CONTRADICTION: signature '${sig}' appears under ${[...srcs].join(' and ')}`);
-      }
+      say(`    ${t}  ${String(r.src).padEnd(22)} ${r.fp.padEnd(30)} ${r.sig.padEnd(16)}`
+        + ` ${String(r.n).padStart(4)}  (${String(r.first_cap).slice(0,10)} .. ${String(r.last_cap).slice(0,10)})`);
+    // THE FINGERPRINT'S ONE CLAIM: only odds_backfill writes both columns from
+    // one object. If a row any other writer is named for carries that mark, the
+    // claim is false and nothing below may be believed.
+    const wrong = rows.filter(r => r.fp !== 'not backfill' && r.src !== 'odds_backfill');
+    const missed = rows.filter(r => r.fp === 'not backfill' && r.src === 'odds_backfill');
+    for (const r of wrong) {
+      contradicted = true;
+      say(`    CONTRADICTION: ${r.n} row(s) marked '${r.fp}' are attributed to ${r.src}, not odds_backfill`);
+    }
+    for (const r of missed)
+      say(`    NOTE: ${r.n} odds_backfill row(s) carry NO backfill mark — the fingerprint`
+        + ` finds some of that writer's rows, not all of them (it is sufficient, not necessary)`);
   }
   if (contradicted) {
-    say(`\nSTOP: a signature maps to more than one writer, so it does not identify one.`);
-    say(`      No classification is printed. The mapping read from source is wrong or incomplete.`);
+    say(`\nSTOP: the fingerprint marks rows another writer is named for. It does not identify odds_backfill.`);
     writeFileSync(`outbox/closing-odds-authorship-refused-${Date.now()}.log`, log.join('\n') + '\n');
     process.exit(1);
   }
@@ -101,15 +136,15 @@ const CAP = `json_extract(closing_odds,'$.captured_at')`;
   say(`\n--- 1. rows change_log does NOT name, by signature`);
   for (const t of TABLES) {
     const rows = await d1(
-      `SELECT ${SIG} sig, COUNT(*) n,
+      `SELECT ${SIG} sig, ${FINGERPRINT} fp, COUNT(*) n,
               MIN(${CAP}) first_cap, MAX(${CAP}) last_cap,
               SUM(CASE WHEN ${CAP} < '${PROOF_ADDED}' THEN 1 ELSE 0 END) pre_proof
          FROM ${t}
         WHERE closing_odds IS NOT NULL AND ${SOURCE(t)} IS NULL
-        GROUP BY sig ORDER BY n DESC`);
+        GROUP BY sig, fp ORDER BY n DESC`);
     if (!rows.length) { say(`    ${t}: none`); continue; }
     for (const r of rows)
-      say(`    ${t}  ${r.sig.padEnd(16)} ${String(r.n).padStart(4)}`
+      say(`    ${t}  ${r.fp.padEnd(30)} ${r.sig.padEnd(16)} ${String(r.n).padStart(4)}`
         + `  (${String(r.first_cap).slice(0,10)} .. ${String(r.last_cap).slice(0,10)},`
         + ` ${r.pre_proof} captured before ${PROOF_ADDED})`);
   }
@@ -124,20 +159,20 @@ const CAP = `json_extract(closing_odds,'$.captured_at')`;
   say(`\n--- 2. the LATE rows change_log does not name`);
   for (const t of TABLES) {
     const rows = await d1(
-      `SELECT ${SIG} sig, COUNT(*) n, MIN(${CAP}) first_cap, MAX(${CAP}) last_cap,
+      `SELECT ${SIG} sig, ${FINGERPRINT} fp, COUNT(*) n, MIN(${CAP}) first_cap, MAX(${CAP}) last_cap,
               SUM(CASE WHEN ${CAP} < '${PROOF_ADDED}' THEN 1 ELSE 0 END) pre_proof
          FROM ${t} WHERE ${LATE} AND ${SOURCE(t)} IS NULL
-        GROUP BY sig ORDER BY n DESC`);
+        GROUP BY sig, fp ORDER BY n DESC`);
     if (!rows.length) { say(`    ${t}: none`); continue; }
     for (const r of rows)
-      say(`    ${t}  ${r.sig.padEnd(16)} ${String(r.n).padStart(4)}`
+      say(`    ${t}  ${r.fp.padEnd(30)} ${r.sig.padEnd(16)} ${String(r.n).padStart(4)}`
         + `  (${String(r.first_cap).slice(0,10)} .. ${String(r.last_cap).slice(0,10)},`
         + ` ${r.pre_proof} captured before ${PROOF_ADDED})`);
     // Named rows, so a human can open one. A count cannot be opened.
     const eg = await d1(
-      `SELECT id, ${SIG} sig, ${CAP} cap, start_time FROM ${t}
+      `SELECT id, ${FINGERPRINT} fp, ${SIG} sig, ${CAP} cap, start_time FROM ${t}
         WHERE ${LATE} AND ${SOURCE(t)} IS NULL ORDER BY ${CAP} DESC LIMIT 5`);
-    for (const r of eg) say(`        e.g. ${r.id}  [${r.sig}]  cap ${r.cap}  start ${r.start_time}`);
+    for (const r of eg) say(`        e.g. ${r.id}  [${r.fp} / ${r.sig}]  cap ${r.cap}  start ${r.start_time}`);
   }
 
   const p = `outbox/closing-odds-authorship-${new Date().toISOString().replace(/[:.]/g, '-')}.log`;
