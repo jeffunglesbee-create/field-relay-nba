@@ -387,6 +387,15 @@ jobs:
           node scripts/check-git-state-swallow.mjs
           node scripts/mutate-git-state-swallow.mjs
 
+      # Two workflows are EXCLUDED from that ratchet because their loops abort
+      # the rebase before swallowing. That was asserted from reading; this races
+      # their real loop text, extracted from the YAML, and stops vouching for
+      # either the moment it stops aborting.
+      - name: the abort-form loops still earn their ratchet exclusion
+        run: |
+          bash scripts/check-abort-form-loop.sh
+          python3 scripts/mutate-abort-form-loop.py
+
       # The guard that should have caught `Tigers` asserted over a curated list
       # that `Tigers` was not on. This reads every pair in every identity table
       # instead — 333 of them — because a hand-written sample cannot find the

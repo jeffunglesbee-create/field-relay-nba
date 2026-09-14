@@ -112,6 +112,29 @@ protects nothing. Three mutations: one adds a ninth (must go red), two add forms
 that are NOT this defect — `|| git rebase --abort || true`, and the pattern
 inside a comment — and must stay green.
 
+## The four untested paths, resolved 2026-09-14
+
+The close-out above said "not 99 because the harness exercises one conflicting
+file". Four things were untested or asserted-from-reading. All four are now
+measured, and one of them changed a claim.
+
+| # | was | now |
+|---|---|---|
+| 1 | "`\|\| git rebase --abort \|\| true` recovers state" — **asserted from reading**, and used to justify excluding two workflows from the ratchet | raced, with the loop text **extracted from the YAML at test time**. Claim holds: branch intact, no half-rebase. **And the cost is bigger than stated** — the losing run exits 1 and its artifact never lands |
+| 2 | `is_regenerated` matched `outbox/*-latest.txt`, never exercised | a `.txt` conflict resolves; R6 removes the arm and goes red |
+| 3 | a rebase conflicting on BOTH a regenerated file and the ledger | the regenerated one is staged first, then the ledger forces an abort that unwinds the partial stage; main's ledger keeps the other run's entry |
+| 4 | the `exit 1` at the bottom of the loop | a remote that refuses every push exhausts the attempts and fails; R7 flips it to `exit 0` and goes red |
+
+Probe loop: **20 assertions, 7 mutations**. Abort-form: **12 assertions,
+2 mutations** — A1 removes the abort and the check must stop vouching, A2
+removes the step and it must fail rather than vouch for zero workflows.
+
+**The correction that matters.** Calling the abort form "a lesser defect" was
+right about corruption and wrong about cost. Those two workflows fail and lose
+the run. `identity-ambiguity-watch` is the watch these CC-CMDs read their done
+conditions from, and a watch that silently fails to record looks identical to a
+watch with nothing to report. The sweep CC-CMD now says so.
+
 ## Confidence: 97
 
 The behaviour is proven against a real conflict in the real runner, not only

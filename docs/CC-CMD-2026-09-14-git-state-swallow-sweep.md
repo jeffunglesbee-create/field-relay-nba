@@ -22,9 +22,27 @@ timetravel-window-watch.yml
 
 Two more — `collision-cleanup.yml` and `identity-ambiguity-watch.yml` — carry
 `|| git rebase --abort || true`. That is a LESSER defect and deliberately not on
-the list: it returns to a clean branch, so it fails honestly rather than
-corrupting. It still cannot resolve a conflict; it aborts and retries until the
-attempts run out.
+the list.
+
+**MEASURED 2026-09-14, not asserted.** `scripts/check-abort-form-loop.sh`
+extracts the real loop text from each YAML and races it. Both, for both
+workflows:
+
+```
+ends on a branch, not detached          main
+leaves no half-rebased tree             no
+exits non-zero rather than succeeding   1
+the losing run's content does NOT land  the other run's
+```
+
+So the exclusion is earned: it recovers state. **And the cost is larger than
+"lesser defect" suggested** — the losing run fails and its artifact never lands.
+For `identity-ambiguity-watch` that is a lost measurement, and a lost
+measurement in a watch is exactly the failure the watch exists to prevent.
+
+Converting these two is therefore worth more than the `|| true` eight in one
+respect: those eight fail loudly and visibly, while a watch that silently fails
+to record looks identical to a watch with nothing to report.
 
 ## Why it matters
 

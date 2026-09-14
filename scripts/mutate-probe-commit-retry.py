@@ -65,6 +65,20 @@ MUTATIONS = [
         git rebase --abort || true""",
          replace="""        echo "conflict in $f is not a regenerated artifact; refusing to pick a side\"""",
          expect='and leaves no half-rebased tree behind'),
+    # The .txt arm of the regenerated list had never been exercised until the
+    # check grew a fixture for it. An untested arm of a list that decides what
+    # gets overwritten is the same class of gap as an untested retry loop.
+    dict(name='R6  the regenerated list loses its .txt arm',
+         anchor='    outbox/*-latest.json|outbox/*-latest.txt) return 0 ;;',
+         replace='    outbox/*-latest.json) return 0 ;;',
+         expect='a -latest.txt conflict resolves too'),
+
+    # The exit at the bottom had never run. Without it the loop would fall off
+    # the end and report success after failing every attempt.
+    dict(name='R7  exhausting every attempt reports success',
+         anchor='echo "exhausted $ATTEMPTS attempts"\nexit 1',
+         replace='echo "exhausted $ATTEMPTS attempts"\nexit 0',
+         expect='a push refused forever exhausts the attempts and fails'),
 ]
 
 bad = 0
