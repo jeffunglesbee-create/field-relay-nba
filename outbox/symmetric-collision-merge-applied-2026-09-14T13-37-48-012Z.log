@@ -1,0 +1,87 @@
+=== symmetric collision merge  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-09-14T13:37:38.389Z ===
+
+--- 0. live census: scanned 3171 of 3171 rows across 2 tables
+    collisions 115, rows_total 3171
+    plan: 32 update(s) across 32 pair(s), 83 skipped
+
+--- 1. the set, enumerated
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-atx-sea -> FIFA World Cup 2026_2026-07-22_austin_seattle  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-cin-van -> FIFA World Cup 2026_2026-07-22_cincinnati_vancouver  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-clt-atl -> FIFA World Cup 2026_2026-07-22_charlotte_atlanta  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-col-sd -> FIFA World Cup 2026_2026-07-22_colorado_sandiego  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-hou-dc -> FIFA World Cup 2026_2026-07-22_houston_dcunited  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-la-stl -> FIFA World Cup 2026_2026-07-22_lagalaxy_stlouis  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-lafc-rsl -> FIFA World Cup 2026_2026-07-22_lafc_saltlake  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-mia-chi -> FIFA World Cup 2026_2026-07-22_miami_chicago  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-ne-tor -> FIFA World Cup 2026_2026-07-22_newengland_toronto  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-nsh-mtl -> FIFA World Cup 2026_2026-07-22_nashville_cfmontral  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-por-dal -> FIFA World Cup 2026_2026-07-22_portland_dallas  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-sj-orl -> FIFA World Cup 2026_2026-07-22_sanjose_orlando  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-22 MLS  2026-07-22-mls-skc-min -> FIFA World Cup 2026_2026-07-22_kansascity_minnesota  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-dc-tor -> FIFA World Cup 2026_2026-07-25_dcunited_toronto  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-hou-atx -> FIFA World Cup 2026_2026-07-25_houston_austin  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-lafc-skc -> FIFA World Cup 2026_2026-07-25_lafc_kansascity  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-min-van -> FIFA World Cup 2026_2026-07-25_minnesota_vancouver  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-mtl-mia -> FIFA World Cup 2026_2026-07-25_cfmontral_miami  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-ne-atl -> FIFA World Cup 2026_2026-07-25_newengland_atlanta  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-nyc-chi -> FIFA World Cup 2026_2026-07-25_nycfc_chicago  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-orl-nsh -> FIFA World Cup 2026_2026-07-25_orlando_nashville  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-phi-sea -> FIFA World Cup 2026_2026-07-25_philadelphia_seattle  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-por-rsl -> FIFA World Cup 2026_2026-07-25_portland_saltlake  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-sd-dal -> FIFA World Cup 2026_2026-07-25_sandiego_dallas  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-sj-la -> FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-25 MLS  2026-07-25-mls-stl-col -> FIFA World Cup 2026_2026-07-25_stlouis_colorado  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-07-31 MLS  2026-07-31-mls-nyc-tor -> FIFA World Cup 2026_2026-07-31_nycfc_toronto  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-08-01 MLS  2026-08-01-mls-cin-sj -> FIFA World Cup 2026_2026-08-01_cincinnati_sanjose  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-08-01 MLS  2026-08-01-mls-dc-nsh -> FIFA World Cup 2026_2026-08-01_dcunited_nashville  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-08-01 MLS  2026-08-01-mls-mtl-ne -> FIFA World Cup 2026_2026-08-01_cfmontral_newengland  [opening_odds, closing_odds]  (a->b)
+    FILL   regular_season_games 2026-08-01 MLS  2026-08-01-mls-phi-atl -> FIFA World Cup 2026_2026-08-01_philadelphia_atlanta  [opening_odds]  (a->b)
+    FILL   regular_season_games 2026-08-01 MLS  2026-08-01-mls-van-lafc -> FIFA World Cup 2026_2026-08-01_vancouver_lafc  [opening_odds, closing_odds]  (a->b)
+
+    skipped (83):
+        82  rows already agree on odds
+         1  two real games, not a duplicate
+
+--- 2. updates (32)
+    filled opening_odds, closing_odds  2026-07-22-mls-atx-sea -> FIFA World Cup 2026_2026-07-22_austin_seattle
+    filled opening_odds, closing_odds  2026-07-22-mls-cin-van -> FIFA World Cup 2026_2026-07-22_cincinnati_vancouver
+    filled opening_odds  2026-07-22-mls-clt-atl -> FIFA World Cup 2026_2026-07-22_charlotte_atlanta
+    filled opening_odds, closing_odds  2026-07-22-mls-col-sd -> FIFA World Cup 2026_2026-07-22_colorado_sandiego
+    filled opening_odds  2026-07-22-mls-hou-dc -> FIFA World Cup 2026_2026-07-22_houston_dcunited
+    filled opening_odds, closing_odds  2026-07-22-mls-la-stl -> FIFA World Cup 2026_2026-07-22_lagalaxy_stlouis
+    filled opening_odds  2026-07-22-mls-lafc-rsl -> FIFA World Cup 2026_2026-07-22_lafc_saltlake
+    filled opening_odds  2026-07-22-mls-mia-chi -> FIFA World Cup 2026_2026-07-22_miami_chicago
+    filled opening_odds, closing_odds  2026-07-22-mls-ne-tor -> FIFA World Cup 2026_2026-07-22_newengland_toronto
+    filled opening_odds, closing_odds  2026-07-22-mls-nsh-mtl -> FIFA World Cup 2026_2026-07-22_nashville_cfmontral
+    filled opening_odds, closing_odds  2026-07-22-mls-por-dal -> FIFA World Cup 2026_2026-07-22_portland_dallas
+    filled opening_odds  2026-07-22-mls-sj-orl -> FIFA World Cup 2026_2026-07-22_sanjose_orlando
+    filled opening_odds, closing_odds  2026-07-22-mls-skc-min -> FIFA World Cup 2026_2026-07-22_kansascity_minnesota
+    filled opening_odds  2026-07-25-mls-dc-tor -> FIFA World Cup 2026_2026-07-25_dcunited_toronto
+    filled opening_odds  2026-07-25-mls-hou-atx -> FIFA World Cup 2026_2026-07-25_houston_austin
+    filled opening_odds  2026-07-25-mls-lafc-skc -> FIFA World Cup 2026_2026-07-25_lafc_kansascity
+    filled opening_odds, closing_odds  2026-07-25-mls-min-van -> FIFA World Cup 2026_2026-07-25_minnesota_vancouver
+    filled opening_odds, closing_odds  2026-07-25-mls-mtl-mia -> FIFA World Cup 2026_2026-07-25_cfmontral_miami
+    filled opening_odds  2026-07-25-mls-ne-atl -> FIFA World Cup 2026_2026-07-25_newengland_atlanta
+    filled opening_odds  2026-07-25-mls-nyc-chi -> FIFA World Cup 2026_2026-07-25_nycfc_chicago
+    filled opening_odds  2026-07-25-mls-orl-nsh -> FIFA World Cup 2026_2026-07-25_orlando_nashville
+    filled opening_odds, closing_odds  2026-07-25-mls-phi-sea -> FIFA World Cup 2026_2026-07-25_philadelphia_seattle
+    filled opening_odds, closing_odds  2026-07-25-mls-por-rsl -> FIFA World Cup 2026_2026-07-25_portland_saltlake
+    filled opening_odds, closing_odds  2026-07-25-mls-sd-dal -> FIFA World Cup 2026_2026-07-25_sandiego_dallas
+    filled opening_odds, closing_odds  2026-07-25-mls-sj-la -> FIFA World Cup 2026_2026-07-25_sanjose_lagalaxy
+    filled opening_odds, closing_odds  2026-07-25-mls-stl-col -> FIFA World Cup 2026_2026-07-25_stlouis_colorado
+    filled opening_odds  2026-07-31-mls-nyc-tor -> FIFA World Cup 2026_2026-07-31_nycfc_toronto
+    filled opening_odds, closing_odds  2026-08-01-mls-cin-sj -> FIFA World Cup 2026_2026-08-01_cincinnati_sanjose
+    filled opening_odds  2026-08-01-mls-dc-nsh -> FIFA World Cup 2026_2026-08-01_dcunited_nashville
+    filled opening_odds, closing_odds  2026-08-01-mls-mtl-ne -> FIFA World Cup 2026_2026-08-01_cfmontral_newengland
+    filled opening_odds  2026-08-01-mls-phi-atl -> FIFA World Cup 2026_2026-08-01_philadelphia_atlanta
+    filled opening_odds, closing_odds  2026-08-01-mls-van-lafc -> FIFA World Cup 2026_2026-08-01_vancouver_lafc
+
+--- 3. change_log
+    32 entries
+
+--- 4. re-census
+    rows_total 3171 -> 3171  (delta 0, expected 0)
+    collisions 115 -> 115  (a fill does not remove a row)
+    residual fills: 0 across 0 pair(s), expected 0
+
+OK: every pair agrees on both odds columns, and no row was removed.
