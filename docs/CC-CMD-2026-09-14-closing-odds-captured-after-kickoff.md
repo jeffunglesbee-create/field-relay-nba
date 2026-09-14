@@ -1,6 +1,6 @@
 # CC-CMD-2026-09-14-closing-odds-captured-after-kickoff
 
-**Tasks 0, 1 and 2 DONE 2026-09-14.** 91 of 877 askable closing lines captured at or
+**Tasks 0-3 DONE 2026-09-14, plus the Task 0 residual.** 91 of 877 askable closing lines captured at or
 after kickoff; 530 not askable; the dash-scheme writer measured 0 of 0 — never
 tested at all. Two measurement defects fixed first; both had produced a number
 that was quoted. Task 1 found the slow mode has no author at all: 62 of 91 late rows
@@ -293,6 +293,63 @@ A gate in `deploy.yml` that fails when any writer can record `closing_odds`
 whose `captured_at` is at or after a known kickoff, with a mutation showing it
 red. Plus a committed count of the existing rows, partitioned, with its
 unaskable set named alongside.
+
+## Task 0 residual — CLOSED 2026-09-14. And the hidden half was worse.
+
+530 rows could not be asked whether they preceded kickoff. 476 carried an
+`espn_event_id` that this document recorded as "an anchor, resolvability
+UNTESTED".
+
+**Tested before anything was built** (`scripts/probe-espn-kickoff-route.mjs`):
+5 of 5 sports, 33 of 33 stored ids found in ESPN's scoreboard, every one with a
+date. From a GitHub runner, because CC-CMD-2026-08-08 measured Akamai 403ing
+Cloudflare Worker egress on `site.api.espn.com` while a bare runner fetch
+succeeds.
+
+**Sized before it was designed:** 530 rows across 114 (sport, date) slates, so
+the unit of work is 85 slates carrying ids — not 476 events. MLB alone is 370
+rows in 36 slates.
+
+**The gotcha the probe caught:** a FIFA slate queried as `2026-07-02` returned
+an event dated `2026-07-03T03:00Z` — a late kickoff crossing UTC midnight. A
+resolver taking the queried date would have written the wrong day for every such
+game. It takes the event's own date.
+
+**Applied:** 476 of 476 resolved and written, 0 unresolved, 0 failed slates.
+Then re-stamped.
+
+### THE ESTIMATE WAS WRONG BY 2.4x, AND THE DIRECTION IS THE FINDING
+
+Before resolving, this session predicted ~50 late among the 476, extrapolating
+the measured 10.4% rate. **The real figure is 121 of 476 — 25.4%.**
+
+That is not noise. Those rows lacked a `start_time` *because* they came from
+writers that do not record one, and that is the same population that captures
+late. **The rows that could not be measured were the rows most likely to be
+broken**, which is the opposite of the assumption an extrapolation makes.
+
+| | rows |
+|---|---:|
+| askable and marked | **1358** |
+| verified pre-kickoff | 1141 |
+| **late** | **212** (91 + 121) |
+| still unaskable | **54** |
+
+Archive-wide late rate: **15.6%**, against the 10.4% that looked like the answer
+before the blind spot was opened.
+
+### What remains unaskable, and why
+
+**54 rows carry neither `start_time` nor an `espn_event_id`:**
+
+- **28 MLS rows, dash-scheme ids** (`2026-08-15-mls-atx-dal`). The external
+  writer sets neither field — which is also why Task 0 measured that writer at
+  `0 late of 0 asked`, never tested at all.
+- **26 NBA/NHL postseason rows** (`nba_finals_2026_g7`, `scf_2026_g6`), one per
+  slate, no ids.
+
+Both would need name matching, and name matching is what broke the twin test
+earlier in this same session (`Toronto FC` against `Toronto`). Not attempted.
 
 ## Scope boundary
 
