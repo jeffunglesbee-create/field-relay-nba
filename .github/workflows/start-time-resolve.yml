@@ -44,6 +44,13 @@ jobs:
             node scripts/run-start-time-resolve.mjs
           fi
 
+      # The 54 that carry neither field. Two routes, neither comparing a string.
+      - name: Is there a route for the last 54
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-last-54-route.mjs
+
       - name: Commit the log
         if: always()
         run: |
