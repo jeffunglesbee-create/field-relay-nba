@@ -1,0 +1,16 @@
+=== closing-odds authorship  2026-09-14T16:02:18.481Z ===
+_oddsProof has been stamped by extractOddsForGame since 2026-06-29 (3f0fe3d).
+
+--- 0. signature AND fingerprint vs change_log source, where the answer is known
+    regular_season_games  archive_game_closing   backfill (same captured_at)    proof              16  (2026-08-29 .. 2026-09-12)
+    regular_season_games  archive_game_closing   not backfill                   proof             298  (2026-08-23 .. 2026-09-13)
+    regular_season_games  closing_odds_capture   not backfill                   spread-no-proof    41  (2026-07-04 .. 2026-08-31)
+    regular_season_games  odds_backfill          backfill (same captured_at)    neither             8  (2026-06-30 .. 2026-07-11)
+    regular_season_games  odds_backfill          not backfill                   neither            28  (2026-06-28 .. 2026-08-15)
+    regular_season_games  odds_backfill          not backfill                   proof              22  (2026-08-15 .. 2026-08-22)
+    CONTRADICTION: 16 row(s) marked 'backfill (same captured_at)' are attributed to archive_game_closing, not odds_backfill
+    NOTE: 28 odds_backfill row(s) carry NO backfill mark — the fingerprint finds some of that writer's rows, not all of them (it is sufficient, not necessary)
+    NOTE: 22 odds_backfill row(s) carry NO backfill mark — the fingerprint finds some of that writer's rows, not all of them (it is sufficient, not necessary)
+    postseason_games: no attributed rows
+
+STOP: the fingerprint marks rows another writer is named for. It does not identify odds_backfill.
