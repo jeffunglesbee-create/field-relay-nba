@@ -1,0 +1,27 @@
+=== kickoff backstamp  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-09-14T21:06:03.784Z ===
+    regular_season_games: 476 to stamp  (28 have no start_time and are NOT touched, 882 already carry the mark)
+    postseason_games: 0 to stamp  (26 have no start_time and are NOT touched, 0 already carry the mark)
+
+--- 0. 476 row(s): 355 verified pre-kickoff, 121 late, 0 unreadable
+    (121 late of 476 to stamp. Before ESPN start_time resolution the askable set was 877 with 91 late — a difference here is the wider population, not a disagreement.)
+    latest: MLB_2026-06-30_cubs_padres  +596 min
+    latest: MLB_2026-06-30_rockies_marlins  +561 min
+    latest: WNBA_2026-07-12_aces_fever  +541 min
+    latest: MLB_2026-06-30_mariners_angels  +501 min
+    latest: MLB_2026-06-30_athletics_dodgers  +501 min
+
+--- 1. stamping
+    100/476
+    200/476
+    300/476
+    400/476
+    476 stamped
+
+--- 2. change_log
+    476 entries
+
+--- 3. re-read
+    regular_season_games: 1358 carry the mark, 0 askable row(s) still unmarked
+    postseason_games: 0 carry the mark, 0 askable row(s) still unmarked
+
+OK: every askable closing line now says whether it preceded kickoff.
