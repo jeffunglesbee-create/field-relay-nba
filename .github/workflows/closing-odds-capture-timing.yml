@@ -27,6 +27,13 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-closing-odds-capture-timing.mjs
 
+      # Task 2 cannot start until the 62 unattributed rows have an author.
+      - name: Who wrote the ones change_log does not name
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-closing-odds-authorship.mjs
+
       - name: Commit the log
         if: always()
         run: |
