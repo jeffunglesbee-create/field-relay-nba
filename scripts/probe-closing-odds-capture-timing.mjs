@@ -47,6 +47,25 @@ async function d1(sql, params = []) {
 const DASH = `id GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*'`;
 const TABLES = ['regular_season_games', 'postseason_games'];
 
+// STRING COMPARISON IS WRONG HERE, AND THE FIRST VERSION OF THIS PROBE SHIPPED
+// IT AND REPORTED A NUMBER FROM IT.
+//
+// start_time comes in at least two shapes — `2026-07-25T20:05Z` (minute
+// precision, no seconds) and `2026-06-06T23:00:00+00:00` (offset form) — while
+// captured_at carries `2026-07-25T20:05:30.000Z`. Compared as text, 'Z' (0x5A)
+// sorts above ':' (0x3A), so `...20:05:30.000Z` < `...20:05Z` and a capture
+// thirty seconds AFTER kickoff reads as before it. The 90-of-879 figure quoted
+// on 2026-09-14 undercounts by that window.
+//
+// Both shapes were printed by this probe's own step 0. Reading past them is the
+// defect Rule 100 exists for.
+//
+// julianday() parses all three forms; it returns NULL on anything it cannot,
+// which is counted separately rather than folded into "not late" (Rule 99).
+const JD = (x) => `julianday(replace(replace(${x}, 'T', ' '), 'Z', ''))`;
+const JD_CAP = JD(`json_extract(closing_odds,'$.captured_at')`);
+const JD_START = JD(`start_time`);
+
 (async () => {
   say(`=== closing-odds capture timing  ${new Date().toISOString()} ===`);
 
@@ -85,43 +104,63 @@ const TABLES = ['regular_season_games', 'postseason_games'];
   // This is the whole question. A price taken after kickoff is an in-play price
   // and calling it `closing_odds` makes every downstream reader wrong.
   say(`\n--- 2. captures at or after start_time (an in-play price called closing)`);
-  let after = 0, comparable = 0, noStart = 0;
+  let after = 0, comparable = 0, noStart = 0, unparsed = 0;
   for (const t of TABLES) {
-    const r = (await d1(
-      `SELECT
-         SUM(CASE WHEN start_time IS NOT NULL
-                   AND json_extract(closing_odds,'$.captured_at') >= start_time
-              THEN 1 ELSE 0 END) AS after_kick,
-         SUM(CASE WHEN start_time IS NOT NULL THEN 1 ELSE 0 END) AS comparable,
-         SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS no_start,
-         COUNT(*) AS total
-       FROM ${t} WHERE closing_odds IS NOT NULL`))[0] || {};
-    say(`    ${t}: ${r.after_kick} of ${r.comparable} comparable captured at/after kickoff`
-      + `  (${r.no_start} row(s) have no start_time to compare against, of ${r.total} with a closing line)`);
-    after += r.after_kick ?? 0; comparable += r.comparable ?? 0; noStart += r.no_start ?? 0;
-    // Rule 99: a row with no start_time is NOT a row that passed. It is a row
-    // that could not be asked, and it is reported separately rather than folded
-    // into the denominator.
     for (const [label, pred] of [['dash', DASH], ['ours', `NOT (${DASH})`]]) {
-      // RULE 91: THE DENOMINATOR TRAVELS WITH THE NUMERATOR, AND SO DOES THE
-      // SET THAT COULD NOT BE ASKED.
+      // RULE 91: the denominator travels with the numerator, and so does the set
+      // that could not be asked.
       //
-      // MEASURED 2026-09-14: this line first printed `dash: 0` and was read as
-      // "the dash writer is punctual". It is not — the two D.C. United
-      // collision pairs put it 25 minutes past kickoff. Its MLS rows carry no
-      // start_time, so they were never in the denominator at all, and a bare
-      // zero over an invisible denominator is a claim about everything.
+      // MEASURED 2026-09-14: this line first printed `dash: 0` and it was read as
+      // "the dash writer is punctual". It is not — the two D.C. United collision
+      // pairs put it 25 minutes past kickoff. Its MLS rows carry no start_time, so
+      // they were never in the denominator, and a bare zero over an invisible
+      // denominator is a claim about everything.
       const q = (await d1(
         `SELECT
-           SUM(CASE WHEN start_time IS NOT NULL
-                     AND json_extract(closing_odds,'$.captured_at') >= start_time
+           SUM(CASE WHEN start_time IS NOT NULL AND ${JD_START} IS NOT NULL
+                     AND ${JD_CAP} IS NOT NULL AND ${JD_CAP} >= ${JD_START}
                 THEN 1 ELSE 0 END) AS late,
-           SUM(CASE WHEN start_time IS NOT NULL THEN 1 ELSE 0 END) AS asked,
-           SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS unaskable
+           SUM(CASE WHEN start_time IS NOT NULL
+                     AND ${JD_START} IS NOT NULL AND ${JD_CAP} IS NOT NULL
+                THEN 1 ELSE 0 END) AS asked,
+           SUM(CASE WHEN start_time IS NULL THEN 1 ELSE 0 END) AS no_start,
+           SUM(CASE WHEN start_time IS NOT NULL
+                     AND (${JD_START} IS NULL OR ${JD_CAP} IS NULL)
+                THEN 1 ELSE 0 END) AS unparsed,
+           COUNT(*) AS total
          FROM ${t} WHERE closing_odds IS NOT NULL AND ${pred}`))[0] || {};
-      say(`        ${label}: ${q.late} late of ${q.asked} asked`
-        + `  — ${q.unaskable} row(s) have no start_time and were NOT asked`);
+      say(`    ${t} / ${label}: ${q.late} late of ${q.asked} asked`
+        + `  — ${q.no_start} with no start_time (NOT asked), ${q.unparsed} unparseable, ${q.total} total`);
+      after += q.late ?? 0; comparable += q.asked ?? 0;
+      noStart += q.no_start ?? 0; unparsed += q.unparsed ?? 0;
     }
+  }
+
+  // ── 2b. CAN THE UNASKABLE BE ASKED? ──────────────────────────────────────
+  //
+  // A percentage over 879 while 532 sit unasked is not a percentage of the
+  // archive. This counts what could supply a kickoff for those rows.
+  //
+  // A TWIN IS PROVEN; AN ESPN ID IS NOT. The D.C. United pairs were resolved
+  // from the twin's start_time — same match, so the twin's kickoff IS the
+  // kickoff. Whether an espn_event_id can be turned into one without an API
+  // call is UNTESTED, so it is counted as an anchor a later task might resolve,
+  // not as a recoverable kickoff.
+  say(`\n--- 2b. of the rows with no start_time, what could supply one`);
+  for (const t of TABLES) {
+    const q = (await d1(
+      `SELECT COUNT(*) AS n,
+              SUM(CASE WHEN a.espn_event_id IS NOT NULL THEN 1 ELSE 0 END) AS has_espn,
+              SUM(CASE WHEN EXISTS (
+                    SELECT 1 FROM ${t} b
+                     WHERE b.date = a.date AND b.sport = a.sport
+                       AND b.home = a.home AND b.away = a.away
+                       AND b.id <> a.id AND b.start_time IS NOT NULL)
+                  THEN 1 ELSE 0 END) AS has_twin
+         FROM ${t} a
+        WHERE a.closing_odds IS NOT NULL AND a.start_time IS NULL`))[0] || {};
+    say(`    ${t}: ${q.n} unaskable — ${q.has_twin} have a same-slate twin carrying start_time (PROVEN route),`);
+    say(`        ${q.has_espn} carry an espn_event_id (an anchor, resolvability UNTESTED)`);
   }
 
   // ── 3. HOW LATE, IN MINUTES ──────────────────────────────────────────────
@@ -131,18 +170,20 @@ const TABLES = ['regular_season_games', 'postseason_games'];
   for (const t of TABLES) {
     const rows = await d1(
       `SELECT id, start_time, json_extract(closing_odds,'$.captured_at') cap,
-              CAST((julianday(replace(replace(json_extract(closing_odds,'$.captured_at'),'T',' '),'Z',''))
-                    - julianday(start_time)) * 1440 AS INT) late_min
+              CAST((${JD_CAP} - ${JD_START}) * 1440 AS INT) late_min
          FROM ${t}
         WHERE closing_odds IS NOT NULL AND start_time IS NOT NULL
-          AND json_extract(closing_odds,'$.captured_at') >= start_time
+          AND ${JD_CAP} IS NOT NULL AND ${JD_START} IS NOT NULL
+          AND ${JD_CAP} >= ${JD_START}
         ORDER BY late_min DESC LIMIT 10`);
     for (const r of rows) say(`    ${t}  ${r.id}  +${r.late_min} min  (start ${r.start_time}, cap ${r.cap})`);
     if (!rows.length) say(`    ${t}: none`);
   }
 
-  say(`\nTOTAL: ${after} of ${comparable} comparable closing lines were captured at or after kickoff.`);
-  say(`       ${noStart} closing line(s) sit on rows with no start_time and could not be asked.`);
+  say(`\nTOTAL: ${after} of ${comparable} askable closing lines were captured at or after kickoff.`);
+  say(`       ${noStart} sit on rows with no start_time and were NOT asked.`);
+  say(`       ${unparsed} have a start_time julianday() could not parse and were NOT asked.`);
+  say(`       Any percentage quoted from the first number alone excludes ${noStart + unparsed} rows.`);
   const p = `outbox/closing-odds-capture-timing-${new Date().toISOString().replace(/[:.]/g, '-')}.log`;
   writeFileSync(p, log.join('\n') + '\n');
   console.log(`\nwrote ${p}`);
