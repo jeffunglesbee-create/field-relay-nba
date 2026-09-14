@@ -76,7 +76,16 @@ zero disagreeing groups — not "the labels look right" (Rule 89).
 
 ## What is already handled
 
-The 82 collisions these rows produce are no longer escalated as odds hazards:
-`same_slate_pair_collisions_with_odds` narrows the watch condition to collisions
-the odds join can actually reach. The duplication remains visible in the raw
-count as archive hygiene. Nothing here waits on that.
+The 82 collisions these rows produce are no longer escalated as odds hazards.
+The watch condition is `same_slate_pair_collisions_odds_disagree`: a collision
+counts only when its two rows hold DIFFERENT odds (including one holding a line
+and the other none), compared on a digest of the blob rather than the
+`has_*_odds` booleans. These 82 pairs carry no odds on either side, so they
+agree and are inert. The duplication remains visible in the raw
+`same_slate_pair_collisions` count as archive hygiene. Nothing here waits on
+that.
+
+Superseded 2026-09-14: the earlier `same_slate_pair_collisions_with_odds` asked
+whether EITHER row carried a line, which is a condition that can never close —
+filling the 32 half-truth pairs removes the hazard and leaves both rows carrying
+odds. The relay still serves that key as an alias for one cycle.
