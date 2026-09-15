@@ -75,8 +75,30 @@ coverage. But **22 of 182** archived closing lines carry a `captured_at` that is
 not their own row's `snapshot_time`, all attributed to `odds_backfill`, with
 millisecond stamps decrementing across a batch — a `new Date()` loop. The
 fallback removed yesterday cannot be the source (`INSERT OR IGNORE` never
-updates a row, and at 10:00Z the match had not kicked off). Mechanism unknown
-and NOT claimed: `CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time`.
+updates a row, and at 10:00Z the match had not kicked off). `CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time` Task 0 settled it,
+and not from timestamps: **22 of 22 prices DIFFER, in different units.** The
+blob is American with no total from DraftKings; the history row is decimal with
+a total from BetRivers. `odds-backfill` carries the history row's bookmaker,
+converts its decimal price and copies its `over_under` — three fields, all
+wrong for these rows. **It cannot have written them.**
+
+`change_log` named it because the sync loop logged an insert after EVERY UPDATE:
+both games tables though a game lives in one, and both odds columns though the
+candidate predicate is "opening OR closing IS NULL". 44 entries for 22 games,
+exactly two each — the ratio was in the first measurement. The code carried a
+comment asserting the invariant it broke. **Fixed**: the candidate query now
+returns `game_table`, `opening_is_null` and `closing_is_null`; the loop writes
+one table and only empty columns. 16 assertions, 12 mutations, blocking in
+`deploy.yml`, and the edited SQL verified read-only against live D1 before its
+10:00 UTC cron (2 candidates, flags agree with the rows they describe).
+
+**Treat change_log counts with suspicion for anything before 2026-09-15.**
+Yesterday's "author of the 62" stands — it rests on a dated gap, and a phantom
+entry still carries a real timestamp — but count-based attribution should be
+re-derived.
+
+**The writer of the 22 is still unnamed** and is not guessed at:
+`CC-CMD-2026-09-15-name-the-draftkings-writer`.
 
 **Open:** 29 unaskable rows; the 219 values are unmodified and a relabel into
 `inplay_odds` is now optional; `CC-CMD-2026-09-14-cup-competitions-under-mls`
