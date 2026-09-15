@@ -1,0 +1,61 @@
+name: Targeted odds fill (DRY RUN by default)
+
+# Fills the sport-date pairs the 2026-09-15 registry work made reachable, and
+# nothing else. Chosen over a progress reset because odds_backfill_progress is
+# keyed by DATE while the gap is per SPORT-DATE: a date reset re-fetches every
+# mappable sport on that date. Measured 2026-09-15 — gap 151 pairs / 3,020
+# credits, date reset 293 pairs / 5,860, waste 2,840.
+#
+# apply=false is the default and spends NOTHING. Setting apply=true spends real
+# credits against a metered account (Rule 78) and writes to odds_history.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'false = dry run, no fetch and no write. true = SPEND CREDITS and write odds_history.'
+        type: boolean
+        required: true
+        default: false
+      max_pairs:
+        description: 'Cap the number of sport-date pairs. 0 = all. Use 1 first to buy the premise for 20 credits.'
+        required: false
+        default: '0'
+      budget:
+        description: 'Refuse to run if the plan exceeds this many credits.'
+        required: false
+        default: '3200'
+
+permissions:
+  contents: write
+
+jobs:
+  fill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fill
+        shell: bash
+        if: always()
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          set -o pipefail
+          node scripts/targeted-odds-fill.mjs \
+            --since=2026-05-09 \
+            --max-pairs=${{ inputs.max_pairs || '0' }} \
+            --budget=${{ inputs.budget || '3200' }} \
+            ${{ inputs.apply && '--apply' || '' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/targeted-odds-fill-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="targeted-odds-fill" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: targeted odds fill"
