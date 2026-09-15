@@ -30,6 +30,17 @@
 // hand when a marking run reduces it — never raised to make a red run green.
 // Raising it is the thing this file exists to make visible.
 //
+// THE BASELINE IS 874, AND THE ROAD TO IT IS THE POINT. The same population was
+// measured three times, each time through a narrower keyhole than the last:
+//
+//     22   rows the odds_history JOIN could reach — that table holds 184 rows
+//     58   rows matching source='draftkings' AND no total — the first examples
+//    874   rows carrying _oddsProof with a run-clock stamp — the writer itself
+//
+// The first two were descriptions of the examples in hand. Only the third is
+// the property that makes a row wrong. A count taken through a join or a
+// sample is a count of the keyhole.
+//
 // NO WRITE PATH. SELECT only, enforced.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { replayedRunClockSql } from '../src/odds-capture-provenance.js';
