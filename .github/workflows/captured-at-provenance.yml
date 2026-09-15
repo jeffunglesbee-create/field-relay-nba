@@ -36,6 +36,13 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/verify-odds-backfill-candidate-sql.mjs
 
+      # Evidence a repair would rest on. Read-only, no --apply exists.
+      - name: Would repairing captured_at change any verdict
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/verify-captured-at-repair.mjs
+
       - name: Commit the log
         if: always()
         run: |
