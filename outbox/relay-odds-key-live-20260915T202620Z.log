@@ -1,0 +1,14 @@
+=== relay odds key live probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T20:26:20.495Z ===
+
+  vendor passthrough  /odds/v4/sports
+      HTTP 200   (vendor key validity)
+      body: [{"key":"americanfootball_cfl","group":"American Football","title":"CFL","description":"Canadian Football League","active":true,"has_outrights":false},{"key":"americanfootball_ncaaf","group":"American
+
+  relay liveness      /health
+      HTTP 200   (is the worker serving at all)
+      body: RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-w
+
+── VERDICT ──
+  The worker's ODDS_API_KEY is VALID. Whatever caused the 20:10Z 401
+  has cleared or was transient; do not close the question on this alone —
+  a transient 401 and a fixed one look identical from one green probe.
