@@ -92,6 +92,30 @@ export function archiveSportToOddsKey(sport) {
   return ARCHIVE_SPORT_TO_ODDS_KEY[String(sport).toLowerCase()] || null;
 }
 
+// The historical backfill's lookup. It lived in .github/scripts/odds-backfill.js
+// as a private eight-entry table — the fourth registry this file exists to
+// prevent — which omitted every American football key and silently dropped 177
+// CFB games. See CC-CMD-2026-09-15-cfb-opening-odds-gap.
+//
+// It is ARCHIVE plus the two World Cup aliases, because ARCHIVE has no WC key
+// (WC lives in AMBIENT as `wc26`) and the private table did. Dropping them in
+// the swap would have been a silent regression of its own.
+//
+// Defined HERE rather than in the script so the script and its check import one
+// definition. A check that re-implements the thing it checks is a fifth copy.
+export const BACKFILL_EXTRA_SPORT_KEYS = {
+  'fifa world cup':      'soccer_fifa_world_cup',
+  'fifa world cup 2026': 'soccer_fifa_world_cup',
+};
+
+/** Archive `sport` value -> Odds API key, for the historical backfill. */
+export function backfillSportToOddsKey(sport) {
+  if (!sport) return null;
+  return archiveSportToOddsKey(sport)
+      || BACKFILL_EXTRA_SPORT_KEYS[String(sport).toLowerCase()]
+      || null;
+}
+
 /** ESPN cron {sport, league} -> Odds API key. */
 export function cronSportLeagueToOddsKey(sport, league) {
   return CRON_SPORT_LEAGUE_TO_ODDS_KEY[`${sport}|${league}`] || null;

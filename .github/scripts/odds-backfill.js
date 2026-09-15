@@ -26,6 +26,7 @@
 // closing line by the same rule. Relative because this script runs from a
 // checkout, not from the bundled worker.
 import { stampKickoff } from '../../src/odds-kickoff.js';
+import { backfillSportToOddsKey } from '../../src/odds-sport-keys.js';
 
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
 const ODDS_KEY    = process.env.ODDS_API_KEY;
@@ -45,16 +46,24 @@ if (!ODDS_KEY) {
 
 // ── Sport → Odds API key map ────────────────────────────────────────────────
 // Drives both the historical odds fetch and the brief-type skip list.
-const SPORT_TO_ODDS_KEY = {
-  'MLB':                    'baseball_mlb',
-  'NBA':                    'basketball_nba',
-  'NHL':                    'icehockey_nhl',
-  'WNBA':                   'basketball_wnba',
-  'FIFA World Cup':         'soccer_fifa_world_cup',
-  'FIFA World Cup 2026':    'soccer_fifa_world_cup',
-  'EPL':                    'soccer_epl',
-  'MLS':                    'soccer_usa_mls',
-};
+// This WAS an eight-entry private copy of a table that already exists. It is
+// gone deliberately: it is the fourth sport-key registry described in
+// CC-CMD-2026-09-15-cfb-opening-odds-gap, and because it carried no American
+// football key of any kind, every CFB game was dropped at the candidate filter
+// below before one fetch was issued — 177 of them dated 2026-09-01 alone.
+//
+// It also went unnoticed for 73 days precisely BECAUSE it was a copy:
+// src/odds-sport-keys.js calls itself "the one place a sport's Odds API key is
+// written down", and a prior session checked the three tables it documents,
+// found CFB present, and concluded the cause was downstream. It was upstream,
+// here. Adding ten entries would have fixed today and guaranteed the same
+// divergence the next time a sport is added to the canonical table.
+//
+// ARCHIVE carries no World Cup key (WC lives in AMBIENT as `wc26`), so the two
+// aliases the private map held are kept as an explicit extension rather than
+// silently lost in the swap.
+// The lookup itself is backfillSportToOddsKey() in that module, so this script
+// and scripts/check-backfill-registry-coverage.mjs test one definition.
 
 // Brief types that are NOT games — must be ignored when iterating /context/date.
 // (Spec lists narrative_context and standings_snapshot.)
@@ -275,7 +284,7 @@ async function processDate(isoDate, remainingBudgetRef) {
   // Skip rows whose sport doesn't map AND brief-style narrative/standings rows.
   const candidates = games.filter(g => {
     if (NON_GAME_BRIEF_TYPES.has(g.brief_type)) return false;
-    const key = SPORT_TO_ODDS_KEY[g.sport];
+    const key = backfillSportToOddsKey(g.sport);
     return !!key;
   });
   if (!candidates.length) {
@@ -287,7 +296,7 @@ async function processDate(isoDate, remainingBudgetRef) {
   // the whole sport-day at once (20 credits per sport).
   const bySport = new Map();
   for (const g of candidates) {
-    const k = SPORT_TO_ODDS_KEY[g.sport];
+    const k = backfillSportToOddsKey(g.sport);
     if (!bySport.has(k)) bySport.set(k, []);
     bySport.get(k).push(g);
   }

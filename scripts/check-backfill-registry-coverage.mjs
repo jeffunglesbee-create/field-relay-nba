@@ -1,32 +1,29 @@
-// The backfill has a FOURTH sport-key registry, and nothing knew.
+// The backfill HAD a fourth sport-key registry. This is what stops it returning.
 //
 // src/odds-sport-keys.js calls itself "the one place a sport's Odds API key is
-// written down" and documents three tables: ARCHIVE (16), CRON (6), AMBIENT (11).
-// `.github/scripts/odds-backfill.js` line 48 declares its own private
-// SPORT_TO_ODDS_KEY with EIGHT entries, imports none of them, and that table is
-// what decides which games the historical backfill will even attempt.
+// written down" and documented three tables: ARCHIVE (16), CRON (6), AMBIENT (11).
+// `.github/scripts/odds-backfill.js` carried a private eight-entry
+// SPORT_TO_ODDS_KEY, imported none of them, and that table decided what the
+// historical backfill would even attempt. It held no American football key of
+// any kind, so every CFB game was dropped at the candidate filter before a
+// single fetch — 177 of them dated 2026-09-01 alone.
 //
-// It contains no American football key of any kind — not cfb, not nfl, not cfl,
-// not ufl — while ARCHIVE carries all four. So every CFB game is dropped at the
-// candidate filter (odds-backfill.js:278) before a single fetch, which is why
-// 177 CFB games dated >= 2026-09-01 have no odds_history row at all.
-//
-// THE PART WORTH RECORDING: src/odds-sport-keys.js's own header says
+// THE PART WORTH RECORDING: src/odds-sport-keys.js's own header said
 //
 //   "MLS, Bundesliga, CFB and NFL resolve through these tables and still
 //    receive nothing; the cause is downstream of every table here."
 //
 // A prior session checked the three DOCUMENTED tables, found CFB present in
 // ARCHIVE, and concluded the cause must be downstream. It was upstream — in a
-// table that file does not mention, in a directory it does not look at. Reading
+// table that file did not mention, in a directory it did not look at. Reading
 // the registry that is written down is not the same as reading the registry
 // that runs (Rule 100: source versus copy).
 //
-// This check fails when the backfill's private table cannot serve a sport the
-// archive actually stores games for, so the divergence cannot widen silently.
-// It does NOT propose adding keys: each added sport costs 10 credits x region x
-// market per sport-date on a metered account (Rule 78), which is a budget
-// decision and not a script's to make.
+// The private table is now deleted and the lookup lives in the canonical module
+// as backfillSportToOddsKey(). This check asserts BOTH halves: that no private
+// registry has come back, and that the real function reaches every archive
+// sport. It asks the function rather than copying its table, because a copy
+// here would be the fifth registry.
 //
 // READ-ONLY.
 
@@ -51,35 +48,37 @@ async function d1(sql, params = []) {
   return Array.isArray(r) ? (r[0]?.results || r) : (r.results || []);
 }
 
-// Parsed from source rather than imported: odds-backfill.js is a script with
-// top-level side effects, so importing it would run the backfill.
-function backfillRegistry() {
+// The private table is GONE (see the file header). What this now guards is that
+// it does not come back: the script must carry no registry literal of its own
+// and must import the canonical lookup. Parsing source is the only option —
+// importing odds-backfill.js would run the backfill.
+function assertNoPrivateRegistry() {
   const src = fs.readFileSync('.github/scripts/odds-backfill.js', 'utf8');
-  const m = src.match(/const SPORT_TO_ODDS_KEY = \{([\s\S]*?)\n\};/);
-  if (!m) throw new Error('SPORT_TO_ODDS_KEY not found in odds-backfill.js — the anchor moved');
-  const out = {};
-  for (const line of m[1].split('\n')) {
-    const kv = line.match(/^\s*'([^']+)':\s*'([^']+)'/);
-    if (kv) out[kv[1]] = kv[2];
-  }
-  if (!Object.keys(out).length) throw new Error('parsed zero entries — refusing to report coverage');
-  return out;
+  const problems = [];
+  if (/const\s+SPORT_TO_ODDS_KEY\s*=\s*\{/.test(src))
+    problems.push('a private SPORT_TO_ODDS_KEY literal is back');
+  if (/const\s+\w*EXTRA_SPORT_KEYS\s*=\s*\{/.test(src))
+    problems.push('a local EXTRA_SPORT_KEYS literal is back (it belongs in src/odds-sport-keys.js)');
+  if (!/import\s*\{[^}]*backfillSportToOddsKey[^}]*\}\s*from\s*'\.\.\/\.\.\/src\/odds-sport-keys\.js'/.test(src))
+    problems.push('does not import backfillSportToOddsKey from the canonical module');
+  return problems;
 }
 
 (async () => {
   console.log(`=== backfill registry coverage  utc=${new Date().toISOString()} ===\n`);
 
-  const { ARCHIVE_SPORT_TO_ODDS_KEY: ARCHIVE } =
+  const { ARCHIVE_SPORT_TO_ODDS_KEY: ARCHIVE, backfillSportToOddsKey } =
     await import('../src/odds-sport-keys.js');
-  const BACKFILL = backfillRegistry();
 
-  console.log(`ARCHIVE_SPORT_TO_ODDS_KEY (src/odds-sport-keys.js) : ${Object.keys(ARCHIVE).length} keys`);
-  console.log(`SPORT_TO_ODDS_KEY (.github/scripts/odds-backfill.js): ${Object.keys(BACKFILL).length} keys\n`);
+  const structural = assertNoPrivateRegistry();
+  for (const p of structural) console.log(`FAIL  ${p}`);
+  console.log(`structural: ${structural.length ? structural.length + ' problem(s)' : 'no private registry, imports the canonical lookup'}\n`);
 
-  // The backfill keys on the archive's `sport` column verbatim and
-  // case-sensitively; ARCHIVE lowercases and looks up case-insensitively.
-  const bfLower = new Set(Object.keys(BACKFILL).map(k => k.toLowerCase()));
-  const missing = Object.keys(ARCHIVE).filter(k => !bfLower.has(k));
+  // Reachability is asked of the REAL function the backfill calls, not of a
+  // table this script copied. A copy here would be the fifth registry.
+  const reach = k => !!backfillSportToOddsKey(k);
+  const bfLower = new Set(Object.keys(ARCHIVE).filter(reach));
+  const missing = Object.keys(ARCHIVE).filter(k => !reach(k));
 
   console.log(`sports the archive has a key for that the backfill CANNOT fetch: ${missing.length}`);
   console.log(`  ${missing.join(', ')}\n`);
@@ -117,6 +116,15 @@ function backfillRegistry() {
   // same as a sport with 15.
   const PER_CALL_COST = 20;
   const strandedSports = missing.filter(k => ARCHIVE[k]);
+  if (!strandedSports.length) {
+    // Nothing stranded means nothing to cost. Said explicitly rather than
+    // printing a table of zeros, and short-circuited because `IN ()` is a
+    // syntax error, not an empty set.
+    console.log(`\n── PROPOSED OUTLAY ──`);
+    console.log(`  none: no archive sport is unreachable, so there is no gap to close.`);
+    console.log(`  The spend this replaces was measured at 67 credits/day before the`);
+    console.log(`  registry was unified (run 35017010215); that is now the live rate.`);
+  } else {
   const inList = strandedSports.map(() => '?').join(',');
 
   const [allTime] = await d1(
@@ -149,10 +157,12 @@ function backfillRegistry() {
   console.log(`  more pairs and is not counted. Backward-looking: a sport's future`);
   console.log(`  fixtures are not in the archive yet, so the run rate is a proxy`);
   console.log(`  from recent history, not a forecast.`);
+  }
 
-  if (missing.length) {
-    console.log(`\nFAIL — ${missing.length} archive sport(s) unreachable by the backfill.`);
+  if (missing.length || structural.length) {
+    console.log(`\nFAIL — ${missing.length} unreachable sport(s), ${structural.length} structural problem(s).`);
     process.exit(1);
   }
-  console.log(`\nPASS — the backfill can name every sport the archive has a key for.`);
+  console.log(`\nPASS — no private registry, and the backfill reaches all ${Object.keys(ARCHIVE).length} archive sports.`);
+  console.log(`       WC aliases: ${backfillSportToOddsKey('FIFA World Cup') || 'MISSING'}`);
 })().catch(e => { console.error(`ERROR ${e.message}`); process.exit(1); });

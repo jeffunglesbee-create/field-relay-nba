@@ -29,6 +29,9 @@ jobs:
 
       # pipefail: without it the step's exit code is the last tee's, which is
       # how run 35012890540 reported success over a script that exited 1.
+      - name: The registry guard holds, and can fail
+        run: node scripts/mutate-backfill-registry.mjs
+
       - name: Check
         shell: bash
         if: always()
