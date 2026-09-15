@@ -27,6 +27,15 @@ jobs:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-captured-at-provenance.mjs
 
+      # The edited candidate query fires unattended at 10:00 UTC. Run it
+      # read-only first, and check its three new columns against the rows they
+      # describe.
+      - name: The backfill's candidate SQL runs, and its flags are true
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/verify-odds-backfill-candidate-sql.mjs
+
       - name: Commit the log
         if: always()
         run: |
