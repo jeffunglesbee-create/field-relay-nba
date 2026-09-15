@@ -111,6 +111,20 @@ fail: no call feeding `closing_odds` omits `capturedAt`, at most one call omits
 it, and that one writes `opening_odds` — the live fetch, where the clock IS the
 capture moment. 7 assertions, 5 mutations, blocking.
 
+**The population is 874, not 58 or 22 — measured through three keyholes.**
+22 was what the `odds_history` join reached (184-row table); 58 was
+`source='draftkings'` AND no total, a description of the first examples; **874
+carry `_oddsProof` with a run-clock stamp, which is the writer's own
+signature.** The first watch run failed at 916-against-58 and was right to: it
+gated on the millisecond shape, and `AmbientDO._captureClosingOdds` stamps
+`new Date()` when the clock IS the capture. Gated now on `_oddsProof`, which
+only `extractOddsForGame` writes; predicate shared by executor and watch from
+`src/odds-capture-provenance.js`. Split is 874 replayed / **42** live — I
+assumed ~858 live, wrong by 20×. Newest gated stamp
+`2026-08-22T10:01:04.210Z`, eleven hours before `a1937eb`: all residue, nothing
+new since. Mark built, dry run plans 874, **write unauthorised**
+(`CC-CMD-2026-09-15-capture-provenance-mark`); daily watch at `40 11 * * *`.
+
 **Repair verified and REFUSED, on evidence.** Selecting by the writer's shape
 rather than the `odds_history` join finds **58 rows, not 22** — the join saw
 only the 184 games with a history row. Of those 58 the noon anchor changes the

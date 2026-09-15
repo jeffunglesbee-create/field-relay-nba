@@ -85,3 +85,51 @@ executor's selection beyond the measured shape. The `kickoffMark` state collapse
 (`verified: false, late_minutes: null` meaning both "late by an unknown amount"
 and "unreadable") is recorded in the previous CC-CMD and is **not** in scope
 here — changing it moves 1383 existing marks.
+
+---
+
+## Correction (2026-09-15, same day) — the population is 874
+
+Everything above that says **58** was measured through a keyhole. The same
+population, measured three times:
+
+| count | how it was selected | what it is |
+|---:|---|---|
+| 22 | rows the `odds_history` JOIN reached | that table holds 184 rows |
+| 58 | `source='draftkings'` AND no `total` | the first examples, described |
+| **874** | carrying `_oddsProof` with a run-clock stamp | **the writer's own signature** |
+
+The first two describe the examples in hand. Only the third is the property that
+makes a row wrong.
+
+**The first watch run failed, and was right to.** It counted every millisecond
+stamp — 916 — against a baseline of 58. The arithmetic was the smaller error;
+the design claim behind it ("the hazard is the shape") is false, because
+`AmbientDO._captureClosingOdds` stamps `new Date()` at the moment it captures a
+live price and there the clock **is** the measurement.
+
+The fix is a positive discriminator, not an exclusion list: `extractOddsForGame`
+writes `_oddsProof` on every blob and AmbientDO never does. The predicate now
+lives once, in `src/odds-capture-provenance.js`, shared by the executor and the
+watch — two copies drift, and a watch gating a different set than the executor
+marks can never reach zero.
+
+**The split is the opposite of what was assumed:** 874 replayed, **42** live —
+not the ~858 live I expected. Wrong by twenty times, in the direction that
+matters.
+
+**Newest stamp in the gated set: `2026-08-22T10:01:04.210Z`** — eleven hours
+before `a1937eb` fixed the path. All 874 are residue, and nothing has produced a
+new one since. Measured, not assumed.
+
+### Current state
+
+| | |
+|---|---:|
+| dry run plans | **874** |
+| already marked | 0 |
+| kickoff not decidable from the window | **1** (`EPL_2026-08-22_hull_manunited`) |
+| baseline committed | 874 |
+
+The write remains **unauthorised**. The workflow applies only on the literal
+input `apply`.
