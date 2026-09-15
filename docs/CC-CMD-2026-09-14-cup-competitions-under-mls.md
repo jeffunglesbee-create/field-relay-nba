@@ -121,6 +121,17 @@ unmatched.
 fetched and discarded. That looked like a fix with no D1 write at all — until
 the vendor was asked. For these five it buys nothing.
 
+**A correction to how I described `league` while reframing this.** I wrote that
+"the archive already knows which competition each row belongs to — `league`
+holds it". True for these five; false as a general statement. The watch's first
+run shows what `league` actually holds across 52 disagreeing pairs:
+`Premier League – Matchweek 36` under EPL, `MLB – 2026 Season` under MLB,
+`IPL 2026 — Match 52` under IPL. It is a **display string**, which this repo
+already knew — HANDOFF records "game.league is a display string" as a fixed
+client defect. 51 of the 52 pairs map to no odds key for that reason, not
+because a competition is missing. The watch gates only on a `league` that maps
+to a key, so it is unaffected; the sentence was still too strong.
+
 It is still a real hazard **for the next competition**: one the vendor DOES
 cover, landing with a sport label pointing elsewhere, would be starved exactly
 the same way and nothing would say so. `scripts/watch-league-outranks-sport.mjs`
