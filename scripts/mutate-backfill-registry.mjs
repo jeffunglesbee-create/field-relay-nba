@@ -81,9 +81,14 @@ const MUTATIONS = [
     expect: 'CFB no longer reachable', kind: 'reach', sport: 'CFB' },
 
   { file: KEYS, name: 'B5  the World Cup aliases are lost in the swap',
-    anchor: "export const BACKFILL_EXTRA_SPORT_KEYS = {\n  'fifa world cup':      'soccer_fifa_world_cup',\n  'fifa world cup 2026': 'soccer_fifa_world_cup',\n};",
-    replace: 'export const BACKFILL_EXTRA_SPORT_KEYS = {};',
+    anchor: "  'fifa world cup':      'soccer_fifa_world_cup',\n  'fifa world cup 2026': 'soccer_fifa_world_cup',",
+    replace: '',
     expect: 'FIFA World Cup no longer reachable', kind: 'reach', sport: 'FIFA World Cup' },
+
+  { file: KEYS, name: 'B7  UCL is dropped from the backfill extras',
+    anchor: "  'uefa champions league': 'soccer_uefa_champs_league',\n",
+    replace: '',
+    expect: 'UEFA Champions League no longer reachable', kind: 'reach', sport: 'UEFA Champions League' },
 
   { file: KEYS, name: 'B6  the lookup stops being case-insensitive',
     anchor: "  return ARCHIVE_SPORT_TO_ODDS_KEY[String(sport).toLowerCase()] || null;",

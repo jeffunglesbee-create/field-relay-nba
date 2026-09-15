@@ -106,6 +106,26 @@ export function archiveSportToOddsKey(sport) {
 export const BACKFILL_EXTRA_SPORT_KEYS = {
   'fifa world cup':      'soccer_fifa_world_cup',
   'fifa world cup 2026': 'soccer_fifa_world_cup',
+  // Added 2026-09-15. Both verified present at the vendor by exact title
+  // equality against all 52 soccer keys (run 35019678398), not by substring:
+  //   soccer_uefa_champs_league   "UEFA Champions League"   active
+  //   soccer_england_efl_cup      "EFL Cup"                 active
+  // 29 archived rows dated >= 2026-09-01 sit behind them (18 UCL, 11 EFL Cup).
+  //
+  // HERE AND NOT IN ARCHIVE, DELIBERATELY. ARCHIVE is read by three live worker
+  // paths — index.js:6617, :6742, :12995 and wp-resolver.js:550 — and :12995 is
+  // a per-game closing-odds capture that spends credit the moment a sport
+  // resolves. Promoting these two there turns that on for UCL and EFL Cup, which
+  // is live spend nobody has measured or approved. It would also break
+  // check-odds-key-equivalence.mjs:164, which asserts the ambient/archive gap is
+  // exactly six BECAUSE closing it is new API spend gated by CC-CMD-2026-09-11
+  // Task 2. That assertion is a decision, not an accident, and this change is
+  // scoped to stay clear of it.
+  //
+  // The backfill is the only consumer of this table, so the effect is exactly
+  // what was approved: the historical backfill can now fetch these two.
+  'uefa champions league': 'soccer_uefa_champs_league',
+  'efl cup':               'soccer_england_efl_cup',
 };
 
 /** Archive `sport` value -> Odds API key, for the historical backfill. */

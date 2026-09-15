@@ -31,6 +31,18 @@ const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.w
 const GATE = process.env.RELAY_SHARED_SECRET;
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const log = [];
+// Every exit path writes the artifact. The --names path used to `return` before
+// the writer at the bottom of the IIFE and committed nothing at all, so a
+// correct verdict reached only the job log (run 35019678398). An answer that
+// is not committed did not happen.
+let _wrote = false;
+function writeLog() {
+  if (_wrote) return;
+  _wrote = true;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  writeFileSync(`outbox/cup-competitions-odds-keys-${stamp}.log`, log.join('\n') + '\n');
+  console.log(`\nwrote outbox/cup-competitions-odds-keys-${stamp}.log`);
+}
 const say = (s) => { console.log(s); log.push(s); };
 
 async function d1(sql, params = []) {
@@ -68,6 +80,7 @@ async function report(groups, NAMES = []) {
     say(`    FAIL — the vendor was never reached, so every verdict above about`);
     say(`    what the vendor does or does not offer is UNDETERMINED, not negative.`);
     process.exitCode = 1;
+    writeLog();
     return;
   }
   else {
@@ -134,6 +147,12 @@ async function report(groups, NAMES = []) {
     say(`\n--- 1. SKIPPED: --names supplied, so the archive is not queried.`);
     say(`    asking about ${NAMES.length} competition(s): ${NAMES.join(', ')}`);
     await report(groups, NAMES);
+    // NOT `return` — the writeFileSync that commits this log lives at the end
+    // of this IIFE, and returning early skipped it. Run 35019678398 produced a
+    // correct verdict and committed NOTHING, so the watcher waiting on the
+    // artifact sat silent and the answer had to be read out of job logs that
+    // expire. Same silent-artifact failure as the 401 run, different cause.
+    writeLog();
     return;
   }
 
@@ -162,7 +181,5 @@ async function report(groups, NAMES = []) {
   say(`    Step 3 lists at most 40 of the vendor's soccer keys; the per-league`);
   say(`    verdicts above are matched against all ${'of them'}.`);
 
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  writeFileSync(`outbox/cup-competitions-odds-keys-${stamp}.log`, log.join('\n') + '\n');
-  console.log(`\nwrote outbox/cup-competitions-odds-keys-${stamp}.log`);
+  writeLog();
 })().catch(e => { console.error('FAIL:', e.message); process.exit(1); });
