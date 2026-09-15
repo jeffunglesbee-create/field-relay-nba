@@ -1,0 +1,49 @@
+=== odds_history snapshot_time  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T13:00:36.917Z ===
+
+--- 0. odds_history as a whole
+    rows                      : 184
+    distinct game_id          : 184
+    snapshot_time IS NULL     : 0
+    snapshot_time = '' (P3)   : 0
+
+--- 1. what the writer reaches (P1)
+    candidate games (a NULL odds column) : 2
+    of those, dated before 2026-09-15  : 2   <- only these can be skipped
+
+--- 2. per past candidate game (P2)
+    all have a snapshot_time               2 game(s), 2 row(s)
+
+--- 3. games where NO odds_history row carries a snapshot_time
+    0 total:
+
+--- 4. is the archive's captured_at the odds_history snapshot_time?
+    archived closing lines with an odds_history row : 182
+    captured_at == snapshot_time                     : 160
+    captured_at <> snapshot_time                     : 22
+      MLS_2026-08-22_sanjose_minnesota
+        blob 2026-08-22T10:00:52.499Z  vs  history 2026-08-22T23:54:46Z  (source draftkings)
+      MLS_2026-08-22_sandiego_colorado
+        blob 2026-08-22T10:00:51.572Z  vs  history 2026-08-22T23:54:46Z  (source draftkings)
+      MLS_2026-08-22_vancouver_dallas
+        blob 2026-08-22T10:00:49.936Z  vs  history 2026-08-22T23:54:46Z  (source draftkings)
+      MLS_2026-08-22_austin_philadelphia
+        blob 2026-08-22T10:00:47.349Z  vs  history 2026-08-22T23:54:46Z  (source draftkings)
+      MLS_2026-08-22_miami_toronto
+        blob 2026-08-22T10:00:44.829Z  vs  history 2026-08-22T23:55:14Z  (source draftkings)
+      MLS_2026-08-22_cincinnati_seattle
+        blob 2026-08-22T10:00:43.920Z  vs  history 2026-08-22T23:55:16Z  (source draftkings)
+      MLS_2026-08-22_charlotte_dcunited
+        blob 2026-08-22T10:00:43.018Z  vs  history 2026-08-22T23:55:16Z  (source draftkings)
+      MLS_2026-08-22_cfmontral_lagalaxy
+        blob 2026-08-22T10:00:42.181Z  vs  history 2026-08-22T23:55:16Z  (source draftkings)
+      MLS_2026-08-19_portland_sandiego
+        blob 2026-08-19T10:01:14.865Z  vs  history 2026-08-19T23:55:33Z  (source draftkings)
+      MLS_2026-08-19_lagalaxy_sanjose
+        blob 2026-08-19T10:01:14.202Z  vs  history 2026-08-19T23:55:33Z  (source draftkings)
+
+--- 5. who wrote the rows whose captured_at is not the snapshot_time
+    odds_backfill              44 write(s)   2026-08-16 10:26:04 .. 2026-08-23 10:26:43
+
+COVERAGE: every odds_history row was counted in step 0; steps 1-3 are
+    restricted to the writer's own candidate predicate, transcribed above, and
+    to games dated before 2026-09-15. Step 3 lists at most 25 of its group.
