@@ -62,8 +62,11 @@ const cols = async t => {
   }
   console.log();
 
-  const need = { regular_season_games: ['opening_odds', 'game_date'],
-                 postseason_games:     ['opening_odds', 'game_date'] };
+  // `date`, not `game_date`. Run 35013069682 refused to report a count because
+  // this script had guessed the latter; both tables call it `date`. The guard
+  // turning that into a red run rather than a zero is the reason it is here.
+  const need = { regular_season_games: ['opening_odds', 'date'],
+                 postseason_games:     ['opening_odds', 'date'] };
   let bad = 0;
   for (const [t, ns] of Object.entries(need)) {
     for (const n of ns) {
@@ -91,7 +94,7 @@ const cols = async t => {
                         AND NOT EXISTS (SELECT 1 FROM odds_history h WHERE h.${hKey} = g.${gKey})
                        THEN 1 ELSE 0 END) AS nothing_to_recover
          FROM ${t} g
-        WHERE g.game_date >= ?`, [SINCE]);
+        WHERE g.date >= ?`, [SINCE]);
 
     console.log(`${t}`);
     console.log(`    games dated >= ${SINCE}          : ${row.games}`);
