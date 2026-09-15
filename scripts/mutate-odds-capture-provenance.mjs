@@ -79,6 +79,33 @@ const MUTATIONS = [
     replace: "    return date ? `${date}T12:00:00Z` : null;",
     expect: 'a non-ISO date yields no window' },
 
+  // THE REFINEMENT, REVERTED. The window snaps back to the anchor and the one
+  // row that the run clock makes decidable goes undecidable again.
+  { name: 'P15  the window ignores the run clock',
+    anchor: "    return c < a ? capturedAt : asked;",
+    replace: "    return asked;",
+    expect: 'a run clock BEFORE the anchor closes the window early' },
+
+  // Bound in the wrong direction: a LATE run clock would widen the window past
+  // the snapshot the call actually asked for.
+  { name: 'P16  the clock widens the window instead of narrowing it',
+    anchor: "    return c < a ? capturedAt : asked;",
+    replace: "    return c > a ? capturedAt : asked;",
+    expect: 'a run clock after the anchor leaves the anchor as the end' },
+
+  // Rule 99: an unreadable stamp throws the anchor away too.
+  { name: 'P17  an unreadable stamp discards the anchor',
+    anchor: "    if (!Number.isFinite(c)) return asked;",
+    replace: "    if (!Number.isFinite(c)) return null;",
+    expect: 'an unreadable stamp falls back to the anchor rather than throwing it away' },
+
+  // The mark stops carrying what was asked for, so a reader cannot tell which
+  // bound closed the window.
+  { name: 'P18  the asked-for snapshot is dropped from the mark',
+    anchor: "        window_asked,",
+    replace: "",
+    expect: 'the mark carries what the call asked for' },
+
   // Idempotence broken: a re-run rewrites every row it already marked.
   { name: 'P11  a marked blob stops reporting itself marked',
     anchor: "    return !!(odds && typeof odds === 'object' && odds._capture\n              && odds._capture.measured === false);",

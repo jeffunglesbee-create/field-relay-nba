@@ -10,7 +10,7 @@
 //
 // Rule 90: mutation-tested by scripts/mutate-odds-capture-provenance.mjs.
 import { captureMark, markCapture, hasCaptureMark, replayedRunClockSql,
-         isRunClockStamp, kickoffDecidable, windowEndFor } from '../src/odds-capture-provenance.js';
+         isRunClockStamp, kickoffDecidable, windowEndFor, windowAskedFor } from '../src/odds-capture-provenance.js';
 import { readFileSync } from 'node:fs';
 
 let fails = 0, n = 0;
@@ -35,10 +35,22 @@ ok(() => isRunClockStamp('2026-08-22T10:00:52.4Z') === false,
 ok(() => isRunClockStamp('2026-08-22T10:00:52.499Z extra') === false,
    'a stamp with trailing text is not matched');
 
-// --- the window
-ok(() => windowEndFor('2026-08-22') === '2026-08-22T12:00:00Z', 'the window ends at noon UTC');
-ok(() => windowEndFor(null) === null, 'no date yields no window');
-ok(() => windowEndFor('22-08-2026') === null, 'a non-ISO date yields no window');
+// --- the window asked for
+ok(() => windowAskedFor('2026-08-22') === '2026-08-22T12:00:00Z', 'the call asks for noon UTC');
+ok(() => windowAskedFor(null) === null, 'no date yields no window');
+ok(() => windowAskedFor('22-08-2026') === null, 'a non-ISO date yields no window');
+
+// --- where the window actually ends: min(anchor, run clock)
+ok(() => windowEndFor('2026-08-22', '2026-08-22T10:00:37.362Z') === '2026-08-22T10:00:37.362Z',
+   'a run clock BEFORE the anchor closes the window early');
+ok(() => windowEndFor('2026-08-22', '2026-08-22T14:00:00.000Z') === '2026-08-22T12:00:00Z',
+   'a run clock after the anchor leaves the anchor as the end');
+ok(() => windowEndFor('2026-08-22', null) === '2026-08-22T12:00:00Z',
+   'an unreadable stamp falls back to the anchor rather than throwing it away');
+ok(() => windowEndFor('2026-08-22', 'not a date') === '2026-08-22T12:00:00Z',
+   'an unparseable stamp falls back to the anchor');
+ok(() => windowEndFor(null, '2026-08-22T10:00:00.000Z') === null,
+   'no date still yields no window, whatever the clock says');
 
 // --- decidability, which is the field this module exists for
 ok(() => kickoffDecidable('2026-08-22T12:00:00Z', '2026-08-22T23:55Z') === true,
@@ -63,11 +75,22 @@ ok(() => captureMark(null, '2026-08-22', 'x') === null, 'no blob, no mark');
 const m = captureMark(runClock, '2026-08-22', '2026-08-22T23:55Z');
 ok(() => m.measured === false, 'the mark says the stamp is not a measurement');
 ok(() => m.stored_is === 'run-clock', 'the mark says what the stamp actually is');
-ok(() => m.window_end === '2026-08-22T12:00:00Z', 'the mark carries the window end');
+ok(() => m.window_asked === '2026-08-22T12:00:00Z', 'the mark carries what the call asked for');
+ok(() => m.window_end === '2026-08-22T10:00:52.499Z',
+   'the mark carries the EFFECTIVE end, bounded by the run clock');
 ok(() => m.kickoff_decidable === true, 'a late kickoff is decidable');
-const undec = captureMark(runClock, '2026-08-22', '2026-08-22T11:30Z');
-ok(() => undec.kickoff_decidable === false,
-   'the EPL case — kickoff inside the window — is marked undecidable');
+
+// THE ROW THAT CHANGED. Against the noon anchor this kickoff is undecidable —
+// it was the one row in 874 that was. Against the run clock, which bounds the
+// window at 10:00, it is decidable an hour and a half before kickoff.
+const epl = captureMark({ captured_at: '2026-08-22T10:00:37.362Z' }, '2026-08-22', '2026-08-22T11:30Z');
+ok(() => epl.window_end === '2026-08-22T10:00:37.362Z',
+   'the EPL row window closes at the run clock, not at noon');
+ok(() => epl.kickoff_decidable === true,
+   'the EPL row is decidable once the run clock is read as an upper bound');
+const trulyUndec = captureMark({ captured_at: '2026-08-22T14:00:00.000Z' }, '2026-08-22', '2026-08-22T11:30Z');
+ok(() => trulyUndec.kickoff_decidable === false,
+   'a kickoff inside a window the clock does not shorten stays undecidable');
 
 // --- applying it
 const out = markCapture(runClock, '2026-08-22', '2026-08-22T23:55Z');
@@ -77,6 +100,17 @@ ok(() => JSON.stringify(out._kickoff) === JSON.stringify(runClock._kickoff),
 ok(() => !('_capture' in runClock), 'the input blob is not mutated');
 ok(() => out.captured_at === runClock.captured_at,
    'captured_at is NOT repaired — a window is not a measurement');
+// THE FIXTURE MATTERS, and the first version of this assertion was blind.
+// With a run clock BEFORE noon the window end EQUALS captured_at, so a marker
+// that overwrites one with the other is a no-op and the assertion above passes
+// on broken code — caught by mutation P7 coming back NOT CAUGHT. This fixture
+// stamps after noon, where window_end is the anchor and the two differ.
+const afterNoon = { captured_at: '2026-08-22T14:00:00.000Z', source: 'draftkings' };
+const outLate = markCapture(afterNoon, '2026-08-22', '2026-08-22T23:55Z');
+ok(() => outLate._capture.window_end !== outLate.captured_at,
+   'the fixture actually distinguishes captured_at from window_end');
+ok(() => outLate.captured_at === '2026-08-22T14:00:00.000Z',
+   'captured_at is NOT repaired even when it differs from the window end');
 ok(() => markCapture(vendor, '2026-08-22', 'x') === vendor,
    'a blob needing no mark comes back unchanged, so a re-run writes nothing');
 

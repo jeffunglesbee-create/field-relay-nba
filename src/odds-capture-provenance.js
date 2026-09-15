@@ -50,9 +50,42 @@ export function replayedRunClockSql(col = 'closing_odds') {
          + `           AND json_extract(${col},'$._oddsProof') IS NOT NULL`;
 }
 
-/** The snapshot anchor the historical odds route asks for, per src/index.js. */
-export function windowEndFor(date) {
+/**
+ * The snapshot the historical odds route ASKS for — `${isoDate}T12:00:00Z`,
+ * unchanged since 60596e4 (2026-06-16), which predates every row in this
+ * population.
+ */
+export function windowAskedFor(date) {
     return /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? `${date}T12:00:00Z` : null;
+}
+
+/**
+ * WHERE THE WINDOW ACTUALLY ENDS, which is earlier than the anchor more often
+ * than not — and this is the part that was nearly written off.
+ *
+ * The run clock was treated as pure noise: the wrong answer to "when was this
+ * captured". It is not noise. It is an UPPER BOUND. The vendor serves a
+ * historical snapshot at or before the requested timestamp, and the worker
+ * stamps its own clock after receiving the response — so the capture cannot be
+ * later than the stamp. And when the worker ran BEFORE noon on the match's own
+ * date, the noon snapshot had not happened yet; the vendor can only have served
+ * something up to the moment of the request.
+ *
+ *     window_end = min(anchor, run clock)
+ *
+ * MEASURED CONSEQUENCE: EPL_2026-08-22_hull_manunited, kickoff 11:30Z, stamped
+ * 10:00:37Z. Against the noon anchor its kickoff is undecidable — the one row
+ * in 874 that was. Against the run clock the whole window closes at 10:00:37,
+ * an hour and a half before kickoff, and the row is decidable after all.
+ *
+ * The discarded value answered the question the replacement could not.
+ */
+export function windowEndFor(date, capturedAt) {
+    const asked = windowAskedFor(date);
+    if (!asked) return null;
+    const a = Date.parse(asked), c = Date.parse(capturedAt ?? '');
+    if (!Number.isFinite(c)) return asked;
+    return c < a ? capturedAt : asked;
 }
 
 /**
@@ -85,10 +118,15 @@ export function kickoffDecidable(windowEnd, startTime) {
 export function captureMark(odds, date, startTime) {
     if (!odds || typeof odds !== 'object') return null;
     if (!isRunClockStamp(odds.captured_at)) return null;   // nothing to say
-    const window_end = windowEndFor(date);
+    const window_asked = windowAskedFor(date);
+    const window_end = windowEndFor(date, odds.captured_at);
     return {
         measured: false,
         stored_is: 'run-clock',
+        // Both are kept: what the call asked for, and where the window really
+        // closed. A reader that sees only the effective end cannot tell whether
+        // the run clock or the anchor bounded it.
+        window_asked,
         window_end,
         kickoff_decidable: kickoffDecidable(window_end, startTime),
     };
