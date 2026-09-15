@@ -1,0 +1,46 @@
+name: Progress reset cost (read-only)
+
+# odds_backfill_progress is keyed by DATE; the gap that the 2026-09-15 registry
+# work closed is per SPORT-DATE. processDate() has no per-game "already fetched"
+# skip, so deleting one progress row re-fetches every mappable sport on that
+# date. This prices that, against the gap it actually closes.
+#
+# READ-ONLY. The script refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Earliest game date to consider. Default 2026-05-09, the archive start.'
+        required: false
+        default: '2026-05-09'
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # pipefail: without it the step's exit code is the last tee's, which is how
+      # run 35012890540 reported success over a script that exited 1.
+      - name: Measure
+        shell: bash
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/measure-progress-reset-cost.mjs --since=${{ inputs.since || '2026-05-09' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/progress-reset-cost-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="progress-reset-cost" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: progress reset cost"
