@@ -1,0 +1,42 @@
+name: Relay odds key live probe (read-only)
+
+# ${RELAY}/odds/v4/sports returned 200 with 86 sports at 17:23Z and 401 at
+# 20:10Z on 2026-09-15, from a byte-identical call. The Odds API key was
+# rotated in between, and it lives in two separate stores — the GitHub Actions
+# secret (proven good, run 35012664679) and the Cloudflare Worker secret.
+#
+# Separates "the vendor rejected the relay's key" from "the relay refused this
+# caller", because those want opposite fixes.
+#
+# /v4/sports costs no credit. READ-ONLY.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Probe
+        shell: bash
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/probe-relay-odds-key-live.mjs 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/relay-odds-key-live-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="relay-odds-key-live" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: relay odds key live probe"
