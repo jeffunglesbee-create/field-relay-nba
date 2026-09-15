@@ -1,0 +1,35 @@
+name: Cup competitions vs odds keys (read-only)
+
+# CC-CMD-2026-09-14-cup-competitions-under-mls Task 0.
+#
+# 243 postseason rows in five cup competitions carry sport='MLS' and have never
+# held a line. Asks three things: what the archive actually holds today, what
+# our own map says when asked with the LEAGUE name, and what the vendor offers.
+#
+# /v4/sports costs no credit — oddsBillablePath excludes it in src/index.js.
+#
+# READ-ONLY. The probe refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-cup-competitions-odds-keys.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="cup-competitions-odds-keys" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: cup competitions vs odds keys"
