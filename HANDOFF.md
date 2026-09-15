@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## LIVE DEFECT — the odds backfill has been dead since at least 2026-09-01
+
+`odds-backfill.yml` has failed **every scheduled run**, 2026-09-01 → 2026-09-15,
+runs 84–98. `ODDS_API_KEY` resolves to an **empty string** and the script exits
+at its first guard. Cause confirmed at both ends of the window, not inferred
+across it. **Onset not established** — run 83 and earlier unexamined. **Blocked
+on the owner: it is a secret.** `CC-CMD-2026-09-15-odds-backfill-missing-api-key`.
+
+Consequence for today's work: the candidate-SQL change shipped 2026-09-15 is
+verified read-only but **has never run in production** and will not until the
+secret is set. I said it "fires unattended at 10:00 UTC"; that was wrong.
+
+Fifteen days passed unnoticed because every check here asks about **one workflow
+at a time** — a cron dying at its first guard leaves no artifact and no diff.
+`scripts/watch-silently-dead-crons.mjs` (daily, `15 12 * * *`) now asks across
+every active workflow whether any is failing its last 3 scheduled runs.
+
+Not claimed: that this explains the odds gaps closed today. The 874 run-clock
+rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
+**candidate** for opening lines missing on games dated from 2026-09-01, and that
+is unmeasured.
+
 ## SESSION CLOSE-OUT — 2026-09-14 (a closing line that was not one)
 
 **HEAD:** `d30138f` → `4ab995a` · main throughout · 0 PRs · deploy 960 green
