@@ -111,10 +111,26 @@ fail: no call feeding `closing_odds` omits `capturedAt`, at most one call omits
 it, and that one writes `opening_odds` — the live fetch, where the clock IS the
 capture moment. 7 assertions, 5 mutations, blocking.
 
-**The 22 values are NOT repaired.** `servedAt` is unrecoverable weeks later; only
-the noon anchor is derivable. A repair is a D1 write and the owner's call.
-Sampled rows are stamped ~10:00Z against 23:5x kickoffs so `_kickoff.verified`
-is unchanged; whether that holds for all 22 is unmeasured.
+**Repair verified and REFUSED, on evidence.** Selecting by the writer's shape
+rather than the `odds_history` join finds **58 rows, not 22** — the join saw
+only the 184 games with a history row. Of those 58 the noon anchor changes the
+kickoff verdict for **1**: `EPL_2026-08-22_hull_manunited`, kickoff 11:30Z,
+stored 10:00:37 (verified true) against anchor 12:00 (verified false). The
+endpoint serves the snapshot at-or-before noon, so the true capture is somewhere
+in a window ending at 12:00 and this match started at 11:30 — **neither value is
+supportable**, and `servedAt` is gone. For the other 57 the repair changes a
+timestamp no consumer reads into a different timestamp no consumer reads.
+
+A repair would also have to rewrite `_kickoff` in the same statement:
+`stampKickoff` is `captured_at`'s only reader and its output is already on the
+row. **The honest repair is a mark saying the timestamp is not a measurement,
+not a better timestamp** — still a D1 write to 58 rows, unauthorised, not
+started.
+
+**Surfaced, not fixed:** `kickoffMark` returns `{verified: false,
+late_minutes: null}` for both "late by an unknown amount" and "unreadable".
+Different states; the EPL row needs the second. Changing it moves 1383 existing
+marks (`src/odds-kickoff.js`).
 
 **Open:** 29 unaskable rows; the 219 values are unmodified and a relabel into
 `inplay_odds` is now optional; `CC-CMD-2026-09-14-cup-competitions-under-mls`

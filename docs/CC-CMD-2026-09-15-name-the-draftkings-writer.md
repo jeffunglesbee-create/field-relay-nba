@@ -110,3 +110,66 @@ call, not this task's.
 the sampled rows:** every sampled blob is stamped ~10:00Z against a 23:5x
 kickoff, so `_kickoff.verified` is `true` either way. Whether that holds for all
 22 is unmeasured — a repair proposal should measure it first.
+
+---
+
+## Repair verification (2026-09-15, `outbox/captured-at-repair-verify-*.log`)
+
+**Verdict: do not run the anchor repair.** Read-only; nothing was written.
+
+### 1. The population is 58, not 22
+
+The 22 were everything the `odds_history` join could see — and `odds_history`
+holds only 184 rows. Selecting by the **shape** that identified the writer
+(`source: draftkings` + no `total` + millisecond `captured_at`) finds **58**.
+The join was a keyhole.
+
+### 2. The anchor repair buys nothing for 57 rows and breaks the 58th
+
+| | rows |
+|---|---:|
+| kickoff verdict unchanged by the anchor | **57** |
+| **verdict flips** | **1** |
+| `late_minutes` changes | 1 |
+| no `start_time` to judge against | 0 |
+
+```
+EPL_2026-08-22_hull_manunited
+  kickoff  2026-08-22T11:30Z
+  stored   2026-08-22T10:00:37.362Z  -> verified true
+  anchor   2026-08-22T12:00:00Z      -> verified false
+```
+
+For 57 rows the repair changes a timestamp no consumer reads into a different
+timestamp no consumer reads. For this one it changes a verdict — and **neither
+value is supportable**. The historical endpoint is asked for `<date>T12:00:00Z`
+and serves the snapshot at-or-before it, so the true capture is somewhere in a
+window ending at noon. This match kicked off at 11:30. The capture could be
+before or after that, and `servedAt` — the one value that would say — is gone.
+
+The correct answer for that row is **unknown**, which is neither of the two
+values on offer. A repair that writes `false` asserts a fact as surely as the
+run-time stamp that currently asserts `true`.
+
+### 3. A repair must write two fields or none
+
+`stampKickoff` is `captured_at`'s only reader, and its output `_kickoff` is
+already materialised on every row. Rewriting `captured_at` alone leaves the row
+asserting two different capture times.
+
+### What this leaves
+
+Nothing is broken today: 57 of 58 verdicts are unaffected, and the one that
+moves is already carrying the more plausible of two unprovable values. The
+defect that produced them was fixed on 2026-08-22 and is now gated by
+`scripts/check-captured-at-explicit.mjs`.
+
+**The honest repair is not a better timestamp — it is a mark saying the
+timestamp is not a measurement.** That is still a D1 write to 58 rows and needs
+its own authorisation and its own done condition. Not started here.
+
+**One thing this surfaced and did not fix:** `kickoffMark` returns
+`{ verified: false, late_minutes: null }` both for "captured after kickoff, by
+an unknown amount" and for "unreadable". Those are different states and a row
+like the EPL one above needs the second. Recorded, not changed —
+`src/odds-kickoff.js`, and changing it moves 1383 existing marks.
