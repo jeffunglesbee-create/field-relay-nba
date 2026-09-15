@@ -167,6 +167,31 @@ const one = (rows) => Object.values(rows[0] || {})[0] ?? null;
   for (const r of drift)
     say(`      ${r.id}\n        blob ${r.captured_at}  vs  history ${r.snapshot_time}  (source ${r.source})`);
 
+  // --- 5. WHO wrote the 22, and did the history row exist when they did?
+  //
+  // The blobs carry 10:00:4x.xxxZ with milliseconds, decrementing by fractions
+  // of a second across games in one batch — a loop calling new Date(). Their
+  // odds_history rows carry 23:5x:xxZ the same evening, LATER than the blob.
+  // Two readings fit: the history row had no snapshot_time at write time and
+  // got one later, or a different writer produced the blob entirely. change_log
+  // names the writer; guessing between them from the timestamps does not.
+  const authors = await d1(
+    `SELECT cl.source, COUNT(*) AS writes, MIN(cl.ts) AS first_ts, MAX(cl.ts) AS last_ts
+       FROM change_log cl
+      WHERE cl.field = 'closing_odds'
+        AND cl.game_id IN (
+          SELECT g.id
+            FROM (SELECT id, closing_odds FROM regular_season_games WHERE closing_odds IS NOT NULL
+                  UNION ALL
+                  SELECT id, closing_odds FROM postseason_games     WHERE closing_odds IS NOT NULL) g
+            JOIN odds_history oh ON oh.game_id = g.id
+           WHERE json_extract(g.closing_odds, '$.captured_at') <> oh.snapshot_time)
+      GROUP BY cl.source ORDER BY writes DESC`);
+  say(`\n--- 5. who wrote the rows whose captured_at is not the snapshot_time`);
+  if (!authors.length) say(`    change_log names NO writer for any of them — they predate attribution.`);
+  for (const a of authors)
+    say(`    ${String(a.source).padEnd(24)} ${String(a.writes).padStart(4)} write(s)   ${a.first_ts} .. ${a.last_ts}`);
+
   say(`\nCOVERAGE: every odds_history row was counted in step 0; steps 1-3 are`);
   say(`    restricted to the writer's own candidate predicate, transcribed above, and`);
   say(`    to games dated before ${TODAY_UTC}. Step 3 lists at most 25 of its group.`);
