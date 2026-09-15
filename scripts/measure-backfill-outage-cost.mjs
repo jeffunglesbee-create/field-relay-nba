@@ -114,6 +114,31 @@ const cols = async t => {
   console.log(`    recoverable residual  : ${totals.recoverable}`);
   console.log(`    nothing to recover    : ${totals.nothingToRecover}`);
 
+  // A 532 nobody can attribute is a number, not an answer. The outage is only
+  // ONE candidate cause of "no odds_history row": this repo already measured
+  // (2026-09-15, /v4/sports) that the vendor offers none of the five cup
+  // competitions behind 243 rows labelled sport='MLS', and those rows would
+  // read identically here while having nothing to do with a dead cron.
+  // Breaking the bucket down by league is what separates the two.
+  console.log(`\nthe "nothing to recover" bucket, by league (top 15)`);
+  for (const t of TABLES) {
+    const gKey = schema[t].includes('game_id') ? 'game_id' : 'id';
+    const byLeague = await d1(
+      `SELECT COALESCE(g.league, g.sport, '(null)') AS label, COUNT(*) AS n
+         FROM ${t} g
+        WHERE g.date >= ?
+          AND g.opening_odds IS NULL
+          AND NOT EXISTS (SELECT 1 FROM odds_history h WHERE h.game_id = g.${gKey})
+        GROUP BY label ORDER BY n DESC LIMIT 15`, [SINCE]);
+    if (!byLeague.length) { console.log(`  ${t}: none`); continue; }
+    console.log(`  ${t}`);
+    for (const r of byLeague) console.log(`      ${String(r.n).padStart(4)}  ${r.label}`);
+  }
+  console.log(`\n  ATTRIBUTION IS NOT ESTABLISHED BY THIS BREAKDOWN. It says which`);
+  console.log(`  leagues the gap falls in, not why. A league the vendor never`);
+  console.log(`  offered and a league the dead cron failed to fetch look the same`);
+  console.log(`  from here; separating them needs the vendor's own sport list.`);
+
   console.log(`\nCOVERAGE: this is the RESIDUAL after run 35012183015 drained the`);
   console.log(`22-date backlog, not the gross cost of the outage. Everything the`);
   console.log(`catch-up could fill was filled before this ran, so the true cost`);
