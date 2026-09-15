@@ -1,0 +1,21 @@
+=== odds_history snapshot_time  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T12:58:28.470Z ===
+
+--- 0. odds_history as a whole
+    rows                      : 184
+    distinct game_id          : 184
+    snapshot_time IS NULL     : 0
+    snapshot_time = '' (P3)   : 0
+
+--- 1. what the writer reaches (P1)
+    candidate games (a NULL odds column) : 2
+    of those, dated before 2026-09-15  : 2   <- only these can be skipped
+
+--- 2. per past candidate game (P2)
+    all have a snapshot_time               2 game(s), 2 row(s)
+
+--- 3. games where NO odds_history row carries a snapshot_time
+    0 total:
+
+COVERAGE: every odds_history row was counted in step 0; steps 1-3 are
+    restricted to the writer's own candidate predicate, transcribed above, and
+    to games dated before 2026-09-15. Step 3 lists at most 25 of its group.
