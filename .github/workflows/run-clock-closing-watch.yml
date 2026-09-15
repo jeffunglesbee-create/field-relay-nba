@@ -1,0 +1,37 @@
+name: Run-clock closing stamps watch (read-only)
+
+# A closing line stamped with the worker's clock is a claim about a moment the
+# worker did not observe. The code path that produced 58 of them is fixed and
+# gated, but that gate reads this repo's source — a different writer, a manual
+# /d1/execute, or a later route can put the shape back and CI would not notice.
+#
+# This watches the archive instead, daily, and fails when the count of unmarked
+# run-clock stamps exceeds docs/run-clock-closing-baseline.txt.
+#
+# READ-ONLY. The watch refuses any SQL that is not a SELECT.
+
+on:
+  schedule:
+    - cron: '40 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Watch
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/watch-run-clock-closing-stamps.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="run-clock-closing-watch" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: run-clock closing stamps watch"

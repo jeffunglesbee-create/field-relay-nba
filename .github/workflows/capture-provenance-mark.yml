@@ -1,0 +1,52 @@
+name: Capture provenance mark
+
+# Says on the blob that its captured_at is a run clock, not a measurement, and
+# whether the kickoff question can be decided from the window at all.
+#
+# NOT A REPAIR. Writing the noon anchor into captured_at was verified and
+# refused: it changes nothing a consumer reads for 57 of 58 rows, and for
+# EPL_2026-08-22_hull_manunited it would flip a verdict neither value supports.
+# See outbox/captured-at-repair-verify-*.log.
+#
+# DRY RUN BY DEFAULT. The apply input must be typed as the literal string
+# "apply" — a checkbox is too easy to leave ticked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Type "apply" to write. Anything else is a dry run.'
+        required: false
+        default: 'dry-run'
+
+permissions:
+  contents: write
+
+jobs:
+  mark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The rule itself, before it touches anything
+        run: |
+          node scripts/check-odds-capture-provenance.mjs
+          node scripts/mutate-odds-capture-provenance.mjs
+
+      - name: Dry run
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/run-capture-provenance-mark.mjs
+
+      - name: Apply
+        if: ${{ inputs.apply == 'apply' }}
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/run-capture-provenance-mark.mjs --apply
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="capture-provenance-mark" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: capture provenance mark"
