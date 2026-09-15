@@ -113,9 +113,48 @@ watch that fires on noise gets ignored, which is how fifteen days happen.
 2. **Then** the candidate-SQL change shipped 2026-09-15 has its first real run;
    check the two counters it added (`skippedNoTable`, `skippedFilled`) and that
    `change_log` gains no phantom `odds_backfill` rows.
-3. Measure what the fifteen days cost: games dated ≥ 2026-09-01 with
-   `opening_odds IS NULL` that have an `odds_history` row. Until then the cost
-   is unknown, not zero.
+3. ~~Measure what the fifteen days cost.~~ **DONE 2026-09-15.** Counts from run
+   `35013181130` (head `d6c52c1`); league breakdown from run `35013308603`
+   (head `da80809`). Script `scripts/measure-backfill-outage-cost.mjs`,
+   artifacts `outbox/backfill-outage-cost-*.log`.
+
+   (Both ids read back from the Actions API. The first draft of this entry
+   carried an id that was invented, which is the same defect HANDOFF.md:548
+   already records — caught here before the commit rather than after.)
+
+   | games dated ≥ 2026-09-01 | 862 |
+   |---|---|
+   | `opening_odds IS NULL` | 532 |
+   | → has an `odds_history` row (**recoverable, still empty**) | **0** |
+   | → has no `odds_history` row | 532 |
+
+   **The recoverable residual is zero.** Not one game carries an
+   `odds_history` row whose opening line went unfilled, so the catch-up
+   recovered everything it was able to.
+
+   The 532 is NOT the outage's cost and is not reported as such. Broken down
+   by league, the postseason half resolves completely against a finding this
+   repo already made:
+
+   | league | n | status |
+   |---|---:|---|
+   | TELUS Canadian Championship | 10 | **NOT OFFERED** by vendor |
+   | U.S. Open Cup | 2 | **NOT OFFERED** by vendor |
+   | Campeones Cup | 2 | **NOT OFFERED** by vendor |
+
+   14 of 14 postseason rows, per `CC-CMD-2026-09-14-cup-competitions-under-mls`
+   (measured against `/v4/sports`). Nothing to do with a dead cron.
+
+   Regular season: `MLS 247`, `CFB 177`, then UCL 18, Bundesliga 18, NFL 16,
+   EFL Cup 11, La Liga 10, Ligue 1 7, EFL Trophy 7, Serie A 4, EPL 2, CFL 1.
+   The `MLS 247` is consistent in size with the 243 cup fixtures that
+   CC-CMD carries under `sport='MLS'`, but **they have not been shown to be
+   the same rows** and that is left unclaimed rather than asserted.
+
+   **`CFB 177` is the one large bucket no existing finding explains** and is
+   filed as its own CC-CMD rather than carried forward (Rule 87.4):
+   `docs/CC-CMD-2026-09-15-cfb-opening-odds-gap.md`.
+
 4. Outbox manifest.
 
 ## Done condition
