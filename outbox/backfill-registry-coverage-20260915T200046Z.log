@@ -1,0 +1,49 @@
+=== backfill registry coverage  utc=2026-09-15T20:00:46.410Z ===
+
+ARCHIVE_SPORT_TO_ODDS_KEY (src/odds-sport-keys.js) : 16 keys
+SPORT_TO_ODDS_KEY (.github/scripts/odds-backfill.js): 8 keys
+
+sports the archive has a key for that the backfill CANNOT fetch: 10
+  la liga, ligue 1, bundesliga, serie a, cfl, cfb, nfl, ufl, afl, ipl
+
+regular_season_games dated >= 2026-09-01, by sport column:
+   310 games   247 null  mls          backfill CAN fetch
+   201 games     0 null  mlb          backfill CAN fetch
+   177 games   177 null  cfb          STRANDED — archive has a key, backfill does not
+    24 games    10 null  la liga      STRANDED — archive has a key, backfill does not
+    20 games     4 null  serie a      STRANDED — archive has a key, backfill does not
+    20 games     2 null  epl          backfill CAN fetch
+    18 games    18 null  uefa champions league no key in either table
+    18 games     7 null  ligue 1      STRANDED — archive has a key, backfill does not
+    18 games    18 null  bundesliga   STRANDED — archive has a key, backfill does not
+    16 games    16 null  nfl          STRANDED — archive has a key, backfill does not
+    11 games    11 null  efl cup      no key in either table
+     8 games     1 null  cfl          STRANDED — archive has a key, backfill does not
+     7 games     7 null  efl trophy   no key in either table
+
+STRANDED TOTAL: 281 games, 233 with opening_odds NULL,
+in sports the vendor sells and the archive knows the key for, which the
+backfill's private table cannot name.
+
+COVERAGE: regular_season_games only, dated >= 2026-09-01. postseason_games
+and earlier dates are not counted here. This reports REACHABILITY, not
+whether the vendor actually has data for any given fixture.
+
+── PROPOSED OUTLAY (PER_CALL_COST=20 per sport-date) ──
+  one-time, every archived date         : 175 pairs = 3500 credits
+  one-time, dates >= 2026-09-01       : 48 pairs = 960 credits
+  ongoing, last 14 complete days        : 47 pairs = 940 credits
+  ongoing, implied per-day run rate     : 3.4 pairs = 67 credits/day
+
+  The per-day figure is the one that recurs. The one-time figures are
+  only spent if odds_backfill_progress is reset for those dates —
+  adding keys alone backfills NOTHING, because every past date is
+  already recorded complete (odds-backfill.js:389 counts
+  no_mappable_sports as done).
+
+  COVERAGE: regular_season_games only. postseason_games would add
+  more pairs and is not counted. Backward-looking: a sport's future
+  fixtures are not in the archive yet, so the run rate is a proxy
+  from recent history, not a forecast.
+
+FAIL — 10 archive sport(s) unreachable by the backfill.
