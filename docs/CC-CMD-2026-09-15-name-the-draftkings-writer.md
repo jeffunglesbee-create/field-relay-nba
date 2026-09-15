@@ -52,3 +52,61 @@ total, and a count of how many archived blobs it wrote.
 No D1 writes. Do not modify any odds blob. Do not repair `captured_at` values
 before the writer is named — a repair aimed at the wrong writer is a second
 false fact on top of the first.
+
+---
+
+## CLOSED (2026-09-15) — named from source, in four fields
+
+`extractOddsForGame` — `src/index.js:6439` — reached from the `/archive/game`
+closing capture at `src/index.js:13032`.
+
+| the 22 blobs carry | the function emits |
+|---|---|
+| `source: draftkings` | `source: bk.key`, `preferredBook = ODDS_PREFERRED_BOOK = 'draftkings'` |
+| American prices | `out.moneyline = { home: h.price, away: a.price }`, the vendor's American odds |
+| no `total` | `if (totals)` — absent when the DraftKings book prices no totals market |
+| millisecond `captured_at` | `captured_at: capturedAt || new Date().toISOString()` |
+
+### Why it stamped the clock
+
+It no longer does. `a1937eb`, **2026-08-22T21:11:07Z** — *"captured_at said 'now'
+for data that was a fixed noon-UTC snapshot"* — added the `capturedAt` parameter
+and threaded the snapshot time through. The latest of the 22 blobs is stamped
+**2026-08-22T10:00:52.499Z**, eleven hours earlier. **Every one of the 22
+predates the fix.** They are its residue, not a live defect.
+
+### Why change_log never named it
+
+That route's first `change_log` entry is **2026-08-23** (measured
+`CC-CMD-2026-09-14` Task 1). The 22 are dated 08-19 and 08-22 — written before
+the route logged anything. The `odds_backfill` entries that appeared against
+them were phantoms from a loop that logged after every UPDATE, fixed the same
+day.
+
+### Three call sites, and only one may omit capturedAt
+
+| site | payload | capturedAt | writes |
+|---|---|---|---|
+| `6646` | live fetch | omitted — **correct**, the clock IS the capture moment | `opening_odds` |
+| `6782` | historical | `snapshotAt` | `opening_odds` |
+| `13032` | historical | `snapshotAt` | `closing_odds` |
+
+`scripts/check-captured-at-explicit.mjs` states that as an invariant that can
+fail: no call feeding `closing_odds` omits `capturedAt`, at most one call omits
+it, and that one writes `opening_odds`. A blanket ban would be wrong — it would
+push a fixed time into the one place the clock is the right answer. 7
+assertions, 5 mutations, all caught, blocking in `deploy.yml`.
+
+### The 22 values themselves — NOT repaired, and the gap is stated
+
+The true capture time is **not fully recoverable**. The fix stamps
+`servedAt || snapshot`: `snapshot` is derivable (`<date>T12:00:00Z`, the noon
+anchor), `servedAt` — what the vendor actually returned — is not, for calls made
+weeks ago. A repair could write the noon anchor with a mark saying it is the
+anchor and not a measurement. That is a D1 write to 22 rows and is the owner's
+call, not this task's.
+
+**No consumer is affected today, and that is measured rather than assumed for
+the sampled rows:** every sampled blob is stamped ~10:00Z against a 23:5x
+kickoff, so `_kickoff.verified` is `true` either way. Whether that holds for all
+22 is unmeasured — a repair proposal should measure it first.

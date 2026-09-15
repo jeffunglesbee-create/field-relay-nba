@@ -254,6 +254,14 @@ jobs:
       - name: The backfill logs only writes it actually made
         run: node scripts/check-odds-backfill-attribution.mjs
 
+      # Blocking. extractOddsForGame stamps `capturedAt || new Date()`, and
+      # which is correct depends on where the payload came from: the clock IS
+      # the capture moment for a live fetch and is NOT for a historical
+      # snapshot. 22 archived closing lines carry the clock, all of them
+      # predating a1937eb (2026-08-22T21:11:07Z) which fixed it.
+      - name: A closing line's captured_at is a snapshot time, not the clock
+        run: node scripts/check-captured-at-explicit.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);

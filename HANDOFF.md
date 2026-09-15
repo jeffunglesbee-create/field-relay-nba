@@ -97,8 +97,24 @@ Yesterday's "author of the 62" stands — it rests on a dated gap, and a phantom
 entry still carries a real timestamp — but count-based attribution should be
 re-derived.
 
-**The writer of the 22 is still unnamed** and is not guessed at:
-`CC-CMD-2026-09-15-name-the-draftkings-writer`.
+**The writer is named, from source, in four fields.** `extractOddsForGame`
+(`src/index.js:6439`) via the `/archive/game` closing capture: it takes
+`source: bk.key` with `ODDS_PREFERRED_BOOK = 'draftkings'`, emits the vendor's
+American prices, omits `total` when that book prices no totals market, and
+stamped `capturedAt || new Date()`. **`a1937eb` fixed that at
+2026-08-22T21:11:07Z; the latest of the 22 blobs is stamped 10:00:52Z the same
+day — eleven hours earlier. All 22 predate the fix.** change_log never named the
+route because its first entry there is 2026-08-23.
+
+`scripts/check-captured-at-explicit.mjs` now states the invariant where it can
+fail: no call feeding `closing_odds` omits `capturedAt`, at most one call omits
+it, and that one writes `opening_odds` — the live fetch, where the clock IS the
+capture moment. 7 assertions, 5 mutations, blocking.
+
+**The 22 values are NOT repaired.** `servedAt` is unrecoverable weeks later; only
+the noon anchor is derivable. A repair is a D1 write and the owner's call.
+Sampled rows are stamped ~10:00Z against 23:5x kickoffs so `_kickoff.verified`
+is unchanged; whether that holds for all 22 is unmeasured.
 
 **Open:** 29 unaskable rows; the 219 values are unmodified and a relabel into
 `inplay_odds` is now optional; `CC-CMD-2026-09-14-cup-competitions-under-mls`
