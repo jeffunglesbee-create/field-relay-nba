@@ -424,7 +424,33 @@ async function syncOddsToGameTables() {
             COALESCE(
               (SELECT start_time FROM regular_season_games WHERE id = oh.game_id),
               (SELECT start_time FROM postseason_games     WHERE id = oh.game_id)
-            ) AS game_start_time
+            ) AS game_start_time,
+            -- WHICH TABLE, and WHICH FIELD IS ACTUALLY EMPTY.
+            -- Without these the loop wrote to BOTH tables and BOTH fields and
+            -- logged a change_log row after each one. A game lives in one table,
+            -- and the candidate predicate is "opening_odds IS NULL OR
+            -- closing_odds IS NULL" -- so a game needing only its opening line
+            -- still produced a closing_odds entry attributed to this script
+            -- for a write that matched nothing. MEASURED 2026-09-15: 22 archived
+            -- closing lines carry a DraftKings American-odds blob with no total,
+            -- which this script cannot emit (it converts the odds_history row,
+            -- giving that row's bookmaker and its over_under), yet change_log
+            -- named odds_backfill for all 22 -- 44 entries, exactly two per game.
+            CASE
+              WHEN EXISTS (SELECT 1 FROM regular_season_games WHERE id = oh.game_id)
+                THEN 'regular_season_games'
+              WHEN EXISTS (SELECT 1 FROM postseason_games WHERE id = oh.game_id)
+                THEN 'postseason_games'
+              ELSE NULL
+            END AS game_table,
+            COALESCE(
+              (SELECT opening_odds IS NULL FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT opening_odds IS NULL FROM postseason_games     WHERE id = oh.game_id)
+            ) AS opening_is_null,
+            COALESCE(
+              (SELECT closing_odds IS NULL FROM regular_season_games WHERE id = oh.game_id),
+              (SELECT closing_odds IS NULL FROM postseason_games     WHERE id = oh.game_id)
+            ) AS closing_is_null
      FROM odds_history oh
      WHERE oh.game_id IN (
        SELECT id FROM regular_season_games WHERE opening_odds IS NULL OR closing_odds IS NULL
@@ -439,7 +465,7 @@ async function syncOddsToGameTables() {
     return;
   }
 
-  let attempted = 0, skippedUndated = 0;
+  let attempted = 0, skippedUndated = 0, skippedNoTable = 0, skippedFilled = 0;
   for (const row of candidates) {
     // A CAPTURED_AT THIS PROCESS INVENTED IS NOT A MEASUREMENT.
     //
@@ -498,8 +524,15 @@ async function syncOddsToGameTables() {
     // AND ONLY WHEN THE SNAPSHOT TIME IS A MEASUREMENT (added 2026-09-14).
     // Without it the blob's captured_at is this run's clock, and a closing
     // column carrying a run-time stamp is a false fact rather than a stale one.
-    const fields = (isPast && measuredCapture)
+    const wanted = (isPast && measuredCapture)
       ? ['opening_odds', 'closing_odds'] : ['opening_odds'];
+    // Only the columns that are genuinely empty. A write that cannot match is
+    // not a write, and logging it makes change_log name a writer that did
+    // nothing -- which is worse than silence, because the next session reads
+    // it as evidence.
+    const isEmpty = { opening_odds: !!row.opening_is_null, closing_odds: !!row.closing_is_null };
+    const fields = wanted.filter(f => isEmpty[f]);
+    if (wanted.length && !fields.length) skippedFilled++;
     if (!isPast) skippedClosing++;
     else if (!measuredCapture) {
       skippedUndated++;
@@ -507,7 +540,12 @@ async function syncOddsToGameTables() {
         + `odds_history row carries no snapshot_time, so captured_at would be this run's clock`);
     }
 
-    for (const table of ['regular_season_games', 'postseason_games']) {
+    if (!row.game_table) {
+      skippedNoTable++;
+      console.log(`[odds-backfill] ${row.game_id}: no row in either games table — nothing to update`);
+      continue;
+    }
+    for (const table of [row.game_table]) {
       for (const field of fields) {
         try {
           const guard = field === 'closing_odds' ? ' AND date < ?' : '';
@@ -519,7 +557,11 @@ async function syncOddsToGameTables() {
             args
           );
           // Log to change_log for O(1) Newspaper "What's Moving" + Brief Freshness Guard.
-          // Candidates are pre-filtered (field IS NULL), so the UPDATE above matched.
+          // The UPDATE above matched: `table` is the one table this game is in
+          // and `field` is one this game's row actually has empty, both read
+          // from the candidate query rather than assumed. The previous form of
+          // this comment asserted the same thing while the loop wrote to both
+          // tables and both fields -- see the note on the candidate query.
           await d1Query(
             `INSERT INTO change_log (game_id, source, field, old_value, new_value, ts)
              VALUES (?, 'odds_backfill', ?, NULL, ?, datetime('now'))`,
@@ -545,6 +587,8 @@ async function syncOddsToGameTables() {
   const afterRegClose = await d1Query(`SELECT COUNT(*) as c FROM regular_season_games WHERE closing_odds IS NOT NULL`);
   const afterPostClose = await d1Query(`SELECT COUNT(*) as c FROM postseason_games WHERE closing_odds IS NOT NULL`);
 
+  console.log(`[odds-backfill] sync: ${skippedNoTable} game(s) in no games table, `
+    + `${skippedFilled} game(s) already had every column this run could fill — neither logged to change_log.`);
   console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedClosing} game(s) dated ${TODAY_UTC} or later — AmbientDO._captureClosingOdds owns those.`);
   console.log(`[odds-backfill] sync: closing_odds left NULL for ${skippedUndated} past game(s) whose odds_history row carries no snapshot_time — a run-time captured_at cannot support a closing claim.`);
   console.log(`[odds-backfill] sync: attempted=${attempted}, opening_odds=${(afterRegOpen[0]?.c||0)+(afterPostOpen[0]?.c||0)} (reg=${afterRegOpen[0]?.c||0}, post=${afterPostOpen[0]?.c||0}), closing_odds=${(afterRegClose[0]?.c||0)+(afterPostClose[0]?.c||0)} (reg=${afterRegClose[0]?.c||0}, post=${afterPostClose[0]?.c||0})`);

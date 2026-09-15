@@ -246,6 +246,14 @@ jobs:
           node scripts/check-odds-consumer-rules.mjs
           node scripts/check-odds-consumer-wiring.mjs
 
+      # Blocking. change_log is how this repo answers "who wrote this row" — a
+      # whole task on 2026-09-14 reconstructed the authorship of 62 rows from
+      # it. The backfill logged a write after every UPDATE across both games
+      # tables and both odds columns, so it named itself for writes that matched
+      # nothing: 44 entries for 22 rows it demonstrably did not write.
+      - name: The backfill logs only writes it actually made
+        run: node scripts/check-odds-backfill-attribution.mjs
+
       # ADR-002 PROHIBITED #3 at the generation step. Blocking: a raw composite
       # drama number must not enter prompt text, because the model transcribes it
       # into user-facing prose. Storage and pull-serving stay permitted (Rule E);
