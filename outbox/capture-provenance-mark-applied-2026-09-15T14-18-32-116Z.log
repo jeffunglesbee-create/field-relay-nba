@@ -1,0 +1,36 @@
+=== capture provenance mark  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=true  utc=2026-09-15T14:15:55.305Z ===
+
+--- 0. regular_season_games: 874 row(s) carry a run-clock closing stamp
+
+--- 0. postseason_games: 0 row(s) carry a run-clock closing stamp
+
+--- 1. plan
+    to mark                  : 815
+    already marked (no-op)   : 59
+    of the plan, kickoff NOT decidable from the window : 0
+      MLB_2026-07-04_rangers_tigers  window_end=2026-07-04T00:00:38.713Z  decidable=true
+      MLB_2026-07-04_mariners_bluejays  window_end=2026-07-04T00:00:39.412Z  decidable=true
+      MLB_2026-07-04_reds_orioles  window_end=2026-07-04T00:00:40.999Z  decidable=true
+      MLB_2026-07-04_guardians_whitesox  window_end=2026-07-04T00:00:41.672Z  decidable=true
+      MLB_2026-07-04_astros_rays  window_end=2026-07-04T00:00:42.359Z  decidable=true
+
+--- 2. marking
+    100/815
+    200/815
+    300/815
+    400/815
+    500/815
+    600/815
+    700/815
+    800/815
+    815 marked
+
+--- 3. change_log: 874 marked row(s) not yet attributed  (includes rows from an earlier interrupted run)
+    874 entries written
+
+--- 4. re-read
+    rows of this shape now marked : 874
+    still unmarked                : 0
+    captured_at altered by the mark : 0  (must be 0)
+
+OK: every run-clock closing stamp now says so, and no captured_at moved.

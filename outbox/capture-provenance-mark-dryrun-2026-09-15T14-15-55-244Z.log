@@ -1,0 +1,17 @@
+=== capture provenance mark  relay=https://field-relay-nba.jeffunglesbee.workers.dev  apply=false  utc=2026-09-15T14:15:54.125Z ===
+
+--- 0. regular_season_games: 874 row(s) carry a run-clock closing stamp
+
+--- 0. postseason_games: 0 row(s) carry a run-clock closing stamp
+
+--- 1. plan
+    to mark                  : 815
+    already marked (no-op)   : 59
+    of the plan, kickoff NOT decidable from the window : 0
+      MLB_2026-07-04_rangers_tigers  window_end=2026-07-04T00:00:38.713Z  decidable=true
+      MLB_2026-07-04_mariners_bluejays  window_end=2026-07-04T00:00:39.412Z  decidable=true
+      MLB_2026-07-04_reds_orioles  window_end=2026-07-04T00:00:40.999Z  decidable=true
+      MLB_2026-07-04_guardians_whitesox  window_end=2026-07-04T00:00:41.672Z  decidable=true
+      MLB_2026-07-04_astros_rays  window_end=2026-07-04T00:00:42.359Z  decidable=true
+
+DRY RUN. Nothing was written. Re-run with --apply.
