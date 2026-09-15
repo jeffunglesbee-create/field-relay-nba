@@ -12,6 +12,11 @@ name: Cup competitions vs odds keys (read-only)
 
 on:
   workflow_dispatch:
+    inputs:
+      names:
+        description: 'Comma-separated competition names to ask about instead of the archive sport=MLS set. Blank = the original five cups. Skips the D1 read entirely.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -25,7 +30,7 @@ jobs:
       - name: Probe
         env:
           RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
-        run: node scripts/probe-cup-competitions-odds-keys.mjs
+        run: node scripts/probe-cup-competitions-odds-keys.mjs --names="${{ inputs.names }}"
 
       - name: Commit the log
         if: always()

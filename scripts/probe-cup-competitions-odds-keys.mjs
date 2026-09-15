@@ -46,28 +46,7 @@ async function d1(sql, params = []) {
   return b.results || [];
 }
 
-(async () => {
-  say(`=== cup competitions vs odds keys  relay=${RELAY}  utc=${new Date().toISOString()} ===`);
-
-  // --- 1. the archive's own grouping, re-measured rather than quoted
-  // The CC-CMD's table is a prior session's measurement (Rule 72: an inherited
-  // claim is a hypothesis). This asks the archive again.
-  const groups = await d1(
-    `SELECT sport, COALESCE(league,'(null)') AS league, COUNT(*) AS rows,
-            SUM(CASE WHEN opening_odds IS NOT NULL THEN 1 ELSE 0 END) AS opening,
-            SUM(CASE WHEN closing_odds IS NOT NULL THEN 1 ELSE 0 END) AS closing,
-            MIN(date) AS first_date, MAX(date) AS last_date
-       FROM postseason_games WHERE sport = 'MLS'
-      GROUP BY sport, league ORDER BY rows DESC`);
-  say(`\n--- 1. postseason_games where sport = 'MLS', grouped by league`);
-  let total = 0, withOdds = 0;
-  for (const g of groups) {
-    total += g.rows; withOdds += (g.opening || 0) + (g.closing || 0);
-    say(`    ${String(g.league).padEnd(32)} ${String(g.rows).padStart(4)} rows   `
-      + `opening ${g.opening}  closing ${g.closing}   ${g.first_date} → ${g.last_date}`);
-  }
-  say(`    ${total} row(s) across ${groups.length} league value(s); ${withOdds} odds value(s) in total`);
-
+async function report(groups, NAMES = []) {
   // --- 2. what the archive map says about each league name
   say(`\n--- 2. ARCHIVE_SPORT_TO_ODDS_KEY, asked with the LEAGUE name`);
   say(`    the map holds ${Object.keys(ARCHIVE_SPORT_TO_ODDS_KEY).length} keys: `
@@ -111,9 +90,60 @@ async function d1(sql, params = []) {
       }
     }
     say(`\n    every soccer key the vendor offers, for a reader checking the match by eye:`);
-    for (const s of soccer.slice(0, 40)) say(`      ${String(s.key).padEnd(34)} ${s.title}${s.active === false ? '  (inactive)' : ''}`);
-    if (soccer.length > 40) say(`      … ${soccer.length - 40} more`);
+    // Truncating at 40 of 52 is how the UCL question stayed open after the
+    // 17:23 run: soccer_england_efl_cup was visible, UEFA was in the 12 that
+    // were cut. A NOT OFFERED verdict is only auditable against the full list.
+    const LIMIT = NAMES.length ? soccer.length : 40;
+    for (const s of soccer.slice(0, LIMIT)) say(`      ${String(s.key).padEnd(34)} ${s.title}${s.active === false ? '  (inactive)' : ''}`);
+    if (soccer.length > LIMIT) say(`      … ${soccer.length - LIMIT} more (raise the cap to audit a NOT OFFERED)`);
   }
+
+}
+
+(async () => {
+  say(`=== cup competitions vs odds keys  relay=${RELAY}  utc=${new Date().toISOString()} ===`);
+
+  // --names= asks the same three questions about competitions supplied by the
+  // caller instead of the sport='MLS' postseason set. Added 2026-09-15 for the
+  // 36 UCL / EFL Cup / EFL Trophy rows that have no key in EITHER table
+  // (CC-CMD-2026-09-15-cfb-opening-odds-gap). Parameterised rather than copied:
+  // the exact-title-equality rule below, and the substring trap it documents,
+  // are the whole value of this script and must not exist twice.
+  //
+  // In this mode step 1 is skipped entirely, so no D1 call is made and
+  // RELAY_SHARED_SECRET is not required — the vendor list is the only source
+  // the question needs.
+  const NAMES = (process.argv.find(a => a.startsWith('--names='))?.split('=')[1] || '')
+    .split(',').map(x => x.trim()).filter(Boolean);
+
+  if (NAMES.length) {
+    const groups = NAMES.map(league => ({ league }));
+    say(`\n--- 1. SKIPPED: --names supplied, so the archive is not queried.`);
+    say(`    asking about ${NAMES.length} competition(s): ${NAMES.join(', ')}`);
+    await report(groups, NAMES);
+    return;
+  }
+
+  // --- 1. the archive's own grouping, re-measured rather than quoted
+  // The CC-CMD's table is a prior session's measurement (Rule 72: an inherited
+  // claim is a hypothesis). This asks the archive again.
+  const groups = await d1(
+    `SELECT sport, COALESCE(league,'(null)') AS league, COUNT(*) AS rows,
+            SUM(CASE WHEN opening_odds IS NOT NULL THEN 1 ELSE 0 END) AS opening,
+            SUM(CASE WHEN closing_odds IS NOT NULL THEN 1 ELSE 0 END) AS closing,
+            MIN(date) AS first_date, MAX(date) AS last_date
+       FROM postseason_games WHERE sport = 'MLS'
+      GROUP BY sport, league ORDER BY rows DESC`);
+  say(`\n--- 1. postseason_games where sport = 'MLS', grouped by league`);
+  let total = 0, withOdds = 0;
+  for (const g of groups) {
+    total += g.rows; withOdds += (g.opening || 0) + (g.closing || 0);
+    say(`    ${String(g.league).padEnd(32)} ${String(g.rows).padStart(4)} rows   `
+      + `opening ${g.opening}  closing ${g.closing}   ${g.first_date} → ${g.last_date}`);
+  }
+  say(`    ${total} row(s) across ${groups.length} league value(s); ${withOdds} odds value(s) in total`);
+
+  await report(groups);
 
   say(`\nCOVERAGE: step 1 reads every postseason row with sport='MLS', no sampling.`);
   say(`    Step 3 lists at most 40 of the vendor's soccer keys; the per-league`);
