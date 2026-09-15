@@ -1,0 +1,57 @@
+=== backfill outage cost  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T19:23:19.213Z ===
+window: games dated >= 2026-09-01
+
+  regular_season_games: id, sport, league, date, home, away, home_score, away_score, venue, streams, note, tags, crew, local_note, created_at, opening_odds, closing_odds, drama_peak, drama_arc, espn_event_id, went_to_ot, finalized_at, start_time, importance, inplay_odds
+  postseason_games: id, sport, series_key, round, game_number, date, home, away, home_score, away_score, venue, streams, note, series_record, series_margins, importance, league, crew, created_at, opening_odds, closing_odds, drama_peak, drama_arc, espn_event_id, went_to_ot, finalized_at, start_time, inplay_odds
+  odds_history: id, game_id, sport, date, home_team, away_team, commence_time, home_ml, away_ml, draw_ml, over_under, over_price, under_price, bookmaker, snapshot_time, snapshot_type, created_at
+
+odds_history join key: game_id
+
+regular_season_games
+    games dated >= 2026-09-01          : 848
+    opening_odds IS NULL             : 518
+      of those, HAS an odds_history row (recoverable, still empty) : 0
+      of those, has NO odds_history row (nothing to recover from)  : 518
+
+postseason_games
+    games dated >= 2026-09-01          : 14
+    opening_odds IS NULL             : 14
+      of those, HAS an odds_history row (recoverable, still empty) : 0
+      of those, has NO odds_history row (nothing to recover from)  : 14
+
+TOTAL across 2 tables
+    games                 : 862
+    opening_odds NULL     : 532
+    recoverable residual  : 0
+    nothing to recover    : 532
+
+the "nothing to recover" bucket, by league (top 15)
+  regular_season_games
+       247  MLS
+       177  CFB
+        18  UEFA Champions League
+        18  Bundesliga
+        16  NFL
+        11  EFL Cup
+        10  La Liga
+         7  Ligue 1
+         7  EFL Trophy
+         4  Serie A
+         2  EPL
+         1  CFL
+  postseason_games
+        10  TELUS Canadian Championship
+         2  U.S. Open Cup
+         2  Campeones Cup
+
+  ATTRIBUTION IS NOT ESTABLISHED BY THIS BREAKDOWN. It says which
+  leagues the gap falls in, not why. A league the vendor never
+  offered and a league the dead cron failed to fetch look the same
+  from here; separating them needs the vendor's own sport list.
+
+COVERAGE: this is the RESIDUAL after run 35012183015 drained the
+22-date backlog, not the gross cost of the outage. Everything the
+catch-up could fill was filled before this ran, so the true cost
+during 2026-09-01..15 was HIGHER than the numbers above and is not
+recoverable from the archive's current state.
+Counted 862 games across regular_season_games + postseason_games; other tables not examined.
