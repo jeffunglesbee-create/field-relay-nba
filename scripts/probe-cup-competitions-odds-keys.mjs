@@ -84,14 +84,31 @@ async function d1(sql, params = []) {
       String(s.key || '').startsWith('soccer') || /cup|concacaf|leagues|open cup|championship/i.test(String(s.title || '')));
     say(`\n--- 3. vendor /v4/sports: ${Array.isArray(list) ? list.length : 0} sport(s), `
       + `${soccer.length} soccer or cup-titled`);
+    // SUBSTRING MATCHING ON A TITLE ASSERTS A KEY IT HAS NOT EARNED, and the
+    // first run of this probe did exactly that: "TELUS Canadian Championship"
+    // contains "championship", the vendor's literal title for `soccer_efl_champ`
+    // — the English second tier. Reported as a match, that is a substituted key,
+    // the same class of defect HANDOFF records for 2026-09-13 (`Liberty` ->
+    // `newyorkliberty`, six CFB rows carrying another sport's team).
+    //
+    // So EXACT TITLE EQUALITY DECIDES, and anything looser is printed as a
+    // candidate for human eyes, never as an answer.
+    const norm = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
     for (const g of groups) {
       const name = String(g.league || '');
       if (name === '(null)') continue;
-      const hit = soccer.find(s =>
-        String(s.title || '').toLowerCase() === name.toLowerCase()
-        || String(s.title || '').toLowerCase().includes(name.toLowerCase())
-        || name.toLowerCase().includes(String(s.title || '').toLowerCase()));
-      say(`    ${name.padEnd(32)} -> ${hit ? `${hit.key}  (${hit.title}, active=${hit.active})` : 'NOT OFFERED BY THE VENDOR'}`);
+      const exact = soccer.find(s => norm(s.title) === norm(name));
+      say(`    ${name.padEnd(32)} -> ${exact ? `${exact.key}  (${exact.title}, active=${exact.active})` : 'NOT OFFERED BY THE VENDOR'}`);
+      if (!exact) {
+        // A shared token is a hint, not a verdict. Generic words are dropped so
+        // "championship" and "cup" cannot carry a match on their own.
+        const GENERIC = new Set(['cup', 'championship', 'league', 'liga', 'open', 'first', 'super', 'division', 'the']);
+        const want = new Set(norm(name).split(' ').filter(t => t.length > 2 && !GENERIC.has(t)));
+        const near = soccer.filter(s => norm(s.title).split(' ').some(t => want.has(t)));
+        for (const c of near.slice(0, 3))
+          say(`        candidate, NOT asserted: ${c.key}  (${c.title})`);
+        if (!near.length) say(`        no candidate shares a distinctive word`);
+      }
     }
     say(`\n    every soccer key the vendor offers, for a reader checking the match by eye:`);
     for (const s of soccer.slice(0, 40)) say(`      ${String(s.key).padEnd(34)} ${s.title}${s.active === false ? '  (inactive)' : ''}`);
