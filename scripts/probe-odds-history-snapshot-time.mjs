@@ -127,6 +127,46 @@ const one = (rows) => Object.values(rows[0] || {})[0] ?? null;
   say(`    ${lost.length === 25 ? 'first 25' : lost.length + ' total'}:`);
   for (const r of lost) say(`      ${r.game_date}  ${r.game_id}  (${r.rows} row(s))`);
 
+  // --- 4. THE GUARD MAY BE INERT, WHICH IS NOT THE SAME AS SAFE.
+  //
+  // The skip was added because ten archive rows carried a `captured_at` of
+  // 2026-08-11T01:58:26..39 for games played 2026-08-05 — thirteen seconds
+  // apart and sequential, which is a loop calling new Date() per row. If
+  // snapshot_time is never NULL, that fallback cannot be where those stamps
+  // came from, and the mechanism that produced them is still unfixed.
+  //
+  // So: for every archived closing line, does its captured_at match the
+  // snapshot_time of its own odds_history row?
+  const cmp = await d1(
+    `SELECT COUNT(*) AS n,
+            SUM(CASE WHEN json_extract(g.closing_odds, '$.captured_at') = oh.snapshot_time
+                     THEN 1 ELSE 0 END) AS same,
+            SUM(CASE WHEN json_extract(g.closing_odds, '$.captured_at') <> oh.snapshot_time
+                     THEN 1 ELSE 0 END) AS differ
+       FROM (SELECT id, closing_odds FROM regular_season_games WHERE closing_odds IS NOT NULL
+             UNION ALL
+             SELECT id, closing_odds FROM postseason_games     WHERE closing_odds IS NOT NULL) g
+       JOIN odds_history oh ON oh.game_id = g.id`);
+  const c = cmp[0] || {};
+  say(`\n--- 4. is the archive's captured_at the odds_history snapshot_time?`);
+  say(`    archived closing lines with an odds_history row : ${c.n ?? 0}`);
+  say(`    captured_at == snapshot_time                     : ${c.same ?? 0}`);
+  say(`    captured_at <> snapshot_time                     : ${c.differ ?? 0}`);
+
+  const drift = await d1(
+    `SELECT g.id,
+            json_extract(g.closing_odds, '$.captured_at') AS captured_at,
+            oh.snapshot_time,
+            json_extract(g.closing_odds, '$.source') AS source
+       FROM (SELECT id, closing_odds FROM regular_season_games WHERE closing_odds IS NOT NULL
+             UNION ALL
+             SELECT id, closing_odds FROM postseason_games     WHERE closing_odds IS NOT NULL) g
+       JOIN odds_history oh ON oh.game_id = g.id
+      WHERE json_extract(g.closing_odds, '$.captured_at') <> oh.snapshot_time
+      ORDER BY captured_at DESC LIMIT 10`);
+  for (const r of drift)
+    say(`      ${r.id}\n        blob ${r.captured_at}  vs  history ${r.snapshot_time}  (source ${r.source})`);
+
   say(`\nCOVERAGE: every odds_history row was counted in step 0; steps 1-3 are`);
   say(`    restricted to the writer's own candidate predicate, transcribed above, and`);
   say(`    to games dated before ${TODAY_UTC}. Step 3 lists at most 25 of its group.`);
