@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Workflows whose RED IS THEIR OUTPUT, not their failure. A detector reports a",
+    "condition; while the condition holds it exits non-zero, and that is the",
+    "design. scripts/watch-silently-dead-crons.mjs lists these separately instead",
+    "of calling them dead — without this it would report them every day forever,",
+    "and a watch that cries wolf is how odds-backfill.yml went fifteen days",
+    "unnoticed in the first place.",
+    "",
+    "AN ENTRY HERE IS NOT AN EXCUSE. Each names the condition it reports and the",
+    "document tracking it. The watch still prints how long each has been red, so",
+    "a detector red for months stays visible rather than becoming furniture.",
+    "Adding an entry to silence a genuinely broken workflow is the abuse this",
+    "file makes easy to spot in review: the reason has to be written down."
+  ],
+  "detectors": {
+    ".github/workflows/brief-label-migration.yml": {
+      "reports": "brief rows whose sport is outside the authority label set read from the games table",
+      "red_because": "4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)",
+      "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
+      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 — verify exits 1 when verification.clean is false"
+    },
+    ".github/workflows/rule90-staleness-monitor.yml": {
+      "reports": "rule-registry entries marked UNEXERCISED for more than 14 days",
+      "red_because": "rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days",
+      "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
+      "verified": "2026-09-15, from its own run output listing the four entries"
+    }
+  }
+}

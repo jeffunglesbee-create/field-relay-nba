@@ -17,7 +17,7 @@
 // happened in the first place.
 //
 // READ-ONLY: the GitHub API, GET only. It touches no D1 and no relay.
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 
 const TOKEN = process.env.GITHUB_TOKEN;
 const REPO = process.env.GITHUB_REPOSITORY || 'jeffunglesbee-create/field-relay-nba';
@@ -43,18 +43,36 @@ async function gh(path) {
   const active = workflows.filter(w => w.state === 'active');
   say(`\n    ${workflows.length} workflow(s), ${active.length} active`);
 
-  const dead = [], healthy = [], unscheduled = [];
+  // A DETECTOR'S RED IS ITS OUTPUT. brief-label-migration.yml and
+  // rule90-staleness-monitor.yml both exit non-zero while the condition they
+  // report holds — verified by reading their exit paths, not inferred from the
+  // fact that they are red. Listing them as dead every day would make this
+  // watch the noise it exists to prevent.
+  const declared = JSON.parse(readFileSync('docs/declared-detectors.json', 'utf8')).detectors || {};
+
+  const dead = [], healthy = [], unscheduled = [], detectors = [];
   for (const w of active) {
     const { workflow_runs = [] } = await gh(
       `/repos/${REPO}/actions/workflows/${w.id}/runs?event=schedule&per_page=${STREAK}&status=completed`);
     if (!workflow_runs.length) { unscheduled.push(w.name); continue; }
     const streak = workflow_runs.every(r => r.conclusion === 'failure');
-    if (streak && workflow_runs.length >= STREAK)
-      dead.push({ name: w.name, path: w.path, since: workflow_runs[workflow_runs.length - 1].created_at,
-                  latest: workflow_runs[0].created_at, url: workflow_runs[0].html_url });
+    if (streak && workflow_runs.length >= STREAK) {
+      const entry = { name: w.name, path: w.path, since: workflow_runs[workflow_runs.length - 1].created_at,
+                      latest: workflow_runs[0].created_at, url: workflow_runs[0].html_url };
+      if (declared[w.path]) detectors.push({ ...entry, ...declared[w.path] });
+      else dead.push(entry);
+    }
     else healthy.push(w.name);
   }
 
+  say(`\n    declared detectors, red on purpose: ${detectors.length}   (not failures)`);
+  for (const d of detectors) {
+    const days = ((Date.now() - Date.parse(d.since)) / 86400000).toFixed(1);
+    say(`      ${d.path}  red at least ${days} days`);
+    say(`        reports: ${d.reports}`);
+    say(`        now:     ${d.red_because}`);
+    say(`        tracked: ${d.tracked_by}`);
+  }
   say(`\n    scheduled and healthy            : ${healthy.length}`);
   say(`    never run on a schedule           : ${unscheduled.length}  (not judged)`);
   say(`    FAILING ${STREAK} CONSECUTIVE RUNS : ${dead.length}`);
