@@ -1,0 +1,35 @@
+=== captured_at repair, verification only  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T13:54:45.267Z ===
+NOTHING IS WRITTEN BY THIS SCRIPT.
+
+--- 0. the population, by the SHAPE that identified the writer
+    draftkings + no total + millisecond captured_at : 58 row(s)
+    (the 22 were found by joining odds_history; this selects by shape alone,
+     so a different count here means the shape is wider than the join was.)
+
+--- 1. P2 — would the anchor change the kickoff verdict?
+    rows with a start_time to judge against : 58 of 58
+    verdict unchanged                       : 57
+    VERDICT FLIPS                           : 1
+    late under either timestamp             : 1
+    late_minutes would change               : 1
+    no start_time, unjudgeable              : 0
+      FLIP EPL_2026-08-22_hull_manunited
+        kickoff 2026-08-22T11:30Z
+        stored 2026-08-22T10:00:37.362Z -> verified true
+        anchor 2026-08-22T12:00:00Z -> verified false
+
+--- 2. P3 — what a partial repair would leave behind
+    _kickoff is already materialised on every one of these rows, and
+    stampKickoff is captured_at's ONLY reader. Rewriting captured_at without
+    recomputing _kickoff leaves the row asserting two different capture times.
+    A repair must write both fields in one statement or not run.
+
+--- 3. P1 — what the replacement actually is
+    The fix stamps servedAt || snapshot. servedAt is the vendor's served
+    time and is NOT recoverable for these calls. The anchor <date>T12:00:00Z
+    is a RECONSTRUCTION. 58 row(s) would carry it, and each would need
+    to say so in the blob — an unmarked reconstruction is the same class of
+    false fact as the run-time stamp it replaces.
+
+COVERAGE: every row in both tables matching the writer's shape was read
+    — 58 of 58, no sampling; at most 10 examples printed.
