@@ -1,0 +1,21 @@
+=== silently dead crons  repo=jeffunglesbee-create/field-relay-nba  streak=3  utc=2026-09-15T18:04:50.358Z ===
+
+    100 workflow(s), 100 active
+
+    scheduled and healthy            : 16
+    never run on a schedule           : 81  (not judged)
+    FAILING 3 CONSECUTIVE RUNS : 3
+      .github/workflows/odds-backfill.yml
+        red since at least 2026-09-13T14:10:12Z, latest 2026-09-15T14:42:26Z
+        https://github.com/jeffunglesbee-create/field-relay-nba/actions/runs/34983451607
+      .github/workflows/rule90-staleness-monitor.yml
+        red since at least 2026-09-13T15:40:32Z, latest 2026-09-15T16:20:59Z
+        https://github.com/jeffunglesbee-create/field-relay-nba/actions/runs/34994425432
+      .github/workflows/brief-label-migration.yml
+        red since at least 2026-08-31T13:57:37Z, latest 2026-09-14T12:54:33Z
+        https://github.com/jeffunglesbee-create/field-relay-nba/actions/runs/34846022089
+
+    COVERAGE: every ACTIVE workflow with at least 3 completed scheduled
+    runs. Workflows that only run on push or dispatch are counted as
+    "never run on a schedule" and deliberately not judged — their failures
+    surface on the commit that caused them.
