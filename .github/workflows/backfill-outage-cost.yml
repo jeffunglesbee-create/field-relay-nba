@@ -26,8 +26,17 @@ jobs:
         with:
           node-version: '22'
 
+      # pipefail is load-bearing, not hygiene. Without it the step's exit code is
+      # the last tee's, so run 35012890540 reported SUCCESS while the script had
+      # exited 1 on a 403 and committed a three-line log containing only the
+      # error. A green tick over a failed measurement is worse than a red one.
       - name: Measure
-        run: node scripts/measure-backfill-outage-cost.mjs --since=${{ inputs.since || '2026-09-01' }} | tee -a "$GITHUB_STEP_SUMMARY" | tee outbox/backfill-outage-cost-$(date -u +%Y%m%dT%H%M%SZ).log
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/measure-backfill-outage-cost.mjs --since=${{ inputs.since || '2026-09-01' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/backfill-outage-cost-$(date -u +%Y%m%dT%H%M%SZ).log
 
       - name: Commit the log
         if: always()

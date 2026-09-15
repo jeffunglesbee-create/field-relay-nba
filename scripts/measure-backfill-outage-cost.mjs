@@ -37,7 +37,17 @@ async function d1(sql, params = []) {
   return Array.isArray(r) ? (r[0]?.results || r) : (r.results || []);
 }
 
-const cols = async t => (await d1(`SELECT name FROM pragma_table_info('${t}')`)).map(r => r.name);
+// NOT pragma_table_info. /d1/execute matches the first FROM-word against an
+// ALLOWED_TABLES list (src/index.js ~15948) and answers 403 "table not allowed"
+// for anything else — which run 35012890540 hit, and HANDOFF.md:546 records the
+// same guard being "conflated with an answer" once before. A row off the table
+// itself is an allowed route and gives the real column set.
+// An empty table teaches nothing, and says so rather than returning [].
+const cols = async t => {
+  const [row] = await d1(`SELECT * FROM ${t} LIMIT 1`);
+  if (!row) throw new Error(`${t} returned no rows — cannot learn its columns this way`);
+  return Object.keys(row);
+};
 
 (async () => {
   console.log(`=== backfill outage cost  relay=${RELAY}  utc=${new Date().toISOString()} ===`);
