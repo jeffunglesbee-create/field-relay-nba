@@ -36,15 +36,30 @@ const dump = (kind) => {
   console.log(`\nwrote ${p}`);
 };
 
-async function d1(sql, params = []) {
+// ONE `fetch failed` KILLED A RUN 59 ROWS IN, on 2026-09-15T14:13:06Z. 874
+// sequential POSTs to one Worker is enough for a transient transport error to
+// be likely rather than exotic, and a job that dies mid-write leaves rows
+// marked and unlogged — the exact unattributable state this session spent a
+// task reconstructing. Retries are for the transport only: an HTTP response
+// the Worker actually produced is a real answer and is not retried.
+async function d1(sql, params = [], attempt = 0) {
   if (!GATE) throw new Error('RELAY_SHARED_SECRET is not set');
   if (!APPLY && !/^\s*SELECT\b/i.test(sql))
     throw new Error('dry run may only SELECT — refusing to send a mutating statement');
-  const res = await fetch(`${RELAY}/d1/execute`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE, 'User-Agent': UA },
-    body: JSON.stringify({ sql, params }),
-  });
+  let res;
+  try {
+    res = await fetch(`${RELAY}/d1/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE, 'User-Agent': UA },
+      body: JSON.stringify({ sql, params }),
+    });
+  } catch (e) {
+    if (attempt >= 4) throw new Error(`transport failed after ${attempt + 1} attempts: ${e.message}`);
+    const wait = 500 * 2 ** attempt;
+    console.warn(`    transport error (${e.message}); retry ${attempt + 1} in ${wait}ms`);
+    await new Promise(r => setTimeout(r, wait));
+    return d1(sql, params, attempt + 1);
+  }
   const b = await res.json().catch(() => ({}));
   if (!res.ok || b.success === false) throw new Error(`d1 HTTP ${res.status}: ${JSON.stringify(b).slice(0, 400)}`);
   return b.results || [];
@@ -92,33 +107,62 @@ const SHAPE = replayedRunClockSql('closing_odds');
   // mark a later writer has since written with better information.
   say(`\n--- 2. marking`);
   let done = 0;
-  for (const r of todo) {
-    await d1(
-      `UPDATE ${r.table}
-          SET closing_odds = json_set(closing_odds, '$._capture', json(?))
-        WHERE id = ? AND json_extract(closing_odds,'$._capture') IS NULL`,
-      [JSON.stringify(r.mark), r.id]);
-    done++;
+  try {
+    for (const r of todo) {
+      await d1(
+        `UPDATE ${r.table}
+            SET closing_odds = json_set(closing_odds, '$._capture', json(?))
+          WHERE id = ? AND json_extract(closing_odds,'$._capture') IS NULL`,
+        [JSON.stringify(r.mark), r.id]);
+      done++;
+      if (done % 100 === 0) say(`    ${done}/${todo.length}`);
+    }
+  } catch (e) {
+    // The count is the resume point and belongs in the artifact, not in a
+    // stack trace. The first failure printed nothing and the state had to be
+    // recovered by a separate query.
+    say(`    ${done}/${todo.length} marked before failing: ${e.message}`);
+    throw e;
   }
   say(`    ${done} marked`);
 
-  // ── 3. change_log ───────────────────────────────────────────────────────
+  // ── 3. change_log, OVER WHAT IS MARKED BUT UNLOGGED ─────────────────────
+  // Not over `todo`. The first apply died after marking 59 rows and before
+  // reaching this step, leaving them marked and unattributable. Deriving the
+  // set from the archive instead of from this run's plan means the next run
+  // repairs them, and a run that dies here can be resumed by another.
+  const logged = new Set();
+  for (const r of await d1(
+    `SELECT DISTINCT game_id FROM change_log WHERE source = 'capture_provenance'`))
+    logged.add(r.game_id);
+  const toLog = [];
+  for (const table of TABLES) {
+    for (const r of await d1(
+      `SELECT id, json_extract(closing_odds,'$._capture') AS cap FROM ${table}
+        WHERE closing_odds IS NOT NULL AND ${SHAPE}
+          AND json_extract(closing_odds,'$._capture') IS NOT NULL`))
+      if (!logged.has(r.id)) toLog.push({ id: r.id, mark: r.cap });
+  }
+  say(`\n--- 3. change_log: ${toLog.length} marked row(s) not yet attributed`
+    + `${toLog.length > todo.length ? '  (includes rows from an earlier interrupted run)' : ''}`);
+
+
   // `capture_provenance` is deliberately NOT in src/brief-freshness.js's
   // _ODDS_SOURCES set, so metadata rows cannot flood the stale-brief guard with
   // odds movements that did not happen. Chunk size derived, never inlined —
   // scripts/check-d1-batch-param-cap.mjs enforces that.
   const D1_MAX_BOUND_PARAMS = 100, CHANGELOG_COLUMNS = 6;
   const CHUNK = Math.floor(D1_MAX_BOUND_PARAMS / CHANGELOG_COLUMNS);
-  say(`\n--- 3. change_log`);
-  for (let i = 0; i < todo.length; i += CHUNK) {
-    const c = todo.slice(i, i + CHUNK), params = [];
+  for (let i = 0; i < toLog.length; i += CHUNK) {
+    const c = toLog.slice(i, i + CHUNK), params = [];
     for (const r of c)
       params.push(r.id, 'capture_provenance', 'closing_odds._capture', null,
-                  JSON.stringify(r.mark), new Date().toISOString());
+                  typeof r.mark === 'string' ? r.mark : JSON.stringify(r.mark),
+                  new Date().toISOString());
     await d1(`INSERT INTO change_log (game_id, source, field, old_value, new_value, ts) VALUES `
            + c.map(() => '(?, ?, ?, ?, ?, ?)').join(', '), params);
   }
-  say(`    ${todo.length} entries`);
+  say(`    ${toLog.length} entries written`);
 
   // ── 4. done condition, re-read from the archive ─────────────────────────
   say(`\n--- 4. re-read`);
