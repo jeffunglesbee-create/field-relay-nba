@@ -1,0 +1,8 @@
+=== run-clock closing stamps watch  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T14:03:04.586Z ===
+
+    baseline (committed)          : 58
+    unmarked run-clock stamps     : 916
+    marked as run-clock           : 0
+    newest run-clock stamp seen   : 2026-08-31T19:33:35.350Z
+    a1937eb fixed the known path on 2026-08-22T21:11:07Z — a newer stamp
+    than that is a NEW writer, not residue.
