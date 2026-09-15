@@ -1,0 +1,46 @@
+name: Backfill registry coverage (read-only)
+
+# The backfill's private SPORT_TO_ODDS_KEY is a fourth registry that
+# src/odds-sport-keys.js does not know about, and it is the one that decides
+# what gets fetched. This fails when it cannot name a sport the archive has a
+# key for, so the divergence cannot widen unnoticed.
+#
+# READ-ONLY. The script refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Count games dated on or after this YYYY-MM-DD.'
+        required: false
+        default: '2026-09-01'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      - name: Check
+        shell: bash
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/check-backfill-registry-coverage.mjs --since=${{ inputs.since || '2026-09-01' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/backfill-registry-coverage-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="backfill-registry-coverage" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: backfill registry coverage"
