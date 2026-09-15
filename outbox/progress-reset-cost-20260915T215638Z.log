@@ -1,0 +1,25 @@
+=== progress reset cost  utc=2026-09-15T21:56:38.584Z ===
+window: games dated >= 2026-05-09   PER_CALL_COST=20
+
+  newly-reachable sport-dates (the actual gap)   :  151 pairs =   3020 credits
+  dates those fall on                            : 70
+  ALL mappable sport-dates on those dates        :  293 pairs =   5860 credits
+  -> re-fetched despite already being complete   :  142 pairs =   2840 credits
+
+  a date-level reset costs 1.9x the gap it closes.
+
+  the re-fetch, by sport that is already complete:
+        49  mlb
+        40  wnba
+        20  mls
+        19  epl
+        14  fifa world cup
+
+COVERAGE: regular_season_games only, dated >= 2026-05-09. postseason_games
+would add more on both sides. Counts REACHABILITY and billing shape, not
+whether the vendor holds data for any given fixture — a fetch that returns
+nothing still bills.
+
+NOTE: this prices the date-level reset only. A targeted fill that asks for
+the 151 new pairs alone would cost 3020 credits and needs no progress
+reset — but it is a NEW live write path, which is a separate authorisation.
