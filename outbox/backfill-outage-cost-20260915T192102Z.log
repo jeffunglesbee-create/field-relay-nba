@@ -1,0 +1,11 @@
+=== backfill outage cost  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T19:21:02.043Z ===
+window: games dated >= 2026-09-01
+
+  regular_season_games: id, sport, league, date, home, away, home_score, away_score, venue, streams, note, tags, crew, local_note, created_at, opening_odds, closing_odds, drama_peak, drama_arc, espn_event_id, went_to_ot, finalized_at, start_time, importance, inplay_odds
+  postseason_games: id, sport, series_key, round, game_number, date, home, away, home_score, away_score, venue, streams, note, series_record, series_margins, importance, league, crew, created_at, opening_odds, closing_odds, drama_peak, drama_arc, espn_event_id, went_to_ot, finalized_at, start_time, inplay_odds
+  odds_history: id, game_id, sport, date, home_team, away_team, commence_time, home_ml, away_ml, draw_ml, over_under, over_price, under_price, bookmaker, snapshot_time, snapshot_type, created_at
+
+FAIL  regular_season_games has no column game_date
+FAIL  postseason_games has no column game_date
+
+2 expected column(s) missing — refusing to report a count.
