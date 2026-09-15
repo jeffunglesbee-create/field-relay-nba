@@ -56,7 +56,20 @@ async function report(groups, NAMES = []) {
 
   // --- 3. the vendor's own list. Free: oddsBillablePath excludes /v4/sports.
   const res = await fetch(`${RELAY}/odds/v4/sports`, { headers: { 'User-Agent': UA } });
-  if (!res.ok) { say(`\n--- 3. vendor sports list: HTTP ${res.status} — UNANSWERED`); }
+  if (!res.ok) {
+    // UNANSWERED used to print here and the run went green anyway. That is how
+    // a worker-side 401 — the rotated key missing from the Cloudflare secret
+    // store — stayed invisible for 12 minutes on 2026-09-15 behind a green
+    // cup-probe run. A question that could not be asked is not an answer, and
+    // a probe that cannot reach its source must fail loudly (Rule 77).
+    const body = (await res.text().catch(() => '')).slice(0, 160).replace(/\s+/g, ' ');
+    say(`\n--- 3. vendor sports list: HTTP ${res.status} — UNANSWERED`);
+    say(`    body: ${body || '(empty)'}`);
+    say(`    FAIL — the vendor was never reached, so every verdict above about`);
+    say(`    what the vendor does or does not offer is UNDETERMINED, not negative.`);
+    process.exitCode = 1;
+    return;
+  }
   else {
     const list = await res.json().catch(() => []);
     const soccer = (Array.isArray(list) ? list : []).filter(s =>
