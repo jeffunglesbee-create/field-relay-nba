@@ -80,12 +80,49 @@ nothing." Same absence-collapse shape as Rule 99.
 
 ## What is NOT done, and why it is not a carry-forward
 
-Adding the ten keys costs 10 credits × region × market per sport-date on a
-metered account (Rule 78). Quota at the time of writing: 39,534 remaining,
-~15 days left, 2,700/day budget — roughly break-even already.
-`src/odds-sport-keys.js` already records that widening a registry is a budget
-decision and not a code cleanup. **It is the owner's call, not a session's**,
-exactly as the empty `ODDS_API_KEY` was.
+`src/odds-sport-keys.js` records that widening a registry is a budget decision,
+not a code cleanup, so the keys are not added here. But the size of that
+decision was quoted from a header comment rather than measured, and measuring
+it changes the answer.
+
+### Measured (run `35017010215`)
+
+`PER_CALL_COST = 20` (odds-backfill.js:35 — 10 credits × 2 markets, regions=us),
+billed **once per sport-date, not per game**. CFB's 177 games sit on ~15 dates;
+177 games cost exactly what 15 would.
+
+| | pairs | credits |
+|---|---:|---:|
+| one-time, every archived date | 175 | **3,500** |
+| one-time, dates ≥ 2026-09-01 | 48 | 960 |
+| ongoing, last 14 complete days | 47 | 940 |
+| **ongoing, per-day run rate** | 3.4 | **67/day** |
+
+### The framing this corrects
+
+An earlier draft of this document said *"39,534 remaining, ~15 days left,
+2,700/day budget — roughly break-even already."* That compared the budget
+**ceiling** against remaining headroom, not actual burn against it. Actual
+steady-state spend is ~80 credits/day (odds-backfill.js:15). Adding all ten
+sports takes it to ~147/day against ~2,636/day available — **5.6% of headroom,
+not break-even.**
+
+The full historical catch-up, 3,500 credits, is 8.9% of what is left this month.
+Both together are ~11%.
+
+**This is cheap.** It is still the owner's call, as the empty `ODDS_API_KEY`
+was — but it should be decided against 67/day, not against the alarm the
+earlier draft raised.
+
+### It splits into two decisions, and the cheap half stands alone
+
+1. **Add the ten keys** — costs only the recurring ~67/day, fixes coverage
+   going forward. Does NOT recover one historical row.
+2. **Reset `odds_backfill_progress` for the affected dates and re-run** —
+   costs the one-time 3,500, recovers the 233 historical nulls. Needed because
+   `odds-backfill.js:389` counts `no_mappable_sports` toward `datesDone`, so
+   every past date is already recorded complete and adding keys alone
+   backfills nothing.
 
 `scripts/check-backfill-registry-coverage.mjs` fails while any archive sport is
 unreachable, so the gap cannot widen unnoticed while the decision is pending.
