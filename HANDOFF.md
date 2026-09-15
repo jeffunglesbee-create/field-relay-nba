@@ -68,6 +68,16 @@ two were correct all along. The advisory now says it is guessing.
 **`/archive/` handler: 9 lines of headroom** before the 1500-line brace-scan
 window. `1207013` failed that gate at exactly 1500.
 
+**2026-09-15 — the snapshot_time residual is closed at zero, and opened a
+second question.** 184 `odds_history` rows, **0** NULL and **0** empty
+`snapshot_time`, 2 candidate games both stamped: the 2026-09-14 skip costs no
+coverage. But **22 of 182** archived closing lines carry a `captured_at` that is
+not their own row's `snapshot_time`, all attributed to `odds_backfill`, with
+millisecond stamps decrementing across a batch — a `new Date()` loop. The
+fallback removed yesterday cannot be the source (`INSERT OR IGNORE` never
+updates a row, and at 10:00Z the match had not kicked off). Mechanism unknown
+and NOT claimed: `CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time`.
+
 **Open:** 29 unaskable rows; the 219 values are unmodified and a relabel into
 `inplay_odds` is now optional; `CC-CMD-2026-09-14-cup-competitions-under-mls`
 unstarted; the 49 brief-repoint pairs unstarted;
