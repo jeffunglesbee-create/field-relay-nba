@@ -1,0 +1,39 @@
+name: odds_history snapshot_time coverage (read-only)
+
+# On 2026-09-14 the backfill stopped writing `closing_odds` when the
+# odds_history row carries no snapshot_time. That was right — a captured_at
+# from this run's clock cannot support a column claiming to be the last price
+# before kickoff — and the coverage it costs was never measured.
+#
+# The probe measures the population the writer actually reaches, not the raw
+# NULL count, and separates the games where the outcome depends on which row
+# SQLite's GROUP BY happens to return.
+#
+# READ-ONLY. The probe refuses any SQL that is not a SELECT.
+#
+# Runs here rather than from a session because sandbox egress to *.workers.dev
+# is blocked.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Coverage
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-odds-history-snapshot-time.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-history-snapshot-time" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds_history snapshot_time coverage"
