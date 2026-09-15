@@ -1,0 +1,35 @@
+name: captured_at provenance (read-only)
+
+# CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time Task 0.
+#
+# 22 archived closing lines carry a captured_at that is not their odds_history
+# snapshot_time. Three readings were argued from timestamps and none could be
+# separated by another timestamp. This probe compares the PRICES instead: same
+# prices means one capture event and a row rewritten since; different prices
+# means the blob never came from that row.
+#
+# READ-ONLY. The probe refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Provenance
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/probe-captured-at-provenance.mjs
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="captured-at-provenance" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: captured_at provenance"
