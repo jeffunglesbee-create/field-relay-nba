@@ -6,9 +6,25 @@
 // repo's source. A different writer, a manual /d1/execute, or a route added
 // later can all put the same shape back, and nothing in CI would notice.
 //
-// So this watches the archive rather than the code. It fails when the count of
-// UNMARKED run-clock closing stamps exceeds the committed baseline, which is
-// the only way the population can grow without someone deciding it should.
+// So this watches the archive rather than the code.
+//
+// WHICH RUN-CLOCK STAMPS ARE A DEFECT, and the first version of this file got
+// it wrong. It counted EVERY millisecond stamp — 916 of them — against a
+// baseline of 58, and failed. The arithmetic was the smaller error. The design
+// claim behind it, written into a commit message as "the hazard is the shape",
+// is false: AmbientDO._captureClosingOdds stamps new Date() at the moment it
+// captures a live price, and there the clock IS the measurement.
+//
+// The discriminator is positive, not a heuristic. `extractOddsForGame`
+// (src/index.js) always writes `_oddsProof: { adapterId: 'odds-api', ... }`;
+// AmbientDO's blob never does. Only one site writes closing_odds through
+// extractOddsForGame, and it is the historical path, which has a snapshot time
+// to use. So:
+//
+//     a closing_odds blob WITH _oddsProof AND a run-clock captured_at
+//     is a price replayed from a snapshot and stamped with the wrong clock.
+//
+// Live captures are out of scope by construction, not by exclusion list.
 //
 // The baseline lives in docs/run-clock-closing-baseline.txt and is lowered by
 // hand when a marking run reduces it — never raised to make a red run green.
@@ -16,6 +32,7 @@
 //
 // NO WRITE PATH. SELECT only, enforced.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { replayedRunClockSql } from '../src/odds-capture-provenance.js';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const GATE = process.env.RELAY_SHARED_SECRET;
@@ -46,28 +63,43 @@ const TABLES = ['regular_season_games', 'postseason_games'];
   const baseline = Number(readFileSync(BASELINE_FILE, 'utf8').trim());
   if (!Number.isFinite(baseline)) { console.error(`FAIL: ${BASELINE_FILE} is not a number`); process.exit(1); }
 
-  // Widened on purpose: ANY source, not just draftkings. The 58 happened to
-  // come from one route; the hazard is the shape, and pinning it to the source
-  // that produced it would make this watch blind to the next one.
-  let unmarked = 0, marked = 0, newest = null;
+  // Not scoped to a bookmaker — scoped to the writer, by the proof key only
+  // that writer emits. A new route replaying snapshots through the same
+  // function is caught; a live capture is not flagged for doing the right
+  // thing.
+  const REPLAYED = replayedRunClockSql('closing_odds');
+  let unmarked = 0, marked = 0, newest = null, liveClock = 0;
   for (const table of TABLES) {
     const [r] = await d1(
       `SELECT SUM(CASE WHEN json_extract(closing_odds,'$._capture') IS NULL THEN 1 ELSE 0 END) AS u,
               SUM(CASE WHEN json_extract(closing_odds,'$._capture') IS NOT NULL THEN 1 ELSE 0 END) AS m,
               MAX(json_extract(closing_odds,'$.captured_at')) AS newest
          FROM ${table}
-        WHERE closing_odds IS NOT NULL
-          AND json_extract(closing_odds,'$.captured_at') ${MS}`);
+        WHERE closing_odds IS NOT NULL AND ${REPLAYED}`);
     unmarked += r?.u || 0; marked += r?.m || 0;
     if (r?.newest && (!newest || r.newest > newest)) newest = r.newest;
+    // Counted and reported, never gated on: a live hook's own clock is the
+    // capture moment. Printed so the denominator is visible where the result
+    // is read (Rule 91) rather than inferred from a green run.
+    const [l] = await d1(
+      `SELECT COUNT(*) AS c FROM ${table}
+        WHERE closing_odds IS NOT NULL
+          AND json_extract(closing_odds,'$.captured_at') ${MS}
+          AND json_extract(closing_odds,'$._oddsProof') IS NULL`);
+    liveClock += l?.c || 0;
   }
 
-  say(`\n    baseline (committed)          : ${baseline}`);
-  say(`    unmarked run-clock stamps     : ${unmarked}`);
-  say(`    marked as run-clock           : ${marked}`);
-  say(`    newest run-clock stamp seen   : ${newest ?? 'none'}`);
-  say(`    a1937eb fixed the known path on 2026-08-22T21:11:07Z — a newer stamp`);
-  say(`    than that is a NEW writer, not residue.`);
+  say(`\n    baseline (committed)                       : ${baseline}`);
+  say(`    replayed-with-run-clock, unmarked          : ${unmarked}`);
+  say(`    replayed-with-run-clock, marked            : ${marked}`);
+  say(`    newest replayed run-clock stamp            : ${newest ?? 'none'}`);
+  say(`    live captures stamping their own clock     : ${liveClock}  (NOT gated — correct)`);
+  say(``);
+  say(`    COVERAGE: this gates blobs carrying _oddsProof, the key only`);
+  say(`    extractOddsForGame writes. The ${liveClock} live-capture stamps above are`);
+  say(`    counted and deliberately not judged.`);
+  say(`    a1937eb fixed the known replay path on 2026-08-22T21:11:07Z — a newer`);
+  say(`    stamp in the gated set is a NEW writer, not residue.`);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(`outbox/run-clock-closing-watch-${stamp}.log`, log.join('\n') + '\n');

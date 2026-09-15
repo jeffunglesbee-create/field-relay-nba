@@ -33,6 +33,23 @@
 //
 // PURE. No I/O, no D1, no clock.
 
+// THE POPULATION, AS ONE SQL PREDICATE, because two copies of it drift and the
+// executor and the watch must agree or the watch can never reach zero.
+//
+// A millisecond fraction is what new Date().toISOString() adds and the vendor's
+// whole-second form does not have. `_oddsProof` is written by
+// extractOddsForGame (src/index.js) on every blob and by nothing else — notably
+// NOT by AmbientDO._captureClosingOdds, whose own clock IS its capture moment.
+// Only the historical path writes closing_odds through extractOddsForGame, and
+// it has a snapshot time to use. So the two together say: a price replayed from
+// a snapshot and stamped with the wrong clock.
+//
+// Takes the column name because callers alias the table differently.
+export function replayedRunClockSql(col = 'closing_odds') {
+    return `json_extract(${col},'$.captured_at') GLOB '*.[0-9][0-9][0-9]Z'\n`
+         + `           AND json_extract(${col},'$._oddsProof') IS NOT NULL`;
+}
+
 /** The snapshot anchor the historical odds route asks for, per src/index.js. */
 export function windowEndFor(date) {
     return /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? `${date}T12:00:00Z` : null;

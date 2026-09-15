@@ -86,6 +86,16 @@ const MUTATIONS = [
     expect: 'a marked blob reports itself marked' },
 
   // A mark asserting the opposite is accepted as this one.
+  { name: 'P13  the predicate stops requiring _oddsProof',
+    anchor: "         + `           AND json_extract(${col},'$._oddsProof') IS NOT NULL`;",
+    replace: "         + ``;",
+    expect: 'the predicate requires _oddsProof' },
+
+  { name: 'P14  the predicate hardcodes the column',
+    anchor: "    return `json_extract(${col},'$.captured_at') GLOB '*.[0-9][0-9][0-9]Z'\\n`",
+    replace: "    return `json_extract(closing_odds,'$.captured_at') GLOB '*.[0-9][0-9][0-9]Z'\\n`",
+    expect: 'the column name is honoured rather than hardcoded' },
+
   { name: 'P12  any _capture counts as this mark',
     anchor: "              && odds._capture.measured === false);",
     replace: "              );",

@@ -19,7 +19,7 @@
 //
 // DRY RUN UNLESS --apply.
 import { writeFileSync } from 'node:fs';
-import { captureMark, hasCaptureMark } from '../src/odds-capture-provenance.js';
+import { captureMark, hasCaptureMark, replayedRunClockSql } from '../src/odds-capture-provenance.js';
 import { parseOddsJSON } from '../src/odds-consumer-rules.js';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
@@ -50,13 +50,12 @@ async function d1(sql, params = []) {
   return b.results || [];
 }
 
-// The shape that identified the writer. Selected here rather than by joining
-// odds_history, because that join reaches only the 184 games with a history row
-// and it is what made this population look like 22.
-const MS = `GLOB '*.[0-9][0-9][0-9]Z'`;
-const SHAPE = `json_extract(closing_odds,'$.captured_at') ${MS}
-           AND json_extract(closing_odds,'$.source') = 'draftkings'
-           AND json_extract(closing_odds,'$.total') IS NULL`;
+// ONE PREDICATE, SHARED WITH THE WATCH. Selecting by `source = 'draftkings'`
+// and an absent total described the 58 rows that happened to be found first;
+// it is not what makes them wrong. What makes them wrong is a replayed price
+// stamped with the run clock, and src/odds-capture-provenance.js says that
+// once so the executor and the watch cannot drift apart.
+const SHAPE = replayedRunClockSql('closing_odds');
 
 (async () => {
   say(`=== capture provenance mark  relay=${RELAY}  apply=${APPLY}  utc=${new Date().toISOString()} ===`);
