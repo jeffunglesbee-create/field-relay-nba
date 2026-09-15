@@ -1,7 +1,48 @@
 # CC-CMD-2026-09-15 — the odds backfill has been dead for fifteen days
 
-**Status:** FILED. **Blocked on the owner** — the fix is a GitHub secret, which
-is not a session's to set.
+**Status:** **CLOSED 2026-09-15.** The owner set `ODDS_API_KEY`. Run
+`35012183015` (`workflow_dispatch`, head `67d025b5`) is the first green run
+since at least 2026-09-01.
+
+The discriminator is duration, not the green tick: runs 84–98 each died at
+**9 seconds** on the first guard. Run 99 ran **83 seconds** and did real work.
+
+```
+quota: remaining=40654, monthly_used=59346, daily_budget=2700
+22 unprocessed date(s); oldest 2026-08-24, newest 2026-09-14
+done: dates=22/22 games=19 credits=1120
+sync: attempted=21, opening_odds=1613 (reg=1587, post=26),
+                    closing_odds=1444 (reg=1418, post=26)
+```
+
+**Done condition met** — green, `attempted=21` which is non-zero, and the
+22-date backlog the fifteen dead days accumulated is now drained in one pass.
+
+**Task 2 also met, on its first real run.** The candidate-SQL change shipped
+earlier the same day had never executed in production. Its counters both read
+zero and, more to the point, said so explicitly rather than silently:
+
+```
+sync: 0 game(s) in no games table, 0 game(s) already had every column this
+      run could fill — neither logged to change_log.
+```
+
+That line is the phantom-`change_log` fix reporting its own absence correctly.
+The three `left NULL for 0` guard lines likewise printed their zeros rather
+than omitting themselves.
+
+### One thing this run does NOT establish
+
+The log reports `attempted=21` and the resulting archive totals, but **never
+states how many columns were actually filled**. "19 games fetched" and "21
+sync attempts" are not "N rows written", and nothing in this output closes
+that gap. Task 3 below — what the fifteen days cost — remains unmeasured, and
+the temptation to read `games=19` as the answer is exactly the substitution
+this document was filed to avoid.
+
+Remaining quota is worth watching but is not a finding yet: 40654 credits with
+~15 days left is 2710/day against a 2700 daily budget, and this run's 1120 was
+a fifteen-day backlog rather than a steady-state cost.
 
 ## Measured
 
