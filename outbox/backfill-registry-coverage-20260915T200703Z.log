@@ -1,0 +1,37 @@
+=== backfill registry coverage  utc=2026-09-15T20:07:03.735Z ===
+
+structural: no private registry, imports the canonical lookup
+
+sports the archive has a key for that the backfill CANNOT fetch: 0
+  
+
+regular_season_games dated >= 2026-09-01, by sport column:
+   310 games   247 null  mls          backfill CAN fetch
+   201 games     0 null  mlb          backfill CAN fetch
+   177 games   177 null  cfb          backfill CAN fetch
+    24 games    10 null  la liga      backfill CAN fetch
+    20 games     4 null  serie a      backfill CAN fetch
+    20 games     2 null  epl          backfill CAN fetch
+    18 games    18 null  uefa champions league no key in either table
+    18 games     7 null  ligue 1      backfill CAN fetch
+    18 games    18 null  bundesliga   backfill CAN fetch
+    16 games    16 null  nfl          backfill CAN fetch
+    11 games    11 null  efl cup      no key in either table
+     8 games     1 null  cfl          backfill CAN fetch
+     7 games     7 null  efl trophy   no key in either table
+
+STRANDED TOTAL: 0 games, 0 with opening_odds NULL,
+in sports the vendor sells and the archive knows the key for, which the
+backfill's private table cannot name.
+
+COVERAGE: regular_season_games only, dated >= 2026-09-01. postseason_games
+and earlier dates are not counted here. This reports REACHABILITY, not
+whether the vendor actually has data for any given fixture.
+
+── PROPOSED OUTLAY ──
+  none: no archive sport is unreachable, so there is no gap to close.
+  The spend this replaces was measured at 67 credits/day before the
+  registry was unified (run 35017010215); that is now the live rate.
+
+PASS — no private registry, and the backfill reaches all 16 archive sports.
+       WC aliases: soccer_fifa_world_cup
