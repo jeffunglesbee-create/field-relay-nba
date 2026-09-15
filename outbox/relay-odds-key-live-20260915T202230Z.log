@@ -1,0 +1,26 @@
+=== relay odds key live probe  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T20:22:30.750Z ===
+
+  vendor passthrough  /odds/v4/sports
+      HTTP 401   (vendor key validity)
+      body: odds returned 401
+
+  relay liveness      /health
+      HTTP 200   (is the worker serving at all)
+      body: RELAY OK — nba + nhl + fpl + fd + odds + squiggle + kali + atp + bdl + espn-gambit + espn-summary + dropbox + field-data + v2 + ws-game-do + jq-gate + jq-analytics + wc-d1 + wc-team-context + soccer-w
+
+── VERDICT ──
+  The worker is SERVING (/health ok) but its vendor call is 401.
+  That points at the Cloudflare Worker secret ODDS_API_KEY still holding
+  the PRE-ROTATION key. The GitHub Actions copy is already good (run
+  35012664679). They are separate stores and were updated separately.
+
+  IMPACT IF SO: every worker-side Odds API caller is failing — AmbientDO
+  in-play capture, the WP resolver, closing-odds capture. The nightly
+  backfill is NOT affected; it uses the Actions secret.
+
+  FIX IS THE OWNER'S: set the worker secret to the rotated key.
+  Not reproduced here, and a session must not hold it.
+
+COVERAGE: two routes. This does not test AmbientDO, the WP resolver or
+the cron writers directly; it tests the one passthrough they share a key
+with. A green here does not prove those three are healthy.
