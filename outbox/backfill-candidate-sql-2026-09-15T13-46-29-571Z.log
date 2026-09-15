@@ -1,0 +1,15 @@
+=== backfill candidate SQL  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-15T13:46:29.259Z ===
+
+--- the query, lifted from .github/scripts/odds-backfill.js (2704 chars)
+PASS  the candidate query runs against live D1
+    2 candidate row(s)
+PASS  the query returns game_table
+PASS  the query returns opening_is_null
+PASS  the query returns closing_is_null
+PASS  game_table is a real table name or null (saw: regular_season_games)
+PASS  the emptiness flags are 0/1/null, which !! reads correctly (saw: 0, 1)
+PASS  the flags match the games row they describe (2 checked, 0 disagreed)
+
+    coverage: flags cross-checked on 2 of 2 candidate row(s) — capped at 25, one extra SELECT each.
+      2026-07-25-mls-dc-tor  table=regular_season_games  open_null=0  close_null=1  date=2026-07-25
+      2026-08-01-mls-dc-nsh  table=regular_season_games  open_null=0  close_null=1  date=2026-08-01
