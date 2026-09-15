@@ -1,0 +1,37 @@
+name: Backfill outage cost (read-only)
+
+# CC-CMD-2026-09-15-odds-backfill-missing-api-key Task 3. Sandbox egress to the
+# relay is blocked, so the measurement runs here — the established CI-as-proxy
+# route for this repo, not a STAGED deferral.
+#
+# READ-ONLY. The script refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Count games dated on or after this YYYY-MM-DD. Default 2026-09-01, the first dead scheduled run.'
+        required: false
+        default: '2026-09-01'
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Measure
+        run: node scripts/measure-backfill-outage-cost.mjs --since=${{ inputs.since || '2026-09-01' }} | tee -a "$GITHUB_STEP_SUMMARY" | tee outbox/backfill-outage-cost-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="backfill-outage-cost" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: backfill outage cost"
