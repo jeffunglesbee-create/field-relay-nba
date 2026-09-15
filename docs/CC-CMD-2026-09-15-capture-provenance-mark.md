@@ -133,3 +133,49 @@ new one since. Measured, not assumed.
 
 The write remains **unauthorised**. The workflow applies only on the literal
 input `apply`.
+
+---
+
+## APPLIED and verified (2026-09-15T14:15:55Z, run 34980428015)
+
+```
+--- 1. plan
+    to mark                  : 815
+    already marked (no-op)   : 59
+    of the plan, kickoff NOT decidable from the window : 0
+--- 3. change_log: 874 marked row(s) not yet attributed  (includes rows from an earlier interrupted run)
+    874 entries written
+--- 4. re-read
+    rows of this shape now marked : 874
+    still unmarked                : 0
+    captured_at altered by the mark : 0  (must be 0)
+```
+
+Watch green at baseline **0**: `0 unmarked / 874 marked`, 42 live captures
+counted and not judged. `docs/run-clock-closing-baseline.txt` lowered to `0`.
+
+### The first apply failed, and the failure paid for itself
+
+`FAIL: fetch failed`, eighteen seconds in, **printing no count**. 874 sequential
+POSTs to one Worker makes a transient transport error ordinary rather than
+exotic. Recovering the state took a separate query: **59 marked, 815 not, and
+none of the 59 carrying a `change_log` entry** — step 3 never ran. That is the
+same unattributable state `CC-CMD-2026-09-14` Task 1 spent a whole task
+reconstructing, reproduced by this executor.
+
+Three fixes, one per thing the failure showed:
+
+| | |
+|---|---|
+| transport retries | five attempts, exponential backoff, **transport only** — an HTTP response the Worker produced is a real answer and is not retried |
+| `change_log` derived from the archive | the set is "marked but not logged with `capture_provenance`", so the re-run repaired the 59 orphans. A plan-derived set would have orphaned them permanently: a re-run does not re-plan a marked row |
+| the count printed where it is read | `N/874 marked before failing: <reason>` in the committed log |
+
+The `874 entries written` line against a plan of 815 is that second fix working
+rather than a coincidence.
+
+### `kickoff_decidable: 0` undecidable
+
+The `min(anchor, run clock)` refinement removed the last one before any row was
+written. `MLB_2026-07-04_rangers_tigers` shows `window_end=2026-07-04T00:00:38.713Z`
+— the clock closing the window twelve hours earlier than the noon anchor.

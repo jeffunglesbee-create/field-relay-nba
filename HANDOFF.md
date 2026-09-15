@@ -122,8 +122,24 @@ only `extractOddsForGame` writes; predicate shared by executor and watch from
 `src/odds-capture-provenance.js`. Split is 874 replayed / **42** live — I
 assumed ~858 live, wrong by 20×. Newest gated stamp
 `2026-08-22T10:01:04.210Z`, eleven hours before `a1937eb`: all residue, nothing
-new since. Mark built, dry run plans 874, **write unauthorised**
+new since. **APPLIED 2026-09-15T14:15:55Z: 874/874 marked, 0 unmarked, 0 `captured_at`
+altered**, watch green at baseline 0
 (`CC-CMD-2026-09-15-capture-provenance-mark`); daily watch at `40 11 * * *`.
+
+**The first apply failed and the failure paid for itself.** `fetch failed`
+eighteen seconds in, printing no count; recovery needed a separate query and
+found **59 marked with no `change_log` entry** — the same unattributable state
+2026-09-14 Task 1 spent a task reconstructing, reproduced by my own executor.
+Fixed three ways: transport-only retries with backoff; `change_log` derived
+from the archive ("marked but not logged") so the re-run repaired the 59
+orphans rather than orphaning them permanently; and the progress count printed
+into the committed log. `874 entries written` against a plan of `815` is that
+second fix working.
+
+**Rule 42 changed the mark before it was written.** `captured_at` had been
+treated as noise; it is an upper bound — the vendor serves a snapshot at or
+before the request and the worker stamps after receiving it. `window_end =
+min(anchor, run clock)` took the undecidable count from 1 to **0**.
 
 **Repair verified and REFUSED, on evidence.** Selecting by the writer's shape
 rather than the `odds_history` join finds **58 rows, not 22** — the join saw
