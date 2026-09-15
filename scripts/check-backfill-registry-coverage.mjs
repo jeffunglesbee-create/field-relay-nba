@@ -110,6 +110,46 @@ function backfillRegistry() {
   console.log(`and earlier dates are not counted here. This reports REACHABILITY, not`);
   console.log(`whether the vendor actually has data for any given fixture.`);
 
+  // ── What would closing the gap actually cost? ─────────────────────────────
+  // PER_CALL_COST = 20 (odds-backfill.js:35 — 10 credits x 2 markets, regions=us),
+  // billed once per SPORT-DATE, not per game. So the outlay is the number of new
+  // sport-date pairs, times 20 — and a sport with 177 games on 15 dates costs the
+  // same as a sport with 15.
+  const PER_CALL_COST = 20;
+  const strandedSports = missing.filter(k => ARCHIVE[k]);
+  const inList = strandedSports.map(() => '?').join(',');
+
+  const [allTime] = await d1(
+    `SELECT COUNT(*) AS pairs FROM (
+       SELECT DISTINCT LOWER(sport) AS s, date FROM regular_season_games
+        WHERE LOWER(sport) IN (${inList}))`, strandedSports);
+
+  const [last14] = await d1(
+    `SELECT COUNT(*) AS pairs FROM (
+       SELECT DISTINCT LOWER(sport) AS s, date FROM regular_season_games
+        WHERE LOWER(sport) IN (${inList})
+          AND date >= date('now','-14 day') AND date < date('now'))`, strandedSports);
+
+  const [since] = await d1(
+    `SELECT COUNT(*) AS pairs FROM (
+       SELECT DISTINCT LOWER(sport) AS s, date FROM regular_season_games
+        WHERE LOWER(sport) IN (${inList}) AND date >= ?)`, [...strandedSports, SINCE]);
+
+  console.log(`\n── PROPOSED OUTLAY (PER_CALL_COST=${PER_CALL_COST} per sport-date) ──`);
+  console.log(`  one-time, every archived date         : ${allTime.pairs} pairs = ${allTime.pairs * PER_CALL_COST} credits`);
+  console.log(`  one-time, dates >= ${SINCE}       : ${since.pairs} pairs = ${since.pairs * PER_CALL_COST} credits`);
+  console.log(`  ongoing, last 14 complete days        : ${last14.pairs} pairs = ${last14.pairs * PER_CALL_COST} credits`);
+  console.log(`  ongoing, implied per-day run rate     : ${(last14.pairs / 14).toFixed(1)} pairs = ${Math.round(last14.pairs / 14 * PER_CALL_COST)} credits/day`);
+  console.log(`\n  The per-day figure is the one that recurs. The one-time figures are`);
+  console.log(`  only spent if odds_backfill_progress is reset for those dates —`);
+  console.log(`  adding keys alone backfills NOTHING, because every past date is`);
+  console.log(`  already recorded complete (odds-backfill.js:389 counts`);
+  console.log(`  no_mappable_sports as done).`);
+  console.log(`\n  COVERAGE: regular_season_games only. postseason_games would add`);
+  console.log(`  more pairs and is not counted. Backward-looking: a sport's future`);
+  console.log(`  fixtures are not in the archive yet, so the run rate is a proxy`);
+  console.log(`  from recent history, not a forecast.`);
+
   if (missing.length) {
     console.log(`\nFAIL — ${missing.length} archive sport(s) unreachable by the backfill.`);
     process.exit(1);
