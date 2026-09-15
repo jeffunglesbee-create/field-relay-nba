@@ -89,3 +89,77 @@ Superseded 2026-09-14: the earlier `same_slate_pair_collisions_with_odds` asked
 whether EITHER row carried a line, which is a condition that can never close —
 filling the 32 half-truth pairs removes the hazard and leaves both rows carrying
 odds. The relay still serves that key as an alias for one cycle.
+
+---
+
+## Task 0 — CLOSED (2026-09-15, `outbox/cup-competitions-odds-keys-*.log`)
+
+### The answer is zero
+
+| league | rows | our map | the vendor |
+|---|---:|---|---|
+| CONCACAF Champions Cup | 80 | NO KEY | **NOT OFFERED** |
+| Leagues Cup | 63 | NO KEY | **NOT OFFERED** |
+| U.S. Open Cup | 58 | NO KEY | **NOT OFFERED** |
+| TELUS Canadian Championship | 40 | NO KEY | **NOT OFFERED** |
+| Campeones Cup | 2 | NO KEY | **NOT OFFERED** |
+
+243 rows, 0 odds values, re-measured from the archive rather than quoted from
+this document's own earlier table (Rule 72). `/v4/sports` offers **86** sports,
+52 soccer or cup-titled, and none of the five among them. The call costs no
+credit — `oddsBillablePath` excludes it in `src/index.js`, checked there.
+
+**So the CC-CMD was right to refuse to promise odds, and the answer is the
+stronger form of that refusal: no relabel and no routing change can give these
+rows a line, because the line does not exist to be fetched.** They are correctly
+unmatched.
+
+### The reframe that did not survive, and is worth keeping anyway
+
+`runOddsBackfillForDate` SELECTs `league` at `src/index.js:6721` and buckets on
+`bucketOf(row.sport)` alone at `6747`. The column naming the competition is
+fetched and discarded. That looked like a fix with no D1 write at all — until
+the vendor was asked. For these five it buys nothing.
+
+It is still a real hazard **for the next competition**: one the vendor DOES
+cover, landing with a sport label pointing elsewhere, would be starved exactly
+the same way and nothing would say so. `scripts/watch-league-outranks-sport.mjs`
+now gates that, daily, and is deliberately silent about these 243 — their
+`league` maps to no key, so they cannot trip it, and a watch firing daily on
+rows with no available fix is noise.
+
+### A defect in this probe, caught before it was reported
+
+The first run said:
+
+```
+TELUS Canadian Championship -> soccer_efl_champ  (Championship)
+```
+
+That is the English second tier. `name.includes(title)` matched on the word
+"championship". Reported as a verdict it is a **substituted key** — the class of
+defect HANDOFF records for 2026-09-13, where six CFB rows carried another
+sport's team because a sport-blind alias map resolved `Liberty` to
+`newyorkliberty`. Exact title equality now decides; looser matches print as
+candidates explicitly not asserted, and generic words (cup, championship,
+league, open) are dropped so they cannot carry a match alone. The corrected run
+shows one such candidate — UEFA Champions League against CONCACAF Champions
+Cup — refused.
+
+## Tasks 1–3 — what remains, and what it is worth
+
+Task 1 (name the writer), Task 2 (label vs id) and Task 3 (D1 approval) are now
+about **archive truthfulness only**. A CONCACAF tie between San Diego FC and
+Pumas is not an MLS game and the archive says it is; that is worth fixing on its
+own terms. It is 243 rows of live mutation, it buys no odds, and it is **not
+authorised by this document** (Task 3 already said so).
+
+The writer is `/archive/game`, which takes `sport` from its POST body
+(`src/index.js:12817` inserts it verbatim after `canonicalizeBriefSport`), so
+the caller is in the client repo or a schedule import — naming it precisely is
+still open.
+
+## Done condition — unchanged, and still not met
+
+`postseason_games` holds no row whose `sport` names a competition its `league`
+contradicts. Meeting it requires the write Task 3 gates.

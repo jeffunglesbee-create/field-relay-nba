@@ -1,0 +1,32 @@
+name: League outranks sport watch (read-only)
+
+# A competition the vendor covers, landing with a sport label that points
+# elsewhere, is starved of odds and nothing says so. The five cup competitions
+# under MLS are NOT that case — measured 2026-09-15, the vendor offers none of
+# them — so this watches for the next one rather than nagging about those.
+#
+# READ-ONLY. The watch refuses any SQL that is not a SELECT.
+
+on:
+  schedule:
+    - cron: '50 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Watch
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: node scripts/watch-league-outranks-sport.mjs
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="league-outranks-sport-watch" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: league outranks sport watch"
