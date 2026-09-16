@@ -1,0 +1,46 @@
+=== odds backfill pairing rate  utc=2026-09-16T21:52:05.102Z ===
+window: progress rows dated >= 2026-09-02
+
+  progress rows in window        : 14
+  of those, rows that spent      : 14
+  spent AND paired at least one  : 5
+  spent AND paired ZERO          : 9
+  total credits in window        : 660
+  total games paired in window   : 16
+
+FAIL: 9 date(s) were billed and paired nothing:
+      2026-09-15  credits 80  games 0
+      2026-09-14  credits 60  games 0
+      2026-09-11  credits 20  games 0
+      2026-09-10  credits 40  games 0
+      2026-09-08  credits 20  games 0
+      2026-09-07  credits 20  games 0
+      2026-09-06  credits 60  games 0
+      2026-09-03  credits 40  games 0
+      2026-09-02  credits 40  games 0
+
+This is the shape the equality matcher produced on every CFB date before
+2026-09-16. Investigate the matcher before the budget (Rule 77).
+
+  provider billed this month     : 65923
+  our ledger says                : 46341
+  today's daily counter          : 1598 / 3800
+  readings on file               : 3
+
+  since the last reading (7.8h):
+      provider billed   : 1377
+      allowance         : 1232   (3800/day, prorated)
+      rate              : 4246 credits/day
+      games paired since: 0
+
+  wrote outbox/odds-provider-usage-series.json (4 reading(s) kept)
+
+FAIL: the provider billed 1377 where 1232 was allowed.
+The daily guard permits 3800. Both guards degrade OPEN — consumeOddsCredit
+returns true when FIELD_JOURNALISM is unbound, checkAndIncrementDailyOdds returns
+true on any KV error — so a day above the ceiling is the signature of a guard
+that stopped guarding. Investigate the guard, not the budget (Rule 77).
+
+COVERAGE: 14 progress rows since 2026-09-02, 4 provider reading(s).
+odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an
+unpaired one reads as paired — this catches total failure per date, not per sport.
