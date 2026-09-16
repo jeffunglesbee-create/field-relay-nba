@@ -1,0 +1,191 @@
+{
+  "captured_at": "2026-09-16T17:40:57.807Z",
+  "sport": "mlb",
+  "date": "2026-09-15",
+  "sport_key": "baseball_mlb",
+  "snapshot_timestamp": "2026-09-15T11:55:36Z",
+  "archive": [
+    {
+      "id": "MLB_2026-09-15_e401816943",
+      "home": "Rays",
+      "away": "Athletics",
+      "start_time": "2026-09-15T22:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816944",
+      "home": "Mets",
+      "away": "Orioles",
+      "start_time": "2026-09-15T23:10Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816945",
+      "home": "Guardians",
+      "away": "White Sox",
+      "start_time": "2026-09-15T22:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816946",
+      "home": "Blue Jays",
+      "away": "Tigers",
+      "start_time": "2026-09-15T23:07Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816947",
+      "home": "Reds",
+      "away": "Dodgers",
+      "start_time": "2026-09-15T22:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816948",
+      "home": "Pirates",
+      "away": "Brewers",
+      "start_time": "2026-09-15T22:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816949",
+      "home": "Nationals",
+      "away": "Phillies",
+      "start_time": "2026-09-15T22:45Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816950",
+      "home": "Cubs",
+      "away": "Braves",
+      "start_time": "2026-09-15T23:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816951",
+      "home": "Rangers",
+      "away": "Red Sox",
+      "start_time": "2026-09-16T00:05Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816952",
+      "home": "Astros",
+      "away": "Royals",
+      "start_time": "2026-09-16T00:10Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816953",
+      "home": "Twins",
+      "away": "Yankees",
+      "start_time": "2026-09-15T23:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816954",
+      "home": "Cardinals",
+      "away": "Giants",
+      "start_time": "2026-09-15T23:45Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816955",
+      "home": "Rockies",
+      "away": "Padres",
+      "start_time": "2026-09-16T00:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816956",
+      "home": "Diamondbacks",
+      "away": "Marlins",
+      "start_time": "2026-09-16T01:40Z"
+    },
+    {
+      "id": "MLB_2026-09-15_e401816957",
+      "home": "Angels",
+      "away": "Mariners",
+      "start_time": "2026-09-16T01:38Z"
+    }
+  ],
+  "vendor": [
+    {
+      "id": "4ee5706290157d66372729e7e70830e8",
+      "home_team": "Tampa Bay Rays",
+      "away_team": "Athletics",
+      "commence_time": "2026-09-15T22:40:00Z"
+    },
+    {
+      "id": "2f2faff81101f84158c3cfbd630bcb30",
+      "home_team": "Cleveland Guardians",
+      "away_team": "Chicago White Sox",
+      "commence_time": "2026-09-15T22:40:00Z"
+    },
+    {
+      "id": "baa7f738229bf9855e24037a2a30a2cb",
+      "home_team": "Cincinnati Reds",
+      "away_team": "Los Angeles Dodgers",
+      "commence_time": "2026-09-15T22:40:00Z"
+    },
+    {
+      "id": "e5ea1bb04bd365a0c15838cfb75266f9",
+      "home_team": "Pittsburgh Pirates",
+      "away_team": "Milwaukee Brewers",
+      "commence_time": "2026-09-15T22:41:00Z"
+    },
+    {
+      "id": "015394004322ca670004015ae5bd94a3",
+      "home_team": "Washington Nationals",
+      "away_team": "Philadelphia Phillies",
+      "commence_time": "2026-09-15T22:45:00Z"
+    },
+    {
+      "id": "1ddb6d18eafe93f1947471922f1938ea",
+      "home_team": "Toronto Blue Jays",
+      "away_team": "Detroit Tigers",
+      "commence_time": "2026-09-15T23:08:00Z"
+    },
+    {
+      "id": "a1a608b633419833caf64ad8739781f3",
+      "home_team": "New York Mets",
+      "away_team": "Baltimore Orioles",
+      "commence_time": "2026-09-15T23:10:00Z"
+    },
+    {
+      "id": "256d7de8ceb3804256d260a74263d82c",
+      "home_team": "Chicago Cubs",
+      "away_team": "Atlanta Braves",
+      "commence_time": "2026-09-15T23:40:00Z"
+    },
+    {
+      "id": "f367b112dcb4fea1a4ff67e49ee1f0cd",
+      "home_team": "Minnesota Twins",
+      "away_team": "New York Yankees",
+      "commence_time": "2026-09-15T23:40:00Z"
+    },
+    {
+      "id": "15c9ca42142414287f11247c92905d9f",
+      "home_team": "St. Louis Cardinals",
+      "away_team": "San Francisco Giants",
+      "commence_time": "2026-09-15T23:45:00Z"
+    },
+    {
+      "id": "6279de5e7b4d4681d15f7d6ea90d4e66",
+      "home_team": "Texas Rangers",
+      "away_team": "Boston Red Sox",
+      "commence_time": "2026-09-16T00:06:00Z"
+    },
+    {
+      "id": "8cac5435079f2d8d51adb91e7950bb26",
+      "home_team": "Houston Astros",
+      "away_team": "Kansas City Royals",
+      "commence_time": "2026-09-16T00:10:00Z"
+    },
+    {
+      "id": "54f473e11bd354c898e74efd34f3f78d",
+      "home_team": "Colorado Rockies",
+      "away_team": "San Diego Padres",
+      "commence_time": "2026-09-16T00:40:00Z"
+    },
+    {
+      "id": "cce625b7dac12280fdb88a6f44058c93",
+      "home_team": "Los Angeles Angels",
+      "away_team": "Seattle Mariners",
+      "commence_time": "2026-09-16T01:38:00Z"
+    },
+    {
+      "id": "e9344aee4810e4127e69c73c13c781d7",
+      "home_team": "Arizona Diamondbacks",
+      "away_team": "Miami Marlins",
+      "commence_time": "2026-09-16T01:40:00Z"
+    }
+  ]
+}

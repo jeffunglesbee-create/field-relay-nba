@@ -1,0 +1,71 @@
+=== cfb name join diagnosis  mlb 2026-09-15  utc=2026-09-16T17:40:56.715Z ===
+
+archive rows: 15
+  home IS NULL/empty : 0
+  away IS NULL/empty : 0
+
+  first 10 archive pairs (raw -> normalised):
+      "Athletics" @ "Rays"
+        -> athletics @ rays    start_time=2026-09-15T22:40Z
+      "Orioles" @ "Mets"
+        -> orioles @ mets    start_time=2026-09-15T23:10Z
+      "White Sox" @ "Guardians"
+        -> whitesox @ guardians    start_time=2026-09-15T22:40Z
+      "Tigers" @ "Blue Jays"
+        -> tigers @ bluejays    start_time=2026-09-15T23:07Z
+      "Dodgers" @ "Reds"
+        -> dodgers @ reds    start_time=2026-09-15T22:40Z
+      "Brewers" @ "Pirates"
+        -> brewers @ pirates    start_time=2026-09-15T22:40Z
+      "Phillies" @ "Nationals"
+        -> phillies @ nationals    start_time=2026-09-15T22:45Z
+      "Braves" @ "Cubs"
+        -> braves @ cubs    start_time=2026-09-15T23:40Z
+      "Red Sox" @ "Rangers"
+        -> redsox @ rangers    start_time=2026-09-16T00:05Z
+      "Royals" @ "Astros"
+        -> royals @ astros    start_time=2026-09-16T00:10Z
+
+vendor baseball_mlb @ 2026-09-15T12:00:00Z -> HTTP 200 (20 credits spent)
+  snapshot timestamp : 2026-09-15T11:55:36Z
+  events             : 15
+
+  vendor events by commence_time DATE:
+       10  2026-09-15   <- the date we asked about
+        5  2026-09-16
+
+  first 10 vendor pairs (raw -> normalised):
+      "Athletics" @ "Tampa Bay Rays"   2026-09-15T22:40:00Z
+        -> athletics @ tampabayrays
+      "Chicago White Sox" @ "Cleveland Guardians"   2026-09-15T22:40:00Z
+        -> chicagowhitesox @ clevelandguardians
+      "Los Angeles Dodgers" @ "Cincinnati Reds"   2026-09-15T22:40:00Z
+        -> losangelesdodgers @ cincinnatireds
+      "Milwaukee Brewers" @ "Pittsburgh Pirates"   2026-09-15T22:41:00Z
+        -> milwaukeebrewers @ pittsburghpirates
+      "Philadelphia Phillies" @ "Washington Nationals"   2026-09-15T22:45:00Z
+        -> philadelphiaphillies @ washingtonnationals
+      "Detroit Tigers" @ "Toronto Blue Jays"   2026-09-15T23:08:00Z
+        -> detroittigers @ torontobluejays
+      "Baltimore Orioles" @ "New York Mets"   2026-09-15T23:10:00Z
+        -> baltimoreorioles @ newyorkmets
+      "Atlanta Braves" @ "Chicago Cubs"   2026-09-15T23:40:00Z
+        -> atlantabraves @ chicagocubs
+      "New York Yankees" @ "Minnesota Twins"   2026-09-15T23:40:00Z
+        -> newyorkyankees @ minnesotatwins
+      "San Francisco Giants" @ "St. Louis Cardinals"   2026-09-15T23:45:00Z
+        -> sanfranciscogiants @ stlouiscardinals
+
+  distinct normalised names — archive 30, vendor 30
+  names present in BOTH: 1
+      e.g. athletics
+
+  wrote outbox/fixture-mlb-2026-09-15.json — 15 archive rows, 15 vendor events.
+  The matcher can now be developed against this at zero further cost.
+
+  If the overlap is large but 0 games matched, the defect is the PAIRING
+  (home/away orientation, or a date mismatch), not the names. If the
+  overlap is near zero, the two systems name teams differently and a
+  fuzzy matcher is the wrong fix — an id join is.
+
+COVERAGE: one sport-date. 20 credits spent on exactly one vendor call.
