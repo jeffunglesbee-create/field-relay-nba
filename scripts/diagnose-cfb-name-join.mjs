@@ -113,6 +113,24 @@ const shared = [...archiveNames].filter(n => vendorNames.has(n));
 console.log(`\n  distinct normalised names — archive ${archiveNames.size}, vendor ${vendorNames.size}`);
 console.log(`  names present in BOTH: ${shared.length}`);
 if (shared.length) console.log(`      e.g. ${shared.slice(0, 8).join(', ')}`);
+// Capture BOTH sides as a fixture so the matcher can be iterated offline.
+// Without this, every matcher attempt costs 20 credits; with it, the vendor
+// payload is bought once and tried against as many times as it takes.
+if (process.argv.includes('--dump')) {
+  const fs = await import('node:fs');
+  const path = `outbox/fixture-${SPORT}-${DATE}.json`;
+  fs.writeFileSync(path, JSON.stringify({
+    captured_at: new Date().toISOString(),
+    sport: SPORT, date: DATE, sport_key: sportKey,
+    snapshot_timestamp: payload?.timestamp ?? null,
+    archive: rows.map(r => ({ id: r.id, home: r.home, away: r.away, start_time: r.start_time })),
+    vendor: events.map(e => ({ id: e.id, home_team: e.home_team, away_team: e.away_team,
+                               commence_time: e.commence_time })),
+  }, null, 2) + '\n');
+  console.log(`\n  wrote ${path} — ${rows.length} archive rows, ${events.length} vendor events.`);
+  console.log(`  The matcher can now be developed against this at zero further cost.`);
+}
+
 console.log(`\n  If the overlap is large but 0 games matched, the defect is the PAIRING`);
 console.log(`  (home/away orientation, or a date mismatch), not the names. If the`);
 console.log(`  overlap is near zero, the two systems name teams differently and a`);

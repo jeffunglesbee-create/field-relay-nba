@@ -46,7 +46,7 @@ jobs:
           node scripts/diagnose-cfb-name-join.mjs \
             --date=${{ inputs.date || '2026-09-12' }} \
             --sport=${{ inputs.sport || 'cfb' }} \
-            ${{ inputs.with_vendor && '--with-vendor' || '' }} 2>&1 \
+            ${{ inputs.with_vendor && '--with-vendor --dump' || '' }} 2>&1 \
             | tee -a "$GITHUB_STEP_SUMMARY" \
             | tee outbox/cfb-name-join-$(date -u +%Y%m%dT%H%M%SZ).log
 
