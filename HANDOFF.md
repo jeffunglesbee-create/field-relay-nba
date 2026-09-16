@@ -22,6 +22,55 @@ rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
 **candidate** for opening lines missing on games dated from 2026-09-01, and that
 is unmeasured.
 
+## SESSION CLOSE-OUT — 2026-09-16c (what the provider billed, which nothing recorded)
+
+**HEAD:** `642b647` → `ff61e97` → the null-as-zero fix · main throughout · 0 PRs
+**Session doc:** `outbox/cc-session-2026-09-16-odds-name-matcher.md`
+
+**"10k in a day and no problems solved" could not be checked, and that was the
+defect.** Nothing recorded what the provider billed per day.
+
+| | |
+|---|---:|
+| provider billed, month to date | **64,546** / 100,000 |
+| our monthly ledger says | 44,874 / 85,000 |
+| today's daily counter (13:16Z) | 123 / 3,800 |
+
+**A leak theory was formed and refuted before it was reported.** The ~19,700
+gap looked like the CI scripts spending outside the ledger — they genuinely are
+outside it, and `check-odds-calls-guarded.mjs` certifies "every odds call is
+charged to the monthly ledger" while scanning exactly three files under `src/`.
+But the 2026-09-05 artifact shows the gap was already ~17,800 then. Over 11.5
+days it grew 1,877. It is an old static offset, not live leakage, and the
+ledger tracks current spend to within ~5%. **Origin of the ~18k offset:
+UNKNOWN and unexplained.**
+
+**What the two readings do establish:** 41,002 credits over 11.5 days,
+**~3,565/day sustained**, against a 3,800/day ceiling whose own comment reads
+"85K/month ÷ ~22 active days". The guard is not a brake; it authorises 83,600
+of an 85,000 limit in advance. Nothing asks whether the spend buys anything.
+
+**`odds-pairing-rate-watch.yml` now records the provider figure daily** next to
+games actually paired, and fails when a day's delta exceeds the ceiling prorated
+by elapsed hours — the signature of a guard that degraded open, which both
+guards can do (`consumeOddsCredit` returns true with FIELD_JOURNALISM unbound;
+`checkAndIncrementDailyOdds` returns true on any KV error).
+
+**Its first live run found real history:** 8 of 13 dates billed and paired
+nothing — 580 credits, 16 games — which is the 0-of-80 made visible for the
+first time.
+
+**Two defects in the instrument itself, both caught here:**
+1. that first run exited on the pairing FAIL *before* recording the spend. A
+   failing day is exactly the one whose cost matters. One exit now, reading
+   first, ordering asserted structurally (M28).
+2. the report line coerced an unknown pairing baseline to 0 (M29). Third
+   null-as-zero in one feature.
+
+**NOT ANSWERED:** per-day provider usage before today. Two snapshots eleven days
+apart cannot show a 10k Saturday. The Odds API dashboard has it; this series
+will have it from tomorrow. **29 of 29 mutations caught.**
+
 ## SESSION CLOSE-OUT — 2026-09-16b (the initialisms, paired without reading them)
 
 **HEAD:** `34fc037` → `642b647` · main throughout · 0 PRs
