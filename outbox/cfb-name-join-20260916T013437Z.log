@@ -1,0 +1,32 @@
+=== cfb name join diagnosis  cfb 2026-09-12  utc=2026-09-16T01:34:37.609Z ===
+
+archive rows: 80
+  home IS NULL/empty : 0
+  away IS NULL/empty : 0
+
+  first 10 archive pairs (raw -> normalised):
+      "Arkansas" @ "Utah"
+        -> arkansas @ utah    start_time=2026-09-13T02:30Z
+      "Southern Miss" @ "Auburn"
+        -> southernmiss @ auburn    start_time=2026-09-13T00:50Z
+      "Campbell" @ "Florida"
+        -> campbell @ florida    start_time=2026-09-12T21:30Z
+      "Western KY" @ "Georgia"
+        -> westernky @ georgia    start_time=2026-09-12T16:45Z
+      "Alabama" @ "Kentucky"
+        -> alabama @ kentucky    start_time=2026-09-12T19:30Z
+      "Charlotte" @ "Ole Miss"
+        -> charlotte @ olemiss    start_time=2026-09-12T23:45Z
+      "Mississippi St" @ "Minnesota"
+        -> mississippist @ minnesota    start_time=2026-09-12T19:30Z
+      "Oklahoma" @ "Michigan"
+        -> oklahoma @ michigan    start_time=2026-09-12T16:00Z
+      "Towson" @ "South Carolina"
+        -> towson @ southcarolina    start_time=2026-09-12T23:00Z
+      "Tennessee" @ "Georgia Tech"
+        -> tennessee @ georgiatech    start_time=2026-09-12T23:00Z
+
+The archive side has names. Re-run with --with-vendor (20 credits) to
+see what the vendor returns for the same sport-date and compare.
+
+COVERAGE: 80 archive rows for cfb on 2026-09-12. No vendor call made.
