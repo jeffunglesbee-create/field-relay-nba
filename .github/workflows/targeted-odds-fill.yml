@@ -25,6 +25,10 @@ on:
         description: 'Refuse to run if the plan exceeds this many credits.'
         required: false
         default: '3200'
+      sport:
+        description: 'Restrict to one sport, lowercase as the archive stores it (cfb, afl, nfl, bundesliga...). Blank = all. With max_pairs the HEAVIEST pair is chosen, not the earliest.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -49,6 +53,7 @@ jobs:
             --since=2026-05-09 \
             --max-pairs=${{ inputs.max_pairs || '0' }} \
             --budget=${{ inputs.budget || '3200' }} \
+            --sport="${{ inputs.sport }}" \
             ${{ inputs.apply && '--apply' || '' }} 2>&1 \
             | tee -a "$GITHUB_STEP_SUMMARY" \
             | tee outbox/targeted-odds-fill-$(date -u +%Y%m%dT%H%M%SZ).log

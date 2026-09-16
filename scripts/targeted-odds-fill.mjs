@@ -32,6 +32,7 @@ const APPLY     = process.argv.includes('--apply');
 const SINCE     = process.argv.find(a => a.startsWith('--since='))?.split('=')[1] || '2026-05-09';
 const MAX_PAIRS = Number(process.argv.find(a => a.startsWith('--max-pairs='))?.split('=')[1] || 0);
 const BUDGET    = Number(process.argv.find(a => a.startsWith('--budget='))?.split('=')[1] || 3200);
+const SPORT     = (process.argv.find(a => a.startsWith('--sport='))?.split('=')[1] || '').toLowerCase();
 
 const NEWLY_REACHABLE = new Set([
   'la liga', 'ligue 1', 'bundesliga', 'serie a', 'cfl', 'cfb', 'nfl', 'ufl', 'afl', 'ipl',
@@ -86,7 +87,26 @@ console.log(`  distinct sport-date pairs                     : ${byPair.size}`);
 console.log(`  pairs still lacking any odds_history row      : ${pairs.length}`);
 console.log(`  projected cost                                : ${pairs.length * PER_CALL_COST} credits\n`);
 
-const plan = MAX_PAIRS ? pairs.slice(0, MAX_PAIRS) : pairs;
+// --sport exists because max-pairs alone cannot choose WHICH pair. The list is
+// date-ordered, so --max-pairs=1 always takes the earliest date — 2026-05-09,
+// which is ipl then afl. Asking it for "a CFB pair" would silently have bought
+// an AFL one.
+//
+// And when probing a single pair, the heaviest is the only one worth buying.
+// The 1-pair IPL probe matched 1/1 — a real result, but one fixture. CFB pairs
+// carry many games each, and a fetch that returns events while matching none of
+// their team names inserts 0 rows and still bills. Sorting by game count puts
+// the most matcher stress on the 20 credits.
+const filtered = SPORT ? pairs.filter(p => p.sport === SPORT) : pairs;
+if (SPORT && !filtered.length) {
+  console.log(`\nREFUSING: no pair matches --sport=${SPORT}. Available: `
+    + [...new Set(pairs.map(p => p.sport))].sort().join(', '));
+  process.exit(1);
+}
+const plan = MAX_PAIRS
+  ? [...filtered].sort((a, b) => b.games.length - a.games.length).slice(0, MAX_PAIRS)
+  : filtered;
+if (SPORT) console.log(`  --sport=${SPORT}: ${filtered.length} pair(s), heaviest first\n`);
 if (plan.length * PER_CALL_COST > BUDGET) {
   console.log(`REFUSING: plan costs ${plan.length * PER_CALL_COST} > budget ${BUDGET}. Raise --budget deliberately.`);
   process.exit(1);
