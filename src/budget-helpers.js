@@ -75,7 +75,13 @@ async function _readSites(env, date) {
     for (const site of KNOWN_SITES) {
         try {
             const raw = await env.FIELD_JOURNALISM.get(_siteKey(site, date));
-            out[site] = raw ? parseInt(raw, 10) || 0 : 0;
+            // An ABSENT key is a real zero: the counter is only written when a
+            // site spends, so no key means no spend. A key holding something
+            // unparseable is NOT a zero — it is a corrupt counter, and reading
+            // it as 0 would hide spend rather than report it.
+            if (raw === null || raw === undefined) { out[site] = 0; continue; }
+            const n = parseInt(raw, 10);
+            out[site] = Number.isFinite(n) ? n : null;
         } catch (_) {
             out[site] = null;   // unreadable is not zero
         }
@@ -164,7 +170,15 @@ async function peekDailyOdds(env) {
         // budget is worse than none, because it is the number people act on.
         const ceiling = _dailyCeiling(date);
         const sites = await _readSites(env, date);
-        const sum = Object.values(sites).reduce((a, v) => a + (Number(v) || 0), 0);
+        // `(Number(v) || 0)` here would sum the readable sites and publish the
+        // result as the total, making an unreadable counter indistinguishable
+        // from a site that spent nothing — the exact substitution that shipped
+        // `briefs_counted: 0` from 48 nulls on 2026-08-22. If any site is
+        // unreadable the sum is not known, and neither is the gap.
+        const unreadable = Object.keys(sites).filter(k => sites[k] === null);
+        const sum = unreadable.length
+            ? null
+            : Object.values(sites).reduce((a, v) => a + v, 0);
         const grants = ODDS_CEILING_GRANTS.filter(g => g.date === date);
         return {
             date,
@@ -184,7 +198,10 @@ async function peekDailyOdds(env) {
             // while the total succeeds — and a reader must see that, not infer
             // it. `unaccounted` is the gap, named.
             by_site_sum: sum,
-            unaccounted: used - sum,
+            unaccounted: sum === null ? null : used - sum,
+            // Named, so a null above has a reason attached to it rather than
+            // being a bare unknown the reader has to go looking for.
+            unreadable_sites: unreadable.length ? unreadable : null,
             grant_today: grants.length ? grants : null,
         };
     } catch (_) {

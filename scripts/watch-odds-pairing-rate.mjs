@@ -25,6 +25,10 @@ const SINCE = process.argv.find(a => a.startsWith('--since='))?.split('=')[1] ||
 const DAYS  = Number(process.argv.find(a => a.startsWith('--days='))?.split('=')[1] || 14);
 const SELF  = process.argv.includes('--self-test');
 const fs    = await import('node:fs').then(m => m.default);
+// `Number(x || 0)` inside a sum is what turned 48 unknowns into a confident
+// zero on 2026-08-22. total() sums only values that ARE numbers and reports how
+// many were not, so an absent credits_used can never arrive here as a 0.
+const { total } = await import('./lib/summary-invariants.mjs');
 
 /** The whole judgement, in one place, so the self-test and the live run cannot
  *  diverge. Returns the rows that are the defect. */
@@ -162,8 +166,16 @@ console.log(`  progress rows in window        : ${rows.length}`);
 console.log(`  of those, rows that spent      : ${spent.length}`);
 console.log(`  spent AND paired at least one  : ${paired}`);
 console.log(`  spent AND paired ZERO          : ${burned.length}`);
-console.log(`  total credits in window        : ${rows.reduce((a, r) => a + Number(r.credits_used || 0), 0)}`);
-console.log(`  total games paired in window   : ${rows.reduce((a, r) => a + Number(r.games_processed || 0), 0)}`);
+const creditsTotal = total(rows, 'credits_used');
+const gamesTotal   = total(rows, 'games_processed');
+// The denominator travels with the sum (Rule 91): a total over 9 of 14 rows is
+// a different claim from a total over 14, and they are indistinguishable once
+// printed as a bare number.
+const shown = (t) => t.skipped
+  ? `${t.sum}  (from ${t.n} of ${rows.length} rows; ${t.skipped} non-numeric — NOT zero)`
+  : `${t.sum}`;
+console.log(`  total credits in window        : ${shown(creditsTotal)}`);
+console.log(`  total games paired in window   : ${shown(gamesTotal)}`);
 
 let failed = false;
 
@@ -205,7 +217,12 @@ const reading = {
   ledger_month_used: budget?.monthly?.used ?? null,
   daily_used: budget?.daily?.used ?? null,
   daily_ceiling: budget?.daily?.ceiling ?? null,
-  games_paired_in_window: rows.reduce((a, r) => a + Number(r.games_processed || 0), 0),
+  // A partial sum published as a total is the defect this field would carry
+  // forward into every future delta. If any row's count was unreadable, the
+  // window total is unknown and is stored as such.
+  games_paired_in_window: gamesTotal.skipped ? null : gamesTotal.sum,
+  games_paired_rows_counted: gamesTotal.n,
+  games_paired_rows_skipped: gamesTotal.skipped,
 };
 const prev = series.length ? series[series.length - 1] : null;
 const ceiling = Number(reading.daily_ceiling) || 3800;
@@ -233,9 +250,13 @@ if (spend.state === 'no_baseline') {
   // difference is not computable. Third instance of null-as-zero in this one
   // feature — the predicate, the reading, and now the line that prints it.
   const basePaired = prev.games_paired_in_window;
-  console.log(`      games paired since: ${basePaired === null || basePaired === undefined
-    ? `unknown (that reading predates the pairing counter; now ${reading.games_paired_in_window})`
-    : reading.games_paired_in_window - basePaired}`);
+  const nowPaired  = reading.games_paired_in_window;
+  console.log(`      games paired since: ${
+    basePaired === null || basePaired === undefined
+      ? `unknown (that reading predates the pairing counter; now ${nowPaired ?? 'unreadable'})`
+      : nowPaired === null
+        ? `unknown (${gamesTotal.skipped} row(s) in this window carry no numeric count)`
+        : nowPaired - basePaired}`);
 }
 
 series.push(reading);

@@ -184,6 +184,10 @@ const MUTATIONS = [
     anchor: '  const basePaired = prev.games_paired_in_window;',
     replace: '  const basePaired = prev.games_paired_in_window ?? 0;',
     catches: 'a reading that predates the counter reports a difference it cannot know' },
+  { file: WATCHER, check: WIRING, name: 'M32 a partial window total is published as a total',
+    anchor: '  games_paired_in_window: gamesTotal.skipped ? null : gamesTotal.sum,',
+    replace: '  games_paired_in_window: gamesTotal.sum,',
+    catches: 'the sum of the readable rows is stored under the name of the whole window' },
 
   { file: MODULE, check: CHECK, name: 'M30 the window goes back to anchoring at index 0',
     anchor: '  for (let off = 0; off + a.length <= v.length; off++) {\n    if (a.every((t, i) => v[off + i].startsWith(t))) return true;\n  }\n  return false;',

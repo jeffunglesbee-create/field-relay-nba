@@ -74,6 +74,18 @@ for (const f of CONSUMERS) {
     : console.log(`  PASS  ${f}: an unknown pairing baseline is not coerced to 0`);
 }
 
+// A PARTIAL sum may not be published under the name of a total. total() reports
+// how many rows carried no numeric value; if any did, the window figure is
+// unknown and must be stored as null. `gamesTotal.sum` alone would publish the
+// sum of whatever happened to be readable and no reader could tell.
+{
+  const f = 'scripts/watch-odds-pairing-rate.mjs';
+  const src = fs.readFileSync(f, 'utf8');
+  /games_paired_in_window:\s*gamesTotal\.skipped\s*\?\s*null\s*:\s*gamesTotal\.sum/.test(src)
+    ? console.log(`  PASS  ${f}: a partial window total is published as null, not as a sum`)
+    : (failed++, console.log(`  FAIL  ${f}: the window total is published without gating on skipped rows`));
+}
+
 console.log(`\nCOVERAGE: ${CONSUMERS.length} consumers, ${BANNED.length} banned shapes each, import AND call asserted.`);
 console.log(`Structural only — that a call site imports the module does not prove it`);
 console.log(`uses the result correctly. check-odds-matcher.mjs covers the module itself.`);
