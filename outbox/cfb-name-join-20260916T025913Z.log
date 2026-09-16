@@ -1,0 +1,74 @@
+=== cfb name join diagnosis  cfb 2026-09-12  utc=2026-09-16T02:59:13.066Z ===
+
+archive rows: 80
+  home IS NULL/empty : 0
+  away IS NULL/empty : 0
+
+  first 10 archive pairs (raw -> normalised):
+      "Arkansas" @ "Utah"
+        -> arkansas @ utah    start_time=2026-09-13T02:30Z
+      "Southern Miss" @ "Auburn"
+        -> southernmiss @ auburn    start_time=2026-09-13T00:50Z
+      "Campbell" @ "Florida"
+        -> campbell @ florida    start_time=2026-09-12T21:30Z
+      "Western KY" @ "Georgia"
+        -> westernky @ georgia    start_time=2026-09-12T16:45Z
+      "Alabama" @ "Kentucky"
+        -> alabama @ kentucky    start_time=2026-09-12T19:30Z
+      "Charlotte" @ "Ole Miss"
+        -> charlotte @ olemiss    start_time=2026-09-12T23:45Z
+      "Mississippi St" @ "Minnesota"
+        -> mississippist @ minnesota    start_time=2026-09-12T19:30Z
+      "Oklahoma" @ "Michigan"
+        -> oklahoma @ michigan    start_time=2026-09-12T16:00Z
+      "Towson" @ "South Carolina"
+        -> towson @ southcarolina    start_time=2026-09-12T23:00Z
+      "Tennessee" @ "Georgia Tech"
+        -> tennessee @ georgiatech    start_time=2026-09-12T23:00Z
+
+vendor americanfootball_ncaaf @ 2026-09-12T12:00:00Z -> HTTP 200 (20 credits spent)
+  snapshot timestamp : 2026-09-12T11:55:36Z
+  events             : 95
+
+  vendor events by commence_time DATE:
+       70  2026-09-12   <- the date we asked about
+       10  2026-09-13
+        1  2026-09-17
+        2  2026-09-18
+       11  2026-09-19
+        1  2026-09-20
+
+  first 10 vendor pairs (raw -> normalised):
+      "Appalachian State Mountaineers" @ "East Carolina Pirates"   2026-09-12T16:00:00Z
+        -> appalachianstatemountaineers @ eastcarolinapirates
+      "Arizona State Sun Devils" @ "Texas A&M Aggies"   2026-09-12T16:00:00Z
+        -> arizonastatesundevils @ texasamaggies
+      "South Florida Bulls" @ "Army Black Knights"   2026-09-12T16:00:00Z
+        -> southfloridabulls @ armyblackknights
+      "East Tennessee State Buccaneers" @ "North Carolina Tar Heels"   2026-09-12T16:00:00Z
+        -> easttennesseestatebuccaneers @ northcarolinatarheels
+      "Gardner-Webb Runnin Bulldogs" @ "Liberty Flames"   2026-09-12T16:00:00Z
+        -> gardnerwebbrunninbulldogs @ libertyflames
+      "Howard Bison" @ "Indiana Hoosiers"   2026-09-12T16:00:00Z
+        -> howardbison @ indianahoosiers
+      "Wagner Seahawks" @ "James Madison Dukes"   2026-09-12T16:00:00Z
+        -> wagnerseahawks @ jamesmadisondukes
+      "Washington State Cougars" @ "Kansas State Wildcats"   2026-09-12T16:00:00Z
+        -> washingtonstatecougars @ kansasstatewildcats
+      "Wofford Terriers" @ "Kent State Golden Flashes"   2026-09-12T16:00:00Z
+        -> woffordterriers @ kentstategoldenflashes
+      "Oklahoma Sooners" @ "Michigan Wolverines"   2026-09-12T16:00:00Z
+        -> oklahomasooners @ michiganwolverines
+
+  distinct normalised names — archive 160, vendor 165
+  names present in BOTH: 0
+
+  wrote outbox/fixture-cfb-2026-09-12.json — 80 archive rows, 95 vendor events.
+  The matcher can now be developed against this at zero further cost.
+
+  If the overlap is large but 0 games matched, the defect is the PAIRING
+  (home/away orientation, or a date mismatch), not the names. If the
+  overlap is near zero, the two systems name teams differently and a
+  fuzzy matcher is the wrong fix — an id join is.
+
+COVERAGE: one sport-date. 20 credits spent on exactly one vendor call.
