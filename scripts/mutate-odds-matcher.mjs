@@ -14,11 +14,13 @@ const CHECK   = 'scripts/check-odds-matcher.mjs';
 const WIRING  = 'scripts/check-odds-matcher-wiring.mjs';
 const CRON    = '.github/scripts/odds-backfill.js';
 const FILL    = 'scripts/targeted-odds-fill.mjs';
+const WATCHER = 'scripts/watch-odds-pairing-rate.mjs';
+const WATCH_CHECK = [WATCHER, '--self-test'];
 const sh = (c, a) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 // `git checkout --` restores from the INDEX, so the index is what must hold a
 // good copy — a staged-but-uncommitted file is fine, an unstaged edit is not.
-for (const f of [MODULE, CRON, FILL]) {
+for (const f of [MODULE, CRON, FILL, WATCHER]) {
   if (spawnSync('git', ['diff', '--quiet', '--', f]).status !== 0) {
     console.error(`FAIL — ${f} has unstaged changes; restore would lose them. Stage or revert first.`);
     process.exit(1);
@@ -30,9 +32,9 @@ for (const f of [MODULE, CRON, FILL]) {
 }
 
 // Both checks must be green on clean source, or every "CAUGHT" below is noise.
-for (const c of [CHECK, WIRING]) {
-  if (spawnSync('node', [c], { stdio: 'ignore' }).status !== 0) {
-    console.error(`FAIL — ${c} is already red on clean source. Fix that first.`);
+for (const c of [[CHECK], [WIRING], WATCH_CHECK]) {
+  if (spawnSync('node', c, { stdio: 'ignore' }).status !== 0) {
+    console.error(`FAIL — ${c.join(' ')} is already red on clean source. Fix that first.`);
     process.exit(1);
   }
 }
@@ -137,6 +139,22 @@ const MUTATIONS = [
     replace: "      ...free.filter(e => nameMatches(g.home, e.home_team) || nameMatches(g.away, e.away_team)\n                       || nameMatches(g.home, e.away_team) || nameMatches(g.away, e.home_team)),",
     catches: 'a looser candidate set produces collisions the guard then refuses' },
 
+  // ── the pairing-rate watcher ──────────────────────────────────────────────
+  { file: WATCHER, check: WATCH_CHECK, name: 'M21 the watcher stops caring that credits were spent',
+    anchor: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) === 0);',
+    replace: '  return (rows || []).filter(r => Number(r.games_processed) === 0);',
+    catches: 'a date that spent nothing is reported as a burned date' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M22 the watcher compares without coercing',
+    anchor: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) === 0);',
+    replace: "  return (rows || []).filter(r => r.credits_used > 0 && r.games_processed === 0);",
+    catches: "D1 returns '0' as a string and === 0 never fires — the watcher passes forever" },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M23 the watcher treats zero pairings as merely low',
+    anchor: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) === 0);',
+    replace: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) < 0);',
+    catches: 'nothing can ever be flagged — a check that cannot fail' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',
@@ -159,7 +177,7 @@ for (const mut of MUTATIONS) {
     continue;
   }
 
-  const r = spawnSync('node', [check], { encoding: 'utf8' });
+  const r = spawnSync('node', Array.isArray(check) ? check : [check], { encoding: 'utf8' });
   const red = r.status !== 0;
   sh('git', ['checkout', '--', file]);
 

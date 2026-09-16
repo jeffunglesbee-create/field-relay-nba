@@ -64,6 +64,9 @@ jobs:
           node scripts/check-odds-matcher-wiring.mjs
           node scripts/mutate-odds-matcher.mjs
 
+      - name: The backfill cannot pay for a payload and pair none of it
+        run: node scripts/watch-odds-pairing-rate.mjs --self-test
+
         # Both copies are deliberate: the matcher module is under src/ (which
         # only deploy.yml sees) while its two call sites are under
         # .github/scripts/ and scripts/ (which only this job sees). One copy

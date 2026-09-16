@@ -1,0 +1,59 @@
+name: Odds pairing rate watch
+
+# Fails when the backfill pays for a vendor payload and pairs NONE of it.
+#
+# This is the watcher the 0-of-80 needed and did not have. The cron ran green
+# every day for months while its matcher paired no CFB game at all: not dead,
+# so silently-dead-crons.yml could not see it; spending credits, so the budget
+# checks were happy; writing games_processed 0, which read as health.
+#
+# READ-ONLY against D1. Daily, an hour after the backfill's 10:00 UTC cron so
+# the day's progress row exists before this asks about it.
+
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'How many days back to examine.'
+        required: false
+        default: '14'
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The predicate must be able to fail before its verdict means anything.
+      - name: the watcher can fail
+        run: node scripts/watch-odds-pairing-rate.mjs --self-test
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      - name: Watch
+        shell: bash
+        if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/watch-odds-pairing-rate.mjs --days=${{ inputs.days || '14' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/odds-pairing-rate-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/odds-pairing-rate-*.log
+          git diff --staged --quiet || git commit -m "chore: odds pairing rate watch"
+          git pull --rebase origin main && git push origin HEAD:main
