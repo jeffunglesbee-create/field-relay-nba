@@ -1,0 +1,48 @@
+name: Odds demand vs allowance (read-only)
+
+# CC-CMD-2026-09-15-odds-backfill-missing-api-key Task 3. Sandbox egress to the
+# relay is blocked, so the measurement runs here — the established CI-as-proxy
+# route for this repo, not a STAGED deferral.
+#
+# READ-ONLY. The script refuses any SQL that is not a SELECT.
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Count games dated on or after this YYYY-MM-DD. Default 2026-09-01, the first dead scheduled run.'
+        required: false
+        default: '2026-09-01'
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # pipefail is load-bearing, not hygiene. Without it the step's exit code is
+      # the last tee's, so run 35012890540 reported SUCCESS while the script had
+      # exited 1 on a 403 and committed a three-line log containing only the
+      # error. A green tick over a failed measurement is worse than a red one.
+      - name: Measure
+        shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/measure-odds-demand.mjs --days=${{ inputs.days || '7' }} \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/odds-demand-$(date -u +%Y%m%dT%H%M%SZ).log -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-demand" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds demand vs allowance"
