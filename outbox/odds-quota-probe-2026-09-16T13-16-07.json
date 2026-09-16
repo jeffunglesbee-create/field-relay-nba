@@ -1,0 +1,32 @@
+{
+  "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "checked_at": "2026-09-16T13:16:08.267Z",
+  "status": 200,
+  "error": null,
+  "body": {
+    "ok": true,
+    "daily": {
+      "date": "2026-09-16",
+      "used": 123,
+      "ceiling": 3800,
+      "remaining": 3677,
+      "standing_ceiling": 3800,
+      "grant_today": null
+    },
+    "monthly": {
+      "month": "2026-09",
+      "used": 44874,
+      "limit": 85000,
+      "remaining": 40126
+    },
+    "provider": {
+      "ok": true,
+      "state": "ok",
+      "key": "primary",
+      "checked_at": "2026-09-16T13:16:08.059Z",
+      "requests_remaining": "35454",
+      "requests_used": "64546",
+      "headers_present": true
+    }
+  }
+}
