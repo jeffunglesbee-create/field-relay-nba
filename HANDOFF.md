@@ -22,6 +22,45 @@ rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
 **candidate** for opening lines missing on games dated from 2026-09-01, and that
 is unmeasured.
 
+## LIVE DEFECT — the slate matcher pairs 0 on every sport that is not CFB
+
+Run `35110321483`, scheduled, 2026-09-16 14:42Z, head `1fe0e1d`. First cron run
+on the new matcher. It ran, it fetched, and it paired **nothing**:
+
+```
+2026-09-15 baseball_mlb           29 event(s),  5 out of window, 24 in pool -> 0 + 0, 15 unmatched, 0 ambiguous
+2026-09-15 soccer_spain_la_liga   16 event(s), 12 out of window,  4 in pool -> 0 + 0,  3 unmatched, 0 ambiguous
+2026-09-15 soccer_england_efl_cup  5 event(s),  1 out of window,  4 in pool -> 0 + 0,  5 unmatched, 0 ambiguous
+2026-09-15 soccer_usa_mls         15 event(s), 15 out of window,  0 in pool -> 0 + 0,  3 unmatched, 0 ambiguous
+done: dates=1/1 games=0 credits=80
+```
+
+**CAUSE: the predicate's direction is CFB-specific.** `nameMatches` requires
+every archive token to prefix the VENDOR token at the SAME INDEX. The archive
+stores MLB as a nickname alone — `Astros`, `Blue Jays`, `Braves`, `Brewers`
+(confirmed from committed artifacts) — while the vendor sends `Houston Astros`.
+Index 0 compares `astros` against `houston` and fails. CFB puts the school in
+prefix position; MLB puts the nickname in suffix position.
+
+**NOT a regression.** The equality matcher this replaced also scored 0 on
+`Astros` vs `Houston Astros`. But 73-of-80 was measured on ONE CFB sport-date,
+the coverage line said so, and it was shipped to a cron that runs MLB daily
+regardless. The number was true and the inference from it was not.
+
+**The CFB done condition is still UNTESTED** — 2026-09-15 was a Monday with no
+CFB fixtures. Silence on CFB is not evidence either way.
+
+**COST WHILE OPEN: 80 credits/day, pairing zero.** `odds-pairing-rate-watch.yml`
+will now fail daily on exactly this, which is the watcher working.
+
+**FIX, not yet built:** allow archive tokens to match a contiguous token WINDOW
+of the vendor name rather than only from index 0. `astros` matches
+`["houston","astros"][1..1]`. Loosening raises ambiguity, which the elimination
+stage and the ambiguity refusal already handle, and the CFB fixture proves no
+regression there. **It must not be shipped on the CFB fixture alone — that is
+the exact mistake above.** An MLB fixture costs 20 credits and is the owner's
+call.
+
 ## SESSION CLOSE-OUT — 2026-09-16c (what the provider billed, which nothing recorded)
 
 **HEAD:** `642b647` → `ff61e97` → the null-as-zero fix · main throughout · 0 PRs
