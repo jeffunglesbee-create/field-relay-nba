@@ -54,6 +54,6 @@ jobs:
         run: |
           git config user.email "claude@field.dev"
           git config user.name  "FIELD CI"
-          git add outbox/odds-pairing-rate-*.log
+          git add outbox/odds-pairing-rate-*.log outbox/odds-provider-usage-series.json
           git diff --staged --quiet || git commit -m "chore: odds pairing rate watch"
           git pull --rebase origin main && git push origin HEAD:main

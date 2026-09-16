@@ -1,0 +1,22 @@
+[
+  {
+    "at": "2026-09-05T00:37:27.588Z",
+    "provider_used": "23544",
+    "provider_remaining": "76456",
+    "ledger_month_used": 5749,
+    "daily_used": 45,
+    "daily_ceiling": 3800,
+    "games_paired_in_window": null,
+    "source": "odds-quota-probe artifact, backfilled 2026-09-16"
+  },
+  {
+    "at": "2026-09-16T13:16:08.267Z",
+    "provider_used": "64546",
+    "provider_remaining": "35454",
+    "ledger_month_used": 44874,
+    "daily_used": 123,
+    "daily_ceiling": 3800,
+    "games_paired_in_window": null,
+    "source": "odds-quota-probe artifact, backfilled 2026-09-16"
+  }
+]

@@ -155,6 +155,26 @@ const MUTATIONS = [
     replace: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) < 0);',
     catches: 'nothing can ever be flagged — a check that cannot fail' },
 
+  { file: WATCHER, check: WATCH_CHECK, name: 'M24 the spend verdict stops prorating by elapsed time',
+    anchor: '  const allowance = ceiling * (elapsedH / 24);',
+    replace: '  const allowance = ceiling;',
+    catches: 'a half-day delta is judged against a full day and under-reports' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M25 a missing provider reading collapses to zero',
+    anchor: "  const num = (v) => (v === null || v === undefined || String(v).trim() === ''\n    ? null : (Number.isFinite(Number(v)) ? Number(v) : null));",
+    replace: '  const num = (v) => Number(v);',
+    catches: 'Number(null) is 0, so an absent reading reads as a counter reset' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M26 a monthly reset is reported as overspend',
+    anchor: "  if (delta < 0) return { state: 'provider_counter_reset', over: false, delta, elapsedH };",
+    replace: '  // reset case removed',
+    catches: 'the month rolling over fires a false alarm every month' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M27 the first reading passes as a measured zero',
+    anchor: "  if (!prev) return { state: 'no_baseline', over: false };",
+    replace: "  if (!prev) return { state: 'within_ceiling', over: false };",
+    catches: 'a series of one reports a spend it never measured' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',
