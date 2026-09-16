@@ -51,8 +51,31 @@ export function teamTokens(name) {
 export function nameMatches(archiveName, vendorName) {
   const a = teamTokens(archiveName);
   const v = teamTokens(vendorName);
-  if (!a.length || a.length > v.length) return false;
-  return a.every((t, i) => v[i].startsWith(t));
+  // `a.length > v.length` used to live here and is now redundant: the loop bound
+  // below cannot run when the archive name is longer. `!a.length` is NOT
+  // redundant — a.every() on an empty array is vacuously true, so an empty
+  // archive name would match every vendor event ever.
+  if (!a.length) return false;
+  // A CONTIGUOUS WINDOW, not an index-0 anchor.
+  //
+  // Anchoring at 0 was measured on ONE CFB sport-date, where the archive holds
+  // the school and the vendor prefixes with it: "Georgia" -> "Georgia
+  // Bulldogs". Shipped to the daily cron, it paired 0 of 26 on 2026-09-15
+  // (run 35110321483, 80 credits, nothing filled) because MLB is the other way
+  // round: the archive holds the nickname ALONE and the vendor puts a city in
+  // front of it, at a position that varies.
+  //
+  //     'Rays'      <- 'Tampa Bay Rays'       nickname at index 2
+  //     'Guardians' <- 'Cleveland Guardians'  index 1
+  //     'Athletics' <- 'Athletics'            index 0
+  //
+  // So the archive tokens must match SOME run of consecutive vendor tokens,
+  // wherever it starts. Per-token prefixing is unchanged, which is what still
+  // carries "N Colorado" -> "Northern Colorado Bears".
+  for (let off = 0; off + a.length <= v.length; off++) {
+    if (a.every((t, i) => v[off + i].startsWith(t))) return true;
+  }
+  return false;
 }
 
 /**

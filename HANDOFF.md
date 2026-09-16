@@ -22,7 +22,17 @@ rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
 **candidate** for opening lines missing on games dated from 2026-09-01, and that
 is unmeasured.
 
-## LIVE DEFECT — the slate matcher pairs 0 on every sport that is not CFB
+## RESOLVED 2026-09-16 18:0xZ — the slate matcher pairs 0 on every sport that is not CFB
+
+**FIXED.** `nameMatches` now matches a contiguous token WINDOW instead of
+anchoring at index 0. Measured on both fixtures: CFB 80/80 unchanged (73 by
+name + 7 by elimination), MLB **15/15**, 0 unmatched, 0 ambiguous on each. An
+MLB fixture cost 20 credits and is committed at
+`outbox/fixture-mlb-2026-09-15.json`. 31 of 31 mutations.
+
+The original text follows because the cause is worth keeping.
+
+### Original entry
 
 Run `35110321483`, scheduled, 2026-09-16 14:42Z, head `1fe0e1d`. First cron run
 on the new matcher. It ran, it fetched, and it paired **nothing**:

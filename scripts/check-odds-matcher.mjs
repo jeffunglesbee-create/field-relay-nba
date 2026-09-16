@@ -121,6 +121,8 @@ const PAIRS = [
   ['Georgia',       'Georgia Southern Eagles',        true,  'PREFIX IS PERMISSIVE: pair + ambiguity guard carries this, not the predicate'],
   ['Georgia Tech',  'Georgia Bulldogs',               false, 'second token disagrees'],
   ['Ohio State Buckeyes', 'Ohio State',                false, 'MORE archive tokens than vendor: refuse, do not read past the end'],
+  ['',              'Tampa Bay Rays',                false, 'an EMPTY archive name must match nothing: every() on [] is vacuously true'],
+  ['   ',           'Tampa Bay Rays',                false, 'whitespace tokenises to [] — same trap'],
 ];
 for (const [a, v, want, why] of PAIRS) {
   const got = nameMatches(a, v);
@@ -206,6 +208,41 @@ const clemsons = fx.vendor.filter(e => /Clemson/.test(e.home_team));
 eq('Clemson home events in the raw payload', clemsons.length, 2);
 eq('Clemson home events after windowing', slateWindow(clemsons, fx.date).length, 1);
 
+// ── D2. a SECOND sport, because one was not enough ─────────────────────────
+//
+// The index-0 predicate scored 73/80 here and 0 of 26 in production on
+// 2026-09-15 (run 35110321483, 80 credits, nothing filled). CFB puts the school
+// in prefix position; MLB holds the nickname ALONE and the vendor prefixes a
+// city of varying length. One sport-date could not see that, and the coverage
+// line saying "one sport-date" did not stop it shipping.
+console.log('\nD2. a second sport — the one the cron actually runs daily');
+
+const mlb = JSON.parse(fs.readFileSync('outbox/fixture-mlb-2026-09-15.json', 'utf8'));
+const ms = matchSlate(mlb.archive, mlb.vendor, mlb.date);
+eq('MLB archive rows',        mlb.archive.length, 15);
+eq('MLB stage 1',             ms.stage1,          15);
+eq('MLB stage 2',             ms.stage2,           0);
+eq('MLB unmatched',           ms.unmatched,        0);
+eq('MLB ambiguous',           ms.ambiguous,        0);
+
+// The three offsets that broke index-0 anchoring, named so a future change
+// cannot pass by matching only the easy one.
+const OFFSETS = [
+  ['Rays',      'Tampa Bay Rays',       'nickname at index 2'],
+  ['Guardians', 'Cleveland Guardians',  'index 1'],
+  ['Athletics', 'Athletics',            'index 0 — no city at all'],
+  ['White Sox', 'Chicago White Sox',    'a two-token nickname at index 1'],
+];
+for (const [a, v, why] of OFFSETS) {
+  nameMatches(a, v) ? ok(`"${a}" ~ "${v}"  (${why})`)
+                    : bad(`"${a}" ~ "${v}"  (${why})`, false, true);
+}
+// And the window must stay CONTIGUOUS: tokens may not be matched out of order
+// or with gaps, or "Red Sox" would find "Red ... Sox" across unrelated names.
+nameMatches('Red Jays', 'Boston Red Sox Toronto Blue Jays') === false
+  ? ok('a non-contiguous token run does not match')
+  : bad('contiguity', true, false);
+
 // ── E. it must degrade safely, and that is tested, not assumed ──────────────
 console.log('\nE. adversarial — elimination under a gap on either side');
 
@@ -268,7 +305,7 @@ col.byGameId.size === 0 && col.ambiguous === 2
 // No date: the window changes nothing rather than dropping everything.
 eq('slateWindow with no date returns the payload whole', slateWindow(fx.vendor, null).length, fx.vendor.length);
 
-console.log(`\nCOVERAGE: one sport-date (cfb 2026-09-12) plus ${PAIRS.length + 6} synthetic cases,\nand ${fx.archive.length + 7} single-gap adversarial runs.`);
+console.log(`\nCOVERAGE: TWO sport-dates (cfb 2026-09-12, mlb 2026-09-15) plus ${PAIRS.length + 6} synthetic cases,\nand ${fx.archive.length + 7} single-gap adversarial runs.`);
 console.log(`Zero ambiguity is measured on a 95-event payload; a larger one has more`);
 console.log(`collision room. No other sport-date has been measured.`);
 console.log(failed ? `\n${failed} FAILED` : `\nall checks passed`);

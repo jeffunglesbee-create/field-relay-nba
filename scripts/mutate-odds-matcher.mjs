@@ -42,18 +42,18 @@ console.log(`baseline: ${CHECK} and ${WIRING} both pass on clean source\n`);
 
 const MUTATIONS = [
   { file: MODULE, check: CHECK, name: 'M1  per-token prefix becomes whole-string prefix (the pre-2026-09-16 shape)',
-    anchor: '  return a.every((t, i) => v[i].startsWith(t));',
-    replace: '  return v.join("").startsWith(a.join(""));',
+    anchor: '    if (a.every((t, i) => v[off + i].startsWith(t))) return true;',
+    replace: '    if (v.join("").startsWith(a.join(""))) return true;',
     catches: 'N Colorado / C Connecticut / Illinois St stop matching' },
 
   { file: MODULE, check: CHECK, name: 'M2  the prefix direction is flipped',
-    anchor: '  return a.every((t, i) => v[i].startsWith(t));',
-    replace: '  return a.every((t, i) => t.startsWith(v[i]));',
+    anchor: '    if (a.every((t, i) => v[off + i].startsWith(t))) return true;',
+    replace: '    if (a.every((t, i) => t.startsWith(v[off + i]))) return true;',
     catches: 'the mascot token would have to prefix the archive token' },
 
   { file: MODULE, check: CHECK, name: 'M3  every archive token becomes some archive token',
-    anchor: '  return a.every((t, i) => v[i].startsWith(t));',
-    replace: '  return a.some((t, i) => v[i].startsWith(t));',
+    anchor: '    if (a.every((t, i) => v[off + i].startsWith(t))) return true;',
+    replace: '    if (a.some((t, i) => v[off + i].startsWith(t))) return true;',
     catches: 'one matching token is enough — mass ambiguity' },
 
   { file: MODULE, check: CHECK, name: 'M4  apostrophes are split on instead of removed',
@@ -71,10 +71,10 @@ const MUTATIONS = [
     replace: '  const swapped = [];',
     catches: 'a reversed vendor pairing returns no event' },
 
-  { file: MODULE, check: CHECK, name: 'M7  the token-count refusal is dropped',
-    anchor: '  if (!a.length || a.length > v.length) return false;',
-    replace: '  if (!a.length) return false;',
-    catches: 'a longer archive name reads past the end of the vendor tokens' },
+  { file: MODULE, check: CHECK, name: 'M7  the empty-name refusal is dropped',
+    anchor: '  if (!a.length) return false;',
+    replace: '  if (false) return false;',
+    catches: 'every() on [] is vacuously true, so an empty archive name matches everything' },
 
   { file: MODULE, check: CHECK, name: 'M8  normalisation stops lowercasing',
     anchor: "    .toLowerCase()\n    .replace(/[\\u2019'.]/g, '')",
@@ -184,6 +184,16 @@ const MUTATIONS = [
     anchor: '  const basePaired = prev.games_paired_in_window;',
     replace: '  const basePaired = prev.games_paired_in_window ?? 0;',
     catches: 'a reading that predates the counter reports a difference it cannot know' },
+
+  { file: MODULE, check: CHECK, name: 'M30 the window goes back to anchoring at index 0',
+    anchor: '  for (let off = 0; off + a.length <= v.length; off++) {\n    if (a.every((t, i) => v[off + i].startsWith(t))) return true;\n  }\n  return false;',
+    replace: '  return a.every((t, i) => v[i].startsWith(t));',
+    catches: 'the shape that paired 0 of 26 in production on 2026-09-15' },
+
+  { file: MODULE, check: CHECK, name: 'M31 the window stops being contiguous',
+    anchor: '    if (a.every((t, i) => v[off + i].startsWith(t))) return true;',
+    replace: '    if (a.every((t) => v.some(x => x.startsWith(t)))) return true;',
+    catches: 'tokens match anywhere in any order — Red Jays finds Red Sox and Blue Jays' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
