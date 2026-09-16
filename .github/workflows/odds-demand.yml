@@ -9,10 +9,10 @@ name: Odds demand vs allowance (read-only)
 on:
   workflow_dispatch:
     inputs:
-      since:
-        description: 'Count games dated on or after this YYYY-MM-DD. Default 2026-09-01, the first dead scheduled run.'
+      days:
+        description: 'How many days back to measure demand against allowance.'
         required: false
-        default: '2026-09-01'
+        default: '7'
 
 permissions:
   contents: write
