@@ -175,6 +175,11 @@ const MUTATIONS = [
     replace: "  if (!prev) return { state: 'within_ceiling', over: false };",
     catches: 'a series of one reports a spend it never measured' },
 
+  { file: WATCHER, check: WIRING, name: 'M28 a failing pairing verdict exits before recording the spend',
+    anchor: "  console.log(`2026-09-16. Investigate the matcher before the budget (Rule 77).`);",
+    replace: "  console.log(`2026-09-16. Investigate the matcher before the budget (Rule 77).`);\n  process.exit(1);",
+    catches: 'the day you most want the cost of is the day it is not recorded' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',

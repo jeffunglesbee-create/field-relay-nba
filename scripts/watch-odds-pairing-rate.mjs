@@ -165,16 +165,15 @@ console.log(`  spent AND paired ZERO          : ${burned.length}`);
 console.log(`  total credits in window        : ${rows.reduce((a, r) => a + Number(r.credits_used || 0), 0)}`);
 console.log(`  total games paired in window   : ${rows.reduce((a, r) => a + Number(r.games_processed || 0), 0)}`);
 
+let failed = false;
+
 if (burned.length) {
+  failed = true;
   console.log(`\nFAIL: ${burned.length} date(s) were billed and paired nothing:`);
   for (const r of burned.slice(0, 20)) console.log(`      ${r.date}  credits ${r.credits_used}  games 0`);
   if (burned.length > 20) console.log(`      … ${burned.length - 20} more`);
   console.log(`\nThis is the shape the equality matcher produced on every CFB date before`);
   console.log(`2026-09-16. Investigate the matcher before the budget (Rule 77).`);
-  console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}. odds_backfill_progress is`);
-  console.log(`keyed by DATE, so a date mixing a paired sport with an unpaired one reads as`);
-  console.log(`paired — this catches total failure per date, not per sport.`);
-  process.exit(1);
 }
 
 // ── the provider series: what was actually BILLED, day over day ─────────────
@@ -237,16 +236,18 @@ fs.writeFileSync(SERIES, JSON.stringify(series.slice(-120), null, 2) + '\n');
 console.log(`\n  wrote ${SERIES} (${Math.min(series.length, 120)} reading(s) kept)`);
 
 if (spend.over) {
+  failed = true;
   console.log(`\nFAIL: the provider billed ${spend.delta} where ${spend.allowance} was allowed.`);
   console.log(`The daily guard permits ${ceiling}. Both guards degrade OPEN — consumeOddsCredit`);
   console.log(`returns true when FIELD_JOURNALISM is unbound, checkAndIncrementDailyOdds returns`);
   console.log(`true on any KV error — so a day above the ceiling is the signature of a guard`);
   console.log(`that stopped guarding. Investigate the guard, not the budget (Rule 77).`);
-  console.log(`\nCOVERAGE: ${rows.length} progress rows, ${series.length} provider reading(s).`);
-  process.exit(1);
 }
 
-console.log(`\nPASS: every date that spent credits paired at least one game.`);
-console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}. odds_backfill_progress is`);
-console.log(`keyed by DATE, so a date mixing a paired sport with an unpaired one reads as`);
-console.log(`paired — this catches total failure per date, not per sport.`);
+if (!failed) console.log(`\nPASS: every date that spent credits paired at least one game, and the`);
+if (!failed) console.log(`provider billed no more than the ceiling allows.`);
+
+console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}, ${series.length} provider reading(s).`);
+console.log(`odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an`);
+console.log(`unpaired one reads as paired — this catches total failure per date, not per sport.`);
+process.exit(failed ? 1 : 0);

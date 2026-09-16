@@ -49,6 +49,20 @@ for (const f of CONSUMERS) {
   }
 }
 
+// THE PROVIDER READING MUST SURVIVE A FAILING VERDICT. The first live run of
+// this watcher exited at the pairing FAIL before it ever recorded the day's
+// spend — and a failing day is exactly the one whose cost you want. Same shape
+// as the --names early return that committed nothing on 2026-09-15.
+{
+  const f = 'scripts/watch-odds-pairing-rate.mjs';
+  const src = fs.readFileSync(f, 'utf8');
+  const write = src.indexOf('writeFileSync(SERIES');
+  const burnExit = src.indexOf('date(s) were billed and paired nothing');
+  write > -1 && burnExit > -1 && write > burnExit && !/paired nothing[\s\S]{0,600}process\.exit\(1\)/.test(src)
+    ? console.log(`  PASS  ${f}: the provider reading is written even when the pairing check fails`)
+    : (failed++, console.log(`  FAIL  ${f}: a failing pairing verdict can skip the provider reading`));
+}
+
 console.log(`\nCOVERAGE: ${CONSUMERS.length} consumers, ${BANNED.length} banned shapes each, import AND call asserted.`);
 console.log(`Structural only — that a call site imports the module does not prove it`);
 console.log(`uses the result correctly. check-odds-matcher.mjs covers the module itself.`);
