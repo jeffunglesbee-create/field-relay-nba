@@ -1,0 +1,22 @@
+=== silently dead crons  repo=jeffunglesbee-create/field-relay-nba  streak=3  utc=2026-09-16T16:49:49.923Z ===
+
+    100 workflow(s), 100 active
+
+    declared detectors, red on purpose: 2   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 16.1 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+
+    scheduled and healthy            : 17
+    never run on a schedule           : 81  (not judged)
+    FAILING 3 CONSECUTIVE RUNS : 0
+
+    COVERAGE: every ACTIVE workflow with at least 3 completed scheduled
+    runs. Workflows that only run on push or dispatch are counted as
+    "never run on a schedule" and deliberately not judged — their failures
+    surface on the commit that caused them.
