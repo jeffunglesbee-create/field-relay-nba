@@ -59,7 +59,16 @@ function _dailyKey() {
  */
 /** Every known site's spend for a date, plus any that appear unexpectedly.
  *  A site with 0 is LISTED — absent and zero are different answers. */
-const KNOWN_SITES = [
+//
+// ONE VOCABULARY, EXPORTED, because there were two. checkAndIncrementDailyOdds
+// was passed 'ambientFetchLiveOdds' while reconcileOddsCredit at the SAME call
+// site was passed '_fetchLiveOdds'; likewise '_captureClosingOdds',
+// 'wp-resolver:fetchSportOddsLive' and 'odds-proxy'. Four of nine consumers had
+// two names for one thing, which is why reconcile could not simply be pointed at
+// the site key — it would have minted odds:site:_fetchLiveOdds:* that _readSites
+// never reads. Exported so check-odds-attribution.mjs asks this list rather than
+// keeping a copy of it.
+export const ODDS_SITES = [
     'getWCPregameLambdas', 'handleWCOddsProbs', 'handleCFLOddsProbs',
     'fetchSportOddsLive', 'fetchSportOddsHistorical', 'wpResolver',
     'ambientFetchLiveOdds', 'ambientCaptureClosingOdds',
@@ -72,7 +81,7 @@ const KNOWN_SITES = [
 
 async function _readSites(env, date) {
     const out = {};
-    for (const site of KNOWN_SITES) {
+    for (const site of ODDS_SITES) {
         try {
             const raw = await env.FIELD_JOURNALISM.get(_siteKey(site, date));
             // An ABSENT key is a real zero: the counter is only written when a
@@ -102,7 +111,11 @@ async function _bumpSite(env, site, units) {
         const key = _siteKey(site);
         const raw = await env.FIELD_JOURNALISM.get(key);
         const cur = raw ? parseInt(raw, 10) || 0 : 0;
-        await env.FIELD_JOURNALISM.put(key, String(cur + units), { expirationTtl: 172800 });
+        // Clamped because reconcileOddsCredit calls this with a NEGATIVE delta
+        // when the provider billed less than the estimate. A lost read-modify-
+        // write race must not drive a site counter below zero and make the split
+        // hand back spend that happened.
+        await env.FIELD_JOURNALISM.put(key, String(Math.max(0, cur + units)), { expirationTtl: 172800 });
     } catch (_) {
         // Attribution must never fail a fetch. The daily counter above already
         // succeeded, so the total stays correct even when the split does not.
@@ -347,13 +360,21 @@ export async function reconcileOddsCredit(env, estimated, resp, site = '') {
         out.delta = out.actual - estimated;
         if (out.delta === 0) return out;
 
-        // Both layers, since both were charged the estimate. Read-modify-write,
-        // non-atomic, exactly as the counters they adjust already are -- and
-        // clamped at zero so a lost race can never drive a ledger negative and
-        // hand back headroom that was genuinely spent.
+        // All THREE layers, since all three were charged the estimate. Read-
+        // modify-write, non-atomic, exactly as the counters they adjust already
+        // are -- and clamped at zero so a lost race can never drive a ledger
+        // negative and hand back headroom that was genuinely spent.
+        //
+        // THE SITE LAYER WAS MISSING UNTIL 2026-09-16 AND THAT IS MEASURABLE.
+        // odds:site:* accumulated the pre-charge ESTIMATE while odds:daily:*
+        // accumulated the estimate PLUS this correction, so the two counted
+        // different things. Live, 19:04Z to 19:17Z: used +446, by_site_sum +549.
+        // `unaccounted` read 209 then 106 and was on its way negative -- it was
+        // never unnamed spend, it was the net refund, wearing the name of a gap.
         const day   = `odds:daily:${new Date().toISOString().slice(0, 10)}`;
         const d     = new Date();
         const month = `odds:credits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        await _bumpSite(env, site, out.delta);
         for (const key of [day, month]) {
             const raw = await env.FIELD_JOURNALISM.get(key);
             const cur = raw ? parseInt(raw, 10) || 0 : 0;

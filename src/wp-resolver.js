@@ -264,7 +264,7 @@ async function fetchSportOddsLive(env, sportKey) {
         _url,
         { cf: { cacheTtl: 900, cacheEverything: true } }
     );
-    await reconcileOddsCredit(env, oddsCreditCost(_url), r, 'wp-resolver:fetchSportOddsLive');
+    await reconcileOddsCredit(env, oddsCreditCost(_url), r, 'wpResolver');
     // Rule 99: null means the vendor did not tell us. LATENT here, not live --
     // this function's only caller (:548) destructures { games, ok } and never
     // reads quotaRemaining. Fixed anyway: the third structurally identical site

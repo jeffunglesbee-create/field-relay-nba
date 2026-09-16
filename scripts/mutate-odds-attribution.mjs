@@ -12,6 +12,9 @@ const SELF   = [CHECK, '--self-test'];
 const HELPER = 'src/budget-helpers.js';
 const INDEX  = 'src/index.js';
 const AMBIENT = 'src/ambient-do.js';
+const WPRES   = 'src/wp-resolver.js';
+const WATCH   = 'scripts/watch-odds-attribution-gap.mjs';
+const WSELF   = [WATCH, '--self-test'];
 const sh = (c, a) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 for (const f of [CHECK, HELPER, INDEX, AMBIENT]) {
@@ -45,7 +48,7 @@ const MUTATIONS = [
     replace: "oddsCreditCost(_liveUrl), 'somethingElse')",
     catches: 'by_site grows a key /budget/odds never reports and the sum stops matching' },
 
-  { file: HELPER, check: [CHECK], name: 'A4  a declared site is removed from KNOWN_SITES',
+  { file: HELPER, check: [CHECK], name: 'A4  a declared site is removed from ODDS_SITES',
     anchor: "    'fetchSportOddsLive', 'fetchSportOddsHistorical', 'wpResolver',",
     replace: "    'fetchSportOddsHistorical', 'wpResolver',",
     catches: 'a real consumer spends into a bucket the readout omits' },
@@ -56,9 +59,66 @@ const MUTATIONS = [
     catches: 'prose mentions count as call sites again — three false defects last time' },
 
   { file: CHECK, check: SELF, name: 'A6  a variable site passes as a name',
-    anchor: "    .filter(c => !/^'[a-zA-Z][a-zA-Z0-9_]*'$/.test(c.args[2] || ''))",
-    replace: '    .filter(c => !(c.args[2] || ""))',
+    anchor: "const isSiteLiteral = (a) => /^'[a-zA-Z][a-zA-Z0-9_]*'$/.test(a || '');",
+    replace: 'const isSiteLiteral = (a) => !!(a || \'\');',
     catches: 'a variable writes an unpredictable KV key — absence in a different costume' },
+
+  // ── the 2026-09-16 defect: two vocabularies for nine consumers ────────────
+  { file: AMBIENT, check: [CHECK], name: 'A7  the live-odds reconcile goes back to its own name',
+    anchor: "oddsCreditCost(buildUrl('')), r, 'ambientFetchLiveOdds')",
+    replace: "oddsCreditCost(buildUrl('')), r, '_fetchLiveOdds')",
+    catches: 'the literal that shipped — the guard charged one key and the correction named another' },
+
+  { file: WPRES, check: [CHECK], name: 'A8  the wp-resolver reconcile goes back to its own name',
+    anchor: "oddsCreditCost(_url), r, 'wpResolver')",
+    replace: "oddsCreditCost(_url), r, 'wp-resolver:fetchSportOddsLive')",
+    catches: 'a colon in a site name — _siteKey strips it, so the written key matched no declared site' },
+
+  { file: INDEX, check: [CHECK], name: 'A9  the proxy reconcile and the proxy guard disagree',
+    anchor: "oddsCreditCost(targetUrl), _proxyResp, 'oddsProxyRoute')",
+    replace: "oddsCreditCost(targetUrl), _proxyResp, 'odds-proxy')",
+    catches: 'the fourth divergence, and the one that looked most like a deliberate name' },
+
+  { file: INDEX, check: [CHECK], name: 'A10 a reconcile names a DIFFERENT declared site',
+    anchor: "reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsHistorical')",
+    replace: "reconcileOddsCredit(env, oddsCreditCost(url), r, 'fetchSportOddsLive')",
+    catches: 'both names are valid and declared — only the guard/reconcile SET equality catches this' },
+
+  { file: HELPER, check: [CHECK], name: 'A11 reconcile stops correcting the site counter',
+    anchor: '        await _bumpSite(env, site, out.delta);',
+    replace: '        // await _bumpSite(env, site, out.delta);',
+    catches: 'site counters go back to holding the estimate while used holds the billed cost' },
+
+  // ── the daily watch on the LIVE gap, which the static check cannot see ───
+  { file: WATCH, check: WSELF, name: 'A13 the gap check stops caring about sign',
+    anchor: '  return Math.abs(gap) <= allowed',
+    replace: '  return gap <= allowed',
+    catches: 'a NEGATIVE gap passes — the exact 2026-09-16 shape, the sum outgrowing its total' },
+
+  { file: WATCH, check: WSELF, name: 'A14 a null by_site_sum is coerced to a number',
+    anchor: "  if (typeof sum !== 'number' || !Number.isFinite(sum)) {",
+    replace: '  if (false) {',
+    catches: 'Number(null) is 0, so an unknown split prints a fully-measured gap' },
+
+  { file: WATCH, check: WSELF, name: 'A15 a silent day reads as health',
+    anchor: '  if (used === 0) {',
+    replace: '  if (false) {',
+    catches: 'used 0 and sum 0 gives gap 0 and a green run on a day nothing spent (Rule 99)' },
+
+  { file: WATCH, check: WSELF, name: 'A16 an unreadable site is summed around',
+    anchor: '  if (Array.isArray(daily.unreadable_sites) && daily.unreadable_sites.length) {',
+    replace: '  if (false) {',
+    catches: 'a corrupt counter disappears into a gap that looks like ordinary drift' },
+
+  { file: WATCH, check: WSELF, name: 'A17 the floor swallows every morning gap',
+    anchor: 'export const FLOOR = 25;',
+    replace: 'export const FLOOR = 100000;',
+    catches: 'the tolerance grows until nothing can fail it — the way this watch ends quietly' },
+
+  { file: HELPER, check: [CHECK], name: 'A12 the site counter stops being clamped at zero',
+    anchor: 'String(Math.max(0, cur + units))',
+    replace: 'String(cur + units)',
+    catches: 'a lost race drives a site counter negative and hands back spend that happened' },
 
 ];
 
@@ -82,7 +142,8 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: the naming requirement and the declared-site list. It does NOT`);
-console.log(`verify the KV write happens, nor that a name describes the right consumer.`);
-console.log(`/budget/odds reports by_site_sum and unaccounted for the first of those.`);
+console.log(`COVERAGE: the naming requirement, the declared-site list, guard/reconcile set`);
+console.log(`equality, and that reconcile writes the site counter clamped. It does NOT`);
+console.log(`verify the KV write SUCCEEDS at runtime, nor that a name describes the right`);
+console.log(`consumer. watch-odds-attribution-gap.mjs reads the live gap daily for that.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

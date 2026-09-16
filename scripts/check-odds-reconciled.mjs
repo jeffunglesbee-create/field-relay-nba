@@ -27,9 +27,13 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
 // SCOPE: reconcileOddsCredit
 // src/budget-helpers.js DEFINES it (line 229) and cannot reconcile against
 // itself; provenance-runtime-probe.mjs only names it in prose about cache
-// statuses. Both are excluded by name rather than by the list quietly
-// being shorter than the population.
-// SCOPE-EXCLUDES: src/budget-helpers.js scripts/provenance-runtime-probe.mjs
+// statuses. check-odds-attribution.mjs SCANS reconcile call sites (it is the
+// check that found the guard and the reconcile naming four consumers
+// differently), mutate-odds-attribution.mjs quotes those call sites as anchors,
+// and watch-odds-attribution-gap.mjs names it only in prose about the gap it
+// reads. None of the five makes a charged call. All excluded by name rather
+// than by the list quietly being shorter than the population.
+// SCOPE-EXCLUDES: src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;

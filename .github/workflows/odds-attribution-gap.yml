@@ -1,0 +1,53 @@
+name: Odds attribution gap
+
+# Fails when the day's odds spend stops decomposing into the sites that spent it.
+#
+# The companion to check-odds-attribution.mjs, which is static: it proves every
+# call site NAMES itself and that the guard and the reconcile name the same nine
+# consumers. It cannot prove the KV writes land. This can, once a day, against
+# the live counters.
+#
+# 23:30 UTC, not 11:00 with the other watches: the counters are keyed by UTC
+# date, so this is the last moment at which the reading covers a whole day. A
+# morning reading would pass on a day that went wrong after lunch.
+
+on:
+  schedule:
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The predicate must be able to fail before its verdict means anything.
+      - name: the watcher can fail
+        run: node scripts/watch-odds-attribution-gap.mjs --self-test
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      - name: Watch
+        shell: bash
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/watch-odds-attribution-gap.mjs 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/odds-attribution-gap-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/odds-attribution-gap-*.log
+          git diff --staged --quiet || git commit -m "chore: odds attribution gap watch"
+          git pull --rebase origin main && git push origin HEAD:main

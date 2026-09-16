@@ -636,7 +636,7 @@ export class AmbientDO {
                 // second one's X-Requests-Last describes what we hold -- but the
                 // first was billed too, so this deliberately under-corrects
                 // rather than pretending the failed attempt was free.
-                await reconcileOddsCredit(this.env, oddsCreditCost(buildUrl('')), r, '_fetchLiveOdds');
+                await reconcileOddsCredit(this.env, oddsCreditCost(buildUrl('')), r, 'ambientFetchLiveOdds');
                 if (!r.ok) return;
                 const oddsGames = await r.json();
                 if (!Array.isArray(oddsGames)) return;
@@ -804,7 +804,7 @@ export class AmbientDO {
             // the moment of the transition -- so this never reconciles to a cache
             // hit. It reconciles to the provider's actual receipt, which for a
             // sport with no listed events is zero.
-            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, '_captureClosingOdds');
+            await reconcileOddsCredit(this.env, oddsCreditCost(url), r, 'ambientCaptureClosingOdds');
             if (!r.ok) {
                 console.warn(`[closing-odds] fetch ${r.status} for ${sport}`);
                 return;

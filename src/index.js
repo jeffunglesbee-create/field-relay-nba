@@ -16075,7 +16075,7 @@ export default {
             // hour, which means most requests here are cache hits that cost the
             // provider nothing and used to cost the ledger full price.
             if (oddsBillablePath(cleanPath)) {
-                await reconcileOddsCredit(env, oddsCreditCost(targetUrl), _proxyResp, 'odds-proxy');
+                await reconcileOddsCredit(env, oddsCreditCost(targetUrl), _proxyResp, 'oddsProxyRoute');
             }
             return _proxyResp;
         }
