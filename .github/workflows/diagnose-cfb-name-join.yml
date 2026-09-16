@@ -1,0 +1,58 @@
+name: Diagnose CFB name join (free unless --with-vendor)
+
+# 95 vendor events matched 0 of 80 archive games on 2026-09-12. Zero is not a
+# naming-variance signature — "Alabama" and "Georgia" spell identically in any
+# system, so some of 80 would land. Zero is structural.
+#
+# The archive half costs nothing and may answer it outright. with_vendor=true
+# spends exactly 20 credits for one historical call.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Game date to diagnose.'
+        required: false
+        default: '2026-09-12'
+      sport:
+        description: 'Archive sport value, lowercase.'
+        required: false
+        default: 'cfb'
+      with_vendor:
+        description: 'false = archive only, free. true = ONE vendor call, 20 credits.'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Diagnose
+        shell: bash
+        if: always()
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-cfb-name-join.mjs \
+            --date=${{ inputs.date || '2026-09-12' }} \
+            --sport=${{ inputs.sport || 'cfb' }} \
+            ${{ inputs.with_vendor && '--with-vendor' || '' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/cfb-name-join-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="cfb-name-join" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: cfb name join diagnosis"
