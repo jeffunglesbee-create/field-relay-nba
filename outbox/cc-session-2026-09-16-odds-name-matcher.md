@@ -161,6 +161,90 @@ not yet run in CI.
   Zero ambiguity is a property of a 95-event payload; a larger one has more
   collision room. No sport other than CFB has been measured at all.
 
+## Part two — the initialisms, resolved by not reading them
+
+The 7 above were filed as STAGED needing an alias table. They did not need one.
+
+**The reframe.** Every route considered — prefix, token prefix, an alias table,
+expanding `ETSU` through `espn_event_id` at ESPN — assumed the question was
+*what does ETSU stand for*. It is not. The archive slate and the vendor slate
+are the SAME 80 GAMES. A vendor event belongs to at most one archive row, so
+once the 73 unambiguous pairs are made those events are spent, and each of the
+7 remaining rows still matches uniquely on the side that is **not** abbreviated.
+`ETSU @ North Carolina` has exactly one unclaimed opponent at North Carolina.
+
+This is not a fallback, which this repo bans. A fallback guesses when the
+primary fails; this adds a fact about the domain — one event, at most one game.
+
+**The second half was sitting in data already read.** The historical endpoint
+returns FUTURE fixtures. 15 of the 95 events kick off between 09-17 and 09-20.
+They were never candidates, and their only effect was to manufacture ambiguity:
+`GA Southern @ Clemson` had two Clemson opponents to choose between and the
+rival was 09-19. The window is the date AND the next day, because 10 of the 80
+real events kick off after midnight UTC.
+
+```
+vendor payload 95 -> in-window pool 80   (15 dropped)
+stage 1 (both sides, unique)   73
+stage 2 (one side + elim)       7
+unmatched 0, ambiguous 0        80 of 80
+```
+
+Six of the seven land at kickoff delta 0. A forced pairing rests on ONE side's
+name, so the kickoff agreeing independently is what makes it credible — the
+cross-check earns more here than it did in part one.
+
+**Degradation is tested, not asserted.** All committed as assertions:
+
+| property | result |
+|---|---|
+| the 7 forced pairings claim 7 distinct events | 7 of 7 |
+| each archive row dropped in turn — another row steals its event | 0 of 80 |
+| each forced event removed — its row takes a substitute | 0 of 7 |
+| a row with two candidates | refused |
+| two rows wanting one event | both refused, not ordered |
+
+**Rule 90, again in the apparatus.** 23 of 23, after two misses that were both
+holes in the checks rather than the module:
+
+- **M17** (take the first candidate instead of requiring exactly one) was
+  *unreachable*: after windowing, every residual row in the fixture has exactly
+  one candidate, so the two implementations are indistinguishable on this
+  corpus. Closed with a synthetic `Ohio Bobcats` / `Ohio State Buckeyes`
+  collision — a real CFB case that would have shipped unguarded.
+- **M13** (the cron pairs nothing) survived because the wiring check asserted
+  the IMPORT and not the CALL. A call site can carry the import and pair
+  nothing. It now asserts both.
+
+## The automated follow-up
+
+`odds-pairing-rate-watch.yml`, daily at 11:00 UTC, one hour after the backfill's
+own cron so the progress row exists before it is read.
+
+It is aimed at **why the 0-of-80 lasted months**, not at the matcher that caused
+it. Nothing could see it: the cron was not dead, so `silently-dead-crons.yml`
+had nothing to report; it spent credits, so the budget checks were satisfied; it
+wrote `games_processed 0` and went green.
+
+The signature is durable and unambiguous — `credits_used > 0 AND
+games_processed = 0`, in `odds_backfill_progress`. Paid for a payload, paired
+nothing out of it. A date with no mappable games spends nothing; a date whose
+vendor holds no data is counted separately so the two cannot be conflated.
+
+An **empty result is a failure**, not a pass: no progress row in the window
+means the cron has not recorded a run, and treating that as clean would rebuild
+the absence collapse inside the watcher built to catch it.
+
+`--self-test` exercises the predicate against 6 enumerated rows with no network,
+so the gate runs in CI where D1 is unreachable. M22 is the mutation worth
+naming: **D1 returns `'0'` as a string**, so a predicate written
+`r.games_processed === 0` never fires and the watcher passes forever — a check
+that cannot fail, which is the exact failure mode it exists to detect.
+
+Coverage, in its own output: `odds_backfill_progress` is keyed by DATE, so a
+date mixing a paired sport with an unpaired one reads as paired. It catches
+total failure per date, not per sport.
+
 ## No push affordance was added
 
 A matcher, two checks, a mutation harness and two CI gates. No app code, no

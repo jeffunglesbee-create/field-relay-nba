@@ -22,6 +22,57 @@ rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
 **candidate** for opening lines missing on games dated from 2026-09-01, and that
 is unmeasured.
 
+## SESSION CLOSE-OUT — 2026-09-16b (the initialisms, paired without reading them)
+
+**HEAD:** `34fc037` → `642b647` · main throughout · 0 PRs
+**Session doc:** `outbox/cc-session-2026-09-16-odds-name-matcher.md`
+
+**73 of 80 → 80 of 80, with zero alias entries.** The seven initialisms (ETSU,
+MTSU, FAU, FIU, Jax State, Western KY, GA Southern) are paired without the
+abbreviation ever being read. The two sides are the same slate, so a vendor
+event belongs to at most one game: stage 1 pins the 73 unambiguous pairs and
+SPENDS their events, and each remaining row still matches uniquely on the side
+that is not abbreviated.
+
+**The other half was a fact already in hand.** The historical endpoint returns
+FUTURE fixtures — 15 of the 95 events kick off 09-17 to 09-20. They were never
+candidates and their only effect was to manufacture ambiguity; `GA Southern @
+Clemson` had two Clemson opponents and the rival was a week later.
+
+| stage | solved |
+|---|---:|
+| in-window pool (95 → 80) | — |
+| stage 1, both sides unique | 73 |
+| stage 2, one side + elimination | 7 |
+| unmatched / ambiguous | 0 / 0 |
+
+Six of the seven land at kickoff delta 0 on the independent cross-check; the
+seventh is GA Southern at −120 min, already a known member of the disagreement
+class.
+
+**It degrades safely, as committed assertions rather than prose:** 7 forced
+pairings claim 7 distinct events; 80 single-row archive gaps mis-force nothing;
+7 vendor gaps produce 0 substitutes; a row with two candidates is refused; two
+rows wanting one event are both refused rather than ordered.
+
+**23 of 23 mutations caught.** Two were not caught first time and both were
+holes in the checks: M17 was unreachable because after windowing every residual
+row has exactly one candidate (closed with an Ohio Bobcats / Ohio State
+Buckeyes collision, real in CFB), and M13 survived because the wiring check
+asserted the IMPORT and not the CALL.
+
+**AUTOMATED FOLLOW-UP — `odds-pairing-rate-watch.yml`, daily 11:00 UTC.** Fails
+when `credits_used > 0 AND games_processed = 0`: the backfill paid for a payload
+and paired none of it. That is precisely what the old matcher did on every CFB
+date, and nothing could see it — the cron was not dead, it spent credits, and
+it wrote a zero that read as health. An empty result is a failure, not a pass.
+
+**STILL NOT VERIFIED LIVE.** Every number is offline against
+`outbox/fixture-cfb-2026-09-12.json`, one sport-date. No live vendor call was
+made. The cron has not yet run with either the matcher or the slate change —
+the first scheduled run after 2026-09-16 10:43Z is the first production
+evidence, and the pairing watcher is what will report it.
+
 ## SESSION CLOSE-OUT — 2026-09-16 (three matchers, and the cron's found nothing)
 
 **HEAD:** `4ab995a` → `014b82a` · main throughout · 0 PRs
