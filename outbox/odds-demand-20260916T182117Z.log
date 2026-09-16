@@ -1,0 +1,47 @@
+=== odds demand vs allowance  utc=2026-09-16T18:21:17.460Z ===
+window: games dated >= 2026-09-09   PER_CALL_COST=20
+
+  date         sport-dates  needing odds   games missing   DEMAND   allowance   ratio
+  2026-11-07             1             1              8       20        3800    190x
+  2026-11-05             1             1              1       20        3800    190x
+  2026-11-02             1             1              3       20        3800    190x
+  2026-11-01             1             1              5       20        3800    190x
+  2026-10-31             1             1             15       20        3800    190x
+  2026-10-29             1             1              9       20        3800    190x
+  2026-10-28             1             1             14       20        3800    190x
+  2026-10-26             1             1              1       20        3800    190x
+  2026-10-25             1             1              7       20        3800    190x
+  2026-10-24             1             1             15       20        3800    190x
+  2026-10-21             1             1              1       20        3800    190x
+  2026-10-18             1             1              8       20        3800    190x
+  2026-10-17             1             1             15       20        3800    190x
+  2026-10-15             1             1              9       20        3800    190x
+  2026-10-14             1             1             15       20        3800    190x
+  2026-10-11             1             1              6       20        3800    190x
+  2026-10-10             1             1             15       20        3800    190x
+  2026-10-07             1             1              1       20        3800    190x
+  2026-10-02             1             1              1       20        3800    190x
+  2026-09-27             1             1             10       20        3800    190x
+  2026-09-26             1             1             15       20        3800    190x
+  2026-09-24             1             1              1       20        3800    190x
+  2026-09-20             1             1             10       20        3800    190x
+  2026-09-19             1             1              4       20        3800    190x
+  2026-09-18             1             1             15       20        3800    190x
+  2026-09-16             4             3             17       60        3800     63x
+  2026-09-15             4             3             11       60        3800     63x
+  2026-09-14             6             2              2       40        3800     95x
+  2026-09-13             9             6             26      120        3800     32x
+  2026-09-12             9             7             98      140        3800     27x
+  2026-09-11             6             2              6       40        3800     95x
+  2026-09-10             5             4             17       80        3800     48x
+  2026-09-09             5             4             13       80        3800     48x
+
+  total demand over 33 day(s)   : 1120 credits
+  allowance over the same days  : 125400 credits
+  the allowance exceeds the work by a factor of 112.0
+
+COVERAGE: regular_season_games only. postseason_games would add to BOTH
+sides. Demand counts sport-dates with at least one NULL opening_odds — it is
+what a fetch would COST, not what the vendor actually holds. A sport-date the
+vendor has no data for still costs 20 and fills nothing, so this is a floor on
+spend and a ceiling on value. It proposes no number; it prints two.
