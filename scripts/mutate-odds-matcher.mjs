@@ -180,6 +180,11 @@ const MUTATIONS = [
     replace: "  console.log(`2026-09-16. Investigate the matcher before the budget (Rule 77).`);\n  process.exit(1);",
     catches: 'the day you most want the cost of is the day it is not recorded' },
 
+  { file: WATCHER, check: WIRING, name: 'M29 an unknown pairing baseline is coerced to zero',
+    anchor: '  const basePaired = prev.games_paired_in_window;',
+    replace: '  const basePaired = prev.games_paired_in_window ?? 0;',
+    catches: 'a reading that predates the counter reports a difference it cannot know' },
+
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
     anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',

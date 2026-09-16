@@ -228,7 +228,14 @@ if (spend.state === 'no_baseline') {
   console.log(`      provider billed   : ${spend.delta}`);
   console.log(`      allowance         : ${spend.allowance}   (${ceiling}/day, prorated)`);
   console.log(`      rate              : ${spend.perDay} credits/day`);
-  console.log(`      games paired since: ${reading.games_paired_in_window - (prev.games_paired_in_window ?? 0)}`);
+  // `?? 0` here would undo the null the seed was careful to store: the older
+  // readings predate the pairing counter, so the baseline is UNKNOWN and the
+  // difference is not computable. Third instance of null-as-zero in this one
+  // feature — the predicate, the reading, and now the line that prints it.
+  const basePaired = prev.games_paired_in_window;
+  console.log(`      games paired since: ${basePaired === null || basePaired === undefined
+    ? `unknown (that reading predates the pairing counter; now ${reading.games_paired_in_window})`
+    : reading.games_paired_in_window - basePaired}`);
 }
 
 series.push(reading);

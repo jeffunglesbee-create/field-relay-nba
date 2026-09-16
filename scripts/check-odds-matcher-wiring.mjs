@@ -63,6 +63,17 @@ for (const f of CONSUMERS) {
     : (failed++, console.log(`  FAIL  ${f}: a failing pairing verdict can skip the provider reading`));
 }
 
+// An UNKNOWN baseline may not be subtracted as a zero. The seeded readings
+// predate the pairing counter and carry null deliberately; `?? 0` in the
+// reporting line converts that back into a difference nobody measured.
+{
+  const f = 'scripts/watch-odds-pairing-rate.mjs';
+  const src = fs.readFileSync(f, 'utf8');
+  /games_paired_in_window\s*\?\?\s*0/.test(src)
+    ? (failed++, console.log(`  FAIL  ${f}: an unknown pairing baseline is coerced to 0`))
+    : console.log(`  PASS  ${f}: an unknown pairing baseline is not coerced to 0`);
+}
+
 console.log(`\nCOVERAGE: ${CONSUMERS.length} consumers, ${BANNED.length} banned shapes each, import AND call asserted.`);
 console.log(`Structural only — that a call site imports the module does not prove it`);
 console.log(`uses the result correctly. check-odds-matcher.mjs covers the module itself.`);
