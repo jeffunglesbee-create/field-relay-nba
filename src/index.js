@@ -1163,7 +1163,7 @@ async function getWCPregameLambdas(env) {
     // !r.ok both already take it, and the caller at the wcLambdas line handles
     // null -- so the guard adds no new failure mode, only an accounted one.
     const _wcUrl = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`;
-    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl)))) return null;
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcUrl), 'getWCPregameLambdas'))) return null;
     try {
         const r = await fetch(
             _wcUrl,
@@ -3264,7 +3264,7 @@ async function handleWCOddsProbs(env) {
     // below returns: the caller must be able to tell "we declined to spend" from
     // "the provider or our parsing failed".
     const _wcProbsUrl = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds?apiKey=${key}&markets=h2h,totals&regions=us,eu&oddsFormat=decimal`;
-    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcProbsUrl)))) {
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_wcProbsUrl), 'handleWCOddsProbs'))) {
         return new Response(JSON.stringify({ ok: false, probs: [], guarded: true,
             error: 'odds credit guard declined this call' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -3409,7 +3409,7 @@ async function handleCFLOddsProbs(env) {
     }
     // Charged, where it previously was not. Same shape as /wc/odds-probs above.
     const _cflUrl = `https://api.the-odds-api.com/v4/sports/americanfootball_cfl/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us,eu&oddsFormat=decimal`;
-    if (!(await consumeOddsCredit(env, oddsCreditCost(_cflUrl)))) {
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_cflUrl), 'handleCFLOddsProbs'))) {
         return new Response(JSON.stringify({ ok: false, probs: [], guarded: true,
             error: 'odds credit guard declined this call' }),
             { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -6522,11 +6522,11 @@ function _oddsCreditMonthKey() {
 // then the monthly hard limit. Either layer can veto. The daily layer
 // is shared with AmbientDO's _consumeAmbientOddsCredit + _captureClosingOdds
 // so a runaway in any one consumer can't burn the monthly quota in a day.
-async function consumeOddsCredit(env, units) {
+async function consumeOddsCredit(env, units, site = 'unattributed') {
   if (!env.FIELD_JOURNALISM) return true; // KV unavailable: degrade-open
   // Daily layer first — cheaper failure path. checkAndIncrementDailyOdds
   // also increments on pass, so don't double-count below.
-  if (!(await checkAndIncrementDailyOdds(env, units))) return false;
+  if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
   try {
     const key = _oddsCreditMonthKey();
     const raw = await env.FIELD_JOURNALISM.get(key);
@@ -6568,7 +6568,7 @@ async function fetchSportOddsLive(env, sportKey) {
   // is one of the two self-tests -- but so the model lives in one place and a
   // future markets= edit cannot silently keep charging the old number.
   const _liveUrl = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl)))) {
+  if (!(await consumeOddsCredit(env, oddsCreditCost(_liveUrl), 'fetchSportOddsLive'))) {
     return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   const _est = oddsCreditCost(_liveUrl);
@@ -6675,7 +6675,7 @@ async function fetchSportOddsHistorical(env, sportKey, isoDate) {
   const url = `${ODDS_BASE}/v4/historical/sports/${sportKey}/odds`
             + `?apiKey=${key}&date=${snapshot}`
             + `&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-  if (!(await consumeOddsCredit(env, oddsCreditCost(url)))) {
+  if (!(await consumeOddsCredit(env, oddsCreditCost(url), 'fetchSportOddsHistorical'))) {
     return { games: [], quotaRemaining: null, ok: false, guarded: true };
   }
   // cacheEverything: true is required — Odds API returns Cache-Control: private.
@@ -16064,7 +16064,7 @@ export default {
             const cleanPath = pathname.replace(/^\/odds/, '') || '/';
             if (!oddsAllowed(cleanPath)) return new Response('Odds path not allowed', { status: 403, headers: { 'X-RELAY-Error': 'odds-path-not-whitelisted', ...CORS } });
             const targetUrl = oddsUrl(cleanPath, url.search, env?.ODDS_API_KEY);
-            if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl)))) {
+            if (oddsBillablePath(cleanPath) && !(await consumeOddsCredit(env, oddsCreditCost(targetUrl), 'oddsProxyRoute'))) {
                 return new Response(JSON.stringify({ ok: false, guarded: true,
                     error: 'odds credit guard declined this call' }),
                     { status: 429, headers: { 'X-RELAY-Error': 'odds-credit-guard', ...CORS, 'Content-Type': 'application/json' } });

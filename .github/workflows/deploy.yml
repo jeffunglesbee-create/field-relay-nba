@@ -175,6 +175,12 @@ jobs:
           node scripts/check-scope-claims.mjs
           node scripts/mutate-scope-claims.mjs
 
+      - name: Every odds call names which consumer spent it
+        run: |
+          node scripts/check-odds-attribution.mjs --self-test
+          node scripts/check-odds-attribution.mjs
+          node scripts/mutate-odds-attribution.mjs
+
       - name: AmbientDO reports a failed setAlarm instead of swallowing it
         run: |
           node scripts/check-ambient-alarm-failure.mjs

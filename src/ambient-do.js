@@ -610,7 +610,7 @@ export class AmbientDO {
             // what the literal it replaces charged. No behaviour changes today; it
             // will follow ODDS_REGIONS_MULTIPLY if the X-Requests-Last measurement
             // (see /wc/odds-probs `cost`) says regions multiply.
-            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl(''))))) return;
+            if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(buildUrl('')), 'ambientFetchLiveOdds'))) return;
             const cfInit = { cf: { cacheTtl: 60, cacheEverything: true } };
             try {
                 // Cache TTL aligned to the medium-tier cooldown floor (60 s)
@@ -790,7 +790,7 @@ export class AmbientDO {
         // Note cf.cacheTtl is 0 here, deliberately: a closing line must be the
         // line at the moment of the transition. Every one of these is a fresh
         // billed call, which is why the accounting mattering is not theoretical.
-        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url)))) {
+        if (!(await _consumeAmbientOddsCredit(this.env, oddsCreditCost(url), 'ambientCaptureClosingOdds'))) {
             console.warn('[closing-odds] odds credit guard declined — skipping capture');
             return;
         }
@@ -1123,12 +1123,12 @@ function _ambientOddsCreditMonthKey() {
     const m = String(d.getUTCMonth() + 1).padStart(2, '0');
     return `odds:credits:${d.getUTCFullYear()}-${m}`;
 }
-async function _consumeAmbientOddsCredit(env, units) {
+async function _consumeAmbientOddsCredit(env, units, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     // Shared daily ceiling first — coordinates with snapshotCronOdds +
     // _captureClosingOdds via the same KV key. Either guard can veto;
     // monthly hard limit below stays unchanged.
-    if (!(await checkAndIncrementDailyOdds(env, units))) return false;
+    if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
     try {
         const key = _ambientOddsCreditMonthKey();
         const raw = await env.FIELD_JOURNALISM.get(key);

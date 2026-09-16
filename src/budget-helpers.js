@@ -57,7 +57,53 @@ function _dailyKey() {
  * doesn't kill live coverage. The monthly counter still acts as the
  * hard ceiling in that case.
  */
-async function checkAndIncrementDailyOdds(env, units = 1) {
+/** Every known site's spend for a date, plus any that appear unexpectedly.
+ *  A site with 0 is LISTED — absent and zero are different answers. */
+const KNOWN_SITES = [
+    'getWCPregameLambdas', 'handleWCOddsProbs', 'handleCFLOddsProbs',
+    'fetchSportOddsLive', 'fetchSportOddsHistorical', 'wpResolver',
+    'ambientFetchLiveOdds', 'ambientCaptureClosingOdds',
+    // The PUBLIC /odds/* proxy. User-triggered spend, and the ninth call site —
+    // I named eight from a grep and check-odds-attribution.mjs found this one on
+    // its first live run.
+    'oddsProxyRoute',
+    'unattributed',
+];
+
+async function _readSites(env, date) {
+    const out = {};
+    for (const site of KNOWN_SITES) {
+        try {
+            const raw = await env.FIELD_JOURNALISM.get(_siteKey(site, date));
+            out[site] = raw ? parseInt(raw, 10) || 0 : 0;
+        } catch (_) {
+            out[site] = null;   // unreadable is not zero
+        }
+    }
+    return out;
+}
+
+/** Per-site daily spend. Same store and TTL as the counter it explains. */
+function _siteKey(site, date = new Date().toISOString().slice(0, 10)) {
+    // Bounded and predictable: a site string is code-supplied, never
+    // user-supplied, but an unbounded key space in KV is still a liability.
+    const safe = String(site || 'unattributed').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'unattributed';
+    return `odds:site:${safe}:${date}`;
+}
+
+async function _bumpSite(env, site, units) {
+    try {
+        const key = _siteKey(site);
+        const raw = await env.FIELD_JOURNALISM.get(key);
+        const cur = raw ? parseInt(raw, 10) || 0 : 0;
+        await env.FIELD_JOURNALISM.put(key, String(cur + units), { expirationTtl: 172800 });
+    } catch (_) {
+        // Attribution must never fail a fetch. The daily counter above already
+        // succeeded, so the total stays correct even when the split does not.
+    }
+}
+
+async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
         const key = _dailyKey();
@@ -78,6 +124,22 @@ async function checkAndIncrementDailyOdds(env, units = 1) {
         await env.FIELD_JOURNALISM.put(key, String(used + units), {
             expirationTtl: 172800, // 48h — auto-cleanup
         });
+        // ATTRIBUTION. The counters above say HOW MUCH; nothing said BY WHOM,
+        // and that is why "3,557/day" could not be split until the backfill's
+        // own D1 rows happened to allow one subtraction (1.1% backfill,
+        // 98.9% everything else). AmbientDO's polling, its closing capture and
+        // the WP resolver were indistinguishable from each other.
+        //
+        // Written HERE and not in a new code path on purpose: this function
+        // already writes to KV on every permitted call, so this is one more
+        // write beside an existing one rather than a write where there were
+        // none. reconcileOddsCredit returns early when delta === 0 and writes
+        // nothing, so instrumenting there would have missed most calls.
+        //
+        // The default is 'unattributed', NOT omission: a caller that forgets to
+        // pass a site shows up as a named bucket with a number in it rather
+        // than vanishing from the total (Rule 99).
+        await _bumpSite(env, site, units);
         return true;
     } catch (_) {
         return true; // degrade-open
@@ -101,6 +163,8 @@ async function peekDailyOdds(env) {
         // 2500 more are allowed — a budget readout that disagrees with the
         // budget is worse than none, because it is the number people act on.
         const ceiling = _dailyCeiling(date);
+        const sites = await _readSites(env, date);
+        const sum = Object.values(sites).reduce((a, v) => a + (Number(v) || 0), 0);
         const grants = ODDS_CEILING_GRANTS.filter(g => g.date === date);
         return {
             date,
@@ -110,6 +174,17 @@ async function peekDailyOdds(env) {
             // Present and null on an ordinary day, so an unusual ceiling always
             // carries its own explanation rather than looking like drift.
             standing_ceiling: ODDS_DAILY_CEILING,
+            // WHO spent it. Absent until 2026-09-16: the daily total could not
+            // be split by consumer, so "3,557/day" was one opaque number and a
+            // per-consumer ceiling was unspeccable. A site present with 0 is
+            // different from a site absent, so every KNOWN site is listed.
+            by_site: sites,
+            // The sum is reported SEPARATELY from `used` rather than assumed
+            // equal. They can legitimately diverge — a site write can fail
+            // while the total succeeds — and a reader must see that, not infer
+            // it. `unaccounted` is the gap, named.
+            by_site_sum: sum,
+            unaccounted: used - sum,
             grant_today: grants.length ? grants : null,
         };
     } catch (_) {

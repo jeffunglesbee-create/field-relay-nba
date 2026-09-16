@@ -214,9 +214,9 @@ function _oddsCreditMonthKey() {
     return `odds:credits:${d.getUTCFullYear()}-${m}`;
 }
 
-async function consumeOddsCredit(env, units) {
+async function consumeOddsCredit(env, units, site = 'unattributed') {
     if (!env.FIELD_JOURNALISM) return true;
-    if (!(await checkAndIncrementDailyOdds(env, units))) return false;
+    if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
     try {
         const key  = _oddsCreditMonthKey();
         const raw  = await env.FIELD_JOURNALISM.get(key);
@@ -257,7 +257,7 @@ async function fetchSportOddsLive(env, sportKey) {
     // today's behaviour is unchanged; the point is that a markets= edit here can
     // no longer keep charging the old price.
     const _url = `${ODDS_BASE}/v4/sports/${sportKey}/odds?apiKey=${key}&markets=h2h,spreads,totals&regions=us&oddsFormat=american`;
-    if (!(await consumeOddsCredit(env, oddsCreditCost(_url)))) {
+    if (!(await consumeOddsCredit(env, oddsCreditCost(_url), 'wpResolver'))) {
         return { games: [], quotaRemaining: null, ok: false, guarded: true };
     }
     const r = await fetch(
