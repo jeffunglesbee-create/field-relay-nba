@@ -170,10 +170,27 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
  * Returns null when FIELD_JOURNALISM isn't bound so the caller can
  * surface "binding unavailable" rather than a fake zero.
  */
-async function peekDailyOdds(env) {
+//
+// `forDate` READS A CLOSED DAY, and it exists because of a measurement rather
+// than a preference. GitHub's scheduled-run delay in this repo is 104 to 405
+// minutes (25 scheduled runs across 7 workflows, measured 2026-09-16 via the
+// Actions API; artifact: outbox/gha-cron-delay-2026-09-16.json). A watch
+// scheduled at 23:30 UTC to read "the whole of today" therefore fires between
+// 01:14 and 06:15 the NEXT day and reads the new day's near-empty counters.
+// Asking for an explicit date makes the reader delay-immune: yesterday is a
+// complete day whenever the runner happens to wake up.
+//
+// Bounded to the TTL that actually exists. odds:site:* is written with
+// expirationTtl 172800 (2 days), so a date older than that returns zeros for
+// every site while odds:daily:* (60 days) still has a total — a split that
+// would read as "nothing named itself" rather than "the evidence expired".
+// SITE_TTL_DAYS is the honest limit and the route refuses past it.
+export const SITE_TTL_DAYS = 2;
+
+async function peekDailyOdds(env, forDate = null) {
     if (!env || !env.FIELD_JOURNALISM) return null;
     try {
-        const date = new Date().toISOString().slice(0, 10);
+        const date = forDate || new Date().toISOString().slice(0, 10);
         const key = `odds:daily:${date}`;
         const raw = await env.FIELD_JOURNALISM.get(key);
         const used = raw ? parseInt(raw, 10) || 0 : 0;
@@ -195,6 +212,11 @@ async function peekDailyOdds(env) {
         const grants = ODDS_CEILING_GRANTS.filter(g => g.date === date);
         return {
             date,
+            // A reader that asked for a date must be able to tell whether it
+            // got one. Without this, a caller cannot distinguish "yesterday's
+            // closed day" from "today, because the parameter was ignored".
+            requested_date: forDate,
+            is_today: date === new Date().toISOString().slice(0, 10),
             used,
             ceiling,
             remaining: Math.max(0, ceiling - used),

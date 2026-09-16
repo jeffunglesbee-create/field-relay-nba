@@ -109,7 +109,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
-import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS } from './budget-helpers.js';
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
@@ -14302,8 +14302,29 @@ export default {
                 return new Response(JSON.stringify({ ok: false, error: 'FIELD_JOURNALISM KV not bound' }),
                     { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
             }
+            // ?date=YYYY-MM-DD reads a CLOSED day. A watch cannot rely on
+            // firing inside the day it means to read: GitHub's scheduled-run
+            // delay in this repo measured 104-405 minutes across 25 runs on
+            // 2026-09-16, so a 23:30 cron lands after midnight UTC and would
+            // report the new day's empty counters as a finding about the old
+            // one. Refused beyond odds:site:*'s 2-day TTL rather than served
+            // as zeros, because expired evidence is not an absence of spend.
+            const _wantDate = (url.searchParams.get('date') || '').trim();
+            if (_wantDate) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(_wantDate)) {
+                    return new Response(JSON.stringify({ ok: false, error: 'date must be YYYY-MM-DD' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                const ageDays = Math.floor((Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(_wantDate)) / 86400000);
+                if (!Number.isFinite(ageDays) || ageDays < 0 || ageDays > SITE_TTL_DAYS) {
+                    return new Response(JSON.stringify({ ok: false, error: `date outside the ${SITE_TTL_DAYS}-day odds:site TTL`,
+                        requested_date: _wantDate, age_days: Number.isFinite(ageDays) ? ageDays : null,
+                        note: 'by_site would read as all-zero rather than expired' }),
+                        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+            }
             const [daily, monthly, provider] = await Promise.all([
-                peekDailyOdds(env),
+                peekDailyOdds(env, _wantDate || null),
                 peekMonthlyOdds(env),
                 oddsProviderQuota(env),
             ]);

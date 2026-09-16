@@ -18,11 +18,41 @@
 //                     site counter was double-bumped
 // Neither is benign, so the check is on the ABSOLUTE value.
 //
+// IT READS YESTERDAY, NOT TODAY, AND THAT IS A MEASUREMENT NOT A PREFERENCE.
+// The first version of this file ran at 23:30 UTC to catch "the whole of
+// today". GitHub's scheduled-run delay in this repo is 104 to 405 minutes --
+// 25 scheduled runs across 7 workflows, measured 2026-09-16 via the Actions API
+// (outbox/gha-cron-delay-2026-09-16.json) -- so 23:30 fires between 01:14 and
+// 06:15 the NEXT day. It would have read the new day's near-empty counters and
+// reported them as a finding about the old one, every single night, and the
+// schedule comment would have explained why that could not happen.
+//
+// Asking /budget/odds for an explicit date removes the dependency on WHEN the
+// runner wakes up: yesterday is a complete, closed day at any hour.
+//
 // READ-ONLY. One GET against a public route, no credits spent, no D1.
 // --self-test runs the predicate against enumerated synthetic readings and
 // needs no network.
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+// Default: yesterday. --date=YYYY-MM-DD overrides, within the 2-day site TTL.
+//
+// Exported and taking `now` so the self-test can reach it. The first version
+// computed the date inline at module scope, where no case could observe it and
+// a mutation flipping it back to today came back NOT CAUGHT.
+export const defaultDate = (now = Date.now()) =>
+  new Date(now - 86400000).toISOString().slice(0, 10);
+
+/** The route must have HONOURED the date. An older deployed worker ignores the
+ *  parameter and returns today; every field would then be a partial day read as
+ *  a complete one, which is the failure this whole change exists to avoid. */
+export function dateHonoured(daily, want) {
+  if (!daily) return { ok: false, got: null };
+  return { ok: daily.date === want, got: daily.date };
+}
+
+const ARG_DATE = process.argv.find(a => a.startsWith('--date='))?.split('=')[1] || null;
+const DATE = ARG_DATE || defaultDate();
 
 // 5% of the day's spend, but never less than FLOOR: at 09:00 UTC `used` can be
 // in the tens, where 5% is 2 and a single lost KV write trips the alarm. The
@@ -87,8 +117,19 @@ if (process.argv.includes('--self-test')) {
       'a zero denominator is not a clean bill of health (Rule 99)');
   one('no daily block',        v(null),                              'malformed', 'the route changed shape');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 11/11`);
-  console.log(`COVERAGE: the verdict predicate only. It does not fetch, and it cannot`);
+  // The date the watcher asks for, and the proof the route gave it back.
+  const T = Date.parse('2026-09-17T04:12:00Z');   // a 23:30 cron, fired 4h41m late
+  one('the default date is a CLOSED day', defaultDate(T), '2026-09-16',
+      'fired after midnight, it still judges the day that ended — the whole point');
+  one('the default is never today', defaultDate(T) === new Date(T).toISOString().slice(0, 10), false,
+      'reading today at 04:12 would report a four-hour-old day as a whole one');
+  one('a honoured date',   dateHonoured({ date: '2026-09-16' }, '2026-09-16').ok, true,  'the route answered the question asked');
+  one('an ignored date',   dateHonoured({ date: '2026-09-17' }, '2026-09-16').ok, false,
+      'an older worker returns today and the reading is of a different day than the verdict');
+  one('no daily at all',   dateHonoured(null, '2026-09-16').ok, false, 'nothing to honour it with');
+
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 16/16`);
+  console.log(`COVERAGE: three predicates. They do not fetch, and they cannot`);
   console.log(`tell a site that spent-and-did-not-name-itself from a lost KV write —`);
   console.log(`both land in the same positive gap. check-odds-attribution.mjs covers`);
   console.log(`the source side: that every call site names itself, and that the guard`);
@@ -96,11 +137,11 @@ if (process.argv.includes('--self-test')) {
   process.exit(bad ? 1 : 0);
 }
 
-console.log(`=== odds attribution gap ===\n`);
+console.log(`=== odds attribution gap  for ${DATE} (a closed day) ===\n`);
 
 let body = null;
 try {
-  const r = await fetch(`${RELAY}/budget/odds`, { headers: { Accept: 'application/json' } });
+  const r = await fetch(`${RELAY}/budget/odds?date=${encodeURIComponent(DATE)}`, { headers: { Accept: 'application/json' } });
   body = await r.json();
 } catch (e) {
   console.log(`FAIL: /budget/odds unreachable (${e.message}).`);
@@ -109,9 +150,21 @@ try {
 }
 
 const daily = body && body.daily;
+
+// A PARAMETER THAT IS SILENTLY IGNORED IS THE FAILURE MODE THIS WHOLE CHANGE
+// EXISTS TO AVOID. If an older worker is deployed, /budget/odds returns TODAY
+// and every field below would be a partial day read as a complete one.
+const honoured = dateHonoured(daily, DATE);
+if (!honoured.ok) {
+  console.log(`FAIL: asked for ${DATE}, got ${honoured.got ?? 'nothing'}.`);
+  console.log(`The date parameter was not honoured, so this reading is of a`);
+  console.log(`different day than the one being judged. Check the deployed worker.`);
+  process.exit(1);
+}
+
 const verdict = attributionVerdict(daily);
 
-console.log(`  date            : ${daily?.date ?? 'unreadable'}`);
+console.log(`  date            : ${daily?.date ?? 'unreadable'}  (requested ${DATE}; is_today=${daily?.is_today})`);
 console.log(`  used            : ${daily?.used ?? 'unreadable'}`);
 console.log(`  by_site_sum     : ${daily?.by_site_sum ?? 'unreadable'}`);
 console.log(`  unaccounted     : ${daily?.unaccounted ?? 'unreadable'}`);
@@ -123,9 +176,10 @@ for (const [site, n] of Object.entries(daily?.by_site || {})) {
 
 console.log(`\n  verdict         : ${verdict.state}`);
 console.log(`  detail          : ${verdict.detail}`);
-console.log(`\nCOVERAGE: ONE reading, of ONE UTC day's live counters. It is not a series`);
-console.log(`and it cannot see yesterday. What it can see is the whole of today, which`);
-console.log(`is why it runs at 23:30 UTC rather than beside the other watches at 11:00.`);
+console.log(`\nCOVERAGE: ONE reading, of ONE CLOSED UTC day (${DATE}). It is not a series`);
+console.log(`and it cannot see trends. Reading a closed day rather than a running one is`);
+console.log(`what makes the verdict independent of when the runner happens to fire —`);
+console.log(`measured delay in this repo is 104-405 minutes.`);
 
 if (verdict.state !== 'ok') {
   console.log(`\nFAIL: ${verdict.state} — ${verdict.detail}`);

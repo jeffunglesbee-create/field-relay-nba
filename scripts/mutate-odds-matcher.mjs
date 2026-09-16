@@ -155,25 +155,45 @@ const MUTATIONS = [
     replace: '  return (rows || []).filter(r => Number(r.credits_used) > 0 && Number(r.games_processed) < 0);',
     catches: 'nothing can ever be flagged — a check that cannot fail' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M24 the spend verdict stops prorating by elapsed time',
-    anchor: '  const allowance = ceiling * (elapsedH / 24);',
-    replace: '  const allowance = ceiling;',
-    catches: 'a half-day delta is judged against a full day and under-reports' },
+  // ── M24-M27 REPLACED 2026-09-16. They tested daySpendVerdict, which asked
+  // one question badly: the PROVIDER's cumulative delta against OUR ledger's
+  // ceiling, prorated. M24 in particular defended the proration, and proration
+  // of a daily cap was itself the defect — it failed a real day that sat at 42%
+  // of its ceiling. The mutations move with the predicates they aim at.
+  { file: WATCHER, check: WATCH_CHECK, name: 'M24 integrity compares the provider against a ceiling again',
+    anchor: '  const escaped = providerDelta - ledgerDelta;',
+    replace: '  const escaped = providerDelta - Math.round(3800 * elapsedH / 24);',
+    catches: 'the two-population comparison returns — a busy evening reads as a breach' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M25 a missing provider reading collapses to zero',
-    anchor: "  const num = (v) => (v === null || v === undefined || String(v).trim() === ''\n    ? null : (Number.isFinite(Number(v)) ? Number(v) : null));",
-    replace: '  const num = (v) => Number(v);',
+  { file: WATCHER, check: WATCH_CHECK, name: 'M25 a missing reading collapses to zero',
+    anchor: "const _num = (v) => (v === null || v === undefined || String(v).trim() === ''\n  ? null : (Number.isFinite(Number(v)) ? Number(v) : null));",
+    replace: 'const _num = (v) => Number(v);',
     catches: 'Number(null) is 0, so an absent reading reads as a counter reset' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M26 a monthly reset is reported as overspend',
-    anchor: "  if (delta < 0) return { state: 'provider_counter_reset', over: false, delta, elapsedH };",
-    replace: '  // reset case removed',
+  { file: WATCHER, check: WATCH_CHECK, name: 'M26 a monthly reset is reported as escaped spend',
+    anchor: "  if (providerDelta < 0 || ledgerDelta < 0) {",
+    replace: '  if (false) {',
     catches: 'the month rolling over fires a false alarm every month' },
 
   { file: WATCHER, check: WATCH_CHECK, name: 'M27 the first reading passes as a measured zero',
     anchor: "  if (!prev) return { state: 'no_baseline', over: false };",
-    replace: "  if (!prev) return { state: 'within_ceiling', over: false };",
-    catches: 'a series of one reports a spend it never measured' },
+    replace: "  if (!prev) return { state: 'ledger_captured_all', over: false };",
+    catches: 'a series of one reports a divergence it never measured' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M33 the ceiling check starts prorating',
+    anchor: '    state: used > ceiling ? \'over_ceiling\' : \'within_ceiling\',',
+    replace: '    state: used > ceiling * 0.3 ? \'over_ceiling\' : \'within_ceiling\',',
+    catches: 'the watch models a cap the guard does not enforce — the 2026-09-16 false alarm' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M34 a null daily counter reads as a clean day',
+    anchor: "  if (used === null || ceiling === null || ceiling <= 0) return { state: 'unreadable', over: false };",
+    replace: '  if (false) return {};',
+    catches: 'Number(null) is 0 and 0 is under every ceiling' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M35 the escape tolerance grows until nothing can fail',
+    anchor: 'export const ESCAPE_FLOOR = 50;',
+    replace: 'export const ESCAPE_FLOOR = 1000000;',
+    catches: 'the way this watch ends quietly — raising the bar instead of reading it' },
 
   { file: WATCHER, check: WIRING, name: 'M28 a failing pairing verdict exits before recording the spend',
     anchor: "  console.log(`2026-09-16. Investigate the matcher before the budget (Rule 77).`);",

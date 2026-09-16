@@ -7,14 +7,24 @@ name: Odds attribution gap
 # consumers. It cannot prove the KV writes land. This can, once a day, against
 # the live counters.
 #
-# 23:30 UTC, not 11:00 with the other watches: the counters are keyed by UTC
-# date, so this is the last moment at which the reading covers a whole day. A
-# morning reading would pass on a day that went wrong after lunch.
+# 09:20 UTC, and the hour is almost irrelevant, which is the point. The first
+# version ran at 23:30 to catch "the whole of today" — but GitHub's scheduled-run
+# delay in this repo is 104 to 405 minutes (25 scheduled runs across 7 workflows,
+# measured 2026-09-16; outbox/gha-cron-delay-2026-09-16.json), so 23:30 fires
+# between 01:14 and 06:15 the NEXT UTC day and would have read the new day's
+# empty counters every night. The script now asks /budget/odds for YESTERDAY by
+# date, so a complete day is read whenever the runner wakes. 09:20 keeps the
+# worst-case firing (16:05) inside the 2-day odds:site TTL with a day to spare.
 
 on:
   schedule:
-    - cron: '30 23 * * *'
+    - cron: '20 9 * * *'
   workflow_dispatch:
+    inputs:
+      date:
+        description: 'UTC date to judge (YYYY-MM-DD). Default: yesterday. Max 2 days back.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -39,7 +49,7 @@ jobs:
         if: always()
         run: |
           set -o pipefail
-          node scripts/watch-odds-attribution-gap.mjs 2>&1 \
+          node scripts/watch-odds-attribution-gap.mjs ${{ inputs.date && format('--date={0}', inputs.date) || '' }} 2>&1 \
             | tee -a "$GITHUB_STEP_SUMMARY" \
             | tee outbox/odds-attribution-gap-$(date -u +%Y%m%dT%H%M%SZ).log
 

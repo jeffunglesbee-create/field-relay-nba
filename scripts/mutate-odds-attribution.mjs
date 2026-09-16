@@ -110,6 +110,16 @@ const MUTATIONS = [
     replace: '  if (false) {',
     catches: 'a corrupt counter disappears into a gap that looks like ordinary drift' },
 
+  { file: WATCH, check: WSELF, name: 'A18 the watcher reads today instead of a closed day',
+    anchor: "export const defaultDate = (now = Date.now()) =>\n  new Date(now - 86400000).toISOString().slice(0, 10);",
+    replace: "export const defaultDate = (now = Date.now()) =>\n  new Date(now).toISOString().slice(0, 10);",
+    catches: 'a partial day judged as a complete one — and at a 104-405 min delay, the WRONG partial day' },
+
+  { file: WATCH, check: WSELF, name: 'A19 a silently ignored date parameter passes',
+    anchor: "  return { ok: daily.date === want, got: daily.date };",
+    replace: '  return { ok: true, got: daily.date };',
+    catches: 'an older deployed worker returns today and every field below is read as the requested day' },
+
   { file: WATCH, check: WSELF, name: 'A17 the floor swallows every morning gap',
     anchor: 'export const FLOOR = 25;',
     replace: 'export const FLOOR = 100000;',

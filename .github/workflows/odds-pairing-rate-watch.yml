@@ -7,8 +7,29 @@ name: Odds pairing rate watch
 # so silently-dead-crons.yml could not see it; spending credits, so the budget
 # checks were happy; writing games_processed 0, which read as health.
 #
-# READ-ONLY against D1. Daily, an hour after the backfill's 10:00 UTC cron so
-# the day's progress row exists before this asks about it.
+# READ-ONLY against D1.
+#
+# THE SCHEDULE COMMENT HERE USED TO SAY "an hour after the backfill's 10:00 UTC
+# cron so the day's progress row exists before this asks about it". Both halves
+# were false and both were measured on 2026-09-16:
+#
+#   1. odds-backfill.yml declares '0 10 * * *' but its last ten scheduled runs
+#      STARTED between 13:25 and 16:13 UTC. GitHub's delay in this repo is
+#      104-405 minutes across 25 scheduled runs and 7 workflows
+#      (outbox/gha-cron-delay-2026-09-16.json). An 11:00 slot is not an hour
+#      after anything; it fires 12:45-17:45 and lands on either side of its
+#      subject at random.
+#
+#   2. THERE IS NO "day's progress row" FOR TODAY. odds-backfill.js walks dates
+#      "oldest-first from 2026-06-11 -> yesterday" (its own header, line 14) and
+#      keys odds_backfill_progress by the BACKFILLED date. Today's run writes
+#      YESTERDAY's row. A --days=1 dispatch at 21:53Z returned exactly one row,
+#      dated 2026-09-15, with no 09-16 row in existence.
+#
+# The 14-day window makes the pairing half delay-tolerant either way, and the
+# provider half prorates by real elapsed time between readings rather than by
+# the declared slot, so the hour is left alone. What changed is that the comment
+# no longer asserts a schedule relationship that does not hold.
 
 on:
   schedule:

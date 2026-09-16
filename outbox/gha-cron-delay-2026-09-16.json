@@ -1,0 +1,116 @@
+{
+  "measured_at": "2026-09-16T21:59:06Z",
+  "method": "GitHub Actions API, event=schedule, run_started_at minus the declared cron slot",
+  "repo": "jeffunglesbee-create/field-relay-nba",
+  "why": "a watch scheduled at 23:30 UTC fires after midnight at these delays and reads the wrong UTC day",
+  "workflows": [
+    {
+      "workflow": "odds-backfill.yml",
+      "cron": "10:00",
+      "n": 8,
+      "delays_minutes": [
+        282,
+        282,
+        374,
+        250,
+        206,
+        248,
+        249,
+        255
+      ]
+    },
+    {
+      "workflow": "run-clock-closing-watch.yml",
+      "cron": "11:40",
+      "n": 1,
+      "delays_minutes": [
+        231
+      ]
+    },
+    {
+      "workflow": "jq-health-watch.yml",
+      "cron": "09:00",
+      "n": 8,
+      "delays_minutes": [
+        305,
+        313,
+        405,
+        283,
+        223,
+        262,
+        263,
+        273
+      ]
+    },
+    {
+      "workflow": "league-outranks-sport-watch.yml",
+      "cron": "11:50",
+      "n": 1,
+      "delays_minutes": [
+        225
+      ]
+    },
+    {
+      "workflow": "silently-dead-crons.yml",
+      "cron": "12:15",
+      "n": 1,
+      "delays_minutes": [
+        275
+      ]
+    },
+    {
+      "workflow": "odds-identity-join-saturday.yml",
+      "cron": "23:40",
+      "n": 1,
+      "delays_minutes": [
+        104
+      ]
+    },
+    {
+      "workflow": "odds-coverage-census.yml",
+      "cron": "08:17",
+      "n": 5,
+      "delays_minutes": [
+        313,
+        315,
+        403,
+        301,
+        233
+      ]
+    }
+  ],
+  "all_delays_minutes": [
+    282,
+    282,
+    374,
+    250,
+    206,
+    248,
+    249,
+    255,
+    231,
+    305,
+    313,
+    405,
+    283,
+    223,
+    262,
+    263,
+    273,
+    225,
+    275,
+    104,
+    313,
+    315,
+    403,
+    301,
+    233
+  ],
+  "summary": {
+    "n": 25,
+    "min": 104,
+    "max": 405,
+    "median": 273,
+    "conclusion": "scheduled runs start 104-405 minutes after their cron slot"
+  }
+}

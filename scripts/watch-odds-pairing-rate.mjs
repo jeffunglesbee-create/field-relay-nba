@@ -15,6 +15,13 @@
 // date whose vendor has no data spends credits but is reported separately below
 // so the two are never conflated.
 //
+// THE WINDOW IS OVER BACKFILLED DATES, NOT RUN DATES, and that distinction was
+// wrong in this file's own comments until 2026-09-16. odds-backfill.js walks
+// "oldest-first from 2026-06-11 -> yesterday" and keys odds_backfill_progress by
+// the date it FILLED. So there is never a row for today, and a run that
+// succeeds today writes yesterday's row. A --days=1 dispatch at 21:53Z returned
+// one row dated 2026-09-15 and none for 09-16, on a day the cron had succeeded.
+//
 // READ-ONLY. The d1 helper refuses any statement that is not a SELECT.
 // --self-test runs the predicate against enumerated synthetic rows and needs no
 // network, so the gate can run in CI where D1 is not reachable.
@@ -37,54 +44,93 @@ export function burnedWithoutPairing(rows) {
 }
 
 /**
- * Did the provider bill more between two readings than the daily ceiling allows?
+ * TWO QUESTIONS, TWO VERDICTS, BECAUSE THE OLD ONE ANSWERED NEITHER.
  *
- * WHY THE PROVIDER AND NOT OUR LEDGER. The ledger is what our guards THINK they
- * spent. The provider is what was actually billed. Measured 2026-09-16, the two
- * disagree by ~19,700 on the month — an offset already ~17,800 on 2026-09-05, so
- * it is old and roughly static rather than a live leak, but it means a ledger
- * reading cannot answer "what did today cost". Only the provider can.
+ * `daySpendVerdict` compared the PROVIDER's cumulative counter delta against
+ * OUR ledger's daily ceiling, prorated over the interval. Both halves of that
+ * were wrong, and the run on 2026-09-16T21:52Z proved it in one line:
  *
- * WHY THIS CAN FIRE AT ALL, given a 3,800/day ceiling exists. Both guards
- * degrade OPEN: consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,
- * and checkAndIncrementDailyOdds returns true on any KV error. A day billed well
- * above the ceiling is therefore not impossible — it is the signature of a guard
- * that stopped guarding, which is invisible from inside the guard.
+ *   FAIL: the provider billed 1377 where 1232 was allowed
+ *   ...a day above the ceiling is the signature of a guard that stopped guarding
  *
- * The allowance is prorated by elapsed time, because two readings are ~24h apart
- * but never exactly, and comparing a 30-hour delta against a 24-hour ceiling
- * would manufacture a failure.
+ * while the day's actual counter read 1598 of 3800 — 42% of the ceiling — and
+ * our own ledger recorded 1467 over that same interval, ninety credits MORE
+ * than the provider billed. Nothing had escaped any guard.
  *
- * A NEGATIVE delta is the monthly reset, not an error, and is reported as such.
+ *   (a) TWO POPULATIONS. provider_used counts everything the vendor billed the
+ *       account. odds:daily:* counts what this relay charged itself. They stood
+ *       19,582 apart on 2026-09-16 and that gap is a known open question — so
+ *       subtracting one from the other's ceiling measures the gap, not a guard.
  *
- * @param {{at: string, provider_used: number}|null} prev  previous reading, or null
- * @param {{at: string, provider_used: number}} curr
- * @param {number} ceiling  credits the daily guard permits
+ *   (b) A DAILY CEILING IS NOT A RATE. Spend here is bursty: the closing-odds
+ *       capture concentrates in the evening. Prorating 3800/day across a 7.8h
+ *       evening window yields 1232 and calls an ordinary evening a breach. The
+ *       guard itself never prorates — it compares a running daily total to 3800
+ *       and stops. A watch that models the guard differently from the guard is
+ *       reporting on a system that does not exist.
+ *
+ * So: ledgerIntegrityVerdict asks the guard question by comparing the two
+ * counters to EACH OTHER over the same interval, and ceilingVerdict asks the
+ * ceiling question of the counter the ceiling actually governs, with no
+ * arithmetic at all.
  */
-export function daySpendVerdict(prev, curr, ceiling) {
-  // Number(null) is 0 and Number('') is 0, so a MISSING reading would subtract
-  // as a real zero and look like a counter reset. Rule 99, in the instrument
-  // built to catch spend anomalies. Absent is absent, not zero.
-  const num = (v) => (v === null || v === undefined || String(v).trim() === ''
-    ? null : (Number.isFinite(Number(v)) ? Number(v) : null));
-  const used = num(curr?.provider_used);
-  if (used === null) return { state: 'unreadable', over: false };
+
+// Slack for reading skew: the two counters are fetched in one response but the
+// provider figure is cached 60s relay-side, and both are read-modify-write
+// counters under concurrent isolates. Below this, a difference is noise.
+export const ESCAPE_FLOOR = 50;
+export const ESCAPE_PCT = 0.05;
+
+const _num = (v) => (v === null || v === undefined || String(v).trim() === ''
+  ? null : (Number.isFinite(Number(v)) ? Number(v) : null));
+
+/**
+ * Did spend reach the provider without reaching our ledger?
+ * `escaped` = providerDelta - ledgerDelta over the same interval. Positive
+ * means the vendor billed for calls our counters never saw, which IS the
+ * degraded-open signature. Negative means our ledger charged more than the
+ * vendor billed, which is the reconcile direction and is not a fault.
+ */
+export function ledgerIntegrityVerdict(prev, curr) {
+  const pNow = _num(curr?.provider_used), lNow = _num(curr?.ledger_month_used);
+  if (pNow === null || lNow === null) return { state: 'unreadable', over: false };
   if (!prev) return { state: 'no_baseline', over: false };
-  const before = num(prev.provider_used);
-  if (before === null) return { state: 'unreadable', over: false };
+  const pWas = _num(prev.provider_used), lWas = _num(prev.ledger_month_used);
+  if (pWas === null || lWas === null) return { state: 'unreadable', over: false };
 
   const elapsedH = (Date.parse(curr.at) - Date.parse(prev.at)) / 3600000;
   if (!Number.isFinite(elapsedH) || elapsedH <= 0) return { state: 'unreadable', over: false };
 
-  const delta = used - before;
-  if (delta < 0) return { state: 'provider_counter_reset', over: false, delta, elapsedH };
-
-  const allowance = ceiling * (elapsedH / 24);
+  const providerDelta = pNow - pWas;
+  const ledgerDelta   = lNow - lWas;
+  // Either counter going backwards is a month roll-over on that counter, not a
+  // measurement. Both are monthly and they roll at the same instant, but a
+  // reading can land between the two rolls.
+  if (providerDelta < 0 || ledgerDelta < 0) {
+    return { state: 'counter_reset', over: false, providerDelta, ledgerDelta, elapsedH };
+  }
+  const escaped = providerDelta - ledgerDelta;
+  const tolerance = Math.max(ESCAPE_FLOOR, Math.round(ESCAPE_PCT * providerDelta));
   return {
-    state: delta > allowance ? 'over_ceiling' : 'within_ceiling',
-    over: delta > allowance,
-    delta, allowance: Math.round(allowance), elapsedH: Math.round(elapsedH * 10) / 10,
-    perDay: Math.round(delta / (elapsedH / 24)),
+    state: escaped > tolerance ? 'spend_escaped_the_ledger' : 'ledger_captured_all',
+    over: escaped > tolerance,
+    providerDelta, ledgerDelta, escaped, tolerance,
+    elapsedH: Math.round(elapsedH * 10) / 10,
+  };
+}
+
+/**
+ * Was the daily ceiling breached? Asked of odds:daily:* directly, because that
+ * is the counter checkAndIncrementDailyOdds compares against. No interval, no
+ * proration — the guard does not prorate, so neither does this.
+ */
+export function ceilingVerdict(daily) {
+  const used = _num(daily?.used), ceiling = _num(daily?.ceiling);
+  if (used === null || ceiling === null || ceiling <= 0) return { state: 'unreadable', over: false };
+  return {
+    state: used > ceiling ? 'over_ceiling' : 'within_ceiling',
+    over: used > ceiling,
+    used, ceiling, pct: Math.round(100 * used / ceiling),
   };
 }
 
@@ -105,24 +151,50 @@ if (SELF) {
   }
 
   const D = (h) => new Date(Date.parse('2026-09-16T11:00:00Z') + h * 3600000).toISOString();
-  const SPEND = [
-    [null, { at: D(0), provider_used: 100 }, 3800, 'no_baseline', 'the first reading has nothing to subtract from'],
-    [{ at: D(0), provider_used: 1000 }, { at: D(24), provider_used: 4000 }, 3800, 'within_ceiling', '3000 in 24h, under 3800'],
-    [{ at: D(0), provider_used: 1000 }, { at: D(24), provider_used: 12000 }, 3800, 'over_ceiling', '11000 in a day — a guard degraded open'],
-    [{ at: D(0), provider_used: 1000 }, { at: D(12), provider_used: 3000 }, 3800, 'over_ceiling', '2000 in HALF a day is over a prorated 1900'],
-    [{ at: D(0), provider_used: 1000 }, { at: D(30), provider_used: 4600 }, 3800, 'within_ceiling', '3600 over 30h is under a prorated 4750 — no manufactured failure'],
-    [{ at: D(0), provider_used: 90000 }, { at: D(24), provider_used: 120 }, 3800, 'provider_counter_reset', 'the month rolled over; not an error'],
-    [{ at: D(0), provider_used: 1000 }, { at: D(24), provider_used: '4000' }, 3800, 'within_ceiling', "the provider sends a STRING; it must still subtract"],
-    [{ at: D(0), provider_used: 1000 }, { at: D(24), provider_used: null }, 3800, 'unreadable', 'an absent reading is not a zero-spend day'],
+  const R = (h, provider, ledger) => ({ at: D(h), provider_used: provider, ledger_month_used: ledger });
+
+  // THE FIRST CASE IS THE RUN THAT EXPOSED THE OLD VERDICT, to the credit.
+  const INTEGRITY = [
+    [R(0, 64546, 44874), R(7.78, 65923, 46341), 'ledger_captured_all',
+     'the real 2026-09-16 evening: provider +1377, ledger +1467 — the old check called this a breach'],
+    [null, R(0, 100, 100), 'no_baseline', 'the first reading has nothing to subtract from'],
+    [R(0, 1000, 1000), R(24, 4000, 4000), 'ledger_captured_all', 'both counters moved together'],
+    [R(0, 1000, 1000), R(24, 4000, 1200), 'spend_escaped_the_ledger',
+     'the vendor billed 3000 and our counters saw 200 — the degraded-open signature'],
+    [R(0, 1000, 1000), R(24, 4000, 3960), 'ledger_captured_all',
+     '40 apart on a 3000 delta is inside the floor, not a finding'],
+    [R(0, 1000, 1000), R(24, 4000, 2800), 'spend_escaped_the_ledger',
+     '200 apart on 3000 is over the 150 tolerance'],
+    [R(0, 1000, 1000), R(24, 900, 900), 'counter_reset', 'the month rolled over; not an error'],
+    [R(0, 1000, 1000), R(24, '4000', '4000'), 'ledger_captured_all', 'the provider sends a STRING; it must still subtract'],
+    [R(0, 1000, 1000), R(24, null, 4000), 'unreadable', 'an absent provider reading is not a zero-spend day'],
+    [R(0, 1000, 1000), R(24, 4000, null), 'unreadable', 'an absent LEDGER reading is not a zero either'],
+    [R(0, 1000, 1000), R(0, 4000, 4000), 'unreadable', 'a zero-length interval cannot be divided'],
   ];
-  for (const [prev, curr, ceil, want, why] of SPEND) {
-    const got = daySpendVerdict(prev, curr, ceil).state;
-    got === want ? console.log(`  PASS  spend: ${want.padEnd(23)} (${why})`)
-                 : (bad++, console.log(`  FAIL  spend: got ${got} want ${want}  (${why})`));
+  for (const [prev, curr, want, why] of INTEGRITY) {
+    const got = ledgerIntegrityVerdict(prev, curr).state;
+    got === want ? console.log(`  PASS  integrity: ${want.padEnd(25)} (${why})`)
+                 : (bad++, console.log(`  FAIL  integrity: got ${got} want ${want}  (${why})`));
   }
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${CASES.length + SPEND.length}/${CASES.length + SPEND.length}`);
-  console.log(`COVERAGE: both predicates only. Neither exercises D1, the provider, or the cron.`);
+  const CEILING = [
+    [{ used: 1598, ceiling: 3800 }, 'within_ceiling', 'the real 2026-09-16 day — 42% of the cap, which the old check failed'],
+    [{ used: 3800, ceiling: 3800 }, 'within_ceiling', 'exactly at the cap is not over it; the guard blocks the call that would exceed'],
+    [{ used: 3801, ceiling: 3800 }, 'over_ceiling', 'one credit past the cap means the guard let something through'],
+    [{ used: 0, ceiling: 3800 }, 'within_ceiling', 'a quiet day is not a ceiling problem — the gap watch owns that question'],
+    [{ used: null, ceiling: 3800 }, 'unreadable', 'Number(null) is 0 and would read as a perfectly clean day'],
+    [{ used: 100, ceiling: 0 }, 'unreadable', 'a zero ceiling is a missing ceiling, not a cap of nothing'],
+  ];
+  for (const [daily, want, why] of CEILING) {
+    const got = ceilingVerdict(daily).state;
+    got === want ? console.log(`  PASS  ceiling: ${want.padEnd(27)} (${why})`)
+                 : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
+  }
+
+  const _n = CASES.length + INTEGRITY.length + CEILING.length;
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
+  console.log(`COVERAGE: three predicates on synthetic readings. None exercises D1, the`);
+  console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers.`);
   process.exit(bad ? 1 : 0);
 }
 
@@ -226,54 +298,81 @@ const reading = {
 };
 const prev = series.length ? series[series.length - 1] : null;
 const ceiling = Number(reading.daily_ceiling) || 3800;
-const spend = daySpendVerdict(prev, reading, ceiling);
+const integrity = ledgerIntegrityVerdict(prev, reading);
+const cap = ceilingVerdict({ used: reading.daily_used, ceiling: reading.daily_ceiling });
 
 console.log(`\n  provider billed this month     : ${reading.provider_used ?? 'unreadable'}`);
 console.log(`  our ledger says                : ${reading.ledger_month_used ?? 'unreadable'}`);
 console.log(`  today's daily counter          : ${reading.daily_used ?? 'unreadable'} / ${ceiling}`);
 console.log(`  readings on file               : ${series.length}`);
 
-if (spend.state === 'no_baseline') {
-  console.log(`\n  FIRST READING — no delta yet. Tomorrow's run is the first that can`);
-  console.log(`  answer "what did a day cost". Recording and continuing.`);
-} else if (spend.state === 'unreadable') {
-  console.log(`\n  the provider figure is absent, which is NOT a zero-spend day.`);
-} else if (spend.state === 'provider_counter_reset') {
-  console.log(`\n  the provider counter went backwards — monthly reset, not an error.`);
+console.log(`  daily ceiling verdict          : ${cap.state}${cap.state === 'unreadable' ? '' : `  (${cap.used}/${cap.ceiling}, ${cap.pct}%)`}`);
+
+if (integrity.state === 'no_baseline') {
+  console.log(`\n  FIRST READING — no delta yet. The next run is the first that can`);
+  console.log(`  answer "did spend reach the vendor without reaching our ledger".`);
+} else if (integrity.state === 'unreadable') {
+  console.log(`\n  one of the two counters is absent, which is NOT a zero-spend interval.`);
+} else if (integrity.state === 'counter_reset') {
+  console.log(`\n  a counter went backwards — monthly reset, not an error.`);
 } else {
-  console.log(`\n  since the last reading (${spend.elapsedH}h):`);
-  console.log(`      provider billed   : ${spend.delta}`);
-  console.log(`      allowance         : ${spend.allowance}   (${ceiling}/day, prorated)`);
-  console.log(`      rate              : ${spend.perDay} credits/day`);
+  console.log(`\n  since the last reading (${integrity.elapsedH}h):`);
+  console.log(`      provider billed   : ${integrity.providerDelta}`);
+  console.log(`      our ledger charged: ${integrity.ledgerDelta}`);
+  console.log(`      escaped the ledger: ${integrity.escaped}   (tolerance ${integrity.tolerance})`);
+  console.log(`      ${integrity.escaped < 0
+    ? 'negative — our ledger charged MORE than the vendor billed, which is the reconcile direction'
+    : 'positive — the vendor billed for calls our counters did not see'}`);
   // `?? 0` here would undo the null the seed was careful to store: the older
   // readings predate the pairing counter, so the baseline is UNKNOWN and the
   // difference is not computable. Third instance of null-as-zero in this one
   // feature — the predicate, the reading, and now the line that prints it.
+  //
+  // AND THE DENOMINATORS MUST MATCH. `--days=1` and `--days=14` both write
+  // games_paired_in_window, over 1 row and over 14. Subtracting one from the
+  // other printed "-16" on 2026-09-16 and meant nothing. The window size is
+  // recorded on every reading precisely so this comparison can refuse.
   const basePaired = prev.games_paired_in_window;
   const nowPaired  = reading.games_paired_in_window;
+  const baseRows   = prev.games_paired_rows_counted;
+  const nowRows    = reading.games_paired_rows_counted;
   console.log(`      games paired since: ${
     basePaired === null || basePaired === undefined
       ? `unknown (that reading predates the pairing counter; now ${nowPaired ?? 'unreadable'})`
       : nowPaired === null
         ? `unknown (${gamesTotal.skipped} row(s) in this window carry no numeric count)`
-        : nowPaired - basePaired}`);
+        : (baseRows === undefined || nowRows === undefined)
+          ? `unknown (a reading predates the window-size field; now ${nowPaired} over ${rows.length} rows)`
+          : baseRows !== nowRows
+            ? `not comparable (that reading covered ${baseRows} rows, this one ${nowRows})`
+            : nowPaired - basePaired}`);
 }
 
 series.push(reading);
 fs.writeFileSync(SERIES, JSON.stringify(series.slice(-120), null, 2) + '\n');
 console.log(`\n  wrote ${SERIES} (${Math.min(series.length, 120)} reading(s) kept)`);
 
-if (spend.over) {
+if (integrity.over) {
   failed = true;
-  console.log(`\nFAIL: the provider billed ${spend.delta} where ${spend.allowance} was allowed.`);
-  console.log(`The daily guard permits ${ceiling}. Both guards degrade OPEN — consumeOddsCredit`);
-  console.log(`returns true when FIELD_JOURNALISM is unbound, checkAndIncrementDailyOdds returns`);
-  console.log(`true on any KV error — so a day above the ceiling is the signature of a guard`);
-  console.log(`that stopped guarding. Investigate the guard, not the budget (Rule 77).`);
+  console.log(`\nFAIL: the vendor billed ${integrity.providerDelta} while our ledger charged only ${integrity.ledgerDelta}.`);
+  console.log(`${integrity.escaped} credits reached the provider without reaching a counter. Both guards`);
+  console.log(`degrade OPEN — consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,`);
+  console.log(`checkAndIncrementDailyOdds returns true on any KV error — so spend that the`);
+  console.log(`vendor saw and we did not is the signature of a guard that stopped guarding.`);
+  console.log(`This compares the two counters to EACH OTHER, so it is not the standing`);
+  console.log(`cumulative gap (19,582 on 2026-09-16); it is new divergence in this interval.`);
 }
 
-if (!failed) console.log(`\nPASS: every date that spent credits paired at least one game, and the`);
-if (!failed) console.log(`provider billed no more than the ceiling allows.`);
+if (cap.over) {
+  failed = true;
+  console.log(`\nFAIL: odds:daily is ${cap.used} against a ceiling of ${cap.ceiling}.`);
+  console.log(`checkAndIncrementDailyOdds compares this exact counter to this exact number`);
+  console.log(`and refuses the call that would exceed it, so a total above it means the`);
+  console.log(`guard returned true when it should not have. Investigate the guard (Rule 77).`);
+}
+
+if (!failed) console.log(`\nPASS: every date that spent credits paired at least one game, our ledger`);
+if (!failed) console.log(`captured everything the vendor billed, and the daily counter is under its cap.`);
 
 console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}, ${series.length} provider reading(s).`);
 console.log(`odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an`);
