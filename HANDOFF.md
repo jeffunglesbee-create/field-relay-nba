@@ -22,6 +22,70 @@ rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
 **candidate** for opening lines missing on games dated from 2026-09-01, and that
 is unmeasured.
 
+## SESSION CLOSE-OUT — 2026-09-16 (three matchers, and the cron's found nothing)
+
+**HEAD:** `4ab995a` → `014b82a` · main throughout · 0 PRs
+**Session doc:** `outbox/cc-session-2026-09-16-odds-name-matcher.md`
+
+**`.github/scripts/odds-backfill.js`'s team-name matcher scored 0 of 80.** Not
+poorly — zero. It compared whole strings for equality after stripping
+non-alphanumerics, and the vendor appends a mascot to every college name, so
+`Georgia` never equalled `Georgia Bulldogs`. That loop has run daily and matched
+no CFB game for as long as CFB has been in the archive. Two more copies of it
+existed, in `scripts/targeted-odds-fill.mjs` and the diagnosis script — the same
+private-copy shape as the fourth sport-key registry deleted on 2026-09-15.
+
+`src/odds-name-match.js` is now the only one. Positional token prefix: every
+archive token must prefix the vendor token at the same index.
+
+| matcher | solved | ambiguous | none |
+|---|---:|---:|---:|
+| whole-string equality (what shipped) | **0** | 0 | 80 |
+| whole-string prefix + kickoff instant | 58 | 0 | 22 |
+| token prefix + kickoff instant | 68 | 0 | 12 |
+| token prefix, no instant | 72 | 0 | 8 |
+| + apostrophes stripped | **73** | 0 | 7 |
+
+**The kickoff instant is not the key, and measuring it is what removed it.** It
+looked like the strong join. Across all 80 it is not: names alone are unique,
+while 5 of the 73 pairs disagree on kickoff by −90 to +1 minutes. Filtering on
+it discards five correct pairings to gain nothing. It is now an independent
+cross-check — names chose 73, kickoff agrees on 68 — which is worth more than it
+was as a filter.
+
+**Residue: 7, and they are initialisms, not abbreviations.** ETSU, MTSU, FAU,
+FIU, Jax State, Western KY, GA Southern. An alias table is a map of
+disagreements between the two systems, not a school list — the vendor itself
+writes UConn, UCF, UTSA, SMU, BYU. Named in the check so a change that improves
+the count by matching the wrong thing still fails. **UNFIXED and unscheduled.**
+
+**A second defect, found by reading.** `targeted-odds-fill.mjs` looked up
+outcome prices by comparing the vendor's outcome names to the archive's team
+names, so a matched event would have inserted a row with `home_ml` and `away_ml`
+empty. Invisible while the matcher above found nothing. `h2hPrices()` is shared
+with `buildOddsRow`, which already did it correctly.
+
+**14 of 14 mutations caught.** Three were not caught on the first run and all
+three were defects in the measuring apparatus, not the module: M7 had no case
+that could reach it, and M4/M8 could not anchor because a heredoc had turned
+`’` into a literal apostrophe in the source.
+
+**guards.yml has been RED on main since 2026-09-15 and I pushed over it all
+session.** Two independent failures. The first was mine: five scripts I added on
+09-15/16 hard-coded `RELAY_SHARED_SECRET` in their `X-FIELD-Relay` header,
+taking the ratchet from its declared 115 to 120. They now read
+`process.env.RELAY_SHARED_SECRET` with no default and their workflows pass the
+secret. The second was this document being stale, which is what this close-out
+clears.
+
+**NOT VERIFIED LIVE.** Every number above is offline, against
+`outbox/fixture-cfb-2026-09-12.json` — one sport-date, 80 archive rows vs 95
+vendor events, bought once for 20 credits. Zero ambiguity is a property of a
+95-event payload. **No live vendor call was made for any of this, and the cron
+has not yet run with the new matcher.** Next `odds-backfill.yml` scheduled run
+is the first production evidence; it is still blocked by the empty
+`ODDS_API_KEY` recorded at the top of this file unless that has been set.
+
 ## SESSION CLOSE-OUT — 2026-09-14 (a closing line that was not one)
 
 **HEAD:** `d30138f` → `4ab995a` · main throughout · 0 PRs · deploy 960 green
