@@ -33,8 +33,13 @@ const MUTATIONS = [
 
   { file: '.github/scripts/odds-backfill.js',
     name: 'K4  the backfill writes closing_odds from an invented captured_at again',
-    anchor: "    const fields = (isPast && measuredCapture)\n      ? ['opening_odds', 'closing_odds'] : ['opening_odds'];",
-    replace: "    const fields = isPast ? ['opening_odds', 'closing_odds'] : ['opening_odds'];",
+    // Renamed fields -> wanted on 2026-09-14 when the isEmpty filter was added
+    // below it; this anchor kept the old name and has matched nothing since,
+    // which is why deploy.yml has been red. The MUTATION is unchanged: drop the
+    // measuredCapture condition and closing_odds goes back to being written
+    // from this run's clock.
+    anchor: "    const wanted = (isPast && measuredCapture)\n      ? ['opening_odds', 'closing_odds'] : ['opening_odds'];",
+    replace: "    const wanted = isPast ? ['opening_odds', 'closing_odds'] : ['opening_odds'];",
     expect: 'and writes closing_odds only when the snapshot time was measured' },
 
   { file: '.github/scripts/odds-backfill.js',
