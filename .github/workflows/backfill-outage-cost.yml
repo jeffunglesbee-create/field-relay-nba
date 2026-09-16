@@ -32,6 +32,8 @@ jobs:
       # error. A green tick over a failed measurement is worse than a red one.
       - name: Measure
         shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: |
           set -o pipefail
           node scripts/measure-backfill-outage-cost.mjs --since=${{ inputs.since || '2026-09-01' }} \

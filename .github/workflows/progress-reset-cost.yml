@@ -32,6 +32,8 @@ jobs:
       - name: Measure
         shell: bash
         if: always()
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: |
           set -o pipefail
           node scripts/measure-progress-reset-cost.mjs --since=${{ inputs.since || '2026-05-09' }} 2>&1 \

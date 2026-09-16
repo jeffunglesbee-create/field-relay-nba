@@ -23,6 +23,7 @@
 import { backfillSportToOddsKey } from '../src/odds-sport-keys.js';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
 const ODDS_KEY = process.env.ODDS_API_KEY;
 const DATE  = process.argv.find(a => a.startsWith('--date='))?.split('=')[1] || '2026-09-12';
 const SPORT = (process.argv.find(a => a.startsWith('--sport='))?.split('=')[1] || 'cfb').toLowerCase();
@@ -32,7 +33,7 @@ async function d1(sql, params = []) {
   if (!/^\s*SELECT\b/i.test(sql)) throw new Error('SELECT only');
   const res = await fetch(`${RELAY}/d1/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE },
     body: JSON.stringify({ sql, params }),
   });
   const body = await res.json();

@@ -31,13 +31,14 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
 const SINCE = process.argv.find(a => a.startsWith('--since='))?.split('=')[1] || '2026-09-01';
 
 async function d1(sql, params = []) {
   if (!/^\s*SELECT\b/i.test(sql)) throw new Error(`refusing non-SELECT: ${sql.slice(0, 80)}`);
   const res = await fetch(`${RELAY}/d1/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE },
     body: JSON.stringify({ sql, params }),
   });
   const body = await res.json();

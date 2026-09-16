@@ -24,6 +24,7 @@
 import { backfillSportToOddsKey } from '../src/odds-sport-keys.js';
 
 const RELAY   = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
+const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
 const ODDS_KEY = process.env.ODDS_API_KEY;
 const ODDS_API_BASE = 'https://api.the-odds-api.com';
 const PER_CALL_COST = 20;          // odds-backfill.js:35 — 10 cr x 2 markets
@@ -43,7 +44,7 @@ async function d1(sql, params = [], { write = false } = {}) {
   if (!write && !/^\s*SELECT\b/i.test(sql)) throw new Error(`read helper got a non-SELECT: ${sql.slice(0, 60)}`);
   const res = await fetch(`${RELAY}/d1/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE },
     body: JSON.stringify({ sql, params }),
   });
   const body = await res.json();
