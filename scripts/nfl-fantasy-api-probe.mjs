@@ -22,6 +22,9 @@
 
 const UA = 'Mozilla/5.0 (compatible; FIELD-probe/1.0; +https://github.com/jeffunglesbee-create/field-relay-nba)';
 
+// A probe against named external endpoints, not a census of this repo. The
+// TARGETS list IS the population — there is nothing to glob.
+// SCOPE: ZZZ_NO_POPULATION_THIS_IS_A_FIXED_ENDPOINT_LIST
 const TARGETS = [
   // Historic public NFL fantasy JSON surfaces (the FPL-equivalent candidates).
   ['fantasy players (v2 current week)', 'https://api.fantasy.nfl.com/v2/players/weekstats?season=2024&week=1'],

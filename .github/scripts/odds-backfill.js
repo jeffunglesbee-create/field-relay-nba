@@ -33,7 +33,13 @@ import { matchSlate, h2hPrices } from '../../src/odds-name-match.js';
 const ODDS_KEY    = process.env.ODDS_API_KEY;
 const RELAY_BASE  = process.env.RELAY_BASE        || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 
-const DAILY_CEILING    = 2700;           // global shared across all FIELD odds usage
+// NOT shared, and the old comment here said it was. This is a per-RUN
+// in-process cap: it is decremented in a local variable and reset every
+// invocation, so two dispatches in one day permit 2700 each. It does not
+// participate in the worker's KV ledger (odds:daily:*, ceiling 3800) and the
+// worker does not know it exists. Two dispatches plus a full worker day is
+// 9,200 permitted credits across ceilings that never reconcile.
+const DAILY_CEILING    = 2700;           // per-run, in-process, NOT the worker's ledger
 const PER_CALL_COST    = 20;             // historical /odds = 10 cr × 2 markets (h2h+totals); regions=us
 const MIN_BUDGET       = 20;             // need at least one sport-date worth
 const ODDS_API_DELAY_MS = 100;           // gentle rate-limit guard

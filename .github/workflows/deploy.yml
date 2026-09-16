@@ -169,6 +169,12 @@ jobs:
           node scripts/check-odds-matcher-wiring.mjs
           node scripts/mutate-odds-matcher.mjs
 
+      - name: No claim is wider than its declared scope
+        run: |
+          node scripts/check-scope-claims.mjs --self-test
+          node scripts/check-scope-claims.mjs
+          node scripts/mutate-scope-claims.mjs
+
       - name: AmbientDO reports a failed setAlarm instead of swallowing it
         run: |
           node scripts/check-ambient-alarm-failure.mjs

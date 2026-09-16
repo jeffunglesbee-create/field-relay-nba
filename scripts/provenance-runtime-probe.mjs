@@ -19,6 +19,9 @@ import { ROUTE_PROVENANCE, provenanceFor } from '../src/route-provenance.js';
 const BASE = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const STAMP = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
+// A SAMPLE of routes, deliberately. Its own output states the denominator
+// (Rule 91). The TARGETS list IS the sample — there is nothing to glob.
+// SCOPE: ZZZ_NO_POPULATION_THIS_IS_A_FIXED_ROUTE_SAMPLE
 const TARGETS = [
   { path: '/health',           why: 'the cheapest route in the worker' },
   { path: '/budget/odds',      why: 'store-backed, and the route that started all of this' },

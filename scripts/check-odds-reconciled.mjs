@@ -23,6 +23,13 @@ let failed = 0;
 const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${ok || !d ? '' : `\n         → ${d}`}`); if (!ok) failed++; };
 
 // ── Every function that charges must also reconcile ──────────────────────────
+// SCOPE is the reconciler itself: any file that calls it must also be checked.
+// SCOPE: reconcileOddsCredit
+// src/budget-helpers.js DEFINES it (line 229) and cannot reconcile against
+// itself; provenance-runtime-probe.mjs only names it in prose about cache
+// statuses. Both are excluded by name rather than by the list quietly
+// being shorter than the population.
+// SCOPE-EXCLUDES: src/budget-helpers.js scripts/provenance-runtime-probe.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;

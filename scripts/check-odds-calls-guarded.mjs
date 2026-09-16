@@ -21,6 +21,19 @@
 
 import { readFileSync } from 'node:fs';
 
+// THE CLAIM IS ABOUT THE WORKER, NOT THE REPO. "Every odds call is charged to
+// the monthly ledger" was measured over three src/ files and read as though it
+// covered everything that spends money. It does not: the excluded CI scripts
+// below call the same vendor with the same key and appear in NO ledger. That
+// gap is real and unclosed — see the provider-vs-ledger delta recorded by
+// scripts/watch-odds-pairing-rate.mjs. Listing them here does not fix it; it
+// stops the claim being read as wider than it is.
+// SCOPE: api\.the-odds-api\.com|ODDS_API_BASE|ODDS_BASE
+// scripts/mutate-scope-claims.mjs entered this population minutes after the
+// scope check shipped: it QUOTES the regex as a mutation anchor and makes no
+// odds call. That it had to be named rather than silently ignored is the
+// mechanism working.
+// SCOPE-EXCLUDES: scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds is
