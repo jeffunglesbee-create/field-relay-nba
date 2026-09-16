@@ -97,17 +97,48 @@ const MUTATIONS = [
 
   // ── the call sites ────────────────────────────────────────────────────────
   { file: CRON, check: WIRING, name: 'M12 the cron gets its private normTeam back',
-    anchor: 'import { findVendorEvent, h2hPrices }',
-    replace: 'function normTeam(s) { return String(s || "").toLowerCase(); }\nimport { findVendorEvent, h2hPrices }',
+    anchor: 'import { matchSlate, h2hPrices }',
+    replace: 'function normTeam(s) { return String(s || "").toLowerCase(); }\nimport { matchSlate, h2hPrices }',
     catches: 'a private normalizer beside the shared one' },
 
   { file: CRON, check: WIRING, name: 'M13 the cron reverts to a local events.find matcher',
-    anchor: '      const match = findVendorEvent(g, events);',
-    replace: '      const match = { event: events.find(e => e.home_team === g.home), swapped: false, ambiguous: false, candidates: [] };',
-    catches: 'the 0-of-80 matcher, reintroduced' },
+    anchor: '    const slate = matchSlate(sportGames, events, isoDate);',
+    replace: '    const slate = { byGameId: new Map(), stage1: 0, stage2: 0, unmatched: 0, ambiguous: 0, poolSize: 0, droppedOutOfWindow: 0 };',
+    catches: 'the cron pairs nothing at all' },
+
+  // ── the slate window and elimination ──────────────────────────────────────
+  { file: MODULE, check: CHECK, name: 'M15 the date window is removed — every future fixture is a candidate again',
+    anchor: '  return list.filter(e => ok.has(String(e?.commence_time || \'\').slice(0, 10)));',
+    replace: '  return list;',
+    catches: 'GA Southern sees a second Clemson game a week later and goes ambiguous' },
+
+  { file: MODULE, check: CHECK, name: 'M16 the window forgets the next day — an evening slate loses its late games',
+    anchor: '  const ok = new Set([isoDate, d2]);',
+    replace: '  const ok = new Set([isoDate]);',
+    catches: 'the 10 events kicking off after midnight UTC leave the pool' },
+
+  { file: MODULE, check: CHECK, name: 'M17 stage 2 takes the first candidate instead of requiring exactly one',
+    anchor: '    if (c.length !== 1) continue;            // 0 or many: not forced, never guessed',
+    replace: '    if (!c.length) continue;',
+    catches: 'a row with several candidates resolves by payload order' },
+
+  { file: MODULE, check: CHECK, name: 'M18 stage 2 ignores what stage 1 already spent',
+    anchor: '  const free = pool.filter(e => !claimed.has(e.id));',
+    replace: '  const free = pool.slice();',
+    catches: 'elimination is not elimination — a claimed event is offered twice' },
+
+  { file: MODULE, check: CHECK, name: 'M19 the two-rows-one-event collision is resolved by order',
+    anchor: "    if ((wantedBy.get(event.id) || []).length !== 1) { ambiguous++; continue; }",
+    replace: '    if (false) { ambiguous++; continue; }',
+    catches: 'both rows take the same event and the result depends on iteration order' },
+
+  { file: MODULE, check: CHECK, name: 'M20 stage 2 matches on the abbreviated side too',
+    anchor: "      ...free.filter(e => nameMatches(g.home, e.home_team)),\n      ...free.filter(e => nameMatches(g.away, e.away_team)),",
+    replace: "      ...free.filter(e => nameMatches(g.home, e.home_team) || nameMatches(g.away, e.away_team)\n                       || nameMatches(g.home, e.away_team) || nameMatches(g.away, e.home_team)),",
+    catches: 'a looser candidate set produces collisions the guard then refuses' },
 
   { file: FILL, check: WIRING, name: 'M14 the fill stops importing the shared matcher',
-    anchor: "import { findVendorEvent, h2hPrices } from '../src/odds-name-match.js';",
+    anchor: "import { matchSlate, h2hPrices } from '../src/odds-name-match.js';",
     replace: '// import removed',
     catches: 'the live-write path drifts off the shared module' },
 ];

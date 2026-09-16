@@ -19,7 +19,8 @@ const CONSUMERS = [
 const BANNED = [
   [/function\s+normTeam\s*\(/,                        'a private normTeam() is back'],
   [/norm\w*\(\s*e\.home_team\s*\)\s*===/,             'whole-string equality on home_team — the matcher that scored 0 of 80'],
-  [/events\.find\(\s*e\s*=>/,                         'a local events.find() matcher instead of findVendorEvent'],
+  [/events\.find\(\s*e\s*=>/,                         'a local events.find() matcher instead of matchSlate'],
+  [/findVendorEvent\s*\(/,                            'per-GAME matching, which cannot pair an initialism by elimination'],
   [/outcomes[\s\S]{0,40}?\.find\(\s*o\s*=>[\s\S]{0,80}?home_team/, 'a local h2h price lookup instead of h2hPrices'],
 ];
 
@@ -28,9 +29,15 @@ console.log('=== odds matcher wiring ===\n');
 
 for (const f of CONSUMERS) {
   const src = fs.readFileSync(f, 'utf8');
-  const imports = /import\s*\{[^}]*\bfindVendorEvent\b[^}]*\}\s*from\s*'[^']*odds-name-match\.js'/.test(src);
-  imports ? console.log(`  PASS  ${f} imports findVendorEvent from the shared module`)
-          : (failed++, console.log(`  FAIL  ${f} does not import findVendorEvent`));
+  const imports = /import\s*\{[^}]*\bmatchSlate\b[^}]*\}\s*from\s*'[^']*odds-name-match\.js'/.test(src);
+  imports ? console.log(`  PASS  ${f} imports matchSlate from the shared module`)
+          : (failed++, console.log(`  FAIL  ${f} does not import matchSlate`));
+
+  // Importing is not using. A call site can carry the import and still pair
+  // nothing — mutation M13 does exactly that, and an import-only check passes it.
+  const calls = /\bmatchSlate\s*\(/.test(src);
+  calls ? console.log(`  PASS  ${f} actually calls matchSlate`)
+        : (failed++, console.log(`  FAIL  ${f} imports matchSlate but never calls it`));
 
   const prices = /\bh2hPrices\s*\(/.test(src);
   prices ? console.log(`  PASS  ${f} reads prices through h2hPrices`)
@@ -42,7 +49,7 @@ for (const f of CONSUMERS) {
   }
 }
 
-console.log(`\nCOVERAGE: ${CONSUMERS.length} consumers, ${BANNED.length} banned shapes each.`);
+console.log(`\nCOVERAGE: ${CONSUMERS.length} consumers, ${BANNED.length} banned shapes each, import AND call asserted.`);
 console.log(`Structural only — that a call site imports the module does not prove it`);
 console.log(`uses the result correctly. check-odds-matcher.mjs covers the module itself.`);
 console.log(failed ? `\n${failed} FAILED` : `\nall checks passed`);

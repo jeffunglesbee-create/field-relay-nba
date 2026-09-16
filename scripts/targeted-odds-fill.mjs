@@ -22,7 +22,7 @@
 // 3,020.
 
 import { backfillSportToOddsKey } from '../src/odds-sport-keys.js';
-import { findVendorEvent, h2hPrices } from '../src/odds-name-match.js';
+import { matchSlate, h2hPrices } from '../src/odds-name-match.js';
 
 const RELAY   = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
@@ -139,14 +139,16 @@ for (const p of plan) {
   const events = payload?.data || [];
   if (!events.length) { emptyPairs++; console.log(`  ${p.date} ${p.sport}: vendor returned 0 events (billed ${PER_CALL_COST})`); continue; }
 
+  // The whole pair at once — see matchSlate's header. Per-game matching cannot
+  // use the fact that an event belongs to at most one game, which is what pairs
+  // the initialisms.
+  const slate = matchSlate(p.games, events, p.date);
+  ambiguousPairs += slate.ambiguous;
   let hit = 0;
   for (const g of p.games) {
-    // src/odds-name-match.js, not a local matcher. The equality comparison that
-    // used to be on this line scored 0 of 80 against the CFB fixture.
-    const m = findVendorEvent(g, events);
-    if (m.ambiguous) { ambiguousPairs++; continue; }
+    const m = slate.byGameId.get(g.id);
+    if (!m) continue;
     const ev = m.event;
-    if (!ev) continue;
     const bk = ev.bookmakers?.[0];
     const h2h = bk?.markets?.find(m2 => m2.key === 'h2h');
     if (!h2h) continue;
@@ -166,7 +168,9 @@ for (const p of plan) {
       { write: true });
     hit++; inserted++;
   }
-  console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s) -> ${hit}/${p.games.length} matched`);
+  console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s), `
+    + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination, `
+    + `${hit}/${p.games.length} priced`);
 }
 
 console.log(`\n  pairs attempted : ${plan.length}`);

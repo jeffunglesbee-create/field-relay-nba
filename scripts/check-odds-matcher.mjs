@@ -18,7 +18,8 @@
 // pairings the names already chose — never as a filter. See the module header.
 
 import fs from 'node:fs';
-import { teamTokens, nameMatches, findVendorEvent, h2hPrices } from '../src/odds-name-match.js';
+import { teamTokens, nameMatches, findVendorEvent, h2hPrices, slateWindow, matchSlate }
+  from '../src/odds-name-match.js';
 
 const FIXTURE = 'outbox/fixture-cfb-2026-09-12.json';
 let failed = 0;
@@ -160,7 +161,114 @@ missing.home === null && missing.away === null
   ? ok('an outcome list naming neither team yields nulls, not a wrong price')
   : bad('absent outcomes', `${missing.home}/${missing.away}`, 'null/null');
 
-console.log(`\nCOVERAGE: one sport-date (cfb 2026-09-12) plus ${PAIRS.length + 4} synthetic cases.`);
+// ── D. the slate matcher: window + elimination ──────────────────────────────
+console.log('\nD. slate window and elimination');
+
+const slate = matchSlate(fx.archive, fx.vendor, fx.date);
+eq('events dropped as out-of-window', slate.droppedOutOfWindow, 15);
+eq('in-window pool',                  slate.poolSize,           80);
+eq('stage 1 (both sides, unique)',    slate.stage1,             73);
+eq('stage 2 (one side + elimination)',slate.stage2,              7);
+eq('unmatched',                       slate.unmatched,           0);
+eq('ambiguous',                       slate.ambiguous,           0);
+
+// The 7 stage-2 rows are exactly the initialisms stage 1 cannot read. Naming
+// them stops a change that raises the count by forcing the WRONG event.
+const FORCED = {
+  'Western KY @ Georgia':      'Western Kentucky Hilltoppers @ Georgia Bulldogs',
+  'ETSU @ North Carolina':     'East Tennessee State Buccaneers @ North Carolina Tar Heels',
+  'GA Southern @ Clemson':     'Georgia Southern Eagles @ Clemson Tigers',
+  'Navy @ FAU':                'Navy Midshipmen @ Florida Atlantic Owls',
+  'Buffalo @ FIU':             'Buffalo Bulls @ Florida International Panthers',
+  'Jax State @ Ohio':          'Jacksonville State Gamecocks @ Ohio Bobcats',
+  'MTSU @ Marshall':           'Middle Tennessee Blue Raiders @ Marshall Thundering Herd',
+};
+let forcedOk = 0, zeroDelta = 0;
+for (const g of fx.archive) {
+  const m = slate.byGameId.get(g.id);
+  if (!m || m.stage !== 2) continue;
+  const key = `${g.away} @ ${g.home}`;
+  const got = `${m.event.away_team} @ ${m.event.home_team}`;
+  got === FORCED[key] ? forcedOk++ : bad(`stage-2 pairing for ${key}`, got, FORCED[key] ?? '(not an expected stage-2 row)');
+  if (inst(m.event.commence_time) - inst(g.start_time) === 0) zeroDelta++;
+}
+eq('stage-2 pairings matching the named expectation', forcedOk, 7);
+// The cross-check, on the weaker evidence: a forced pairing rests on ONE side's
+// name, so the kickoff agreeing independently is what makes it credible.
+eq('of those, confirmed by exact kickoff equality', zeroDelta, 6);
+
+// GA Southern is the one that is not zero, and it is the reason the window
+// exists: without it the payload offers a second Clemson game a week later.
+const gaS = fx.archive.find(g => g.away === 'GA Southern');
+const gaM = slate.byGameId.get(gaS.id);
+eq('GA Southern kickoff delta (min)', (inst(gaM.event.commence_time) - inst(gaS.start_time)) / 60000, -120);
+const clemsons = fx.vendor.filter(e => /Clemson/.test(e.home_team));
+eq('Clemson home events in the raw payload', clemsons.length, 2);
+eq('Clemson home events after windowing', slateWindow(clemsons, fx.date).length, 1);
+
+// ── E. it must degrade safely, and that is tested, not assumed ──────────────
+console.log('\nE. adversarial — elimination under a gap on either side');
+
+const stage2Rows = fx.archive.filter(g => slate.byGameId.get(g.id)?.stage === 2);
+const ids = stage2Rows.map(g => slate.byGameId.get(g.id).event.id);
+eq('the 7 forced pairings claim 7 DISTINCT events', new Set(ids).size, 7);
+
+// An archive gap must not let a surviving row take the missing row's event.
+let misforced = 0;
+for (const drop of fx.archive) {
+  const r = matchSlate(fx.archive.filter(g => g.id !== drop.id), fx.vendor, fx.date);
+  const truth = slate.byGameId.get(drop.id)?.event;
+  if (!truth) continue;
+  for (const g of fx.archive) {
+    if (g.id === drop.id) continue;
+    const m = r.byGameId.get(g.id);
+    if (m && m.event.id === truth.id) { misforced++; break; }
+  }
+}
+eq('archive rows dropped one at a time -> mis-forced', misforced, 0);
+
+// A vendor gap must make the row UNMATCHED, not send it to a substitute.
+let substituted = 0;
+for (const g of stage2Rows) {
+  const real = slate.byGameId.get(g.id).event;
+  const r = matchSlate(fx.archive, fx.vendor.filter(e => e.id !== real.id), fx.date);
+  if (r.byGameId.has(g.id)) substituted++;
+}
+eq('forced events removed one at a time -> substituted', substituted, 0);
+
+// A row with SEVERAL stage-2 candidates is refused. The fixture cannot reach
+// this — after windowing, each of its 7 residual rows has exactly one — so
+// without this case a mutation that takes the first candidate survives. The
+// collision is real in CFB: "Ohio" prefixes both Ohio Bobcats and Ohio State
+// Buckeyes, "Miami" both Hurricanes and RedHawks.
+const MANY_EVENTS = [
+  { id: 'e1', home_team: 'Ohio Bobcats',       away_team: 'Kent State Golden Flashes',
+    commence_time: '2026-09-12T18:00:00Z' },
+  { id: 'e2', home_team: 'Ohio State Buckeyes', away_team: 'Rice Owls',
+    commence_time: '2026-09-12T20:00:00Z' },
+];
+// away "ETSU" matches neither, so stage 1 cannot pair it and stage 2 sees two.
+const many = matchSlate([{ id: 'g1', home: 'Ohio', away: 'ETSU' }], MANY_EVENTS, '2026-09-12');
+many.byGameId.size === 0 && many.unmatched === 1
+  ? ok('one row, two stage-2 candidates -> refused, not taken by payload order')
+  : bad('multi-candidate stage-2 row',
+        `matched ${many.byGameId.size} (${[...many.byGameId.values()].map(m => m.event.id).join()})`,
+        'matched 0, unmatched 1');
+
+// Two rows that would force the SAME event are both refused, not ordered.
+const COLLIDE_EVENTS = [{ id: 'x1', home_team: 'Ohio Bobcats', away_team: 'Kent State Golden Flashes',
+                          commence_time: '2026-09-12T18:00:00Z' }];
+const COLLIDE_GAMES = [{ id: 'a', home: 'Ohio', away: 'ZZZ Nobody' },
+                       { id: 'b', home: 'Ohio', away: 'YYY Nobody' }];
+const col = matchSlate(COLLIDE_GAMES, COLLIDE_EVENTS, '2026-09-12');
+col.byGameId.size === 0 && col.ambiguous === 2
+  ? ok('two rows forcing one event -> both refused, neither wins by order')
+  : bad('collision', `matched ${col.byGameId.size}, ambiguous ${col.ambiguous}`, 'matched 0, ambiguous 2');
+
+// No date: the window changes nothing rather than dropping everything.
+eq('slateWindow with no date returns the payload whole', slateWindow(fx.vendor, null).length, fx.vendor.length);
+
+console.log(`\nCOVERAGE: one sport-date (cfb 2026-09-12) plus ${PAIRS.length + 6} synthetic cases,\nand ${fx.archive.length + 7} single-gap adversarial runs.`);
 console.log(`Zero ambiguity is measured on a 95-event payload; a larger one has more`);
 console.log(`collision room. No other sport-date has been measured.`);
 console.log(failed ? `\n${failed} FAILED` : `\nall checks passed`);

@@ -27,7 +27,7 @@
 // checkout, not from the bundled worker.
 import { stampKickoff } from '../../src/odds-kickoff.js';
 import { backfillSportToOddsKey } from '../../src/odds-sport-keys.js';
-import { findVendorEvent, h2hPrices } from '../../src/odds-name-match.js';
+import { matchSlate, h2hPrices } from '../../src/odds-name-match.js';
 
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
 const ODDS_KEY    = process.env.ODDS_API_KEY;
@@ -317,15 +317,22 @@ async function processDate(isoDate, remainingBudgetRef) {
     // equalled "Georgia Bulldogs" and this loop matched nothing, silently, for
     // as long as CFB has been in the archive. src/odds-name-match.js and its
     // mutation harness replace it; do not reintroduce a local matcher here.
+    // ONE CALL FOR THE WHOLE SLATE, not one per game. A vendor event belongs to
+    // at most one game, so pairing the unambiguous ones SPENDS those events and
+    // the rest fall out by elimination — which is how an initialism the matcher
+    // cannot read ("ETSU", "MTSU", "FAU") still gets paired: via the side that
+    // is not abbreviated. matchSlate also windows the payload to this date,
+    // because the historical endpoint returns future fixtures that are not
+    // candidates and only manufacture ambiguity.
+    const slate = matchSlate(sportGames, events, isoDate);
+    console.log(`[odds-backfill] ${isoDate} ${sportKey}: ${events.length} event(s), `
+      + `${slate.droppedOutOfWindow} out of window, ${slate.poolSize} in pool -> `
+      + `${slate.stage1} paired by name, ${slate.stage2} by elimination, `
+      + `${slate.unmatched} unmatched, ${slate.ambiguous} ambiguous`);
     for (const g of sportGames) {
-      const match = findVendorEvent(g, events);
-      if (match.ambiguous) {
-        console.warn(`[odds-backfill] ${isoDate} ${sportKey}: ${match.candidates.length} candidates for `
-          + `${g.away} @ ${g.home} — skipped rather than guessed`);
-        continue;
-      }
+      const match = slate.byGameId.get(g.id);
+      if (!match) continue;
       const ev = match.event;
-      if (!ev) continue;
       // buildOddsRow keys home_ml off ev.home_team, so a swapped pairing stays
       // internally consistent. Logged because it has never fired in measurement.
       if (match.swapped) {

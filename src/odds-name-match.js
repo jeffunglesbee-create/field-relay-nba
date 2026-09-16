@@ -113,3 +113,120 @@ export function h2hPrices(outcomes, event) {
     draw: list.find(o => /^draw$/i.test(o?.name || ''))?.price ?? null,
   };
 }
+
+/** The UTC date string one day after `iso` (YYYY-MM-DD). */
+function nextDay(iso) {
+  const t = Date.parse(`${iso}T00:00:00Z`);
+  return Number.isFinite(t) ? new Date(t + 86400000).toISOString().slice(0, 10) : null;
+}
+
+/**
+ * The events that could belong to `isoDate`'s slate.
+ *
+ * THE HISTORICAL SNAPSHOT RETURNS FUTURE FIXTURES. Asking for
+ * {date}T12:00:00Z on 2026-09-12 returned 95 events of which 15 kick off on
+ * 09-17 through 09-20. They are not candidates for that date's games and their
+ * only effect is to manufacture ambiguity: "GA Southern @ Clemson" had two
+ * "Clemson" opponents to choose between, and the rival was a week later.
+ *
+ * The window is the date AND the next, because a Saturday evening slate runs
+ * past midnight UTC — 10 of the 80 in-window events on 2026-09-12 carry a
+ * 09-13 commence_time.
+ */
+export function slateWindow(events, isoDate) {
+  const list = Array.isArray(events) ? events : [];
+  const d2 = nextDay(isoDate);
+  if (!isoDate || !d2) return list;          // no date to filter on: change nothing
+  const ok = new Set([isoDate, d2]);
+  return list.filter(e => ok.has(String(e?.commence_time || '').slice(0, 10)));
+}
+
+/**
+ * Match a whole slate at once, rather than each game independently.
+ *
+ * WHY A SLATE AND NOT A ROW. The per-row matcher above cannot read an
+ * initialism: "ETSU" is not a prefix of "East Tennessee State Buccaneers" and
+ * no amount of tuning makes it one. Seven of 80 games failed on exactly that.
+ *
+ * The novel part is that the abbreviation never has to be read. The two sides
+ * are the SAME SLATE, so a vendor event can belong to at most one archive row.
+ * Once stage 1 pins the unambiguous pairs, those events are spent — and each
+ * remaining row still matches uniquely on the side that is NOT abbreviated.
+ * "ETSU @ North Carolina" has exactly one unclaimed opponent at North Carolina,
+ * so the pairing is forced by elimination without decoding "ETSU" at all.
+ *
+ * Measured on outbox/fixture-cfb-2026-09-12.json: stage 1 solves 73, stage 2
+ * forces the remaining 7, total 80 of 80 with zero alias entries. Six of the
+ * seven land at kickoff delta 0 on the independent cross-check.
+ *
+ * THIS IS NOT A FALLBACK (and the repo bans those). A fallback guesses when the
+ * primary fails. This adds a fact: a vendor event pairs with at most one game.
+ *
+ * IT MUST DEGRADE SAFELY, and that is tested rather than assumed. Dropping each
+ * archive row in turn mis-forces nothing (80 of 80); dropping each of the seven
+ * forced events makes its row unmatched rather than sending it to a substitute
+ * (7 of 7). A row with two candidates is refused, never resolved by order.
+ *
+ * @param {Array<{id: string, home: string, away: string}>} games
+ * @param {Array<object>} events raw vendor payload, unfiltered
+ * @param {string} isoDate the slate's date, YYYY-MM-DD
+ * @returns {{
+ *   byGameId: Map<string, {event: object, swapped: boolean, stage: 1|2}>,
+ *   stage1: number, stage2: number, unmatched: number,
+ *   ambiguous: number, poolSize: number, droppedOutOfWindow: number,
+ * }}
+ */
+export function matchSlate(games, events, isoDate) {
+  const rows = Array.isArray(games) ? games : [];
+  const all  = Array.isArray(events) ? events : [];
+  const pool = slateWindow(all, isoDate);
+
+  const byGameId = new Map();
+  const claimed  = new Set();
+  const residual = [];
+  let ambiguous = 0;
+
+  // STAGE 1 — both sides, unique. Order-independent: each row is decided
+  // against the whole pool, so no row's outcome depends on another's.
+  for (const g of rows) {
+    const r = findVendorEvent(g, pool);
+    if (r.ambiguous) { ambiguous++; residual.push(g); continue; }
+    if (!r.event) { residual.push(g); continue; }
+    byGameId.set(g.id, { event: r.event, swapped: r.swapped, stage: 1 });
+    claimed.add(r.event.id);
+  }
+
+  // STAGE 2 — one side, among events stage 1 did not spend.
+  const free = pool.filter(e => !claimed.has(e.id));
+  const proposals = new Map();               // gameId -> event
+  const wantedBy  = new Map();               // eventId -> [gameId]
+  for (const g of residual) {
+    const c = [...new Set([
+      ...free.filter(e => nameMatches(g.home, e.home_team)),
+      ...free.filter(e => nameMatches(g.away, e.away_team)),
+    ])];
+    if (c.length !== 1) continue;            // 0 or many: not forced, never guessed
+    proposals.set(g.id, c[0]);
+    wantedBy.set(c[0].id, [...(wantedBy.get(c[0].id) || []), g.id]);
+  }
+
+  // Two rows forcing the SAME event is not an elimination, it is a collision.
+  // Both are refused — resolving it by iteration order would make the result
+  // depend on payload order, which is the defect the ambiguity guard exists for.
+  let stage2 = 0;
+  for (const [gameId, event] of proposals) {
+    if ((wantedBy.get(event.id) || []).length !== 1) { ambiguous++; continue; }
+    byGameId.set(gameId, { event, swapped: false, stage: 2 });
+    stage2++;
+  }
+
+  return {
+    byGameId,
+    stage1: byGameId.size - stage2,
+    stage2,
+    unmatched: rows.length - byGameId.size,
+    ambiguous,
+    poolSize: pool.length,
+    droppedOutOfWindow: all.length - pool.length,
+  };
+}
