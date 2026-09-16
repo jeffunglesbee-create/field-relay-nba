@@ -22,6 +22,7 @@
 // 3,020.
 
 import { backfillSportToOddsKey } from '../src/odds-sport-keys.js';
+import { findVendorEvent, h2hPrices } from '../src/odds-name-match.js';
 
 const RELAY   = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
@@ -52,9 +53,6 @@ async function d1(sql, params = [], { write = false } = {}) {
   const r = body.results || body.result || [];
   return Array.isArray(r) ? (r[0]?.results || r) : (r.results || []);
 }
-
-const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .toLowerCase().replace(/[^a-z0-9]/g, '');
 
 console.log(`=== targeted odds fill  utc=${new Date().toISOString()} ===`);
 console.log(`mode: ${APPLY ? '*** APPLY — WILL SPEND CREDITS ***' : 'DRY RUN (no fetch, no write)'}`);
@@ -128,7 +126,7 @@ if (!APPLY) {
 
 if (!ODDS_KEY) { console.error('missing ODDS_API_KEY'); process.exit(1); }
 
-let spent = 0, inserted = 0, emptyPairs = 0;
+let spent = 0, inserted = 0, emptyPairs = 0, ambiguousPairs = 0, pricelessEvents = 0;
 for (const p of plan) {
   const sportKey = backfillSportToOddsKey(p.sport);
   const url = `${ODDS_API_BASE}/v4/historical/sports/${encodeURIComponent(sportKey)}/odds`
@@ -143,20 +141,26 @@ for (const p of plan) {
 
   let hit = 0;
   for (const g of p.games) {
-    const ev = events.find(e => norm(e.home_team) === norm(g.home) && norm(e.away_team) === norm(g.away));
+    // src/odds-name-match.js, not a local matcher. The equality comparison that
+    // used to be on this line scored 0 of 80 against the CFB fixture.
+    const m = findVendorEvent(g, events);
+    if (m.ambiguous) { ambiguousPairs++; continue; }
+    const ev = m.event;
     if (!ev) continue;
     const bk = ev.bookmakers?.[0];
-    const h2h = bk?.markets?.find(m => m.key === 'h2h');
+    const h2h = bk?.markets?.find(m2 => m2.key === 'h2h');
     if (!h2h) continue;
-    const home = h2h.outcomes?.find(o => norm(o.name) === norm(g.home))?.price ?? null;
-    const away = h2h.outcomes?.find(o => norm(o.name) === norm(g.away))?.price ?? null;
-    const draw = h2h.outcomes?.find(o => /^draw$/i.test(o.name))?.price ?? null;
+    // Prices come from the shared reader, keyed off the VENDOR's team names.
+    // This line used to compare outcome names to the ARCHIVE's names, which
+    // returns null for every college game and inserts a row with no odds in it.
+    const { home, away, draw } = h2hPrices(h2h.outcomes, ev);
+    if (home === null && away === null) { pricelessEvents++; continue; }
     await d1(
       `INSERT OR IGNORE INTO odds_history
          (id, game_id, sport, date, home_team, away_team, commence_time,
           home_ml, away_ml, draw_ml, bookmaker, snapshot_time, snapshot_type)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [`${g.id}_targeted`, g.id, g.sport_raw, g.date, g.home, g.away,
+      [`${g.id}_targeted`, g.id, g.sport_raw, g.date, ev.home_team, ev.away_team,
        ev.commence_time ?? null, home, away, draw, bk?.key ?? null,
        payload?.timestamp ?? null, 'open'],
       { write: true });
@@ -169,4 +173,6 @@ console.log(`\n  pairs attempted : ${plan.length}`);
 console.log(`  credits spent   : ${spent}`);
 console.log(`  odds_history rows inserted : ${inserted}`);
 console.log(`  pairs the vendor had nothing for : ${emptyPairs} (billed anyway)`);
+console.log(`  games skipped as ambiguous       : ${ambiguousPairs} (never guessed)`);
+console.log(`  events matched but unpriced      : ${pricelessEvents} (no row written)`);
 console.log(`\nNo odds_backfill_progress row was read or written by this script.`);

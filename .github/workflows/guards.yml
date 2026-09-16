@@ -57,3 +57,15 @@ jobs:
 
       - name: HANDOFF.md is not stale
         run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
+
+      - name: One team-name matcher, and it can fail
+        run: |
+          node scripts/check-odds-matcher.mjs
+          node scripts/check-odds-matcher-wiring.mjs
+          node scripts/mutate-odds-matcher.mjs
+
+        # Both copies are deliberate: the matcher module is under src/ (which
+        # only deploy.yml sees) while its two call sites are under
+        # .github/scripts/ and scripts/ (which only this job sees). One copy
+        # would leave half the change ungated — the same trigger-vs-input gap
+        # this file's header describes.

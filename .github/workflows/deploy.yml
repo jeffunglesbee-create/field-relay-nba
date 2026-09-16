@@ -163,6 +163,12 @@ jobs:
       - name: A partial route parse says so in the manifest
         run: node scripts/mutate-route-provenance-truncation.mjs
 
+      - name: One team-name matcher, and it can fail
+        run: |
+          node scripts/check-odds-matcher.mjs
+          node scripts/check-odds-matcher-wiring.mjs
+          node scripts/mutate-odds-matcher.mjs
+
       - name: AmbientDO reports a failed setAlarm instead of swallowing it
         run: |
           node scripts/check-ambient-alarm-failure.mjs

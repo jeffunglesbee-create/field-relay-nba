@@ -27,6 +27,7 @@
 // checkout, not from the bundled worker.
 import { stampKickoff } from '../../src/odds-kickoff.js';
 import { backfillSportToOddsKey } from '../../src/odds-sport-keys.js';
+import { findVendorEvent, h2hPrices } from '../../src/odds-name-match.js';
 
 // ── Config (all from GitHub secrets) ────────────────────────────────────────
 const ODDS_KEY    = process.env.ODDS_API_KEY;
@@ -82,15 +83,6 @@ function* dateRange(startIso, endIso) {
     yield toIsoDate(cur);
     cur = new Date(cur.getTime() + 86400000);
   }
-}
-
-function normTeam(s) {
-  // Loose team-name normalization for matching Context Graph rows to Odds
-  // API event team names — strip diacritics, lowercase, drop non-alnum.
-  return String(s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
 }
 
 // ── D1 via relay Worker binding (no CF REST API token scope needed) ──────────
@@ -228,9 +220,10 @@ function pickConsensus(event) {
 }
 
 function buildOddsRow(game, event, consensus, sportKey, isoDate) {
-  const homeOutcome = consensus.h2h.outcomes.find(o => normTeam(o.name) === normTeam(event.home_team));
-  const awayOutcome = consensus.h2h.outcomes.find(o => normTeam(o.name) === normTeam(event.away_team));
-  const drawOutcome = consensus.h2h.outcomes.find(o => /^draw$/i.test(o.name || ''));
+  // Shared with scripts/targeted-odds-fill.mjs so the two writers into
+  // odds_history read prices the same way. Behaviour is unchanged here: this
+  // is the implementation the fill script was missing, not a new rule.
+  const ml = h2hPrices(consensus.h2h.outcomes, event);
   const overOutcome  = consensus.totals?.outcomes?.find(o => /^over$/i.test(o.name  || ''));
   const underOutcome = consensus.totals?.outcomes?.find(o => /^under$/i.test(o.name || ''));
   return {
@@ -241,9 +234,9 @@ function buildOddsRow(game, event, consensus, sportKey, isoDate) {
     home_team:     event.home_team || null,
     away_team:     event.away_team || null,
     commence_time: event.commence_time || null,
-    home_ml: homeOutcome ? Number(homeOutcome.price) : null,
-    away_ml: awayOutcome ? Number(awayOutcome.price) : null,
-    draw_ml: drawOutcome ? Number(drawOutcome.price) : null,
+    home_ml: ml.home,
+    away_ml: ml.away,
+    draw_ml: ml.draw,
     over_under:  overOutcome  ? Number(overOutcome.point)  : (underOutcome ? Number(underOutcome.point) : null),
     over_price:  overOutcome  ? Number(overOutcome.price)  : null,
     under_price: underOutcome ? Number(underOutcome.price) : null,
@@ -318,13 +311,27 @@ async function processDate(isoDate, remainingBudgetRef) {
     const events = Array.isArray(res.data?.data) ? res.data.data
                   : Array.isArray(res.data)      ? res.data
                   : [];
-    // Match by team-name pair
+    // Match by team-name pair. The equality matcher that used to live here
+    // scored 0 of 80 on cfb 2026-09-12 (outbox/fixture-cfb-2026-09-12.json):
+    // the vendor appends a mascot to every college name, so "Georgia" never
+    // equalled "Georgia Bulldogs" and this loop matched nothing, silently, for
+    // as long as CFB has been in the archive. src/odds-name-match.js and its
+    // mutation harness replace it; do not reintroduce a local matcher here.
     for (const g of sportGames) {
-      const ev = events.find(e =>
-        (normTeam(e.home_team) === normTeam(g.home) && normTeam(e.away_team) === normTeam(g.away)) ||
-        (normTeam(e.home_team) === normTeam(g.away) && normTeam(e.away_team) === normTeam(g.home))
-      );
+      const match = findVendorEvent(g, events);
+      if (match.ambiguous) {
+        console.warn(`[odds-backfill] ${isoDate} ${sportKey}: ${match.candidates.length} candidates for `
+          + `${g.away} @ ${g.home} — skipped rather than guessed`);
+        continue;
+      }
+      const ev = match.event;
       if (!ev) continue;
+      // buildOddsRow keys home_ml off ev.home_team, so a swapped pairing stays
+      // internally consistent. Logged because it has never fired in measurement.
+      if (match.swapped) {
+        console.warn(`[odds-backfill] ${isoDate} ${sportKey}: reversed orientation for ${g.away} @ ${g.home} `
+          + `-> stored as ${ev.away_team} @ ${ev.home_team}`);
+      }
       const consensus = pickConsensus(ev);
       if (!consensus) continue;
       try {
