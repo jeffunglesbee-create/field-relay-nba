@@ -21,6 +21,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The predicate must be able to fail before its verdict means anything.
+      # These three are pure, so they run without credentials — which matters
+      # here because a sandbox has no real token and the live half can only be
+      # exercised by this workflow.
+      - name: the watch can fail
+        run: |
+          node scripts/watch-silently-dead-crons.mjs --self-test
+          node scripts/mutate-silently-dead-crons.mjs
+
       - name: Watch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
