@@ -16,11 +16,14 @@ const CRON    = '.github/scripts/odds-backfill.js';
 const FILL    = 'scripts/targeted-odds-fill.mjs';
 const WATCHER = 'scripts/watch-odds-pairing-rate.mjs';
 const WATCH_CHECK = [WATCHER, '--self-test'];
+// asUtc lives in its own module so the TZ case can spawn a child that imports
+// the REAL function. M38 was NOT CAUGHT while the child carried an inline copy.
+const UTCLIB  = 'scripts/lib/utc.mjs';
 const sh = (c, a) => execFileSync(c, a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 // `git checkout --` restores from the INDEX, so the index is what must hold a
 // good copy — a staged-but-uncommitted file is fine, an unstaged edit is not.
-for (const f of [MODULE, CRON, FILL, WATCHER]) {
+for (const f of [MODULE, CRON, FILL, WATCHER, UTCLIB]) {
   if (spawnSync('git', ['diff', '--quiet', '--', f]).status !== 0) {
     console.error(`FAIL — ${f} has unstaged changes; restore would lose them. Stage or revert first.`);
     process.exit(1);
@@ -179,6 +182,32 @@ const MUTATIONS = [
     anchor: "  if (!prev) return { state: 'no_baseline', over: false };",
     replace: "  if (!prev) return { state: 'ledger_captured_all', over: false };",
     catches: 'a series of one reports a divergence it never measured' },
+
+  // ── CI spend subtracted from the escape, 2026-09-17 ─────────────────────
+  { file: WATCHER, check: WATCH_CHECK, name: 'M36 the escape is judged before subtracting CI',
+    anchor: '  const unexplained = escaped - Math.max(0, Number(outsideLedger) || 0);',
+    replace: '  const unexplained = escaped;',
+    catches: 'the backfill doing its job is charged to "a guard stopped guarding" — two populations again' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M37 a negative outsideLedger can manufacture leakage',
+    anchor: 'escaped - Math.max(0, Number(outsideLedger) || 0)',
+    replace: 'escaped - (Number(outsideLedger) || 0)',
+    catches: 'a bad input inflates the residual instead of being clamped' },
+
+  { file: UTCLIB, check: WATCH_CHECK, name: 'M38 a SQLite timestamp is parsed as local time',
+    anchor: "  return Date.parse(/[TZ]/.test(s) ? s : s.replace(' ', 'T') + 'Z');",
+    replace: '  return Date.parse(s);',
+    catches: 'no zone marker, so the window shifts by hours and runs move in or out of it' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M39 an undated progress row is subtracted anyway',
+    anchor: '    if (!Number.isFinite(at)) { undated++; continue; }',
+    replace: '    if (!Number.isFinite(at)) { credits += Number(r.credits_used) || 0; continue; }',
+    catches: 'a row that cannot be placed inflates the subtraction and shrinks the residual on no evidence' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M40 the interval bound is dropped',
+    anchor: '    if (at < from || at > to) continue;',
+    replace: '    if (false) continue;',
+    catches: 'every backfill run ever is subtracted from one interval, and the residual goes negative' },
 
   { file: WATCHER, check: WATCH_CHECK, name: 'M33 the ceiling check starts prorating',
     anchor: '    state: used > ceiling ? \'over_ceiling\' : \'within_ceiling\',',

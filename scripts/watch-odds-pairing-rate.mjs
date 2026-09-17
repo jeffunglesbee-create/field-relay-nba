@@ -81,6 +81,49 @@ export function burnedWithoutPairing(rows) {
 export const ESCAPE_FLOOR = 50;
 export const ESCAPE_PCT = 0.05;
 
+/** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
+ *  odds-backfill.js runs in GitHub Actions and calls the Odds API directly;
+ *  consumeOddsCredit lives in the worker and never sees it. So a positive
+ *  `escaped` is not automatically leakage — part of it is CI doing its job.
+ *
+ *  Measured 2026-09-17: escaped 427 over 17.5h, while the backfill spends at
+ *  most 80 on a day (2026-09-16: 80 credits, 8 games paired). Subtracting the
+ *  known part is the difference between "427 unexplained" and "347", and only
+ *  the second number is worth anyone's afternoon.
+ *
+ *  THE JOIN IS completed_at, NOT date. odds_backfill_progress is keyed by the
+ *  date BACKFILLED — a run today writes yesterday's row — so `date` says
+ *  nothing about when the credits were spent. completed_at is
+ *  `datetime('now')` at write time, which is the run clock and the right one.
+ *
+ *  SQLite writes `YYYY-MM-DD HH:MM:SS` with no zone marker. It is UTC, and the
+ *  T/Z are added here rather than assuming Date.parse guesses right — a naive
+ *  string parsed as local time would shift the window by hours and silently
+ *  include or drop a run. */
+export { asUtc } from './lib/utc.mjs';
+const { asUtc: _asUtc } = await import('./lib/utc.mjs');
+
+/** Credits the backfill spent INSIDE [fromISO, toISO]. A LOWER BOUND on what
+ *  is legitimately outside the ledger: the backfill is the only CI spender
+ *  that records itself, so probes and one-off fills are not in this number. */
+export function ciSpendInInterval(rows, fromISO, toISO) {
+  const from = Date.parse(fromISO), to = Date.parse(toISO);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return { credits: 0, runs: 0, undated: 0 };
+  let credits = 0, runs = 0, undated = 0;
+  for (const r of rows || []) {
+    const at = _asUtc(r.completed_at);
+    // A row with no usable timestamp cannot be placed in or out of the window.
+    // It is COUNTED SEPARATELY, never silently treated as outside it — that
+    // would inflate the subtraction and shrink the residual on no evidence.
+    if (!Number.isFinite(at)) { undated++; continue; }
+    if (at < from || at > to) continue;
+    const c = Number(r.credits_used);
+    if (!Number.isFinite(c)) { undated++; continue; }
+    credits += c; runs++;
+  }
+  return { credits, runs, undated };
+}
+
 const _num = (v) => (v === null || v === undefined || String(v).trim() === ''
   ? null : (Number.isFinite(Number(v)) ? Number(v) : null));
 
@@ -91,7 +134,7 @@ const _num = (v) => (v === null || v === undefined || String(v).trim() === ''
  * degraded-open signature. Negative means our ledger charged more than the
  * vendor billed, which is the reconcile direction and is not a fault.
  */
-export function ledgerIntegrityVerdict(prev, curr) {
+export function ledgerIntegrityVerdict(prev, curr, outsideLedger = 0) {
   const pNow = _num(curr?.provider_used), lNow = _num(curr?.ledger_month_used);
   if (pNow === null || lNow === null) return { state: 'unreadable', over: false };
   if (!prev) return { state: 'no_baseline', over: false };
@@ -110,11 +153,17 @@ export function ledgerIntegrityVerdict(prev, curr) {
     return { state: 'counter_reset', over: false, providerDelta, ledgerDelta, elapsedH };
   }
   const escaped = providerDelta - ledgerDelta;
+  // The verdict is on what is UNEXPLAINED, not on the raw escape. CI spends at
+  // the vendor without touching our counters by construction, so charging that
+  // to "a guard stopped guarding" is the two-populations error again, one layer
+  // in. outsideLedger is a LOWER bound (only the backfill records itself), so
+  // `unexplained` is an UPPER bound on real leakage — the safe direction.
+  const unexplained = escaped - Math.max(0, Number(outsideLedger) || 0);
   const tolerance = Math.max(ESCAPE_FLOOR, Math.round(ESCAPE_PCT * providerDelta));
   return {
-    state: escaped > tolerance ? 'spend_escaped_the_ledger' : 'ledger_captured_all',
-    over: escaped > tolerance,
-    providerDelta, ledgerDelta, escaped, tolerance,
+    state: unexplained > tolerance ? 'spend_escaped_the_ledger' : 'ledger_captured_all',
+    over: unexplained > tolerance,
+    providerDelta, ledgerDelta, escaped, outsideLedger, unexplained, tolerance,
     elapsedH: Math.round(elapsedH * 10) / 10,
   };
 }
@@ -185,15 +234,70 @@ if (SELF) {
     [{ used: null, ceiling: 3800 }, 'unreadable', 'Number(null) is 0 and would read as a perfectly clean day'],
     [{ used: 100, ceiling: 0 }, 'unreadable', 'a zero ceiling is a missing ceiling, not a cap of nothing'],
   ];
+  // ── CI spend, subtracted from the escape so the alarm is on the residual ──
+  // This file had no scalar assertion helper — the loops above count `bad`
+  // inline. One is defined here rather than reshaping them (Rule 69).
+  const one = (label, got, want, why) => got === want
+    ? console.log(`  PASS  ${label} -> ${got}  (${why})`)
+    : (bad++, console.log(`  FAIL  ${label}: got ${got} want ${want}  (${why})`));
+  const PR = (completed_at, credits_used) => ({ date: 'x', completed_at, credits_used });
+  const FROM = '2026-09-16T21:53:00Z', TO = '2026-09-17T15:24:00Z';
+  const ciw = (rows) => ciSpendInInterval(rows, FROM, TO);
+
+  // THIS CASE SPAWNS A CHILD WITH A NON-UTC TZ ON PURPOSE. Run in-process it
+  // proves nothing: GitHub runners and this sandbox are both UTC, so a bare
+  // `Date.parse('2026-09-17 06:00:00')` — which V8 reads as LOCAL time —
+  // returns the identical value and the mutation that removes the Z is
+  // equivalent. Mutation M38 came back NOT CAUGHT for exactly that reason. The
+  // hazard is real on any other runner, so the case forces the condition
+  // rather than the property being dropped for being untestable here.
+  {
+    const { spawnSync } = await import('node:child_process');
+    // IMPORTS THE REAL MODULE. An inline copy of the logic here is what made
+    // M38 uncatchable the first time — the child was testing a duplicate.
+    const code = `const { asUtc } = await import('./scripts/lib/utc.mjs');` +
+      `process.stdout.write(String(asUtc('2026-09-17 06:00:00')));`;
+    const run = (tz) => spawnSync(process.execPath, ['--input-type=module', '-e', code],
+      { env: { ...process.env, TZ: tz }, encoding: 'utf8' }).stdout;
+    one('a SQLite timestamp is UTC even on a non-UTC runner',
+        run('America/New_York'), String(Date.parse('2026-09-17T06:00:00Z')),
+        'the child runs at UTC-4; a local parse would be 4 hours out and move runs across the window edge');
+    one('and is unchanged on a UTC runner', run('UTC'), String(Date.parse('2026-09-17T06:00:00Z')),
+        'the control — this is the one that passes either way, which is why it cannot stand alone');
+  }
+  one('the in-process helper agrees', _asUtc('2026-09-17 06:00:00'), Date.parse('2026-09-17T06:00:00Z'),
+      'the real exported function, on this runner');
+  one('an ISO timestamp still works', _asUtc('2026-09-17T06:00:00Z'), Date.parse('2026-09-17T06:00:00Z'), 'both shapes');
+  one('a run inside the window',  ciw([PR('2026-09-17 06:00:00', 80)]).credits, 80, 'counted');
+  one('a run before the window',  ciw([PR('2026-09-16 10:00:00', 80)]).credits, 0,  'yesterday, already in the last reading');
+  one('a run after the window',   ciw([PR('2026-09-17 20:00:00', 80)]).credits, 0,  'has not happened yet as far as this reading knows');
+  one('two runs inside',          ciw([PR('2026-09-17 06:00:00', 80), PR('2026-09-17 07:00:00', 20)]).credits, 100, 'summed');
+  one('an undated row is not subtracted', ciw([PR(null, 80)]).credits, 0,
+      'a row that cannot be placed must not inflate the subtraction and shrink the residual on no evidence');
+  one('an undated row is COUNTED',        ciw([PR(null, 80)]).undated, 1, 'reported, not swallowed');
+  one('a non-numeric credit is undated',  ciw([PR('2026-09-17 06:00:00', 'oops')]).undated, 1, 'same rule');
+
+  // The real 2026-09-17 numbers: the escape was 427 and the backfill spent 80.
+  const IV = (outside) => ledgerIntegrityVerdict(
+    { at: FROM, provider_used: 66079, ledger_month_used: 46341 },
+    { at: TO,   provider_used: 68472, ledger_month_used: 48307 }, outside);
+  one('the real escape, nothing subtracted', IV(0).unexplained, 427, 'what the watch reported before this change');
+  one('the real escape, backfill subtracted', IV(80).unexplained, 347, 'the number actually worth an afternoon');
+  one('subtracting does not flip the verdict here', IV(80).state, 'spend_escaped_the_ledger',
+      '347 still exceeds the 120 tolerance — the residual is real, just smaller');
+  one('a fully explained escape', IV(427).state, 'ledger_captured_all', 'all of it was CI; nothing leaked');
+  one('a negative outsideLedger cannot inflate', IV(-500).unexplained, 427,
+      'clamped at 0, so a bad input can never manufacture leakage');
+
   for (const [daily, want, why] of CEILING) {
     const got = ceilingVerdict(daily).state;
     got === want ? console.log(`  PASS  ceiling: ${want.padEnd(27)} (${why})`)
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
-  const _n = CASES.length + INTEGRITY.length + CEILING.length;
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + 16;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
-  console.log(`COVERAGE: three predicates on synthetic readings. None exercises D1, the`);
+  console.log(`COVERAGE: five predicates on synthetic readings. None exercises D1, the`);
   console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers.`);
   process.exit(bad ? 1 : 0);
 }
@@ -216,7 +320,7 @@ console.log(`=== odds backfill pairing rate  utc=${new Date().toISOString()} ===
 console.log(`window: progress rows dated >= ${since}\n`);
 
 const rows = await d1(
-  `SELECT date, games_processed, credits_used
+  `SELECT date, games_processed, credits_used, completed_at
      FROM odds_backfill_progress
     WHERE date >= ?
     ORDER BY date DESC`, [since]);
@@ -298,7 +402,8 @@ const reading = {
 };
 const prev = series.length ? series[series.length - 1] : null;
 const ceiling = Number(reading.daily_ceiling) || 3800;
-const integrity = ledgerIntegrityVerdict(prev, reading);
+const ci = prev ? ciSpendInInterval(rows, prev.at, reading.at) : { credits: 0, runs: 0, undated: 0 };
+const integrity = ledgerIntegrityVerdict(prev, reading, ci.credits);
 const cap = ceilingVerdict({ used: reading.daily_used, ceiling: reading.daily_ceiling });
 
 console.log(`\n  provider billed this month     : ${reading.provider_used ?? 'unreadable'}`);
@@ -319,7 +424,9 @@ if (integrity.state === 'no_baseline') {
   console.log(`\n  since the last reading (${integrity.elapsedH}h):`);
   console.log(`      provider billed   : ${integrity.providerDelta}`);
   console.log(`      our ledger charged: ${integrity.ledgerDelta}`);
-  console.log(`      escaped the ledger: ${integrity.escaped}   (tolerance ${integrity.tolerance})`);
+  console.log(`      escaped the ledger: ${integrity.escaped}`);
+  console.log(`      known CI spend    : ${integrity.outsideLedger}   (${ci.runs} backfill run(s) in window${ci.undated ? `, ${ci.undated} undated row(s) NOT subtracted` : ''})`);
+  console.log(`      UNEXPLAINED       : ${integrity.unexplained}   (tolerance ${integrity.tolerance})`);
   console.log(`      ${integrity.escaped < 0
     ? 'negative — our ledger charged MORE than the vendor billed, which is the reconcile direction'
     : 'positive — the vendor billed for calls our counters did not see'}`);
@@ -354,8 +461,9 @@ console.log(`\n  wrote ${SERIES} (${Math.min(series.length, 120)} reading(s) kep
 
 if (integrity.over) {
   failed = true;
-  console.log(`\nFAIL: the vendor billed ${integrity.providerDelta} while our ledger charged only ${integrity.ledgerDelta}.`);
-  console.log(`${integrity.escaped} credits reached the provider without reaching a counter. Both guards`);
+  console.log(`\nFAIL: the vendor billed ${integrity.providerDelta}, our ledger charged ${integrity.ledgerDelta},`);
+  console.log(`and ${integrity.outsideLedger} of the difference is known CI spend. ${integrity.unexplained} credits are UNEXPLAINED —`);
+  console.log(`they reached the provider without reaching a counter. Both guards`);
   console.log(`degrade OPEN — consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,`);
   console.log(`checkAndIncrementDailyOdds returns true on any KV error — so spend that the`);
   console.log(`vendor saw and we did not is the signature of a guard that stopped guarding.`);
@@ -377,4 +485,8 @@ if (!failed) console.log(`captured everything the vendor billed, and the daily c
 console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}, ${series.length} provider reading(s).`);
 console.log(`odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an`);
 console.log(`unpaired one reads as paired — this catches total failure per date, not per sport.`);
+console.log(`KNOWN CI SPEND IS A LOWER BOUND: only odds-backfill records its own credits, so`);
+console.log(`probes and one-off fills are NOT subtracted and UNEXPLAINED is an upper bound on`);
+console.log(`real leakage. Joined on completed_at (the run clock), never on date (the day`);
+console.log(`being backfilled) — a run today writes yesterday's row.`);
 process.exit(failed ? 1 : 0);
