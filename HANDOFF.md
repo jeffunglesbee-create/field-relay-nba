@@ -1,26 +1,34 @@
 # FIELD Relay — HANDOFF
 
-## LIVE DEFECT — the odds backfill has been dead since at least 2026-09-01
+## RESOLVED 2026-09-16 14:42Z — the odds backfill cron is alive again
 
-`odds-backfill.yml` has failed **every scheduled run**, 2026-09-01 → 2026-09-15,
-runs 84–98. `ODDS_API_KEY` resolves to an **empty string** and the script exits
-at its first guard. Cause confirmed at both ends of the window, not inferred
-across it. **Onset not established** — run 83 and earlier unexamined. **Blocked
-on the owner: it is a secret.** `CC-CMD-2026-09-15-odds-backfill-missing-api-key`.
+`odds-backfill.yml` run **35110321483**, scheduled, started 2026-09-16T14:42:07Z,
+conclusion **success**, after failing every scheduled run 2026-09-01 → 09-15
+(runs 84–98, `ODDS_API_KEY` resolving to an empty string). The secret was set
+between run 34983451607 (09-15, failure) and that one. Onset of the original
+outage remains unestablished — run 83 and earlier were never examined.
 
-Consequence for today's work: the candidate-SQL change shipped 2026-09-15 is
-verified read-only but **has never run in production** and will not until the
-secret is set. I said it "fires unattended at 10:00 UTC"; that was wrong.
+Cost of the outage was measured separately: **0 recoverable rows**, 177 CFB
+filed under their own item. Not claimed, then or now: that the outage explains
+the odds gaps closed on 09-15. The 874 run-clock rows predate 2026-08-22 and the
+243 cup rows have no vendor coverage.
 
-Fifteen days passed unnoticed because every check here asks about **one workflow
-at a time** — a cron dying at its first guard leaves no artifact and no diff.
-`scripts/watch-silently-dead-crons.mjs` (daily, `15 12 * * *`) now asks across
-every active workflow whether any is failing its last 3 scheduled runs.
+**`scripts/watch-silently-dead-crons.mjs`** (daily, `15 12 * * *`) was built for
+this and does ask the repo-wide question. **It has a measured blind spot of its
+own — see the 2026-09-16d close-out §7.7:** it reads 100 of 150 workflows with
+no pagination and prints "100 workflow(s)" as though that were the total. No
+dead cron is hiding there today (checked, not assumed), and the fix is specced
+but NOT applied.
 
-Not claimed: that this explains the odds gaps closed today. The 874 run-clock
-rows predate 2026-08-22 and the 243 cup rows have no vendor coverage. It is a
-**candidate** for opening lines missing on games dated from 2026-09-01, and that
-is unmeasured.
+## OPEN — the provider-vs-ledger gap is ~19,700 and unexplained
+
+66,085 billed by the provider against 46,347 in our monthly ledger at
+2026-09-16T22:05Z. Established **not** to be live leakage: the 2026-09-05
+artifact shows ~17,800 already, so it grew ~1,900 over 11.5 days — an old static
+offset. **Origin UNKNOWN.** `ledgerIntegrityVerdict` in
+`watch-odds-pairing-rate.mjs` now watches for it *recurring* by comparing the two
+deltas to each other; it cannot explain the existing offset. Unblocked by the
+Odds API dashboard's per-day history, which no session here has had access to.
 
 ## RESOLVED 2026-09-16 18:0xZ — the slate matcher pairs 0 on every sport that is not CFB
 
@@ -70,6 +78,76 @@ stage and the ambiguity refusal already handle, and the CFB fixture proves no
 regression there. **It must not be shipped on the CFB fixture alone — that is
 the exact mistake above.** An MLB fixture costs 20 credits and is the owner's
 call.
+
+## SESSION CLOSE-OUT — 2026-09-16d (the ledger says WHO, and three watches read the wrong thing)
+
+**HEAD:** `9b8dce1` → `71433fe` → `a96af3a` → `a71724f` → `41b7ad4` · main throughout · 0 PRs
+**Session doc:** `outbox/cc-session-2026-09-16d-odds-attribution-and-watches.md`
+**Deploys:** 35137916107 ✅ · 35152703394 ✅ · 35155571062 ✅ (35135398019 ❌)
+
+**`71433fe` was reported as landed and was not.** Deploy run 35135398019 failed
+at step 63 and skipped every step after it, including the deploy. Red since run
+969; last green 968 (`f384913`, 12:58Z). The gate had not changed — `ff61e97`
+gave `watch-odds-pairing-rate.mjs` a file under `outbox/`, which put it in the
+gate's corpus (107 → 108 scripts), and two `Number(x || 0)` reduces that had
+always been wrong became lines that mattered.
+
+**/budget/odds now decomposes.** `by_site` over nine named consumers plus
+`unattributed`, with `by_site_sum` and `unaccounted` reported separately so a
+divergence is visible rather than inferred.
+
+| 2026-09-16 22:05Z | |
+|---|---:|
+| `ambientCaptureClosingOdds` | **1200** (62%) |
+| `ambientFetchLiveOdds` | 264 |
+| `getWCPregameLambdas` | 256 |
+| `fetchSportOddsHistorical` / `Live` | 120 / 66 |
+| `used` / ceiling | 1598 / 3800 |
+
+**A premise was published and then refuted by its own test.** I reported the
+209 unaccounted as pre-deploy residue, naming the one measurement that would
+refute it. Thirteen minutes later `by_site_sum` had grown **549** against
+`used` +446 — a sum cannot outgrow the total it decomposes by arriving late.
+`reconcileOddsCredit` was correcting `odds:daily:*` and `odds:credits:*` and
+leaving `odds:site:*` holding the estimate.
+
+**Four of nine consumers had TWO names** — `ambientFetchLiveOdds` vs
+`_fetchLiveOdds`, and three more — so pointing reconcile at the site key would
+have minted keys `_readSites` never reads. One exported `ODDS_SITES` now; the
+four literals renamed; `_bumpSite` called from reconcile, clamped at zero.
+Confirmed live by a site counter going **down** (268 → 264), which only a
+negative delta can do.
+
+**The pairing watch had never run.** Dispatched, it produced a false FAIL:
+*"the provider billed 1377 where 1232 was allowed... the signature of a guard
+that stopped guarding"* — on an interval where **our own ledger charged 1467**,
+ninety more than the vendor billed, on a day sitting at **42% of its ceiling**.
+Two defects: it compared the provider's cumulative counter to our ledger's
+ceiling (two populations, 19,582 apart), and it prorated a daily cap into a
+rate the guard never enforces. Split into `ledgerIntegrityVerdict` (the two
+counters against each other) and `ceilingVerdict` (`used > ceiling`, no
+arithmetic).
+
+**Both watches' schedule comments were false, and the measurement condemned one
+I had shipped 90 minutes earlier.** GitHub's scheduled-run delay here is
+**104–405 minutes** (25 runs, 7 workflows — `outbox/gha-cron-delay-2026-09-16.json`).
+`odds-backfill.yml` declares 10:00 and starts 13:25–16:13. And it keys
+`odds_backfill_progress` by the **backfilled** date, so there is never a row for
+today. `odds-attribution-gap.yml` at 23:30 would have fired 01:14–06:15 the
+*next* day. Fixed at the root: `/budget/odds?date=` reads a closed day, the
+watcher asks for yesterday and verifies the date came back.
+
+**Gates:** 19/19 and 35/35 mutations; 20/20, 16/16, 23/23 self-tests. Rule 90
+caught four apparatus defects (A11, A12, A18, A19) — every one a check that
+could not fail for the reason claimed.
+
+**NOT DONE, and started:** `watch-silently-dead-crons.mjs` reads **100 of 150**
+workflows with no pagination and prints "100 workflow(s)". Fix specced, not
+applied. See the session doc §7.7.
+
+**Carry-forwards with unblock criteria:** session doc §7. Check-in armed:
+`trig_01XKN5kUAQNw6yo8bcGaUFpq`, 2026-09-18 17:00Z, for the first fully
+attributed day (2026-09-17).
 
 ## SESSION CLOSE-OUT — 2026-09-16c (what the provider billed, which nothing recorded)
 
