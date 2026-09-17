@@ -79,6 +79,10 @@ export function burnedWithoutPairing(rows) {
 // provider figure is cached 60s relay-side, and both are read-modify-write
 // counters under concurrent isolates. Below this, a difference is noise.
 export const ESCAPE_FLOOR = 50;
+// Below this, a counter going backwards is a reconcile refund, not a month
+// roll. The two are three orders of magnitude apart: refunds are single- to
+// low-triple-digit, a roll drops the whole month (46,341 on 2026-09-16).
+export const RESET_FLOOR = 1000;
 export const ESCAPE_PCT = 0.05;
 
 /** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
@@ -146,10 +150,18 @@ export function ledgerIntegrityVerdict(prev, curr, outsideLedger = 0) {
 
   const providerDelta = pNow - pWas;
   const ledgerDelta   = lNow - lWas;
-  // Either counter going backwards is a month roll-over on that counter, not a
-  // measurement. Both are monthly and they roll at the same instant, but a
-  // reading can land between the two rolls.
-  if (providerDelta < 0 || ledgerDelta < 0) {
+  // A MONTH ROLL DROPS A COUNTER BY TENS OF THOUSANDS. A RECONCILE REFUND DROPS
+  // IT BY TWO. The first version tested `< 0` on either counter and, thirteen
+  // minutes after shipping, called 52075 -> 52073 a monthly reset: an ordinary
+  // refund landing between two closely-spaced readings. reconcileOddsCredit
+  // subtracts from odds:credits:* whenever the vendor billed less than the
+  // estimate, so a small negative ledger delta is the system working.
+  //
+  // RESET_FLOOR separates them by MAGNITUDE rather than by sign. Anything
+  // smaller is arithmetic and stays in the subtraction, where a refund makes
+  // `escaped` slightly larger — which is the honest direction, since those
+  // credits did reach the vendor.
+  if (providerDelta < -RESET_FLOOR || ledgerDelta < -RESET_FLOOR) {
     return { state: 'counter_reset', over: false, providerDelta, ledgerDelta, elapsedH };
   }
   const escaped = providerDelta - ledgerDelta;
@@ -214,7 +226,10 @@ if (SELF) {
      '40 apart on a 3000 delta is inside the floor, not a finding'],
     [R(0, 1000, 1000), R(24, 4000, 2800), 'spend_escaped_the_ledger',
      '200 apart on 3000 is over the 150 tolerance'],
-    [R(0, 1000, 1000), R(24, 900, 900), 'counter_reset', 'the month rolled over; not an error'],
+    // NUMBERS UPDATED 2026-09-17. This case used a 100-credit drop to stand for
+    // a month roll-over, which RESET_FLOOR now correctly calls a refund. A real
+    // roll drops the whole month — 46,341 on 2026-09-16 — so the case says so.
+    [R(0, 61000, 46000), R(24, 900, 40), 'counter_reset', 'the month rolled over; not an error'],
     [R(0, 1000, 1000), R(24, '4000', '4000'), 'ledger_captured_all', 'the provider sends a STRING; it must still subtract'],
     [R(0, 1000, 1000), R(24, null, 4000), 'unreadable', 'an absent provider reading is not a zero-spend day'],
     [R(0, 1000, 1000), R(24, 4000, null), 'unreadable', 'an absent LEDGER reading is not a zero either'],
@@ -281,6 +296,32 @@ if (SELF) {
   const IV = (outside) => ledgerIntegrityVerdict(
     { at: FROM, provider_used: 66079, ledger_month_used: 46341 },
     { at: TO,   provider_used: 68472, ledger_month_used: 48307 }, outside);
+  // The 2026-09-17T20:19Z run: ledger 52075 -> 52073, a 2-credit refund that the
+  // first version of this predicate announced as a monthly reset.
+  const RS = (pLedger, cLedger) => ledgerIntegrityVerdict(
+    { at: '2026-09-17T20:13:00Z', provider_used: 72312, ledger_month_used: pLedger },
+    { at: '2026-09-17T20:19:00Z', provider_used: 72312, ledger_month_used: cLedger }, 0);
+  one('a 2-credit refund is NOT a reset', RS(52075, 52073).state, 'ledger_captured_all',
+      'the real reading that exposed this — reconcile refunds run constantly');
+  one('a refund makes the escape slightly larger', RS(52075, 52073).escaped, 2,
+      'honest direction: those credits did reach the vendor');
+  // A KNOWN LIMITATION, PINNED RATHER THAN HIDDEN. A refund corrects a charge
+  // made in an EARLIER interval, so inside this one it makes ledgerDelta
+  // negative and `escaped` grows by the refund. Below RESET_FLOOR it is
+  // correctly not a reset — but a large refund with no provider movement does
+  // read as escape. Two cumulative counters compared over a short window cannot
+  // tell a correction from a leak; over a day the refunds wash out. The case
+  // asserts the real behaviour so nobody rediscovers it as a bug.
+  one('a 999-credit refund is not a reset', RS(52075, 52075 - 999).state !== 'counter_reset', true,
+      'inside the floor — it is arithmetic, not a roll');
+  one('but a large refund DOES inflate the escape', RS(52075, 52075 - 999).escaped, 999,
+      'the limitation: a correction to an earlier interval reads as escape inside this one');
+  one('a month roll IS a reset', RS(52075, 40).state, 'counter_reset', 'the whole month drops, not two credits');
+  one('a provider roll is a reset too', ledgerIntegrityVerdict(
+      { at: '2026-09-17T20:13:00Z', provider_used: 72312, ledger_month_used: 100 },
+      { at: '2026-09-17T20:19:00Z', provider_used: 120, ledger_month_used: 100 }, 0).state,
+      'counter_reset', 'the vendor counter rolls on its own clock');
+
   one('the real escape, nothing subtracted', IV(0).unexplained, 427, 'what the watch reported before this change');
   one('the real escape, backfill subtracted', IV(80).unexplained, 347, 'the number actually worth an afternoon');
   one('subtracting does not flip the verdict here', IV(80).state, 'spend_escaped_the_ledger',
@@ -295,7 +336,7 @@ if (SELF) {
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
-  const _n = CASES.length + INTEGRITY.length + CEILING.length + 16;
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + 22;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
   console.log(`COVERAGE: five predicates on synthetic readings. None exercises D1, the`);
   console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers.`);

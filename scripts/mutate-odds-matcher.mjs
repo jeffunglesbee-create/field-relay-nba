@@ -173,8 +173,11 @@ const MUTATIONS = [
     replace: 'const _num = (v) => Number(v);',
     catches: 'Number(null) is 0, so an absent reading reads as a counter reset' },
 
+  // Re-anchored 2026-09-17 when the branch gained RESET_FLOOR. The harness
+  // refused to report a result rather than pass on an anchor that matched
+  // nothing — which is the corollary working, not a nuisance.
   { file: WATCHER, check: WATCH_CHECK, name: 'M26 a monthly reset is reported as escaped spend',
-    anchor: "  if (providerDelta < 0 || ledgerDelta < 0) {",
+    anchor: "  if (providerDelta < -RESET_FLOOR || ledgerDelta < -RESET_FLOOR) {",
     replace: '  if (false) {',
     catches: 'the month rolling over fires a false alarm every month' },
 
@@ -184,6 +187,16 @@ const MUTATIONS = [
     catches: 'a series of one reports a divergence it never measured' },
 
   // ── CI spend subtracted from the escape, 2026-09-17 ─────────────────────
+  { file: WATCHER, check: WATCH_CHECK, name: 'M41 any negative delta is called a month reset',
+    anchor: '  if (providerDelta < -RESET_FLOOR || ledgerDelta < -RESET_FLOOR) {',
+    replace: '  if (providerDelta < 0 || ledgerDelta < 0) {',
+    catches: 'the shape that shipped for 13 minutes — a 2-credit reconcile refund announced as a monthly roll-over' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M42 the reset floor is raised until a real roll is missed',
+    anchor: 'export const RESET_FLOOR = 1000;',
+    replace: 'export const RESET_FLOOR = 10000000;',
+    catches: 'a genuine month roll is reported as a colossal escape every month' },
+
   { file: WATCHER, check: WATCH_CHECK, name: 'M36 the escape is judged before subtracting CI',
     anchor: '  const unexplained = escaped - Math.max(0, Number(outsideLedger) || 0);',
     replace: '  const unexplained = escaped;',
