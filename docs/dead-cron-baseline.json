@@ -1,0 +1,86 @@
+{
+  "_comment": [
+    "THE RATCHET. Read scripts/watch-silently-dead-crons.mjs beside this file.",
+    "",
+    "WHY IT EXISTS, from a count rather than a principle. Between 2026-09-15 and",
+    "2026-09-17 the dead-cron watch was widened three times — paginated from 100",
+    "to 150 workflows, then split so a never-fired cron stopped being filed as",
+    "'not judged', then pointed at four repos instead of one. Each widening found",
+    "more. Zero were fixed. The first cross-repo run found four dead crons and one",
+    "never-fired cron, so the watch now exits 1 every single day.",
+    "",
+    "That is the failure mode its own header warns about: 'a watch that cries wolf",
+    "is how odds-backfill.yml went fifteen days unnoticed in the first place'. A",
+    "workflow red every morning becomes furniture within a week, which is exactly",
+    "the state docs/declared-detectors.json exists to prevent — and the watch had",
+    "walked into it itself.",
+    "",
+    "SO: green means NO NEW DECAY, not 'nothing is broken'. The entries below are",
+    "known rot, each with the date it was first seen and what would unblock it.",
+    "A key not in this file fails the run. A key here that is no longer dead makes",
+    "the run print 'baseline is stale, remove it' — and stay green, so fixing",
+    "something is never punished.",
+    "",
+    "THIS FILE IS NOT declared-detectors.json. That one says 'red IS this",
+    "workflow's output, it is working'. This one says 'this is broken, nobody has",
+    "fixed it yet, and here is the date we admitted that'. Never move an entry",
+    "between the two files to quiet a run.",
+    "",
+    "review_by IS THE PART THAT STOPS THIS BECOMING THE NEW FURNITURE. Past that",
+    "date the entry fails the run by name. Deferring is allowed; deferring",
+    "silently is not — moving the date means writing a new reason beside it.",
+    "",
+    "KEYS are owner/repo:.github/workflows/x.yml. deploy.yml exists in all four",
+    "repos, so an unqualified key would let one repo's admission cover another's.",
+    "",
+    "kind: 'dead'        failing its last DEAD_CRON_STREAK completed scheduled runs",
+    "kind: 'never_fired' declares a cron and has never produced a run, past its grace"
+  ],
+  "measured": {
+    "at": "2026-09-17T15:03:40Z",
+    "by": "silently-dead-crons run 35237724585, the first across four repos",
+    "surveyed": "4 repos, 388 workflows, 388 active, 92 judged"
+  },
+  "entries": {
+    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml": {
+      "kind": "dead",
+      "first_seen": "2026-09-17",
+      "red_since": "2026-07-25",
+      "note": "Also has not produced ANY scheduled run since 2026-07-31 — failing AND stopped firing, 48 days. The two facts may have one cause or two; neither has been read.",
+      "unblocked_by": "read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing",
+      "review_by": "2026-10-17"
+    },
+    "jeffunglesbee-create/field-laboratory:.github/workflows/drift-sentinel.yml": {
+      "kind": "dead",
+      "first_seen": "2026-09-17",
+      "red_since": "2026-09-16",
+      "note": "red_since is a LOWER BOUND — it is the oldest of the last 3 runs the watch reads. A manual sweep on 2026-09-17 found 8 consecutive failures back to 09-13. Failing steps are 'Did the filed CC-CMDs land?' and 'The i-have-adhd skill is still verbatim', which READ like detector steps whose red is their output. If that is confirmed it belongs in declared-detectors.json instead — UNVERIFIED, which is why it is here.",
+      "unblocked_by": "read both steps' exit paths and decide: detector, or genuinely broken",
+      "review_by": "2026-10-17"
+    },
+    "jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml": {
+      "kind": "dead",
+      "first_seen": "2026-09-17",
+      "red_since": "2026-08-31",
+      "note": "Latest run 2026-09-14. Not investigated.",
+      "unblocked_by": "read field-laboratory run 34839968312",
+      "review_by": "2026-10-17"
+    },
+    "jeffunglesbee-create/field-playground:.github/workflows/build-check.yml": {
+      "kind": "dead",
+      "first_seen": "2026-09-17",
+      "red_since": "2026-09-15",
+      "note": "Three consecutive scheduled failures, 09-15 through 09-17. The newest rot of the four, and the most likely to have a recent cause.",
+      "unblocked_by": "read field-playground run 35223420802",
+      "review_by": "2026-10-17"
+    },
+    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/soccer-fbref-mls.yml": {
+      "kind": "never_fired",
+      "first_seen": "2026-09-17",
+      "red_since": "2026-06-22",
+      "note": "Declares cron '0 8 * * 1' and has never produced a scheduled run in 86.7 days. Twelve Mondays. GitHub disables schedules in inactive repos and silently drops ones it cannot parse; jubilant-bassoon is active, so the parse is the candidate — UNVERIFIED.",
+      "unblocked_by": "check the workflow's schedule block parses, and whether GitHub lists it as disabled",
+      "review_by": "2026-10-17"
+    }
+  }
+}

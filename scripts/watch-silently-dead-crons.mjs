@@ -58,6 +58,47 @@ const log = [];
 // a local-disk path for one repo and an API path for the others would be two
 // implementations of one question, which is how the four sport-key registries
 // and the two site vocabularies happened.
+const BASELINE_FILE = 'docs/dead-cron-baseline.json';
+
+/** THE RATCHET. Green means NO NEW DECAY, not "nothing is broken".
+ *
+ *  A COUNT WOULD NOT DO. docs/run-clock-closing-baseline.txt holds a bare
+ *  number and that was right for a one-time cleanup of 58 rows. Here it would
+ *  be wrong: fix drift-sentinel on the same day a different cron rots and the
+ *  count stays 4, the run stays green, and a new decay is invisible. So the
+ *  baseline is a SET OF KEYS, and it is the key that must already be admitted.
+ *
+ *  Returns { unexpected, carried, resolved }:
+ *    unexpected  found dead, not in the baseline          -> FAIL, this is new rot
+ *    carried     found dead, admitted in the baseline     -> reported with its age
+ *    resolved    in the baseline, no longer found dead    -> "stale, remove it", NOT a failure
+ *
+ *  resolved must never fail the run. A watch that goes red when you fix
+ *  something teaches people to stop fixing things. */
+export function ratchetVerdict(foundKeys, baselineEntries) {
+  const found = new Set(foundKeys);
+  const base  = new Set(Object.keys(baselineEntries || {}));
+  return {
+    unexpected: [...found].filter(k => !base.has(k)).sort(),
+    carried:    [...found].filter(k =>  base.has(k)).sort(),
+    resolved:   [...base ].filter(k => !found.has(k)).sort(),
+  };
+}
+
+/** review_by is what stops the baseline becoming the furniture it replaced.
+ *  Past that date an entry fails the run BY NAME. Deferring is allowed;
+ *  deferring silently is not — moving the date means writing a new reason. */
+export function overdueReviews(carriedKeys, baselineEntries, today = new Date().toISOString().slice(0, 10)) {
+  return carriedKeys.filter((k) => {
+    const by = baselineEntries?.[k]?.review_by;
+    // NO review_by IS OVERDUE, NOT EXEMPT. An entry without a date would
+    // otherwise be the quietest possible way to silence a cron forever — the
+    // same absence-read-as-permission shape as a zero denominator (Rule 99).
+    if (!by) return true;
+    return by < today;
+  }).sort();
+}
+
 /** Repo-qualified, because `.github/workflows/deploy.yml` exists in all four. */
 export const declaredKey = (repo, path) => `${repo}:${path}`;
 
@@ -91,6 +132,9 @@ export function shortRead(collected, total) {
 
 if (process.argv.includes('--self-test')) {
   let bad = 0;
+  // Strict equality, so every case must produce a SCALAR. Three array cases
+  // were written here first and all three "failed" against an identical
+  // expectation — a check reporting a defect that was its own. Arrays join.
   const one = (label, got, want, why) => got === want
     ? console.log(`  PASS  ${label} -> ${JSON.stringify(got)}  (${why})`)
     : (bad++, console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`));
@@ -146,8 +190,36 @@ if (process.argv.includes('--self-test')) {
       'nothing to judge — this is the bucket that must stay separate');
   one('an empty body', cronFromSource(''), null, 'a failed contents fetch is not a declared cron');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 19/19`);
-  console.log(`COVERAGE: the pure predicates — page loop, short read, grace, repo list,\n  detector keys, cron extraction. It does NOT reach the GitHub API — the`);
+  // ── THE RATCHET ────────────────────────────────────────────────────────
+  const BASE = { 'r:a.yml': { review_by: '2026-10-17' }, 'r:b.yml': { review_by: '2026-10-17' } };
+  const rv = (found) => ratchetVerdict(found, BASE);
+
+  one('nothing rotting', [rv([]).unexpected.length, rv([]).resolved.length].join('/'), '0/2',
+      'both baseline entries resolved — and that is not a failure');
+  one('exactly the admitted set', rv(['r:a.yml','r:b.yml']).unexpected.length, 0,
+      'steady state: known rot, nothing new — the run is GREEN with two things broken');
+  one('a NEW dead cron', rv(['r:a.yml','r:b.yml','r:c.yml']).unexpected.join(','), 'r:c.yml',
+      'the only thing that should ever fail this watch');
+  one('one fixed, one new, count unchanged',
+      [rv(['r:a.yml','r:c.yml']).unexpected, rv(['r:a.yml','r:c.yml']).resolved].map(x => x.join(',')).join(' | '),
+      'r:c.yml | r:b.yml',
+      'THE CASE A COUNT CANNOT SEE: 2 before, 2 after, and a new decay hiding behind a fix');
+  one('a fix is never a failure', rv(['r:a.yml']).unexpected.length, 0,
+      'b resolved; a watch that goes red when you fix something teaches people to stop');
+
+  // review_by, the part that stops the baseline becoming furniture
+  const TODAY = '2026-09-17';
+  one('inside its review window', overdueReviews(['r:a.yml'], BASE, TODAY).length, 0, 'deferred, with a date');
+  one('past its review_by',
+      overdueReviews(['r:x.yml'], { 'r:x.yml': { review_by: '2026-09-16' } }, TODAY).join(','), 'r:x.yml',
+      'yesterday — the entry now fails by name until someone restates the deferral');
+  one('review_by is today', overdueReviews(['r:x.yml'], { 'r:x.yml': { review_by: TODAY } }, TODAY).length, 0,
+      'the day itself is still inside; it fails tomorrow');
+  one('NO review_by at all', overdueReviews(['r:x.yml'], { 'r:x.yml': {} }, TODAY).join(','), 'r:x.yml',
+      'absent is overdue, not exempt — an undated entry is the quietest way to silence a cron forever');
+
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 28/28`);
+  console.log(`COVERAGE: the pure predicates — page loop, short read, grace, repo list,\n  detector keys, cron extraction, and the ratchet. It does NOT reach the API — the`);
   console.log(`sandbox token here is a proxy placeholder, so the live half is verified by`);
   console.log(`dispatching the workflow and reading its committed outbox log.`);
   process.exit(bad ? 1 : 0);
@@ -287,29 +359,69 @@ async function surveyRepo(repo, declared) {
   say(`    scheduled runs whenever they happened, so a firing delay cannot skew it.`);
   say(`    NOT covered: any repo outside the ${REPOS.length} listed at the top.`);
 
+
+  // Written BEFORE any exit, so the day the watch fails is not the day its
+  // artifact is missing — the ordering defect the pairing watch shipped (M28).
+  const baseline = JSON.parse(readFileSync(BASELINE_FILE, 'utf8')).entries || {};
+  const overdue  = overdueNeverFired(neverFired, GRACE);
+
+  // ONE KEY SPACE for both kinds. A dead cron and a never-fired cron are both
+  // "this is rotting and nobody has fixed it"; splitting them into two ratchets
+  // would be two implementations of one question.
+  const foundKeys = [
+    ...dead.map(d => declaredKey(d.repo, d.path)),
+    ...overdue.map(w => declaredKey(w.repo, w.path)),
+  ];
+  const r = ratchetVerdict(foundKeys, baseline);
+  const stale = overdueReviews(r.carried, baseline);
+
+  say(`\n  ── ratchet (${BASELINE_FILE}) ──`);
+  say(`    carried, already admitted : ${r.carried.length}`);
+  for (const k of r.carried) {
+    const e = baseline[k] || {};
+    const days = e.first_seen ? ((Date.now() - Date.parse(e.first_seen)) / 86400000).toFixed(0) : '?';
+    say(`      ${k}`);
+    say(`        kind ${e.kind || '?'}  red since ${e.red_since || '?'}  admitted ${days}d ago  review by ${e.review_by || 'NEVER — overdue by construction'}`);
+    say(`        unblocked by: ${e.unblocked_by || '(not stated)'}`);
+  }
+  say(`    NEW, not in the baseline  : ${r.unexpected.length}`);
+  for (const k of r.unexpected) say(`      ${k}`);
+  say(`    baseline entries resolved : ${r.resolved.length}`);
+  for (const k of r.resolved) say(`      ${k}   <- fixed or gone; remove it from ${BASELINE_FILE}`);
+  say(`    reviews overdue           : ${stale.length}`);
+
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(`outbox/silently-dead-crons-${stamp}.log`, log.join('\n') + '\n');
 
-  // Written BEFORE either exit, so the day the watch fails is not the day its
-  // artifact is missing — the same ordering defect the pairing watch shipped
-  // and had to have restructured (M28).
   let failed = false;
-  if (dead.length) {
+  if (r.unexpected.length) {
     failed = true;
-    console.error(`\nFAIL: ${dead.length} scheduled workflow(s) have failed their last ${STREAK} runs.`);
-    for (const d of dead) console.error(`      ${d.repo}  ${d.path}  since ${String(d.since).slice(0, 10)}`);
-    console.error(`      A cron that dies at its first guard leaves no artifact and no diff.`);
+    console.error(`\nFAIL: ${r.unexpected.length} workflow(s) are rotting and are NOT in ${BASELINE_FILE}.`);
+    for (const k of r.unexpected) console.error(`      ${k}`);
+    console.error(`      This is NEW decay. Fix it, or admit it in the baseline with a`);
+    console.error(`      red_since, an unblocked_by and a review_by — an entry is an`);
+    console.error(`      admission with a date on it, not a way to make this quiet.`);
   }
-  const overdue = overdueNeverFired(neverFired, GRACE);
-  if (overdue.length) {
+  if (stale.length) {
     failed = true;
-    console.error(`\nFAIL: ${overdue.length} workflow(s) declare a cron and have NEVER fired,`);
-    console.error(`      more than ${GRACE} days after being added:`);
-    for (const w of overdue) console.error(`      ${w.repo}  ${w.path}  cron ${w.cron}  added ${String(w.created_at).slice(0, 10)}`);
-    console.error(`      GitHub disables scheduled workflows in inactive repos and drops`);
-    console.error(`      schedules it cannot parse. A cron that has never run is not a cron.`);
+    console.error(`\nFAIL: ${stale.length} baseline entr(ies) are past their own review_by.`);
+    for (const k of stale) console.error(`      ${k}  review_by ${baseline[k]?.review_by || '(absent — absent is overdue)'}`);
+    console.error(`      Deferring again is allowed. Doing it silently is not: move the`);
+    console.error(`      date and write why, in the same commit.`);
   }
+
+  // RESOLVED NEVER FAILS. A watch that goes red when you fix something teaches
+  // people to stop fixing things — which is the behaviour this whole ratchet
+  // exists to avoid.
+  if (r.resolved.length) {
+    console.log(`\nBASELINE IS STALE: ${r.resolved.length} entr(ies) are no longer rotting.`);
+    for (const k of r.resolved) console.log(`      ${k}`);
+    console.log(`      Remove them from ${BASELINE_FILE}. Not a failure — this is the`);
+    console.log(`      direction the ratchet is supposed to turn.`);
+  }
+
   if (failed) process.exit(1);
-  console.log(`\nOK: across ${REPOS.length} repos, no scheduled workflow is failing ${STREAK} runs in`);
-  console.log(`a row, and every declared cron has either fired or is inside its ${GRACE}-day grace.`);
+  console.log(`\nOK: across ${REPOS.length} repos, no NEW decay. ${r.carried.length} known entr(ies) carried,`);
+  console.log(`each inside its own review_by. Green here means nothing got worse — it does`);
+  console.log(`NOT mean nothing is broken; ${r.carried.length} thing(s) still are, named above.`);
 })().catch(e => { console.error('FAIL:', e.message); process.exit(1); });

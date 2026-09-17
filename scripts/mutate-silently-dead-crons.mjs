@@ -80,6 +80,32 @@ const MUTATIONS = [
     replace: "(String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || 'unknown'",
     catches: 'the no-schedule bucket floods into never-fired and the signal drowns' },
 
+  // ── the ratchet: green means NO NEW DECAY, and that must be breakable ──
+  { name: 'D13 the ratchet stops noticing new decay',
+    anchor: "    unexpected: [...found].filter(k => !base.has(k)).sort(),",
+    replace: '    unexpected: [],',
+    catches: 'a cron that rots tomorrow is filed as already-known and never reported' },
+
+  { name: 'D14 a fix turns the run RED',
+    anchor: "    resolved:   [...base ].filter(k => !found.has(k)).sort(),",
+    replace: '    resolved:   [],',
+    catches: 'the stale-baseline signal disappears, so a fixed entry is carried forever' },
+
+  { name: 'D15 the ratchet degrades to a COUNT',
+    anchor: "    unexpected: [...found].filter(k => !base.has(k)).sort(),\n    carried:    [...found].filter(k =>  base.has(k)).sort(),",
+    replace: "    unexpected: found.size > base.size ? ['count-exceeded'] : [],\n    carried:    [...found],",
+    catches: 'one fixed and one new on the same day keeps the count at 2 and the run green' },
+
+  { name: 'D16 an entry with no review_by is exempt instead of overdue',
+    anchor: '    if (!by) return true;',
+    replace: '    if (!by) return false;',
+    catches: 'an undated entry is the quietest possible way to silence a cron forever' },
+
+  { name: 'D17 review_by stops expiring',
+    anchor: '    return by < today;',
+    replace: '    return false;',
+    catches: 'the baseline becomes the furniture it was built to replace' },
+
   { name: 'D5 the never-fired grace becomes unreachable',
     anchor: 'export function overdueNeverFired(neverFired, graceDays, now = Date.now()) {\n  return neverFired.filter(w => (now - Date.parse(w.created_at)) / 86400000 > graceDays);',
     replace: 'export function overdueNeverFired(neverFired, graceDays, now = Date.now()) {\n  return [];',
@@ -117,7 +143,8 @@ for (const mut of MUTATIONS) {
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
 console.log(`COVERAGE: the PURE predicates — page loop, short-read assertion, grace,`);
-console.log(`the repo list, detector-key qualification and cron extraction. It does NOT`);
+console.log(`the repo list, detector-key qualification, cron extraction and the RATCHET`);
+console.log(`(new decay, a fix never failing, count-vs-key, review_by expiry). It does NOT`);
 console.log(`exercise the GitHub API, the per-repo survey, or the exit path: the sandbox`);
 console.log(`token is a proxy placeholder and RELAY_GH_PAT exists only in CI, so those`);
 console.log(`are verified by dispatching the workflow and reading its committed log.`);
