@@ -178,5 +178,20 @@
     "age-only": 19,
     "eff_named": 187,
     "eff_stamped": 190
+  },
+  {
+    "date": "2026-09-17",
+    "dispatch_lines": 226,
+    "distinct_paths": 198,
+    "data_surfaces": 190,
+    "self_describing": 6,
+    "protocol": 8,
+    "none": 134,
+    "passthrough": 24,
+    "source-only": 7,
+    "both": 6,
+    "age-only": 19,
+    "eff_named": 187,
+    "eff_stamped": 190
   }
 ]
