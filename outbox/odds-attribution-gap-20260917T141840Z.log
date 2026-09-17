@@ -1,0 +1,33 @@
+=== odds attribution gap  for 2026-09-16 (a closed day) ===
+
+  date            : 2026-09-16  (requested 2026-09-16; is_today=false)
+  used            : 3800
+  by_site_sum     : 4120
+  unaccounted     : -320
+  unreadable_sites: none
+
+  by site:
+    getWCPregameLambdas          264
+    handleWCOddsProbs            8
+    handleCFLOddsProbs           6
+    fetchSportOddsLive           90
+    fetchSportOddsHistorical     120
+    wpResolver                   0
+    ambientFetchLiveOdds         296
+    ambientCaptureClosingOdds    3336
+    oddsProxyRoute               0
+    unattributed                 0
+
+  verdict         : gap-too-wide
+  detail          : |-320| exceeds 190 (8% of 3800)
+
+COVERAGE: ONE reading, of ONE CLOSED UTC day (2026-09-16). It is not a series
+and it cannot see trends. Reading a closed day rather than a running one is
+what makes the verdict independent of when the runner happens to fire —
+measured delay in this repo is 104-405 minutes.
+
+FAIL: gap-too-wide — |-320| exceeds 190 (8% of 3800)
+A positive gap means a site spent without naming itself, or a KV write was
+lost. A negative gap means a correction reached odds:site:* but not
+odds:daily:*, which is the 2026-09-16 defect returning from the other side.
+Raising TOLERANCE_PCT to turn this green is the thing that ends the watch.
