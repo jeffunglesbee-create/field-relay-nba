@@ -54,6 +54,32 @@ const MUTATIONS = [
   // the matcher harness and A7 in the attribution one: dead code with an
   // untestable mutation is worse than neither (Rule 90's corollary).
 
+  // ── the 2026-09-17 widening: one repo watched, three red ones invisible ──
+  { name: 'D8 the watch narrows back to one repo',
+    anchor: "export const REPOS = (process.env.DEAD_CRON_REPOS || [",
+    replace: "export const REPOS = (process.env.DEAD_CRON_REPOS || [ 'jeffunglesbee-create/field-relay-nba' ].concat([",
+    catches: 'the shape that reported 0 dead crons while two other repos were multi-day red' },
+
+  { name: 'D9 the laboratory and playground are dropped',
+    anchor: "  'jeffunglesbee-create/field-laboratory',\n  'jeffunglesbee-create/field-playground',",
+    replace: '',
+    catches: 'drift-sentinel at 8 consecutive failures and Build Check at 3 go unwatched again' },
+
+  { name: 'D10 detector keys stop carrying their repo',
+    anchor: 'export const declaredKey = (repo, path) => `${repo}:${path}`;',
+    replace: 'export const declaredKey = (repo, path) => path;',
+    catches: 'one repo\'s declaration excuses a dead cron of the same name in another' },
+
+  { name: 'D11 cron extraction stops distinguishing a scheduled workflow',
+    anchor: "export const cronFromSource = (src) => (String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || null;",
+    replace: 'export const cronFromSource = () => null;',
+    catches: 'every never-fired cron is filed as "no schedule block" and never judged' },
+
+  { name: 'D12 a push-only workflow reads as a declared cron',
+    anchor: "(String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || null",
+    replace: "(String(src || '').match(/cron:\\s*'([^']+)'/) || [])[1] || 'unknown'",
+    catches: 'the no-schedule bucket floods into never-fired and the signal drowns' },
+
   { name: 'D5 the never-fired grace becomes unreachable',
     anchor: 'export function overdueNeverFired(neverFired, graceDays, now = Date.now()) {\n  return neverFired.filter(w => (now - Date.parse(w.created_at)) / 86400000 > graceDays);',
     replace: 'export function overdueNeverFired(neverFired, graceDays, now = Date.now()) {\n  return [];',
@@ -90,9 +116,9 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: the three PURE predicates — the page loop, the short-read`);
-console.log(`assertion and the never-fired grace. It does NOT exercise the GitHub API,`);
-console.log(`the bucket split, or the exit path: the sandbox token is a proxy`);
-console.log(`placeholder, so those are verified by dispatching the workflow and`);
-console.log(`reading its committed outbox log.`);
+console.log(`COVERAGE: the PURE predicates — page loop, short-read assertion, grace,`);
+console.log(`the repo list, detector-key qualification and cron extraction. It does NOT`);
+console.log(`exercise the GitHub API, the per-repo survey, or the exit path: the sandbox`);
+console.log(`token is a proxy placeholder and RELAY_GH_PAT exists only in CI, so those`);
+console.log(`are verified by dispatching the workflow and reading its committed log.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);

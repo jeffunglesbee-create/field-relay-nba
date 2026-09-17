@@ -5,6 +5,12 @@ name: Silently dead crons (read-only)
 # Nobody saw it because every check in this repo asks about ONE workflow at a
 # time, and a cron that dies at its first guard leaves no artifact and no diff.
 #
+# WIDENED TO FOUR REPOS 2026-09-17, on the same evidence one level out. Scoped
+# to its own repo it reported 0 dead crons on a day when:
+#   field-laboratory / drift-sentinel   8 consecutive scheduled failures (from 09-13)
+#   field-playground / Build Check      3 consecutive scheduled failures (from 09-15)
+# Both crossed its own STREAK threshold; neither was in its 150 workflows.
+#
 # READ-ONLY: GitHub API, GET only. No D1, no relay.
 
 on:
@@ -30,9 +36,16 @@ jobs:
           node scripts/watch-silently-dead-crons.mjs --self-test
           node scripts/mutate-silently-dead-crons.mjs
 
+      # RELAY_GH_PAT, not the run's GITHUB_TOKEN. The default token is scoped to
+      # the repository it runs in, so with it this watch can only ever see
+      # field-relay-nba — which is precisely the blindness being fixed. The PAT
+      # is the established cross-repo mechanism here: eight workflows already
+      # use it, including contracts-identity-check.yml, which checks out
+      # jubilant-bassoon with it. If it cannot reach a listed repo, ghAll throws
+      # and this run goes red by name rather than quietly surveying fewer repos.
       - name: Watch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELAY_GH_PAT }}
         run: node scripts/watch-silently-dead-crons.mjs
       - name: Commit the log
         if: always()

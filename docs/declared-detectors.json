@@ -3,7 +3,7 @@
     "Workflows whose RED IS THEIR OUTPUT, not their failure. A detector reports a",
     "condition; while the condition holds it exits non-zero, and that is the",
     "design. scripts/watch-silently-dead-crons.mjs lists these separately instead",
-    "of calling them dead — without this it would report them every day forever,",
+    "of calling them dead \u2014 without this it would report them every day forever,",
     "and a watch that cries wolf is how odds-backfill.yml went fifteen days",
     "unnoticed in the first place.",
     "",
@@ -11,16 +11,21 @@
     "document tracking it. The watch still prints how long each has been red, so",
     "a detector red for months stays visible rather than becoming furniture.",
     "Adding an entry to silence a genuinely broken workflow is the abuse this",
-    "file makes easy to spot in review: the reason has to be written down."
+    "file makes easy to spot in review: the reason has to be written down.",
+    "",
+    "KEYS ARE REPO-QUALIFIED as of 2026-09-17, when the watch widened from one",
+    "repo to four. `.github/workflows/deploy.yml` exists in all four; a bare path",
+    "key would let a declaration made for one repo excuse a genuinely dead cron",
+    "of the same name in another. The form is `owner/repo:.github/workflows/x.yml`."
   ],
   "detectors": {
-    ".github/workflows/brief-label-migration.yml": {
+    "jeffunglesbee-create/field-relay-nba:.github/workflows/brief-label-migration.yml": {
       "reports": "brief rows whose sport is outside the authority label set read from the games table",
       "red_because": "4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
-      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 — verify exits 1 when verification.clean is false"
+      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 \u2014 verify exits 1 when verification.clean is false"
     },
-    ".github/workflows/rule90-staleness-monitor.yml": {
+    "jeffunglesbee-create/field-relay-nba:.github/workflows/rule90-staleness-monitor.yml": {
       "reports": "rule-registry entries marked UNEXERCISED for more than 14 days",
       "red_because": "rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
