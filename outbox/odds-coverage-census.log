@@ -1,28 +1,32 @@
 
-=== 2026-09-15 — 31 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  EFL Cup                   5        0        0     0     0        0           0
-  EFL Trophy                5        0        0     0     0        0           0
-  La Liga                   3        2        2     2     2        0           0
-  MLB                      15       15       15     0    15        0           0
-  MLS                       3        0        0     0     0        0           0
-
-  of 17 closing snapshot(s): 17 a verified sequence, 0 unverifiable, 0 out of order
-
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-15T10:01:59.720Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":135,"away":210,"draw":240}}
-
-  checked 5 distinct sport label(s) on this date — every label present, not a sample
-
 === 2026-09-16 — 35 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
   EFL Cup                   4        0        0     0     0        0           0
   La Liga                   4        0        0     0     0        0           0
-  MLB                      15       15        0     0     0        0           0
+  MLB                      15       15       15     0    15        0           0
   MLS                       3        0        0     0     0        0           0
   UEFA Europa League        9        0        0     0     0        0           0
 
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 15 closing snapshot(s): 15 a verified sequence, 0 unverifiable, 0 out of order
 
   one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-16T10:02:13.597Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-180,"away":148},"spread":{"home":-1.5,"away":1.5,"homePrice":1
 
   checked 5 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-09-17 — 31 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  CFB                       1        0        0     0     0        0           0
+  EFL Cup                   1        0        0     0     0        0           0
+  La Liga                   2        2        0     2     0        0           0
+  MLB                       9        9        0     0     0        0           0
+  MLS                       2        0        0     0     0        0           0
+  NFL                       1        0        0     0     0        0           0
+  PGA Tour                  1        0        0     0     0        0           0
+  UEFA Europa League        9        0        0     0     0        0           0
+  WNBA                      5        5        0     0     0        0           0
+
+  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-17T10:02:27.282Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-160,"away":475,"draw":285}}
+
+  checked 9 distinct sport label(s) on this date — every label present, not a sample
