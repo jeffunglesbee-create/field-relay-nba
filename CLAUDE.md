@@ -142,6 +142,17 @@ Claude's governance obligations are independent of user pace. If the user asks f
   and needed a manual dispatch. `auto-merge-stray-branches.yml` is the only other
   workflow suppressed (it has no paths filter). `[skip ci]` remains correct on
   commits that DO touch a deploy-trigger path but should not deploy.
+- **NEVER WRITE THE LITERAL SKIP TOKEN IN COMMIT PROSE.** GitHub scans the WHOLE
+  commit message for it, body included — it is not a subject-line directive and
+  it does not care that the sentence around it says the opposite. Measured
+  2026-09-17: commit `c195b0d` carried the 09-16d session doc and a body
+  explaining *why* the token was not being used. The explanation contained the
+  token twice. **0 workflow runs for that SHA** — deploy, Drive upload, every
+  gate, all suppressed by a sentence saying it was not being suppressed. The
+  session doc reached Drive only by manual dispatch (run 35175941790).
+  Refer to it as "the skip directive" in prose. `scripts/check-commit-skip-prose.mjs`
+  blocks it, and it runs from the pre-push path rather than from CI, because a
+  CI gate cannot catch the one thing that stops CI running.
 - `drive-upload-outbox.yml` runs a daily ledger-based sweep (07:00 UTC) as a
   backstop, but it is a backstop — the convention above is the fix.
 - The workflow's `file_pattern` dispatch input matches a BASENAME (`find -name`),
