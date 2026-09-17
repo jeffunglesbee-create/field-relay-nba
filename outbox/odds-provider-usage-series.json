@@ -49,5 +49,16 @@
     "games_paired_in_window": 0,
     "games_paired_rows_counted": 1,
     "games_paired_rows_skipped": 0
+  },
+  {
+    "at": "2026-09-17T15:24:43.833Z",
+    "provider_used": "68472",
+    "provider_remaining": "31528",
+    "ledger_month_used": 48307,
+    "daily_used": 86,
+    "daily_ceiling": 3800,
+    "games_paired_in_window": 24,
+    "games_paired_rows_counted": 14,
+    "games_paired_rows_skipped": 0
   }
 ]

@@ -1,0 +1,49 @@
+=== odds backfill pairing rate  utc=2026-09-17T15:24:41.962Z ===
+window: progress rows dated >= 2026-09-03
+
+  progress rows in window        : 14
+  of those, rows that spent      : 14
+  spent AND paired at least one  : 6
+  spent AND paired ZERO          : 8
+  total credits in window        : 700
+  total games paired in window   : 24
+
+FAIL: 8 date(s) were billed and paired nothing:
+      2026-09-15  credits 80  games 0
+      2026-09-14  credits 60  games 0
+      2026-09-11  credits 20  games 0
+      2026-09-10  credits 40  games 0
+      2026-09-08  credits 20  games 0
+      2026-09-07  credits 20  games 0
+      2026-09-06  credits 60  games 0
+      2026-09-03  credits 40  games 0
+
+This is the shape the equality matcher produced on every CFB date before
+2026-09-16. Investigate the matcher before the budget (Rule 77).
+
+  provider billed this month     : 68472
+  our ledger says                : 48307
+  today's daily counter          : 86 / 3800
+  readings on file               : 5
+  daily ceiling verdict          : within_ceiling  (86/3800, 2%)
+
+  since the last reading (17.5h):
+      provider billed   : 2393
+      our ledger charged: 1966
+      escaped the ledger: 427   (tolerance 120)
+      positive — the vendor billed for calls our counters did not see
+      games paired since: not comparable (that reading covered 1 rows, this one 14)
+
+  wrote outbox/odds-provider-usage-series.json (6 reading(s) kept)
+
+FAIL: the vendor billed 2393 while our ledger charged only 1966.
+427 credits reached the provider without reaching a counter. Both guards
+degrade OPEN — consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,
+checkAndIncrementDailyOdds returns true on any KV error — so spend that the
+vendor saw and we did not is the signature of a guard that stopped guarding.
+This compares the two counters to EACH OTHER, so it is not the standing
+cumulative gap (19,582 on 2026-09-16); it is new divergence in this interval.
+
+COVERAGE: 14 progress rows since 2026-09-03, 6 provider reading(s).
+odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an
+unpaired one reads as paired — this catches total failure per date, not per sport.
