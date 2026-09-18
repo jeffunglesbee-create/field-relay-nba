@@ -1,0 +1,64 @@
+name: Odds site drift (read-only)
+
+# WHY by_site_sum EXCEEDS used, measured INSIDE a running day.
+#
+# The attribution watch reads ONE closed day and reports a total: on 2026-09-17,
+# used 3799 against by_site_sum 4196, a gap of -397. A total names no mechanism.
+# Reading the source killed three of the four candidates (midnight skew, ceiling
+# saturation, a lost site write — see the script header); the survivor is the
+# per-site clamp in _bumpSite discarding a refund aimed at a site already at 0
+# while odds:daily:* takes the same refund in full.
+#
+# That hypothesis is only killable from INSIDE a day: the discriminating event
+# is an interval where `used` FALLS while the gap GROWS. A closed-day total
+# cannot show it, and neither can two readings of two different days.
+#
+# EVERY THREE HOURS, because the event is an interval and not a level. The
+# measured scheduled-run delay here is 104-405 minutes, which makes the sample
+# times irregular — that costs nothing, since each interval is computed from the
+# sample's own timestamp rather than from the cron it was meant to fire on.
+#
+# READ-ONLY, AND FREE: one GET of /budget/odds, which reads KV counters and
+# never reaches the vendor. No credits.
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The predicate must be able to fail before its verdict means anything.
+      # D5 and D6 matter most: they break the watch's ability to REFUTE its own
+      # hypothesis, which is how a probe ends up only ever confirming itself.
+      - name: the watch can fail
+        run: |
+          node scripts/watch-odds-site-drift.mjs --self-test
+          node scripts/mutate-odds-site-drift.mjs
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      - name: Watch
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/watch-odds-site-drift.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): the series is the artifact and it must keep accumulating on
+      # the run that went red — that run is the one carrying the evidence.
+      - name: Commit the series
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-site-drift" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds site drift"
