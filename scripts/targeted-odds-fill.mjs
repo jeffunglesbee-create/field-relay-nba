@@ -151,6 +151,7 @@ if (!APPLY) {
 if (!ODDS_KEY) { console.error('missing ODDS_API_KEY'); process.exit(1); }
 
 let spent = 0, inserted = 0, emptyPairs = 0, ambiguousPairs = 0, pricelessEvents = 0;
+let matchedGames = 0, noH2hMarket = 0;
 for (const p of plan) {
   const sportKey = backfillSportToOddsKey(p.sport);
   const url = `${ODDS_API_BASE}/v4/historical/sports/${encodeURIComponent(sportKey)}/odds`
@@ -172,10 +173,16 @@ for (const p of plan) {
   for (const g of p.games) {
     const m = slate.byGameId.get(g.id);
     if (!m) continue;
+    matchedGames++;
     const ev = m.event;
     const bk = ev.bookmakers?.[0];
     const h2h = bk?.markets?.find(m2 => m2.key === 'h2h');
-    if (!h2h) continue;
+    // COUNTED, because it was not. The 2026-09-12 CFB probe matched 80 of 80
+    // games and priced 66, with `ambiguous` and `priceless` both reporting 0 —
+    // so fourteen games left through this line and no printed number moved.
+    // A silent drop of 17.5% is the shape that gets extrapolated into a
+    // 2,600-credit decision as if it were a 100% result.
+    if (!h2h) { noH2hMarket++; continue; }
     // Prices come from the shared reader, keyed off the VENDOR's team names.
     // This line used to compare outcome names to the ARCHIVE's names, which
     // returns null for every college game and inserts a row with no odds in it.
@@ -203,4 +210,12 @@ console.log(`  odds_history rows inserted : ${inserted}`);
 console.log(`  pairs the vendor had nothing for : ${emptyPairs} (billed anyway)`);
 console.log(`  games skipped as ambiguous       : ${ambiguousPairs} (never guessed)`);
 console.log(`  events matched but unpriced      : ${pricelessEvents} (no row written)`);
+console.log(`  matched but no h2h market        : ${noH2hMarket} (no row written)`);
+// The balance is printed rather than assumed. Every game that matched must
+// leave through exactly one of these doors; a nonzero residual means a path
+// exists that no counter names, which is how the last one hid.
+const residual = matchedGames - inserted - pricelessEvents - noH2hMarket;
+console.log(`\n  games matched   : ${matchedGames}`);
+console.log(`  = priced ${inserted} + unpriced ${pricelessEvents} + no-market ${noH2hMarket}`
+  + (residual === 0 ? '   (balances)' : `   UNACCOUNTED ${residual} — a path with no counter`));
 console.log(`\nNo odds_backfill_progress row was read or written by this script.`);
