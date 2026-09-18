@@ -17,7 +17,25 @@
 //                      makes by_site_sum SMALLER than used, not larger.
 //   clamp asymmetry    SURVIVES, and this probe exists to refute it.
 //
-// THE SURVIVOR, STATED SO IT CAN BE KILLED. reconcileOddsCredit refunds an
+// TWO SURVIVORS, NOT ONE. The second was found on 2026-09-18 while writing the
+// "few lines" that were going to fix the first, and it is the better of the two.
+//
+// LOST UPDATES ON THE HOTTEST KEY. Every counter here is get-then-put on KV,
+// non-atomic, which reconcileOddsCredit's own comment already says out loud.
+// Concurrent isolates therefore lose updates — and they do not lose them
+// evenly. odds:daily:<date> is written on EVERY permitted call. Each of the ten
+// odds:site:* keys is written on the fraction of calls that names it, and one
+// consumer takes 62-88% of traffic, so the remaining nine are colder still. The
+// hot key loses proportionally more writes than the sum of the cold ones, and
+// the daily total drifts BELOW by_site_sum — which is the sign observed, and
+// 3799 against 4196 is a 9.5% shortfall on the busiest key in the system. The
+// magnitude is UNMEASURED; only the direction follows from the code.
+//
+// The two are told apart by whether the gap grows on refunds or on volume, and
+// the verdicts below already separate exactly that. `gap-grows-while-spending`
+// is the lost-update signature, NOT an unexplained result.
+//
+// THE FIRST SURVIVOR, STATED SO IT CAN BE KILLED. reconcileOddsCredit refunds an
 // over-estimate by adding a NEGATIVE delta in two different shapes:
 //
 //   _bumpSite        Math.max(0, cur + units)   clamped PER SITE
@@ -266,9 +284,12 @@ if (v.state === 'clamp-witnessed') {
   process.exit(1);
 }
 if (v.state === 'gap-grows-while-spending') {
-  err(`\nFAIL: ${v.hits} interval(s) grew the gap while spend ROSE. That is NOT the clamp —`);
-  err(`      it is spend reaching odds:site:* without reaching odds:daily:*, which no`);
-  err(`      candidate in this file's header predicts. Investigate before assuming.`);
+  err(`\nFAIL: ${v.hits} interval(s) grew the gap while spend ROSE. That is NOT the clamp.`);
+  err(`      It is the lost-update signature: odds:daily:* is get-then-put on KV and is`);
+  err(`      written on every permitted call, while each odds:site:* key is written on a`);
+  err(`      fraction of them, so concurrent isolates drop more writes on the hot key.`);
+  err(`      The fix is an atomic counter for the daily total, not a tolerance and not`);
+  err(`      the per-site clamp.`);
   process.exit(1);
 }
 say(`\nOK: ${v.state} — no interval has caught the counters parting yet.`);
