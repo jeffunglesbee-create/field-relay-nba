@@ -1,0 +1,65 @@
+name: Undeployed src watch (read-only)
+
+# Is code that was committed actually RUNNING?
+#
+# On 2026-09-18 commit a1096c1 touched src/budget-helpers.js, its deploy failed
+# at a gate, and the fix commit was docs-only — so deploy.yml's paths filter did
+# not re-trigger it and the code sat unbuilt. Nothing reported that: the failed
+# run scrolled away, the fix commit ran no workflows at all, and git log looked
+# finished. It took a person noticing "no deploy run for this SHA".
+#
+# Hourly, not daily: the window between a red deploy and someone shipping on top
+# of it is where this bites, and a day is long enough to forget.
+#
+# READ-ONLY: git log and the GitHub API, GET only.
+
+on:
+  schedule:
+    - cron: '35 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # REQUIRED. The predicate runs `git log <lastGreenSha>..HEAD`, and a
+          # shallow clone cannot see a SHA from more than a few commits back —
+          # the watch would fail on its own checkout rather than on the repo.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The predicate must be able to fail before its verdict means anything.
+      - name: the watch can fail
+        run: |
+          node scripts/watch-undeployed-src.mjs --self-test
+          node scripts/mutate-undeployed-src.mjs
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      # The run's own GITHUB_TOKEN, not RELAY_GH_PAT: this watch reads one
+      # repository — the one it runs in — so the default scope is exactly right
+      # and a cross-repo PAT would be more access than the question needs.
+      - name: Watch
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/watch-undeployed-src.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): the log is most worth keeping on the run that went red, which
+      # is the run whose console output nobody will scroll back to.
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="undeployed-src-watch" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: undeployed src watch"
