@@ -108,6 +108,27 @@ export function driftVerdict(pairs) {
   return { state: 'inconclusive', intervals: usable.length };
 }
 
+/** The sample, or the reason there isn't one.
+ *  /budget/odds WRAPS the counters in a `daily` block — reading the route's
+ *  top level yields a sample of undefineds. The first live run of this watch
+ *  did exactly that, recorded it, and exited OK: `no-data` is a legitimate
+ *  verdict for a day's first reading, so a garbage sample was indistinguishable
+ *  from a quiet one. A read that did not produce numbers is now FATAL, because
+ *  a series quietly filling with undefined is worse than a series with a hole.
+ *  (The working consumer, watch-odds-attribution-gap.mjs:152, reads body.daily
+ *  — this was in the repo the whole time and was not looked at.) */
+export function sampleFrom(body, at = new Date().toISOString()) {
+  const d = body && body.daily;
+  if (!d || typeof d !== 'object') return { ok: false, why: 'no `daily` block in the response' };
+  if (typeof d.date !== 'string') return { ok: false, why: `daily.date is ${JSON.stringify(d.date)}, not a string` };
+  if (typeof d.used !== 'number') return { ok: false, why: `daily.used is ${JSON.stringify(d.used)}, not a number` };
+  if (!d.by_site || typeof d.by_site !== 'object') return { ok: false, why: 'daily.by_site is missing' };
+  return { ok: true, sample: {
+    at, date: d.date, used: d.used, by_site: d.by_site, by_site_sum: d.by_site_sum,
+    unreadable_sites: d.unreadable_sites, degraded_open: d.degraded_open,
+  } };
+}
+
 if (process.argv.includes('--self-test')) {
   let bad = 0;
   const one = (label, got, want, why) => JSON.stringify(got) === JSON.stringify(want)
@@ -159,8 +180,18 @@ if (process.argv.includes('--self-test')) {
   one('one hit names the series', driftVerdict([flat, d, rise]).state, 'clamp-witnessed',
       'a single witnessed interval settles the mechanism; the rest is volume');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 14/14`);
-  console.log(`COVERAGE: four pure predicates over ENUMERATED samples. It does NOT reach`);
+  const ENV = { daily: { date: '2026-09-18', used: 10, by_site: { a: 10 }, by_site_sum: 10 } };
+  one('the counters live under `daily`', sampleFrom(ENV, 't').sample.used, 10,
+      'the route wraps them; reading the top level gave a sample of undefineds on the first live run');
+  one('a top-level read is REFUSED', sampleFrom({ date: 'd', used: 10, by_site: {} }).ok, false,
+      'the exact 2026-09-18 15:48 defect — it recorded undefined and exited OK');
+  one('undefined used is not a sample', sampleFrom({ daily: { date: 'd', by_site: {} } }).ok, false,
+      'a series filling with undefined is worse than a series with a hole');
+  one('a missing by_site is not a sample', sampleFrom({ daily: { date: 'd', used: 1 } }).ok, false,
+      'every interval would then compare nothing to nothing and read as quiet');
+
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 18/18`);
+  console.log(`COVERAGE: five pure predicates over ENUMERATED samples. It does NOT reach`);
   console.log(`/budget/odds, and it cannot see a refund that landed between two samples`);
   console.log(`and was undone before the next one — the sampling interval is the floor on`);
   console.log(`what is observable.`);
@@ -173,22 +204,25 @@ const err = (l = '') => { out.push(l); console.error(l); };
 
 say(`=== odds site drift  utc=${new Date().toISOString()} ===\n`);
 
-const res = await fetch(`${RELAY}/budget/odds`);
+const res = await fetch(`${RELAY}/budget/odds`, { headers: { Accept: 'application/json' } });
 if (!res.ok) { err(`FAIL: /budget/odds returned HTTP ${res.status}`); process.exit(1); }
-const live = await res.json();
-
-const sample = {
-  at: new Date().toISOString(),
-  date: live.date,
-  used: live.used,
-  by_site: live.by_site,
-  by_site_sum: live.by_site_sum,
-  unreadable_sites: live.unreadable_sites,
-  degraded_open: live.degraded_open,
-};
+const parsed = sampleFrom(await res.json());
+if (!parsed.ok) {
+  err(`FAIL: /budget/odds did not yield a sample — ${parsed.why}.`);
+  err(`      Recording it anyway is how a garbage reading passes as a quiet one.`);
+  process.exit(1);
+}
+const sample = parsed.sample;
 
 let series = [];
 if (existsSync(SERIES)) { try { series = JSON.parse(readFileSync(SERIES, 'utf8')); } catch (_) { series = []; } }
+// The 15:48 run committed one sample of undefineds before the shape was fixed.
+// Dropping it on load beats a migration: any entry that is not a usable reading
+// cannot take part in an interval anyway, and leaving it in the artifact makes
+// a reader count samples that were never measurements.
+const junk = series.length;
+series = series.filter(x => x && typeof x.date === 'string' && typeof x.used === 'number');
+if (junk !== series.length) say(`  dropped ${junk - series.length} unusable sample(s) already on file\n`);
 series.push(sample);
 series = series.slice(-KEEP);
 writeFileSync(SERIES, JSON.stringify(series, null, 2) + '\n');

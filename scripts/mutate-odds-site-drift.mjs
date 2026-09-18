@@ -65,6 +65,16 @@ const MUTATIONS = [
     anchor: "  if (d.gapDelta <= 0) return { verdict: 'gap-did-not-grow' };",
     replace: "  if (d.gapDelta < -1e9) return { verdict: 'gap-did-not-grow' };",
     catches: 'every ordinary refund interval becomes a clamp sighting, and the signal is gone' },
+
+  { name: 'D9 the route is read at the top level again',
+    anchor: '  const d = body && body.daily;',
+    replace: '  const d = body;',
+    catches: 'the exact 2026-09-18 15:48 defect — a sample of undefineds, recorded, exit 0' },
+
+  { name: 'D10 a shapeless read is recorded anyway',
+    anchor: "  if (typeof d.used !== 'number') return { ok: false, why: `daily.used is ${JSON.stringify(d.used)}, not a number` };",
+    replace: '  if (false) return { ok: false, why: 0 };',
+    catches: 'undefined enters the series, every interval reads quiet, and the watch stays green' },
 ];
 
 let caught = 0;
@@ -87,7 +97,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: the four pure predicates. It does NOT exercise the /budget/odds`);
+console.log(`COVERAGE: the five pure predicates. It does NOT exercise the /budget/odds`);
 console.log(`fetch, the series file, or the cross-midnight branch of the live loop — those`);
 console.log(`are verified by dispatching the workflow, since sandbox egress to the relay`);
 console.log(`is blocked (403 at the proxy).`);
