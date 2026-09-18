@@ -88,9 +88,16 @@ negative) delta, clamped at zero so a lost race cannot erase spend that
 happened.
 
 **Correction to what I reported in chat:** I said `oddsProxyRoute` had no
-reconcile call. It has one, `src/index.js:16078`, under the name `odds-proxy`.
-My grep was truncated. All nine charge and all nine reconcile; four disagreed
-about who they were.
+reconcile call. It has one — `src/index.js:16099`,
+`reconcileOddsCredit(env, oddsCreditCost(targetUrl), _proxyResp, 'oddsProxyRoute')`
+— which at the time of the mistake read `'odds-proxy'`. My grep was truncated.
+All nine charge and all nine reconcile; four disagreed about who they were.
+
+(Re-anchored 2026-09-18. The citation originally quoted `odds-proxy`, the very
+name this session renamed away, so the anchor stopped resolving and the citation
+went bare — tripping `check-doc-citations.mjs`'s ratchet on the next deploy. A
+citation anchored on a string you are in the middle of deleting is anchored to
+nothing.)
 
 **Confirmed live, and not by the gap.** `ambientFetchLiveOdds` went **268 → 264**
 between 21:33Z and 21:47Z. A site counter *decreased*. Only reconcile's negative
@@ -301,8 +308,16 @@ FAILING 3 CONSECUTIVE SCHEDULED RUNS: 2   (both declared detectors, both visible
 declares a cron but ZERO scheduled runs: 4   (all four INVISIBLE, past the cap)
 ```
 
-- `scripts/watch-silently-dead-crons.mjs:42` —
-  `actions/workflows?per_page=100`, **no pagination**, against 150 workflows.
+- `scripts/watch-silently-dead-crons.mjs` fetched the workflow list with a
+  single unpaginated request against 150 workflows. The line now reads
+  `const workflows = await ghAll(`, which walks every page and throws on a
+  short read.
+
+  (The citation here deliberately quotes the CURRENT line, not the defective
+  one. A doc that records a defect by quoting the broken code cites a string the
+  fix then deletes — which is exactly how this citation went bare and tripped
+  `check-doc-citations.mjs` on 2026-09-18. Describe the old shape in prose;
+  anchor on what survives.)
 - line 44 prints `${workflows.length} workflow(s)` → **"100 workflow(s)"**,
   which reads as the repo total. Rule 91, in the instrument built to be the
   repo-wide one.
