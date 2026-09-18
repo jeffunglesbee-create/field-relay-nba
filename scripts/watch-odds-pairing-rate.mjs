@@ -85,6 +85,32 @@ export const ESCAPE_FLOOR = 50;
 export const RESET_FLOOR = 1000;
 export const ESCAPE_PCT = 0.05;
 
+/** How much of an escape a fallen-open guard accounts for.
+ *
+ *  Returns { state, credits } where state is one of:
+ *    unreadable   the counter could not be read — NOT the same as none
+ *    none         the guard did not degrade in this window
+ *    partial      degradation happened but is smaller than the escape
+ *    explains     degradation covers the escape
+ *
+ *  A CUMULATIVE DAILY COUNTER READ AS A LEVEL, WHICH IS WHY prev IS REQUIRED.
+ *  odds:degraded:<date> only grows within a day, so the figure relevant to an
+ *  interval is the DELTA. Across a date boundary the counter restarts and the
+ *  delta would go negative; that is reported as unreadable rather than clamped,
+ *  because a clamp would quietly claim "no degradation" on exactly the reading
+ *  that spans midnight. */
+export function degradeVerdict(prevDegraded, currDegraded, escaped) {
+  const n = (d) => (d && Number.isFinite(Number(d.credits)) ? Number(d.credits) : null);
+  const now = n(currDegraded);
+  if (now === null) return { state: 'unreadable', credits: null };
+  const was = prevDegraded === undefined ? 0 : n(prevDegraded);
+  if (was === null) return { state: 'unreadable', credits: null };
+  const delta = now - was;
+  if (delta < 0) return { state: 'unreadable', credits: null };
+  if (delta === 0) return { state: 'none', credits: 0 };
+  return { state: delta >= escaped ? 'explains' : 'partial', credits: delta };
+}
+
 /** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
  *  odds-backfill.js runs in GitHub Actions and calls the Odds API directly;
  *  consumeOddsCredit lives in the worker and never sees it. So a positive
@@ -330,15 +356,33 @@ if (SELF) {
   one('a negative outsideLedger cannot inflate', IV(-500).unexplained, 427,
       'clamped at 0, so a bad input can never manufacture leakage');
 
+  // ── did a guard fall open? the last surviving candidate for the 347 ──────
+  const DG = (credits) => ({ events: 1, credits, last: 'x' });
+  one('no degradation',        degradeVerdict(DG(0), DG(0), 347).state, 'none', 'the counter did not move');
+  one('none is reported as 0', degradeVerdict(DG(0), DG(0), 347).credits, 0, 'a real zero, distinguishable from unreadable');
+  one('degradation explains it',  degradeVerdict(DG(0), DG(400), 347).state, 'explains', '400 covers a 347 escape');
+  one('degradation covers exactly', degradeVerdict(DG(0), DG(347), 347).state, 'explains', 'equal counts as covered');
+  one('degradation is partial',   degradeVerdict(DG(100), DG(200), 347).state, 'partial', '100 of 347 — real, but not the whole story');
+  one('the DELTA is used, not the level', degradeVerdict(DG(1000), DG(1100), 347).credits, 100,
+      'the counter is cumulative per day; a level would claim 1100 on an interval that saw 100');
+  one('an unreadable counter is not zero', degradeVerdict(DG(0), null, 347).state, 'unreadable',
+      'Number(null) is 0 and would print "no guard degraded" on no evidence — Rule 99, in the instrument');
+  one('an unreadable BASELINE is not zero', degradeVerdict(null, DG(50), 347).state, 'unreadable',
+      'the older readings predate this field; a missing baseline cannot be subtracted from');
+  one('a first reading treats absence as 0', degradeVerdict(undefined, DG(50), 347).credits, 50,
+      'undefined means there was no prior reading at all, which is different from one that could not be read');
+  one('a midnight rollover is unreadable', degradeVerdict(DG(900), DG(20), 347).state, 'unreadable',
+      'the daily counter restarted; clamping would claim "no degradation" on exactly that reading');
+
   for (const [daily, want, why] of CEILING) {
     const got = ceilingVerdict(daily).state;
     got === want ? console.log(`  PASS  ceiling: ${want.padEnd(27)} (${why})`)
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
-  const _n = CASES.length + INTEGRITY.length + CEILING.length + 22;
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + 32;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
-  console.log(`COVERAGE: five predicates on synthetic readings. None exercises D1, the`);
+  console.log(`COVERAGE: six predicates on synthetic readings. None exercises D1, the`);
   console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers.`);
   process.exit(bad ? 1 : 0);
 }
@@ -434,6 +478,9 @@ const reading = {
   ledger_month_used: budget?.monthly?.used ?? null,
   daily_used: budget?.daily?.used ?? null,
   daily_ceiling: budget?.daily?.ceiling ?? null,
+  // Carried on every reading so the NEXT one can take a delta. Absent on the
+  // older readings, which degradeVerdict reports as unreadable rather than 0.
+  degraded_open: budget?.daily?.degraded_open ?? null,
   // A partial sum published as a total is the defect this field would carry
   // forward into every future delta. If any row's count was unreadable, the
   // window total is unknown and is stored as such.
@@ -445,6 +492,7 @@ const prev = series.length ? series[series.length - 1] : null;
 const ceiling = Number(reading.daily_ceiling) || 3800;
 const ci = prev ? ciSpendInInterval(rows, prev.at, reading.at) : { credits: 0, runs: 0, undated: 0 };
 const integrity = ledgerIntegrityVerdict(prev, reading, ci.credits);
+const degrade = degradeVerdict(prev?.degraded_open, reading.degraded_open, integrity.unexplained ?? 0);
 const cap = ceilingVerdict({ used: reading.daily_used, ceiling: reading.daily_ceiling });
 
 console.log(`\n  provider billed this month     : ${reading.provider_used ?? 'unreadable'}`);
@@ -468,6 +516,11 @@ if (integrity.state === 'no_baseline') {
   console.log(`      escaped the ledger: ${integrity.escaped}`);
   console.log(`      known CI spend    : ${integrity.outsideLedger}   (${ci.runs} backfill run(s) in window${ci.undated ? `, ${ci.undated} undated row(s) NOT subtracted` : ''})`);
   console.log(`      UNEXPLAINED       : ${integrity.unexplained}   (tolerance ${integrity.tolerance})`);
+  console.log(`      guard fell open   : ${degrade.state}${degrade.credits === null ? '' : ` — ${degrade.credits} credit(s)`}`);
+  if (degrade.state === 'none' && integrity.unexplained > integrity.tolerance) {
+    console.log(`      no guard degraded, so the unexplained credits are NOT a`);
+    console.log(`      degrade-open. That eliminates the last named candidate.`);
+  }
   console.log(`      ${integrity.escaped < 0
     ? 'negative — our ledger charged MORE than the vendor billed, which is the reconcile direction'
     : 'positive — the vendor billed for calls our counters did not see'}`);

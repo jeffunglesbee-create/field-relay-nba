@@ -122,6 +122,57 @@ async function _bumpSite(env, site, units) {
     }
 }
 
+/** Credits that got through because a guard degraded OPEN.
+ *
+ *  WHY THIS EXISTS, from an elimination rather than a hunch. On 2026-09-17 the
+ *  integrity watch found 427 credits at the vendor that no counter saw. The
+ *  obvious candidate — CI spending outside the ledger — was measured and ruled
+ *  out: in that window odds-backfill spent 80, provenance-census only names
+ *  ODDS_BASE in comments, none of the six dispatch-only vendor workflows ran,
+ *  and the other three repos hold no scheduled vendor caller at all. 347
+ *  credits had no remaining explanation except a guard falling open, and
+ *  nothing counted that.
+ *
+ *  BOTH DEGRADE PATHS ARE DELIBERATE AND ONLY ONE CAN BE COUNTED:
+ *
+ *    (1) `!env.FIELD_JOURNALISM` — the binding is absent, so there is nowhere
+ *        in KV to record it. Not a gap in this instrument: /budget/odds already
+ *        answers 503 "FIELD_JOURNALISM KV not bound" in that state, and the
+ *        watch treats an unreachable budget route as a failure. Visible, just
+ *        not here.
+ *
+ *    (2) the catch below — KV threw mid-operation. The call proceeds and spends
+ *        at the vendor while odds:daily:* never moves. THIS is the one with no
+ *        witness, and a later write may well succeed because the error is
+ *        transient, so it can record itself.
+ *
+ *  BEST EFFORT, AND SILENT WHEN IT FAILS. If KV is still throwing, this throws
+ *  too and nothing is recorded — which is honest: the outer symptom (credits at
+ *  the vendor, not in the ledger) is exactly what the watch already reports. A
+ *  counter that could itself break a fetch would be worse than no counter.
+ */
+function _degradeKey(date = new Date().toISOString().slice(0, 10)) {
+    return `odds:degraded:${date}`;
+}
+
+async function _countDegradeOpen(env, units) {
+    try {
+        const key = _degradeKey();
+        const raw = await env.FIELD_JOURNALISM.get(key);
+        const cur = raw ? JSON.parse(raw) : { events: 0, credits: 0 };
+        await env.FIELD_JOURNALISM.put(key, JSON.stringify({
+            events: (Number(cur.events) || 0) + 1,
+            // Credits, not just events: one degraded historical call is 30 and
+            // one degraded live call is 1. An event count would make those look
+            // the same and could not be compared against an escape figure.
+            credits: (Number(cur.credits) || 0) + (Number(units) || 0),
+            last: new Date().toISOString(),
+        }), { expirationTtl: 172800 });
+    } catch (_) {
+        // Deliberately empty. See BEST EFFORT above.
+    }
+}
+
 async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
@@ -161,6 +212,11 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
         await _bumpSite(env, site, units);
         return true;
     } catch (_) {
+        // DEGRADE-OPEN, AND NOW WITNESSED. The call is about to spend at the
+        // vendor while odds:daily:* did not move; without this line the only
+        // evidence is a discrepancy nobody can attribute, which is what cost a
+        // day of elimination on 2026-09-17.
+        await _countDegradeOpen(env, units);
         return true; // degrade-open
     }
 }
@@ -205,6 +261,17 @@ async function peekDailyOdds(env, forDate = null) {
         // from a site that spent nothing — the exact substitution that shipped
         // `briefs_counted: 0` from 48 nulls on 2026-08-22. If any site is
         // unreadable the sum is not known, and neither is the gap.
+        // A guard that fell open is the one thing that explains credits at the
+        // vendor with no counter movement. Reported as an OBJECT or null —
+        // never as 0 — because "no degradation today" and "the degrade counter
+        // could not be read" are different answers and only one is good news.
+        let degraded = null;
+        try {
+            const raw = await env.FIELD_JOURNALISM.get(_degradeKey(date));
+            degraded = raw ? JSON.parse(raw) : { events: 0, credits: 0, last: null };
+        } catch (_) {
+            degraded = null;
+        }
         const unreadable = Object.keys(sites).filter(k => sites[k] === null);
         const sum = unreadable.length
             ? null
@@ -237,6 +304,10 @@ async function peekDailyOdds(env, forDate = null) {
             // Named, so a null above has a reason attached to it rather than
             // being a bare unknown the reader has to go looking for.
             unreadable_sites: unreadable.length ? unreadable : null,
+            // null means the counter could not be read, NOT that nothing
+            // degraded. The binding-absent path cannot write here at all — that
+            // state surfaces as this route returning 503 instead.
+            degraded_open: degraded,
             grant_today: grants.length ? grants : null,
         };
     } catch (_) {

@@ -33,7 +33,11 @@ import { readFileSync } from 'node:fs';
 // scope check shipped: it QUOTES the regex as a mutation anchor and makes no
 // odds call. That it had to be named rather than silently ignored is the
 // mechanism working.
-// SCOPE-EXCLUDES: scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
+// src/budget-helpers.js DEFINES the guards and the cost model; it names
+// ODDS_BASE only in a comment recording that provenance-census's analyser
+// mentions the constant without calling it (2026-09-18 degrade-open work).
+// Excluded by name rather than by the list quietly being shorter.
+// SCOPE-EXCLUDES: src/budget-helpers.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds is

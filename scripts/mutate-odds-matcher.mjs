@@ -187,6 +187,27 @@ const MUTATIONS = [
     catches: 'a series of one reports a divergence it never measured' },
 
   // ── CI spend subtracted from the escape, 2026-09-17 ─────────────────────
+  // ── the degrade-open witness, 2026-09-18 ────────────────────────────────
+  { file: WATCHER, check: WATCH_CHECK, name: 'M43 an unreadable degrade counter reads as none',
+    anchor: "  if (now === null) return { state: 'unreadable', credits: null };",
+    replace: "  if (now === null) return { state: 'none', credits: 0 };",
+    catches: 'the watch prints "no guard degraded" on no evidence and eliminates a candidate it never tested' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M44 the cumulative counter is read as a level',
+    anchor: '  const delta = now - was;',
+    replace: '  const delta = now;',
+    catches: 'a day-long total is attributed to one interval, so any escape looks explained' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M45 a midnight rollover is clamped instead of flagged',
+    anchor: "  if (delta < 0) return { state: 'unreadable', credits: null };",
+    replace: '  if (delta < 0) return { state: \'none\', credits: 0 };',
+    catches: 'the reading that spans midnight claims no degradation, which is the one that cannot know' },
+
+  { file: WATCHER, check: WATCH_CHECK, name: 'M46 a missing baseline is treated as zero',
+    anchor: "  if (was === null) return { state: 'unreadable', credits: null };",
+    replace: '  if (was === null) return { state: \'none\', credits: 0 };',
+    catches: 'readings that predate the field report their whole daily total as this interval\'s' },
+
   { file: WATCHER, check: WATCH_CHECK, name: 'M41 any negative delta is called a month reset',
     anchor: '  if (providerDelta < -RESET_FLOOR || ledgerDelta < -RESET_FLOOR) {',
     replace: '  if (providerDelta < 0 || ledgerDelta < 0) {',
