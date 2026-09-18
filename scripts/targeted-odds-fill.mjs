@@ -116,6 +116,30 @@ for (const p of plan.slice(0, 12)) console.log(`      ${p.date}  ${String(p.spor
 if (plan.length > 12) console.log(`      … ${plan.length - 12} more`);
 
 if (!APPLY) {
+  // THE COST IS PER CALL, NOT PER GAME. One /historical/sports/{sport}/odds call
+  // covers a whole sport-date slate for a flat 20 credits whether that slate
+  // holds one fixture or eighty. Dividing a day's credits by a day's paired
+  // games produces a "credits per game" figure that is an OUTCOME of that day's
+  // slate sizes and match rate — it is not a price, and re-costing this plan
+  // with it is wrong in both directions.
+  //
+  // What the ordering below buys: pairs sorted heaviest-first, with a running
+  // total. Because every call costs the same, the games-per-call ratio is the
+  // only lever, and it is steep — see how few calls reach half the games.
+  const heavy = [...filtered].sort((a, b) => b.games.length - a.games.length);
+  const totalGames = heavy.reduce((n, p) => n + p.games.length, 0);
+  console.log(`\n  YIELD CURVE — every call costs ${PER_CALL_COST}, so the only lever is games per call`);
+  console.log(`  pairs  credits  games reachable  % of the ${totalGames} game(s)`);
+  let seen = 0;
+  for (const n of [1, 5, 10, 20, 40, 80, heavy.length]) {
+    if (n > heavy.length) continue;
+    const g = heavy.slice(0, n).reduce((a, p) => a + p.games.length, 0);
+    console.log(`  ${String(n).padStart(5)}  ${String(n * PER_CALL_COST).padStart(7)}  ${String(g).padStart(15)}  ${String(Math.round(g / totalGames * 100)).padStart(3)}%`);
+    seen = n;
+  }
+  console.log(`  heaviest pair: ${heavy[0].date} ${heavy[0].sport} with ${heavy[0].games.length} game(s) for ${PER_CALL_COST} credits`);
+  console.log(`  ${heavy.filter(p => p.games.length === 1).length} pair(s) carry ONE game — ${PER_CALL_COST} credits each, the worst rate on offer`);
+
   console.log(`\nDRY RUN — nothing fetched, nothing written. Re-run with --apply to spend.`);
   console.log(`\nCOVERAGE: regular_season_games only. Pairs whose games already carry an`);
   console.log(`odds_history row are excluded above, so this plan is the gap and not the`);
