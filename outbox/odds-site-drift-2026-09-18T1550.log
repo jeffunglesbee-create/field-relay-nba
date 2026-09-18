@@ -1,0 +1,16 @@
+=== odds site drift  utc=2026-09-18T15:50:35.774Z ===
+
+  dropped 1 unusable sample(s) already on file
+
+  this reading   : 2026-09-18  used 274  by_site_sum 319  gap 45
+  unreadable     : none
+  samples on file: 1  (keeping the last 60)
+
+  only 1 sample(s) for 2026-09-18 — an interval needs two.
+
+  verdict: no-data  over 0 interval(s) of 1 same-day sample(s)
+
+COVERAGE: 1 sample(s) of the 2026-09-18 UTC day, 0 interval(s).
+Cross-midnight pairs are REFUSED, not merged, so a day's first reading yields no
+interval. A refund that lands and is undone between two samples is invisible —
+the sampling interval is the floor on what this can see.
