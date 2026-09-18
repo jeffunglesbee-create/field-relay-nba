@@ -1,0 +1,42 @@
+=== targeted odds fill  utc=2026-09-18T17:33:59.865Z ===
+mode: DRY RUN (no fetch, no write)
+since=2026-05-09  max-pairs=all  budget=3200 credits
+
+  games with opening_odds NULL in the 12 sports : 514
+  distinct sport-date pairs                     : 130
+  pairs still lacking any odds_history row      : 130
+  projected cost                                : 2600 credits
+
+  plan: 130 pair(s) = 2600 credits
+      2026-05-09  afl                    4 game(s)
+      2026-05-10  afl                    2 game(s)
+      2026-05-11  ipl                    1 game(s)
+      2026-05-13  ligue 1                2 game(s)
+      2026-05-14  afl                    1 game(s)
+      2026-05-15  afl                    2 game(s)
+      2026-05-16  afl                    3 game(s)
+      2026-05-17  afl                    3 game(s)
+      2026-05-21  afl                    1 game(s)
+      2026-05-22  afl                    2 game(s)
+      2026-05-23  afl                    4 game(s)
+      2026-05-24  la liga                10 game(s)
+      … 118 more
+
+  YIELD CURVE — every call costs 20, so the only lever is games per call
+  pairs  credits  games reachable  % of the 448 game(s)
+      1       20               68   15%
+      5      100              141   31%
+     10      200              190   42%
+     20      400              252   56%
+     40      800              322   72%
+     80     1600              398   89%
+    130     2600              448  100%
+  heaviest pair: 2026-09-05 cfb with 68 game(s) for 20 credits
+  57 pair(s) carry ONE game — 20 credits each, the worst rate on offer
+
+DRY RUN — nothing fetched, nothing written. Re-run with --apply to spend.
+
+COVERAGE: regular_season_games only. Pairs whose games already carry an
+odds_history row are excluded above, so this plan is the gap and not the
+archive. A fetch that returns nothing still bills, so the projected cost
+is what will be SPENT, not what will be FILLED.
