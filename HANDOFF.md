@@ -373,6 +373,13 @@ made. The cron has not yet run with either the matcher or the slate change —
 the first scheduled run after 2026-09-16 10:43Z is the first production
 evidence, and the pairing watcher is what will report it.
 
+> **SUPERSEDED 2026-09-19.** It has since run, and it pairs. The same
+> 2026-09-12 cfb pair that matched 0/80 under the old matcher matched 73 by
+> name + 7 by elimination and priced 66/80 live, and the pairing watch went
+> from 24 games in its window to 36. The claim above was true when written and
+> is false now; it stayed here unread for three days until
+> `check-handoff-claims.mjs` asked whether the named workflow had run.
+
 ## SESSION CLOSE-OUT — 2026-09-16 (three matchers, and the cron's found nothing)
 
 **HEAD:** `4ab995a` → `014b82a` · main throughout · 0 PRs
@@ -436,6 +443,13 @@ vendor events, bought once for 20 credits. Zero ambiguity is a property of a
 has not yet run with the new matcher.** Next `odds-backfill.yml` scheduled run
 is the first production evidence; it is still blocked by the empty
 `ODDS_API_KEY` recorded at the top of this file unless that has been set.
+
+> **SUPERSEDED 2026-09-19.** `ODDS_API_KEY` was set and `odds-backfill.yml` has
+> run green on schedule since 2026-09-16 14:42Z. The matcher is verified live,
+> not offline: 66 of 80 priced on the very fixture named above, and the 14 that
+> were not are vendor coverage — no h2h market on any bookmaker — rather than a
+> matcher failure. Kept because the reasoning is worth reading; corrected
+> because the conclusion is not true any more.
 
 ## SESSION CLOSE-OUT — 2026-09-14 (a closing line that was not one)
 

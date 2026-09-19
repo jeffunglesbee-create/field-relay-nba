@@ -51,6 +51,11 @@ const MUTATIONS = [
     anchor: "    if (unfixable) { unanchored.push({ section, phrase: unfixable, line: i + 1, reason: 'no run can settle it' }); continue; }",
     replace: '    if (false) { continue; }',
     catches: '"NOT built" next to a .yml mention becomes a contradiction manufactured from proximity' },
+
+  { name: 'H7 the supersession marker is ignored',
+    anchor: "    if (superseded !== -1) { unanchored.push({ section, phrase, line: i + 1, reason: 'superseded in place' }); continue; }",
+    replace: '    if (false) { continue; }',
+    catches: 'correcting an old entry in place stays red forever, so the pressure becomes to DELETE history instead' },
 ];
 
 let caught = 0;

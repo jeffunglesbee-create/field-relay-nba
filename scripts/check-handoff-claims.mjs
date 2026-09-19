@@ -75,8 +75,17 @@ export function claimsFrom(markdown) {
         if (m) { wf = m[1]; break; }
       }
     }
+    // A CLAIM THAT HAS BEEN SUPERSEDED IS NO LONGER AN ASSERTION. This repo
+    // corrects history in place rather than deleting it — "The original text
+    // follows because the cause is worth keeping" — so a false claim is meant
+    // to stay on the page under a marker saying what happened instead. Reading
+    // the marker is the difference between a guard that enforces the
+    // convention and one that forbids it.
+    const superseded = lines.slice(i, Math.min(i + 14, lines.length))
+      .findIndex(l => /SUPERSEDED|\bRESOLVED\b|no longer true|corrected below/i.test(l));
+    if (superseded !== -1) { unanchored.push({ section, phrase, line: i + 1, reason: 'superseded in place' }); continue; }
     if (wf) out.push({ section, workflow: wf, phrase, line: i + 1 });
-    else unanchored.push({ section, phrase, line: i + 1 });
+    else unanchored.push({ section, phrase, line: i + 1, reason: 'names no workflow' });
   }
   return { claims: out, unanchored };
 }
@@ -130,6 +139,20 @@ Two owner decisions first. Blocked on the vendor verdict.
       '"NOT built" cannot be disproved by a workflow succeeding; anchoring it to a nearby .yml would invent a contradiction from proximity');
   one('and it is reported, not dropped', c.unanchored[0].reason, 'no run can settle it',
       'unchecked and silent are different, and only one of them is honest');
+
+  // The repo corrects history in place. A guard that ignored the marker would
+  // make the only honest way to fix an old entry — leaving it visible under a
+  // correction — permanently red, and the pressure would be to DELETE history.
+  const FIXED = `### OPEN — the cron has not yet run with the new matcher
+
+Next \`odds-backfill.yml\` run is the first evidence.
+
+> **SUPERSEDED 2026-09-19.** It has run, and it pairs 66 of 80.
+`;
+  one('a superseded claim is not an assertion', claimsFrom(FIXED).claims.length, 0,
+      'the correction idiom this repo already uses must not be what turns the guard red');
+  one('and it says WHY it was skipped', claimsFrom(FIXED).unanchored[0].reason, 'superseded in place',
+      'a claim dropped without a reason is indistinguishable from one never seen');
   one('"blocked" is not a claim of non-occurrence', /blocked/i.test(DOC) && c.claims.length, 1,
       'a blocked item is honestly open after a run; only non-occurrence is checkable');
 
@@ -156,7 +179,7 @@ Two owner decisions first. Blocked on the vendor verdict.
   one('no claims is not a pass dressed up', verdict([]).state, 'no-claims',
       'a document with no checkable claim has not been verified, it has been skipped');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 13/13`);
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 15/15`);
   console.log(`COVERAGE: three pure predicates over an enumerated document. It does NOT`);
   console.log(`reach HANDOFF.md or the Actions API, and it can only check claims that NAME`);
   console.log(`a workflow — a false claim about anything else is invisible to it.`);
