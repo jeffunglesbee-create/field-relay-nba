@@ -1,0 +1,13 @@
+=== run-clock closing stamps watch  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-19T14:44:30.190Z ===
+
+    baseline (committed)                       : 0
+    replayed-with-run-clock, unmarked          : 0
+    replayed-with-run-clock, marked            : 874
+    newest replayed run-clock stamp            : 2026-08-22T10:01:04.210Z
+    live captures stamping their own clock     : 42  (NOT gated — correct)
+
+    COVERAGE: this gates blobs carrying _oddsProof, the key only
+    extractOddsForGame writes. The 42 live-capture stamps above are
+    counted and deliberately not judged.
+    a1937eb fixed the known replay path on 2026-08-22T21:11:07Z — a newer
+    stamp in the gated set is a NEW writer, not residue.
