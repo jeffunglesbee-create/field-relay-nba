@@ -16,6 +16,13 @@ const CRON    = '.github/scripts/odds-backfill.js';
 const FILL    = 'scripts/targeted-odds-fill.mjs';
 const WATCHER = 'scripts/watch-odds-pairing-rate.mjs';
 const WATCH_CHECK = [WATCHER, '--self-test'];
+// ciSpendInInterval moved to scripts/lib on 2026-09-19 so the daily-vs-vendor
+// watch subtracts the SAME number the same way. M39 and M40 aim at it, and both
+// reported "anchor matched 0 times — NOTHING MUTATED" the moment it moved,
+// which is the corollary doing its job. They are re-pointed rather than
+// deleted: the pairing watch's self-test still exercises the function through
+// its re-export, so breaking it there still turns that check red.
+const CI_SPEND = 'scripts/lib/ci-spend.mjs';
 // asUtc lives in its own module so the TZ case can spawn a child that imports
 // the REAL function. M38 was NOT CAUGHT while the child carried an inline copy.
 const UTCLIB  = 'scripts/lib/utc.mjs';
@@ -233,12 +240,12 @@ const MUTATIONS = [
     replace: '  return Date.parse(s);',
     catches: 'no zone marker, so the window shifts by hours and runs move in or out of it' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M39 an undated progress row is subtracted anyway',
+  { file: CI_SPEND, check: WATCH_CHECK, name: 'M39 an undated progress row is subtracted anyway',
     anchor: '    if (!Number.isFinite(at)) { undated++; continue; }',
     replace: '    if (!Number.isFinite(at)) { credits += Number(r.credits_used) || 0; continue; }',
     catches: 'a row that cannot be placed inflates the subtraction and shrinks the residual on no evidence' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M40 the interval bound is dropped',
+  { file: CI_SPEND, check: WATCH_CHECK, name: 'M40 the interval bound is dropped',
     anchor: '    if (at < from || at > to) continue;',
     replace: '    if (false) continue;',
     catches: 'every backfill run ever is subtracted from one interval, and the residual goes negative' },

@@ -1,5 +1,84 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-19 — odds counters, the fill, and 40 credits
+
+**HEAD:** `71433fe` → `da94524`
+
+Session doc: `outbox/cc-session-2026-09-19-odds-counters-and-fill.md`.
+Spent this session: **40 credits**, two probes, both of which changed a decision.
+
+### What is now measured
+
+**The fill's price is per CALL.** `odds-backfill.js:43` — one historical `/odds`
+call is 10 credits per region per market at `regions=us&markets=h2h,totals`, so
+every call is a flat 20 and covers a whole sport-date slate. "10 credits/game"
+was an OUTCOME of slate size and match rate; costing 516 games at it gives 5,160
+against a true 2,640.
+
+**The matcher works in production.** 2026-09-12 cfb, same pair and same price
+before and after the `matchSlate` fix: 0/80 → 73 by name + 7 by elimination →
+66/80 priced. Verified from D1 by the plan shrinking by exactly 66 games, not
+from the run's own claim.
+
+**The 14 unpriced games are the vendor's, not ours.** The fill read
+`bookmakers[0]` and gave up where `odds-backfill.js`'s `pickConsensus` already
+took "the first bookmaker that CARRIES h2h". Applying the correct rule recovered
+**1 of 14** (20 credits, `0f37446` + `6249bf9`). So 82.5% is real vendor
+coverage and 200 credits buys ~157 games, not 190.
+
+**Two counters that nothing makes agree.** `odds-site-drift` returned
+`gap-grows-while-spending` twice (+74→+43, +1232→+242), zero `clamp-witnessed`.
+The lost-update account that predicted it is ALSO dead: 09-19 01:50Z read
+`used 166` against `by_site_sum 150`, a negative gap, which losing writes on the
+hot key cannot produce. Five candidates dead — three by reading, two by
+measurement. **Do not hunt a sixth.**
+
+### OPEN — the enforcing counter has never been checked against the bill
+
+Every watch in this family compares two of OUR counters. `by_site` has no code
+consumer in either repo and cannot overspend. The claim that matters: **if
+`odds:daily:*` under-counts, real spend exceeded 3800 on every day that closed
+at the cap, and four consecutive days have now closed at 3799-3800.** Unproven.
+
+`odds-daily-vs-vendor.yml` (00:10) now measures it. Baseline stored 09-18: ours
+3799, vendor cumulative 76945. Needs three closed days. Expect one
+`window-drift` refusal — the baseline landed off-schedule at 02:22Z and the
+watch refuses a reading pair outside 22-26h rather than differencing a longer
+vendor window against a fixed 24h day. Spec:
+`docs/CC-CMD-2026-09-19-daily-vs-vendor.md`.
+
+### OPEN — the 200-credit fill is verified and UNRUN
+
+10 pairs, 200 credits, 190 games (42% of the remaining 448), ~157 priced.
+Verified by dry run with `budget=200` pinned so a larger plan would refuse.
+Heaviest: 2026-09-05 cfb (68), efl cup (29, 17), nfl (13, 10, 10), cfb (11, 8),
+la liga (10). Dispatch `targeted-odds-fill.yml` with
+`apply=true, max_pairs=10, budget=200`.
+
+### OPEN — atomic odds counter, and why it survives its own dead diagnosis
+
+`docs/CC-CMD-2026-09-18-atomic-odds-counter.md`. Its value is NOT "atomic,
+therefore no lost updates" — that argued a diagnosis that did not hold. It is
+one transaction: daily and per-site unable to diverge for ANY reason. Two owner
+decisions first: degrade open or closed when D1 is unreachable, and the per-call
+latency budget. Priority follows the vendor verdict — breach → urgent,
+tracks-the-bill → housekeeping.
+
+### OPEN — undeployed-src-watch is red daily for a timestamp
+
+`undeployed-src-watch.yml` (hourly, `69c8615`) works and caught a true positive
+on its first scheduled run. But the provenance census writes a regenerated
+`ROUTE_PROVENANCE_GENERATED_AT` into `src/route-provenance.js` AND carries the
+skip directive, so it bumps a deploy-trigger path while suppressing every
+workflow. The fix belongs in whatever generates that commit. Until then, diff
+the named commit before acting: a one-line timestamp is not a deploy.
+
+### Retire, do not keep
+
+`odds-site-drift` was built 09-18 to answer one question and has answered it.
+Delete it once the atomic counter's done condition holds three days. 21 of 37
+scheduled workflows here are read-only watches against 16 that do work.
+
 ## RESOLVED 2026-09-16 14:42Z — the odds backfill cron is alive again
 
 `odds-backfill.yml` run **35110321483**, scheduled, started 2026-09-16T14:42:07Z,
