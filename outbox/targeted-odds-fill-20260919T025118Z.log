@@ -1,0 +1,29 @@
+=== targeted odds fill  utc=2026-09-19T02:51:18.879Z ===
+mode: DRY RUN (no fetch, no write)
+since=2026-05-09  max-pairs=1  budget=40 credits
+
+  games with opening_odds NULL in the 12 sports : 514
+  distinct sport-date pairs                     : 130
+  pairs still lacking any odds_history row      : 130
+  projected cost                                : 2600 credits
+
+  --date=2026-09-12: 1 pair(s), 14 game(s) remaining
+
+  --sport=cfb: 1 pair(s), heaviest first
+
+  plan: 1 pair(s) = 20 credits
+      2026-09-12  cfb                    14 game(s)
+
+  YIELD CURVE — every call costs 20, so the only lever is games per call
+  pairs  credits  games reachable  % of the 14 game(s)
+      1       20               14  100%
+      1       20               14  100%
+  heaviest pair: 2026-09-12 cfb with 14 game(s) for 20 credits
+  0 pair(s) carry ONE game — 20 credits each, the worst rate on offer
+
+DRY RUN — nothing fetched, nothing written. Re-run with --apply to spend.
+
+COVERAGE: regular_season_games only. Pairs whose games already carry an
+odds_history row are excluded above, so this plan is the gap and not the
+archive. A fetch that returns nothing still bills, so the projected cost
+is what will be SPENT, not what will be FILLED.
