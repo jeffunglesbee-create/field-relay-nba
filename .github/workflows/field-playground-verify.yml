@@ -146,5 +146,14 @@ jobs:
             git pull --rebase --autostash origin main && git push origin main && break
             sleep $((i * 2))
           done
+          # The loop above exits 0 when ALL THREE attempts fail: its last command is
+          # `sleep`, and `set -e` does not fire because a failing `&&` list is a tested
+          # command. Verified under the exact Actions shell (bash -e -o pipefail).
+          # Without this line a lost artifact reports as a green step.
+          # is-ancestor, not HEAD equality: another bot pushing after us is normal here
+          # and must not read as our failure.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
         env:
           OUT: ${{ env.OUT }}
