@@ -29,6 +29,10 @@ on:
         description: 'Restrict to one sport, lowercase as the archive stores it (cfb, afl, nfl, bundesliga...). Blank = all. With max_pairs the HEAVIEST pair is chosen, not the earliest.'
         required: false
         default: ''
+      date:
+        description: 'Restrict to ONE sport-date, YYYY-MM-DD. Blank = all. Needed to re-measure a named pair: as a pair fills, it stops being the heaviest, so sport+max_pairs silently selects a different one.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -55,6 +59,7 @@ jobs:
             --max-pairs=${{ inputs.max_pairs || '0' }} \
             --budget=${{ inputs.budget || '3200' }} \
             --sport="${{ inputs.sport }}" \
+            --date="${{ inputs.date }}" \
             ${{ inputs.apply && '--apply' || '' }} 2>&1 \
             | tee -a "$GITHUB_STEP_SUMMARY" \
             | tee outbox/targeted-odds-fill-$(date -u +%Y%m%dT%H%M%SZ).log

@@ -35,6 +35,14 @@ const SINCE     = process.argv.find(a => a.startsWith('--since='))?.split('=')[1
 const MAX_PAIRS = Number(process.argv.find(a => a.startsWith('--max-pairs='))?.split('=')[1] || 0);
 const BUDGET    = Number(process.argv.find(a => a.startsWith('--budget='))?.split('=')[1] || 3200);
 const SPORT     = (process.argv.find(a => a.startsWith('--sport='))?.split('=')[1] || '').toLowerCase();
+// --date exists because --sport and --max-pairs together still cannot name a
+// pair. Measured 2026-09-19: after the probe filled 66 of its 80 games,
+// `--sport=cfb --max-pairs=1` no longer selects 2026-09-12 — that pair fell to
+// 14 remaining games and 2026-09-05 (68) became the heaviest. Re-measuring a
+// pair against its own recorded result therefore needed a way to ask for it by
+// name, and silently buying a different pair would have looked like the same
+// experiment.
+const DATE      = (process.argv.find(a => a.startsWith('--date='))?.split('=')[1] || '').trim();
 
 const NEWLY_REACHABLE = new Set([
   'la liga', 'ligue 1', 'bundesliga', 'serie a', 'cfl', 'cfb', 'nfl', 'ufl', 'afl', 'ipl',
@@ -96,11 +104,26 @@ console.log(`  projected cost                                : ${pairs.length * 
 // carry many games each, and a fetch that returns events while matching none of
 // their team names inserts 0 rows and still bills. Sorting by game count puts
 // the most matcher stress on the 20 credits.
-const filtered = SPORT ? pairs.filter(p => p.sport === SPORT) : pairs;
+let filtered = SPORT ? pairs.filter(p => p.sport === SPORT) : pairs;
 if (SPORT && !filtered.length) {
   console.log(`\nREFUSING: no pair matches --sport=${SPORT}. Available: `
     + [...new Set(pairs.map(p => p.sport))].sort().join(', '));
   process.exit(1);
+}
+if (DATE) {
+  const byDate = filtered.filter(p => p.date === DATE);
+  // REFUSE rather than fall through to the unfiltered list. A --date that
+  // matches nothing usually means the pair is already complete, and quietly
+  // buying the next-heaviest pair instead is how a spend gets made against a
+  // target nobody chose.
+  if (!byDate.length) {
+    console.log(`\nREFUSING: no pair matches --date=${DATE}${SPORT ? ` with --sport=${SPORT}` : ''}.`);
+    console.log(`Dates still in the plan${SPORT ? ` for ${SPORT}` : ''}: `
+      + filtered.map(p => `${p.date}(${p.games.length})`).sort().join(', ').slice(0, 400));
+    process.exit(1);
+  }
+  filtered = byDate;
+  console.log(`  --date=${DATE}: ${filtered.length} pair(s), ${filtered[0].games.length} game(s) remaining\n`);
 }
 const plan = MAX_PAIRS
   ? [...filtered].sort((a, b) => b.games.length - a.games.length).slice(0, MAX_PAIRS)
