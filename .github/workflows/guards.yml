@@ -76,9 +76,10 @@ jobs:
       # Task 1 of CC-CMD-2026-09-18. The CC-CMD says the schema goes in `DB`
       # (field-d1). It is wrong, and the check exists because the document is
       # what a later session will read: wrangler.toml gives DB and WC2026_DB the
-      # SAME database_id, env.DB has four references in the whole worker (all
-      # Whoop OAuth tokens), and every other runtime CREATE TABLE is on
-      # ARCHIVE_DB, where odds_history and odds_backfill_progress already live.
+      # SAME database_id, and every runtime CREATE TABLE here is on ARCHIVE_DB,
+      # where odds_history and odds_backfill_progress already live. `env.DB` had
+      # four references when this was written, all Whoop OAuth tokens; Whoop was
+      # removed on 2026-09-19 and it now has zero.
       #
       # It also asserts both tables are in /d1/execute's ALLOWED_TABLES. That
       # route 403s anything else, and a 403 reads identically to a D1 failure
@@ -88,6 +89,29 @@ jobs:
           node scripts/check-odds-budget-schema.mjs --self-test
           node scripts/mutate-odds-budget-schema.mjs
           node scripts/check-odds-budget-schema.mjs
+
+      # WHOOP COST MORE THAN ITS DEAD CODE, and none of the 40-odd guards here
+      # was looking for it, because every one of them asks whether the code is
+      # CORRECT and none asked whether it BELONGS.
+      #
+      #   - WHOOP_CLIENT_SECRET, a live OAuth client secret, sat in [vars] in
+      #     wrangler.toml: tracked, in a PUBLIC repo, deployed as a plaintext
+      #     env var rather than a Cloudflare secret, from the commit that added
+      #     the feature until 2026-09-19.
+      #   - It was the ONLY consumer of the `DB` binding, so DB looked like a
+      #     live database, and CC-CMD-2026-09-18 told a session to put the odds
+      #     budget in it on that basis.
+      #   - 3 routes, 22 lines, zero references in jubilant-bassoon, named in no
+      #     contract.
+      #
+      # A DECLARED LIST, NOT A CLASSIFIER. It cannot tell a sports vendor from a
+      # fitness one and does not try — a human adds a host when it is ruled out
+      # of scope, with the date and the reason. A guessing version would fire on
+      # every third-party sports API the relay legitimately calls.
+      - name: no out-of-scope vendor is back in the relay
+        run: |
+          node scripts/check-no-foreign-domain.mjs --self-test
+          node scripts/check-no-foreign-domain.mjs
 
       - name: HANDOFF does not claim a workflow has not run, that has
         env:

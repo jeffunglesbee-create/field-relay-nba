@@ -4,14 +4,14 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 190 routes describe themselves without 190 hand edits.
+// 187 routes describe themselves without 187 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-19T11:10:59.186Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-19T18:34:39.962Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -70,7 +70,7 @@ export const ROUTE_PROVENANCE = {
   "/bundesliga-bapi/resolve-dayid": { k: "upstream", s: "d1:ARCHIVE_DB + www.bundesliga.com" },
   "/cfl/": { k: "upstream", s: "cflscoreboard.cfl.ca + echo.pims.cfl.ca + www.cfl.ca", p: 1 },
   "/cfl/fixtures": { k: "upstream", s: "cflscoreboard.cfl.ca" },
-  "/cfl/odds-probs": { k: "upstream", s: "api.prod.whoop.com + api.the-odds-api.com + kv:FIELD_JOURNALISM" },
+  "/cfl/odds-probs": { k: "upstream", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM" },
   "/cfl/rosters": { k: "upstream", s: "cflscoreboard.cfl.ca" },
   "/cfl/scoreboard/rounds": { k: "upstream", s: "cflscoreboard.cfl.ca" },
   "/cfl/scoreboard/squads": { k: "upstream", s: "cflscoreboard.cfl.ca" },
@@ -115,7 +115,7 @@ export const ROUTE_PROVENANCE = {
   "/journalism/game/": { k: "store", s: "kv:FIELD_JOURNALISM", p: 1 },
   "/journalism/generate": { k: "upstream", s: "field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM" },
   "/journalism/result/": { k: "store", s: "kv:FIELD_JOURNALISM", p: 1 },
-  "/journalism/run": { k: "upstream", s: "cflscoreboard.cfl.ca + d1:ARCHIVE_DB + d1:DB + d1:WC2026_DB + do:AMBIENT_DO + do:BRACKET_DO + do:GAME_DO + do:USER_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + kv:MCP_OAUTH + kv:PUSH_SUBS + r2:FIELD_DATA + site.web.api.espn.com" },
+  "/journalism/run": { k: "upstream", s: "cflscoreboard.cfl.ca + d1:ARCHIVE_DB + d1:WC2026_DB + do:AMBIENT_DO + do:BRACKET_DO + do:GAME_DO + do:USER_DO + field-claude-proxy.jeffunglesbee.workers.dev + kv:FIELD_JOURNALISM + kv:JOURNALISM_QUEUE + kv:MCP_OAUTH + kv:PUSH_SUBS + r2:FIELD_DATA + site.web.api.espn.com" },
   "/journalism/tonight": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/jq/retry-telemetry": { k: "store", s: "d1:ARCHIVE_DB" },
   "/kali/": { k: "proxy", s: "kaliaflstats.com", p: 1 },
@@ -137,11 +137,11 @@ export const ROUTE_PROVENANCE = {
   "/nhl-gsax/": { k: "store", s: "r2:FIELD_DATA", p: 1 },
   "/nhl-series/": { k: "store", s: "r2:FIELD_DATA", p: 1 },
   "/nhl/": { k: "proxy", s: "api-web.nhle.com", p: 1 },
-  "/odds": { k: "proxy", s: "api.prod.whoop.com + api.the-odds-api.com + kv:FIELD_JOURNALISM", p: 1 },
+  "/odds": { k: "proxy", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM", p: 1 },
   "/odds-story/preview": { k: "store", s: "d1:ARCHIVE_DB" },
   "/odds/history/": { k: "store", s: "d1:ARCHIVE_DB", p: 1 },
   "/pin/game/": { k: "durable-object", s: "do:GAME_DO", p: 1 },
-  "/pl/": { k: "proxy", s: "api.prod.whoop.com + footballapi.pulselive.com", p: 1 },
+  "/pl/": { k: "proxy", s: "footballapi.pulselive.com", p: 1 },
   "/provenance/kv": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/push/game-final": { k: "store", s: "kv:PUSH_SUBS" },
   "/push/subscribe": { k: "store", s: "kv:PUSH_SUBS" },
@@ -188,7 +188,7 @@ export const ROUTE_PROVENANCE = {
   "/wc/match-wp": { k: "computed", s: "d1:WC2026_DB (inherited from the enclosing block)" },
   "/wc/matchup/cache": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/wc/movers": { k: "store", s: "kv:FIELD_JOURNALISM" },
-  "/wc/odds-probs": { k: "upstream", s: "api.prod.whoop.com + api.the-odds-api.com + kv:FIELD_JOURNALISM" },
+  "/wc/odds-probs": { k: "upstream", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM" },
   "/wc/projections": { k: "upstream", s: "api.anthropic.com + kv:FIELD_JOURNALISM" },
   "/wc/projections/refresh": { k: "trigger", s: "api.anthropic.com + kv:FIELD_JOURNALISM" },
   "/wc/results": { k: "store", s: "d1:WC2026_DB" },
@@ -197,9 +197,6 @@ export const ROUTE_PROVENANCE = {
   "/wc/traps": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/wc/wp/verify": { k: "upstream", s: "api.the-odds-api.com" },
   "/web-fetch": { k: "upstream", s: "cloudflare-dns.com + kv:FIELD_JOURNALISM" },
-  "/whoop/callback": { k: "upstream", s: "api.prod.whoop.com + d1:DB" },
-  "/whoop/fetch": { k: "upstream", s: "api.prod.whoop.com + d1:DB" },
-  "/whoop/tokens": { k: "store", s: "d1:DB" },
   "/wiki/trending": { k: "upstream", s: "kv:FIELD_JOURNALISM + wikimedia.org" },
   "/wnba/slate": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/ws/game/": { k: "durable-object", s: "do:GAME_DO", p: 1 },
@@ -220,7 +217,7 @@ export const ROUTE_PROVENANCE = {
 // `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
 // forward at most 1500 lines looking for brace balance; when a handler block is
 // longer than that the scan gives up, and `s` describes only what fitted inside
-// the window. 1 of 190 entries are in that state.
+// the window. 1 of 187 entries are in that state.
 //
 // It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
 // so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never

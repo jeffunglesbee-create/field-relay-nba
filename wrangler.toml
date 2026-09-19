@@ -192,11 +192,14 @@ binding = "BROWSER"
 # no extra api-sports quota cost for more frequent DO alarms.
 [vars]
 RELAY_BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
-WHOOP_CLIENT_ID = "a4c9151b-0a51-461c-808a-120fe5735bfc"
-WHOOP_CLIENT_SECRET = "03dcff790c95a368e8f294a56d9134a5ee7c545b456d36cf61dfc7b33775d8b0"
 
 
-# ── D1 Database (shared with FIELD client — WC + health tokens) ──────────────
+# ── D1 Database — UNUSED as of 2026-09-19 ───────────────────────────────────
+# `database_id` is IDENTICAL to WC2026_DB above: two bindings, one database.
+# Its only consumer in the worker was the Whoop OAuth block (whoop_tokens),
+# removed 2026-09-19 — Whoop is not part of FIELD. `env.DB` now has zero
+# references in src/. Left in place because CLAUDE.md forbids changing
+# bindings without approval; removing it is a separate, owner-approved call.
 [[d1_databases]]
 binding = "DB"
 database_name = "field-d1"
