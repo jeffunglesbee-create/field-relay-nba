@@ -1,0 +1,29 @@
+=== targeted odds fill  utc=2026-09-19T02:51:42.611Z ===
+mode: *** APPLY — WILL SPEND CREDITS ***
+since=2026-05-09  max-pairs=1  budget=40 credits
+
+  games with opening_odds NULL in the 12 sports : 514
+  distinct sport-date pairs                     : 130
+  pairs still lacking any odds_history row      : 130
+  projected cost                                : 2600 credits
+
+  --date=2026-09-12: 1 pair(s), 14 game(s) remaining
+
+  --sport=cfb: 1 pair(s), heaviest first
+
+  plan: 1 pair(s) = 20 credits
+      2026-09-12  cfb                    14 game(s)
+  2026-09-12 cfb                    95 event(s), 80 in window -> 13 by name + 0 by elimination, 1/14 priced
+
+  pairs attempted : 1
+  credits spent   : 20
+  odds_history rows inserted : 1
+  pairs the vendor had nothing for : 0 (billed anyway)
+  games skipped as ambiguous       : 0 (never guessed)
+  events matched but unpriced      : 0 (no row written)
+  matched but no h2h market        : 12 (no row written)
+
+  games matched   : 13
+  = priced 1 + unpriced 0 + no-market 12   (balances)
+
+No odds_backfill_progress row was read or written by this script.
