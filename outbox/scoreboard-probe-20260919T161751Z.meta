@@ -1,0 +1,6 @@
+Probe time: Sat Sep 19 16:17:51 UTC 2026
+Target: https://field-relay-nba.jeffunglesbee.workers.dev/nba/liveData/scoreboard/todaysScoreboard_00.json
+HTTP_CODE=403
+SIZE_BYTES=16
+CONTENT_TYPE=text/plain;charset=UTF-8
+TIME_TOTAL=0.200660s
