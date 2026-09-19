@@ -175,13 +175,26 @@ for (const p of plan) {
     if (!m) continue;
     matchedGames++;
     const ev = m.event;
-    const bk = ev.bookmakers?.[0];
-    const h2h = bk?.markets?.find(m2 => m2.key === 'h2h');
-    // COUNTED, because it was not. The 2026-09-12 CFB probe matched 80 of 80
-    // games and priced 66, with `ambiguous` and `priceless` both reporting 0 —
-    // so fourteen games left through this line and no printed number moved.
-    // A silent drop of 17.5% is the shape that gets extrapolated into a
-    // 2,600-credit decision as if it were a 100% result.
+    // THE FIRST BOOKMAKER IS NOT THE ONLY BOOKMAKER. This read `bookmakers[0]`
+    // and gave up when that one book carried no h2h market — so the 2026-09-12
+    // CFB probe priced 66 of 80 matched games and lost 14 here, a silent 17.5%
+    // that was about to be extrapolated into a 200-credit decision as if it
+    // were the ceiling.
+    //
+    // The correct rule already exists in this repo and predates this script:
+    // odds-backfill.js's pickConsensus takes "the first bookmaker that carries
+    // an h2h market", iterating until it finds one. Its own comment says it is
+    // "the implementation the fill script was missing". It was right, and the
+    // sharing it describes was never actually done. This is that rule, applied
+    // — not a new one (Rule 62).
+    //
+    // It can only find MORE: an event whose first book has h2h behaves exactly
+    // as before.
+    let bk = null, h2h = null;
+    for (const b of (Array.isArray(ev.bookmakers) ? ev.bookmakers : [])) {
+      const found = (Array.isArray(b.markets) ? b.markets : []).find(m2 => m2.key === 'h2h');
+      if (found) { bk = b; h2h = found; break; }
+    }
     if (!h2h) { noH2hMarket++; continue; }
     // Prices come from the shared reader, keyed off the VENDOR's team names.
     // This line used to compare outcome names to the ARCHIVE's names, which
