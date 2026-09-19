@@ -58,6 +58,18 @@ jobs:
       - name: HANDOFF.md is not stale
         run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
 
+      # AGE IS NOT THE ONLY WAY A HANDOFF GOES WRONG, AND IT WAS NOT THE ONE
+      # THAT BIT. On 2026-09-19 the document above passed all day while saying a
+      # 200-credit fill was UNRUN; it had run at 03:26Z. The age guard was
+      # right — the document was hours old. The claim inside it was false.
+      - name: HANDOFF does not claim a workflow has not run, that has
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/check-handoff-claims.mjs --self-test
+          node scripts/mutate-handoff-claims.mjs
+          node scripts/check-handoff-claims.mjs
+
       - name: One team-name matcher, and it can fail
         run: |
           node scripts/check-odds-matcher.mjs
