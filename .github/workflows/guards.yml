@@ -62,6 +62,17 @@ jobs:
       # THAT BIT. On 2026-09-19 the document above passed all day while saying a
       # 200-credit fill was UNRUN; it had run at 03:26Z. The age guard was
       # right — the document was hours old. The claim inside it was false.
+      # 107 loops across four repos exited 0 when every push attempt failed,
+      # because their last command was `sleep`. The sweep found FIVE shapes by
+      # refusing to guess at a sixth; this checks that a landing verification
+      # FOLLOWS each loop rather than policing the shape, because enumerating
+      # shapes is exactly what proved incomplete five times.
+      - name: every push-retry loop verifies the push landed
+        run: |
+          python3 scripts/check-push-lands.py --self-test
+          python3 scripts/mutate-push-lands.py
+          python3 scripts/check-push-lands.py
+
       - name: HANDOFF does not claim a workflow has not run, that has
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
