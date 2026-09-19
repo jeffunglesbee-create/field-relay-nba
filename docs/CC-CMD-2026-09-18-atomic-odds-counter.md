@@ -4,6 +4,13 @@
 `gap-grows-while-spending` — but the reason to do this has CHANGED, and the
 change matters more than the verdict.**
 
+**UNBLOCKED 2026-09-19.** Task 3 said two decisions were the owner's. Both were
+measurements written up as values judgments; both are now measured and
+answered in place. Nothing in this CC-CMD is waiting on a human.
+
+**Task 6 must still report the 0d numbers.** Answered is not the same as
+unmeasured-and-assumed.
+
 ## The verdict, and the falsification underneath it
 
 `odds-site-drift`, 2026-09-18:
@@ -120,9 +127,12 @@ git show origin/main:$(git ls-tree -r --name-only origin/main outbox/ \
 grep -rn "checkAndIncrementDailyOdds(" src/ | grep -v budget-helpers
 grep -rn "reconcileOddsCredit(" src/ | grep -v budget-helpers
 
-# 0d. Latency floor. Time one /d1/execute round trip from the worker, because
-#     every odds call gains one. ambientCaptureClosingOdds runs on a cron;
-#     fetchSportOddsLive runs per request (STANDARDS Rule 24).
+# 0d. Latency, BOTH SIDES — see Task 3.2 for why one side is not enough.
+#     Time these on the same isolate, from the worker, and report both:
+#       (a) four sequential FIELD_JOURNALISM ops, as the guard does them now
+#       (b) one env.DB.batch([...]) of the three Task 2 statements
+#     ambientCaptureClosingOdds runs on a cron; fetchSportOddsLive runs per
+#     request (STANDARDS Rule 24).
 ```
 
 ## Task 1 — schema
@@ -169,17 +179,93 @@ being watched.
 
 Statement 3 runs only if statement 2 returned a row.
 
-## Task 3 — two decisions the owner makes, not CC
+## Task 3 — SUPERSEDED 2026-09-19. Neither was a decision.
 
-1. **Degrade open or closed?** Today both guards return `true` when KV errors
-   (witnessed 2026-09-18: 4 credits through). With D1, degrading closed means
-   odds fetches stop when D1 is down; degrading open means the same silent
-   leak, relocated. CLAUDE.md Rule 5 covers archive writes, not budget guards,
-   so it does not decide this. **Ask.**
-2. **Latency budget.** Task 0d's number against the per-call cost on the
-   `ambientCaptureClosingOdds` cron. If a round trip is material, the closing
-   capture may need to charge in one batched call per slate rather than per
-   game. **Report 0d before implementing, do not absorb it silently.**
+This section read "two decisions the owner makes, not CC", and it gated the
+whole CC-CMD from 2026-09-18. Both questions were measurements written up as
+values judgments, and that is why neither got answered: as posed, neither has
+an answer.
+
+The original text is kept below, because the mistake is the useful part.
+
+### 3.1 — degrade open, and it was never the leak
+
+Keep the existing degrade-OPEN behaviour. Not a preference — the quantity the
+question turns on was already measured and nobody looked.
+
+`outbox/odds-pairing-rate-20260919T140742Z.log`, a 23.4h window:
+
+```
+escaped the ledger: 885
+known CI spend    : 200
+UNEXPLAINED       : 685   (tolerance 243)
+guard fell open   : partial — 24 credit(s)
+```
+
+**24 of 685 credits.** Degrading closed recovers those 24 and stops odds
+serving whenever D1 is unreachable; the other 661 is untouched by either
+answer. The question was framed as though it governs the leak. It governs 3.5%
+of it — and 24 is a floor, because the `!env.FIELD_JOURNALISM` path has nowhere
+to record itself (see `_countDegradeOpen`'s header).
+
+**The batch also removes the half-state the question was about.** Today the
+guard can authorize spend and then fail to record it: the `put` throws, the
+catch returns `true`, the vendor is called, and `odds:daily:*` never moved.
+With the ceiling inside `UPDATE ... WHERE ... RETURNING`, charge and decision
+are one statement — a throw means nothing was charged AND nothing was
+authorized. What remains is the ordinary "no answer from the store" case, and
+`return true` there is the same trade the code makes today, now bounded to a
+window where no spend was recorded as permitted.
+
+Keep `_countDegradeOpen`. It is the only reason any of the above is a number
+rather than a guess.
+
+### 3.2 — not a budget, a comparison; see Task 0d
+
+Task 0d read "Time one /d1/execute round trip from the worker, because every
+odds call gains one." It gains none.
+
+Counted from `src/budget-helpers.js:176` (`async function
+checkAndIncrementDailyOdds`), one permitted call today does **four** KV round
+trips: `get(odds:daily:*)`, `put(odds:daily:*)`, then a `get` and a `put` on
+`odds:site:*` inside `async function _bumpSite`. The Task 2 design is **one**
+`env.DB.batch([...])` carrying all three statements. It is 4 → 1, not 0 → 1.
+
+That does not make it faster and this document does not claim it does. KV reads
+are edge-cached and cheap; KV writes and D1 both go to a central store, so a
+lower op count is not by itself a lower latency. What it means is that "what
+budget will you accept for an added round trip" has no answer, because there is
+no added round trip. Measure both sides; do not reason about either.
+
+Report both numbers in the Task 6 manifest.
+
+If (b) is slower than (a), the batching question in the original text becomes
+live again — one charge per slate rather than per game on
+`ambientCaptureClosingOdds`. Decide it from the measurement, not before it.
+
+---
+
+### The original Task 3, superseded — kept for the record
+
+> **Two decisions the owner makes, not CC**
+>
+> 1. **Degrade open or closed?** Today both guards return `true` when KV errors
+>    (witnessed 2026-09-18: 4 credits through). With D1, degrading closed means
+>    odds fetches stop when D1 is down; degrading open means the same silent
+>    leak, relocated. CLAUDE.md Rule 5 covers archive writes, not budget guards,
+>    so it does not decide this. **Ask.**
+> 2. **Latency budget.** Task 0d's number against the per-call cost on the
+>    `ambientCaptureClosingOdds` cron. If a round trip is material, the closing
+>    capture may need to charge in one batched call per slate rather than per
+>    game. **Report 0d before implementing, do not absorb it silently.**
+
+**Why this is worth keeping.** Rule 100 says a premise is not probed until one
+command has tried to refute it. Both premises here were refutable by one
+command each — `cat` the newest pairing log, and read 38 lines of
+`budget-helpers.js` — and neither was run before the questions were filed and
+sent to the owner. That publication is the defect, exactly as Rule 100's
+corollary describes. The cost was a day of the CC-CMD sitting gated on
+questions that could not be answered.
 
 ## Task 4 — cutover
 
@@ -217,7 +303,11 @@ Both are read from committed outbox logs, not from a live curl.
 ## Task 6 — outbox manifest (last)
 
 Commit hash, deploy run ID, the two done-condition outputs pasted verbatim,
-the 0d latency number, and the owner's answer to Task 3.1.
+**both** 0d latency numbers (four-KV and one-batch, same isolate), and — if
+(b) came back slower than (a) — the per-slate batching decision from 3.2.
+
+There is no owner answer to record. Task 3.1 is answered from the pairing log
+and cited there.
 
 ## Retire the probe
 
