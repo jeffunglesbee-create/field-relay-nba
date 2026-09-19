@@ -1,0 +1,56 @@
+=== odds backfill pairing rate  utc=2026-09-19T14:07:42.434Z ===
+window: progress rows dated >= 2026-09-05
+
+  progress rows in window        : 14
+  of those, rows that spent      : 14
+  spent AND paired at least one  : 7
+  spent AND paired ZERO          : 7
+  total credits in window        : 940
+  total games paired in window   : 45
+
+FAIL: 7 date(s) were billed and paired nothing:
+      2026-09-15  credits 80  games 0
+      2026-09-14  credits 60  games 0
+      2026-09-11  credits 20  games 0
+      2026-09-10  credits 40  games 0
+      2026-09-08  credits 20  games 0
+      2026-09-07  credits 20  games 0
+      2026-09-06  credits 60  games 0
+
+This is the shape the equality matcher produced on every CFB date before
+2026-09-16. Investigate the matcher before the budget (Rule 77).
+
+  provider billed this month     : 77686
+  our ledger says                : 55980
+  today's daily counter          : 490 / 3800
+  readings on file               : 9
+  daily ceiling verdict          : within_ceiling  (490/3800, 13%)
+
+  since the last reading (23.4h):
+      provider billed   : 4868
+      our ledger charged: 3983
+      escaped the ledger: 885
+      known CI spend    : 200   (1 backfill run(s) in window)
+      UNEXPLAINED       : 685   (tolerance 243)
+      guard fell open   : partial — 24 credit(s)
+      positive — the vendor billed for calls our counters did not see
+      games paired since: 9
+
+  wrote outbox/odds-provider-usage-series.json (10 reading(s) kept)
+
+FAIL: the vendor billed 4868, our ledger charged 3983,
+and 200 of the difference is known CI spend. 685 credits are UNEXPLAINED —
+they reached the provider without reaching a counter. Both guards
+degrade OPEN — consumeOddsCredit returns true when FIELD_JOURNALISM is unbound,
+checkAndIncrementDailyOdds returns true on any KV error — so spend that the
+vendor saw and we did not is the signature of a guard that stopped guarding.
+This compares the two counters to EACH OTHER, so it is not the standing
+cumulative gap (19,582 on 2026-09-16); it is new divergence in this interval.
+
+COVERAGE: 14 progress rows since 2026-09-05, 10 provider reading(s).
+odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an
+unpaired one reads as paired — this catches total failure per date, not per sport.
+KNOWN CI SPEND IS A LOWER BOUND: only odds-backfill records its own credits, so
+probes and one-off fills are NOT subtracted and UNEXPLAINED is an upper bound on
+real leakage. Joined on completed_at (the run clock), never on date (the day
+being backfilled) — a run today writes yesterday's row.
