@@ -1,0 +1,12 @@
+=== odds daily vs vendor  day=2026-09-18  utc=2026-09-19T02:22:39.263Z ===
+
+  2026-09-18 our counter : 3799 / 3800
+  vendor cumulative now  : 76945
+  previous reading       : none — this is the baseline
+
+  verdict: no-data
+
+COVERAGE: 1 reading recorded for 2026-09-18; 1 on file. No comparison
+this run — a first reading has no baseline.
+
+OK: reading stored. A verdict needs two readings inside one vendor billing month.
