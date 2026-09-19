@@ -1,20 +1,73 @@
 # CC-CMD-2026-09-18 — atomic odds counter
 
-**STATUS: GATED. Do not start until the drift probe returns a verdict.**
+**STATUS: gate satisfied 2026-09-19. The verdict came back
+`gap-grows-while-spending` — but the reason to do this has CHANGED, and the
+change matters more than the verdict.**
 
-`odds-site-drift` runs every 3h and separates the two live candidates for the
-site-vs-daily gap:
+## The verdict, and the falsification underneath it
 
-| verdict | meaning | what to do |
-|---|---|---|
-| `gap-grows-while-spending` | lost updates on the hot key | **this CC-CMD is correct — execute it** |
-| `clamp-witnessed` | the per-site clamp discards refunds | **this CC-CMD is WRONG — fix `_bumpSite` instead** |
-| `inconclusive` | not caught yet | wait; inconclusive is not absence |
+`odds-site-drift`, 2026-09-18:
 
-Starting before the verdict repeats the 2026-09-18 pattern: changing production
-code from a reading rather than a measurement.
+| from | to | usedD | gapD | verdict |
+|---|---|---|---|---|
+| 15:51 | 18:22 | 66 | -6 | gap-did-not-grow |
+| 18:22 | 20:03 | 74 | +43 | gap-grew-while-spending |
+| 20:03 | 22:53 | 1232 | +242 | gap-grew-while-spending |
 
-## The defect this addresses
+Zero `clamp-witnessed` intervals. The clamp needed `used` to FALL; it never
+fell. So the per-site clamp is not the cause and `_bumpSite` is not the fix.
+
+**And the lost-update story does not survive either.** The 2026-09-19 01:50Z
+sample reads `used 166, by_site_sum 150` — gap **-16**, sites UNDER the total.
+Lost updates on the hot daily key can only ever make daily SMALLER than the sum
+of sites, so they cannot produce a negative gap. The sign flipped, and one
+mechanism cannot make it flip.
+
+That is not a footnote. It is the finding:
+
+> **Two non-atomic counters, written from concurrent isolates by different code
+> paths at different frequencies, with a swallowed catch on one and not the
+> other, will disagree in BOTH directions. There is no single root cause to
+> find. They disagree because nothing makes them agree.**
+
+Three candidates have now been killed by reading (midnight skew, ceiling
+saturation, wrong-sign site loss) and two by measurement (the clamp, and a
+single-mechanism lost-update account). Hunting a sixth is the iteration this
+repo's Rule 42 exists to stop.
+
+## Why this CC-CMD is still right, for a different reason
+
+Its value is NOT "atomic, therefore no lost updates" — that was an argument for
+a diagnosis that did not hold. Its value is Task 2's batch:
+
+> daily and per-site are written in the SAME transaction, so they cannot
+> diverge, in either direction, for any reason, including ones nobody has
+> thought of.
+
+A fix that does not depend on the diagnosis being right is the correct answer to
+a defect whose diagnosis keeps changing. Execute it for that reason and state
+that reason in its commit.
+
+## THE LARGER GAP THIS DOES NOT CLOSE — read before starting
+
+Everything measured so far is the difference **between two of our own counters**.
+Nothing has established which of them is RIGHT. Both could be wrong together.
+
+The only authoritative third number is the vendor's bill, and the pairing watch
+already reads it: on 2026-09-18 it measured provider +506 against our ledger -76
+over 18.4h, leaving **442 credits UNEXPLAINED** after known CI spend. That is
+the number with money attached. `by_site` has no code consumer in either repo
+(see below) and cannot overspend anything.
+
+**If `odds:daily:*` is under-counting, real spend exceeded 3800 on every capped
+day and the ceiling has been guarding a number below the truth.** That claim is
+unproven and is the one worth proving. Closing daily-vs-site does not touch it.
+
+So: execute this CC-CMD because single-transaction writes are right regardless,
+and do NOT report the -397 class as "solved" when it lands. Daily-vs-vendor is
+the open question, and it needs its own CC-CMD.
+
+## The defect this addresses (as originally stated, 2026-09-18)
 
 Measured 2026-09-17, closed day: `used` 3799 against `by_site_sum` 4196, a gap
 of -397 past a 190 tolerance. Measured 2026-09-18 intraday at 15:50Z: `used`
@@ -30,8 +83,9 @@ own comment says so. Concurrent isolates lose updates, and not evenly:
   nine are colder still.
 
 The hot key loses proportionally more writes than the sum of the cold ones, so
-the daily total drifts BELOW `by_site_sum`. Direction follows from the code.
-**Magnitude does not and is not claimed** — that is what the probe measures.
+the daily total drifts BELOW `by_site_sum`. **SUPERSEDED: the probe measured a
+negative gap on 2026-09-19, which this account cannot produce. Kept for the
+record, not as the rationale.**
 
 ### What this is NOT worth fixing for
 
