@@ -1,0 +1,16 @@
+=== odds site drift  utc=2026-09-19T07:34:53.725Z ===
+
+  this reading   : 2026-09-19  used 231  by_site_sum 249  gap 18
+  unreadable     : none
+  samples on file: 7  (keeping the last 60)
+
+  INTERVALS for 2026-09-19
+  from      to        usedD    gapD   verdict
+  01:50     07:34       65      34   gap-grew-while-spending
+
+  verdict: gap-grows-while-spending  over 1 interval(s) of 2 same-day sample(s)
+
+COVERAGE: 2 sample(s) of the 2026-09-19 UTC day, 1 interval(s).
+Cross-midnight pairs are REFUSED, not merged, so a day's first reading yields no
+interval. A refund that lands and is undone between two samples is invisible —
+the sampling interval is the floor on what this can see.
