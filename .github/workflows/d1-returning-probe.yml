@@ -1,0 +1,84 @@
+name: D1 RETURNING probe
+
+# Task 0b of docs/CC-CMD-2026-09-18-atomic-odds-counter.md. The whole atomicity
+# argument in Task 2 rests on `UPDATE ... WHERE ... RETURNING used` being one
+# statement that both charges and decides. SQLite has RETURNING since 3.35;
+# this repo uses ON CONFLICT DO UPDATE in six places and RETURNING in none, so
+# whether it is available here was never established.
+#
+# IN CI RATHER THAN THE SANDBOX because the sandbox's egress proxy denies
+# CONNECT to the worker (measured 2026-09-19: connect_rejected). Actions has
+# unrestricted egress and is this project's standing escape hatch for that.
+#
+# Dispatch only. It answers a question once; it is not a watch, and the repo
+# already carries 21 read-only scheduled watches.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Rule 90: the harness runs BEFORE the probe, so a probe whose classifier
+      # cannot be made to fail never gets to produce a verdict.
+      - name: The classifier can be made to fail
+        run: |
+          node scripts/probe-d1-returning.mjs --self-test
+          node scripts/mutate-d1-returning.mjs
+
+      # READ FROM SOURCE, NOT WRITTEN HERE. bootstrap-relay-secret.yml already
+      # extracts this literal the same way, and for the same reason: a copy in a
+      # workflow file is a second place to forget when the gate rotates, and the
+      # failure would surface as a 401 days later somewhere else.
+      #
+      # Exactly one distinct literal, or stop. Picking one of several would send
+      # a value the route rejects, and a 401 would then be read as a D1 answer.
+      - name: Extract the gate literal from source
+        id: gate
+        run: |
+          mapfile -t FOUND < <(grep -ao "X-FIELD-Relay') !== '[^']*'" src/index.js \
+            | sed "s/.*!== '//; s/'$//" | sort -u)
+          echo "distinct gate literals: ${#FOUND[@]}"
+          if [ "${#FOUND[@]}" -ne 1 ]; then
+            echo "::error::expected exactly 1 distinct gate literal, found ${#FOUND[@]}"
+            exit 1
+          fi
+          echo "::add-mask::${FOUND[0]}"
+          echo "gate=${FOUND[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Probe
+        env:
+          RELAY_GATE: ${{ steps.gate.outputs.gate }}
+        run: node scripts/probe-d1-returning.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.name  "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/d1-returning-probe-*.log 2>/dev/null || true
+          git diff --staged --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: D1 RETURNING support (Task 0b)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when EVERY attempt fails: its last command is
+          # `sleep`, and `set -e` does not fire because a failing `&&` list is a
+          # tested command. Verified under the exact Actions shell
+          # (bash -e -o pipefail). Without this line a lost artifact reports as a
+          # green step. is-ancestor, not HEAD equality: another bot pushing after
+          # us is routine here and must not read as our failure.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after retries"; exit 1; }
