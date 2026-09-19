@@ -136,23 +136,11 @@ const { asUtc: _asUtc } = await import('./lib/utc.mjs');
 /** Credits the backfill spent INSIDE [fromISO, toISO]. A LOWER BOUND on what
  *  is legitimately outside the ledger: the backfill is the only CI spender
  *  that records itself, so probes and one-off fills are not in this number. */
-export function ciSpendInInterval(rows, fromISO, toISO) {
-  const from = Date.parse(fromISO), to = Date.parse(toISO);
-  if (!Number.isFinite(from) || !Number.isFinite(to)) return { credits: 0, runs: 0, undated: 0 };
-  let credits = 0, runs = 0, undated = 0;
-  for (const r of rows || []) {
-    const at = _asUtc(r.completed_at);
-    // A row with no usable timestamp cannot be placed in or out of the window.
-    // It is COUNTED SEPARATELY, never silently treated as outside it — that
-    // would inflate the subtraction and shrink the residual on no evidence.
-    if (!Number.isFinite(at)) { undated++; continue; }
-    if (at < from || at > to) continue;
-    const c = Number(r.credits_used);
-    if (!Number.isFinite(c)) { undated++; continue; }
-    credits += c; runs++;
-  }
-  return { credits, runs, undated };
-}
+// Moved to ./lib/ci-spend.mjs so the daily-vs-vendor watch subtracts the SAME
+// number the same way. Re-exported here because this file's callers and its
+// self-test both name it.
+export { ciSpendInInterval } from './lib/ci-spend.mjs';
+const { ciSpendInInterval } = await import('./lib/ci-spend.mjs');
 
 const _num = (v) => (v === null || v === undefined || String(v).trim() === ''
   ? null : (Number.isFinite(Number(v)) ? Number(v) : null));

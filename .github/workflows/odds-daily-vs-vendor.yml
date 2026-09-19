@@ -1,0 +1,62 @@
+name: Odds daily vs vendor (read-only)
+
+# Is the ENFORCING counter right? The only odds question with money attached.
+#
+# Three watches already compare our counters to each other and none of them
+# establishes which is RIGHT. The vendor's bill is the only authority. If
+# odds:daily:* under-counts, real spend exceeded 3800 on every day that "closed
+# at the cap" — 2026-09-15 and 09-16 both read exactly 3800/3800.
+#
+# 00:10, ONCE. The day is read by explicit ?date=, so lateness cannot corrupt
+# our side; but the vendor side is a difference between reading timestamps, and
+# runners here drift 104-405 minutes. The watch REFUSES a window outside 22-26h
+# rather than differencing 28 hours of vendor spend against 24 of ours. A
+# skipped day that says why beats a day with a wrong number in it.
+#
+# READ-ONLY AND FREE: /budget/odds returns a CACHED vendor response header and
+# issues no vendor call; one D1 SELECT for CI rows. No credits.
+
+on:
+  schedule:
+    - cron: '10 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The predicate must be able to fail before its verdict means anything.
+      # V5 matters most: it swaps the tolerance denominator, which makes the
+      # allowance shrink exactly as the counter under-reports — a defect that
+      # disguises itself as a stricter check.
+      - name: the watch can fail
+        run: |
+          node scripts/watch-odds-daily-vs-vendor.mjs --self-test
+          node scripts/mutate-odds-daily-vs-vendor.mjs
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how run 35012890540 reported success over a script that exited 1.
+      - name: Watch
+        shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/watch-odds-daily-vs-vendor.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): the series is the artifact and must keep accumulating on the
+      # run that went red — that run is the one carrying the evidence.
+      - name: Commit the series
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-daily-vs-vendor" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds daily vs vendor"
