@@ -201,7 +201,44 @@ CREATE TABLE IF NOT EXISTS odds_budget_site (
 );
 ```
 
-## Task 2 — the guard, atomic and ceiling-enforcing in one statement
+## Task 2 — the guard  [DONE 2026-09-19; the spec contradicted itself]
+
+**The spec below could not be implemented as written.** It says *"All three in
+one `env.DB.batch([...])`"* and *"Statement 3 runs only if statement 2 returned
+a row."* Both cannot hold: a batch is submitted as a unit, so nothing can read
+statement 2's result and then decide whether to include statement 3. Obeying the
+second sentence means two round trips and no transaction — which removes the
+only reason for the change.
+
+**The resolution is the ORDER.** Bump the site FIRST, reading the PRE-charge
+total, then charge the day. Both statements carry the same ceiling predicate
+over the same pre-charge value, so inside one transaction they either both apply
+or neither does, and nothing needs inspecting. The daily `UPDATE`'s `RETURNING`
+still gives the verdict because it is last.
+
+Verified against real SQLite rather than reasoned about — ceiling 100 charged in
+units of 30 gave CHARGED/CHARGED/CHARGED/VETOED with the two counters equal at
+every step, and a vetoed call moved neither.
+
+**Three things shipped with it that the CC-CMD did not list, because the guard
+is incoherent without them:**
+
+1. **`reconcileOddsCredit`'s delta follows the charge into D1.** It writes the
+   same two counters. Leaving it on KV would have recreated this exact defect
+   one layer down, and its own comment already records that happening on
+   2026-09-16.
+2. **`peekDailyOdds` reads D1 when a row exists, KV otherwise** — Task 4's read
+   half, pulled forward. A guard charging D1 while `/budget/odds` reads KV would
+   report 0 used on a day with real spend, and every watch would read that zero
+   as a finding. It also returns `source` and `kv_used`, because "0 used" and
+   "read the wrong store" are otherwise indistinguishable.
+3. **The seed carries the day's KV total, once per isolate.** Task 4 required a
+   UTC day boundary so a fresh D1 row starting at 0 would not hand the day a
+   second full ceiling. Seeding from KV removes that constraint: the cutover is
+   safe at any hour, and `INSERT OR IGNORE` means it can only apply to the day's
+   first row.
+
+### The original Task 2, superseded — kept because the contradiction is the point
 
 The ceiling goes in the `WHERE`, so there is no read-then-decide window and no
 compensating write on veto.
@@ -224,6 +261,8 @@ structurally incapable of diverging. The -397 class stops existing rather than
 being watched.
 
 Statement 3 runs only if statement 2 returned a row.
+
+*(This sentence is the contradiction. See the resolution above.)*
 
 ## Task 3 — SUPERSEDED 2026-09-19. Neither was a decision.
 

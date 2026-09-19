@@ -90,6 +90,28 @@ jobs:
           node scripts/mutate-odds-budget-schema.mjs
           node scripts/check-odds-budget-schema.mjs
 
+      # Task 2. THE SPEC WAS SELF-CONTRADICTORY: "all three in one batch" AND
+      # "statement 3 runs only if statement 2 returned a row" cannot both hold,
+      # because a batch is submitted as a unit. The resolution is the ORDER —
+      # bump the site FIRST, reading the PRE-charge total, then charge the day,
+      # both carrying the same ceiling predicate. No result needs inspecting and
+      # the transaction survives.
+      #
+      # That makes the ORDER the correctness argument, and the order is invisible
+      # from either statement alone. Reversing it is a two-line change with no
+      # syntax error and no symptom until a ceiling day.
+      #
+      # The mutations run the real SQL against node:sqlite rather than only
+      # reading it, and the three behavioural ones reproduce BOTH observed gap
+      # signs: charge-before-site gives daily 90 / sum 60, an unguarded site
+      # write gives 90 / 150 (the positive gap), an unguarded charge gives
+      # 150 / 90 (the negative one).
+      - name: the odds budget batch keeps its order and its ceilings
+        run: |
+          node scripts/check-odds-budget-batch.mjs --self-test
+          node scripts/mutate-odds-budget-batch.mjs
+          node scripts/check-odds-budget-batch.mjs
+
       # WHOOP COST MORE THAN ITS DEAD CODE, and none of the 40-odd guards here
       # was looking for it, because every one of them asks whether the code is
       # CORRECT and none asked whether it BELONGS.

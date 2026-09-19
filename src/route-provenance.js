@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-19T18:34:39.962Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-19T19:06:25.041Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -65,12 +65,12 @@ export const ROUTE_PROVENANCE = {
   "/bsd/tennis/matches/by-date": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/tennis/matches/live": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/tennis/tournaments": { k: "upstream", s: "sports.bzzoiro.com" },
-  "/budget/odds": { k: "store", s: "kv:FIELD_JOURNALISM" },
+  "/budget/odds": { k: "store", s: "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/bundesliga-bapi/broadcasts": { k: "proxy", s: "wapp.bapi.bundesliga.com" },
   "/bundesliga-bapi/resolve-dayid": { k: "upstream", s: "d1:ARCHIVE_DB + www.bundesliga.com" },
   "/cfl/": { k: "upstream", s: "cflscoreboard.cfl.ca + echo.pims.cfl.ca + www.cfl.ca", p: 1 },
   "/cfl/fixtures": { k: "upstream", s: "cflscoreboard.cfl.ca" },
-  "/cfl/odds-probs": { k: "upstream", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM" },
+  "/cfl/odds-probs": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/cfl/rosters": { k: "upstream", s: "cflscoreboard.cfl.ca" },
   "/cfl/scoreboard/rounds": { k: "upstream", s: "cflscoreboard.cfl.ca" },
   "/cfl/scoreboard/squads": { k: "upstream", s: "cflscoreboard.cfl.ca" },
@@ -137,7 +137,7 @@ export const ROUTE_PROVENANCE = {
   "/nhl-gsax/": { k: "store", s: "r2:FIELD_DATA", p: 1 },
   "/nhl-series/": { k: "store", s: "r2:FIELD_DATA", p: 1 },
   "/nhl/": { k: "proxy", s: "api-web.nhle.com", p: 1 },
-  "/odds": { k: "proxy", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM", p: 1 },
+  "/odds": { k: "proxy", s: "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM", p: 1 },
   "/odds-story/preview": { k: "store", s: "d1:ARCHIVE_DB" },
   "/odds/history/": { k: "store", s: "d1:ARCHIVE_DB", p: 1 },
   "/pin/game/": { k: "durable-object", s: "do:GAME_DO", p: 1 },
@@ -188,7 +188,7 @@ export const ROUTE_PROVENANCE = {
   "/wc/match-wp": { k: "computed", s: "d1:WC2026_DB (inherited from the enclosing block)" },
   "/wc/matchup/cache": { k: "store", s: "kv:FIELD_JOURNALISM" },
   "/wc/movers": { k: "store", s: "kv:FIELD_JOURNALISM" },
-  "/wc/odds-probs": { k: "upstream", s: "api.the-odds-api.com + kv:FIELD_JOURNALISM" },
+  "/wc/odds-probs": { k: "upstream", s: "api.the-odds-api.com + d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
   "/wc/projections": { k: "upstream", s: "api.anthropic.com + kv:FIELD_JOURNALISM" },
   "/wc/projections/refresh": { k: "trigger", s: "api.anthropic.com + kv:FIELD_JOURNALISM" },
   "/wc/results": { k: "store", s: "d1:WC2026_DB" },

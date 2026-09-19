@@ -173,44 +173,67 @@ async function _countDegradeOpen(env, units) {
     }
 }
 
+// Seeded once per isolate per day, from the day's KV total, so the cutover can
+// happen at ANY hour rather than only at a UTC midnight.
+//
+// Task 4 specified a day boundary for one reason: a fresh D1 row starting at 0
+// beside a KV counter already at, say, 1014 would hand the day a second full
+// ceiling. Carrying the KV total into the seed removes that, and `INSERT OR
+// IGNORE` means it can only ever apply to the day's first row — a second isolate
+// seeding the same day is a no-op, not a double count.
+let _seededDay = null;
+
+async function _seedFromKv(env, date) {
+    if (_seededDay === date) return 0;
+    let carried = 0;
+    try {
+        const raw = await env.FIELD_JOURNALISM.get(`odds:daily:${date}`);
+        carried = raw ? parseInt(raw, 10) || 0 : 0;
+    } catch (_) { /* a KV read failure seeds 0; the ceiling is then generous for
+                     one day rather than the guard failing shut on a read */ }
+    _seededDay = date;
+    return carried;
+}
+
 async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
         const key = _dailyKey();
-        const raw = await env.FIELD_JOURNALISM.get(key);
-        const used = raw ? parseInt(raw, 10) || 0 : 0;
+        const date = key.slice('odds:daily:'.length);
         const ceiling = _dailyCeiling();
-        if (used + units > ceiling) {
+
+        // ONE BATCH, FOUR KV ROUND TRIPS REPLACED BY ONE D1 CALL. The previous
+        // form did get + put on odds:daily:* and then get + put on odds:site:*
+        // inside _bumpSite -- four non-atomic operations from concurrent
+        // isolates, which is why the two counters disagreed in BOTH directions
+        // and no single root cause was ever found. They are now written in one
+        // transaction and cannot diverge for any reason, including ones nobody
+        // has thought of. That argument does not depend on the diagnosis being
+        // right, which is why it survived the diagnosis being wrong twice.
+        if (!(await ensureOddsBudgetTables(env))) throw new Error('ARCHIVE_DB unavailable');
+        const carried = await _seedFromKv(env, date);
+        const db = env.ARCHIVE_DB;
+        const results = await db.batch([
+            db.prepare(ODDS_BUDGET_SQL.seed).bind(date, carried),
+            db.prepare(ODDS_BUDGET_SQL.site).bind(date, site, units, date, units, ceiling),
+            db.prepare(ODDS_BUDGET_SQL.charge).bind(units, date, units, ceiling),
+        ]);
+        if (chargedFromBatch(results)) return true;
+
+        // Vetoed. Nothing was written -- the site statement carries the same
+        // predicate over the same pre-charge total, so there is no compensating
+        // write to make and no window in which the split is ahead of the total.
+        {
             // One warn per day per ceiling-hit isolate. The monthly guard
             // emits its own warn separately.
             const warnedKey = `${key}:warned`;
             const already = await env.FIELD_JOURNALISM.get(warnedKey);
             if (!already) {
-                console.warn(`[odds-daily-guard] daily ceiling reached — used=${used} + ${units} > ${ceiling}; suppressing further fetches`);
+                console.warn(`[odds-daily-guard] daily ceiling reached — +${units} would exceed ${ceiling}; suppressing further fetches`);
                 await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 86400 });
             }
             return false;
         }
-        await env.FIELD_JOURNALISM.put(key, String(used + units), {
-            expirationTtl: 172800, // 48h — auto-cleanup
-        });
-        // ATTRIBUTION. The counters above say HOW MUCH; nothing said BY WHOM,
-        // and that is why "3,557/day" could not be split until the backfill's
-        // own D1 rows happened to allow one subtraction (1.1% backfill,
-        // 98.9% everything else). AmbientDO's polling, its closing capture and
-        // the WP resolver were indistinguishable from each other.
-        //
-        // Written HERE and not in a new code path on purpose: this function
-        // already writes to KV on every permitted call, so this is one more
-        // write beside an existing one rather than a write where there were
-        // none. reconcileOddsCredit returns early when delta === 0 and writes
-        // nothing, so instrumenting there would have missed most calls.
-        //
-        // The default is 'unattributed', NOT omission: a caller that forgets to
-        // pass a site shows up as a named bucket with a number in it rather
-        // than vanishing from the total (Rule 99).
-        await _bumpSite(env, site, units);
-        return true;
     } catch (_) {
         // DEGRADE-OPEN, AND NOW WITNESSED. The call is about to spend at the
         // vendor while odds:daily:* did not move; without this line the only
@@ -249,13 +272,54 @@ async function peekDailyOdds(env, forDate = null) {
         const date = forDate || new Date().toISOString().slice(0, 10);
         const key = `odds:daily:${date}`;
         const raw = await env.FIELD_JOURNALISM.get(key);
-        const used = raw ? parseInt(raw, 10) || 0 : 0;
+        const kvUsed = raw ? parseInt(raw, 10) || 0 : 0;
         // THE REPORT MUST MATCH THE GUARD. Reporting the standing ceiling while
         // the guard enforces a granted one would show 0 remaining on a day when
         // 2500 more are allowed — a budget readout that disagrees with the
         // budget is worse than none, because it is the number people act on.
         const ceiling = _dailyCeiling(date);
-        const sites = await _readSites(env, date);
+        // THE READER FOLLOWS THE WRITER, AND SAYS WHICH ONE IT READ.
+        //
+        // This ships in the same commit as the guard's move to D1 because it has
+        // to: a guard charging D1 while /budget/odds reads KV would report 0 used
+        // on a day with real spend, and every watch built on this route --
+        // attribution-gap, site-drift, daily-vs-vendor, the ceiling readout --
+        // would read that zero as a finding.
+        //
+        // ONE fallback level, not a chain (Rule 76). D1 is authoritative for any
+        // day it has a row for; KV answers for days before the cutover, which
+        // still exist inside odds:daily:*'s TTL. A day with no row in either is
+        // genuinely zero.
+        //
+        // `source` is in the response because "0 used" and "read the wrong store"
+        // are indistinguishable otherwise, and this route is the one people act
+        // on. Absent is not zero (Rule 99), and neither is asking the wrong
+        // question.
+        let used = kvUsed, sites = await _readSites(env, date), source = 'kv';
+        try {
+            if (env.ARCHIVE_DB) {
+                const row = await env.ARCHIVE_DB
+                    .prepare('SELECT used FROM odds_budget WHERE day = ?').bind(date).first();
+                if (row && row.used !== null && row.used !== undefined) {
+                    used = Number(row.used) || 0;
+                    const siteRows = await env.ARCHIVE_DB
+                        .prepare('SELECT site, used FROM odds_budget_site WHERE day = ?').bind(date).all();
+                    const d1Sites = {};
+                    for (const s of (siteRows?.results || [])) d1Sites[s.site] = Number(s.used) || 0;
+                    // Every declared site appears, at 0 if it did not spend, so a
+                    // site that fell out of the vocabulary stays distinguishable
+                    // from one that simply had a quiet day.
+                    for (const s of ODDS_SITES) if (!(s in d1Sites)) d1Sites[s] = 0;
+                    sites = d1Sites;
+                    source = 'd1';
+                }
+            }
+        } catch (_) {
+            // A D1 read failure leaves the KV answer standing and says so via
+            // `source`, rather than reporting a zero nobody can tell from a
+            // quiet day.
+            source = 'kv-d1-unreadable';
+        }
         // `(Number(v) || 0)` here would sum the readable sites and publish the
         // result as the total, making an unreadable counter indistinguishable
         // from a site that spent nothing — the exact substitution that shipped
@@ -285,6 +349,9 @@ async function peekDailyOdds(env, forDate = null) {
             requested_date: forDate,
             is_today: date === new Date().toISOString().slice(0, 10),
             used,
+            source,          // 'd1' | 'kv' | 'kv-d1-unreadable'
+            kv_used: kvUsed, // the other store, always, so a divergence shows in
+                             // one response rather than needing two calls
             ceiling,
             remaining: Math.max(0, ceiling - used),
             // Present and null on an ordinary day, so an unusual ceiling always
@@ -368,6 +435,69 @@ async function peekMonthlyOdds(env) {
 // the DDL runs once per isolate rather than on every guarded call, and a
 // missing binding returns rather than throwing.
 let _oddsBudgetReady = false;
+
+// ---------------------------------------------------------------------------
+// Task 2 — the three statements, exported so they can be read and mutated
+// without a database.
+//
+// THE CC-CMD'S OWN SPEC WAS SELF-CONTRADICTORY, and this is the resolution.
+// Task 2 said "All three in one env.DB.batch([...])" AND "Statement 3 runs only
+// if statement 2 returned a row." Both cannot hold: a batch is submitted as a
+// unit, so nothing can read statement 2's result and then decide whether to
+// include statement 3. Taking the second sentence literally means two round
+// trips and no transaction, which destroys the entire point of the change.
+//
+// THE FIX IS THE ORDER. Bump the site FIRST, reading the PRE-charge total, then
+// charge the day. Both statements carry the same ceiling predicate over the same
+// pre-charge value, so inside one transaction they either both apply or neither
+// does — and no result needs inspecting. The daily UPDATE's RETURNING still
+// gives the verdict, because it is last.
+//
+// Verified against real SQLite (node:sqlite, 2026-09-19) rather than reasoned
+// about: ceiling 100 charged in units of 30 gave CHARGED/CHARGED/CHARGED/VETOED
+// with daily and by-site equal at every step, and a vetoed call moved neither
+// counter. Both statements parse — the INSERT..SELECT..WHERE..ON CONFLICT form
+// is the one SQLite documents as ambiguous without a WHERE, and it has one.
+const SQL_SEED   = 'INSERT OR IGNORE INTO odds_budget (day, used) VALUES (?, ?)';
+const SQL_SITE   = `INSERT INTO odds_budget_site (day, site, used)
+              SELECT ?, ?, ?
+               WHERE (SELECT used FROM odds_budget WHERE day = ?) + ? <= ?
+            ON CONFLICT(day, site) DO UPDATE SET used = used + excluded.used`;
+const SQL_CHARGE = `UPDATE odds_budget SET used = used + ?
+             WHERE day = ? AND used + ? <= ?
+            RETURNING used`;
+
+/** The batch, in order. Exported so a check can assert the ORDER, which is the
+ *  whole correctness argument and is invisible from either statement alone. */
+// A CORRECTION IS NOT A CHARGE, so neither statement carries the ceiling.
+// reconcileOddsCredit applies the difference between the estimate and the
+// vendor's receipt, and that difference must land whether or not the day is
+// capped -- refusing a refund because the ceiling is reached would leave the
+// ledger permanently above the bill. Clamped at zero on both arms, matching the
+// KV behaviour it replaces and for the stated reason: a lost race must never
+// drive a counter negative and hand back headroom that was genuinely spent.
+const SQL_FIX_DAY  = 'UPDATE odds_budget SET used = MAX(0, used + ?) WHERE day = ?';
+const SQL_FIX_SITE = `INSERT INTO odds_budget_site (day, site, used) VALUES (?, ?, MAX(0, ?))
+            ON CONFLICT(day, site) DO UPDATE SET used = MAX(0, used + ?)`;
+
+export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHARGE,
+                                 fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE };
+export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
+
+/** Did the batch charge? The daily UPDATE returns its row only when the ceiling
+ *  allowed it, so zero rows is a veto and not an error. Absent results (a shape
+ *  this code has never seen) are NOT read as a veto: that would silently stop
+ *  every odds call, so it throws to the degrade path where it is counted. */
+export function chargedFromBatch(results) {
+  if (!Array.isArray(results) || results.length !== 3) {
+    throw new Error(`odds budget batch returned ${Array.isArray(results) ? results.length : typeof results} result(s), expected 3`);
+  }
+  const charge = results[2];
+  if (!charge || !Array.isArray(charge.results)) {
+    throw new Error('odds budget batch: the charge statement returned no results array');
+  }
+  return charge.results.length > 0;
+}
 
 async function ensureOddsBudgetTables(env) {
     if (_oddsBudgetReady) return true;
@@ -532,6 +662,27 @@ export async function reconcileOddsCredit(env, estimated, resp, site = '') {
         const day   = `odds:daily:${new Date().toISOString().slice(0, 10)}`;
         const d     = new Date();
         const month = `odds:credits:${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+        // THE CORRECTION FOLLOWS THE CHARGE INTO D1. Leaving this on KV while
+        // checkAndIncrementDailyOdds charges D1 would recreate the exact defect
+        // the comment above describes, one layer down: the two stores would
+        // disagree by every reconciliation, and the disagreement would again
+        // wear the name of a gap.
+        //
+        // One batch, so the day and the site cannot take a correction singly.
+        try {
+            if (await ensureOddsBudgetTables(env)) {
+                const db = env.ARCHIVE_DB;
+                await db.batch([
+                    db.prepare(ODDS_BUDGET_SQL.fixDay).bind(out.delta, out.day || day.slice('odds:daily:'.length)),
+                    db.prepare(ODDS_BUDGET_SQL.fixSite).bind(day.slice('odds:daily:'.length), site, out.delta, out.delta),
+                ]);
+            }
+        } catch (e) {
+            // A failed correction must not fail the fetch that already happened.
+            // It is recorded rather than swallowed: an uncorrected estimate is a
+            // known overcount, and a silent one is the 2026-09-16 defect again.
+            console.warn(`[odds-reconcile] D1 correction failed for ${site} delta=${out.delta}: ${String(e.message || e).slice(0, 120)}`);
+        }
         await _bumpSite(env, site, out.delta);
         for (const key of [day, month]) {
             const raw = await env.FIELD_JOURNALISM.get(key);
