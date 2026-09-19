@@ -54,8 +54,22 @@ eq('peekDailyOdds still exposes the standing ceiling separately',
    /standing_ceiling: ODDS_DAILY_CEILING/.test(SRC), true);
 eq('an ordinary day reports grant_today as null, not absent',
    /grant_today: grants\.length \? grants : null/.test(SRC), true);
+// RE-ANCHORED 2026-09-19, NOT LOOSENED. This matched `used + units > ceiling`,
+// a JS comparison that no longer exists: Task 2 moved the ceiling into the SQL
+// `WHERE`, so there is no read-then-decide window to compare in. The INVARIANT
+// is unchanged — the guard must enforce the GRANTED ceiling, not the standing
+// one — so the assertion now follows it to where it lives: `_dailyCeiling()`
+// is what gets bound into the charge statement.
+//
+// Both halves are load-bearing. Drop the first and mutation R4 (swap
+// `_dailyCeiling()` for `ODDS_DAILY_CEILING`) stops being caught; drop the
+// second and the ceiling could be computed correctly and then never sent.
 eq('the guard compares against the granted ceiling',
-   /const ceiling = _dailyCeiling\(\);[\s\S]{0,80}used \+ units > ceiling/.test(SRC), true);
+   /const ceiling = _dailyCeiling\(\);[\s\S]{0,1600}ODDS_BUDGET_SQL\.charge\)\.bind\([^)]*ceiling\)/.test(SRC), true);
+// And the site statement carries the SAME ceiling, or a vetoed call writes one
+// counter and not the other — which is the divergence Task 2 exists to remove.
+eq('the site write carries the same granted ceiling',
+   /ODDS_BUDGET_SQL\.site\)\.bind\([^)]*ceiling\)/.test(SRC), true);
 
 console.log(`\n${failed ? 'FAILED' : 'PASS'}: ${checked - failed}/${checked}`
           + ` — ${grants.length} grant(s), standing ceiling ${base}`);
