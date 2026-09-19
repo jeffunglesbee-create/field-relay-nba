@@ -1,0 +1,4 @@
+=== odds daily vs vendor  day=2026-09-18  utc=2026-09-19T02:20:54.107Z ===
+
+FAIL: no usable reading — provider.requests_used is "76945" — null is NOT zero (Rule 99).
+      Recording it anyway is how a garbage reading passes as a quiet one.
