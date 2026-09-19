@@ -135,12 +135,38 @@ grep -rn "reconcileOddsCredit(" src/ | grep -v budget-helpers
 #     request (STANDARDS Rule 24).
 ```
 
-## Task 1 — schema
+## Task 1 — schema  [DONE 2026-09-19, and it corrected itself]
 
 No new Durable Object class. CLAUDE.md prohibits it ("requires migration
 entries"), and D1 gives atomicity without one.
 
-`DB` (field-d1), not `ARCHIVE_DB` (game archive) and not `WC2026_DB`.
+**~~`DB` (field-d1), not `ARCHIVE_DB` (game archive) and not `WC2026_DB`.~~
+SUPERSEDED. It is `ARCHIVE_DB`, and the original instruction was wrong in a way
+that contradicted itself.** Four measurements:
+
+| what was checked | what it said |
+|---|---|
+| `wrangler.toml` `database_id` | `DB` and `WC2026_DB` are **`f26669de-…`, the same value** — two bindings onto one database. "use DB, not WC2026_DB" was one instruction telling itself no. |
+| `grep -c 'env\.DB'` across `src/` | **4**, all Whoop OAuth tokens (`whoop_tokens`, ~11311-11376). `env.ARCHIVE_DB`: **347**. |
+| every runtime `CREATE TABLE` | briefs, codex_history, jq_retry_telemetry, change_log, analytics_runs, analytics_output — **all ARCHIVE_DB, none DB**. |
+| where the odds tables already are | `odds_history`, `odds_backfill_progress` — **ARCHIVE_DB**. |
+
+Following the document would have put the odds budget in the World Cup
+database, beside a fitness API's OAuth tokens, away from every other odds
+table.
+
+**Creation path.** Not `/d1/execute` — Task 0b established it 403s any table
+outside `ALLOWED_TABLES`. The worker creates its own tables at runtime, the way
+the other six do: `ensureOddsBudgetTables(env)` in `src/budget-helpers.js`,
+`CREATE TABLE IF NOT EXISTS` in one `batch()`, module-level ready flag so the
+DDL runs once per isolate. Both tables are now in `ALLOWED_TABLES` so probes
+can READ them.
+
+**STAGED** (Rule 74). The function has no caller; Task 2 is its caller. Unblock
+criteria in `outbox/2026-09-19-odds-budget-schema.md`. Guarded by
+`scripts/check-odds-budget-schema.mjs` — which fails on `wrong-binding`
+specifically so a session following this document rather than the code cannot
+move it back.
 
 ```sql
 CREATE TABLE IF NOT EXISTS odds_budget (

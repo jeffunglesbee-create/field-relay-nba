@@ -336,11 +336,76 @@ async function peekMonthlyOdds(env) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Task 1 of docs/CC-CMD-2026-09-18-atomic-odds-counter.md — the D1 schema that
+// replaces the two non-atomic KV counters.
+//
+// STAGED — called by checkAndIncrementDailyOdds in Task 2. It has no caller
+// today and must not acquire one outside that task (Rule 63). Unblock criteria
+// per Rule 74 are in outbox/2026-09-19-odds-budget-schema.md.
+//
+// ARCHIVE_DB, AND THE CC-CMD SAID OTHERWISE. Task 1 as written specified
+// "`DB` (field-d1), not `ARCHIVE_DB` (game archive)". Four measurements say
+// that is wrong:
+//
+//   1. wrangler.toml gives `DB` and `WC2026_DB` the SAME database_id
+//      (f26669de-...). They are two bindings onto one database, so "field-d1"
+//      is the World Cup database under another name. The CC-CMD's own
+//      "not WC2026_DB" and its "use DB" are the same instruction.
+//   2. `env.DB` has FOUR references in the whole worker, all of them Whoop
+//      OAuth tokens (src/index.js ~11311-11376, table `whoop_tokens`).
+//      `env.ARCHIVE_DB` has 347.
+//   3. Every runtime CREATE TABLE here is on ARCHIVE_DB — briefs,
+//      codex_history, jq_retry_telemetry, change_log, analytics_runs,
+//      analytics_output. None is on DB.
+//   4. The odds tables that ALREADY exist — odds_history,
+//      odds_backfill_progress — are in ARCHIVE_DB.
+//
+// Putting the odds budget in DB would have put it in the World Cup database,
+// beside a fitness API's OAuth tokens, away from every other odds table.
+//
+// The shape follows ensureBriefsTable: idempotent, a module-level ready flag so
+// the DDL runs once per isolate rather than on every guarded call, and a
+// missing binding returns rather than throwing.
+let _oddsBudgetReady = false;
+
+async function ensureOddsBudgetTables(env) {
+    if (_oddsBudgetReady) return true;
+    if (!env || !env.ARCHIVE_DB) return false;
+    await env.ARCHIVE_DB.batch([
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_budget (
+              day  TEXT PRIMARY KEY,
+              used INTEGER NOT NULL DEFAULT 0
+            )`),
+        // NOT a single `used` column keyed by day alone: the split is what lets
+        // /budget/odds answer "by whom", which is the question odds:site:* was
+        // added for. Composite PK so ON CONFLICT(day, site) DO UPDATE works.
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_budget_site (
+              day  TEXT NOT NULL,
+              site TEXT NOT NULL,
+              used INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY (day, site)
+            )`),
+    ]);
+    _oddsBudgetReady = true;
+    return true;
+}
+
+// The table names, exported so a check can assert they are readable from CI
+// rather than hardcoding a second copy of the list. Task 0b found that
+// /d1/execute refuses any table outside its ALLOWED_TABLES with a 403 — which
+// reads identically to a D1 failure from outside, so a probe against an
+// unlisted table reports a database property it never measured.
+export const ODDS_BUDGET_TABLES = ['odds_budget', 'odds_budget_site'];
+
 export {
     ODDS_DAILY_CEILING,
     checkAndIncrementDailyOdds,
     peekDailyOdds,
     peekMonthlyOdds,
+    ensureOddsBudgetTables,
 };
 
 // Derives a call's credit cost from the URL it is about to fetch, so the cost

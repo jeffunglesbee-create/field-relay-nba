@@ -15966,7 +15966,7 @@ export default {
             // already here; the journal holds the same class of row and is unreadable
             // without it, which would leave the guard's own done condition —
             // "the first body survives" — unverifiable from outside the worker.
-            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'codex_history', 'jq_retry_telemetry', 'game_thread_notes'];
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'codex_history', 'jq_retry_telemetry', 'game_thread_notes', 'odds_budget', 'odds_budget_site'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

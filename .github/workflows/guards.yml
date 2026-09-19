@@ -73,6 +73,22 @@ jobs:
           python3 scripts/mutate-push-lands.py
           python3 scripts/check-push-lands.py
 
+      # Task 1 of CC-CMD-2026-09-18. The CC-CMD says the schema goes in `DB`
+      # (field-d1). It is wrong, and the check exists because the document is
+      # what a later session will read: wrangler.toml gives DB and WC2026_DB the
+      # SAME database_id, env.DB has four references in the whole worker (all
+      # Whoop OAuth tokens), and every other runtime CREATE TABLE is on
+      # ARCHIVE_DB, where odds_history and odds_backfill_progress already live.
+      #
+      # It also asserts both tables are in /d1/execute's ALLOWED_TABLES. That
+      # route 403s anything else, and a 403 reads identically to a D1 failure
+      # from outside — which is precisely how Task 0b was blocked.
+      - name: the odds budget schema is on ARCHIVE_DB and readable from CI
+        run: |
+          node scripts/check-odds-budget-schema.mjs --self-test
+          node scripts/mutate-odds-budget-schema.mjs
+          node scripts/check-odds-budget-schema.mjs
+
       - name: HANDOFF does not claim a workflow has not run, that has
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
