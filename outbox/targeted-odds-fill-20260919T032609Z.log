@@ -1,0 +1,43 @@
+=== targeted odds fill  utc=2026-09-19T03:26:09.645Z ===
+mode: *** APPLY — WILL SPEND CREDITS ***
+since=2026-05-09  max-pairs=10  budget=200 credits
+
+  games with opening_odds NULL in the 12 sports : 514
+  distinct sport-date pairs                     : 130
+  pairs still lacking any odds_history row      : 130
+  projected cost                                : 2600 credits
+
+  plan: 10 pair(s) = 200 credits
+      2026-09-05  cfb                    68 game(s)
+      2026-08-08  efl cup                29 game(s)
+      2026-08-25  efl cup                17 game(s)
+      2026-09-12  cfb                    13 game(s)
+      2026-09-13  nfl                    13 game(s)
+      2026-09-03  cfb                    11 game(s)
+      2026-05-24  la liga                10 game(s)
+      2026-08-22  nfl                    10 game(s)
+      2026-08-28  nfl                    10 game(s)
+      2026-08-29  cfb                    8 game(s)
+  2026-09-05 cfb                    158 event(s), 71 in window -> 56 by name + 11 by elimination, 67/68 priced
+  2026-08-08 efl cup                31 event(s), 30 in window -> 26 by name + 3 by elimination, 29/29 priced
+  2026-08-25 efl cup                23 event(s), 21 in window -> 13 by name + 4 by elimination, 17/17 priced
+  2026-09-12 cfb                    95 event(s), 80 in window -> 12 by name + 0 by elimination, 0/13 priced
+  2026-09-13 nfl                    212 event(s), 13 in window -> 13 by name + 0 by elimination, 13/13 priced
+  2026-09-03 cfb                    156 event(s), 14 in window -> 10 by name + 1 by elimination, 8/11 priced
+  2026-05-24 la liga                1 event(s), 1 in window -> 1 by name + 0 by elimination, 1/10 priced
+  2026-08-22 nfl                    272 event(s), 0 in window -> 0 by name + 0 by elimination, 0/10 priced
+  2026-08-28 nfl                    272 event(s), 0 in window -> 0 by name + 0 by elimination, 0/10 priced
+  2026-08-29 cfb                    111 event(s), 8 in window -> 7 by name + 1 by elimination, 8/8 priced
+
+  pairs attempted : 10
+  credits spent   : 200
+  odds_history rows inserted : 143
+  pairs the vendor had nothing for : 0 (billed anyway)
+  games skipped as ambiguous       : 0 (never guessed)
+  events matched but unpriced      : 0 (no row written)
+  matched but no h2h market        : 15 (no row written)
+
+  games matched   : 158
+  = priced 143 + unpriced 0 + no-market 15   (balances)
+
+No odds_backfill_progress row was read or written by this script.
