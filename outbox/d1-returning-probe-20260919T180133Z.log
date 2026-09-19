@@ -1,0 +1,20 @@
+=== D1 RETURNING support  utc=2026-09-19T18:01:32.220Z ===
+
+  database via /d1/execute : ARCHIVE_DB (field-archive)
+  table                    : odds_backfill_progress
+
+  A control   SELECT 1                     -> ok
+  C plain     UPDATE ... WHERE 1 = 0       -> ok
+  B subject   ... RETURNING date          -> ok
+
+  verdict: returning-supported
+
+  Task 2 stands as written. One batch, charge and decide in one statement.
+
+COVERAGE: THREE statements against ARCHIVE_DB (field-archive), which is NOT
+the database Task 2 targets. /d1/execute binds env.ARCHIVE_DB and has no path
+to env.DB (field-d1) at all, and odds_budget is not in its ALLOWED_TABLES, so
+Task 0b as written cannot be run. RETURNING is a property of the D1 engine
+rather than of one database, so this answer transfers — but it is an
+inference across databases and is labelled as one, not measured on field-d1.
+Rows changed: zero, by construction (WHERE 1 = 0, and SET games_processed = games_processed).
