@@ -1,7 +1,8 @@
 # CC session 2026-09-18/19 — odds counters, the fill, and what the day actually cost
 
-**Session doc (Rule 67).** HEAD at close: `0f37446`.
-Credits spent this session: **40** (two 20-credit probes). Ceiling 3800/day.
+**Session doc (Rule 67).** HEAD at close: `634ff04`.
+Credits spent this session: **240** — two 20-credit probes and one 200-credit
+fill. Ceiling 3800/day, untouched.
 
 ## What shipped
 
@@ -82,11 +83,18 @@ diagnosis is the right answer to a defect whose diagnosis keeps moving.
 
 ## Open, with unblock criteria
 
-1. **The 200-credit fill.** Plan verified exactly: 10 pairs, 200 credits, 190
-   games (42% of the remaining 448), ~157 priced at the measured rate. The
-   dispatch was DENIED by the permission classifier as a real-world transaction.
-   Unblocks when the owner dispatches `targeted-odds-fill.yml` with
-   `apply=true, max_pairs=10, budget=200` or grants the permission.
+1. **DONE — the 200-credit fill ran** (03:26Z, run `35418498902`): 200 credits,
+   **143 rows**, verified from D1 by the plan dropping 130 → 126 pairs. Six
+   pairs priced 99-100%; four bought one game between them. 120 credits bought
+   142 games, 80 bought 1. Session total: **240 credits**.
+   **What it taught, and it is not what was predicted:** ~157 came from the
+   82.5% pricing rate, and six pairs beat that rate. The miss is vendor
+   COVERAGE, which the yield curve does not model — it counts games the ARCHIVE
+   holds and assumes the vendor has the slate. Two August NFL dates returned 272
+   events with 0 in window. The curve is an upper bound, never an estimate.
+   **Now open in its place:** nothing records a pair that proved empty, so the
+   next 200 re-buys those three dead pairs — 60 credits known dead in advance.
+   Unblocks with an exclusion the plan consults. NOT built, not asked for.
 2. **daily-vs-vendor verdict.** Baseline stored (09-18: ours 3799, vendor
    76945). Needs three closed days. Expect one `window-drift` refusal because
    the baseline landed off-schedule at 02:22Z.

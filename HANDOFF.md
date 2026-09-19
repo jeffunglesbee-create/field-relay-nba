@@ -33,6 +33,14 @@ The lost-update account that predicted it is ALSO dead: 09-19 01:50Z read
 hot key cannot produce. Five candidates dead — three by reading, two by
 measurement. **Do not hunt a sixth.**
 
+### The drift verdict reproduced on a second day
+
+2026-09-19, two more intervals, both `gap-grew-while-spending` (usedD +65 →
+gapD +34; usedD +114 → gapD +48). **Four such intervals across two days, and
+still not one where `used` fell while the gap grew.** The clamp stays dead.
+Attribution on closed 09-18: **-410** against 3799 used, the same sign and size
+as 09-17's -397, with `ambientCaptureClosingOdds` at 3498 of 4209 (83%).
+
 ### OPEN — the enforcing counter has never been checked against the bill
 
 Every watch in this family compares two of OUR counters. `by_site` has no code
@@ -41,19 +49,56 @@ consumer in either repo and cannot overspend. The claim that matters: **if
 at the cap, and four consecutive days have now closed at 3799-3800.** Unproven.
 
 `odds-daily-vs-vendor.yml` (00:10) now measures it. Baseline stored 09-18: ours
-3799, vendor cumulative 76945. Needs three closed days. Expect one
-`window-drift` refusal — the baseline landed off-schedule at 02:22Z and the
-watch refuses a reading pair outside 22-26h rather than differencing a longer
-vendor window against a fixed 24h day. Spec:
-`docs/CC-CMD-2026-09-19-daily-vs-vendor.md`.
+3799, vendor cumulative 76945. **The three-day clock starts 2026-09-20**, not
+09-19: the watch was created at 02:20Z, after that day's 00:10 slot had passed,
+so it has correctly not run since. Whether the first scheduled run yields a
+verdict or a `window-drift` refusal is UNKNOWN — 00:10 is ~22h after the
+off-schedule 02:22Z baseline, which is just inside the 22-26h band, and the
+runner drifts 104-405 minutes either way. The log will say; do not predict it.
+Spec: `docs/CC-CMD-2026-09-19-daily-vs-vendor.md`.
 
-### OPEN — the 200-credit fill is verified and UNRUN
+### RESOLVED 2026-09-19 03:26Z — the 200-credit fill ran: 143 rows
 
-10 pairs, 200 credits, 190 games (42% of the remaining 448), ~157 priced.
-Verified by dry run with `budget=200` pinned so a larger plan would refuse.
-Heaviest: 2026-09-05 cfb (68), efl cup (29, 17), nfl (13, 10, 10), cfb (11, 8),
-la liga (10). Dispatch `targeted-odds-fill.yml` with
-`apply=true, max_pairs=10, budget=200`.
+Run `35418498902`. 10 pairs, 200 credits, **143 odds_history rows**. Verified
+from D1, not from the run's claim: the plan dropped 130 → 126 pairs and 2,600 →
+2,520 credits, four pairs fully cleared.
+
+**The average hides the shape. Six pairs priced 99-100%; four bought one game
+between them.**
+
+| pair | reachable | priced | |
+|---|---|---|---|
+| 2026-09-05 cfb | 68 | 67 | |
+| 2026-08-08 efl cup | 29 | 29 | |
+| 2026-08-25 efl cup | 17 | 17 | |
+| 2026-09-13 nfl | 13 | 13 | |
+| 2026-08-29 cfb | 8 | 8 | |
+| 2026-09-03 cfb | 11 | 8 | |
+| 2026-09-12 cfb | 13 | **0** | known-bad residue, re-bought anyway |
+| 2026-05-24 la liga | 10 | **1** | vendor returned 1 event total |
+| 2026-08-22 nfl | 10 | **0** | 272 events returned, **0 in window** |
+| 2026-08-28 nfl | 10 | **0** | 272 events returned, **0 in window** |
+
+120 credits bought 142 games (0.85 cr/game). **80 credits bought 1.**
+
+**The prediction missed for a reason the model did not contain.** ~157 was
+predicted from the measured 82.5% pricing rate; six pairs beat that rate
+outright. The miss is vendor COVERAGE, which the yield curve does not model:
+"games reachable" counts what the ARCHIVE holds and assumes the vendor has the
+same slate. On the two August NFL dates the vendor returned 272 events and none
+fell in the date window — preseason dates whose historical snapshot holds only
+future fixtures.
+
+**Read the yield curve as an upper bound on games, never an estimate.**
+
+### OPEN — a pair with 0 events in window will fail identically forever
+
+Nothing records it, so the next fill re-buys `2026-08-22 nfl` and
+`2026-08-28 nfl` at the top of the list, and `2026-09-12 cfb` besides — 60 of
+the next 200 credits already known to be dead. Unblocks with an exclusion the
+plan consults: a pair that returned events with 0 in window, or matched games
+with no h2h market on any bookmaker, is a permanent vendor gap and must stop
+being offered. NOT built — no session has been asked to.
 
 ### OPEN — atomic odds counter, and why it survives its own dead diagnosis
 
