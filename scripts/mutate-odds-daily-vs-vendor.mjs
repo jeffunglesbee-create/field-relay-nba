@@ -66,8 +66,13 @@ const MUTATIONS = [
     replace: '  if (false) return { ok: false, why: 0 };',
     catches: 'a partial day against a full vendor delta manufactures a shortfall every single run' },
 
-  { name: 'V9 an unreadable vendor figure reads as zero',
-    anchor: "  if (typeof v !== 'number') return { ok: false, why: `provider.requests_used is ${JSON.stringify(v)} — null is NOT zero (Rule 99)` };",
+  // Re-anchored 2026-09-19: the line this named was replaced when the vendor
+  // turned out to send a string. The harness caught its own staleness and
+  // refused to report a verdict — anchor matched 0 times, NOTHING MUTATED —
+  // which is the corollary working. V9 now breaks the CALLER's refusal and V11
+  // breaks the helper's; both paths can drop an absent reading on their own.
+  { name: 'V9 an absent vendor figure is accepted by the caller',
+    anchor: "  if (v === null) return { ok: false, why: `provider.requests_used is ${JSON.stringify(body?.provider?.requests_used)} — absent or unparseable; null is NOT zero (Rule 99)` };",
     replace: '  if (false) return { ok: false, why: 0 };',
     catches: 'a day the vendor did not report reads as a day the vendor billed nothing' },
 
@@ -75,6 +80,16 @@ const MUTATIONS = [
     anchor: "  if (hours < 22 || hours > 26) return { state: 'window-drift', hours: Math.round(hours * 10) / 10 };",
     replace: '  if (false) return { state: 0 };',
     catches: 'the measured 104-405 minute runner drift books itself as a shortfall on most days' },
+
+  { name: 'V11 the vendor string is coerced without the absence guard',
+    anchor: "  if (v === null || v === undefined || String(v).trim() === '') return null;",
+    replace: '  if (false) return null;',
+    catches: "Number(null) is 0, so a day the vendor never reported reads as a day it billed nothing" },
+
+  { name: 'V12 a numeric string is rejected again',
+    anchor: '  const n = Number(v);\n  return Number.isFinite(n) ? n : null;',
+    replace: "  return typeof v === 'number' ? v : null;",
+    catches: 'the exact 2026-09-19 failure — the vendor sends "76945" and every real reading is refused' },
 ];
 
 let caught = 0;

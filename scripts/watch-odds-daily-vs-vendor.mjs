@@ -49,14 +49,29 @@ export function toleranceFor(vendorDay) {
  *  budget.provider.requests_used, budget.monthly.used and budget.daily.used,
  *  and `day` must be the date we ASKED for. A route that silently ignored
  *  ?date= would otherwise hand back today and be compared against yesterday. */
+function _vendorNum(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function readingFrom(body, wantDay, at) {
   const d = body && body.daily;
   if (!d || typeof d !== 'object') return { ok: false, why: 'no `daily` block in the response' };
   if (d.date !== wantDay) return { ok: false, why: `asked for ${wantDay}, got ${JSON.stringify(d.date)} — ?date= was not honoured` };
   if (d.is_today === true) return { ok: false, why: `${wantDay} is still running; a day must be CLOSED before its total means anything` };
   if (typeof d.used !== 'number') return { ok: false, why: `daily.used is ${JSON.stringify(d.used)}, not a number` };
-  const v = body?.provider?.requests_used;
-  if (typeof v !== 'number') return { ok: false, why: `provider.requests_used is ${JSON.stringify(v)} — null is NOT zero (Rule 99)` };
+  // THE VENDOR SENDS A STRING. Measured 2026-09-19, live: "76945". The pairing
+  // watch already carries a case for it — "the provider sends a STRING; it must
+  // still subtract" — and that file was read the same day this one was written
+  // without the fact being applied. A typeof check rejected the only shape the
+  // route actually returns and the first live run failed on real data.
+  //
+  // So: a numeric string IS a number. null, undefined and '' are not, and they
+  // are still refused rather than coerced — Number(null) is 0 and would report
+  // a day the vendor never told us about as a day it billed nothing (Rule 99).
+  const v = _vendorNum(body?.provider?.requests_used);
+  if (v === null) return { ok: false, why: `provider.requests_used is ${JSON.stringify(body?.provider?.requests_used)} — absent or unparseable; null is NOT zero (Rule 99)` };
   return { ok: true, reading: {
     at, day: wantDay, day_used: d.used, ceiling: d.ceiling ?? null,
     vendor_month_used: v, ledger_month_used: body?.monthly?.used ?? null,
@@ -133,6 +148,17 @@ if (process.argv.includes('--self-test')) {
       'a partial total against a full vendor delta manufactures a shortfall');
   one('an unreadable vendor figure', readingFrom({ daily: { date: 'd', used: 1, is_today: false }, provider: {} }, 'd', 't').ok, false,
       'Number(null) is 0 and the day would read as free (Rule 99)');
+  // The live shape, and the one the first run died on. The vendor returns the
+  // header value as a STRING; rejecting it rejects every real reading.
+  one('THE VENDOR SENDS A STRING',
+      readingFrom({ daily: { date: 'd', used: 1, is_today: false }, provider: { requests_used: '76945' } }, 'd', 't').reading.vendor_month_used,
+      76945, 'measured live 2026-09-19 — a typeof check refused the only shape the route returns');
+  one('an empty string is still absent',
+      readingFrom({ daily: { date: 'd', used: 1, is_today: false }, provider: { requests_used: '' } }, 'd', 't').ok, false,
+      "Number('') is 0, which is the same collapse wearing a different type");
+  one('a non-numeric string is absent',
+      readingFrom({ daily: { date: 'd', used: 1, is_today: false }, provider: { requests_used: 'n/a' } }, 'd', 't').ok, false,
+      'NaN must not become a vendor delta');
 
   const R = (at, vendor) => ({ at, vendor_month_used: vendor });
   one('no baseline is no-data', vendorDay(null, R('2026-09-19T00:10:00Z', 100)).state, 'no-data',
@@ -164,7 +190,7 @@ if (process.argv.includes('--self-test')) {
       '5% of ours would be 250 and would shrink exactly as our counter under-reports');
   one('an unreadable side', residualVerdict(null, 1, 0).state, 'unreadable', 'never a number derived from a missing one');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 17/17`);
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 20/20`);
   console.log(`COVERAGE: three pure predicates over ENUMERATED inputs. It does NOT reach`);
   console.log(`/budget/odds, D1, or the vendor, and it cannot see spend by any script that`);
   console.log(`does not record itself — so the residual is an UPPER bound, never a level.`);
