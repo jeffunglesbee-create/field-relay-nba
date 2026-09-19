@@ -74,6 +74,7 @@ const CAN_PASS = {
   },
   recap_names_a_scoring_play: { recapRows: 6, testable: 6, named: 6 },
   thread_notes_cleanup: { total: 40, expiredBeyondGrace: 0 },
+  odds_budget_charging: { tablesExist: true, dayRows: 1, charged: 1014, kvUsed: 1014 },
   d1_write_provenance: { everEntries: 9, controlEntries: 3, dashEntries: 1, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true },
 }
 // EVERY REGISTERED VERDICT NEEDS A CLEAN PAYLOAD, not just the ones someone

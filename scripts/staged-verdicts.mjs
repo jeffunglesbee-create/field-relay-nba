@@ -169,6 +169,35 @@ export const d1WriteProvenance = ({ everEntries, controlEntries, dashEntries, wi
 // negative this whole item exists to avoid.
 d1WriteProvenance.mustFailOn = { everEntries: 12, controlEntries: 0, dashEntries: 0, windowHours: 48, gameDaysInWindow: 2, controlAttempted: true }
 
+/// Check 7 — is the odds budget guard charging through D1 yet?
+///
+/// Task 1 of CC-CMD-2026-09-18 shipped `ensureOddsBudgetTables` with no caller:
+/// Task 2 is its caller. That is a STAGED claim, and on 2026-09-19 it was filed
+/// with the marker but WITHOUT a verifier id — which took deploy.yml red at
+/// "a staged claim names a verifier that exists and runs" and left the relay
+/// undeployed through two commits. The checker was right; the claim had no owner.
+///
+/// PENDING IS THE HONEST FIRST STATE. The tables are created lazily on first
+/// use, so before Task 2 lands there is no table and no row, and that is not a
+/// failure — it is the staged condition still holding. `closingAfterOpening` and
+/// `threadNotesCleanup` both take the same shape, for the same reason.
+///
+/// WHY `charged` AND NOT JUST `tables`: a CREATE TABLE that ran once proves the
+/// DDL executed, not that the guard routes through it. The guard could ship,
+/// throw on every call, degrade open, and leave a table with zero rows — which
+/// looks identical to "Task 2 has not landed". Only a row with used > 0 on a day
+/// with traffic distinguishes them, so the day's own KV counter comes in as
+/// `kvUsed` and a day where BOTH are zero stays PENDING rather than passing.
+export const oddsBudgetCharging = ({ tablesExist, dayRows, charged, kvUsed }) =>
+  !tablesExist ? 'PENDING — odds_budget does not exist yet; Task 2 creates it on first use'
+  : dayRows === 0 && Number(kvUsed) === 0 ? 'PENDING — no odds spend today, so neither counter can testify'
+  : dayRows === 0 ? `FAIL — KV charged ${kvUsed} today and odds_budget has no row for it; the guard is not routing through D1`
+  : charged === 0 ? 'FAIL — a row exists for today but used is 0 while KV moved; the batch is running and not charging'
+  : 'PASS'
+// The defect this exists to catch: the tables are there, the day had real spend,
+// and D1 recorded none of it — the guard shipped and is not charging through it.
+oddsBudgetCharging.mustFailOn = { tablesExist: true, dayRows: 0, charged: 0, kvUsed: 1014 }
+
 export const VERDICTS = {
   closing_after_opening: closingAfterOpening,
   soccer_opening_coverage: soccerOpeningCoverage,
@@ -176,4 +205,5 @@ export const VERDICTS = {
   recap_names_a_scoring_play: recapNamesScoringPlay,
   thread_notes_cleanup: threadNotesCleanup,
   d1_write_provenance: d1WriteProvenance,
+  odds_budget_charging: oddsBudgetCharging,
 }

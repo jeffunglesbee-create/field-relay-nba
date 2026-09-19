@@ -162,8 +162,28 @@ the other six do: `ensureOddsBudgetTables(env)` in `src/budget-helpers.js`,
 DDL runs once per isolate. Both tables are now in `ALLOWED_TABLES` so probes
 can READ them.
 
-**STAGED** (Rule 74). The function has no caller; Task 2 is its caller. Unblock
-criteria in `outbox/2026-09-19-odds-budget-schema.md`. Guarded by
+**STAGED** (verifier: odds_budget_charging @ relay/staged-verification.yml).
+Rule 74. The function has no caller; Task 2 is its caller. Unblock criteria in
+`outbox/2026-09-19-odds-budget-schema.md`.
+
+The verifier reads `odds_budget` for the current day beside the same day's KV
+counter, so the three states are distinguishable without a human looking: no
+table is PENDING, a day with KV spend and no D1 row is a FAIL that names the
+guard as not routing through D1, and a quiet day stays PENDING rather than
+passing on an absence.
+
+**This tag is here because it was missing.** Filed on 2026-09-19 with the
+marker and the rule number but no verifier id, it took `deploy.yml` red at "a
+staged claim names a verifier that exists and runs", and the relay went
+undeployed across two commits — including the Whoop removal. The checker was
+right: a claim whose unblock is "Task 2 lands" has no owner but a person
+remembering.
+
+The correction could not be written out in full, either. A first attempt quoted
+the untagged marker verbatim to show what had been wrong, and the scanner
+matched its own counterexample — the same recording-its-own-correction trap the
+README-versus-STATUS check strips quoted spans to avoid. Described rather than
+quoted, because the scanner is right and the prose is what had to change. Guarded by
 `scripts/check-odds-budget-schema.mjs` — which fails on `wrong-binding`
 specifically so a session following this document rather than the code cannot
 move it back.

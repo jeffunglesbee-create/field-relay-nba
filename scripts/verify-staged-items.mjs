@@ -40,7 +40,8 @@ import { selectScoringPlays } from '../src/context-assembler.js';
 // field-laboratory registers its staged items against.
 import { closingAfterOpening, soccerOpeningCoverage,
          eplBriefEventGrounded, recapNamesScoringPlay,
-         threadNotesCleanup, d1WriteProvenance } from './staged-verdicts.mjs';
+         threadNotesCleanup, d1WriteProvenance,
+         oddsBudgetCharging } from './staged-verdicts.mjs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
@@ -132,7 +133,7 @@ async function d1(sql, params = []) {
     return j.results || [];
 }
 
-const EXPECTED_CHECKS = 6;
+const EXPECTED_CHECKS = 7;
 const m = { probed_at: new Date().toISOString(), query_ok: false, checks: [], error: null };
 const add = (c) => m.checks.push(c);
 
@@ -623,6 +624,56 @@ try {
 
     m.query_ok = true;
 } catch (e) { m.error = String(e.message || e); }
+
+// Check 7 — is the odds budget guard charging through D1 yet?
+//
+// Task 1 of CC-CMD-2026-09-18 shipped the schema with no caller; Task 2 is its
+// caller. This is the executor that clears that STAGED claim without a human
+// remembering to look — and it exists because the claim was FILED WITHOUT ONE
+// on 2026-09-19, which took deploy.yml red at "a staged claim names a verifier
+// that exists and runs" and left the relay undeployed across two commits.
+//
+// A MISSING TABLE IS A STATE, NOT AN ERROR. The tables are created lazily on
+// first use, so "no such table" is the normal pre-Task-2 answer; letting it
+// throw would take query_ok false and blind the other six checks.
+try {
+    const today = new Date().toISOString().slice(0, 10);
+    let tablesExist = true, dayRows = 0, charged = 0;
+    try {
+        const rows = await d1('SELECT day, used FROM odds_budget WHERE day = ?1', [today]);
+        dayRows = rows.length;
+        charged = rows.length ? Number(rows[0].used) || 0 : 0;
+    } catch (e) {
+        if (/no such table/i.test(String(e.message || e))) tablesExist = false;
+        else throw e;
+    }
+    // The same day's KV counter, so a QUIET day reads PENDING instead of FAIL.
+    // Read from /budget/odds rather than recomputed: that route is what the
+    // guard itself reports, so the two numbers cannot drift apart here.
+    let kvUsed = 0;
+    try {
+        const r = await fetch(`${RELAY}/budget/odds?date=${today}`, { headers: { 'User-Agent': UA } });
+        const j = await r.json();
+        kvUsed = Number(j?.daily?.used) || 0;
+    } catch (_) { /* stays 0, which only makes the verdict more cautious */ }
+
+    add({
+        id: 'odds_budget_charging',
+        what: 'the odds budget guard charges today through D1 odds_budget, not only KV odds:daily:*',
+        qualifying_rows: dayRows,
+        tables_exist: tablesExist,
+        d1_used_today: charged,
+        kv_used_today: kvUsed,
+        status: oddsBudgetCharging({ tablesExist, dayRows, charged, kvUsed }),
+    });
+} catch (e) {
+    add({
+        id: 'odds_budget_charging',
+        what: 'the odds budget guard charges today through D1 odds_budget, not only KV odds:daily:*',
+        qualifying_rows: 0,
+        status: `PENDING — could not read: ${String(e.message || e).slice(0, 120)}`,
+    });
+}
 
 m.summary = m.checks.map(c => `${c.id}: ${c.status}`);
 // Named, not a literal. This was `=== 3` and would have silently reported
