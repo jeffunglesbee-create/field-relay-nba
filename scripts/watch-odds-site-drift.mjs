@@ -79,6 +79,14 @@ export function gapOf(s) {
 export function deltas(prev, curr) {
   if (!prev || !curr) return null;
   if (prev.date !== curr.date) return { crossDay: true, from: prev.date, to: curr.date };
+  // A MIXED INTERVAL IS REFUSED, NOT MERGED, for the same reason a cross-day one
+  // is: the two ends measure different mechanisms. Before Task 2 the counters
+  // were two racing KV keys; after it they are one D1 transaction. An interval
+  // straddling the cutover compares a KV gap to a D1 gap and the difference
+  // between them is the deploy, not the system.
+  if ((prev.source || 'kv') !== (curr.source || 'kv')) {
+    return { mixedStore: true, from: prev.source || 'kv', to: curr.source || 'kv' };
+  }
   const a = prev.by_site || {}, b = curr.by_site || {};
   const siteDeltas = {}, pinnedAtZero = [];
   for (const k of Object.keys(b)) {
@@ -115,8 +123,37 @@ export function clampWitness(d) {
  *  `inconclusive` is a real answer here and is never dressed up as health: a
  *  series with no growing-gap interval has not exonerated the clamp, it has
  *  only failed to catch it yet. */
+/** WHAT A GREEN MEANS, and it is not what it meant when this file was written.
+ *
+ *  Built 2026-09-18 to answer: do odds:daily:* and the sum of odds:site:* drift
+ *  apart? Two KV keys, written by different code paths at different frequencies,
+ *  read-modify-write and non-atomic. A green meant "they happen to agree."
+ *
+ *  Task 2 (2026-09-19) made both of them one transaction over one row set. They
+ *  now agree BY CONSTRUCTION, so a green can no longer mean what it meant — it
+ *  is not evidence about the counters, it is a restatement of the schema.
+ *
+ *  THE PROBE IS NOT RETIRED, BECAUSE ITS GREEN NOW ANSWERS A DIFFERENT QUESTION
+ *  AND IT IS ONE NOTHING ELSE HERE CAN ANSWER. Divergence in D1 means the batch
+ *  was not one transaction — which is Cloudflare's guarantee, taken on trust,
+ *  and the single unverified premise under Task 2. The local mutations run
+ *  against node:sqlite are sequential and prove the statements correct GIVEN a
+ *  transaction; they say nothing about whether D1 supplies one under concurrent
+ *  isolates. This probe is the only instrument that can catch that.
+ *
+ *  So the output states which claim it is making, rather than leaving the reader
+ *  to infer a 2026-09-18 meaning from a 2026-09-20 run. */
+export function claimOf(source) {
+  return source === 'd1'
+    ? 'batch() is one transaction — the counters cannot disagree unless it is not'
+    : 'the two KV counters happen to agree — the pre-Task-2 question';
+}
+
 export function driftVerdict(pairs) {
-  const usable = pairs.filter(p => p && !p.crossDay);
+  // mixedStore joins crossDay as a REFUSAL, not a datum. Adding the field
+  // without adding it here would have left a straddling interval counted, and
+  // its gap difference is the deploy rather than the system.
+  const usable = pairs.filter(p => p && !p.crossDay && !p.mixedStore);
   if (!usable.length) return { state: 'no-data', intervals: 0 };
   const w = usable.map(clampWitness);
   const clamp = w.filter(x => x.verdict === 'clamp-witnessed');
@@ -144,6 +181,11 @@ export function sampleFrom(body, at = new Date().toISOString()) {
   return { ok: true, sample: {
     at, date: d.date, used: d.used, by_site: d.by_site, by_site_sum: d.by_site_sum,
     unreadable_sites: d.unreadable_sites, degraded_open: d.degraded_open,
+    // WHICH STORE ANSWERED. Added 2026-09-19 when Task 2 moved the guard into a
+    // D1 transaction. The probe's QUESTION did not change and neither did its
+    // arithmetic, but what a green MEANS did — see `claimOf` below. Older
+    // samples predate the field and read as 'kv', which is what they were.
+    source: typeof d.source === 'string' ? d.source : 'kv',
   } };
 }
 
@@ -165,6 +207,21 @@ if (process.argv.includes('--self-test')) {
   one('a gap the other way', gapOf(S('d', 100, { a: 60 })), -40,
       'sites UNDER the total is a lost site write; sites OVER it is the clamp — never the same finding');
 
+  // Added 2026-09-19 with the Task 2 cutover. A mixed interval compares a KV gap
+  // to a D1 gap; the difference between them is the deploy.
+  const withSrc = (s, d, u, sites) => ({ ...S(d, u, sites), source: s });
+  one('A MIXED-STORE INTERVAL IS REFUSED',
+      deltas(withSrc('kv', '2026-09-19', 10, { a: 10 }), withSrc('d1', '2026-09-19', 20, { a: 20 })).mixedStore, true,
+      'the two ends measure different mechanisms, so their difference is the deploy');
+  one('...and it is excluded from the verdict, not merely flagged',
+      driftVerdict([deltas(withSrc('kv', '2026-09-19', 10, { a: 10 }), withSrc('d1', '2026-09-19', 20, { a: 20 }))]).intervals, 0,
+      'a refusal that still counts is not a refusal');
+  one('same store still compares', deltas(withSrc('d1', '2026-09-19', 10, { a: 10 }), withSrc('d1', '2026-09-19', 20, { a: 20 })).mixedStore, undefined,
+      'the refusal must not swallow every interval');
+  one('a green on D1 claims transaction integrity', claimOf('d1').includes('transaction'), true,
+      'what a green means changed when Task 2 made both counters one write');
+  one('a green on KV claims the OLD thing', claimOf('kv').includes('KV counters'), true,
+      'an old sample must not be read as evidence about the batch');
   one('two days never compare', deltas(S('2026-09-17', 10, { a: 10 }), S('2026-09-18', 1, { a: 1 })).crossDay, true,
       'per-day keys — a midnight pair compares two populations and invents a delta');
 
@@ -208,7 +265,7 @@ if (process.argv.includes('--self-test')) {
   one('a missing by_site is not a sample', sampleFrom({ daily: { date: 'd', used: 1 } }).ok, false,
       'every interval would then compare nothing to nothing and read as quiet');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 18/18`);
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 23/23`);
   console.log(`COVERAGE: five pure predicates over ENUMERATED samples. It does NOT reach`);
   console.log(`/budget/odds, and it cannot see a refund that landed between two samples`);
   console.log(`and was undone before the next one — the sampling interval is the floor on`);
@@ -268,6 +325,16 @@ if (!pairs.length) {
 
 const v = driftVerdict(pairs);
 say(`\n  verdict: ${v.state}  over ${v.intervals} interval(s) of ${sameDay.length} same-day sample(s)`);
+
+// WHAT THIS VERDICT CLAIMS, printed where the verdict is read rather than left
+// to a reader inferring the 2026-09-18 meaning from a later run (Rule 91).
+{
+  const stores = [...new Set(sameDay.map(s => s.source || 'kv'))];
+  const mixed = pairs.filter(p => p && p.mixedStore).length;
+  say(`\n  store    : ${stores.join(' + ')}`);
+  say(`  a green here means: ${stores.length === 1 ? claimOf(stores[0]) : 'NOTHING SINGLE — this day straddles the Task 2 cutover'}`);
+  if (mixed) say(`  refused  : ${mixed} interval(s) straddling the KV -> D1 cutover, not merged`);
+}
 
 say(`\nCOVERAGE: ${sameDay.length} sample(s) of the ${sample.date} UTC day, ${pairs.length} interval(s).`);
 say(`Cross-midnight pairs are REFUSED, not merged, so a day's first reading yields no`);

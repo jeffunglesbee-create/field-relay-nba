@@ -373,17 +373,79 @@ Each must be shown red before the fix is believed:
 4. `INSERT OR IGNORE` dropped — day one of every month silently vetoes
    everything, or throws.
 
-## Done condition
+## Done condition  [REWRITTEN 2026-09-19 — the original was satisfied by construction]
 
-Not "deployed". Two probe outputs, both already automated:
+### Why the original two conditions cannot serve
 
-1. `odds-site-drift` reports `gap-did-not-grow` across **at least 8 same-day
-   intervals** on a day where `used` exceeds 1000. Fewer intervals or a quiet
-   day does not count — `inconclusive` is not a pass.
-2. `odds-attribution-gap` reports `ok` on a **closed** day:
-   `|unaccounted| <= max(25, 5% of used)`.
+Both measured `used` against `by_site_sum`. After Task 2 those two numbers are
+written by the same batch over the same rows and read from the same store. **They
+agree because the schema says so.** Waiting for them to go green is waiting for a
+tautology, and pasting that green into Task 6 would be publishing one as evidence.
 
-Both are read from committed outbox logs, not from a live curl.
+This is the repo's own Rule 90 in the other direction: a check that cannot fail
+proves nothing, and Task 2 removed the way this one used to fail.
+
+**The instrument was not fixed. It was deleted.** Before Task 2 there were two
+counters and their disagreement told you something was wrong. After Task 2 there
+is one counter, written twice in a transaction. That is a real improvement — one
+consistent number beats two racing ones — but it means **nothing internal can
+now tell you whether that number is right**, which is the question this CC-CMD
+named in its own text and then wrote a done condition away from:
+
+> Everything measured so far is the difference **between two of our own
+> counters**. Nothing has established which of them is RIGHT. Both could be
+> wrong together.
+
+### The conditions that can actually fail
+
+1. **`odds-daily-vs-vendor` returns a verdict on three closed days**, and that
+   verdict is `tracks-the-bill`. This is the only remaining check with an
+   external referent — the vendor's own cumulative bill — and therefore the only
+   one that can go red for a reason the code did not construct.
+   `counter-under-counts` is the breach: it means real spend exceeded the cap on
+   every day that closed at 3799-3800. Spec in
+   `docs/CC-CMD-2026-09-19-daily-vs-vendor.md`.
+
+2. **`odds-attribution-gap` reports `ok` on a closed day** — kept, but demoted.
+   It is now a *regression* check on the transaction rather than evidence about
+   the counters. It passing says nothing new; it FAILING would say the batch is
+   not atomic, which is worth knowing.
+
+### `odds-site-drift` is re-scoped, not retired
+
+The original instruction was to delete it once the done condition held for three
+days. That is wrong now, and for an interesting reason: **the probe's meaning
+changed under it.** Same code, same arithmetic, different claim.
+
+| | a green means |
+|---|---|
+| before Task 2 | the two KV counters happen to agree |
+| after Task 2 | **`batch()` really is one transaction** |
+
+That second claim is the single unverified premise under Task 2. The local
+mutations run against `node:sqlite` are sequential and prove the statements
+correct *given* a transaction; they say nothing about whether D1 supplies one
+under concurrent isolates. This probe is the only instrument that can catch it,
+so retiring it on the old schedule would throw away the one thing still watching
+the new risk.
+
+Implemented rather than just noted: the probe carries `source` through every
+sample, **refuses** an interval that straddles the KV→D1 cutover instead of
+merging it, and prints which claim its green is making beside the verdict.
+
+### The first interpretable day is 2026-09-20
+
+2026-09-19 straddles the cutover — the KV guard until 19:13Z, the D1 batch after
+— so its intervals measure two different mechanisms and the difference between
+them is the deploy. The probe now refuses those pairs rather than reporting
+them.
+
+### What has NOT moved
+
+The `-410` and the 685 unexplained credits are **untouched**. Those were never
+the daily-vs-site gap; they are the ledger-vs-vendor gap, and Task 2 did not go
+near it. Reading "Task 2 shipped, the gap closed" would be reading the wrong
+gap — which is the substitution this document's own history keeps making.
 
 ## Task 6 — outbox manifest (last)
 
@@ -394,9 +456,20 @@ Commit hash, deploy run ID, the two done-condition outputs pasted verbatim,
 There is no owner answer to record. Task 3.1 is answered from the pairing log
 and cited there.
 
-## Retire the probe
+## Retire the probe  [SUPERSEDED 2026-09-19 — see the Done condition]
 
-`odds-site-drift` exists to answer one question. Once the done condition holds
-for three consecutive days, delete the workflow and the two scripts. It was
-built on 2026-09-18 and must not become the 22nd permanent scheduled watch —
-the repo already runs 21 read-only watches against 16 workflows that do work.
+~~Once the done condition holds for three consecutive days, delete the workflow
+and the two scripts.~~ **Do not.** Its green now asserts `batch()` atomicity,
+which nothing else here checks and which this session could not verify locally.
+The original text follows, because the reasoning was right at the time and the
+reason it stopped being right is the useful part.
+
+> `odds-site-drift` exists to answer one question. Once the done condition holds
+> for three consecutive days, delete the workflow and the two scripts. It was
+> built on 2026-09-18 and must not become the 22nd permanent scheduled watch —
+> the repo already runs 21 read-only watches against 16 workflows that do work.
+
+The concern about a 22nd permanent watch stands. The answer is to re-scope this
+one rather than keep it AND add another: it is now the transaction detector, and
+`odds-daily-vs-vendor` is the spend detector. Two instruments, two questions,
+neither redundant.

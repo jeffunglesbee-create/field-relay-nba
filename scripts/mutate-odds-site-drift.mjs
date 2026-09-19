@@ -75,6 +75,14 @@ const MUTATIONS = [
     anchor: "  if (typeof d.used !== 'number') return { ok: false, why: `daily.used is ${JSON.stringify(d.used)}, not a number` };",
     replace: '  if (false) return { ok: false, why: 0 };',
     catches: 'undefined enters the series, every interval reads quiet, and the watch stays green' },
+  { name: 'D11 a mixed-store interval is counted anyway',
+    anchor: "  const usable = pairs.filter(p => p && !p.crossDay && !p.mixedStore);",
+    replace: "  const usable = pairs.filter(p => p && !p.crossDay);",
+    catches: 'an interval straddling the Task 2 cutover compares a KV gap to a D1 gap, and the difference between them is the deploy — reported as drift' },
+  { name: 'D12 the claim collapses to one meaning',
+    anchor: "  return source === 'd1'",
+    replace: "  return true === true",
+    catches: 'a green on D1 data would be printed as the pre-Task-2 claim about two KV counters, which is not what it shows' },
 ];
 
 let caught = 0;
