@@ -3,7 +3,7 @@
     "Workflows whose RED IS THEIR OUTPUT, not their failure. A detector reports a",
     "condition; while the condition holds it exits non-zero, and that is the",
     "design. scripts/watch-silently-dead-crons.mjs lists these separately instead",
-    "of calling them dead \u2014 without this it would report them every day forever,",
+    "of calling them dead — without this it would report them every day forever,",
     "and a watch that cries wolf is how odds-backfill.yml went fifteen days",
     "unnoticed in the first place.",
     "",
@@ -16,20 +16,34 @@
     "KEYS ARE REPO-QUALIFIED as of 2026-09-17, when the watch widened from one",
     "repo to four. `.github/workflows/deploy.yml` exists in all four; a bare path",
     "key would let a declaration made for one repo excuse a genuinely dead cron",
-    "of the same name in another. The form is `owner/repo:.github/workflows/x.yml`."
+    "of the same name in another. The form is `owner/repo:.github/workflows/x.yml`.",
+    "",
+    "2026-09-19: undeployed-src-watch.yml was the third workflow the dead-cron watch flagged that day and it is DELIBERATELY NOT DECLARED HERE. Its red is caused by a fixable repo defect — the provenance census writes a regenerated ROUTE_PROVENANCE_GENERATED_AT into src/route-provenance.js while carrying the skip directive, so it bumps a deploy-trigger path and suppresses the deploy that would clear it. Declaring it would suppress the one signal that reports a genuinely undeployed src change, which is the abuse the paragraph above describes. Fix the cause, do not declare the symptom."
   ],
   "detectors": {
     "jeffunglesbee-create/field-relay-nba:.github/workflows/brief-label-migration.yml": {
       "reports": "brief rows whose sport is outside the authority label set read from the games table",
       "red_because": "4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
-      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 \u2014 verify exits 1 when verification.clean is false"
+      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 — verify exits 1 when verification.clean is false"
     },
     "jeffunglesbee-create/field-relay-nba:.github/workflows/rule90-staleness-monitor.yml": {
       "reports": "rule-registry entries marked UNEXERCISED for more than 14 days",
       "red_because": "rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
       "verified": "2026-09-15, from its own run output listing the four entries"
+    },
+    "jeffunglesbee-create/field-relay-nba:.github/workflows/odds-attribution-gap.yml": {
+      "reports": "|odds:daily:* minus by_site_sum| on a CLOSED UTC day exceeding max(25, 5% of used)",
+      "red_because": "2026-09-18 closed with used 3799, by_site_sum 4209, unaccounted -410 against a tolerance of 190 (11%)",
+      "tracked_by": "docs/CC-CMD-2026-09-18-atomic-odds-counter.md",
+      "verified": "2026-09-19, from its own committed artifact outbox/odds-attribution-gap-20260919T131126Z.log: 'verdict: gap-too-wide'"
+    },
+    "jeffunglesbee-create/field-relay-nba:.github/workflows/odds-pairing-rate-watch.yml": {
+      "reports": "vendor-billed credits that reached no counter, and backfill dates that spent and paired zero games",
+      "red_because": "685 credits UNEXPLAINED against a tolerance of 243 over 23.4h; separately 7 dates billed 940 credits and paired 0 games",
+      "tracked_by": "docs/CC-CMD-2026-09-19-daily-vs-vendor.md",
+      "verified": "2026-09-19, from its own committed artifact outbox/odds-pairing-rate-20260919T140742Z.log"
     }
   }
 }
