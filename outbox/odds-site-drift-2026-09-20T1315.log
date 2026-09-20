@@ -1,0 +1,20 @@
+=== odds site drift  utc=2026-09-20T13:15:16.826Z ===
+
+  this reading   : 2026-09-20  used 806  by_site_sum 806  gap 0
+  unreadable     : none
+  samples on file: 14  (keeping the last 60)
+
+  INTERVALS for 2026-09-20
+  from      to        usedD    gapD   verdict
+  01:53     07:57      105       0   gap-did-not-grow
+  07:57     13:15      383       0   gap-did-not-grow
+
+  verdict: inconclusive  over 2 interval(s) of 3 same-day sample(s)
+
+  store    : d1
+  a green here means: batch() is one transaction — the counters cannot disagree unless it is not
+
+COVERAGE: 3 sample(s) of the 2026-09-20 UTC day, 2 interval(s).
+Cross-midnight pairs are REFUSED, not merged, so a day's first reading yields no
+interval. A refund that lands and is undone between two samples is invisible —
+the sampling interval is the floor on what this can see.
