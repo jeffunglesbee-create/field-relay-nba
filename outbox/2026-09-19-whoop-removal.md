@@ -51,6 +51,19 @@ Those routes never contacted Whoop. The provenance module stamps
 `X-FIELD-Source` from this file, so four live routes were telling callers a
 fitness API was one of their data sources.
 
+**CORRECTION 2026-09-20: the mechanism below is wrong.** This entry said the
+generator "attributes hosts across route boundaries" and called it the same
+family as `CC-CMD-2026-09-13`'s brace-balance defect. It is neither. Measured by
+tracing the generator: `BASES` is a flat name→URL map with no notion of scope,
+`const base = 'https://api.prod.whoop.com/developer/v1'` sat inside the Whoop
+block, and `base` is declared thirteen other times in `src/` as an ordinary
+local — so every route with its own `base` resolved to Whoop's host. A name
+collision, not a boundary. Fixed by letting a local declaration shadow the
+global constant; it also corrected `/mcp`, which claimed
+`stat-job-watcher.jeffunglesbee.workers.dev` for the same reason. A SECOND
+mechanism does exist and is still unfixed — see
+`outbox/2026-09-20-provenance-name-collision.md`. The original text follows.
+
 **Tested rather than assumed.** The pre-removal `src/index.js` was restored into
 a scratch copy and `build-route-provenance.mjs` re-run against it: all four
 entries came back. So the generator attributes hosts across route boundaries —

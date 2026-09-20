@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-19T19:06:25.041Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-20T01:06:55.860Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -122,7 +122,7 @@ export const ROUTE_PROVENANCE = {
   "/laliga-apim/clasificacion": { k: "proxy", s: "apim.laliga.com + www.laliga.com" },
   "/live-wp/": { k: "durable-object", s: "do:AMBIENT_DO", p: 1 },
   "/live/ambient": { k: "durable-object", s: "do:AMBIENT_DO" },
-  "/mcp": { k: "store", s: "api.github.com + cdn.nba.com + d1:ARCHIVE_DB + kv:MCP_OAUTH + site.web.api.espn.com + stat-job-watcher.jeffunglesbee.workers.dev", t: 1 },
+  "/mcp": { k: "store", s: "api.github.com + cdn.nba.com + d1:ARCHIVE_DB + kv:MCP_OAUTH + site.web.api.espn.com", t: 1 },
   "/mlb-savant-update": { k: "store", s: "r2:FIELD_DATA" },
   "/mlb-stats": { k: "proxy", s: "r2:FIELD_DATA + raw.githubusercontent.com + statsapi.mlb.com", p: 1 },
   "/mlb-umpire-scrape": { k: "trigger", s: "baseballsavant.mlb.com" },

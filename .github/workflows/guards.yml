@@ -135,6 +135,22 @@ jobs:
           node scripts/check-no-foreign-domain.mjs --self-test
           node scripts/check-no-foreign-domain.mjs
 
+      # A route must not claim a host from a function it does not call. The
+      # generator's BASES is a flat name->URL map with no notion of scope, and
+      # `const base = 'https://api.prod.whoop.com/...'` inside the Whoop block
+      # made every route with its own `base` resolve to it — four sports routes
+      # stamped X-FIELD-Source: api.prod.whoop.com on live responses.
+      #
+      # It runs the REAL generator against a fixture rather than matching source
+      # text, because a source check passes on a shadowing test that can never
+      # fire. S1 is the mutation: disable shadowing and the fixture route
+      # reclaims the foreign host.
+      #
+      # It REPORTS a second, unfixed mechanism without gating on it. See the
+      # KNOWN GAP line in its output.
+      - name: a route claims no host from a function it does not call
+        run: node scripts/mutate-provenance-shadowing.mjs
+
       - name: HANDOFF does not claim a workflow has not run, that has
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

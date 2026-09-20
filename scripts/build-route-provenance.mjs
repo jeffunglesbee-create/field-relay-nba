@@ -112,12 +112,37 @@ function sourcesOf(text) {
   for (const m of text.matchAll(/['"`](https?:\/\/[^'"`\s$]+)/g)) {
     const h = host(m[1]); if (h) found.add(h);
   }
+  // A LOCAL DECLARATION SHADOWS THE GLOBAL CONSTANT, and this is the whole fix.
+  //
+  // BASES is a flat name->URL map with no notion of scope. `const base =
+  // 'https://api.prod.whoop.com/developer/v1'` sat inside the Whoop block, and
+  // `base` is declared thirteen OTHER times in src/ as an ordinary local holding
+  // something else. So every route with its own `base` resolved to Whoop's host
+  // — through BOTH lookups below — and four sports routes (/odds, /pl/,
+  // /cfl/odds-probs, /wc/odds-probs) stamped X-FIELD-Source:
+  // api.prod.whoop.com on live responses.
+  //
+  // If the text being scanned declares the name itself, that declaration is what
+  // the code at this site means. Cheap, and correct in the direction that
+  // matters: a route reading a genuine module constant it does not shadow still
+  // resolves it.
+  //
+  // MEASURED ALTERNATIVE, REJECTED. Culling every name ever declared without a
+  // URL also removes `statBase` and `ESPN_SUMMARY_BASE` (2 declarations, 1 with
+  // a URL each) and cost three real attributions: /espn-summary went from
+  // site.web.api.espn.com to undeclared, /mcp lost stat-job-watcher, and
+  // /nfl/epa/plays lost its ESPN host. Shadowing costs none of them.
+  const shadowed = (name) =>
+    new RegExp(`\\b(?:const|let|var)\\s+${name}\\s*=(?!\\s*['"\`]https?://)`).test(text);
+
   // ${SOME_BASE}/path — resolved through the constant map above.
   for (const m of text.matchAll(/\$\{([A-Za-z_][\w]*)\}/g)) {
+    if (shadowed(m[1])) continue;
     const h = BASES[m[1]] && host(BASES[m[1]]); if (h) found.add(h);
   }
   // A constant referenced bare, as in fetch(JOURNALISM_CLAUDE_PROXY, {...}).
   for (const name in BASES) {
+    if (shadowed(name)) continue;
     if (new RegExp(`\\b${name}\\b`).test(text)) { const h = host(BASES[name]); if (h) found.add(h); }
   }
   // Storage bindings, named individually: "a KV read" is not a source, but
