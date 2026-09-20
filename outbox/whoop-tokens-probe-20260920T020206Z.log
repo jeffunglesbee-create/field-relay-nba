@@ -1,0 +1,18 @@
+=== whoop_tokens: does it exist, does it hold anything  utc=2026-09-20T02:02:06.561Z ===
+
+  database : f26669de-e772-4b56-a6d1-f8fdea08a4d4
+             wc2026 (formerly also bound as field-d1)
+  table    : whoop_tokens
+
+  A control   sqlite_master table list      -> FAILED (403)
+      {"messages":[],"result":null,"success":false,"errors":[{"code":7403,"message":"The given account is not valid or is not authorized to access this service"}]}
+
+  verdict: unreadable
+
+  NOTHING IS KNOWN. sqlite_master did not come back, so the API token cannot read this database and an absent table is indistinguishable from an absent permission. Do not read an answer off this run.
+
+COVERAGE: ONE database of the two this worker binds — f26669de, which is
+the one the removed `DB` binding named. field-archive (cc49101c) was NOT checked
+and does not need to be: the removed Whoop code reached its table through env.DB
+and through nothing else. Two statements, both SELECT. No row was read from
+whoop_tokens itself — only its name and its count — so no credential is in this log.
