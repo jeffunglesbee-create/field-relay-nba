@@ -1,0 +1,88 @@
+name: odds budget latency (Task 0d)
+
+# Task 0d of docs/CC-CMD-2026-09-18-atomic-odds-counter.md: what did Task 2 cost
+# in latency? The spec named four sequential KV ops and `env.DB.batch`; both are
+# stale at HEAD, and the route this dispatches measures the real thing —
+# the four-op form as a RECONSTRUCTED baseline, the warm batch that every request
+# after the first pays, and the cold three-round-trip first call, reported apart
+# rather than averaged.
+#
+# THE TIMING HAPPENS IN THE WORKER. "On the same isolate" is the whole point:
+# timing a D1 batch from this runner would measure the runner's path to
+# Cloudflare, not the worker's path to D1. This job calls
+# POST /debug/odds-budget-latency and reads its medians.
+#
+# IN CI RATHER THAN THE SANDBOX because the sandbox's egress proxy denies CONNECT
+# to the worker (measured 2026-09-19: connect_rejected).
+#
+# Dispatch only. It answers a question once; it is not a watch.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Rule 90: the harness runs BEFORE the probe, so a verdict function that
+      # cannot be made to fail never gets to produce a verdict.
+      - name: The verdict function can be made to fail
+        run: |
+          node scripts/probe-odds-budget-latency.mjs --self-test
+          node scripts/mutate-odds-budget-latency.mjs
+
+      # READ FROM SOURCE, NOT WRITTEN HERE. bootstrap-relay-secret.yml already
+      # extracts this literal the same way, and for the same reason: a copy in a
+      # workflow file is a second place to forget when the gate rotates, and the
+      # failure would surface as a 401 days later somewhere else.
+      #
+      # Exactly one distinct literal, or stop. Picking one of several would send
+      # a value the route rejects, and a 401 would then be read as a D1 answer.
+      - name: Extract the gate literal from source
+        id: gate
+        run: |
+          mapfile -t FOUND < <(grep -ao "X-FIELD-Relay') !== '[^']*'" src/index.js \
+            | sed "s/.*!== '//; s/'$//" | sort -u)
+          echo "distinct gate literals: ${#FOUND[@]}"
+          if [ "${#FOUND[@]}" -ne 1 ]; then
+            echo "::error::expected exactly 1 distinct gate literal, found ${#FOUND[@]}"
+            exit 1
+          fi
+          echo "::add-mask::${FOUND[0]}"
+          echo "gate=${FOUND[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Probe
+        env:
+          RELAY_GATE: ${{ steps.gate.outputs.gate }}
+        run: node scripts/probe-odds-budget-latency.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.name  "FIELD CI"
+          git config user.email "claude@field.dev"
+          git add outbox/odds-budget-latency-*.log 2>/dev/null || true
+          git diff --staged --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "probe: odds budget latency (Task 0d)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop above exits 0 when EVERY attempt fails: its last command is
+          # `sleep`, and `set -e` does not fire because a failing `&&` list is a
+          # tested command. Verified under the exact Actions shell
+          # (bash -e -o pipefail). Without this line a lost artifact reports as a
+          # green step. is-ancestor, not HEAD equality: another bot pushing after
+          # us is routine here and must not read as our failure.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after retries"; exit 1; }
