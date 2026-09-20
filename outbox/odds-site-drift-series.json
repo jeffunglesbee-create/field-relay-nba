@@ -388,5 +388,30 @@
       "last": null
     },
     "source": "d1"
+  },
+  {
+    "at": "2026-09-20T22:45:36.266Z",
+    "date": "2026-09-20",
+    "used": 3800,
+    "by_site": {
+      "ambientCaptureClosingOdds": 207,
+      "ambientFetchLiveOdds": 2240,
+      "fetchSportOddsHistorical": 540,
+      "fetchSportOddsLive": 747,
+      "getWCPregameLambdas": 0,
+      "handleCFLOddsProbs": 66,
+      "handleWCOddsProbs": 0,
+      "wpResolver": 0,
+      "oddsProxyRoute": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 3800,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 0,
+      "credits": 0,
+      "last": null
+    },
+    "source": "d1"
   }
 ]
