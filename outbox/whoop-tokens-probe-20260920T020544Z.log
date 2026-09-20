@@ -1,0 +1,21 @@
+=== whoop_tokens: does it exist, does it hold anything  utc=2026-09-20T02:05:43.686Z ===
+
+  database : f26669de-e772-4b56-a6d1-f8fdea08a4d4
+             wc2026 (formerly also bound as field-d1)
+  table    : whoop_tokens
+
+  1 token     /user/tokens/verify            -> ok
+  2 d1 scope  list the account's databases   -> FAILED (10000 Authentication error)
+  3 control   NOT RUN — a rung above it failed, so its answer would not be readable.
+  4 subject   NOT RUN — rung 3 did not answer.
+
+  verdict: no-d1-scope
+
+  NOTHING IS KNOWN ABOUT THE TABLE, and the finding is about the token's permissions: it verifies but cannot list this account's D1 databases. Fix: add D1:Read to it. Deploying a Worker with a D1 binding does not need that scope, which is why this has never surfaced before.
+
+COVERAGE: ONE database of the two this worker binds — f26669de, the one the
+removed `DB` binding named. field-archive (cc49101c) was NOT checked and does not
+need to be: the removed Whoop code reached its table through env.DB and through
+nothing else. Every statement is a SELECT or a GET. No row was read from whoop_tokens
+itself — only its name and its count — and no response body is printed beyond
+database names and error codes, so no credential is in this log.
