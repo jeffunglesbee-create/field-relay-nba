@@ -1,0 +1,36 @@
+=== Task 0d: what Task 2 cost in latency  utc=2026-09-20T03:25:35.568Z ===
+
+  route POST /debug/odds-budget-latency -> 200
+
+    517 ms   kv_four_ops
+             the OLD guard: four sequential KV ops, every call
+     38 ms   d1_batch_warm
+             the NEW guard, warm: one batch, every call after the first
+     67 ms   d1_first_call_on_isolate
+             the NEW guard, cold: DDL + KV seed read + batch, once per isolate
+
+  verdict: warm-cheaper
+  per-request delta: -479 ms (new warm minus old four-op)
+  once-per-isolate:  67 ms, paid on the first call only
+
+  Task 2 bought atomicity AND took latency off the per-request path. The cold-call cost is paid once per isolate and is reported beside it rather than averaged into it.
+
+  raw samples (ms), in call order:
+    kv_four_ops: [643,545,525,517,487,448,509]
+    d1_batch_warm: [53,38,52,37,38,37,37]
+    d1_first_call_on_isolate: [77,83,67,64,75,67,64]
+
+  NOTE (baseline): kv_four_ops is RECONSTRUCTED. The guard has not done this since Task 2; it is here as the thing Task 2 replaced.
+
+  NOTE (cold): d1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables and _seedFromKv are gated by module-level flags this route cannot reset.
+
+  NOTE (kv_cache): The four KV ops reuse one key pair across all 7 iterations, which is the shape the real guard had: one hot daily key all day. A cold-key measurement would be a different number and a different question.
+
+  NOTE (coverage): ONE isolate, 7 iterations each, on whichever colo answered. It does NOT measure contention, cold starts, or any other region.
+
+  cleaned up: ["odds_budget","odds_budget_site","odds:latency-probe:daily","odds:latency-probe:site"]
+
+COVERAGE: ONE isolate on whichever colo answered this request, 7 iterations
+per series. It does NOT measure contention, cold starts, other regions, or
+the real guard in situ — two of the three series are reconstructions, which
+the route's own notes above say in its own words.
