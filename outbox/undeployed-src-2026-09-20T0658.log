@@ -1,0 +1,16 @@
+=== undeployed src  repo=jeffunglesbee-create/field-relay-nba  utc=2026-09-20T06:58:04.768Z ===
+
+  deploy triggers on : src/**, wrangler.toml, workers/**   (read from deploy.yml)
+  last GREEN deploy  : 5217798  2026-09-20T03:16:02Z
+  a deploy running   : false
+
+  verdict            : deployed
+  commits unbuilt    : 0   oldest 0h ago
+
+COVERAGE: compares HEAD against the last SUCCESSFUL deploy run's head_sha
+over 3 declared path(s), reading those paths from deploy.yml rather
+than restating them. It does NOT verify the running worker matches that SHA —
+no build stamp exists to check — only that every deploy-triggering commit has
+been through a successful run.
+
+OK: every deploy-triggering commit has been through a successful deploy.
