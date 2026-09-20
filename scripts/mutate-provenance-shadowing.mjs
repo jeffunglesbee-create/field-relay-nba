@@ -55,10 +55,15 @@ export default {
 };
 `;
 
-function run(generatorSrc) {
+// TWO FILES CAN BE MUTATED, because the defect lives in two of them. The name
+// collision is in the generator; the handler BOUNDARY that made /gamma collect
+// another function's host is in scripts/lib/route-scan.mjs. A harness that can
+// only mutate one of them cannot gate the other.
+function run(generatorSrc, scanSrc) {
   const dir = mkdtempSync(join(tmpdir(), 'provmut-'));
   cpSync('scripts', join(dir, 'scripts'), { recursive: true });
   writeFileSync(join(dir, 'scripts/build-route-provenance.mjs'), generatorSrc);
+  if (scanSrc) writeFileSync(join(dir, 'scripts/lib/route-scan.mjs'), scanSrc);
   writeFileSync(join(dir, 'wrangler.toml'), readFileSync('wrangler.toml', 'utf8'));
   execFileSync('mkdir', ['-p', join(dir, 'src')]);
   writeFileSync(join(dir, 'src/index.js'), FIXTURE);
@@ -88,42 +93,61 @@ one('/beta KEEPS its own host', base.beta, 'fitness.example.com',
     'the declaration really is in scope there — shadowing must not blind the real case');
 one('/gamma resolves an unshadowed module constant', base.gamma, 'vendor.example.com',
     'the fix must not break the ordinary path it was built around');
-// AND NOTHING ELSE. The line above used `includes`, so it passed while /gamma
-// ALSO carried fitness.example.com — a route that declares no `base` at all and
-// fetches only VENDOR_API. An assertion that checks a value is present says
-// nothing about what else is.
-// KNOWN GAP, REPORTED RATHER THAN GATED. /gamma declares no `base` and fetches
-// only VENDOR_API, yet still collects fitness.example.com. That is a SECOND
-// mechanism, separate from the name collision this fix addresses, and it is not
-// fixed here. Gating on it would leave a red check nobody can turn green.
-const gammaClean = !base.gamma.includes('fitness.example.com');
-console.log(`  ${gammaClean ? 'PASS ' : 'KNOWN'}  /gamma carries ONLY its own host`);
-console.log(`          -> ${base.gamma}`);
-if (!gammaClean) console.log('          (UNFIXED, second mechanism: a route can still collect a host');
-if (!gammaClean) console.log('           from a function it does not call. Not the name collision.)');
+// AND NOTHING ELSE. The line above uses `includes`, so on its own it passed
+// while /gamma ALSO carried fitness.example.com — a route that declares no
+// `base` at all and fetches only VENDOR_API. An assertion that checks a value is
+// present says nothing about what else is.
+//
+// GATED AS OF 2026-09-20, having been REPORTED-NOT-GATED for a day. The cause was
+// found and it is not what the report guessed. It was never about name scoping:
+// bodyOf() ended a delegated handler at the NEXT top-level `function`
+// declaration, and handleGamma is the last function in the fixture, so its body
+// ran to end of file and swallowed the whole dispatch block — including
+// handleBeta, which /gamma does not call. Fixed in scripts/lib/route-scan.mjs by
+// balancing braces through stripNonCode, the same correction functionBody()
+// already carried.
+const eq = (label, got, want, why) => {
+  if (got === want) console.log(`  PASS  ${label}\n          -> ${got || '(none)'}  (${why})`);
+  else { bad++; console.log(`  FAIL  ${label}\n          -> ${got || '(none)'}, wanted exactly ${want}  (${why})`); }
+};
+eq('/gamma carries ONLY its own host', base.gamma, 'vendor.example.com',
+   'EXACT, not includes: the defect this caught was an EXTRA host, which an includes-assertion cannot see');
 
 console.log('\n=== mutations ===\n');
-const MUTATIONS = [
-  ['S1 shadowing never fires',
-   "  const shadowed = (name) =>",
-   "  const shadowed = (name) => false && ",
-   'THE ONE THAT MATTERS: /alpha reclaims the fitness host — the exact live defect, four sports routes stamping a fitness API'],
+const SCAN = 'scripts/lib/route-scan.mjs';
+const cleanScan = readFileSync(SCAN, 'utf8');
 
+const MUTATIONS = [
+  { name: 'S1 shadowing never fires', file: GEN, subject: 'alpha',
+    anchor: "  const shadowed = (name) =>",
+    repl:   "  const shadowed = (name) => false && ",
+    why: 'THE ONE THAT MATTERS for the name collision: /alpha reclaims the fitness host — the exact live defect, four sports routes stamping a fitness API' },
+
+  { name: 'S2 a delegated handler ends at the next `function`, not at its own brace', file: SCAN, subject: 'gamma',
+    anchor: "          if (seen && depth <= 0) { end = k + 1; break; }\n        }\n        return { text: lines.slice(fnLine, end).join('\\n'), via: d[1], resolved: true };",
+    repl:   "          if (seen && depth <= 0) { end = k + 1; break; }\n        }\n        end = lines.length;\n        for (let k = fnLine + 1; k < lines.length; k++) {\n          if (/^(export\\s+)?(async\\s+)?function\\s/.test(lines[k])) { end = k; break; }\n        }\n        return { text: lines.slice(fnLine, end).join('\\n'), via: d[1], resolved: true };",
+    why: 'THE ONE THAT MATTERS for the boundary: the pre-2026-09-20 rule restored. handleGamma is the last function in the fixture, so its body runs to EOF and /gamma collects handleBeta\'s host — a function it does not call' },
 ];
+
 let caught = 0;
-for (const [name, anchor, repl, why] of MUTATIONS) {
-  const hits = clean.split(anchor).length - 1;
-  if (hits !== 1) { console.log(`FAIL       ${name}\n            anchor matched ${hits} times, expected 1 — NOTHING MUTATED.`); continue; }
-  const r = run(clean.replace(anchor, repl));
-  const red = r.error ? false : r.alpha.includes('fitness.example.com');
-  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${name}\n            /alpha -> ${r.error || r.alpha || '(none)'}\n            (${why})`);
+for (const { name, file, subject, anchor, repl, why } of MUTATIONS) {
+  const src = file === GEN ? clean : cleanScan;
+  const hits = src.split(anchor).length - 1;
+  if (hits !== 1) { console.log(`FAIL       ${name}\n            anchor matched ${hits} times in ${file}, expected 1 — NOTHING MUTATED.`); continue; }
+  const mutated = src.replace(anchor, repl);
+  if (mutated === src) { console.log(`FAIL       ${name}\n            ${file} unchanged — NOTHING MUTATED.`); continue; }
+  const r = file === GEN ? run(mutated, cleanScan) : run(clean, mutated);
+  // Red means the fixture's WRONG host came back on the route this mutation
+  // targets. Not "something changed" — the specific defect reappearing.
+  const red = r.error ? false : String(r[subject] || '').includes('fitness.example.com');
+  console.log(`${red ? 'CAUGHT    ' : 'NOT CAUGHT'} ${name}\n            /${subject} -> ${r.error || r[subject] || '(none)'}\n            (${why})`);
   if (red) caught++;
 }
 
-console.log(`\n${caught} of ${MUTATIONS.length} mutations caught, ${3 - bad} of 3 gated invariants hold.`);
-console.log('KNOWN GAP: /gamma still collects a host from a function it does not call —');
-console.log('a SECOND mechanism, not the name collision fixed here. Reported above, not');
-console.log('gated, because a red nobody can green is a red everyone learns to skip.');
+console.log(`\n${caught} of ${MUTATIONS.length} mutations caught, ${4 - bad} of 4 gated invariants hold.`);
+console.log('NO KNOWN GAP. The /gamma leak reported here on 2026-09-19 as a "second');
+console.log('mechanism" was the bodyOf() handler boundary, fixed 2026-09-20 and now gated');
+console.log('by S2. Two files are mutated: the generator and scripts/lib/route-scan.mjs.');
 console.log('COVERAGE: the real generator over a 3-route fixture. It does NOT run against');
 console.log('src/index.js — the live manifest is covered by check-route-provenance.mjs,');
 console.log('which asserts every declared source appears in the source it names.');

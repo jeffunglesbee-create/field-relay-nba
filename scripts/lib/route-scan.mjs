@@ -135,9 +135,35 @@ function bodyOf(startLine) {
     if (d && /^(handle|build|run|get|serve)/i.test(d[1])) {
       const fnLine = lines.findIndex(l => new RegExp(`^(export\\s+)?(async\\s+)?function\\s+${d[1]}\\b`).test(l));
       if (fnLine >= 0) {
-        let end = lines.length;
-        for (let k = fnLine + 1; k < lines.length; k++) {
-          if (/^(export\s+)?(async\s+)?function\s/.test(lines[k])) { end = k; break; }
+        // BRACE-BALANCE, NOT "until the next function declaration" — the same
+        // correction functionBody() already carries, which was applied there and
+        // not here. The old rule ended a handler at the next top-level `function`,
+        // so everything between them came with it: arrow consts, class bodies,
+        // object literals, and — when the handler is the LAST function in the
+        // file — the entire rest of the file.
+        //
+        // Measured before the change, on src/index.js at 21381 lines:
+        // handleV2Games is 394 lines by brace balance and this returned 718, so
+        // /v2/ and /v2/games were attributed 324 lines they do not contain. In
+        // the 3-route fixture in mutate-provenance-shadowing.mjs it is total:
+        // handleGamma is last, nothing after it matches ^function, and /gamma
+        // swallowed the whole dispatch block — collecting a host out of
+        // handleBeta, a function it does not call. That was reported on
+        // 2026-09-19 as a "second mechanism" and guessed to be about name
+        // scoping. It is not. It is this boundary.
+        // THROUGH stripNonCode, for the reason the inline path below spells out
+        // at length: counting raw { and } reads prose as syntax. Measured — with
+        // raw counting this returned 703 lines for handleV2Games against a true
+        // 394, so the boundary moved and still landed 309 lines past the end.
+        let depth = 0, seen = false, end = lines.length, inBlock = false;
+        for (let k = fnLine; k < lines.length; k++) {
+          const stripped = stripNonCode(lines[k], inBlock);
+          inBlock = stripped.inBlockComment;
+          for (const ch of stripped.code) {
+            if (ch === '{') { depth++; seen = true; }
+            else if (ch === '}') depth--;
+          }
+          if (seen && depth <= 0) { end = k + 1; break; }
         }
         return { text: lines.slice(fnLine, end).join('\n'), via: d[1], resolved: true };
       }
