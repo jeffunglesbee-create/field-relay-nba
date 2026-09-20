@@ -500,6 +500,66 @@ Commit hash, deploy run ID, the two done-condition outputs pasted verbatim,
 There is no owner answer to record. Task 3.1 is answered from the pairing log
 and cited there.
 
+### Task 6 manifest — completed 2026-09-20
+
+`outbox/2026-09-20-task-0d-latency.md` is the write-up. The numbers:
+
+| item | value |
+|---|---|
+| Task 2 commit / deploy | `5edb19a`, run 980 |
+| Task 0d route / deploy | `1845f72`, run 983 |
+| 0d — four sequential KV ops | **517 ms** median (reconstructed baseline) |
+| 0d — one batch, warm | **38 ms** median |
+| 0d — first call on an isolate | **67 ms** median, reported apart |
+| 0d per-request delta | **−479 ms** |
+| 3.2 per-slate batching decision | **not taken — the condition did not arise.** (b) is faster than (a), so the conditional above is unmet |
+
+**THE CC-CMD WAS MARKED CLOSED IN HANDOFF BEFORE THIS EXISTED.** The 2026-09-19b
+close-out said "CLOSED" while this task's own text required 0d numbers that had
+not been measured. Both statements were in the repo at the same time and one of
+them was wrong. Recorded here rather than quietly fixed, because "closed" is the
+word that stops anyone looking again.
+
+### The two done-condition outputs, verbatim, as of 2026-09-20
+
+**`odds-daily-vs-vendor` — STILL PENDING.** `outbox/odds-daily-vs-vendor-2026-09-20T0448.log`:
+
+```
+  2026-09-19 our counter : 3800 / 3800
+  vendor cumulative now  : 81268
+  previous reading       : 2026-09-19T02:22:39.263Z  vendor 76945
+  verdict: window-drift
+COVERAGE: 1 reading recorded for 2026-09-19; 2 on file. No comparison
+this run — the vendor counter did not run continuously across the window.
+```
+
+One reading for the day, so no comparison. `3800 / 3800` is the day at its
+ceiling, which is its own fact and not evidence either way here. Three closed
+days remains the condition; earliest verdict ~2026-09-22.
+
+**`odds-site-drift` — the first D1-era day.**
+`outbox/odds-site-drift-2026-09-20T1315.log`:
+
+```
+  this reading   : 2026-09-20  used 806  by_site_sum 806  gap 0
+  from      to        usedD    gapD   verdict
+  01:53     07:57      105       0   gap-did-not-grow
+  07:57     13:15      383       0   gap-did-not-grow
+  verdict: inconclusive  over 2 interval(s) of 3 same-day sample(s)
+  store    : d1
+  a green here means: batch() is one transaction
+```
+
+**488 credits charged across two intervals with `gapD 0` at every sample**,
+against the KV era's `+242`, `+43` and `−16` on 2026-09-18/19.
+
+**That is evidence accumulating, and it is NOT a pass.** `inconclusive` is the
+only non-failure state this probe has, by construction: "a series with no
+growing-gap interval has not exonerated the clamp, it has only failed to catch
+it yet." Writing "batch atomicity confirmed" off two clean intervals would be
+the exact substitution this document's history keeps recording — reading an
+instrument's refusal to fail as its agreement.
+
 ## Retire the probe  [SUPERSEDED 2026-09-19 — see the Done condition]
 
 ~~Once the done condition holds for three consecutive days, delete the workflow

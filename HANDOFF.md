@@ -1,5 +1,42 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-20 — Task 0d, a handler boundary, and whoop_tokens
+
+**HEAD:** `ae606dc` → `677217b` (the tail is scheduled watches, not this session)
+Session doc: `outbox/cc-session-2026-09-20-latency-provenance-whoop.md`.
+Spent this session: **0 credits** at the vendor. Deploys 982 and 983, both green.
+
+**Task 0d is answered and CC-CMD-2026-09-18's Task 6 manifest is now complete.**
+Four sequential KV ops **517 ms**, one warm batch **38 ms**, first call on an
+isolate **67 ms** reported apart. Per-request delta **−479 ms**. The per-slate
+batching decision the spec left conditional never arises: (b) is faster than (a).
+
+**Correcting the previous close-out below: it said the CC-CMD was CLOSED while
+Task 6's own text required 0d numbers that had not been measured.** Both
+statements sat in the repo together and one was wrong. It is closed now, and the
+manifest is in the document rather than in a claim about it.
+
+`odds-site-drift`, first D1-era day: 488 credits across two intervals with
+`gapD 0` at every sample, against `+242 / +43 / −16` in the KV era. Verdict
+`inconclusive` — the only non-failure state it has, by design. Evidence
+accumulating, **not** a pass. `odds-daily-vs-vendor` is still `window-drift` on
+one reading; three closed days, earliest ~09-22.
+
+The `/gamma` provenance leak reported 09-19 as a "second mechanism" is fixed
+(`484557d`) and was not what the report said: `bodyOf()` ended a delegated
+handler at the next top-level `function`, so the last function in a file ran to
+EOF. `functionBody()` thirty lines away already carried the correction. Live
+impact measured at zero — 0 of 187 manifest entries, 0 census lines.
+
+`whoop_tokens` was never an owner decision, only an unasked question. Probed:
+**`no-d1-scope`**. It now rides `timetravel-window-watch.yml`, which has waited
+on the same token mint since 09-07. One human action unblocks both:
+**mint a Cloudflare API token with D1:Read.**
+
+`check-exposed-secrets` caught a 116th hard-coded gate literal I added. Naming it
+once (`CI_ROUTE_GATE`) tightened the bound **115 → 109** instead of loosening it.
+
+
 ## SESSION CLOSE-OUT — 2026-09-19b — the atomic odds counter, and Whoop
 
 **HEAD:** `da94524` → `ae606dc`
