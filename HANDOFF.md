@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-19b — the atomic odds counter, and Whoop
+
+**HEAD:** `da94524` → `ae606dc`
+
+Session doc: `outbox/cc-session-2026-09-19b-atomic-counter-and-whoop.md`.
+Spent this session: **0 credits** at the vendor.
+
+`docs/CC-CMD-2026-09-18-atomic-odds-counter.md` is CLOSED. The guard charges
+through one D1 transaction (`5edb19a`, deploy run 980); `odds_budget_charging`
+returned PASS on its first run with `d1_used_today` and `kv_used_today` both
+**2941**, the KV seed making a mid-day cutover exact.
+
+**Its done condition was rewritten, and that is the finding.** Both original
+conditions compared two numbers that Task 2 made one write — they agree because
+the schema says so, and waiting for that green would have been waiting for a
+tautology. Replaced by `odds-daily-vs-vendor` returning `tracks-the-bill` on
+three closed days, which is **genuinely pending**: first firing 2026-09-20
+00:10Z plus the measured 104-405 min delay, verdict around 09-22.
+
+`odds-site-drift` is re-scoped rather than retired. Its green no longer means
+"the counters agree" — it now means `batch()` really is one transaction, which
+is the single premise under Task 2 this session could not verify locally.
+
+Whoop is out (`098b989`): 3 routes, 143 lines, and an OAuth client secret that
+had been plaintext in `wrangler.toml` in a public repo since the commit that
+added it. Owner rotated it first. `check-no-foreign-domain.mjs` now asks
+whether code BELONGS, which no existing guard did.
+
+Five defects this session, all mine, all caught by mutations or CI rather than
+by reading — enumerated in the session doc.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-09-19 — odds counters, the fill, and 40 credits
 
 **HEAD:** `71433fe` → `da94524`
