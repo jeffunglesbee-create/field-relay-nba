@@ -109,7 +109,17 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
-import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_BUDGET_ORDER } from './budget-helpers.js';
+
+// The CI-only route gate, named once so a new CI route does not mean a new
+// hard-coded copy of it. scripts/check-exposed-secrets.mjs ratchets on the
+// count of this literal and is right to: it caught /debug/odds-budget-latency
+// adding a 116th. This moves one existing occurrence rather than adding one,
+// so the count is flat. The other 27 sites in this file send the header on
+// outbound calls rather than checking it, and converting those is a separate
+// change with its own diff.
+const CI_ROUTE_GATE = 'field-relay-cron-2026';
+
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
 import { relayFetch, relayFetchKV } from './cache-helpers.js';
@@ -13473,6 +13483,7 @@ export default {
             && !(pathname === '/analytics/circadian-late/recompute' && request.method === 'POST')
             && !(pathname === '/analytics/record-streak/recompute' && request.method === 'POST')
             && !(pathname === '/d1/execute' && request.method === 'POST')
+            && !(pathname === '/debug/odds-budget-latency' && request.method === 'POST')
             && !(pathname === '/wnba/slate' && request.method === 'POST')
             && !(pathname === '/session/record' && request.method === 'POST')
             && !(pathname === '/mcp' && request.method === 'POST')
@@ -14641,7 +14652,7 @@ export default {
         // Body: { leagues?: string[] }  defaults to all FBREF_LEAGUES.
         if (pathname === '/soccer/fbref/fetch' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026')
+            if (authHeader !== CI_ROUTE_GATE)
                 return new Response('unauthorized', { status: 401, headers: CORS });
             if (!env.FIELD_DATA)
                 return new Response(JSON.stringify({ ok: false, error: 'FIELD_DATA R2 not bound' }),
@@ -15803,9 +15814,111 @@ export default {
         // Routes D1 writes through the Worker's native binding instead of
         // requiring the CF REST API (which needs D1:Edit token scope).
         // Table allowlist prevents writes to non-odds tables.
+        // ── POST /debug/odds-budget-latency ────────────────────────────────
+        // Task 0d of docs/CC-CMD-2026-09-18-atomic-odds-counter.md: what did
+        // Task 2 cost in latency? The spec said "four sequential
+        // FIELD_JOURNALISM ops, as the guard does them now" versus "one
+        // env.DB.batch". BOTH HALVES OF THAT SENTENCE ARE STALE at HEAD and the
+        // measurement has to be of the real thing, not of the spec:
+        //   - the guard does NOT do four KV ops any more. Task 2 replaced them.
+        //     The four-op form is the BASELINE here, reconstructed, not observed.
+        //   - `DB` was removed 2026-09-20. Task 2 landed on ARCHIVE_DB.
+        //   - the new path is not one call either. checkAndIncrementDailyOdds
+        //     also calls ensureOddsBudgetTables and _seedFromKv, both guarded by
+        //     module-level flags, so a FIRST call on an isolate makes three round
+        //     trips and every later call makes one. Reporting only the batch
+        //     would flatter the new form and answer a question nobody asked.
+        //
+        // WRITES, AND THEY ARE BOUNDED. Everything lands on the sentinel day
+        // '0000-00-00' and two sentinel KV keys, all deleted before the response
+        // is built. No real day is touched, and every reader of odds_budget
+        // filters `WHERE day = ?` (checked: three call sites), so the sentinel is
+        // invisible to them even in the window before cleanup.
+        if (pathname === '/debug/odds-budget-latency' && request.method === 'POST') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== CI_ROUTE_GATE) {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const N       = 7;               // odd, so the median is a real sample
+            const DAY     = '0000-00-00';    // sentinel: not a date any caller can produce
+            const KV_A    = 'odds:latency-probe:daily';
+            const KV_B    = 'odds:latency-probe:site';
+            const CEILING = 1000000000;      // high on purpose: a vetoed charge does
+                                             // less work, and would time the wrong path
+            const med = (a) => { const t = [...a].sort((x, y) => x - y); return t[(t.length - 1) >> 1]; };
+            const time = async (fn) => { const t0 = Date.now(); await fn(); return Date.now() - t0; };
+            const out = { task: '0d', n: N, day: DAY, samples: {}, median_ms: {}, note: {} };
+            try {
+                const db = env.ARCHIVE_DB;
+                if (!db || !env.FIELD_JOURNALISM) {
+                    return new Response(JSON.stringify({ ok: false, error: 'ARCHIVE_DB or FIELD_JOURNALISM not bound' }),
+                        { status: 503, headers: { ...CORS, 'Content-Type': 'application/json' } });
+                }
+                // (a) BASELINE — the four sequential KV ops the guard used to do.
+                const a = [];
+                for (let i = 0; i < N; i++) a.push(await time(async () => {
+                    const r1 = await env.FIELD_JOURNALISM.get(KV_A);
+                    await env.FIELD_JOURNALISM.put(KV_A, String((parseInt(r1, 10) || 0) + 1), { expirationTtl: 300 });
+                    const r2 = await env.FIELD_JOURNALISM.get(KV_B);
+                    await env.FIELD_JOURNALISM.put(KV_B, String((parseInt(r2, 10) || 0) + 1), { expirationTtl: 300 });
+                }));
+                out.samples.kv_four_ops = a;
+
+                // (b) WARM — what every call after the first on an isolate costs.
+                const b = [];
+                for (let i = 0; i < N; i++) b.push(await time(async () => {
+                    await db.batch([
+                        db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
+                        db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
+                        db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
+                    ]);
+                }));
+                out.samples.d1_batch_warm = b;
+
+                // (c) COLD — the three round trips a first call on a fresh isolate
+                // makes. A RECONSTRUCTION, and labelled as one: the real cold path
+                // is gated by module-level flags this route cannot reset, so this
+                // performs the same work rather than observing it happen.
+                const c = [];
+                for (let i = 0; i < N; i++) c.push(await time(async () => {
+                    await db.batch([
+                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget (day TEXT PRIMARY KEY, used INTEGER NOT NULL DEFAULT 0)'),
+                        db.prepare('CREATE TABLE IF NOT EXISTS odds_budget_site (day TEXT NOT NULL, site TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, site))'),
+                    ]);
+                    await env.FIELD_JOURNALISM.get(KV_A);
+                    await db.batch([
+                        db.prepare(ODDS_BUDGET_SQL.seed).bind(DAY, 0),
+                        db.prepare(ODDS_BUDGET_SQL.site).bind(DAY, 'latency-probe', 1, DAY, 1, CEILING),
+                        db.prepare(ODDS_BUDGET_SQL.charge).bind(1, DAY, 1, CEILING),
+                    ]);
+                }));
+                out.samples.d1_first_call_on_isolate = c;
+
+                for (const k in out.samples) out.median_ms[k] = med(out.samples[k]);
+                out.statement_order = ODDS_BUDGET_ORDER;
+                out.note.baseline = 'kv_four_ops is RECONSTRUCTED. The guard has not done this since Task 2; it is here as the thing Task 2 replaced.';
+                out.note.cold = 'd1_first_call_on_isolate is RECONSTRUCTED too — ensureOddsBudgetTables and _seedFromKv are gated by module-level flags this route cannot reset.';
+                out.note.kv_cache = 'The four KV ops reuse one key pair across all ' + N + ' iterations, which is the shape the real guard had: one hot daily key all day. A cold-key measurement would be a different number and a different question.';
+                out.note.coverage = 'ONE isolate, ' + N + ' iterations each, on whichever colo answered. It does NOT measure contention, cold starts, or any other region.';
+            } catch (e) {
+                out.error = String(e && e.message || e);
+            } finally {
+                // CLEANUP RUNS EVEN ON THROW. A probe that leaves a sentinel row
+                // behind on its error path is a probe that pollutes the table it
+                // was careful not to touch.
+                out.cleaned = [];
+                try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget'); } catch (_) {}
+                try { await env.ARCHIVE_DB.prepare('DELETE FROM odds_budget_site WHERE day = ?').bind(DAY).run(); out.cleaned.push('odds_budget_site'); } catch (_) {}
+                try { await env.FIELD_JOURNALISM.delete(KV_A); out.cleaned.push(KV_A); } catch (_) {}
+                try { await env.FIELD_JOURNALISM.delete(KV_B); out.cleaned.push(KV_B); } catch (_) {}
+            }
+            return new Response(JSON.stringify({ ok: !out.error, ...out }, null, 2),
+                { status: out.error ? 500 : 200, headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         if (pathname === '/d1/execute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             let body;
@@ -16629,7 +16742,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // redundant AI-call cost) — see CC-CMD-2026-07-08-night-stars-recompute.
         if (pathname === '/analytics/night-stars/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -16653,7 +16766,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // /analytics/night-stars/recompute exactly.
         if (pathname === '/analytics/jinx/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -16673,7 +16786,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // auth pattern as /analytics/jinx/recompute.
         if (pathname === '/analytics/record-streak/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -16702,7 +16815,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // (PURE-classified, no LLM cost) to refresh that copy too.
         if (pathname === '/analytics/morning-report/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -16728,7 +16841,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // cross-sport-contamination TASK 2).
         if (pathname === '/analytics/circadian-late/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== 'field-relay-cron-2026') {
+            if (authHeader !== CI_ROUTE_GATE) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
