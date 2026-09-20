@@ -194,16 +194,11 @@ binding = "BROWSER"
 RELAY_BASE = "https://field-relay-nba.jeffunglesbee.workers.dev"
 
 
-# ── D1 Database — UNUSED as of 2026-09-19 ───────────────────────────────────
-# `database_id` is IDENTICAL to WC2026_DB above: two bindings, one database.
-# Its only consumer in the worker was the Whoop OAuth block (whoop_tokens),
-# removed 2026-09-19 — Whoop is not part of FIELD. `env.DB` now has zero
-# references in src/. Left in place because CLAUDE.md forbids changing
-# bindings without approval; removing it is a separate, owner-approved call.
-[[d1_databases]]
-binding = "DB"
-database_name = "field-d1"
-database_id = "f26669de-e772-4b56-a6d1-f8fdea08a4d4"
+# The `DB` binding was removed 2026-09-20, owner-approved. It pointed at
+# database_id f26669de — byte-identical to WC2026_DB above, so it was a second
+# name for one database, and the same data stays reachable under the binding
+# that describes it. Its only consumer had been the Whoop OAuth block, removed
+# 2026-09-19. `env.DB` had zero references in src/ when this was cut.
 
 # ── D1 Game Archive (June 15 2026) ───────────────────────────────────────────
 # FIELD's institutional memory — completed games with editorial notes.

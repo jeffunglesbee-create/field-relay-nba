@@ -83,7 +83,6 @@ Read CONTRACTS.md before writing code that crosses a system boundary — any cod
 | AMBIENT_DO | DO | Cross-sport SSE |
 | WC2026_DB | D1 | World Cup group standings + results |
 | ARCHIVE_DB | D1 | Game archive (field-archive, cc49101c) |
-| DB | D1 | Shared field-d1 (legacy WC2026 alias) |
 | FIELD_DATA | R2 | Analytics data (Savant, GSAX, clutch, NFL) |
 | JQ_ANALYTICS | AE | Journalism quality metrics |
 | JOURNALISM_QUEUE | Queue | Async journalism pipeline |
