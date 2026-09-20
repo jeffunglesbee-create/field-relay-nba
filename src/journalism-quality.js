@@ -479,13 +479,46 @@ export function hasCrossSportHallucination(text) {
   return flagged;
 }
 
-// ── Layer 3: 10-dimension prose scoring (JQ v3 — Jun 8 2026, 0-300 scale) ───
-// Mirrors browser scoreProse() — same 300-point ceiling, same 10 dimensions.
-// Worker runtime: no localStorage, no DOM, game object not available (relay
-// scores without game context — Dims 7/10 return N/A, ceiling reduces to 245).
+// ── Layer 3: prose scoring (JQ v3 — Jun 8 2026) ─────────────────────────────
+// Mirrors browser scoreProse() — same dimensions, same weights, one SCALE table.
+// Worker runtime: no localStorage, no DOM, and no game object on a slate brief.
 //
-// Ceiling breakdown: 150(base) + 45(arc) + 25(ctx=N/A→0) + 20(temporal) +
-//                    30(voice) + 30(matchup=N/A→0) = 245 without game context
+// NO CEILING IS WRITTEN HERE, AND THAT IS THE POINT. Every total is DERIVED
+// further down this file from SCALE and SLATE_CAPS — NOMINAL_TOTAL,
+// REACHABLE_CEILING, FOUR_FIFTHS_REACHABLE, and the _GAME pair. Read them
+// there, or call them. Do not carry a copy.
+//
+// WHAT THIS COMMENT SAID UNTIL 2026-09-20, kept because the way it failed is
+// the reason the rule above exists:
+//
+//     "0-300 scale … same 300-point ceiling, same 10 dimensions"
+//     "Dims 7/10 return N/A, ceiling reduces to 245"
+//     "Ceiling breakdown: 150(base) + … + 30(matchup=N/A→0) = 245"
+//
+// Four separate things in that were false when it was corrected:
+//
+//   - The total is 294, and per the SCALE block it always was: the 300 was a
+//     label rather than a sum.
+//   - SCALE carries ELEVEN weights, not ten.
+//   - Dim 7 (ctx) still contributes 0 with no game, but `margin` and
+//     `finality` ABSTAIN AT THE MIDPOINT rather than returning N/A. Neither is
+//     unreachable, so the reachable total is well above 245.
+//   - `matchup` has not named a dimension since the era-6 rename to `margin`.
+//     That rename is the defect recorded further down under "ERA 6 REOPENED
+//     THIS": two filters matched NOTHING and REACHABLE_CEILING moved 245 -> 277
+//     silently.
+//
+// THE COMMENT DIRECTLY BELOW THIS ONE PREDICTED THIS EXACT FAILURE. It says the
+// breakdown "used to live only in that comment, so 245 was a number a reader had
+// to trust and a maintainer had to remember to update" — and then derives it.
+// The derivation shipped. This paragraph, six lines above it, did not, and went
+// on publishing 245.
+//
+// It was not only read by people. field-laboratory/src/Ceiling.fs transcribed
+// this text in good faith (`Max = 245<point>`), CEILING-PROOF.md quotes it, and
+// that repo's docs-check.mjs then compared the document against the
+// transcription — a copy against a copy — and passed. One stale comment, three
+// artefacts downstream, and a green check over all of it.
 //
 // ── The two scales, DERIVED (CC-CMD-2026-08-15-quality-bar-scale ask 3) ─────
 // The breakdown above used to live only in that comment, so 245 was a number
