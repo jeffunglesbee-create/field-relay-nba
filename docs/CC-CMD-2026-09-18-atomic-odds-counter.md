@@ -8,8 +8,11 @@ change matters more than the verdict.**
 measurements written up as values judgments; both are now measured and
 answered in place. Nothing in this CC-CMD is waiting on a human.
 
-**Task 6 must still report the 0d numbers.** Answered is not the same as
-unmeasured-and-assumed.
+**~~Task 6 must still report the 0d numbers.~~ REPORTED 2026-09-20:
+517 ms → 38 ms on the per-request path, −479 ms, verdict `warm-cheaper`.** Full
+table and the three ways the 0d spec had gone stale are under Task 0d below.
+Answered is not the same as unmeasured-and-assumed — and this one is now
+measured.
 
 ## The verdict, and the falsification underneath it
 
@@ -327,6 +330,47 @@ Report both numbers in the Task 6 manifest.
 If (b) is slower than (a), the batching question in the original text becomes
 live again — one charge per slate rather than per game on
 `ambientCaptureClosingOdds`. Decide it from the measurement, not before it.
+
+### 0d ANSWERED 2026-09-20 — `warm-cheaper`, and not by a little
+
+Measured in the worker at `POST /debug/odds-budget-latency`, 7 iterations per
+series, medians. Artifact: `outbox/odds-budget-latency-20260920T032540Z.log`.
+
+| series | median | what it is |
+|---|---|---|
+| `kv_four_ops` | **517 ms** | the old guard: get+put on daily, get+put on site, every call |
+| `d1_batch_warm` | **38 ms** | the new guard: one batch, every call after the first |
+| `d1_first_call_on_isolate` | **67 ms** | DDL + KV seed read + batch, once per isolate |
+
+**Per-request delta: −479 ms.** The batching question above does NOT become
+live: (b) is not slower than (a), it is 13.6× faster, so there is nothing to
+decide about charging per slate instead of per game.
+
+**The paragraph above this one was right to refuse to predict it.** "KV reads
+are edge-cached and cheap; KV writes and D1 both go to a central store, so a
+lower op count is not by itself a lower latency" — correct, and the answer still
+came out enormous, because the cost was never the op count. It was two KV
+*writes*, each replicating globally, on a path that only ever needed one
+transaction against one store.
+
+**THREE THINGS THE SPEC GOT WRONG, and the measurement is of HEAD rather than of
+the spec:**
+
+1. "four sequential FIELD_JOURNALISM ops, **as the guard does them now**" — it
+   does not. Task 2 removed them on 2026-09-19. The four-op form is the
+   BASELINE, reconstructed, and the artifact labels it as such.
+2. "`env.DB.batch`" — `DB` was removed 2026-09-20. Task 2 landed on
+   `ARCHIVE_DB`.
+3. "**one** `env.DB.batch`" — the guard also calls `ensureOddsBudgetTables` and
+   `_seedFromKv`, both behind module-level flags. A first call on an isolate
+   makes three round trips; every later one makes one. Timing only the batch
+   would have flattered the new form, so the two are reported apart and the cold
+   number is kept out of the per-request verdict by construction (mutation L1).
+
+**Coverage, stated where the number is read (Rule 91):** one isolate, one colo,
+7 iterations per series. Not contention, not cold starts, not other regions, and
+two of the three series are reconstructions rather than the guard observed in
+situ.
 
 ---
 
