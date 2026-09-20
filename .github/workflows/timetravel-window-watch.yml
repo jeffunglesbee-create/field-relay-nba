@@ -11,6 +11,15 @@
 # One human action unblocks it: minting a token with D1 read permission. This
 # watches for that and reports which of two terminal answers arrived.
 #
+# A SECOND QUESTION RIDES THE SAME UNBLOCK, added 2026-09-20. `whoop_tokens` —
+# the table the removed Whoop OAuth block wrote to — is either absent, empty, or
+# holding live tokens, and nobody has ever looked. Its probe is refused by the
+# same token with the same `Authentication error [code: 10000]` (measured in run
+# 35482911059 and again in the ladder run that followed), so it is waiting on
+# exactly the human action this watch already waits on. It rides here rather than
+# in a second weekly cron: the thing being watched for is one token mint, and two
+# schedules asking about it would cost twice and inform once.
+#
 # IT REPORTS. IT DOES NOT RECOVER. The side-restore exports production data into
 # a scratch database, and standing operations against production D1 are
 # authorised case by case — never wired to a cron by the session that noticed
@@ -76,3 +85,52 @@ jobs:
           PROBE_AUTHOR_NAME="FIELD CI" \
           PROBE_AUTHOR_EMAIL="claude@field.dev" \
           bash scripts/probe-commit-retry.sh "chore: time travel window watch — ${STATE}"
+
+      # ── whoop_tokens, riding the same unblock ────────────────────────────────
+      # Same token, same refusal, same one human action. Its own harness runs
+      # first for the same reason the one above does: a probe whose classifier
+      # cannot be made to fail must not get to produce a verdict.
+      - name: The whoop_tokens ladder can be made to fail
+        run: |
+          node scripts/probe-whoop-tokens.mjs --self-test
+          node scripts/mutate-whoop-tokens.mjs
+
+      # continue-on-error because `no-d1-scope` is the EXPECTED answer until the
+      # token is minted, and it exits 1 on purpose — a state that settles nothing
+      # must not report as a green run. A red step here would make the watch look
+      # broken every week while it is working exactly as designed.
+      - name: Ask whether whoop_tokens is readable yet
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/probe-whoop-tokens.mjs
+
+      # The probe writes a timestamped log every run, so unlike the watch above
+      # there is no byte-identical-file test to lean on: committing every week
+      # would be 52 near-identical logs saying the token still has no D1 scope.
+      # Commit only when the verdict CHANGES — which, for this question, is the
+      # week it gets answered.
+      - name: Commit a whoop_tokens log only when the verdict changed
+        if: always()
+        run: |
+          # Sort by NAME, not mtime: the names carry a UTC stamp and every
+          # checked-out file shares a checkout mtime, so -t would be a coin flip
+          # between committed logs on any run that writes none.
+          NEW=$(ls -1 outbox/whoop-tokens-probe-*.log 2>/dev/null | sort | tail -1)
+          git ls-files --error-unmatch "$NEW" >/dev/null 2>&1 \
+            && { echo "newest log is already tracked — the probe wrote none this run"; exit 0; }
+          [ -n "$NEW" ] || { echo "no log written — nothing to commit"; exit 0; }
+          NEW_VERDICT=$(grep -m1 '^  verdict: ' "$NEW" | sed 's/^  verdict: //')
+          OLD=$(git ls-files 'outbox/whoop-tokens-probe-*.log' | sort | tail -1)
+          OLD_VERDICT=$([ -n "$OLD" ] && grep -m1 '^  verdict: ' "$OLD" | sed 's/^  verdict: //' || echo none)
+          echo "verdict: ${OLD_VERDICT} -> ${NEW_VERDICT}"
+          if [ "$NEW_VERDICT" = "$OLD_VERDICT" ]; then
+            rm -f "$NEW"
+            echo "unchanged — not committing a 52nd copy of the same answer"
+            exit 0
+          fi
+          PROBE_PATHS="$NEW" \
+          PROBE_AUTHOR_NAME="FIELD CI" \
+          PROBE_AUTHOR_EMAIL="claude@field.dev" \
+          bash scripts/probe-commit-retry.sh "chore: whoop_tokens watch — ${NEW_VERDICT}"
