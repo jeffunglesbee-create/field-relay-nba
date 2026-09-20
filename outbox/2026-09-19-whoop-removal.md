@@ -111,8 +111,22 @@ run.
   corrected — it previously read "WC + health tokens", naming the Whoop usage.
   Its `database_id` is identical to `WC2026_DB`'s, so removing it loses nothing.
   Owner's call.
-- **The `whoop_tokens` table in D1.** Still there, now unreferenced. Dropping it
-  is a live D1 mutation and this repo authorises those case by case.
+- **The `whoop_tokens` table in D1.** ~~Still there, now unreferenced.~~
+  **CORRECTED 2026-09-20 — "still there" was never measured.** It was written as
+  a fact and it was an assumption: no `CREATE TABLE whoop_tokens` exists in any
+  commit (the table was made out of band, if at all), and no session had ever
+  queried it. Rule 100's question — which command would refute this — had a
+  cheap answer nobody spent.
+  It is now probed weekly by `scripts/probe-whoop-tokens.mjs`, riding
+  `timetravel-window-watch.yml`. Measured state as of 2026-09-20:
+  **`no-d1-scope`** — `CLOUDFLARE_API_TOKEN` verifies and cannot list this
+  account's D1 databases (`Authentication error [code: 10000]`), the same
+  refusal that has blocked the Time Travel window question since 2026-09-07.
+  So the table's existence is still unknown, but it is now unknown *and
+  watched*, with the one human action that unblocks it named: mint a token
+  with D1:Read. Three of the four outcomes then close this item with no owner
+  decision at all — absent means nothing to drop, empty means the drop removes
+  no data, and only `holds-rows` is genuinely a live-D1-mutation call.
 - **`HANDOFF.md:701`**, which mentions WHOOP in a historical measurement. That
   is a record of what was true then.
 
