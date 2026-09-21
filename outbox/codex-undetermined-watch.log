@@ -1,11 +1,11 @@
-checked 291 of 291 cc-cmd-queue rows — the instrument partitions every row, so the denominator is the whole table
+checked 294 of 294 cc-cmd-queue rows — the instrument partitions every row, so the denominator is the whole table
 
 {
-  "total": 291,
-  "open": 22,
+  "total": 294,
+  "open": 25,
   "undetermined": 0,
   "closed": 269
 }
 
 PASS  no queue row is undetermined
-      0 of 291 rows are undetermined
+      0 of 294 rows are undetermined
