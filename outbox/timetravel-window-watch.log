@@ -1,5 +1,5 @@
 state:   AUTH_REFUSED
-recorded: 2026-09-20T02:08:41.309Z  (every check is in the workflow's run history)
+recorded: 2026-09-21T14:16:40.395Z  (every check is in the workflow's run history)
 verdict: PENDING — the token still lacks D1 permission, so the retention window is unmeasured. Task 2 stays blocked. Nothing has changed and nothing is wrong.
 
 --- raw wrangler output ---
