@@ -1,0 +1,101 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-09-21T18:11:54.925Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    156 workflow(s), 156 active  (all pages read)
+    scheduled and healthy             : 34
+    no schedule: block, not judged     : 117
+    declared detectors, red on purpose : 3   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.1 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 14.2 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/odds-pairing-rate-watch.yml  red at least 2.2 days
+        reports: vendor-billed credits that reached no counter, and backfill dates that spent and paired zero games
+        now:     685 credits UNEXPLAINED against a tolerance of 243 over 23.4h; separately 7 dates billed 940 credits and paired 0 games
+        tracked: docs/CC-CMD-2026-09-19-daily-vs-vendor.md
+    DECLARES A CRON, NEVER FIRED       : 2
+      .github/workflows/bsd-newsletter-claims.yml   cron 17 8 3 * *   added 2026-09-05 (15.6d ago)
+      .github/workflows/bsd-leagues-baseline.yml   cron 23 8 4 * *   added 2026-09-05 (15.6d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    128 workflow(s), 128 active  (all pages read)
+    scheduled and healthy             : 28
+    no schedule: block, not judged     : 96
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/soccer-fbref-mls.yml   cron 0 8 * * 1   added 2026-06-22 (90.8d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 3
+      .github/workflows/nba-clutch-update.yml
+        red since at least 2026-07-25T08:13:11Z, latest 2026-07-31T08:56:19Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/30618071472
+      .github/workflows/odds-line-probe.yml
+        red since at least 2026-09-20T08:49:14Z, latest 2026-09-21T09:17:36Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/35582440427
+      .github/workflows/tennis-live-probe.yml
+        red since at least 2026-09-20T00:57:46Z, latest 2026-09-21T00:59:58Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/35549444160
+
+  ── jeffunglesbee-create/field-laboratory ──
+    29 workflow(s), 29 active  (all pages read)
+    scheduled and healthy             : 5
+    no schedule: block, not judged     : 23
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/verify-full.yml
+        red since at least 2026-09-07T11:34:39Z, latest 2026-09-21T11:59:37Z
+        https://github.com/jeffunglesbee-create/field-laboratory/actions/runs/35596988589
+
+  ── jeffunglesbee-create/field-playground ──
+    82 workflow(s), 82 active  (all pages read)
+    scheduled and healthy             : 21
+    no schedule: block, not judged     : 60
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/build-check.yml
+        red since at least 2026-09-19T12:06:33Z, latest 2026-09-21T14:38:14Z
+        https://github.com/jeffunglesbee-create/field-playground/actions/runs/35613485422
+
+    A never-fired cron is NOT automatically a fault: a monthly cron added
+    after its day-of-month, or a workflow added today, has legitimately not
+    reached a slot. The cron and the age are printed so that is decidable
+    here rather than inferred from a count. NEVER_FIRED_GRACE_DAYS=40.
+
+    COVERAGE: 4 repos, 395 workflows, 395 active, 96 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 296 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 3 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    NOT covered: any repo outside the 4 listed at the top.
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 4
+      jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml
+        kind dead  red since 2026-08-31  admitted 5d ago  review by 2026-10-17
+        unblocked by: read field-laboratory run 34839968312
+      jeffunglesbee-create/field-playground:.github/workflows/build-check.yml
+        kind dead  red since 2026-09-15  admitted 5d ago  review by 2026-10-17
+        unblocked by: read field-playground run 35223420802
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml
+        kind dead  red since 2026-07-25  admitted 5d ago  review by 2026-10-17
+        unblocked by: read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/soccer-fbref-mls.yml
+        kind never_fired  red since 2026-06-22  admitted 5d ago  review by 2026-10-17
+        unblocked by: check the workflow's schedule block parses, and whether GitHub lists it as disabled
+    NEW, not in the baseline  : 2
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/odds-line-probe.yml
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/tennis-live-probe.yml
+    baseline entries resolved : 1
+      jeffunglesbee-create/field-laboratory:.github/workflows/drift-sentinel.yml   <- fixed or gone; remove it from docs/dead-cron-baseline.json
+    reviews overdue           : 0
