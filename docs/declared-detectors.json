@@ -50,6 +50,12 @@
       "red_because": "8 of 11 sections in the model rendered no DOM section on 2026-09-21 (NHL, MLS Soccer, Premier League, EFL Championship, La Liga, Serie A, Bundesliga, Ligue 1); streak 0/5 consecutive scheduled greens, so the done condition is OPEN",
       "tracked_by": "jubilant-bassoon docs/CC-CMD-2026-09-12-v2-sections-in-model-not-in-dom.md",
       "verified": "2026-09-21, from its own committed artifact jubilant-bassoon outbox/odds-line-probe-manifest-20260921T091841Z.json and run 35582440427's check-sections-gap-streak step"
+    },
+    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/tennis-live-probe.yml": {
+      "reports": "whether the deployed page renders tennis cards while the relay serves matches that pass FIELD's own tier bar, measured in a real browser against the live URL",
+      "red_because": "the page renders 0 cards above roughly 26 tier-allowed matches. Across 36 committed manifests every PASS is at 26 or fewer and every FAIL at 26 or more; at the boundary 2026-09-06 15:26 failed at 26 and 15:32 passed at 26. The section itself is present in 30 of 36 runs, so this is not the 2026-06..09 no-section regression the probe's own reason line still names",
+      "tracked_by": "jubilant-bassoon docs/CC-CMD-2026-09-21-tennis-renders-zero-above-26.md",
+      "verified": "2026-09-21, from its own committed artifacts jubilant-bassoon outbox/tennis-live-probe-manifest-*.json (36 readings, 2026-09-06 to 2026-09-21)"
     }
   }
 }
