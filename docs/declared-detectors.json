@@ -3,7 +3,7 @@
     "Workflows whose RED IS THEIR OUTPUT, not their failure. A detector reports a",
     "condition; while the condition holds it exits non-zero, and that is the",
     "design. scripts/watch-silently-dead-crons.mjs lists these separately instead",
-    "of calling them dead — without this it would report them every day forever,",
+    "of calling them dead \u2014 without this it would report them every day forever,",
     "and a watch that cries wolf is how odds-backfill.yml went fifteen days",
     "unnoticed in the first place.",
     "",
@@ -18,14 +18,14 @@
     "key would let a declaration made for one repo excuse a genuinely dead cron",
     "of the same name in another. The form is `owner/repo:.github/workflows/x.yml`.",
     "",
-    "2026-09-19: undeployed-src-watch.yml was the third workflow the dead-cron watch flagged that day and it is DELIBERATELY NOT DECLARED HERE. Its red is caused by a fixable repo defect — the provenance census writes a regenerated ROUTE_PROVENANCE_GENERATED_AT into src/route-provenance.js while carrying the skip directive, so it bumps a deploy-trigger path and suppresses the deploy that would clear it. Declaring it would suppress the one signal that reports a genuinely undeployed src change, which is the abuse the paragraph above describes. Fix the cause, do not declare the symptom."
+    "2026-09-19: undeployed-src-watch.yml was the third workflow the dead-cron watch flagged that day and it is DELIBERATELY NOT DECLARED HERE. Its red is caused by a fixable repo defect \u2014 the provenance census writes a regenerated ROUTE_PROVENANCE_GENERATED_AT into src/route-provenance.js while carrying the skip directive, so it bumps a deploy-trigger path and suppresses the deploy that would clear it. Declaring it would suppress the one signal that reports a genuinely undeployed src change, which is the abuse the paragraph above describes. Fix the cause, do not declare the symptom."
   ],
   "detectors": {
     "jeffunglesbee-create/field-relay-nba:.github/workflows/brief-label-migration.yml": {
       "reports": "brief rows whose sport is outside the authority label set read from the games table",
       "red_because": "4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
-      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 — verify exits 1 when verification.clean is false"
+      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 \u2014 verify exits 1 when verification.clean is false"
     },
     "jeffunglesbee-create/field-relay-nba:.github/workflows/rule90-staleness-monitor.yml": {
       "reports": "rule-registry entries marked UNEXERCISED for more than 14 days",
@@ -44,6 +44,12 @@
       "red_because": "685 credits UNEXPLAINED against a tolerance of 243 over 23.4h; separately 7 dates billed 940 credits and paired 0 games",
       "tracked_by": "docs/CC-CMD-2026-09-19-daily-vs-vendor.md",
       "verified": "2026-09-19, from its own committed artifact outbox/odds-pairing-rate-20260919T140742Z.log"
+    },
+    "jeffunglesbee-create/jubilant-bassoon:.github/workflows/odds-line-probe.yml": {
+      "reports": "sections present in allData.sports but absent from the DOM, counted per scheduled run, plus the consecutive-green streak toward that CC-CMD's done condition",
+      "red_because": "8 of 11 sections in the model rendered no DOM section on 2026-09-21 (NHL, MLS Soccer, Premier League, EFL Championship, La Liga, Serie A, Bundesliga, Ligue 1); streak 0/5 consecutive scheduled greens, so the done condition is OPEN",
+      "tracked_by": "jubilant-bassoon docs/CC-CMD-2026-09-12-v2-sections-in-model-not-in-dom.md",
+      "verified": "2026-09-21, from its own committed artifact jubilant-bassoon outbox/odds-line-probe-manifest-20260921T091841Z.json and run 35582440427's check-sections-gap-streak step"
     }
   }
 }
