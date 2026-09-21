@@ -1,0 +1,84 @@
+{
+  "probed_at": "2026-09-21T15:31:26.528Z",
+  "ok": false,
+  "error": null,
+  "stage1_dictionary": {
+    "season_clubs": 20,
+    "dictionary_entries": 23,
+    "unmapped_this_season": [],
+    "entries_for_clubs_not_in_this_season": [
+      "BUR",
+      "WHU",
+      "WOL"
+    ],
+    "espn_abbreviations_observed": [
+      "ARS (Arsenal)",
+      "AVL (Aston Villa)",
+      "BHA (Brighton & Hove Albion)",
+      "BOU (AFC Bournemouth)",
+      "BRE (Brentford)",
+      "CHE (Chelsea)",
+      "COV (Coventry City)",
+      "CRY (Crystal Palace)",
+      "EVE (Everton)",
+      "FUL (Fulham)",
+      "HUL (Hull City)",
+      "IPS (Ipswich Town)",
+      "LEE (Leeds United)",
+      "LIV (Liverpool)",
+      "MAN (Manchester United)",
+      "MNC (Manchester City)",
+      "NEW (Newcastle United)",
+      "NFO (Nottingham Forest)",
+      "SUN (Sunderland)",
+      "TOT (Tottenham Hotspur)"
+    ]
+  },
+  "stage2_builder": {
+    "gameweek": 5,
+    "fixtures_built": 4,
+    "non_empty": 4,
+    "with_table_line": 4,
+    "with_wdl_triple": [],
+    "sample": "\n[FPL MATCH EVENTS]\nGoals: Carvalho (BRE), Anthony (BRE), Thiago (BRE)\nAssists: Schade (BRE) 2, Schuster (BRE)\nYellow cards: Thiago (BRE), M.Sangaré (BRE)\nSaves: Martinez (CHE) 3, Kelleher (BRE) 2\nFPL bonus: Schuster (BRE) +3, Anthony (BRE) +2, Ajer (BRE) +1\nTop BPS: Schuster (BRE) 43, Anthony (BRE) 31, Ajer (BRE) 29\nLeague table: Brentford 4th on 0 points from 0 | Chelsea 10th on 0 points from 0\n(FPL carries no goal timings — do not state minutes from this block.)"
+  },
+  "stage3_archive": {
+    "baseline": "2026-08-23T05:33:53Z",
+    "briefs_total": 20,
+    "briefs_governed": 20,
+    "briefs_predating_the_fix": 0,
+    "historical_findings": {
+      "cite_wdl": 0,
+      "banned_phrases": []
+    },
+    "cite_wdl": [
+      "game_recap_epl_401879272",
+      "game_recap_epl_401879273",
+      "game_recap_epl_401879276",
+      "game_recap_epl_401879270",
+      "game_recap_epl_401879271",
+      "game_recap_epl_401878778",
+      "game_recap_epl_401879274",
+      "game_recap_epl_401879269",
+      "game_recap_epl_401879280",
+      "game_recap_epl_401879278",
+      "game_recap_epl_401879282",
+      "game_recap_epl_401878779",
+      "game_recap_epl_401879281",
+      "game_recap_epl_401879283",
+      "game_recap_epl_401879284"
+    ],
+    "claim_minute": [],
+    "say_stalemate": [
+      "game_recap_epl_401879273",
+      "game_recap_epl_401879277"
+    ],
+    "banned_phrases": [
+      "game_recap_epl_401879274: stunned",
+      "game_recap_epl_401879278: result moves",
+      "game_recap_epl_401879278: extended their"
+    ],
+    "note": null
+  },
+  "verdict": "FAIL — archived briefs cite a W-D-L record: game_recap_epl_401879272, game_recap_epl_401879273, game_recap_epl_401879276 | archived briefs say stalemate: game_recap_epl_401879273, game_recap_epl_401879277 | archived briefs use a banned phrase: game_recap_epl_401879274: stunned, game_recap_epl_401879278: result moves, game_recap_epl_401879278: extended their"
+}
