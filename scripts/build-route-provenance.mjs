@@ -364,7 +364,9 @@ const body = entries.map(([path, v]) =>
   + `${v.match === 'prefix' ? ', p: 1' : ''}${v.truncated ? ', t: 1' : ''} },`
 ).join('\n');
 
-const out = `// GENERATED FILE — do not edit by hand.
+// `let`, not `const`: the block below rewrites the stamp line when the
+// provenance content is unchanged.
+let out = `// GENERATED FILE — do not edit by hand.
 // Regenerate: node scripts/build-route-provenance.mjs
 // Gate:       node scripts/check-route-provenance.mjs  (blocking in deploy.yml)
 //
@@ -420,6 +422,45 @@ export function provenanceFor(pathname) {
   return best;
 }
 `;
+
+// THE TIMESTAMP FOLLOWS THE CONTENT, NOT THE CLOCK.
+//
+// `src/route-provenance.js` is under `src/**`, which is a deploy.yml trigger
+// path. Stamping a fresh GENERATED_AT on every run meant the census committed a
+// timestamp-only diff — while carrying the skip directive, so the deploy it
+// triggered never ran. Measured 2026-09-22: `undeployed-src-watch` had been red
+// for 29.2h naming two such commits (d868b6e, d2161cc) whose ONLY src delta was
+// this line, and the watch had itself just been filed as a NEW dead cron
+// because it fails every run for the same reason. One regenerated string, two
+// red watches, and a deploy-trigger path churning daily for nothing.
+//
+// `check-route-provenance.mjs` already strips this line before comparing, and
+// its own comment names the problem — "even a passing check left the working
+// tree dirty ... invites the next person to commit a timestamp-only diff". The
+// check side was fixed; the generator was not. This is the other half.
+//
+// SAME `strip` SEMANTICS AS THE CHECKER, deliberately: if the two disagreed
+// about what "unchanged" means, the gate and the generator would fight.
+//
+// The value ships as the `X-FIELD-Manifest` header (src/provenance-stamp.js),
+// where it identifies WHICH manifest a response was stamped by. Content-derived
+// is the right meaning for that; build time never was. Nothing reads it as an
+// age — no staleness check exists, verified by grep across scripts/, src/ and
+// .github/workflows/ on 2026-09-22.
+{
+  const stripStamp = t => t.replace(/^export const ROUTE_PROVENANCE_GENERATED_AT = .*$/m, '');
+  let committed = null;
+  try { committed = readFileSync('src/route-provenance.js', 'utf8'); } catch (_e) { committed = null; }
+  if (committed !== null && stripStamp(committed) === stripStamp(out)) {
+    const keep = committed.match(/^export const ROUTE_PROVENANCE_GENERATED_AT = .*$/m);
+    // Only if the old stamp is actually readable. A file whose stamp line is
+    // missing or malformed gets the fresh one rather than silently losing it.
+    if (keep) {
+      out = out.replace(/^export const ROUTE_PROVENANCE_GENERATED_AT = .*$/m, keep[0]);
+      console.log('  provenance unchanged — keeping the committed GENERATED_AT, so src/ is not bumped');
+    }
+  }
+}
 
 writeFileSync('src/route-provenance.js', out);
 console.log(`  src/route-provenance.js: ${entries.length} routes — ${withSource} named, ${readsNothing} read nothing, ${undeclared} undeclared (${delegated} of them delegating)`);
