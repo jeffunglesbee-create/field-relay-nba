@@ -1,0 +1,21 @@
+=== undeployed src  repo=jeffunglesbee-create/field-relay-nba  utc=2026-09-22T07:55:52.769Z ===
+
+  deploy triggers on : src/**, wrangler.toml, workers/**   (read from deploy.yml)
+  last GREEN deploy  : 1334b9d  2026-09-20T18:42:35Z
+  a deploy running   : false
+
+  verdict            : undeployed
+  commits unbuilt    : 1   oldest 18.9h ago
+      d868b6e  2026-09-21T13:00:16Z  census: provenance re-measured [skip ci]
+
+COVERAGE: compares HEAD against the last SUCCESSFUL deploy run's head_sha
+over 3 declared path(s), reading those paths from deploy.yml rather
+than restating them. It does NOT verify the running worker matches that SHA —
+no build stamp exists to check — only that every deploy-triggering commit has
+been through a successful run.
+
+FAIL: 1 commit(s) touch a deploy path and no successful deploy has built them.
+      Oldest is 18.9h old. A red deploy followed by a docs-only fix leaves
+      exactly this state and nothing else reports it: the failed run scrolls
+      away, the fix commit runs no workflows, and git log looks finished.
+      Re-run deploy.yml at HEAD (it accepts workflow_dispatch).
