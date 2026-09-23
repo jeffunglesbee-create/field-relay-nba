@@ -4,7 +4,7 @@
 // matcher fix would recover.
 import { createRequire } from 'node:module';
 const MOD = process.env.DEAD_PAIRS_MODULE || './lib/dead-pairs.cjs';
-const { classifyPair, stillDead, excludeDead, pairKey } = createRequire(import.meta.url)(MOD);
+const { classifyPair, stillDead, excludeDead, pairKey, kindOf } = createRequire(import.meta.url)(MOD);
 
 let bad = 0, n = 0;
 const eq = (label, got, want) => { n++;
@@ -20,7 +20,7 @@ const LIVE = [
   ['2026-09-12 cfb',     { events: 95,  inWindow: 80, priced: 0,  wanted: 13 }, 'priced-zero'],
   ['2026-09-13 nfl',     { events: 212, inWindow: 13, priced: 13, wanted: 13 }, 'complete'],
   ['2026-09-03 cfb',     { events: 156, inWindow: 14, priced: 8,  wanted: 11 }, 'partial'],
-  ['2026-05-24 la liga', { events: 1,   inWindow: 1,  priced: 1,  wanted: 10 }, 'pool-exhausted'],
+  ['2026-05-24 la liga', { events: 1,   inWindow: 1,  priced: 1,  wanted: 10 }, 'vendor-exhausted'],
   ['2026-08-22 nfl',     { events: 272, inWindow: 0,  priced: 0,  wanted: 10 }, 'none-in-window'],
   ['2026-08-28 nfl',     { events: 272, inWindow: 0,  priced: 0,  wanted: 10 }, 'none-in-window'],
   ['2026-08-29 cfb',     { events: 111, inWindow: 8,  priced: 8,  wanted: 8  }, 'complete'],
@@ -39,6 +39,33 @@ eq('leftover in-window events mean the pool is NOT exhausted',
   classifyPair({ events: 50, inWindow: 9, priced: 5, wanted: 8 }), 'partial');
 eq('...and no leftovers means it is',
   classifyPair({ events: 50, inWindow: 5, priced: 5, wanted: 8 }), 'pool-exhausted');
+
+// A COUNTING FACT, NOT A MATCHING ONE. 2026-05-24 la liga returned ONE event
+// against ten wanted games. No matcher reaches the other nine, because there is
+// nothing to reach — so this is a VENDOR class and survives a matcher change,
+// unlike pool-exhausted which is about which in-window events we used.
+eq('the vendor returning fewer events than the remainder is vendor-exhausted',
+  classifyPair({ events: 1, inWindow: 1, priced: 1, wanted: 10 }), 'vendor-exhausted');
+eq('...and it is a VENDOR class, so a matcher fix does not revive it',
+  kindOf('vendor-exhausted'), 'vendor');
+eq('a vendor-exhausted exclusion survives a new matcher',
+  stillDead({ klass: 'vendor-exhausted', params_fp: 'us|h2h,totals|12', matcher_fp: 'OLD' },
+            { params_fp: 'us|h2h,totals|12', matcher_fp: 'NEW' }), true);
+// The generous ceiling: `events` is the whole snapshot, wider than our date.
+// 2026-08-22 nfl returned 272 events with none in window — plenty of events,
+// so it is NOT vendor-exhausted and stays matcher-dependent.
+eq('plenty of events but none in window is NOT vendor-exhausted',
+  classifyPair({ events: 272, inWindow: 0, priced: 0, wanted: 10 }), 'none-in-window');
+eq('exactly enough events is not exhaustion either',
+  classifyPair({ events: 5, inWindow: 0, priced: 0, wanted: 5 }), 'none-in-window');
+// THE CEILING IS AGAINST THE REMAINDER, NOT THE WHOLE ASK. Nine events, ten
+// games wanted, eight already priced: only two are left to find and nine
+// events remain available, so nothing is exhausted. Comparing events against
+// `wanted` instead of `wanted - priced` calls this unfillable and retires a
+// pair that still has reachable games — and no real pair in the fill log
+// separates the two readings, so this fixture exists to.
+eq('the ceiling is measured against what is LEFT, not against the whole ask',
+  classifyPair({ events: 9, inWindow: 9, priced: 8, wanted: 10 }), 'partial');
 eq('a vendor with nothing at all is no-events, not none-in-window',
   classifyPair({ events: 0, inWindow: 0, priced: 0, wanted: 4 }), 'no-events');
 eq('a pair that got everything is complete even if it overshoots',

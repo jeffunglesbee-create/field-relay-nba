@@ -70,7 +70,7 @@ if (process.argv.includes('--self-test')) {
   const rows = parseLog(readFileSync('outbox/targeted-odds-fill-20260919T032609Z.log', 'utf8'));
   const census = {};
   for (const r of rows) census[r.klass] = (census[r.klass] || 0) + 1;
-  const want = { partial: 2, complete: 4, 'priced-zero': 1, 'pool-exhausted': 1, 'none-in-window': 2 };
+  const want = { partial: 2, complete: 4, 'priced-zero': 1, 'vendor-exhausted': 1, 'none-in-window': 2 };
   let bad = 0;
   const eq = (l, g, w) => {
     if (JSON.stringify(g) === JSON.stringify(w)) console.log(`ok    ${l}`);
@@ -111,7 +111,10 @@ if (process.argv[1] && process.argv[1].endsWith('seed-dead-pairs.mjs')) {
 
   // COVERAGE IN THE OUTPUT (Rule 91). The count that matters is not how many
   // rows were written but how many of them will actually stop a purchase.
-  const excluding = rows.filter(r => r.klass === 'no-events').length;
+  // VENDOR CLASSES ONLY. A matcher-class row seeded from this log carries a
+  // sentinel fingerprint and cannot exclude; a vendor-class one does not depend
+  // on our code at all, so it excludes immediately and correctly.
+  const excluding = rows.filter(r => ['no-events', 'vendor-exhausted'].includes(r.klass)).length;
   console.log(`  rows that will exclude a purchase today       : ${excluding}`);
   console.log(`  rows recorded but NOT excluding (matcher fp unknown): `
     + rows.filter(r => ['none-in-window', 'pool-exhausted', 'priced-zero'].includes(r.klass)).length);

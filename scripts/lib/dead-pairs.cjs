@@ -52,10 +52,11 @@
  *             changes, which is what makes this ledger safe to write at all.
  */
 const CLASS_KIND = {
-  'no-events':      'vendor',
-  'none-in-window': 'matcher',
-  'pool-exhausted': 'matcher',
-  'priced-zero':    'matcher',
+  'no-events':        'vendor',
+  'vendor-exhausted': 'vendor',
+  'none-in-window':   'matcher',
+  'pool-exhausted':   'matcher',
+  'priced-zero':      'matcher',
 };
 
 const kindOf = (klass) => CLASS_KIND[klass] || null;
@@ -83,6 +84,19 @@ function classifyPair(o) {
   if (wanted === 0) return 'unknown';           // nothing was being asked for
   if (priced >= wanted) return 'complete';
   if (events === 0) return 'no-events';
+  // THE VENDOR CANNOT SUPPLY THE REMAINDER, however well we read it. This is a
+  // counting fact, not a matching one: 2026-05-24 la liga returned ONE event
+  // against ten wanted games, priced that one, and left nine that no matcher
+  // can reach because there is nothing to reach. Re-buying returns the same
+  // single event, already priced, for another 20 credits.
+  //
+  // `events` is the WHOLE snapshot the historical endpoint returned, which is
+  // wider than our date — 2026-08-22 nfl got 272 events with none in window. So
+  // using it as the ceiling is conservative in the safe direction: if even that
+  // inflated count cannot cover the remainder, the in-window count certainly
+  // cannot. A pair is only called vendor-exhausted when the inequality holds
+  // against the generous number.
+  if (events < wanted - priced) return 'vendor-exhausted';
   if (inWindow === 0) return 'none-in-window';
   if (priced === 0) return 'priced-zero';
   // Some priced, some not. Dead only if the in-window pool is used up: an

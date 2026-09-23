@@ -39,9 +39,24 @@ console.log('baseline: the self-test passes on current source and on an unmutate
 
 const MUTATIONS = [
   ['D1 priced-zero is filed as a vendor gap',
-   "  'priced-zero':    'matcher',",
-   "  'priced-zero':    'vendor',",
+   "  'priced-zero':      'matcher',",
+   "  'priced-zero':      'vendor',",
    'THE ONE THAT LOSES GAMES SILENTLY: 2026-09-12 cfb had 80 events in window and priced none — our reading failed, their data did not. As a vendor class it would survive every matcher fix and never be bought again. The first version of this mutation ADDED the class to a second set while leaving it in the first, changed nothing, and read as NOT CAUGHT — which is how the two-set shape was found and replaced with one mapping'],
+
+  ['D11 vendor-exhausted is demoted to a matcher class',
+   "  'vendor-exhausted': 'vendor',",
+   "  'vendor-exhausted': 'matcher',",
+   'THE ONE ROW THAT SAVES CREDITS TODAY: 2026-05-24 la liga returned ONE event against ten wanted games. That is a counting fact about their data, not our reading, so it must survive a matcher change — as a matcher class the seeded row would expire on the first matcher edit and the pair would be re-bought'],
+
+  ['D12 the vendor ceiling is dropped, so an unfillable pair is re-bought forever',
+   '  if (events < wanted - priced) return \'vendor-exhausted\';',
+   '  if (false) return \'vendor-exhausted\';',
+   'la liga falls through to pool-exhausted, a matcher class, and stops excluding anything the moment src/odds-name-match.js changes'],
+
+  ['D13 the ceiling is compared against the wrong remainder',
+   '  if (events < wanted - priced) return \'vendor-exhausted\';',
+   '  if (events < wanted) return \'vendor-exhausted\';',
+   'a pair that priced most of its games off a small slate would be called unfillable while events remain — the generous-ceiling argument only holds against the REMAINDER'],
 
   ['D2 the pool counts as exhausted while in-window events are still unused',
    '  if (inWindow <= priced) return \'pool-exhausted\';',
