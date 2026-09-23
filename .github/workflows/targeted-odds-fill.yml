@@ -46,6 +46,18 @@ jobs:
         with:
           node-version: '22'
 
+      # THE LEDGER'S LOGIC MUST BE ABLE TO FAIL BEFORE IT IS ALLOWED TO VETO A
+      # PURCHASE. It decides what NOT to buy, and both ways of being wrong cost:
+      # re-buying a pair that cannot pay is 20 credits every run forever, and
+      # locking out a pair a matcher fix would recover is a game never priced.
+      # D1 and D4 are the two that matter — filing our own reading failure as a
+      # vendor gap, and dropping the expiry that lets a matcher fix undo it.
+      - name: The dead-pair ledger can fail
+        run: |
+          node scripts/check-dead-pairs.mjs
+          node scripts/mutate-dead-pairs.mjs
+          node scripts/seed-dead-pairs.mjs --self-test
+
       - name: Fill
         shell: bash
         if: always()

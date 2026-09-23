@@ -21,14 +21,36 @@
 // --max-pairs exists so that premise can be bought for 20 credits instead of
 // 3,020.
 
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { backfillSportToOddsKey } from '../src/odds-sport-keys.js';
 import { matchSlate, h2hPrices } from '../src/odds-name-match.js';
+import { classifyPair, excludeDead } from './lib/dead-pairs.cjs';
 
 const RELAY   = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const GATE = process.env.RELAY_SHARED_SECRET;   // no default: an unset secret must 401, not look set
 const ODDS_KEY = process.env.ODDS_API_KEY;
 const ODDS_API_BASE = 'https://api.the-odds-api.com';
 const PER_CALL_COST = 20;          // odds-backfill.js:35 — 10 cr x 2 markets
+
+// THE LEDGER'S TWO FINGERPRINTS. A recorded "this pair buys nothing" is only
+// true of the code and the request that measured it, so both are stored with
+// every row and an exclusion stops applying the moment either changes.
+//
+// The matcher one is a hash of the SOURCE, not a constant someone has to
+// remember to bump. `none-in-window`, `pool-exhausted` and `priced-zero` are
+// all facts about how WE read the vendor's response; the day matchSlate or
+// h2hPrices changes, every exclusion resting on them expires by itself and the
+// pairs go back in the plan. Nothing to maintain, and no way to forget.
+const REQUEST_SHAPE = 'us|h2h,totals|12';   // regions | markets | query hour, as built below
+const MATCHER_FP = (() => {
+  try {
+    return createHash('sha256')
+      .update(readFileSync(new URL('../src/odds-name-match.js', import.meta.url), 'utf8'))
+      .digest('hex').slice(0, 12);
+  } catch (_e) { return 'unreadable'; }
+})();
+const FP_NOW = { params_fp: REQUEST_SHAPE, matcher_fp: MATCHER_FP };
 
 const APPLY     = process.argv.includes('--apply');
 const SINCE     = process.argv.find(a => a.startsWith('--since='))?.split('=')[1] || '2026-05-09';
@@ -85,9 +107,46 @@ for (const g of wanted) {
 const existing = new Set((await d1(
   `SELECT DISTINCT game_id FROM odds_history`)).map(r => r.game_id));
 
-const pairs = [...byPair.entries()]
+const allPairs = [...byPair.entries()]
   .map(([k, gs]) => ({ k, sport: gs[0].s, date: gs[0].date, games: gs.filter(g => !existing.has(g.id)) }))
   .filter(p => p.games.length);
+
+// ── THE DEAD-PAIR LEDGER ────────────────────────────────────────────────────
+// The plan is rebuilt every run from games with no odds_history row, sorted by
+// game count. A pair the vendor has nothing for keeps every one of those games
+// forever, so it sorts straight back to the top and gets re-bought at 20
+// credits — and the 2026-09-19 fill proved four of them exist. Nothing recorded
+// that, so nothing stopped it.
+await d1(
+  `CREATE TABLE IF NOT EXISTS odds_fill_dead_pairs (
+     sport TEXT NOT NULL, date TEXT NOT NULL,
+     klass TEXT NOT NULL,
+     events INTEGER, in_window INTEGER, priced INTEGER, wanted INTEGER,
+     params_fp TEXT NOT NULL, matcher_fp TEXT NOT NULL,
+     credits_spent INTEGER, measured_at TEXT NOT NULL,
+     PRIMARY KEY (sport, date))`, [], { write: true });
+
+let ledger = [];
+try {
+  ledger = await d1(`SELECT sport, date, klass, params_fp, matcher_fp, events, in_window, priced, wanted
+                       FROM odds_fill_dead_pairs`);
+} catch (e) {
+  // REFUSE rather than proceed on an empty ledger. An unreadable ledger and an
+  // empty one are different facts (Rule 99), and treating the first as the
+  // second re-buys every known-dead pair while looking like it worked.
+  console.log(`\nREFUSING: the dead-pair ledger is unreadable — ${String(e.message || e).slice(0, 160)}`);
+  console.log(`Proceeding would silently re-buy every pair already known to return nothing.`);
+  process.exit(1);
+}
+
+const { kept: pairs, skipped: deadSkipped, creditsSaved } =
+  excludeDead(allPairs, ledger, FP_NOW, PER_CALL_COST);
+if (deadSkipped.length) {
+  console.log(`  pairs skipped as known-dead                   : ${deadSkipped.length}`
+    + ` (${creditsSaved} credits not spent)`);
+  for (const d of deadSkipped) console.log(`      ${d.date}  ${String(d.sport).padEnd(22)} ${d.klass}`);
+  console.log(`  matcher fingerprint ${MATCHER_FP} — a matcher-class skip expires when src/odds-name-match.js changes\n`);
+}
 
 console.log(`  games with opening_odds NULL in the 12 sports : ${wanted.length}`);
 console.log(`  distinct sport-date pairs                     : ${byPair.size}`);
@@ -175,6 +234,33 @@ if (!ODDS_KEY) { console.error('missing ODDS_API_KEY'); process.exit(1); }
 
 let spent = 0, inserted = 0, emptyPairs = 0, ambiguousPairs = 0, pricelessEvents = 0;
 let matchedGames = 0, noH2hMarket = 0;
+// EVERY ATTEMPT IS RECORDED, including the ones that worked. A ledger holding
+// only failures cannot tell "measured, and it was fine" from "never measured",
+// and the second is what the whole plan already assumes about every pair.
+let deadRecorded = 0;
+async function recordOutcome(p, o) {
+  const klass = classifyPair(o);
+  try {
+    await d1(
+      `INSERT OR REPLACE INTO odds_fill_dead_pairs
+         (sport, date, klass, events, in_window, priced, wanted,
+          params_fp, matcher_fp, credits_spent, measured_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [String(p.sport).toLowerCase(), p.date, klass,
+       o.events, o.inWindow, o.priced, o.wanted,
+       FP_NOW.params_fp, FP_NOW.matcher_fp, PER_CALL_COST, new Date().toISOString()],
+      { write: true });
+    deadRecorded++;
+  } catch (e) {
+    // A failed record must not fail the fill that already happened and already
+    // billed. It is warned rather than swallowed: an unrecorded dead pair is
+    // 20 credits on the next run, and a silent one is this defect again.
+    console.log(`      ! ledger write failed for ${p.date} ${p.sport} (${klass}): `
+      + String(e.message || e).slice(0, 120));
+  }
+  return klass;
+}
+
 for (const p of plan) {
   const sportKey = backfillSportToOddsKey(p.sport);
   const url = `${ODDS_API_BASE}/v4/historical/sports/${encodeURIComponent(sportKey)}/odds`
@@ -185,7 +271,12 @@ for (const p of plan) {
   if (!res.ok) { console.log(`  ${p.date} ${p.sport}: HTTP ${res.status} — skipped`); continue; }
   const payload = await res.json();
   const events = payload?.data || [];
-  if (!events.length) { emptyPairs++; console.log(`  ${p.date} ${p.sport}: vendor returned 0 events (billed ${PER_CALL_COST})`); continue; }
+  if (!events.length) {
+    emptyPairs++;
+    const k = APPLY ? await recordOutcome(p, { events: 0, inWindow: 0, priced: 0, wanted: p.games.length }) : 'no-events';
+    console.log(`  ${p.date} ${p.sport}: vendor returned 0 events (billed ${PER_CALL_COST}) -> ${k}`);
+    continue;
+  }
 
   // The whole pair at once — see matchSlate's header. Per-game matching cannot
   // use the fact that an event belongs to at most one game, which is what pairs
@@ -235,9 +326,12 @@ for (const p of plan) {
       { write: true });
     hit++; inserted++;
   }
+  const klass = APPLY
+    ? await recordOutcome(p, { events: events.length, inWindow: slate.poolSize, priced: hit, wanted: p.games.length })
+    : classifyPair({ events: events.length, inWindow: slate.poolSize, priced: hit, wanted: p.games.length });
   console.log(`  ${p.date} ${String(p.sport).padEnd(22)} ${events.length} event(s), `
     + `${slate.poolSize} in window -> ${slate.stage1} by name + ${slate.stage2} by elimination, `
-    + `${hit}/${p.games.length} priced`);
+    + `${hit}/${p.games.length} priced -> ${klass}`);
 }
 
 console.log(`\n  pairs attempted : ${plan.length}`);
@@ -254,4 +348,10 @@ const residual = matchedGames - inserted - pricelessEvents - noH2hMarket;
 console.log(`\n  games matched   : ${matchedGames}`);
 console.log(`  = priced ${inserted} + unpriced ${pricelessEvents} + no-market ${noH2hMarket}`
   + (residual === 0 ? '   (balances)' : `   UNACCOUNTED ${residual} — a path with no counter`));
+console.log(`\n  outcomes written to odds_fill_dead_pairs : ${deadRecorded}`
+  + `   (params ${FP_NOW.params_fp}, matcher ${FP_NOW.matcher_fp})`);
+console.log(`  A 'vendor' class stays dead through any change to our code. A 'matcher'`);
+console.log(`  class — none-in-window, pool-exhausted, priced-zero — expires the moment`);
+console.log(`  src/odds-name-match.js changes, because those say our reading failed, not`);
+console.log(`  that their data is absent.`);
 console.log(`\nNo odds_backfill_progress row was read or written by this script.`);
