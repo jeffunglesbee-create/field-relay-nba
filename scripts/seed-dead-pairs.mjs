@@ -43,6 +43,21 @@ const LINE = /^\s{2}(\d{4}-\d{2}-\d{2})\s+(\S.*?)\s{2,}(\d+)\s+event\(s\),\s+(\d
 // `  2026-05-01 nfl: vendor returned 0 events (billed 20)`
 const EMPTY = /^\s{2}(\d{4}-\d{2}-\d{2})\s+(\S.*?):\s+vendor returned 0 events/;
 
+/**
+ * Did the seed do its job? Extracted so it is testable, because the first
+ * apply-mode run wrote ZERO of ten rows against a 401 and still exited 0 — the
+ * workflow went green over a seed that seeded nothing. A partial write is a
+ * failure too: a ledger missing rows vetoes fewer purchases than it should and
+ * looks identical to one that is complete.
+ */
+export function seedVerdict(wrote, total) {
+  if (typeof wrote !== 'number' || typeof total !== 'number' || total < 0 || wrote < 0) return 'unreadable';
+  if (total === 0) return 'nothing-to-seed';
+  if (wrote === 0) return 'wrote-nothing';
+  if (wrote < total) return 'partial';
+  return 'ok';
+}
+
 export function parseLog(text) {
   const rows = [];
   for (const raw of String(text).split('\n')) {
@@ -86,6 +101,15 @@ if (process.argv.includes('--self-test')) {
     rows.find(r => r.date === '2026-09-12').klass, 'priced-zero');
   eq('a log with no outcome lines parses to nothing, never to a silent success',
     parseLog('=== header ===\nmode: DRY RUN\n').length, 0);
+
+  // WRITING NOTHING IS NOT SUCCESS. The first apply-mode run 401'd all ten rows
+  // and exited 0; the workflow went green over a seed that seeded nothing.
+  eq('writing none of ten is a failure', seedVerdict(0, 10), 'wrote-nothing');
+  eq('writing some of ten is also a failure — a partial ledger reads as complete',
+    seedVerdict(7, 10), 'partial');
+  eq('writing all ten is the only success', seedVerdict(10, 10), 'ok');
+  eq('an empty log is neither success nor failure', seedVerdict(0, 0), 'nothing-to-seed');
+  eq('a non-numeric count is unreadable, not a pass', seedVerdict(null, 10), 'unreadable');
   console.log(`\nCOVERAGE: parseLog against the one committed fill log — 1 file, 10 lines.`);
   console.log('It does NOT cover the D1 write, which needs the relay secret and runs in CI.');
   process.exit(bad ? 1 : 0);
@@ -127,7 +151,11 @@ if (process.argv[1] && process.argv[1].endsWith('seed-dead-pairs.mjs')) {
   for (const r of rows) {
     const res = await fetch(`${RELAY}/d1/execute`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-field-gate': GATE },
+      // X-FIELD-Relay, copied from the d1() helper in targeted-odds-fill.mjs
+      // rather than remembered. The first version sent 'x-field-gate' and the
+      // route 401'd all ten rows — the convention was three lines from code
+      // being edited in the same session (Rule 62).
+      headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': GATE },
       body: JSON.stringify({ sql:
         `INSERT OR REPLACE INTO odds_fill_dead_pairs
            (sport, date, klass, events, in_window, priced, wanted,
@@ -142,4 +170,13 @@ if (process.argv[1] && process.argv[1].endsWith('seed-dead-pairs.mjs')) {
   console.log(`\n  ${wrote} of ${rows.length} row(s) written with matcher_fp=${SEED_FP}.`);
   console.log(`  That fingerprint can never equal a real hash, so every matcher-class row`);
   console.log(`  above is history rather than a veto, exactly as intended.`);
+
+  const v = seedVerdict(wrote, rows.length);
+  console.log(`\n  verdict: ${v}`);
+  if (v !== 'ok') {
+    console.error(`FAIL — the seed wrote ${wrote} of ${rows.length}. A ledger missing rows`);
+    console.error(`vetoes fewer purchases than it should and is indistinguishable from a`);
+    console.error(`complete one. Nothing downstream can tell.`);
+    process.exit(1);
+  }
 }
