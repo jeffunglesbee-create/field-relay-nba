@@ -1,0 +1,20 @@
+=== seed dead-pair ledger from outbox/targeted-odds-fill-20260919T032609Z.log ===
+mode: DRY RUN (parses and classifies, writes nothing)
+
+  2026-09-05  cfb                    158 ev,  71 in window, 67/68 priced  ->  partial
+  2026-08-08  efl cup                 31 ev,  30 in window, 29/29 priced  ->  complete
+  2026-08-25  efl cup                 23 ev,  21 in window, 17/17 priced  ->  complete
+  2026-09-12  cfb                     95 ev,  80 in window, 0/13 priced  ->  priced-zero
+  2026-09-13  nfl                    212 ev,  13 in window, 13/13 priced  ->  complete
+  2026-09-03  cfb                    156 ev,  14 in window, 8/11 priced  ->  partial
+  2026-05-24  la liga                  1 ev,   1 in window, 1/10 priced  ->  vendor-exhausted
+  2026-08-22  nfl                    272 ev,   0 in window, 0/10 priced  ->  none-in-window
+  2026-08-28  nfl                    272 ev,   0 in window, 0/10 priced  ->  none-in-window
+  2026-08-29  cfb                    111 ev,   8 in window, 8/8 priced  ->  complete
+
+  10 pair(s): partial 2 · complete 4 · priced-zero 1 · vendor-exhausted 1 · none-in-window 2
+  rows that will exclude a purchase today       : 1
+  rows recorded but NOT excluding (matcher fp unknown): 3
+  credits this seed saves today                 : 20
+
+DRY RUN — nothing written. Re-run with --apply.
