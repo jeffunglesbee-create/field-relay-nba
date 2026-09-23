@@ -108,9 +108,35 @@ if (process.argv.includes('--self-test')) {
   process.exit(bad ? 1 : 0);
 }
 
-const src = readFileSync(SRC, 'utf8');
+const whole = readFileSync(SRC, 'utf8');
+
+// SCOPED TO THE DAILY GUARD'S BODY. batchOrder takes the FIRST db.batch([...])
+// it finds, and on 2026-09-23 chargeMonthlyOdds added a second one ABOVE
+// checkAndIncrementDailyOdds in this file. The gate then read the month's
+// two-statement batch and reported `batch-has-2-statements` about a function
+// that still has three — the second whole-file reader in one commit to end up
+// describing the wrong function (check-ceiling-reached.mjs was the first).
+//
+// The pure functions are untouched, so their self-test fixtures still exercise
+// them directly; only what is handed to them here is narrowed.
+const _i = whole.indexOf('async function checkAndIncrementDailyOdds');
+const _j = whole.indexOf('\n}\n', _i);
+if (_i < 0 || _j < 0) {
+  console.log('FAIL: checkAndIncrementDailyOdds was not found — nothing below ran.');
+  process.exit(1);
+}
+const guardBody = whole.slice(_i, _j);
+if (/chargeMonthlyOdds|odds-month-guard/.test(guardBody)) {
+  console.log('FAIL: the slice has widened past checkAndIncrementDailyOdds, so the batch');
+  console.log('      below could be a different function\'s. Narrow it before trusting it.');
+  process.exit(1);
+}
+
+// The SQL constants are module-level, so they are picked from the whole file;
+// only the BATCH has to come from the guard.
+const src = whole;
 const pick = (k) => (src.match(new RegExp(`${k}\\s*=\\s*\`([\\s\\S]*?)\`|${k}\\s*=\\s*'([^']*)'`)) || [,''])[1] || '';
-const order = batchOrder(src);
+const order = batchOrder(guardBody);
 const pre = siteReadsPreCharge(order);
 const guarded = bothGuardByCeiling(pick('SQL_SITE'), pick('SQL_CHARGE'));
 const corrections = correctionsUnguarded(pick('SQL_FIX_DAY'), pick('SQL_FIX_SITE'));
