@@ -1,0 +1,14 @@
+=== targeted odds fill  utc=2026-09-23T02:05:45.557Z ===
+mode: DRY RUN (no fetch, no write)
+since=2026-05-09  max-pairs=all  budget=3200 credits
+
+file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/targeted-odds-fill.mjs:82
+  if (!res.ok || body.success === false) throw new Error(`d1 HTTP ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+                                               ^
+
+Error: d1 HTTP 403: {"ok":false,"error":"table not allowed","table":"odds_fill_dead_pairs"}
+    at d1 (file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/targeted-odds-fill.mjs:82:48)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/targeted-odds-fill.mjs:120:1
+
+Node.js v22.23.2
