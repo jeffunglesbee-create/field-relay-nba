@@ -57,7 +57,7 @@ import { resolveTeamKey } from './identity-resolver.js';
 import { stampKickoff } from './odds-kickoff.js';
 import { AMBIENT_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
 const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
-import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { withKvProvenance } from './kv-provenance.js';
 
 const POLL_LIVE_MS  = 15_000;
@@ -1117,36 +1117,16 @@ function _todayUTC() {
 // Degrade-open on KV failure to avoid blocking live coverage on a KV blip.
 // Kept in sync with src/index.js ODDS_HARD_LIMIT (85 K — 100 K paid plan
 // minus 15 K reserved for special projects, per commit 0f39fdf).
-const _AMBIENT_ODDS_HARD_LIMIT = 85000;
-function _ambientOddsCreditMonthKey() {
-    const d = new Date();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    return `odds:credits:${d.getUTCFullYear()}-${m}`;
-}
 async function _consumeAmbientOddsCredit(env, units, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
-    // Shared daily ceiling first — coordinates with snapshotCronOdds +
-    // _captureClosingOdds via the same KV key. Either guard can veto;
-    // monthly hard limit below stays unchanged.
+    // Shared daily ceiling first — the cheaper failure path.
     if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-    try {
-        const key = _ambientOddsCreditMonthKey();
-        const raw = await env.FIELD_JOURNALISM.get(key);
-        const used = raw ? parseInt(raw, 10) || 0 : 0;
-        if (used + units > _AMBIENT_ODDS_HARD_LIMIT) {
-            const warnedKey = `${key}:warned:limit`;
-            const already = await env.FIELD_JOURNALISM.get(warnedKey);
-            if (!already) {
-                console.warn(`[ambient-odds-guard] HARD LIMIT — used=${used} + ${units} > ${_AMBIENT_ODDS_HARD_LIMIT}; suppressing live odds fetches`);
-                await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
-            }
-            return false;
-        }
-        await env.FIELD_JOURNALISM.put(key, String(used + units), { expirationTtl: 60 * 86400 });
-        return true;
-    } catch (_) {
-        return true;
-    }
+    // THE MONTHLY GUARD IS NO LONGER A COPY. This function held its own
+    // get/parseInt/put on odds:credits:YYYY-MM, one of three identical
+    // implementations plus reconcile's loop. Concurrent isolates read the same
+    // value and the second put erased the first, so the monthly counter lost
+    // charges the daily one kept. chargeMonthlyOdds is one D1 transaction.
+    return chargeMonthlyOdds(env, units);
 }
 
 // Spec Gap 6: priority-tier cooldown for odds polling.

@@ -12,6 +12,10 @@
 // read the same value, both add their units, the second write erases the
 // first. Daily keeps both charges; monthly keeps one.
 //
+// FIXED 2026-09-23. The three charging copies are now one D1 transaction,
+// chargeMonthlyOdds, with the ceiling inside the UPDATE's WHERE. What follows
+// is kept as the record of why, and the baseline is now 1.
+//
 // SO THE TWO COUNTERS MUST DIVERGE, AND IN THE DIRECTION MEASURED. Over the two
 // fully-contained days of 2026-09-20 and 09-21 the daily counter summed 7599
 // while the monthly counter moved 5037 — an excess of 2562 against an
@@ -29,7 +33,12 @@ import { readFileSync } from 'node:fs';
 
 const FILES = (process.env.MONTHLY_WRITER_FILES
   || 'src/index.js,src/wp-resolver.js,src/ambient-do.js,src/budget-helpers.js').split(',');
-const BASELINE = Number(process.env.MONTHLY_WRITER_BASELINE || 4);
+// 4 -> 1 on 2026-09-23: the three charging copies became one D1 transaction
+// (chargeMonthlyOdds). The remaining writer is reconcile's KV mirror, kept so
+// days before the cutover still resolve through the KV fallback in
+// peekMonthlyOdds. Lowered deliberately — a ratchet that is not tightened after
+// a real gain leaves the gain available to lose.
+const BASELINE = Number(process.env.MONTHLY_WRITER_BASELINE || 1);
 
 /** Non-atomic `put` of a computed total back onto a KV key. */
 export function rmwWrites(src) {

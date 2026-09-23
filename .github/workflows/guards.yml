@@ -107,6 +107,16 @@ jobs:
       # excess measured over 09-20/09-21, not its magnitude. This stops a fifth
       # copy arriving quietly — the duplication is the root problem and it has
       # grown before.
+      # The month statements EXECUTED, against real node:sqlite, because the
+      # correctness argument is about what a transaction does under a ceiling
+      # predicate and reading SQL cannot settle that. M3 is the one that costs
+      # money: a seed starting at zero hands the month a second full 85,000
+      # ceiling before the hard limit binds again.
+      - name: the monthly charge is atomic and its ceiling binds
+        run: |
+          node scripts/check-monthly-atomic.mjs
+          node scripts/mutate-monthly-atomic.mjs
+
       - name: the monthly odds counter has not grown another non-atomic writer
         run: |
           node scripts/check-monthly-counter-writers.mjs --self-test

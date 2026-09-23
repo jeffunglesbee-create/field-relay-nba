@@ -109,7 +109,7 @@ import { recordD1Write } from './d1-provenance.js';
 import { checkBriefFreshness } from './brief-freshness.js';
 import { resolveTeamKey, resolveTeamName, resolveEntity, SOCCER_PLAYER_ID_BY_KEY, resolveMLSClubId, substitutedKey, foldTeamName, resolveTeamKeyIn } from './identity-resolver.js';
 import { indexOddsByPair, findOddsForRow } from './odds-join.js';
-import { checkAndIncrementDailyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_BUDGET_ORDER } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, chargeMonthlyOdds, peekDailyOdds, peekMonthlyOdds, oddsCreditCost, reconcileOddsCredit, SITE_TTL_DAYS, ODDS_BUDGET_SQL, ODDS_BUDGET_ORDER } from './budget-helpers.js';
 
 // The CI-only route gate, named once so a new CI route does not mean a new
 // hard-coded copy of it. scripts/check-exposed-secrets.mjs ratchets on the
@@ -6506,23 +6506,15 @@ function extractOddsForGame(oddsGame, preferredBook = ODDS_PREFERRED_BOOK, captu
 // This is intentionally NOT exact accounting — KV writes are eventually
 // consistent and we don't lock. It is an emergency floor to prevent another
 // quota wipeout, not an audit ledger.
-const ODDS_HARD_LIMIT = 85000;
+// ODDS_HARD_LIMIT and ODDS_THRESHOLDS moved to budget-helpers.js on
+// 2026-09-23 with chargeMonthlyOdds. Each had a comment asking the next person
+// to keep it in sync by hand across three files; one definition removes the ask.
 // oddsCreditCost + ODDS_REGIONS_MULTIPLY live in src/budget-helpers.js, imported
 // at the top of this file. They belong there and not here because ambient-do.js
 // and wp-resolver.js call odds endpoints too, and a cost model with three copies
 // is a cost model that will disagree with itself.
 
-const ODDS_THRESHOLDS = [
-  { pct: 50, label: '50%' },
-  { pct: 75, label: '75%' },
-  { pct: 90, label: '90%' },
-];
 
-function _oddsCreditMonthKey() {
-  const d = new Date();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  return `odds:credits:${d.getUTCFullYear()}-${m}`;
-}
 
 // Returns true if the call is allowed to proceed; false to abort.
 // `units` is the credit cost of the planned fetch (1 for live odds with one
@@ -6537,36 +6529,13 @@ async function consumeOddsCredit(env, units, site = 'unattributed') {
   // Daily layer first — cheaper failure path. checkAndIncrementDailyOdds
   // also increments on pass, so don't double-count below.
   if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-  try {
-    const key = _oddsCreditMonthKey();
-    const raw = await env.FIELD_JOURNALISM.get(key);
-    const used = raw ? parseInt(raw, 10) || 0 : 0;
-    if (used + units > ODDS_HARD_LIMIT) {
-      const warnedKey = `${key}:warned:limit`;
-      const already = await env.FIELD_JOURNALISM.get(warnedKey);
-      if (!already) {
-        console.warn(`[odds-guard] HARD LIMIT — used=${used} + ${units} > ${ODDS_HARD_LIMIT}; aborting odds calls for the rest of the month`);
-        await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
-      }
-      return false;
-    }
-    const next = used + units;
-    await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
-    for (const t of ODDS_THRESHOLDS) {
-      const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
-      if (used < cutoff && next >= cutoff) {
-        const warnedKey = `${key}:warned:${t.pct}`;
-        const already = await env.FIELD_JOURNALISM.get(warnedKey);
-        if (!already) {
-          console.warn(`[odds-guard] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
-          await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
-        }
-      }
-    }
-    return true;
-  } catch (_) {
-    return true; // KV failure: degrade-open rather than block live coverage
-  }
+  // THE LAST OF THE THREE COPIES. This held a get/parseInt/put on
+  // odds:credits:YYYY-MM, as did wp-resolver.js and ambient-do.js, all on the
+  // same key from concurrent isolates — so the second write erased the first
+  // and the monthly counter lost charges the atomic daily counter kept.
+  // chargeMonthlyOdds is one D1 transaction and carries the threshold ladder
+  // that used to live here.
+  return chargeMonthlyOdds(env, units);
 }
 
 // Fetch current odds for one sport. Returns { games, quotaRemaining, ok }.
@@ -15942,7 +15911,8 @@ export default {
                 // and under WHICH code that was measured, so the plan stops re-buying
                 // pairs the vendor has nothing for at 20 credits a run. Its first dry
                 // run 403'd here — the guard working — and spent nothing.
-                'odds_fill_dead_pairs'];
+                'odds_fill_dead_pairs',
+                'odds_budget_month'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

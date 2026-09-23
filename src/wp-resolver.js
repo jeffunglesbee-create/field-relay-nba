@@ -9,7 +9,7 @@
 
 import { resolveTeamKey } from './identity-resolver.js';
 import { ARCHIVE_SPORT_TO_ODDS_KEY } from './odds-sport-keys.js';
-import { checkAndIncrementDailyOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
+import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcileOddsCredit, readQuotaHeader } from './budget-helpers.js';
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
@@ -43,12 +43,6 @@ const ODDS_BASE             = 'https://api.the-odds-api.com';
 // The hard-coded key was REMOVED 2026-08-25 -- see src/index.js's
 // `_oddsPrimaryKey` for the reasoning and the /budget/odds measurement that
 // showed it was never reached. A missing key is its own state here too.
-const ODDS_HARD_LIMIT       = 85000;
-const ODDS_THRESHOLDS       = [
-    { pct: 50, label: '50%' },
-    { pct: 75, label: '75%' },
-    { pct: 90, label: '90%' },
-];
 const ODDS_PREFERRED_BOOK   = 'draftkings';
 
 // Moved to src/odds-sport-keys.js — this file and index.js declared the
@@ -208,45 +202,13 @@ export function isWpUnsupportedSport(sport) {
         && SPORT_LABEL_MAP[raw] === null;
 }
 
-function _oddsCreditMonthKey() {
-    const d = new Date();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    return `odds:credits:${d.getUTCFullYear()}-${m}`;
-}
 
 async function consumeOddsCredit(env, units, site = 'unattributed') {
     if (!env.FIELD_JOURNALISM) return true;
     if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
-    try {
-        const key  = _oddsCreditMonthKey();
-        const raw  = await env.FIELD_JOURNALISM.get(key);
-        const used = raw ? parseInt(raw, 10) || 0 : 0;
-        if (used + units > ODDS_HARD_LIMIT) {
-            const warnedKey = `${key}:warned:limit`;
-            const already   = await env.FIELD_JOURNALISM.get(warnedKey);
-            if (!already) {
-                console.warn(`[odds-guard/wp] HARD LIMIT — used=${used} + ${units} > ${ODDS_HARD_LIMIT}`);
-                await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
-            }
-            return false;
-        }
-        const next = used + units;
-        await env.FIELD_JOURNALISM.put(key, String(next), { expirationTtl: 60 * 86400 });
-        for (const t of ODDS_THRESHOLDS) {
-            const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
-            if (used < cutoff && next >= cutoff) {
-                const warnedKey = `${key}:warned:${t.pct}`;
-                const already   = await env.FIELD_JOURNALISM.get(warnedKey);
-                if (!already) {
-                    console.warn(`[odds-guard/wp] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
-                    await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 60 * 86400 });
-                }
-            }
-        }
-        return true;
-    } catch (_) {
-        return true;
-    }
+    // One implementation, in budget-helpers. See chargeMonthlyOdds — this was
+    // the second of three copies of the same non-atomic read-modify-write.
+    return chargeMonthlyOdds(env, units);
 }
 
 async function fetchSportOddsLive(env, sportKey) {

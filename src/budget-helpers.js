@@ -195,6 +195,120 @@ async function _seedFromKv(env, date) {
     return carried;
 }
 
+// THE MONTH'S SEED. Identical reasoning to the day's, and the stakes are higher:
+// odds:credits:2026-09 stood near 60,948 of 85,000 when this shipped. A fresh D1
+// row starting at 0 would hand the month a SECOND full 85,000 ceiling before the
+// hard limit bound again. Carrying the KV total in makes the cutover safe at any
+// hour, and INSERT OR IGNORE means only the month's first row can take it.
+// ONE DEFINITION OF THE LIMIT. It was written out four times — index.js:6509,
+// wp-resolver.js's own const, ambient-do.js's _AMBIENT_ODDS_HARD_LIMIT, and a
+// bare 85000 literal inside peekMonthlyOdds — each with a comment asking the
+// next person to keep it in sync by hand. 85,000 is the 100K paid plan minus
+// 15K reserved for special projects (commit 0f39fdf).
+export const ODDS_HARD_LIMIT = 85000;
+
+// THE THRESHOLD WARNINGS COME WITH IT. index.js and wp-resolver.js each carried
+// their own copy of this ladder and fired it from their own consumeOddsCredit;
+// ambient-do.js carried none, so a month crossing 75% through the ambient path
+// warned nobody. Collapsing the three chargers without bringing these would
+// have silently dropped the warnings from every path — a behaviour change
+// hiding inside a refactor (Rule 69).
+const ODDS_THRESHOLDS = [
+  { pct: 50, label: '50%' },
+  { pct: 75, label: '75%' },
+  { pct: 90, label: '90%' },
+];
+
+let _seededMonth = null;
+
+async function _seedMonthFromKv(env, month) {
+    if (_seededMonth === month) return 0;
+    let carried = 0;
+    try {
+        const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${month}`);
+        carried = raw ? parseInt(raw, 10) || 0 : 0;
+    } catch (_) { /* a KV read failure seeds 0. For the DAY that is one generous
+                     day; for the MONTH it would be a generous month, so the
+                     catch below still degrades open but this path is the one
+                     that matters — see the probe in scripts/check-monthly-atomic.mjs */ }
+    _seededMonth = month;
+    return carried;
+}
+
+function _monthKeyUtc(d = new Date()) {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * ONE IMPLEMENTATION. This replaces three copies of the same rule — index.js's
+ * consumeOddsCredit, wp-resolver.js's, and ambient-do.js's
+ * _consumeAmbientOddsCredit — each doing get/parseInt/put on the same key. The
+ * duplication is why the count reached three before anyone noticed, and why
+ * IMPACT-2026-09-16-odds-ceilings.md had to correct a session that claimed one.
+ *
+ * @returns {Promise<boolean>} true = charged (or degraded open), false = vetoed.
+ */
+/** The post-charge total from the month batch's RETURNING, or null. */
+function _usedFromBatch(results) {
+    try {
+        const rows = results?.[results.length - 1]?.results;
+        const v = Array.isArray(rows) && rows.length ? rows[0].used : null;
+        return (typeof v === 'number') ? v : null;
+    } catch (_) { return null; }
+}
+
+async function chargeMonthlyOdds(env, units = 1) {
+    if (!env || !env.FIELD_JOURNALISM) return true;
+    try {
+        if (!(await ensureOddsBudgetTables(env))) throw new Error('ARCHIVE_DB unavailable');
+        const month = _monthKeyUtc();
+        const carried = await _seedMonthFromKv(env, month);
+        const db = env.ARCHIVE_DB;
+        const results = await db.batch([
+            db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(month, carried),
+            db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT),
+        ]);
+        const charged = chargedFromBatch(results);
+        if (charged) {
+            // The post-charge total is what RETURNING gives, so the crossing is
+            // read from the transaction rather than recomputed from a stale
+            // pre-charge read — which is how the KV version could warn twice or
+            // not at all under concurrency.
+            const next = _usedFromBatch(results);
+            if (next !== null) {
+                for (const t of ODDS_THRESHOLDS) {
+                    const cutoff = Math.floor(ODDS_HARD_LIMIT * (t.pct / 100));
+                    if (next >= cutoff && next - units < cutoff) {
+                        const wk = `odds:credits:${month}:warned:${t.pct}`;
+                        try {
+                            if (!(await env.FIELD_JOURNALISM.get(wk))) {
+                                console.warn(`[odds-month-guard] ${t.label} of monthly limit reached — used=${next}/${ODDS_HARD_LIMIT}`);
+                                await env.FIELD_JOURNALISM.put(wk, '1', { expirationTtl: 60 * 86400 });
+                            }
+                        } catch (_) { /* a warning that cannot be recorded must not
+                                         fail a charge that already landed */ }
+                    }
+                }
+            }
+            return true;
+        }
+
+        const warnedKey = `odds:credits:${month}:warned:limit`;
+        const already = await env.FIELD_JOURNALISM.get(warnedKey);
+        if (!already) {
+            console.warn(`[odds-month-guard] HARD LIMIT — +${units} would exceed ${ODDS_HARD_LIMIT}; suppressing odds calls for the rest of the month`);
+            await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
+        }
+        return false;
+    } catch (_) {
+        // Degrade-open, witnessed on the same counter the daily guard uses. The
+        // call is about to spend while the month did not move, and an
+        // unattributed discrepancy is what cost a day of elimination on 09-17.
+        await _countDegradeOpen(env, units);
+        return true;
+    }
+}
+
 async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed') {
     if (!env || !env.FIELD_JOURNALISM) return true;
     try {
@@ -431,9 +545,29 @@ async function peekMonthlyOdds(env) {
         const d = new Date();
         const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
         const raw = await env.FIELD_JOURNALISM.get(`odds:credits:${month}`);
-        const used = raw ? parseInt(raw, 10) || 0 : 0;
-        const limit = 85000;
-        return { month, used, limit, remaining: Math.max(0, limit - used) };
+        const kvUsed = raw ? parseInt(raw, 10) || 0 : 0;
+        const limit = ODDS_HARD_LIMIT;
+        // THE READER FOLLOWS THE WRITER, AND SAYS WHICH ONE IT READ. The same
+        // rule the daily cutover needed: a guard charging D1 while this reads KV
+        // would freeze monthly.used at the cutover value, and Watch 4's
+        // ledgerDelta — which reads exactly this field — would report every
+        // subsequent day's whole spend as escaped.
+        //
+        // ONE fallback level, not a chain (Rule 76). D1 is authoritative once it
+        // has a row; KV answers before the cutover.
+        let used = kvUsed, source = 'kv';
+        try {
+            if (env.ARCHIVE_DB) {
+                const row = await env.ARCHIVE_DB
+                    .prepare('SELECT used FROM odds_budget_month WHERE month = ?').bind(month).first();
+                if (row && row.used !== null && row.used !== undefined) {
+                    used = Number(row.used) || 0;
+                    source = 'd1';
+                }
+            }
+        } catch (_) { source = 'kv-d1-unreadable'; }
+        return { month, used, limit, remaining: Math.max(0, limit - used),
+                 source, kv_used: kvUsed };
     } catch (_) {
         return null;
     }
@@ -516,8 +650,21 @@ const SQL_FIX_DAY  = 'UPDATE odds_budget SET used = MAX(0, used + ?) WHERE day =
 const SQL_FIX_SITE = `INSERT INTO odds_budget_site (day, site, used) VALUES (?, ?, MAX(0, ?))
             ON CONFLICT(day, site) DO UPDATE SET used = MAX(0, used + ?)`;
 
+// THE MONTH, SAME SHAPE AS THE DAY. Seed then charge, the ceiling inside the
+// UPDATE's WHERE so there is no read-then-decide window, and RETURNING as the
+// verdict: zero rows back is a veto, unambiguously.
+const SQL_MONTH_SEED   = 'INSERT OR IGNORE INTO odds_budget_month (month, used) VALUES (?, ?)';
+const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ?
+             WHERE month = ? AND used + ? <= ?
+            RETURNING used`;
+// A correction is not a charge, so it carries no ceiling — same reason as the
+// day's. Clamped at zero so a lost race cannot hand back headroom truly spent.
+const SQL_FIX_MONTH    = 'UPDATE odds_budget_month SET used = MAX(0, used + ?) WHERE month = ?';
+
 export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHARGE,
-                                 fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE };
+                                 fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE,
+                                 monthSeed: SQL_MONTH_SEED, monthCharge: SQL_MONTH_CHARGE,
+                                 fixMonth: SQL_FIX_MONTH };
 export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
 
 /** Did the batch charge? The daily UPDATE returns its row only when the ceiling
@@ -554,6 +701,18 @@ async function ensureOddsBudgetTables(env) {
               used INTEGER NOT NULL DEFAULT 0,
               PRIMARY KEY (day, site)
             )`),
+        // THE MONTHLY COUNTER, 2026-09-23. It stayed a KV read-modify-write when
+        // the daily one moved into a transaction on 09-19, with FOUR writers on
+        // odds:credits:YYYY-MM — index.js, wp-resolver.js, ambient-do.js and
+        // reconcile's own correction loop. Concurrent isolates read the same
+        // value and the second put erases the first, so daily kept every charge
+        // and monthly kept one of them. Measured over 09-20 and 09-21: daily
+        // summed 7599 against a monthly movement of 5037.
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_budget_month (
+              month TEXT PRIMARY KEY,
+              used  INTEGER NOT NULL DEFAULT 0
+            )`),
     ]);
     _oddsBudgetReady = true;
     return true;
@@ -572,6 +731,7 @@ export {
     peekDailyOdds,
     peekMonthlyOdds,
     ensureOddsBudgetTables,
+    chargeMonthlyOdds,
 };
 
 // Derives a call's credit cost from the URL it is about to fetch, so the cost
@@ -711,6 +871,11 @@ export async function reconcileOddsCredit(env, estimated, resp, site = '') {
                 await db.batch([
                     db.prepare(ODDS_BUDGET_SQL.fixDay).bind(out.delta, out.day || day.slice('odds:daily:'.length)),
                     db.prepare(ODDS_BUDGET_SQL.fixSite).bind(day.slice('odds:daily:'.length), site, out.delta, out.delta),
+                    // THE MONTH TOO, since 2026-09-23. Leaving this on KV while
+                    // chargeMonthlyOdds writes D1 would recreate the exact split
+                    // the day had: the refund would land in the store nobody
+                    // reads and the ledger would sit permanently above the bill.
+                    db.prepare(ODDS_BUDGET_SQL.fixMonth).bind(out.delta, month.slice('odds:credits:'.length)),
                 ]);
             }
         } catch (e) {
