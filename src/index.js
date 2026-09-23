@@ -15936,7 +15936,13 @@ export default {
             // already here; the journal holds the same class of row and is unreadable
             // without it, which would leave the guard's own done condition —
             // "the first body survives" — unverifiable from outside the worker.
-            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'codex_history', 'jq_retry_telemetry', 'game_thread_notes', 'odds_budget', 'odds_budget_site'];
+            const ALLOWED_TABLES = ['odds_history', 'odds_backfill_progress', 'regular_season_games', 'postseason_games', 'change_log', 'analytics_output', 'briefs', 'codex', 'codex_history', 'jq_retry_telemetry', 'game_thread_notes', 'odds_budget', 'odds_budget_site',
+                // odds_fill_dead_pairs added 2026-09-23. scripts/targeted-odds-fill.mjs
+                // records, per sport-date pair it bought, whether the pair can ever pay
+                // and under WHICH code that was measured, so the plan stops re-buying
+                // pairs the vendor has nothing for at 20 credits a run. Its first dry
+                // run 403'd here — the guard working — and spent nothing.
+                'odds_fill_dead_pairs'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

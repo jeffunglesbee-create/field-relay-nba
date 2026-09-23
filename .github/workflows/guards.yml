@@ -90,6 +90,17 @@ jobs:
           node scripts/mutate-odds-budget-schema.mjs
           node scripts/check-odds-budget-schema.mjs
 
+      # THE OTHER HALF OF THE SAME DENOMINATOR. The gate above reads the DDL out
+      # of ensureOddsBudgetTables, so it covers tables the WORKER creates. A
+      # table created by a SCRIPT was outside it, and on 2026-09-23 that was the
+      # one that failed: targeted-odds-fill.mjs died on its first statement with
+      # `403 table not allowed: odds_fill_dead_pairs`, on a runner, after the
+      # dispatch. Nothing said so beforehand.
+      - name: every table a script creates is on the /d1/execute allow-list
+        run: |
+          node scripts/check-script-created-tables.mjs --self-test
+          node scripts/check-script-created-tables.mjs
+
       # Task 2. THE SPEC WAS SELF-CONTRADICTORY: "all three in one batch" AND
       # "statement 3 runs only if statement 2 returned a row" cannot both hold,
       # because a batch is submitted as a unit. The resolution is the ORDER —

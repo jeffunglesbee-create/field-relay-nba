@@ -41,11 +41,13 @@ export function bindingUsed(src) {
   return hits.length === 1 ? hits[0] : (hits.length === 0 ? null : `AMBIGUOUS:${hits.join('+')}`);
 }
 
-/** The /d1/execute allow-list. */
-export function allowedTables(src) {
-  const m = src.match(/const ALLOWED_TABLES = \[([^\]]*)\]/);
-  return m ? [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : [];
-}
+/** The /d1/execute allow-list. Lives in scripts/lib/allowed-tables.cjs so a
+ *  second gate can use it without importing this file's CLI along with it —
+ *  that import made `check-script-created-tables.mjs --self-test` print THIS
+ *  file's self-test and exit. Re-exported so this file's own callers and its
+ *  12-case self-test are untouched. */
+export { allowedTables } from './lib/allowed-tables.cjs';
+import { allowedTables } from './lib/allowed-tables.cjs';
 
 export function verdict(declared, binding, allowed) {
   if (!declared.length)          return 'no-schema-found';
