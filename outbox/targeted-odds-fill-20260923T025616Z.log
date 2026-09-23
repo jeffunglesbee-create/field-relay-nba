@@ -1,0 +1,46 @@
+=== targeted odds fill  utc=2026-09-23T02:56:16.432Z ===
+mode: DRY RUN (no fetch, no write)
+since=2026-05-09  max-pairs=all  budget=3200 credits
+
+  pairs skipped as known-dead                   : 1 (20 credits not spent)
+      2026-05-24  la liga                vendor-exhausted
+  matcher fingerprint 6ce1b7d8a5f9 — a matcher-class skip expires when src/odds-name-match.js changes
+
+  games with opening_odds NULL in the 12 sports : 369
+  distinct sport-date pairs                     : 135
+  pairs still lacking any odds_history row      : 134
+  projected cost                                : 2680 credits
+
+  plan: 134 pair(s) = 2680 credits
+      2026-05-09  afl                    4 game(s)
+      2026-05-10  afl                    2 game(s)
+      2026-05-11  ipl                    1 game(s)
+      2026-05-13  ligue 1                2 game(s)
+      2026-05-14  afl                    1 game(s)
+      2026-05-15  afl                    2 game(s)
+      2026-05-16  afl                    3 game(s)
+      2026-05-17  afl                    3 game(s)
+      2026-05-21  afl                    1 game(s)
+      2026-05-22  afl                    2 game(s)
+      2026-05-23  afl                    4 game(s)
+      2026-05-24  afl                    2 game(s)
+      … 122 more
+
+  YIELD CURVE — every call costs 20, so the only lever is games per call
+  pairs  credits  games reachable  % of the 360 game(s)
+      1       20               37   10%
+      5      100               83   23%
+     10      200              116   32%
+     20      400              168   47%
+     40      800              232   64%
+     80     1600              306   85%
+    134     2680              360  100%
+  heaviest pair: 2026-09-19 cfb with 37 game(s) for 20 credits
+  61 pair(s) carry ONE game — 20 credits each, the worst rate on offer
+
+DRY RUN — nothing fetched, nothing written. Re-run with --apply to spend.
+
+COVERAGE: regular_season_games only. Pairs whose games already carry an
+odds_history row are excluded above, so this plan is the gap and not the
+archive. A fetch that returns nothing still bills, so the projected cost
+is what will be SPENT, not what will be FILLED.
