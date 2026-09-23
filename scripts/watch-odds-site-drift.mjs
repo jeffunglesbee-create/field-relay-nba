@@ -186,6 +186,17 @@ export function sampleFrom(body, at = new Date().toISOString()) {
     // arithmetic, but what a green MEANS did — see `claimOf` below. Older
     // samples predate the field and read as 'kv', which is what they were.
     source: typeof d.source === 'string' ? d.source : 'kv',
+    // WHEN THE GUARD STARTED REFUSING, not whether the budget is spent. Added
+    // 2026-09-23. This watch samples every ~3h, so it is the only instrument
+    // that can say how LONG a capped day stayed capped — on 2026-09-19 `used`
+    // was 3800 at 19:39 and still 3800 at 22:32, and nothing recorded that
+    // those hours were refusals rather than a quiet evening.
+    //
+    // Three states preserved from the route (Rule 99): an ISO string, `true`
+    // (vetoed, hour unknown), or null. Older samples predate the field and read
+    // as undefined, which is a fourth thing — never measured — and is left
+    // undefined rather than coerced to null.
+    ceiling_reached_at: d.ceiling_reached_at,
   } };
 }
 
@@ -265,7 +276,23 @@ if (process.argv.includes('--self-test')) {
   one('a missing by_site is not a sample', sampleFrom({ daily: { date: 'd', used: 1 } }).ok, false,
       'every interval would then compare nothing to nothing and read as quiet');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 23/23`);
+  // THE CEILING FIELD, FOUR STATES. undefined is not null here: a sample from a
+  // build that predates the route field was never measured, while null means
+  // the route looked and found no veto. Collapsing them would turn every old
+  // sample into evidence that nothing was refused that day.
+  {
+    const B = (extra) => ({ daily: { date: 'd', used: 1, by_site: {}, by_site_sum: 0, ...extra } });
+    const c = (extra) => sampleFrom(B(extra), 'T').sample.ceiling_reached_at;
+    one('an ISO veto time is carried through', c({ ceiling_reached_at: '2026-09-19T18:42:00.000Z' }),
+        '2026-09-19T18:42:00.000Z', 'the hour refusals began is the whole point of the field');
+    one('true is carried through as true', c({ ceiling_reached_at: true }), true,
+        'vetoed with the hour unknown — a key written before the field existed');
+    one('null stays null', c({ ceiling_reached_at: null }), null, 'the route looked and found no veto');
+    one('a build that never reported it stays undefined', c({}), undefined,
+        'never measured is not the same as measured-and-clean (Rule 99)');
+  }
+
+  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 27/27`);
   console.log(`COVERAGE: five pure predicates over ENUMERATED samples. It does NOT reach`);
   console.log(`/budget/odds, and it cannot see a refund that landed between two samples`);
   console.log(`and was undone before the next one — the sampling interval is the floor on`);
@@ -303,6 +330,17 @@ series = series.slice(-KEEP);
 writeFileSync(SERIES, JSON.stringify(series, null, 2) + '\n');
 
 say(`  this reading   : ${sample.date}  used ${sample.used}  by_site_sum ${sample.by_site_sum}  gap ${gapOf(sample)}`);
+// THE CEILING LINE. `used === ceiling` says the budget is spent; this says the
+// guard turned a fetch away, and when. A day that lands on the cap at 23:58
+// refused nothing; 2026-09-19 refused everything from before 19:39.
+{
+  const c = sample.ceiling_reached_at;
+  say(`  ceiling        : ` + (
+    c === undefined ? 'NOT REPORTED — this build predates /budget/odds carrying it'
+    : c === null ? 'no veto recorded today'
+    : c === true ? 'REACHED, hour unknown (a key written before the field existed)'
+    : `REACHED at ${c} — every odds fetch since then was refused`));
+}
 say(`  unreadable     : ${(sample.unreadable_sites || []).join(', ') || 'none'}`);
 say(`  samples on file: ${series.length}  (keeping the last ${KEEP})\n`);
 
