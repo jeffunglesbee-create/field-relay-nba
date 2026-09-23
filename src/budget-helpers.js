@@ -230,7 +230,21 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
             const already = await env.FIELD_JOURNALISM.get(warnedKey);
             if (!already) {
                 console.warn(`[odds-daily-guard] daily ceiling reached — +${units} would exceed ${ceiling}; suppressing further fetches`);
-                await env.FIELD_JOURNALISM.put(warnedKey, '1', { expirationTtl: 86400 });
+                // THE TIMESTAMP, NOT '1'. This key was a boolean, written once
+                // per day per isolate, and nothing outside the worker could read
+                // it — so "the ceiling was reached" was only ever inferable from
+                // used === ceiling, and the hour it happened was invisible.
+                //
+                // Measured 2026-09-23 from outbox/odds-site-drift-series.json:
+                // on 2026-09-19 `used` was already 3800 at 19:39 and still 3800
+                // at 22:32, so odds fetches were refused for at least three
+                // hours. A boolean cannot say that; a timestamp can, and it
+                // costs nothing extra because this write happens once a day.
+                //
+                // Written as an ISO string. A legacy '1' still reads as reached
+                // with no time rather than as an error — three states, not two.
+                await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(),
+                    { expirationTtl: 86400 });
             }
             return false;
         }
@@ -336,6 +350,21 @@ async function peekDailyOdds(env, forDate = null) {
         } catch (_) {
             degraded = null;
         }
+        // WAS THE CEILING ACTUALLY HIT, AND WHEN. `used === ceiling` says the
+        // budget is exhausted; it does not say a fetch was ever refused. The
+        // guard writes this key only when it vetoes, so its presence is the
+        // difference between "spent it all" and "started turning requests away".
+        //
+        // Three states, never two (Rule 99): a timestamp, `true` with no time
+        // (a legacy '1', or an unparseable value — reached, hour unknown), and
+        // null for not reached. An unreadable KV read is `null` here and the
+        // response's other fields already carry that failure, so this does not
+        // invent a fourth.
+        let ceilingHit = null;
+        try {
+            const raw = await env.FIELD_JOURNALISM.get(`odds:daily:${date}:warned`);
+            if (raw) ceilingHit = /^\d{4}-\d{2}-\d{2}T/.test(raw) ? raw : true;
+        } catch (_) { ceilingHit = null; }
         const unreadable = Object.keys(sites).filter(k => sites[k] === null);
         const sum = unreadable.length
             ? null
@@ -354,6 +383,13 @@ async function peekDailyOdds(env, forDate = null) {
                              // one response rather than needing two calls
             ceiling,
             remaining: Math.max(0, ceiling - used),
+            // null = the guard never vetoed today. An ISO string = the moment it
+            // first did, so everything after that hour was refused. `true` =
+            // it vetoed but the hour is unknown (a key written before this
+            // field existed). NEVER false — absence of a veto record and a
+            // failed read are both null here, and `remaining` above already
+            // distinguishes an exhausted budget from a spent one.
+            ceiling_reached_at: ceilingHit,
             // Present and null on an ordinary day, so an unusual ceiling always
             // carries its own explanation rather than looking like drift.
             standing_ceiling: ODDS_DAILY_CEILING,

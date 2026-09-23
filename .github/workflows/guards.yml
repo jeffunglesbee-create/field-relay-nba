@@ -96,6 +96,15 @@ jobs:
       # one that failed: targeted-odds-fill.mjs died on its first statement with
       # `403 table not allowed: odds_fill_dead_pairs`, on a runner, after the
       # dispatch. Nothing said so beforehand.
+      # The guard's veto has to be visible from outside the worker. `used ===
+      # ceiling` says the budget is spent; it cannot tell a day that landed on
+      # the cap at 23:58 from 2026-09-19, which sat at 3800 from before 19:39
+      # until at least 22:32 and refused every fetch in between.
+      - name: a ceiling veto is readable from /budget/odds
+        run: |
+          node scripts/check-ceiling-reached.mjs
+          node scripts/mutate-ceiling-reached.mjs
+
       - name: every table a script creates is on the /d1/execute allow-list
         run: |
           node scripts/check-script-created-tables.mjs --self-test
