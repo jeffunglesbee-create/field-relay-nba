@@ -151,13 +151,69 @@ Three harness findings worth keeping:
   with a sentinel fingerprint, so they are history and get re-measured on the
   next `apply` fill, which writes real fingerprints. The provable saving today
   is **20 credits**, and the seed's own output says so.
-- **Whether the daily counter being pinned at the ceiling refuses real
-  requests.** `checkAndIncrementDailyOdds` returns false on ceiling veto and the
-  counter read 3799–3800 on four consecutive days, but no probe has confirmed a
-  veto in production. That is the next measurement, not a claim.
+- ~~Whether the daily counter being pinned at the ceiling refuses real
+  requests.~~ **MEASURED — see §8.**
 
 ## 7. Carry-forwards
 
 None deferred. The open items are scheduled measurements: `odds-daily-vs-vendor`
 needs a third closed day for its done condition, and the next `apply` fill
 writes real fingerprints for the three matcher-class pairs.
+
+---
+
+## 8. The ceiling probe, and a correction to §2
+
+`outbox/odds-site-drift-series.json`, 29 samples already committed — no new run,
+no credits. The intraday shape of `daily.used`:
+
+| day | samples | ceiling reached |
+|---|---|---|
+| 2026-09-19 | 166 · 231 · 345 · 1014 · **3800** (19:39) · **3800** (22:32) | before 19:39, still capped at 22:32 |
+| 2026-09-20 | 318 · 423 · 806 · 2226 · 3506 · **3800** (22:45) | late evening |
+| 2026-09-21 | 216 · 264 · 318 · 1860 (21:17) → closed **3799** | after 21:17 |
+| 2026-09-22 | 1571 · 1625 · 1694 · 1781 · **3800** (23:19) | late evening |
+| 2026-09-23 | 1257 · 1365 · 1401 (13:54) | not yet |
+
+### The correction
+
+§2 said the daily counter "tracks nothing — the vendor's spend varied SIX-FOLD
+while the daily figure varied by one." Every number in that sentence is right
+and the conclusion it invites is wrong.
+
+Those three figures — 3800, 3800, 3799 — are **closed-day totals of a counter
+that saturates**. They are flat because the cap is flat, not because the counter
+is dead. Intraday it climbs from a few hundred to the ceiling every day. I
+compared end-of-day values of a capped series and read the cap as a defect.
+
+That is the same shape as the sections gap this session already corrected:
+a number that is correct, compared across the wrong axis.
+
+**What survives the correction:** the daily-vs-monthly excess. 7599 against
+5037 over two fully-contained days is an inequality violation that saturation
+does not explain — a capped counter cannot exceed the monthly counter that the
+same function increments alongside it.
+
+### What the probe establishes
+
+`checkAndIncrementDailyOdds` returns false at the ceiling and the callers at
+`src/index.js:1176`, `:3277` and `:3422` return null rather than fetching. The
+counter reaches the ceiling on **four of the last five days**, and on 2026-09-19
+it was already at 3800 by 19:39 and still at 3800 at 22:32 — **at least three
+hours during which every odds fetch was refused**, while the monthly ledger sat
+at roughly 60,000 of 85,000 and the vendor billed 4,323 for the whole day.
+
+So this is an availability question as well as an accounting one, and it recurs
+nightly.
+
+### What it does NOT establish
+
+That any particular call was attempted and refused. A veto writes
+`odds:daily:<date>:warned` to KV with a 24h TTL
+(`src/budget-helpers.js:226-233`) — that key is the direct evidence, and **no
+route exposes it**. `peekDailyOdds` returns used, ceiling, sites and source, and
+not the warn flag.
+
+Inferring attempts from the cron cadence would be exactly the untested premise
+Rule 100 prohibits. The next measurement is to surface the flag on
+`/budget/odds`, which is a src change and a deploy, not a probe.
