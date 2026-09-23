@@ -100,6 +100,18 @@ jobs:
       # ceiling` says the budget is spent; it cannot tell a day that landed on
       # the cap at 23:58 from 2026-09-19, which sat at 3800 from before 19:39
       # until at least 22:32 and refused every fetch in between.
+      # A RATCHET, NOT A FIX. The daily counter is one D1 transaction since
+      # 2026-09-19; the monthly one is still a plain KV read-modify-write with
+      # FOUR writers on the same key, which loses updates from concurrent
+      # isolates by construction. That explains the DIRECTION of the 2562
+      # excess measured over 09-20/09-21, not its magnitude. This stops a fifth
+      # copy arriving quietly — the duplication is the root problem and it has
+      # grown before.
+      - name: the monthly odds counter has not grown another non-atomic writer
+        run: |
+          node scripts/check-monthly-counter-writers.mjs --self-test
+          node scripts/check-monthly-counter-writers.mjs
+
       - name: a ceiling veto is readable from /budget/odds
         run: |
           node scripts/check-ceiling-reached.mjs
