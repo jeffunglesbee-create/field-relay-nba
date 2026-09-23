@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-09-23 — the dead-pair ledger, and two counters that never agreed
+
+**HEAD:** `43f38ab` → `b6f76b8`. Deploy 986 green.
+Session doc: `outbox/cc-session-2026-09-23-dead-pair-ledger-and-counters.md`.
+Spent this session: **0 credits** at the vendor.
+
+**The worsening residual is not ours.** `-2477` → `-3295`: our counter moved by
+ONE (3800 → 3799) while the vendor's bill fell 839 (1543 → 704). The watch has
+been plotting the vendor's bill, inverted.
+
+**Our own two counters have never been compared, and they disagree 26-fold.**
+`consumeOddsCredit` charges the identical units to daily then monthly, so within
+a UTC day they cannot diverge — yet 2026-09-21 read daily 3799 against a monthly
+movement of 146. `odds-daily-vs-monthly` (a step inside `odds-daily-vs-vendor.yml`)
+reports it with a window-free inequality: 7599 vs 5037, **excess 2562**, a floor
+on the error rather than an estimate. It does NOT say which counter is wrong.
+
+**The dead-pair ledger is live and biting.** The fill plan went 135 pairs / 2700
+credits → **134 / 2680**, skipping `2026-05-24 la liga` (`vendor-exhausted`: one
+vendor event against ten wanted games). Verified end to end at zero credits —
+`outbox/targeted-odds-fill-20260923T025616Z.log`.
+
+**The other three dead pairs do NOT yet exclude**, deliberately: they are
+matcher-class and carry `matcher_fp=seeded-from-log-20260919`, a sentinel that
+can never equal a real hash. The next `apply` fill writes real fingerprints and
+they begin excluding then. The provable saving today is **20 credits**.
+
+**`odds_fill_dead_pairs` is on the `/d1/execute` allow-list** (deploy 986). The
+first dry run 403'd — the guard working — and a new gate,
+`check-script-created-tables.mjs`, now covers tables created by SCRIPTS, which
+`check-odds-budget-schema.mjs` never did.
+
+
 ## SESSION CLOSE-OUT — 2026-09-20 — Task 0d, a handler boundary, and whoop_tokens
 
 **HEAD:** `ae606dc` → `677217b` (the tail is scheduled watches, not this session)
