@@ -1,0 +1,75 @@
+name: Seed the dead-pair ledger (DRY RUN by default)
+
+# One-off. Writes the outcomes of the 2026-09-19 targeted fill into
+# odds_fill_dead_pairs, so the plan stops re-listing pairs that run has already
+# proved cannot pay.
+#
+# SPENDS NO CREDITS IN EITHER MODE. It reads a committed log and writes D1 rows
+# through /d1/execute; it never calls the odds vendor. `apply` gates the D1
+# write only, and the dry run prints exactly what it would write.
+#
+# Its own honesty check is in the output: a seeded row carries
+# matcher_fp=seeded-from-log-20260919, which can never equal a real hash, so
+# only VENDOR-class rows (no-events, vendor-exhausted) actually exclude a
+# purchase. The matcher-class ones are history and get re-measured. The script
+# prints both counts and the credits it really saves.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'false = parse and classify, write nothing. true = write the rows to D1. Spends no credits either way.'
+        type: boolean
+        required: true
+        default: false
+      log:
+        description: 'Fill log to seed from. Blank = the 2026-09-19 apply run.'
+        required: false
+        default: ''
+
+concurrency:
+  group: seed-dead-pairs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The classifier decides what NOT to buy, so it must be able to fail
+      # before it is allowed to write a veto. D11 and D12 cover the one class
+      # that excludes anything today: a pair the vendor cannot fill by count.
+      - name: The ledger logic can fail
+        run: |
+          node scripts/check-dead-pairs.mjs
+          node scripts/mutate-dead-pairs.mjs
+          node scripts/seed-dead-pairs.mjs --self-test
+
+      # pipefail: without it the step's exit code is the last tee's, which is
+      # how a run in this repo once reported success over a script that exited 1.
+      - name: Seed
+        shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/seed-dead-pairs.mjs \
+            ${{ inputs.log && format('--log={0}', inputs.log) || '' }} \
+            ${{ inputs.apply && '--apply' || '' }} 2>&1 \
+            | tee -a "$GITHUB_STEP_SUMMARY" \
+            | tee outbox/seed-dead-pairs-$(date -u +%Y%m%dT%H%M%SZ).log
+
+      # always(): the log is the artifact and must survive a run that went red.
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="seed-dead-pairs" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: seed dead-pair ledger"
