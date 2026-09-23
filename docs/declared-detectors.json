@@ -3,7 +3,7 @@
     "Workflows whose RED IS THEIR OUTPUT, not their failure. A detector reports a",
     "condition; while the condition holds it exits non-zero, and that is the",
     "design. scripts/watch-silently-dead-crons.mjs lists these separately instead",
-    "of calling them dead \u2014 without this it would report them every day forever,",
+    "of calling them dead — without this it would report them every day forever,",
     "and a watch that cries wolf is how odds-backfill.yml went fifteen days",
     "unnoticed in the first place.",
     "",
@@ -18,14 +18,14 @@
     "key would let a declaration made for one repo excuse a genuinely dead cron",
     "of the same name in another. The form is `owner/repo:.github/workflows/x.yml`.",
     "",
-    "2026-09-19: undeployed-src-watch.yml was the third workflow the dead-cron watch flagged that day and it is DELIBERATELY NOT DECLARED HERE. Its red is caused by a fixable repo defect \u2014 the provenance census writes a regenerated ROUTE_PROVENANCE_GENERATED_AT into src/route-provenance.js while carrying the skip directive, so it bumps a deploy-trigger path and suppresses the deploy that would clear it. Declaring it would suppress the one signal that reports a genuinely undeployed src change, which is the abuse the paragraph above describes. Fix the cause, do not declare the symptom."
+    "2026-09-19: undeployed-src-watch.yml was the third workflow the dead-cron watch flagged that day and it is DELIBERATELY NOT DECLARED HERE. Its red is caused by a fixable repo defect — the provenance census writes a regenerated ROUTE_PROVENANCE_GENERATED_AT into src/route-provenance.js while carrying the skip directive, so it bumps a deploy-trigger path and suppresses the deploy that would clear it. Declaring it would suppress the one signal that reports a genuinely undeployed src change, which is the abuse the paragraph above describes. Fix the cause, do not declare the symptom."
   ],
   "detectors": {
     "jeffunglesbee-create/field-relay-nba:.github/workflows/brief-label-migration.yml": {
       "reports": "brief rows whose sport is outside the authority label set read from the games table",
       "red_because": "4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)",
       "tracked_by": "docs/CC-CMD-2026-09-15-dead-cron-triage.md",
-      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 \u2014 verify exits 1 when verification.clean is false"
+      "verified": "2026-09-15, by reading scripts/brief-label-migration.mjs:399 — verify exits 1 when verification.clean is false"
     },
     "jeffunglesbee-create/field-relay-nba:.github/workflows/rule90-staleness-monitor.yml": {
       "reports": "rule-registry entries marked UNEXERCISED for more than 14 days",
@@ -47,15 +47,21 @@
     },
     "jeffunglesbee-create/jubilant-bassoon:.github/workflows/odds-line-probe.yml": {
       "reports": "sections present in allData.sports but absent from the DOM, counted per scheduled run, plus the consecutive-green streak toward that CC-CMD's done condition",
-      "red_because": "8 of 11 sections in the model rendered no DOM section on 2026-09-21 (NHL, MLS Soccer, Premier League, EFL Championship, La Liga, Serie A, Bundesliga, Ligue 1); streak 0/5 consecutive scheduled greens, so the done condition is OPEN",
+      "red_because": "CORRECTED 2026-09-23. The previous entry recorded '8 of 11 sections in the model rendered no DOM section' as measured fact. That comparison was invalid: the probe read the DOM section census in its settle loop, BEFORE the step-back loop, and the model AFTER it, so on every scheduled run the gap was yesterday's model minus today's DOM sections. Manifest 20260922T195845Z shows Baseball (MLB) at 16 cards on one side and 3 games on the other. Fixed in jubilant-bassoon 5115a3e; the first same-day comparison (20260922T200611Z) reads [] over four sections and fourteen games. The streak counter now excludes the 59 of 60 manifests whose comparison was not same-day, so the done condition is OPEN at 0/5 scheduled greens and honest",
       "tracked_by": "jubilant-bassoon docs/CC-CMD-2026-09-12-v2-sections-in-model-not-in-dom.md",
-      "verified": "2026-09-21, from its own committed artifact jubilant-bassoon outbox/odds-line-probe-manifest-20260921T091841Z.json and run 35582440427's check-sections-gap-streak step"
+      "verified": "2026-09-23, from jubilant-bassoon outbox/odds-line-probe-manifest-20260922T195845Z.json and -20260922T200611Z.json, and jubilant-bassoon scripts/check-gap-cotemporal.mjs (6 of 6 mutations caught)"
     },
     "jeffunglesbee-create/jubilant-bassoon:.github/workflows/tennis-live-probe.yml": {
       "reports": "whether the deployed page renders tennis cards while the relay serves matches that pass FIELD's own tier bar, measured in a real browser against the live URL",
       "red_because": "the page renders 0 cards above roughly 26 tier-allowed matches. Across 36 committed manifests every PASS is at 26 or fewer and every FAIL at 26 or more; at the boundary 2026-09-06 15:26 failed at 26 and 15:32 passed at 26. The section itself is present in 30 of 36 runs, so this is not the 2026-06..09 no-section regression the probe's own reason line still names",
       "tracked_by": "jubilant-bassoon docs/CC-CMD-2026-09-21-tennis-renders-zero-above-26.md",
       "verified": "2026-09-21, from its own committed artifacts jubilant-bassoon outbox/tennis-live-probe-manifest-*.json (36 readings, 2026-09-06 to 2026-09-21)"
+    },
+    "jeffunglesbee-create/field-relay-nba:.github/workflows/odds-daily-vs-vendor.yml": {
+      "reports": "two conditions in one job: (1) the vendor's billed day minus our daily counter minus known CI spend, against max(50, 5% of the vendor's day); (2) our daily counter summed over days FULLY INSIDE the reading span against the movement of our own monthly counter, which can only be larger",
+      "red_because": "(1) 2026-09-21: vendor billed 704, our counter 3799, known CI 200 -> residual -3295 against a tolerance of 50, verdict we-overcharge-ourselves; the prior day read -2477, and our side moved by ONE while the vendor's bill fell 839, so the trend is the vendor's spend falling rather than our overcharge rising. (2) 2026-09-20 and 2026-09-21 sum to 3800+3799=7599 while the monthly counter moved 5037 across a span containing both days plus edge hours -- an excess of 2562 that no window offset can produce, since the monthly delta covers strictly more time than the days it is compared against",
+      "tracked_by": "docs/CC-CMD-2026-09-19-daily-vs-vendor.md",
+      "verified": "2026-09-23, from its own committed artifacts outbox/odds-daily-vs-vendor-2026-09-22T0447.log and outbox/odds-daily-vs-vendor-series.json; condition (2) recomputed from that series by scripts/lib/daily-vs-monthly.cjs, whose 8 mutations are all caught with a positive control"
     }
   }
 }

@@ -1,0 +1,17 @@
+=== odds daily-vs-monthly  utc=2026-09-23T01:35:22.948Z ===
+series: outbox/odds-daily-vs-vendor-series.json
+readings on file: 4
+days fully inside the span: 2 (2026-09-20:3800 · 2026-09-21:3799)
+span: 2026-09-19T02:22:39.263Z  ->  2026-09-22T04:47:39.530Z
+verdict: daily-exceeds-monthly
+
+  daily sum over contained days : 7599
+  monthly counter moved         : 5037
+  EXCESS                        : 2562   (ratio 1.51x)
+
+  The monthly delta spans the SAME hours as those days PLUS the partial
+  hours at each edge, so it can only be larger. Daily exceeding it is not
+  a tolerance question — the excess is a FLOOR on the error, never an
+  estimate of it.
+
+  This says the two disagree. It does NOT say which one is wrong.

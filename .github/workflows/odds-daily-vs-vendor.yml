@@ -52,6 +52,23 @@ jobs:
           set -o pipefail
           node scripts/watch-odds-daily-vs-vendor.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # OUR OWN TWO COUNTERS, compared right here because the series this job
+      # just wrote is the input. A separate cron would read whatever was on disk
+      # and could judge a stale series — and a second copy of these readings
+      # would drift, which is this project's most frequent defect.
+      #
+      # if: always() — the vendor comparison above goes red on its own finding,
+      # and this check is independent of it. Gating one detector behind another
+      # makes the second silent exactly when the first is firing.
+      - name: Our daily counter against our monthly counter
+        if: always()
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-daily-vs-monthly.mjs
+          node scripts/mutate-daily-vs-monthly.mjs
+          node scripts/watch-odds-daily-vs-monthly.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
       # always(): the series is the artifact and must keep accumulating on the
       # run that went red — that run is the one carrying the evidence.
       - name: Commit the series
