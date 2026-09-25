@@ -1,0 +1,19 @@
+=== league outranks sport watch  relay=https://field-relay-nba.jeffunglesbee.workers.dev  utc=2026-09-25T15:56:51.237Z ===
+
+    (sport, league) pairs where the two disagree : 52
+    league maps to an odds key its sport does not : 0   <- gated
+    league maps to no odds key at all             : 51   (not gated — no key exists to route to)
+      inert: Premier League – Final Day MW38 under EPL  (10 rows)
+      inert: Premier League – Matchweek 36 under EPL  (9 rows)
+      inert: Premier League – Matchweek 37 under EPL  (7 rows)
+      inert: IPL 2026 — Match 52 under IPL  (1 rows)
+      inert: IPL 2026 — Match 53 under IPL  (1 rows)
+      inert: La Liga — Matchday 38 · Final Day under La Liga  (10 rows)
+      inert: Ligue 1 – Gameweek 34 under Ligue 1  (2 rows)
+      inert: MLB – 2026 Season under MLB  (61 rows)
+      … 43 more inert pair(s)
+
+    COVERAGE: both games tables, every (sport, league) pair where the two
+    differ — no sampling. The five cup competitions under MLS sit in the
+    inert group: MEASURED 2026-09-15, the vendor offers none of them, so
+    no routing change could give them a line.
