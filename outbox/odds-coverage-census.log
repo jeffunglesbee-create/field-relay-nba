@@ -1,29 +1,30 @@
 
-=== 2026-09-23 — 23 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  MLB                      16       16       15     0    15        0           0
-  MLS                       1        1        1     1     1        0           0
-  NHL                       4        0        0     0     0        0           0
-  WNBA                      2        2        2     0     2        0           0
-
-  of 18 closing snapshot(s): 18 a verified sequence, 0 unverifiable, 0 out of order
-
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-23T10:01:31.502Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-180,"away":148},"spread":{"home":-1.5,"away":1.5,"homePrice":1
-
-  checked 4 distinct sport label(s) on this date — every label present, not a sample
-
-=== 2026-09-24 — 32 row(s) across regular+postseason
+=== 2026-09-24 — 33 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
   CFB                       1        0        0     0     0        0           0
-  MLB                      12       12        0     0     0        0           0
+  MLB                      12       12       12     0    12        0           0
   MLS                       1        0        0     0     0        0           0
   NFL                       1        0        0     0     0        0           0
   NHL                      11        0        0     0     0        0           0
   PGA Tour                  1        0        0     0     0        0           0
-  WNBA                      5        5        0     0     0        0           0
+  WNBA                      5        5        5     0     5        0           0
+  golf                      1        0        0     0     0        0           0
 
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 17 closing snapshot(s): 17 a verified sequence, 0 unverifiable, 0 out of order
 
   one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-24T10:05:16.403Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-163,"away":134},"spread":{"home":-1.5,"away":1.5,"homePrice":1
 
-  checked 7 distinct sport label(s) on this date — every label present, not a sample
+  checked 8 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-09-25 — 27 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  CFB                       5        0        0     0     0        0           0
+  MLB                      17       17        0     0     0        0           0
+  NHL                       4        0        0     0     0        0           0
+  golf                      1        0        0     0     0        0           0
+
+  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-25T10:03:17.916Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-102,"away":-117},"spread":{"home":1.5,"away":-1.5,"homePrice":
+
+  checked 4 distinct sport label(s) on this date — every label present, not a sample
