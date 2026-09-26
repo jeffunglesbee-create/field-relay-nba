@@ -210,5 +210,21 @@
     "games_paired_in_window": 156,
     "games_paired_rows_counted": 14,
     "games_paired_rows_skipped": 0
+  },
+  {
+    "at": "2026-09-26T14:50:39.991Z",
+    "provider_used": "89861",
+    "provider_remaining": "10139",
+    "ledger_month_used": 69889,
+    "daily_used": 180,
+    "daily_ceiling": 3800,
+    "degraded_open": {
+      "events": 319,
+      "credits": 2881,
+      "last": "2026-09-26T14:48:41.830Z"
+    },
+    "games_paired_in_window": 170,
+    "games_paired_rows_counted": 14,
+    "games_paired_rows_skipped": 0
   }
 ]
