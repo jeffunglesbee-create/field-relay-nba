@@ -1,30 +1,28 @@
 
-=== 2026-09-24 — 33 row(s) across regular+postseason
+=== 2026-09-25 — 27 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  CFB                       1        0        0     0     0        0           0
-  MLB                      12       12       12     0    12        0           0
-  MLS                       1        0        0     0     0        0           0
-  NFL                       1        0        0     0     0        0           0
-  NHL                      11        0        0     0     0        0           0
-  PGA Tour                  1        0        0     0     0        0           0
-  WNBA                      5        5        5     0     5        0           0
+  CFB                       5        0        0     0     0        0           0
+  MLB                      17       17       17     0    17        0           0
+  NHL                       4        0        0     0     0        0           0
   golf                      1        0        0     0     0        0           0
 
   of 17 closing snapshot(s): 17 a verified sequence, 0 unverifiable, 0 out of order
 
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-24T10:05:16.403Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-163,"away":134},"spread":{"home":-1.5,"away":1.5,"homePrice":1
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-25T10:03:17.916Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-102,"away":-117},"spread":{"home":1.5,"away":-1.5,"homePrice":
 
-  checked 8 distinct sport label(s) on this date — every label present, not a sample
+  checked 4 distinct sport label(s) on this date — every label present, not a sample
 
-=== 2026-09-25 — 27 row(s) across regular+postseason
+=== 2026-09-26 — 124 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  CFB                       5        0        0     0     0        0           0
-  MLB                      17       17        0     0     0        0           0
-  NHL                       4        0        0     0     0        0           0
+  CFB                      65        0        0     0     0        0           0
+  CFL                       2        0        0     0     0        0           0
+  MLB                      13       13        0     0     0        0           0
+  MLS                      29       27        0    27     0        0           0
+  NHL                      14        0        0     0     0        0           0
   golf                      1        0        0     0     0        0           0
 
   of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
 
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-25T10:03:17.916Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-102,"away":-117},"spread":{"home":1.5,"away":-1.5,"homePrice":
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-26T10:04:48.854Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":112,"away":-135},"spread":{"home":1.5,"away":-1.5,"homePrice":-
 
-  checked 4 distinct sport label(s) on this date — every label present, not a sample
+  checked 6 distinct sport label(s) on this date — every label present, not a sample
