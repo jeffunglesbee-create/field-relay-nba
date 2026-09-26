@@ -1,0 +1,96 @@
+=== silently dead crons  repos=4  streak=3  utc=2026-09-26T16:20:07.033Z ===
+    jeffunglesbee-create/field-relay-nba
+    jeffunglesbee-create/jubilant-bassoon
+    jeffunglesbee-create/field-laboratory
+    jeffunglesbee-create/field-playground
+
+  ── jeffunglesbee-create/field-relay-nba ──
+    157 workflow(s), 157 active  (all pages read)
+    scheduled and healthy             : 33
+    no schedule: block, not judged     : 118
+    declared detectors, red on purpose : 4   (not failures)
+      .github/workflows/rule90-staleness-monitor.yml  red at least 2.0 days
+        reports: rule-registry entries marked UNEXERCISED for more than 14 days
+        now:     rule-92, rule-93, rule-94 at 65.8 days; rule-98 at 43.6 days
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/brief-label-migration.yml  red at least 19.2 days
+        reports: brief rows whose sport is outside the authority label set read from the games table
+        now:     4 non-conforming labels, 75 rows: EFL League Two (24), EFL League One (23), EFL Championship (21), College Football (7)
+        tracked: docs/CC-CMD-2026-09-15-dead-cron-triage.md
+      .github/workflows/odds-pairing-rate-watch.yml  red at least 2.0 days
+        reports: vendor-billed credits that reached no counter, and backfill dates that spent and paired zero games
+        now:     685 credits UNEXPLAINED against a tolerance of 243 over 23.4h; separately 7 dates billed 940 credits and paired 0 games
+        tracked: docs/CC-CMD-2026-09-19-daily-vs-vendor.md
+      .github/workflows/odds-daily-vs-vendor.yml  red at least 2.5 days
+        reports: two conditions in one job: (1) the vendor's billed day minus our daily counter minus known CI spend, against max(50, 5% of the vendor's day); (2) our daily counter summed over days FULLY INSIDE the reading span against the movement of our own monthly counter, which can only be larger
+        now:     (1) 2026-09-21: vendor billed 704, our counter 3799, known CI 200 -> residual -3295 against a tolerance of 50, verdict we-overcharge-ourselves; the prior day read -2477, and our side moved by ONE while the vendor's bill fell 839, so the trend is the vendor's spend falling rather than our overcharge rising. (2) 2026-09-20 and 2026-09-21 sum to 3800+3799=7599 while the monthly counter moved 5037 across a span containing both days plus edge hours -- an excess of 2562 that no window offset can produce, since the monthly delta covers strictly more time than the days it is compared against
+        tracked: docs/CC-CMD-2026-09-19-daily-vs-vendor.md
+    DECLARES A CRON, NEVER FIRED       : 2
+      .github/workflows/bsd-newsletter-claims.yml   cron 17 8 3 * *   added 2026-09-05 (20.5d ago)
+      .github/workflows/bsd-leagues-baseline.yml   cron 23 8 4 * *   added 2026-09-05 (20.5d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 0
+
+  ── jeffunglesbee-create/jubilant-bassoon ──
+    128 workflow(s), 128 active  (all pages read)
+    scheduled and healthy             : 30
+    no schedule: block, not judged     : 96
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 1
+      .github/workflows/soccer-fbref-mls.yml   cron 0 8 * * 1   added 2026-06-22 (95.7d ago)
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/nba-clutch-update.yml
+        red since at least 2026-07-25T08:13:11Z, latest 2026-07-31T08:56:19Z
+        https://github.com/jeffunglesbee-create/jubilant-bassoon/actions/runs/30618071472
+
+  ── jeffunglesbee-create/field-laboratory ──
+    29 workflow(s), 29 active  (all pages read)
+    scheduled and healthy             : 5
+    no schedule: block, not judged     : 23
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/verify-full.yml
+        red since at least 2026-09-07T11:34:39Z, latest 2026-09-21T11:59:37Z
+        https://github.com/jeffunglesbee-create/field-laboratory/actions/runs/35596988589
+
+  ── jeffunglesbee-create/field-playground ──
+    82 workflow(s), 82 active  (all pages read)
+    scheduled and healthy             : 21
+    no schedule: block, not judged     : 60
+    declared detectors, red on purpose : 0   (not failures)
+    DECLARES A CRON, NEVER FIRED       : 0
+    FAILING 3 CONSECUTIVE RUNS  : 1
+      .github/workflows/build-check.yml
+        red since at least 2026-09-24T12:57:33Z, latest 2026-09-26T12:31:42Z
+        https://github.com/jeffunglesbee-create/field-playground/actions/runs/36242202708
+
+    A never-fired cron is NOT automatically a fault: a monthly cron added
+    after its day-of-month, or a workflow added today, has legitimately not
+    reached a slot. The cron and the age are printed so that is decidable
+    here rather than inferred from a count. NEVER_FIRED_GRACE_DAYS=40.
+
+    COVERAGE: 4 repos, 396 workflows, 396 active, 96 JUDGED
+    (>= 3 completed scheduled runs each). NOT judged: 297 with no
+    schedule: block — their failures surface on the commit that caused them —
+    and 3 that declare a cron but have never produced a run,
+    named above rather than counted. A workflow is judged on its last 3
+    scheduled runs whenever they happened, so a firing delay cannot skew it.
+    NOT covered: any repo outside the 4 listed at the top.
+
+  ── ratchet (docs/dead-cron-baseline.json) ──
+    carried, already admitted : 4
+      jeffunglesbee-create/field-laboratory:.github/workflows/verify-full.yml
+        kind dead  red since 2026-08-31  admitted 10d ago  review by 2026-10-17
+        unblocked by: read field-laboratory run 34839968312
+      jeffunglesbee-create/field-playground:.github/workflows/build-check.yml
+        kind dead  red since 2026-09-15  admitted 10d ago  review by 2026-10-17
+        unblocked by: read field-playground run 35223420802
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/nba-clutch-update.yml
+        kind dead  red since 2026-07-25  admitted 10d ago  review by 2026-10-17
+        unblocked by: read the run log for jubilant-bassoon run 30618071472 and establish why it stopped firing
+      jeffunglesbee-create/jubilant-bassoon:.github/workflows/soccer-fbref-mls.yml
+        kind never_fired  red since 2026-06-22  admitted 10d ago  review by 2026-10-17
+        unblocked by: check the workflow's schedule block parses, and whether GitHub lists it as disabled
+    NEW, not in the baseline  : 0
+    baseline entries resolved : 0
+    reviews overdue           : 0
