@@ -1,0 +1,21 @@
+=== odds daily vs vendor  day=2026-09-27  utc=2026-09-28T05:16:20.617Z ===
+
+  2026-09-27 our counter : 3800 / 3800
+  vendor cumulative now  : 93750
+  previous reading       : 2026-09-27T05:12:44.379Z  vendor 90395
+
+  vendor billed that day : 3355
+  our daily counter      : 3800
+  known CI spend         : 100   (1 run(s), 0 undated)
+  residual               : -545   tolerance 168
+
+  verdict: we-overcharge-ourselves
+
+COVERAGE: ONE closed day (2026-09-27), 10 reading(s) on file. knownCI is a
+LOWER bound — only odds-backfill records its own credits, and targeted-odds-fill
+calls the vendor directly with no counter at all — so the residual above is an
+UPPER bound on the enforcing counter's shortfall, not a measurement of it.
+
+FAIL: our counter recorded 545 MORE than the vendor billed. That is not a
+      breach — it is headroom thrown away, most likely reconcile not refunding an
+      over-estimate. A different defect, and it must not be read as the other one.
