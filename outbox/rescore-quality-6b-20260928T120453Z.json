@@ -1,0 +1,510 @@
+{
+  "probed_at": "2026-09-28T12:04:53.476Z",
+  "rubric": {
+    "scale": {
+      "spec": 30,
+      "statDepth": 38,
+      "variety": 30,
+      "density": 10,
+      "fresh": 36,
+      "arc": 33,
+      "ctx": 17,
+      "temporal": 20,
+      "voice": 30,
+      "margin": 30,
+      "finality": 20
+    },
+    "declared_unreachable": [
+      "ctx"
+    ],
+    "declared_reachable_ceiling": 252
+  },
+  "limit": 160,
+  "stored_baseline": [
+    {
+      "kind": "in-progress language",
+      "n": 125,
+      "mean_stored": 182
+    },
+    {
+      "kind": "reads as final",
+      "n": 2620,
+      "mean_stored": 187.7
+    }
+  ],
+  "matchup_note_coverage": {
+    "total": [
+      {
+        "total": 2788,
+        "with_note": 49
+      }
+    ],
+    "by_sport": [
+      {
+        "sport": "MLB",
+        "total": 1293,
+        "with_note": 5
+      },
+      {
+        "sport": "CFB",
+        "total": 331,
+        "with_note": 0
+      },
+      {
+        "sport": "WNBA",
+        "total": 228,
+        "with_note": 2
+      },
+      {
+        "sport": "MLS",
+        "total": 185,
+        "with_note": 0
+      },
+      {
+        "sport": "NFL",
+        "total": 95,
+        "with_note": 0
+      },
+      {
+        "sport": "EFL Cup",
+        "total": 73,
+        "with_note": 0
+      },
+      {
+        "sport": "La Liga",
+        "total": 69,
+        "with_note": 0
+      },
+      {
+        "sport": "NHL",
+        "total": 65,
+        "with_note": 0
+      },
+      {
+        "sport": "EPL",
+        "total": 50,
+        "with_note": 0
+      },
+      {
+        "sport": "Serie A",
+        "total": 50,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Europa Conference League Qualifying",
+        "total": 48,
+        "with_note": 0
+      },
+      {
+        "sport": "golf",
+        "total": 47,
+        "with_note": 42
+      },
+      {
+        "sport": "Ligue 1",
+        "total": 45,
+        "with_note": 0
+      },
+      {
+        "sport": "EFL Trophy",
+        "total": 38,
+        "with_note": 0
+      },
+      {
+        "sport": "Bundesliga",
+        "total": 36,
+        "with_note": 0
+      },
+      {
+        "sport": "CFL",
+        "total": 32,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Europa League Qualifying",
+        "total": 24,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Champions League",
+        "total": 18,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Europa League",
+        "total": 18,
+        "with_note": 0
+      },
+      {
+        "sport": "wnba",
+        "total": 18,
+        "with_note": 0
+      },
+      {
+        "sport": "UEFA Champions League Qualifying",
+        "total": 11,
+        "with_note": 0
+      },
+      {
+        "sport": "PGA Tour",
+        "total": 10,
+        "with_note": 0
+      },
+      {
+        "sport": "FIFA World Cup",
+        "total": 4,
+        "with_note": 0
+      }
+    ],
+    "sample_matchup_sports": [
+      {
+        "sport": "WNBA",
+        "id": "wnba_2026-06-09_chicagosky_atlantadre",
+        "note_head": "Angel Reese returns to Chicago vs former team. ESPN national."
+      },
+      {
+        "sport": "WNBA",
+        "id": "wnba_2026-06-22_losangeles_newyorklib",
+        "note_head": "Inaugural game anniversary — 29 years. ESPN national."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-08_clevelandg_newyorkyan",
+        "note_head": "NYY @ CLE on FS1."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-09_athletics_milwaukeeb",
+        "note_head": "A's at Las Vegas Ballpark (temp home)."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-07_chicagocub_sanfrancis",
+        "note_head": "Sunday Night Baseball on NBC/Peacock."
+      },
+      {
+        "sport": "MLB",
+        "id": "mlb_2026-06-02_philadelph_sandiegopa",
+        "note_head": "TBS Tuesday — SD @ PHI, 6:40pm ET."
+      },
+      {
+        "sport": "MLB",
+        "id": "2026-05-25-mlb-sandi-philad",
+        "note_head": "ESPN App GOTD — PHI @ SD, 6:40pm ET. ESPN Unlimited exclusive. Local RSN blacked out."
+      }
+    ],
+    "golf_rows_excluded_from_sample": [
+      {
+        "sport": "golf",
+        "n": 42
+      }
+    ],
+    "reading": "concentrated in one or two sports -> a broken adapter for those. Spread evenly at near-zero -> no producer writes this column at all."
+  },
+  "rescored": {
+    "n_total": 128,
+    "in_progress": {
+      "n": 33,
+      "mean_rescored": 175,
+      "sd_rescored": 15.1,
+      "mean_stored": 181.5,
+      "dims": {
+        "specificity": 0.237,
+        "statDepth": 0.97,
+        "variety": 0.658,
+        "density": 0.717,
+        "freshness": 0.89,
+        "arcScore": 0.348,
+        "contextAnchoring": 0.916,
+        "temporalScore": 0.561,
+        "voiceScore": 0.509,
+        "marginAgreement": 0.606,
+        "finality": 0.015
+      }
+    },
+    "reads_as_final": {
+      "n": 95,
+      "mean_rescored": 172.7,
+      "sd_rescored": 20.4,
+      "mean_stored": 166.7,
+      "dims": {
+        "specificity": 0.278,
+        "statDepth": 0.847,
+        "variety": 0.663,
+        "density": 0.666,
+        "freshness": 0.856,
+        "arcScore": 0.293,
+        "contextAnchoring": 0.551,
+        "temporalScore": 0.571,
+        "voiceScore": 0.578,
+        "marginAgreement": 0.532,
+        "finality": 0.553
+      }
+    },
+    "gap_rescored": -2.3,
+    "gap_stored_for_this_sample": -14.8,
+    "dim_separation": {
+      "specificity": 0.041,
+      "statDepth": -0.122,
+      "variety": 0.005,
+      "density": -0.051,
+      "freshness": -0.034,
+      "arcScore": -0.055,
+      "contextAnchoring": -0.365,
+      "temporalScore": 0.01,
+      "voiceScore": 0.069,
+      "marginAgreement": -0.074,
+      "finality": 0.537
+    },
+    "era_spread": [
+      "1",
+      "2",
+      "6",
+      "null"
+    ],
+    "gap_se": 3.4,
+    "gap_ratio_to_noise": 0.7,
+    "gap_verdict": "difference is only 0.7x the standard error — INDISTINGUISHABLE from noise at this n"
+  },
+  "finality_2x2": {
+    "note": "READ `blindness` FIRST — it is the only figure here computed without new weights. `gap_projected_definitional` restates FINALITY_MAX and is not evidence. Corpus widened 2026-08-24 to game_recap + game_brief: game_recap is finality-gated by ask 2, so on recaps alone `is_final` is true for every row and half the 2x2 cannot have rows at all. 2x2 of fact x reading, under the funded weighting (arc 45->33, ctx 25->17, finality 20, total held at 294). The LIVE_LANG figures in `rescored` are prose-only and are kept for comparability with earlier runs, not as this dimension's metric.",
+    "strata": {
+      "live-lang, not final": 0,
+      "live-lang, final": 32,
+      "final-lang, not final": 32,
+      "final-lang, final": 32,
+      "no joined game": 32
+    },
+    "n_scoreable": 96,
+    "n_agrees": 11,
+    "n_disagrees": 33,
+    "n_abstained": 84,
+    "by_verdict": {
+      "hedges-a-finished-game": 18,
+      "contradicts-itself": 14,
+      "no-clear-reading": 52,
+      "agrees": 11,
+      "calls-a-live-game-final": 1,
+      "unknown-finality": 32
+    },
+    "mean_finality_when_final": 6.6,
+    "mean_finality_when_live": 10,
+    "blindness": {
+      "gap_current": 9.3,
+      "se": 4.9,
+      "ratio_to_noise": 1.9,
+      "verdict": "the current rubric CANNOT separate these rows — it scores a correct recap and a hedging one the same",
+      "n_agrees": 11,
+      "n_disagrees": 33
+    },
+    "reconciliation": {
+      "live": {
+        "n": 32,
+        "mean": 10,
+        "from_census": 10
+      },
+      "final": {
+        "n": 64,
+        "mean": 6.6,
+        "from_census": 6.6
+      },
+      "census_agrees": true,
+      "totals_add_up": true,
+      "path_disagreement": {
+        "n": 0,
+        "note": "rows where scoreProse Dim 11 and this script disagree. Both call finalityAgreement, so a non-zero count means the ARGUMENT differs -- opts.game missing finalizedAt is the known cause.",
+        "sample": []
+      },
+      "lang_disagreement": {
+        "n": 15,
+        "note": "rows where the SQL LIVE_LANG predicate and the JS _READS_HEDGED regex disagree about whether the prose reads as in-progress. Non-zero is expected -- the regex is wider on purpose -- but it must be REPORTED, because it is why a stratum labelled `final-lang` can contain a row scored as a correct hedge.",
+        "ids": [
+          {
+            "id": "game_recap_nhl_401879365",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mls_761835",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401817074",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_cfb_401860897",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_efl trophy_401906276",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_mlb_401817016",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_epl_401879273",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_la liga_401882859",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_epl_401878778",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          },
+          {
+            "id": "game_recap_cfb_401870764",
+            "sql_live": true,
+            "regex_reading": "mixed"
+          }
+        ]
+      }
+    },
+    "gap_projected_definitional": 29.1
+  },
+  "dim_reachability": {
+    "rows_with_joined_game": 96,
+    "rows_with_matchup_note": 0,
+    "nonzero_rows_per_dim": {
+      "specificity": 120,
+      "statDepth": 124,
+      "variety": 128,
+      "density": 123,
+      "freshness": 128,
+      "arcScore": 96,
+      "contextAnchoring": 94,
+      "temporalScore": 107,
+      "voiceScore": 128,
+      "marginAgreement": 126,
+      "finality": 95
+    },
+    "verdict_ctx": "REACHABLE — scored above zero on real rows",
+    "verdict_margin": "REACHABLE — scored above zero on real rows"
+  },
+  "error": null,
+  "candidates": {
+    "current": {
+      "nominal_total": 294,
+      "in_progress_mean": 174.9,
+      "final_mean": 172.7,
+      "gap": -2.2,
+      "gap_se": 3.4,
+      "gap_ratio_to_noise": 0.7,
+      "mean_total_final": 172.7
+    },
+    "shift_moderate": {
+      "nominal_total": 294,
+      "in_progress_mean": 174.7,
+      "final_mean": 168.2,
+      "gap": -6.5,
+      "gap_se": 3.9,
+      "gap_ratio_to_noise": 1.7,
+      "mean_total_final": 168.2
+    },
+    "shift_aggressive": {
+      "nominal_total": 294,
+      "in_progress_mean": 178.5,
+      "final_mean": 166.7,
+      "gap": -11.9,
+      "gap_se": 4.8,
+      "gap_ratio_to_noise": 2.5,
+      "mean_total_final": 166.7
+    },
+    "forward_only_bound": {
+      "nominal_total": 294,
+      "in_progress_mean": 164.9,
+      "final_mean": 124.5,
+      "gap": -40.5,
+      "gap_se": 10.3,
+      "gap_ratio_to_noise": 3.9,
+      "mean_total_final": 124.5
+    }
+  },
+  "candidate_summary": [
+    "current: gap -2.2 (0.7x noise), 1x the current gap",
+    "shift_moderate: gap -6.5 (1.7x noise), 3x the current gap",
+    "shift_aggressive: gap -11.9 (2.5x noise), 5.4x the current gap",
+    "forward_only_bound: gap -40.5 (3.9x noise), 18.4x the current gap"
+  ],
+  "margin_census": {
+    "by_verdict": {
+      "no-clear-reading": 23,
+      "no-honest-verdict": 32,
+      "agrees": 15,
+      "unknown-result": 56,
+      "calls-a-tight-game-a-rout": 2
+    },
+    "by_fact": {
+      "lopsided": 19,
+      "ordinary": 32,
+      "tight": 21,
+      "unknown": 56
+    },
+    "n_rows_with_a_result": 72,
+    "n_judged": 17,
+    "judged_share": 0.133,
+    "silent_prose_sample": [
+      {
+        "id": "game_recap_nfl_401872957",
+        "sport": "NFL",
+        "fact": "lopsided",
+        "text": "Jacksonville's defense held New England scoreless for 36 of 48 minutes, and the Jaguars' 35 points this season at home exposed the Patriots' offensive collapse: New England managed just 6 points this matchup across their entire visit to Eve"
+      },
+      {
+        "id": "game_recap_nfl_401872956",
+        "sport": "NFL",
+        "fact": "lopsided",
+        "text": "FIELD GAME BRIEF\nTitans @ Giants | Final, 12–7\n\nTennessee's scoreless fourth quarters this season now number three through Week 3, matching its 0–3 record. New York's defense held the Titans to 7 points total at MetLife Stadium, while field"
+      },
+      {
+        "id": "game_recap_mls_761835",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "LAFC @ Dallas\n\nPetar Musa's goal this season gives him 18 this year, one more than Denis Bouanga's 14 for LAFC, and Dallas converted that advantage tonight: FC Dallas beat LAFC 1-0 at Toyota Stadium. The home side's +125 opening odds held t"
+      },
+      {
+        "id": "game_recap_mls_761832",
+        "sport": "MLS",
+        "fact": "tight",
+        "text": "FIELD Game Brief: Chicago @ Charlotte\n\nPep Biel's 12 goals this season couldn't break through as Charlotte fell 1-0 at home. Chicago recorded just 3 shots this match while holding the top-seeded home side scoreless at Bank of America Stadiu"
+      },
+      {
+        "id": "game_recap_cfb_401862785",
+        "sport": "CFB",
+        "fact": "lopsided",
+        "text": "FIELD GAME BRIEF\n\nSouth Florida's defense held Bowling Green scoreless through three quarters at Doyt L. Perry Stadium, extending the Falcons' winless streak to 0-4 this season. The Bulls improved to 4-0 with two touchdown drives while Bowl"
+      },
+      {
+        "id": "game_recap_cfb_401862780",
+        "sport": "CFB",
+        "fact": "lopsided",
+        "text": "Louisiana's defense blanked Charlotte through three quarters, holding the 49ers scoreless until late in the third while building a 27-point advantage by game's end. The Ragin' Cajuns (3-1 this season) never allowed Charlotte (0-4 this seaso"
+      }
+    ],
+    "unknown_result_breakdown": {
+      "n_unknown": 56,
+      "n_with_no_game_row": 32,
+      "n_joined_but_scoreless": 24,
+      "note": "n_joined_but_scoreless rows have a regular_season_games row whose home_score/away_score is null or non-finite. Dim 10 cannot judge them and the cause is the row, not the prose."
+    },
+    "separation": {
+      "n_agrees": 15,
+      "n_disagrees": 2,
+      "gap": 24.1,
+      "se": 4.5,
+      "ratio_to_noise": 5.3
+    }
+  }
+}
