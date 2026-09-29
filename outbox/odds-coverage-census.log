@@ -1,19 +1,4 @@
 
-=== 2026-09-27 — 47 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  MLB                      15       15        0     0     0        0           0
-  MLS                      11        0        0     0     0        0           0
-  NFL                      14        0        0     0     0        0           0
-  WNBA                      4        4        2     0     2        0           0
-  golf                      1        0        0     0     0        0           0
-  wnba                      2        0        0     0     0        0           0
-
-  of 2 closing snapshot(s): 2 a verified sequence, 0 unverifiable, 0 out of order
-
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-27T10:03:37.070Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-136,"away":113},"spread":{"home":-1.5,"away":1.5,"homePrice":1
-
-  checked 6 distinct sport label(s) on this date — every label present, not a sample
-
 === 2026-09-28 — 2 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
   NFL                       1        0        0     0     0        0           0
@@ -22,3 +7,15 @@
   of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
 
   checked 2 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-09-29 — 11 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  MLB                       4        4        0     0     0        0           0
+  NHL                       5        0        0     0     0        0           0
+  WNBA                      2        2        0     0     0        0           0
+
+  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-09-29T10:00:58.573Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-205,"away":168},"spread":{"home":-1.5,"away":1.5,"homePrice":1
+
+  checked 3 distinct sport label(s) on this date — every label present, not a sample
