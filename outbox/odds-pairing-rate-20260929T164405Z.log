@@ -1,0 +1,41 @@
+=== odds backfill pairing rate  utc=2026-09-29T16:44:05.037Z ===
+window: progress rows dated >= 2026-09-15
+
+  progress rows in window        : 14
+  of those, rows that spent      : 14
+  spent AND paired at least one  : 13
+  spent AND paired ZERO          : 1
+  total credits in window        : 1520
+  total games paired in window   : 228
+
+FAIL: 1 date(s) were billed and paired nothing:
+      2026-09-15  credits 80  games 0
+
+This is the shape the equality matcher produced on every CFB date before
+2026-09-16. Investigate the matcher before the budget (Rule 77).
+
+  provider billed this month     : 93979
+  our ledger says                : 76065
+  today's daily counter          : 96 / 3800
+  readings on file               : 19
+  daily ceiling verdict          : within_ceiling  (96/3800, 3%)
+
+  since the last reading (22.4h):
+      provider billed   : 128
+      our ledger charged: 108
+      escaped the ledger: 20
+      known CI spend    : 20   (1 backfill run(s) in window)
+      UNEXPLAINED       : 0   (tolerance 50)
+      guard fell open   : unreadable
+      positive — the vendor billed for calls our counters did not see
+      games paired since: 1
+
+  wrote outbox/odds-provider-usage-series.json (20 reading(s) kept)
+
+COVERAGE: 14 progress rows since 2026-09-15, 20 provider reading(s).
+odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an
+unpaired one reads as paired — this catches total failure per date, not per sport.
+KNOWN CI SPEND IS A LOWER BOUND: only odds-backfill records its own credits, so
+probes and one-off fills are NOT subtracted and UNEXPLAINED is an upper bound on
+real leakage. Joined on completed_at (the run clock), never on date (the day
+being backfilled) — a run today writes yesterday's row.
