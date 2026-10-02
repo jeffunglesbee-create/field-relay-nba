@@ -1,29 +1,5 @@
 [
   {
-    "at": "2026-09-19T17:31:48.416Z",
-    "date": "2026-09-19",
-    "used": 1014,
-    "by_site": {
-      "getWCPregameLambdas": 0,
-      "handleWCOddsProbs": 4,
-      "handleCFLOddsProbs": 162,
-      "fetchSportOddsLive": 336,
-      "fetchSportOddsHistorical": 300,
-      "wpResolver": 0,
-      "ambientFetchLiveOdds": 238,
-      "ambientCaptureClosingOdds": 54,
-      "oddsProxyRoute": 0,
-      "unattributed": 0
-    },
-    "by_site_sum": 1094,
-    "unreadable_sites": null,
-    "degraded_open": {
-      "events": 161,
-      "credits": 664,
-      "last": "2026-09-19T17:11:21.280Z"
-    }
-  },
-  {
     "at": "2026-09-19T19:39:38.933Z",
     "date": "2026-09-19",
     "used": 3800,
@@ -1532,6 +1508,32 @@
       "events": 84,
       "credits": 385,
       "last": "2026-10-02T02:41:29.479Z"
+    },
+    "source": "d1",
+    "ceiling_reached_at": null
+  },
+  {
+    "at": "2026-10-02T09:04:33.751Z",
+    "date": "2026-10-02",
+    "used": 129,
+    "by_site": {
+      "fetchSportOddsHistorical": 30,
+      "fetchSportOddsLive": 75,
+      "getWCPregameLambdas": 0,
+      "handleCFLOddsProbs": 24,
+      "handleWCOddsProbs": 0,
+      "wpResolver": 0,
+      "ambientFetchLiveOdds": 0,
+      "ambientCaptureClosingOdds": 0,
+      "oddsProxyRoute": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 129,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 179,
+      "credits": 790,
+      "last": "2026-10-02T09:04:11.776Z"
     },
     "source": "d1",
     "ceiling_reached_at": null
