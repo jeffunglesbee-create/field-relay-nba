@@ -52,10 +52,46 @@ const v = dailyVsMonthly(readings);
 // contained days out of a four-reading series is a different claim from one
 // over twenty, and a reader seeing only the word should still know which.
 say(`readings on file: ${Array.isArray(readings) ? readings.length : 0}`);
+// THE SEGMENT, STATED. The span is the current month's run of readings, not the
+// file. Before 2026-10-03 it was the file, and a September reset sitting behind
+// three perfectly comparable October readings made this watch refuse four runs
+// in a row. A reader who cannot see which readings were used cannot tell a
+// narrow verdict from a latched refusal.
+if (typeof v.readingsInSegment === 'number')
+  say(`readings in the current month's segment: ${v.readingsInSegment}`
+    + `${v.droppedBeforeReset ? `  (${v.droppedBeforeReset} dropped at the reset of ${v.resetAt})` : ''}`);
 say(`days fully inside the span: ${v.days ? v.days.length : 0}`
   + `${v.days && v.days.length ? ` (${v.days.map(d => `${d.day}:${d.used}`).join(' · ')})` : ''}`);
 say(`span: ${v.from || '-'}  ->  ${v.to || '-'}`);
 say(`verdict: ${v.verdict}`);
+
+// THE PER-DAY TABLE.
+//
+// The whole-segment inequality is the verdict and stays the verdict. But a
+// cumulative figure hides a fix that landed on one day, and it did: the atomic
+// counter shipped 2026-09-23 and the per-day excess fell from +3,418 on 09-22
+// to -24 on 09-29 while every cumulative reading still looked like a standing
+// defect. That table was derived by hand, off-script, for six days running —
+// which is the reason it is printed here instead.
+//
+// DIAGNOSTIC, NOT A VERDICT, and `spanHours` is on every row so that is
+// checkable rather than asserted: the readings land near 05:00Z, so a pair
+// spans a day offset from the UTC day by about five hours.
+if (Array.isArray(v.perDay) && v.perDay.length) {
+  say('');
+  say('  PER-DAY, diagnostic only — each pair spans ~24h offset from the UTC day');
+  say('  day          dayUsed   monthlyD    excess   span');
+  for (const d of v.perDay) {
+    const n = (x) => (x === null || x === undefined ? '—' : String(x));
+    say(`  ${String(d.day || '-').padEnd(12)}${n(d.dayUsed).padStart(8)}`
+      + `${n(d.monthlyDelta).padStart(11)}${n(d.excess).padStart(10)}`
+      + `${n(d.spanHours).padStart(7)}h${d.resetBetween ? '   reset between' : ''}`);
+  }
+  say('');
+  say('  A row is not a verdict: the two windows differ by the read hour, so a');
+  say('  single excess of a few tens is window offset, not a counter defect. The');
+  say('  verdict above is the window-free inequality over the whole segment.');
+}
 
 if (v.verdict === 'daily-exceeds-monthly') {
   say('');

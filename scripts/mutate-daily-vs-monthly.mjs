@@ -50,15 +50,40 @@ const MUTATIONS = [
    '  if (Math.abs(excess) > FLOOR) return { ...base, verdict: \'daily-exceeds-monthly\' };',
    'monthlyDelta > dailySum is EXPECTED — the delta holds the partial edge hours the contained days leave out — so a two-sided test is red on every healthy run and gets disabled'],
 
-  ['M4 a missing monthly figure is coerced to zero',
-   '  if (typeof m0 !== \'number\' || typeof m1 !== \'number\')',
-   '  if (false)',
-   'Number(null) is 0, so an unreadable reading would report the entire daily sum as excess — a fabricated maximum finding from an absent input (Rule 99)'],
+  ['M4 a missing monthly figure flows through as NaN and returns a GREEN',
+   "    if (typeof a !== 'number' || typeof b !== 'number') { stopReason = 'unreadable'; break; }\n",
+   '',
+   "`null < 100` is false in JS, so without this guard a missing figure passes for \"not a reset\", reaches the delta as null, and makes monthlyDelta NaN. NaN fails `excess > FLOOR`, so the verdict is `consistent` — a pass manufactured out of an absent input (Rule 99)"],
 
-  ['M5 a month reset reads as a colossal excess',
-   '  if (monthlyDelta < 0)',
-   '  if (false)',
-   'the monthly key is per calendar month; on the 1st the delta is hugely negative and the excess would be the whole previous month, reported as a defect'],
+  ['M5 a month reset is not noticed at all',
+   "    if (b < a) { stopReason = 'reset'; break; }",
+   '    if (false) { break; }',
+   'the monthly key is per calendar month; without this the segment spans the reset, the delta is hugely negative and the excess becomes the whole previous month, reported as a defect'],
+
+  ['M6a THE LATCH RESTORED: the span anchors on the ends of the FILE',
+   '  let start = readings.length - 1;',
+   '  let start = 0;',
+   'this IS the defect measured 2026-10-03 — a reset anywhere in the series makes the file-wide delta negative forever and the watch refuses on every future run while the counter climbs in plain view'],
+
+  ['M6c a reset at the newest reading is judged instead of refused',
+   '  if (seg.readings.length < 2) {',
+   '  if (false) {',
+   'a one-reading segment has first === last, so the delta is 0 and the comparison is against a counter that never moved — the refusal this replaces is the honest answer'],
+
+  ['M6d an unreadable neighbour is reported as a month boundary',
+   "if (typeof a !== 'number' || typeof b !== 'number') { stopReason = 'unreadable'; break; }",
+   "if (typeof a !== 'number' || typeof b !== 'number') { stopReason = 'reset'; break; }",
+   'missing and reset are different facts (Rule 99); collapsing them tells a reader a reset happened when the truth is that a figure never arrived'],
+
+  ['M6e an equal monthly figure is treated as a reset',
+   '    if (b < a) { stopReason = ',
+   '    if (b <= a) { stopReason = ',
+   'a day on which nothing was spent leaves the counter where it was; calling that a reset would drop every reading before any quiet day'],
+
+  ['M6f the per-day table fabricates an excess across a reset',
+   '    const monthlyDelta = (typeof m0 === \'number\' && typeof m1 === \'number\' && m1 >= m0)',
+   '    const monthlyDelta = (typeof m0 === \'number\' && typeof m1 === \'number\')',
+   'the reset row would render a -79,669 monthly movement and an excess to match — a fabricated maximum finding sitting in the middle of a table a reader scans for exactly that'],
 
   ['M6 an empty contained-day set sums to zero and passes as consistent',
    '  if (!days.length)',
@@ -71,9 +96,9 @@ const MUTATIONS = [
    'one reading has no delta; judging it compares a day against a counter that never moved'],
 
   ['M8 out-of-order readings are accepted',
-   '  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || toMs <= fromMs)',
-   '  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs))',
-   'a reversed span makes the monthly delta negative and the contained-day test nonsensical; it must be refused, not scored'],
+   '  if (!Number.isFinite(fromAll) || !Number.isFinite(toAll) || toAll <= fromAll)',
+   '  if (!Number.isFinite(fromAll) || !Number.isFinite(toAll))',
+   'a reversed series also has a FALLING monthly figure, so without this the segment walk calls it a reset and refuses with the wrong reason — it must be refused as unreadable, not scored and not mislabelled'],
 ];
 
 let caught = 0;
