@@ -77,3 +77,24 @@ jobs:
           PROBE_AUTHOR_NAME="odds-daily-vs-vendor" \
           PROBE_AUTHOR_EMAIL="actions@github.com" \
           bash scripts/probe-commit-retry.sh "chore: odds daily vs vendor"
+
+      # AFTER THE COMMIT, DELIBERATELY. This gate reads the logs out of git
+      # (`git show HEAD:outbox/...`) rather than the working tree, so it has to
+      # run once this run's own log is committed — otherwise it judges the
+      # previous state forever and sits exactly one run behind the thing it is
+      # watching for.
+      #
+      # WHY IT EXISTS. On 2026-10-03 the watch above returned `month-boundary`
+      # four runs in a row from a stale span anchor. Every one of those runs
+      # exited 0 and printed "Not a pass and not a failure", because refusing IS
+      # its success path — so nothing anywhere was red while the comparison had
+      # stopped happening. The anchor is fixed; this is the guard for the CLASS,
+      # because every refusal verdict in this repo can latch the same way.
+      - name: Has any watch stopped judging?
+        if: always()
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-refusal-streak.mjs --self-test
+          node scripts/mutate-refusal-streak.mjs
+          node scripts/check-refusal-streak.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
