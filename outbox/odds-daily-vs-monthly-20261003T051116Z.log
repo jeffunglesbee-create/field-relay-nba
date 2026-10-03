@@ -1,0 +1,9 @@
+=== odds daily-vs-monthly  utc=2026-10-03T05:11:16.883Z ===
+series: outbox/odds-daily-vs-vendor-series.json
+readings on file: 15
+days fully inside the span: 0
+span: -  ->  -
+verdict: month-boundary
+
+  the monthly counter went backwards — a reset, not spend
+  Not a pass and not a failure — the comparison did not run (Rule 99).
