@@ -1,0 +1,75 @@
+=== JQ health watch 20261003T141036Z ===
+
+--- 1. scoring coverage ---
+date        total  scored  unscored  era3
+2026-09-26    266     266         0     0
+2026-09-27    139     139         0     0
+2026-09-28     17      17         0     0
+2026-09-29     32      32         0     0
+2026-09-30     41      41         0     0
+2026-10-01     44      44         0     0
+2026-10-02     39      39         0     0
+2026-10-03    139     125        14     0
+2026-10-04      8       1         7     0
+
+brief_type / sport with UNSCORED rows:
+  pre_game               NHL                      total=  41 scored=  29 unscored=  12
+  pre_game               CFB                      total=  91 scored=  86 unscored=   5
+  pre_game               MLB                      total=  15 scored=  11 unscored=   4
+
+era-3 scored briefs: 181 total
+  game_live              118
+  game_recap             62
+  pre_game               1
+  types at the >=5 calibration floor: 2
+
+/quality/report unscored_types: []
+
+last 7d: 704/725 scored (97.1%), 21 unscored
+
+=== scoring healthy (>=95% scored): true ===
+
+--- 2. report + era-scoped calibration ---
+alert_count (new predicate):    25
+alert_count (legacy predicate): 65
+calibration era-scoped: 9  mixed-era: 0
+  compound               p25= 123 n=  21 era_scoped=true  window_n=21
+  epl_match              p25= 127 n=  29 era_scoped=true  window_n=29
+  game_brief             p25= 150 n=  12 era_scoped=true  window_n=12
+  game_live              p25= 176 n=1232 era_scoped=true  window_n=1232
+  game_recap             p25= 174 n= 976 era_scoped=true  window_n=976
+  mlb_game               p25= 153 n= 296 era_scoped=true  window_n=296
+  night_owl              p25= 159 n= 386 era_scoped=true  window_n=386
+  pre_game               p25= 172 n= 557 era_scoped=true  window_n=557
+  slate                  p25= 155 n=  66 era_scoped=true  window_n=66
+alert_count: 25
+self-contradictory (failure_pct 100 AND avg_score > threshold): 0
+era 3 recorded and served: true
+window straddles: []
+
+alerts:
+  epl_match              La Liga    thr= 127 avg= 138.3 fail= 67% flat240=100%  high_failure_rate
+  compound               all        thr= 123 avg= 141.9 fail= 24% flat240=100%  high_failure_rate
+  epl_match              UEFA Europa League thr= 127 avg=   154 fail= 33% flat240=100%  high_failure_rate
+  night_owl              College Football thr= 159 avg= 156.7 fail= 43% flat240=100%  avg_below_calibrated_p25
+  game_live              PGA Tour   thr= 176 avg= 157.7 fail=100% flat240=100%  avg_below_calibrated_p25
+  game_brief             MLB        thr= 150 avg= 160.3 fail= 25% flat240=100%  high_failure_rate
+  slate                  all        thr= 155 avg= 160.4 fail= 24% flat240=100%  high_failure_rate
+  night_owl              CFL        thr= 159 avg= 160.5 fail= 42% flat240=100%  high_failure_rate
+  mlb_game               MLB        thr= 153 avg= 161.4 fail= 24% flat240=100%  high_failure_rate
+  pre_game               PGA Tour   thr= 172 avg= 161.7 fail= 67% flat240=100%  avg_below_calibrated_p25
+  game_recap             PGA Tour   thr= 174 avg= 162.8 fail= 75% flat240=100%  avg_below_calibrated_p25
+  night_owl              EFL League Two thr= 159 avg= 162.9 fail= 32% flat240=100%  high_failure_rate
+  night_owl              EFL Trophy thr= 159 avg= 163.7 fail= 36% flat240=100%  high_failure_rate
+  night_owl              La Liga    thr= 159 avg= 163.7 fail= 26% flat240=100%  high_failure_rate
+  night_owl              EFL Championship thr= 159 avg= 164.5 fail= 26% flat240=100%  high_failure_rate
+  night_owl              EPL        thr= 159 avg= 164.7 fail= 34% flat240=100%  high_failure_rate
+  night_owl              EFL League One thr= 159 avg= 165.1 fail= 30% flat240=100%  high_failure_rate
+  game_recap             NHL        thr= 174 avg= 172.2 fail= 51% flat240=100%  avg_below_calibrated_p25
+  pre_game               CFB        thr= 172 avg= 175.7 fail= 38% flat240=100%  high_failure_rate
+  game_live              CFB        thr= 176 avg= 176.5 fail= 46% flat240=100%  high_failure_rate
+  game_recap             wnba       thr= 174 avg= 177.7 fail= 33% flat240=100%  high_failure_rate
+  game_recap             CFB        thr= 174 avg= 180.2 fail= 32% flat240=100%  high_failure_rate
+  game_live              NFL        thr= 176 avg= 182.3 fail= 33% flat240=100%  high_failure_rate
+  pre_game               MLB        thr= 172 avg= 183.9 fail= 23% flat240=100%  high_failure_rate
+  game_recap             MLB        thr= 174 avg= 184.9 fail= 21% flat240=100%  high_failure_rate

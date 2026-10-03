@@ -1,0 +1,334 @@
+{
+  "ts": "2026-10-03T14:10:36.382Z",
+  "days": 7,
+  "since": "2026-09-26",
+  "byDay": [
+    {
+      "date": "2026-09-26",
+      "total": 266,
+      "scored": 266,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-27",
+      "total": 139,
+      "scored": 139,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-28",
+      "total": 17,
+      "scored": 17,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-29",
+      "total": 32,
+      "scored": 32,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-09-30",
+      "total": 41,
+      "scored": 41,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-10-01",
+      "total": 44,
+      "scored": 44,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-10-02",
+      "total": 39,
+      "scored": 39,
+      "unscored": 0,
+      "era3": 0
+    },
+    {
+      "date": "2026-10-03",
+      "total": 139,
+      "scored": 125,
+      "unscored": 14,
+      "era3": 0
+    },
+    {
+      "date": "2026-10-04",
+      "total": 8,
+      "scored": 1,
+      "unscored": 7,
+      "era3": 0
+    }
+  ],
+  "byType": [
+    {
+      "brief_type": "pre_game",
+      "sport": "NHL",
+      "total": 41,
+      "scored": 29,
+      "unscored": 12
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "CFB",
+      "total": 91,
+      "scored": 86,
+      "unscored": 5
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLB",
+      "total": 15,
+      "scored": 11,
+      "unscored": 4
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "CFB",
+      "total": 124,
+      "scored": 124,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "NHL",
+      "total": 62,
+      "scored": 62,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "CFB",
+      "total": 53,
+      "scored": 53,
+      "unscored": 0
+    },
+    {
+      "brief_type": "mlb_game",
+      "sport": "MLB",
+      "total": 52,
+      "scored": 52,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NHL",
+      "total": 48,
+      "scored": 48,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLB",
+      "total": 41,
+      "scored": 41,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLB",
+      "total": 28,
+      "scored": 28,
+      "unscored": 0
+    },
+    {
+      "brief_type": "slate",
+      "sport": null,
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "MLS",
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NFL",
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "MLS",
+      "total": 16,
+      "scored": 16,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "NFL",
+      "total": 15,
+      "scored": 15,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "NFL",
+      "total": 13,
+      "scored": 13,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "MLS",
+      "total": 11,
+      "scored": 11,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "WNBA",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "WNBA",
+      "total": 10,
+      "scored": 10,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL League One",
+      "total": 8,
+      "scored": 8,
+      "unscored": 0
+    },
+    {
+      "brief_type": "epl_match",
+      "sport": "MLS",
+      "total": 8,
+      "scored": 8,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLB",
+      "total": 6,
+      "scored": 6,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "WNBA",
+      "total": 5,
+      "scored": 5,
+      "unscored": 0
+    },
+    {
+      "brief_type": "compound",
+      "sport": null,
+      "total": 4,
+      "scored": 4,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "EFL League Two",
+      "total": 3,
+      "scored": 3,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "CFL",
+      "total": 3,
+      "scored": 3,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "NFL",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "night_owl",
+      "sport": "MLS",
+      "total": 2,
+      "scored": 2,
+      "unscored": 0
+    },
+    {
+      "brief_type": "pre_game",
+      "sport": "PGA Tour",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "wnba",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_recap",
+      "sport": "PGA Tour",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "PGA Tour",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "NBA",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    },
+    {
+      "brief_type": "game_live",
+      "sport": "EFL Trophy",
+      "total": 1,
+      "scored": 1,
+      "unscored": 0
+    }
+  ],
+  "era3ByType": [
+    {
+      "brief_type": "game_live",
+      "n": 118
+    },
+    {
+      "brief_type": "game_recap",
+      "n": 62
+    },
+    {
+      "brief_type": "pre_game",
+      "n": 1
+    }
+  ],
+  "era3Total": 181,
+  "reportUnscoredTypes": [],
+  "reportUnscoredCount": 0,
+  "totals": {
+    "total": 725,
+    "scored": 704,
+    "unscored": 21
+  },
+  "scoredPct": 97.1,
+  "scoringHealthy": true
+}
