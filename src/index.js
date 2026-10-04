@@ -15911,7 +15911,19 @@ export default {
                 // and under WHICH code that was measured, so the plan stops re-buying
                 // pairs the vendor has nothing for at 20 credits a run. Its first dry
                 // run 403'd here — the guard working — and spent nothing.
+                //
+                // forecast_observations added 2026-10-04 for field-laboratory's EPL
+                // forecaster (CC-CMD-2026-09-11-epl-forecaster-phase1), approved by
+                // the owner. APPEND-ONLY: one row per observation of one subject,
+                // never updated in place. The laboratory is an assets-only Worker
+                // with no D1 of its own, so this route is its only write path —
+                // without an entry here both the DDL and every INSERT return 403.
+                //
+                // THIS RELAY COMPUTES NOTHING FOR IT (Rule 47). The model runs in
+                // Fable and the rows arrive already formed; the relay stores a value
+                // it did not derive.
                 'odds_fill_dead_pairs',
+                'forecast_observations',
                 'odds_budget_month'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
