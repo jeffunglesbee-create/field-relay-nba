@@ -60,6 +60,37 @@ const log = [];
 // and the two site vocabularies happened.
 const BASELINE_FILE = 'docs/dead-cron-baseline.json';
 
+/**
+ * THIS WATCH, WHICH HAD BECOME ITS OWN FINDING.
+ *
+ * It exits 1 whenever it has findings (`if (failed) process.exit(1)` below).
+ * Three findings in a row therefore make IT a workflow with three consecutive
+ * failed scheduled runs, which the next run reports as new decay — and that
+ * report exits 1 again. A closed loop.
+ *
+ * MEASURED, not reasoned about. Its first reds were 2026-10-01, when
+ * seed-coverage.yml went new. By 2026-10-03 it had three, and the 2026-10-04
+ * run listed `jeffunglesbee-create/field-relay-nba:.github/workflows/
+ * silently-dead-crons.yml` under NEW, not in the baseline — beside the one
+ * genuine finding it had that day. It would have stayed there forever: a
+ * self-sustaining entry can never settle, because the thing keeping it red is
+ * its own redness.
+ *
+ * A detector's red IS its output. docs/declared-detectors.json already says
+ * that for other workflows; this is the same rule applied to the file that
+ * enforces it. Excluded rather than declared, because a declaration is a
+ * statement about a condition someone should fix, and there is no condition
+ * here to fix.
+ *
+ * REPO-QUALIFIED, for the reason `declaredKey` is. Excluding a bare path would
+ * let a genuinely dead namesake in another repo go unreported — the exact
+ * failure that forced repo-qualified keys on 2026-09-17.
+ */
+const SELF = 'jeffunglesbee-create/field-relay-nba:.github/workflows/silently-dead-crons.yml';
+
+/** Is this workflow the watch itself, in the repo it actually runs from? */
+export const isSelf = (repo, path) => `${repo}:${path}` === SELF;
+
 /** THE RATCHET. Green means NO NEW DECAY, not "nothing is broken".
  *
  *  A COUNT WOULD NOT DO. docs/run-clock-closing-baseline.txt holds a bare
@@ -135,9 +166,16 @@ if (process.argv.includes('--self-test')) {
   // Strict equality, so every case must produce a SCALAR. Three array cases
   // were written here first and all three "failed" against an identical
   // expectation — a check reporting a defect that was its own. Arrays join.
-  const one = (label, got, want, why) => got === want
+  // COUNTED, NOT ASSERTED. The total below was the string `28/28`, hardcoded.
+  // Three assertions were added on 2026-10-04 and it still printed 28/28 — a
+  // reader comparing runs would have seen no change at all, and a DELETED
+  // assertion would have been equally invisible. A self-reported number is not
+  // evidence of anything, which is the rule this repo applies to scores and had
+  // not applied to its own test count.
+  let ran = 0;
+  const one = (label, got, want, why) => (ran++, got === want
     ? console.log(`  PASS  ${label} -> ${JSON.stringify(got)}  (${why})`)
-    : (bad++, console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`));
+    : (bad++, console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`)));
   const DAY = 86400000, NOW = Date.parse('2026-09-17T03:00:00Z');
   const wf = (path, ageDays) => ({ path, created_at: new Date(NOW - ageDays * DAY).toISOString() });
 
@@ -198,6 +236,18 @@ if (process.argv.includes('--self-test')) {
       'both baseline entries resolved — and that is not a failure');
   one('exactly the admitted set', rv(['r:a.yml','r:b.yml']).unexpected.length, 0,
       'steady state: known rot, nothing new — the run is GREEN with two things broken');
+  // ── THE SELF-REFERENCE, which closed on 2026-10-04 ────────────────────
+  one('the watch excludes ITSELF, in the repo it runs from',
+      String(isSelf('jeffunglesbee-create/field-relay-nba',
+                    '.github/workflows/silently-dead-crons.yml')), 'true',
+      'it exits 1 on any finding, so three findings make it its own finding');
+  one('a NAMESAKE IN ANOTHER REPO is still judged',
+      String(isSelf('jeffunglesbee-create/jubilant-bassoon',
+                    '.github/workflows/silently-dead-crons.yml')), 'false',
+      'an unqualified exclusion would excuse a genuinely dead cron elsewhere — the 2026-09-17 lesson');
+  one('a different workflow in the same repo is still judged',
+      String(isSelf('jeffunglesbee-create/field-relay-nba',
+                    '.github/workflows/deploy.yml')), 'false');
   one('a NEW dead cron', rv(['r:a.yml','r:b.yml','r:c.yml']).unexpected.join(','), 'r:c.yml',
       'the only thing that should ever fail this watch');
   one('one fixed, one new, count unchanged',
@@ -218,7 +268,7 @@ if (process.argv.includes('--self-test')) {
   one('NO review_by at all', overdueReviews(['r:x.yml'], { 'r:x.yml': {} }, TODAY).join(','), 'r:x.yml',
       'absent is overdue, not exempt — an undated entry is the quietest way to silence a cron forever');
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 28/28`);
+  console.log(bad ? `\n${bad} of ${ran} FAILED` : `\nself-test: ${ran}/${ran}`);
   console.log(`COVERAGE: the pure predicates — page loop, short read, grace, repo list,\n  detector keys, cron extraction, and the ratchet. It does NOT reach the API — the`);
   console.log(`sandbox token here is a proxy placeholder, so the live half is verified by`);
   console.log(`dispatching the workflow and reading its committed outbox log.`);
@@ -265,7 +315,7 @@ async function surveyRepo(repo, declared) {
   const workflows = await ghAll(`/repos/${repo}/actions/workflows`, 'workflows');
   const active = workflows.filter(w => w.state === 'active');
 
-  const dead = [], healthy = [], noCron = [], neverFired = [], detectors = [];
+  const dead = [], healthy = [], noCron = [], neverFired = [], detectors = [], selfRed = [];
   for (const w of active) {
     const { workflow_runs = [] } = await gh(
       `/repos/${repo}/actions/workflows/${w.id}/runs?event=schedule&per_page=${STREAK}&status=completed`);
@@ -288,12 +338,13 @@ async function surveyRepo(repo, declared) {
       // all four repos, so an unqualified declaration would excuse a genuinely
       // dead cron in one repo because a different repo declared its namesake.
       const key = declaredKey(repo, w.path);
-      if (declared[key]) detectors.push({ ...entry, ...declared[key] });
+      if (isSelf(repo, w.path)) selfRed.push(entry);
+      else if (declared[key]) detectors.push({ ...entry, ...declared[key] });
       else dead.push(entry);
     }
     else healthy.push(w.name);
   }
-  return { repo, total: workflows.length, active: active.length, dead, healthy, noCron, neverFired, detectors };
+  return { repo, total: workflows.length, active: active.length, dead, healthy, noCron, neverFired, detectors, selfRed };
 }
 
 (async () => {
@@ -317,6 +368,15 @@ async function surveyRepo(repo, declared) {
     say(`    scheduled and healthy             : ${r.healthy.length}`);
     say(`    no schedule: block, not judged     : ${r.noCron.length}`);
     say(`    declared detectors, red on purpose : ${r.detectors.length}   (not failures)`);
+    // PRINTED, NOT SILENTLY DROPPED. A guard that removes a finding without
+    // saying so is the amnesty shape this repo watches for, and the reader has
+    // to be able to see that the exclusion fired at all.
+    for (const e of r.selfRed) {
+      const days = ((Date.now() - Date.parse(e.since)) / 86400000).toFixed(1);
+      say(`    THIS WATCH ITSELF, excluded          : red ${days} days, since ${e.since}`);
+      say(`      ${e.path} — it exits 1 on any finding, so three findings make it`);
+      say(`      its own finding. Excluded from judgement; see SELF in this script.`);
+    }
     for (const d of r.detectors) {
       const days = ((Date.now() - Date.parse(d.since)) / 86400000).toFixed(1);
       say(`      ${d.path}  red at least ${days} days`);
