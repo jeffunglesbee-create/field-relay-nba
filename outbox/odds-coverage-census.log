@@ -1,30 +1,28 @@
 
-=== 2026-10-04 — 29 row(s) across regular+postseason
-  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  MLB                       2        2        2     0     2        0           0
-  NBA                       2        0        0     0     0        0           0
-  NFL                      14        0        0     0     0        0           0
-  NHL                       5        0        0     0     0        0           0
-  WNBA                      2        2        2     0     2        0           0
-  golf                      2        0        0     0     0        0           0
-  wnba                      2        2        0     0     0        0           0
-
-  of 4 closing snapshot(s): 4 a verified sequence, 0 unverifiable, 0 out of order
-
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-04T10:03:01.045Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-143,"away":119},"spread":{"home":-1.5,"away":1.5,"homePrice":1
-
-  checked 7 distinct sport label(s) on this date — every label present, not a sample
-
 === 2026-10-05 — 13 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  MLB                       2        2        0     0     0        0           0
+  MLB                       2        2        2     0     2        0           0
   NBA                       5        0        0     0     0        0           0
   NFL                       1        0        0     0     0        0           0
   NHL                       4        0        0     0     0        0           0
   golf                      1        0        0     0     0        0           0
 
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 2 closing snapshot(s): 2 a verified sequence, 0 unverifiable, 0 out of order
 
   one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-05T10:01:52.046Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-163,"away":135},"spread":{"home":-1.5,"away":1.5,"homePrice":1
+
+  checked 5 distinct sport label(s) on this date — every label present, not a sample
+
+=== 2026-10-06 — 35 row(s) across regular+postseason
+  sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
+  CFB                       1        0        0     0     0        0           0
+  EFL Trophy               19        0        0     0     0        0           0
+  MLB                       2        2        0     0     0        0           0
+  NBA                       4        0        0     0     0        0           0
+  NHL                       9        0        0     0     0        0           0
+
+  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-06T10:02:11.966Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-115,"away":-104},"spread":{"home":1.5,"away":-1.5,"homePrice":
 
   checked 5 distinct sport label(s) on this date — every label present, not a sample
