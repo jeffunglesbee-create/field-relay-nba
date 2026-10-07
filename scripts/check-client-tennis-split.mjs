@@ -23,6 +23,18 @@ const ok = (name, cond, detail = '') => {
   if (cond) { pass++; console.log(`  ok   ${name}`); }
   else { fail++; console.log(`  FAIL ${name}${detail ? ' — ' + detail : ''}`); }
 };
+// A positive control that THROWS must report as a named failure, not as an
+// uncaught stack trace. Mutation C — narrowing the rank-map matcher back to
+// single quotes only — exited 1 but printed a crash where the suite's own
+// result line should have been, and a harness whose failure is ambiguous is
+// the defect this file's rule exists to prevent. On a throw this records the
+// failure and returns a stub so the dependent assertions report too.
+const parse = (name, text, where) => {
+  try { const r = extractClientSplit(text, where); pass++; console.log(`  ok   ${name}`); return r; }
+  catch (e) { fail++; console.log(`  FAIL ${name} — threw: ${e.message}`);
+    return { where, excludes: [], admits: [], contradictory: [], _threw: true }; }
+};
+
 const throws = (name, text, needle) => {
   let msg = null;
   try { extractClientSplit(text, 'fixture'); } catch (e) { msg = e.message; }
@@ -43,7 +55,7 @@ const _TENNIS_DRAW_NO_BRACKET = /^(Davis Cup|Billie Jean King Cup Group I)$/;
 `;
 
 console.log('POSITIVE CONTROL — the real client shape, unmutated:');
-const cur = extractClientSplit(CURRENT, 'current');
+const cur = parse('the source shape parses at all', CURRENT, 'current');
 ok('five admitted names', cur.admits.length === 5, JSON.stringify(cur.admits));
 ok('the BJK Cup is admitted', cur.admits.includes('Billie Jean King Cup'));
 ok('two excluded names', cur.excludes.length === 2, JSON.stringify(cur.excludes));
@@ -52,6 +64,33 @@ ok('Group I excluded', cur.excludes.includes('Billie Jean King Cup Group I'));
 ok('the senior Cup is NOT excluded', !cur.excludes.includes('Billie Jean King Cup'));
 ok('nothing contradictory', cur.contradictory.length === 0, JSON.stringify(cur.contradictory));
 ok('a comment between map entries does not end the parse', cur.admits.includes('United Cup'));
+
+// What the DEPLOYED page actually looks like. Not a guess: produced by running
+// jubilant-bassoon's own pipeline (scripts/build-bundle.mjs then
+// scripts/strip-comments.js) on 2026-10-07 and copying the bytes out. esbuild
+// rewrites `const` to `var` and normalizes single quotes to double. Requiring
+// single quotes made run 10 refuse against a map that was present, which is
+// why this fixture exists rather than a second reading of the source shape.
+const DEPLOYED = `
+var _TENNIS_DRAW_NAMED_RANK = {
+  "ATP Finals": 1,
+  "WTA Finals": 1,
+  "Next Gen Finals": 2,
+  "United Cup": 2,
+  "Billie Jean King Cup": 2
+};
+var _TENNIS_DRAW_NO_BRACKET = /^(Davis Cup|Billie Jean King Cup Group I)$/;
+function _tennisDrawPick(rows) {
+`;
+
+console.log('\nPOSITIVE CONTROL — the real DEPLOYED shape, esbuild output:');
+const dep = parse('the deployed shape parses at all', DEPLOYED, 'deployed');
+ok('double-quoted keys parse', dep.admits.length === 5, JSON.stringify(dep.admits));
+ok('the BJK Cup is admitted there too', dep.admits.includes('Billie Jean King Cup'));
+ok('`var` instead of `const` does not matter', dep.excludes.length === 2, JSON.stringify(dep.excludes));
+ok('deployed and source read the SAME split',
+   JSON.stringify([dep.excludes, dep.admits].map((a) => a.slice().sort()))
+   === JSON.stringify([cur.excludes, cur.admits].map((a) => a.slice().sort())));
 
 console.log('\nMUTATIONS — each must throw, and about the right thing:');
 throws('M1 the regex constant renamed',
@@ -77,13 +116,17 @@ console.log('\nTHE HISTORICAL SHAPE — the client regex before 2026-10-07:');
 // `[^)]*` capture stops at the group's close paren, so a tolerant parser would
 // have read the arm as `Billie Jean King Cup( Group I` and silently lost a
 // name. It must refuse instead, and say where the fix is.
+throws('M9 the deployed map emptied — and the message shows what it saw',
+  DEPLOYED.replace(/var _TENNIS_DRAW_NAMED_RANK = \{[\s\S]*?\};/, 'var _TENNIS_DRAW_NAMED_RANK = {\n  nope: 1\n};'),
+  'found at the anchor');
+
 throws('M8 an arm with an optional group refuses rather than mis-parses',
   CURRENT.replace('/^(Davis Cup|Billie Jean King Cup Group I)$/',
                   '/^(Davis Cup|Billie Jean King Cup( Group I)?)$/'),
   'not a literal name');
 
 console.log('\nA CONTRADICTION IS REPORTED, NOT THROWN:');
-const contra = extractClientSplit(
+const contra = parse('the contradiction fixture parses at all',
   CURRENT.replace('/^(Davis Cup|Billie Jean King Cup Group I)$/',
                   '/^(Davis Cup|Billie Jean King Cup Group I|United Cup)$/'), 'contra');
 ok('United Cup in both lists is reported', contra.contradictory.includes('United Cup'),
@@ -144,10 +187,13 @@ console.log('\nreadClient — every refusal path:');
      r.sourceAgreesWithDeployed === false && r.refusals.length === 0);
 }
 
-console.log(`\nCOVERAGE: the parser over fixtures, and readClient over a fake fetch —`);
-console.log(`  8 positive-control assertions, 8 parser mutations, 2 contradiction`);
-console.log(`  assertions, 5 url assertions and 6 refusal-path assertions. It does`);
-console.log(`  NOT reach jubilant-bassoon over the network; the real reads run`);
-console.log(`  inside tennis-tier-ladders.mjs, where a refusal exits 1.`);
+// Derived, never written down. A hardcoded total is how `self-test: 28/28`
+// kept printing 28 after three assertions were added, in this same repo.
+console.log(`\nCOVERAGE: ${pass + fail} assertion(s) over the PARSER and over readClient`);
+console.log(`  with a fake fetch — the client's source shape, its deployed esbuild`);
+console.log(`  shape, every parser mutation, the contradiction case, which urls are`);
+console.log(`  asked for, and every refusal path. It does NOT reach jubilant-bassoon`);
+console.log(`  over the network; the real reads run inside tennis-tier-ladders.mjs,`);
+console.log(`  where a refusal exits 1.`);
 console.log(fail ? `\n${fail} FAILED of ${pass + fail}` : `\nself-test: ${pass}/${pass + fail}`);
 process.exit(fail ? 1 : 0);

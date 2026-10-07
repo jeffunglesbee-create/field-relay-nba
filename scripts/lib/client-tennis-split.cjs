@@ -63,8 +63,26 @@ function extractClientSplit(text, where) {
 
   const rankM = text.match(/_TENNIS_DRAW_NAMED_RANK\s*=\s*\{([\s\S]{0,4000}?)\}/);
   if (!rankM) throw new Error(`${where}: no _TENNIS_DRAW_NAMED_RANK = { ... } found`);
-  const admits = [...rankM[1].matchAll(/'([^']+)'\s*:\s*\d+/g)].map((m) => m[1]);
-  if (!admits.length) throw new Error(`${where}: the rank map parsed to zero names`);
+  // EITHER QUOTE STYLE. The deployed page is esbuild output, and esbuild
+  // normalizes string literals to double quotes (it also rewrites `const` to
+  // `var`, which these anchors do not depend on). Requiring single quotes made
+  // the first live run refuse with "the rank map parsed to zero names" against
+  // a map that was right there in double quotes — measured on run 10,
+  // 2026-10-07T03:18Z, and reproduced locally by running the real pipeline
+  // (scripts/build-bundle.mjs then scripts/strip-comments.js), which prints
+  //   var _TENNIS_DRAW_NAMED_RANK = {
+  //     "ATP Finals": 1, ...
+  // The regex literal survives esbuild verbatim, so only this needed widening.
+  const admits = [...rankM[1].matchAll(/['"]([^'"]+)['"]\s*:\s*\d+/g)].map((m) => m[1]);
+  if (!admits.length) {
+    // The excerpt is the whole point of this message. Without it the first
+    // refusal said only "parsed to zero names", and finding out why took
+    // reproducing the client's build pipeline. A refusal that does not show
+    // what it was looking at costs the next reader that hour again.
+    const seen = rankM[1].replace(/\s+/g, ' ').trim().slice(0, 200);
+    throw new Error(`${where}: the rank map parsed to zero names — found at the anchor: ${
+      seen ? JSON.stringify(seen) : '(nothing)'}`);
+  }
 
   // The regex is tested BEFORE the rank lookup in _tennisDrawPick, so a name in
   // both is excluded whatever its rank says. That is a client defect rather
