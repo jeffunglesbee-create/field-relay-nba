@@ -1,0 +1,19 @@
+=== odds daily vs vendor  day=2026-10-06  utc=2026-10-07T05:50:05.034Z ===
+
+  2026-10-06 our counter : 451 / 3800
+  vendor cumulative now  : 3748
+  previous reading       : 2026-10-06T06:13:14.863Z  vendor 3179
+
+  vendor billed that day : 569
+  our daily counter      : 451
+  known CI spend         : 80   (1 run(s), 0 undated)
+  residual               : 38   tolerance 50
+
+  verdict: tracks-the-bill
+
+COVERAGE: ONE closed day (2026-10-06), 19 reading(s) on file. knownCI is a
+LOWER bound — only odds-backfill records its own credits, and targeted-odds-fill
+calls the vendor directly with no counter at all — so the residual above is an
+UPPER bound on the enforcing counter's shortfall, not a measurement of it.
+
+OK: tracks-the-bill — residual 38 within 50.
