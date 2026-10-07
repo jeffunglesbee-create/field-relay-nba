@@ -200,11 +200,58 @@ export function sampleFrom(body, at = new Date().toISOString()) {
   } };
 }
 
+/** The ceiling line's words, as a pure function of the veto marker and the
+ *  day's samples, so the self-test can hold it to what it claims.
+ *
+ *  `odds:daily:<date>:warned` is written on the FIRST vetoed charge of a day
+ *  and never again (budget-helpers.js ~343, one warn per day per isolate), so
+ *  it dates ONE refusal. It does not mean the rest of the day was refused: a
+ *  charge small enough to still fit under the cap lands after it.
+ *
+ *  This line used to read "every odds fetch since then was refused", and on
+ *  2026-10-07 that was false in the direction that makes an incident sound
+ *  worse than it is — a veto was recorded at 01:16:29Z while this watch's own
+ *  series read used 3712 at 02:53 and 3799 at 18:00, so 87 credits landed
+ *  after it. The refutation was in the table printed four lines below the
+ *  claim.
+ *
+ *  Post-veto spend is a LOWER BOUND and is labelled as one: it sums only the
+ *  intervals with BOTH ends after the veto. The stretch between the veto and
+ *  the first sample after it is unobserved, and on 2026-10-07 that stretch is
+ *  97 minutes — the veto landed at 01:16 and the day's first sample is 02:53.
+ *  Differencing against the latest `used` instead would need a sample at or
+ *  before the veto, which a day whose sampling starts later simply does not
+ *  have; with no qualifying interval this says UNKNOWN rather than zero,
+ *  because nothing to difference is not a measurement of no spend (Rule 99).
+ *
+ *  This shape was itself a correction: the first version differenced the
+ *  latest `used` against the last sample at or before the veto, and on the
+ *  real 2026-10-07 series that returned UNKNOWN for a day with 87 observable
+ *  post-veto credits. The self-test caught it by disagreeing with the fixture
+ *  taken from the committed series. */
+export function ceilingLine(ceilingReachedAt, sameDay, latestUsed) {
+  const c = ceilingReachedAt;
+  if (c === undefined) return 'NOT REPORTED — this build predates /budget/odds carrying it';
+  if (c === null) return 'no veto recorded today';
+  if (c === true) return 'REACHED, hour unknown (a key written before the field existed)';
+  const usable = (sameDay || []).filter((x) => x && typeof x.at === 'string'
+                                                && typeof x.used === 'number');
+  let since = null;
+  for (let i = 1; i < usable.length; i++) {
+    if (usable[i - 1].at > c) since = (since ?? 0) + (usable[i].used - usable[i - 1].used);
+  }
+  return `REACHED at ${c} — one charge refused then; ` + (
+    since === null ? 'spend since is UNOBSERVED (no interval on file lies wholly after it)'
+    : since > 0 ? `at least ${since} credit(s) landed after it, so smaller charges still fit`
+    : since < 0 ? `the total has FALLEN by ${-since} over the intervals after it — a refund, not a refusal`
+    : 'no interval after it shows any spend');
+}
+
 if (process.argv.includes('--self-test')) {
-  let bad = 0;
-  const one = (label, got, want, why) => JSON.stringify(got) === JSON.stringify(want)
+  let bad = 0, ran = 0;
+  const one = (label, got, want, why) => { ran++; return JSON.stringify(got) === JSON.stringify(want)
     ? console.log(`  PASS  ${label} -> ${JSON.stringify(got)}  (${why})`)
-    : (bad++, console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`));
+    : (bad++, console.log(`  FAIL  ${label}: got ${JSON.stringify(got)} want ${JSON.stringify(want)}  (${why})`)); };
 
   const S = (date, used, sites) => ({ date, used, by_site: sites, by_site_sum: Object.values(sites).reduce((a, v) => a + v, 0) });
 
@@ -292,8 +339,47 @@ if (process.argv.includes('--self-test')) {
         'never measured is not the same as measured-and-clean (Rule 99)');
   }
 
-  console.log(bad ? `\n${bad} FAILED` : `\nself-test: 27/27`);
-  console.log(`COVERAGE: five pure predicates over ENUMERATED samples. It does NOT reach`);
+  // THE CEILING LINE'S WORDS. It said "every odds fetch since then was refused"
+  // for any veto marker, and the marker is written once per day on the FIRST
+  // refusal, so the sentence was an assertion the field cannot support. These
+  // fixtures are the 2026-10-07 shape and its three neighbours.
+  {
+    const day = (at, used) => ({ date: '2026-10-07', at, used });
+    const oct7 = [day('2026-10-07T02:53:00.000Z', 3712), day('2026-10-07T09:25:00.000Z', 3796),
+                  day('2026-10-07T18:00:00.000Z', 3799)];
+    one('spend after the veto is MEASURED, and labelled a lower bound',
+        ceilingLine('2026-10-07T01:16:29.508Z', oct7, 3799),
+        'REACHED at 2026-10-07T01:16:29.508Z — one charge refused then; at least 87 credit(s) landed after it, so smaller charges still fit',
+        'the real 2026-10-07 series: the old line called this a total refusal for the whole day');
+    one('a veto after every sample is UNOBSERVED, never "nothing"',
+        ceilingLine('2026-10-07T23:58:00.000Z', oct7, 3799),
+        'REACHED at 2026-10-07T23:58:00.000Z — one charge refused then; spend since is UNOBSERVED (no interval on file lies wholly after it)',
+        'a 23:58 veto cannot be followed by an interval, and silence is not a zero (Rule 99)');
+    one('one sample after the veto is still no interval',
+        ceilingLine('2026-10-07T01:16:29.508Z', [day('2026-10-07T02:53:00.000Z', 3712)], 3712),
+        'REACHED at 2026-10-07T01:16:29.508Z — one charge refused then; spend since is UNOBSERVED (no interval on file lies wholly after it)',
+        'an interval needs two ends here exactly as it does in the table below');
+    one('a total that FELL after the veto is named a refund',
+        ceilingLine('2026-10-07T01:16:29.508Z',
+          [day('2026-10-07T02:53:00.000Z', 3712), day('2026-10-07T09:25:00.000Z', 3700)], 3700),
+        'REACHED at 2026-10-07T01:16:29.508Z — one charge refused then; the total has FALLEN by 12 over the intervals after it — a refund, not a refusal',
+        'this watch exists to catch refunds; the line must not read one as spend');
+    one('an interval straddling the veto is not counted',
+        ceilingLine('2026-10-07T03:00:00.000Z',
+          [day('2026-10-07T02:53:00.000Z', 3712), day('2026-10-07T09:25:00.000Z', 3796)], 3796),
+        'REACHED at 2026-10-07T03:00:00.000Z — one charge refused then; spend since is UNOBSERVED (no interval on file lies wholly after it)',
+        'its left end precedes the veto, so its spend is partly pre-veto and cannot be attributed');
+    one('no veto still reads as no veto', ceilingLine(null, oct7, 3799), 'no veto recorded today',
+        'the three non-ISO states are unchanged by this');
+  }
+
+  // Derived. It read `27/27` after assertions were added to it, which is the
+  // same defect twice over in this repo: a count that cannot move is not a
+  // count. `one()` is the only thing that asserts here, so it is the only
+  // thing that may say how many.
+  console.log(bad ? `\n${bad} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`);
+  console.log(`COVERAGE: ${ran} assertion(s) over six pure predicates and ENUMERATED samples,`);
+  console.log(`the ceiling line among them. It does NOT reach`);
   console.log(`/budget/odds, and it cannot see a refund that landed between two samples`);
   console.log(`and was undone before the next one — the sampling interval is the floor on`);
   console.log(`what is observable.`);
@@ -331,20 +417,15 @@ writeFileSync(SERIES, JSON.stringify(series, null, 2) + '\n');
 
 say(`  this reading   : ${sample.date}  used ${sample.used}  by_site_sum ${sample.by_site_sum}  gap ${gapOf(sample)}`);
 // THE CEILING LINE. `used === ceiling` says the budget is spent; this says the
-// guard turned a fetch away, and when. A day that lands on the cap at 23:58
-// refused nothing; 2026-09-19 refused everything from before 19:39.
-{
-  const c = sample.ceiling_reached_at;
-  say(`  ceiling        : ` + (
-    c === undefined ? 'NOT REPORTED — this build predates /budget/odds carrying it'
-    : c === null ? 'no veto recorded today'
-    : c === true ? 'REACHED, hour unknown (a key written before the field existed)'
-    : `REACHED at ${c} — every odds fetch since then was refused`));
-}
+// guard turned ONE charge away, and when — the marker is written once a day.
+// A day that lands on the cap at 23:58 refused nothing; 2026-09-19 was already
+// at 3800 by 19:39 and still 3800 at 22:32, which the post-veto delta now
+// states as a measurement instead of the line asserting it. See ceilingLine.
+const sameDay = series.filter(s => s.date === sample.date);
+say(`  ceiling        : ${ceilingLine(sample.ceiling_reached_at, sameDay, sample.used)}`);
 say(`  unreadable     : ${(sample.unreadable_sites || []).join(', ') || 'none'}`);
 say(`  samples on file: ${series.length}  (keeping the last ${KEEP})\n`);
 
-const sameDay = series.filter(s => s.date === sample.date);
 const pairs = [];
 for (let i = 1; i < sameDay.length; i++) pairs.push(deltas(sameDay[i - 1], sameDay[i]));
 
