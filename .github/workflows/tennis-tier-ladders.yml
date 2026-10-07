@@ -10,6 +10,11 @@ name: Tennis Tier Ladders
 # So this reads the DEPLOYED route across all eight categories the client's
 # TENNIS_TIERS admits, capped per tier and with the cap in its own output.
 #
+# It also reads the CLIENT — the deployed page and src/legacy/field.js on main
+# — rather than a copy of the client's lists kept here. The copy went stale on
+# 2026-09-21 and this run was red against it for three weekly runs. A client it
+# cannot read now refuses and fails; it does not report "no drift".
+#
 # Replaces tennis-masters-ladders, which asked this of one tier.
 
 on:
@@ -37,6 +42,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      # Before the network step, because the parser it exercises is what decides
+      # whether this run can be green. It reaches nothing — fixtures and a fake
+      # fetch — so a failure here is a code defect, not a flaky read.
+      - name: The client-split parser can be made to fail
+        run: node scripts/check-client-tennis-split.mjs
+
       - name: Read ladders across every declared tier
         run: node scripts/tennis-tier-ladders.mjs
         env:

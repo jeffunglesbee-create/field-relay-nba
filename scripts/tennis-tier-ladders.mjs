@@ -78,15 +78,22 @@ const NAMED = /^(ATP Finals|WTA Finals|Next Gen Finals|United Cup|Davis Cup|Bill
 // it a named rank. Group I stays excluded — 508 still serves zero main-draw
 // rounds — and in the client the optional group is now gone from the regex.
 //
-// THESE TWO LISTS ARE A COPY OF THE CLIENT'S, NOT THE CLIENT'S. They are
-// literals here exactly as they are literals there, so this check can only
-// report drift between the route and what it was TOLD the client does. A
-// client change that nobody mirrors here leaves this run red forever against
-// a stale copy; a client change made only here is invisible. Reading
-// jubilant-bassoon's source instead is the fix and is not in this commit.
-const CLIENT_ADMITS = ['ATP Finals', 'WTA Finals', 'Next Gen Finals', 'United Cup',
-                       'Billie Jean King Cup'];
-const CLIENT_EXCLUDES = ['Davis Cup', 'Billie Jean King Cup Group I'];
+// THE LISTS ARE NO LONGER A COPY. Until 2026-10-07 they were two string
+// literals here, naming what the client does, and a copy has exactly one
+// failure mode: it goes stale and nobody can tell. It then did — the client
+// changed, nothing mirrored it, and this run was red against its own stale
+// copy for three weekly scheduled runs. The reverse is worse and silent: a
+// list edited only here reports drift that does not exist.
+//
+// They are now READ FROM THE CLIENT, both from the page a reader loads and
+// from the source on main. See scripts/lib/client-tennis-split.cjs for which
+// text counts as the client and why index.html is not read. Every failure
+// there throws, and a client this run could not read refuses rather than
+// reporting no drift.
+
+import { createRequire } from 'node:module';
+const _require = createRequire(import.meta.url);
+const { readClient } = _require('./lib/client-tennis-split.cjs');
 
 const out = { ts: TS, relay: RELAY, perTier: PER_TIER, tiers: {}, editions: [] };
 
@@ -166,6 +173,20 @@ async function get(path, timeout = 60000) {
   }
 
   // ── TEAM EVENTS AND SEASON FINALS ────────────────────────────────────────
+  // Read the client BEFORE judging anything against it, so the output says
+  // which lists the verdict used rather than leaving a reader to assume.
+  const client = await readClient();
+  out.clientSplit = client;
+  console.log('\n── the client\'s team-event split, READ FROM THE CLIENT');
+  for (const k of ['deployed', 'source']) {
+    const r = client[k];
+    console.log(`   ${k.toUpperCase().padEnd(9)} ${r ? `excludes ${JSON.stringify(r.excludes)}`
+      + ` admits ${JSON.stringify(r.admits)}` : 'REFUSED'}`);
+  }
+  console.log(`   source agrees with deployed : ${client.sourceAgreesWithDeployed === null
+    ? 'UNKNOWN — one of the two refused' : client.sourceAgreesWithDeployed}`);
+  client.refusals.forEach((r) => console.log(`   REFUSED: ${r}`));
+
   const named = all.filter((t) => NAMED.test(String(t?.name || '')));
   out.namedEvents = { matched: named.length,
                       names: [...new Set(named.map((t) => t.name))].sort(),
@@ -210,14 +231,20 @@ async function get(path, timeout = 60000) {
     else modelHeld++;
     (d.mainDrawMatches > 0 ? out.namedEvents.withKnockout : out.namedEvents.withoutKnockout)
       .push(`${t.id} ${t.name} (${d.mainDrawMatches} match(es))`);
-    // The cross-repo check. Both directions, because both are wrong.
-    if (CLIENT_EXCLUDES.includes(t.name) && d.mainDrawMatches > 0) {
-      splitDrift.push(`${t.name} (${t.id}) now serves ${d.mainDrawMatches} main-draw match(es)`
-                    + ` but the client excludes it by name — a real draw nobody can reach`);
-    }
-    if (CLIENT_ADMITS.includes(t.name) && d.mainDrawMatches === 0) {
-      splitDrift.push(`${t.name} (${t.id}) serves NO main-draw round but the client admits it`
-                    + ` — the tab would offer an empty bracket`);
+    // The cross-repo check, against the DEPLOYED client. Both directions,
+    // because both are wrong. When the deployed client could not be read this
+    // comparison is simply not made — the refusal is already recorded and
+    // fails the run, and guessing either way would be the fallback that let a
+    // stale copy stand for three weeks.
+    if (client.deployed) {
+      if (client.deployed.excludes.includes(t.name) && d.mainDrawMatches > 0) {
+        splitDrift.push(`${t.name} (${t.id}) now serves ${d.mainDrawMatches} main-draw match(es)`
+                      + ` but the client excludes it by name — a real draw nobody can reach`);
+      }
+      if (client.deployed.admits.includes(t.name) && d.mainDrawMatches === 0) {
+        splitDrift.push(`${t.name} (${t.id}) serves NO main-draw round but the client admits it`
+                      + ` — the tab would offer an empty bracket`);
+      }
     }
     console.log(`   ${String(t.id).padStart(5)} ${String(t.name).slice(0, 26).padEnd(28)} ${d.season}`
               + ` ${(rec.ladder.join(' ') || '(no main-draw round)').padEnd(46)}`
@@ -228,9 +255,29 @@ async function get(path, timeout = 60000) {
   const checked = out.editions.length;
   const read = out.editions.filter((e) => e.status === 200).length;
   const edgeBad = out.editions.filter((e) => e.status === 200 && e.edgesDeclaredNull === false);
+  // A contradictory client — a name both excluded and ranked — is the client's
+  // own defect rather than drift against the route, and the regex is tested
+  // first so the rank loses. Reported with the drift because both make a draw
+  // unreachable, and distinguished by its wording.
+  const contradictory = [];
+  for (const k of ['deployed', 'source']) {
+    for (const n of (client[k] ? client[k].contradictory : [])) {
+      contradictory.push(`${client[k].where}: '${n}' is both excluded by name and given a rank`
+                       + ` — the regex is tested first, so the rank cannot take effect`);
+    }
+  }
+  if (client.sourceAgreesWithDeployed === false) {
+    contradictory.push(`the client's source and its deployed page disagree on the split`
+                     + ` — a client change that has not shipped`);
+  }
   out.summary = { tiersDeclared: TIERS.length, editionsRequested: checked, editionsRead: read,
                   modelHeld, interiorHoles, unread, edgeRuleViolations: edgeBad.length,
-                  clientSplitDrift: splitDrift };
+                  clientSplitDrift: splitDrift,
+                  // Rule 99: a client this run could not read is not a client
+                  // with no drift. These are listed separately from drift so a
+                  // reader never has to infer which happened.
+                  clientSplitRefusals: client.refusals,
+                  clientSplitContradictions: contradictory };
 
   console.log(`\nCOVERAGE: ${read} edition(s) read of ${checked} requested, across`
             + ` ${TIERS.length} declared tier(s), capped at ${PER_TIER} per tier,`
@@ -247,8 +294,11 @@ async function get(path, timeout = 60000) {
   }
   if (unread.length) { console.log(`unread:`); unread.forEach((u) => console.log(`   ${u}`)); }
   console.log(`edge-rule violations (an edge with a size, or an interior without one): ${edgeBad.length}`);
-  console.log(`client team-event split still matches what the route serves: ${splitDrift.length === 0}`);
+  console.log(`client team-event split still matches what the route serves: ${
+    client.deployed ? splitDrift.length === 0 : 'NOT CHECKED — the deployed client refused'}`);
   splitDrift.forEach((x) => console.log(`   DRIFT: ${x}`));
+  contradictory.forEach((x) => console.log(`   CONTRADICTION: ${x}`));
+  client.refusals.forEach((x) => console.log(`   REFUSAL: ${x}`));
 
   fs.mkdirSync('outbox', { recursive: true });
   const body = JSON.stringify(out, null, 2);
@@ -258,5 +308,11 @@ async function get(path, timeout = 60000) {
   // drift: it means jubilant-bassoon is hiding a real draw, or offering an
   // empty one, and neither repo can notice on its own. An interior hole is a
   // finding about the vendor's data and does not fail.
-  process.exit(edgeBad.length || splitDrift.length ? 1 : 0);
+  //
+  // A REFUSAL ALSO FAILS. Before 2026-10-07 the client's lists were literals
+  // here, so there was nothing to fail to read; now that they are read, a run
+  // that could not read them knows nothing about drift, and the one outcome
+  // worse than red is a green meaning "I could not look".
+  process.exit(edgeBad.length || splitDrift.length
+            || contradictory.length || client.refusals.length ? 1 : 0);
 })().catch((e) => { console.error('failed:', e.stack); process.exit(1); });
