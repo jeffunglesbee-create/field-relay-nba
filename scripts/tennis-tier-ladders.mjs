@@ -70,8 +70,23 @@ const NAMED = /^(ATP Finals|WTA Finals|Next Gen Finals|United Cup|Davis Cup|Bill
 // So this run checks the split against what the route actually serves, and
 // FAILS when they disagree. It is the only automated thing that can: the lists
 // live in one repo and the truth lives in another.
-const CLIENT_ADMITS = ['ATP Finals', 'WTA Finals', 'Next Gen Finals', 'United Cup'];
-const CLIENT_EXCLUDES = ['Davis Cup', 'Billie Jean King Cup', 'Billie Jean King Cup Group I'];
+//
+// AMENDED 2026-10-07, and this is what the check was for. The senior Billie
+// Jean King Cup (509) moved from EXCLUDES to ADMITS: it began serving QF=4
+// SF=2 F=1, this run reported the drift on 2026-09-21, 09-28 and 10-05, and
+// jubilant-bassoon 6af0ffbb dropped it from _TENNIS_DRAW_NO_BRACKET and gave
+// it a named rank. Group I stays excluded — 508 still serves zero main-draw
+// rounds — and in the client the optional group is now gone from the regex.
+//
+// THESE TWO LISTS ARE A COPY OF THE CLIENT'S, NOT THE CLIENT'S. They are
+// literals here exactly as they are literals there, so this check can only
+// report drift between the route and what it was TOLD the client does. A
+// client change that nobody mirrors here leaves this run red forever against
+// a stale copy; a client change made only here is invisible. Reading
+// jubilant-bassoon's source instead is the fix and is not in this commit.
+const CLIENT_ADMITS = ['ATP Finals', 'WTA Finals', 'Next Gen Finals', 'United Cup',
+                       'Billie Jean King Cup'];
+const CLIENT_EXCLUDES = ['Davis Cup', 'Billie Jean King Cup Group I'];
 
 const out = { ts: TS, relay: RELAY, perTier: PER_TIER, tiers: {}, editions: [] };
 
