@@ -2,7 +2,18 @@
 
 **Repo:** field-relay-nba (reads jubilant-bassoon; no change there)
 **HEAD progression:** `74b242e` → `963bbab` → `4f7f8f4` (run 10's artifact) →
-`7df7363` → `0fd9d43` (run 11's artifact)
+`7df7363` → `18c6d69` (run 11's artifact) → `1e41088` (this doc)
+
+**SHA correction, and it is the second time today.** This doc first gave
+`0fd9d43` for run 11's artifact. That SHA does not exist — I wrote it before
+reading the commit the workflow actually made. The identical mistake was made
+and recorded hours earlier in
+`jubilant-bassoon outbox/cc-session-2026-10-06-bjk-cup-draw-unreachable.md`,
+whose own correction note says *"a SHA recorded before the push is a prediction,
+not a reading."* Writing the lesson down did not stop me repeating it; the only
+thing that caught it both times was running `git rev-parse --verify` over every
+SHA in the document. That verification now belongs in the writing step, not
+after it.
 **Checks:** `scripts/check-client-tennis-split.mjs` 37 of 37
 **Confidence:** 96
 **Credits spent at the Odds API vendor:** 0
