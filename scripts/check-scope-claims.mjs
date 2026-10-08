@@ -175,5 +175,15 @@ const failed = problems.length + omissions;
 console.log(`\nCOVERAGE: ${files.length} .js/.mjs files outside ${[...SKIP].join(', ')}.`);
 console.log(`R1 fires only on a script that BOTH claims reach and hardcodes a list;`);
 console.log(`a script that globs its own population is out of scope and unchecked here.`);
+// THE POPULATION COMES FROM `git grep`, WHICH SEES TRACKED FILES ONLY.
+// Measured 2026-10-08: scripts/check-reconcile-tally.mjs was written, every
+// gate was run locally, all nineteen passed, and the same gate failed in CI on
+// the very next push — because until `git add` the new file was invisible to
+// the `git grep -l` at the population line. Running this before staging proves
+// nothing about the commit being made, and the pass it gives is the kind that
+// reads as evidence.
+console.log(`The population is built with \`git grep -l\`, so a file that is not yet`);
+console.log(`TRACKED is invisible here. Run this after \`git add\`, not before — a pass`);
+console.log(`on an untracked file is a pass that never looked at it.`);
 console.log(failed ? `\n${failed} FAILED` : `\nall scope claims match their declared population`);
 process.exit(failed ? 1 : 0);

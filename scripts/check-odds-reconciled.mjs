@@ -36,7 +36,11 @@ const check = (n, ok, d = '') => { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${
 // watch-odds-pairing-rate.mjs names reconcileOddsCredit in prose explaining
 // why a ledger counter can go backwards (a refund, not a month roll). It makes
 // no charged call.
-// SCOPE-EXCLUDES: scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs
+// check-reconcile-tally.mjs (2026-10-08) checks the reconciler's own bookkeeping
+// — that it counts every call once, with no read, and reports array-or-null. It
+// asserts on reconcileOddsCredit's source and imports creditsKeptBy, and makes
+// no charged call.
+// SCOPE-EXCLUDES: scripts/watch-odds-pairing-rate.mjs src/budget-helpers.js scripts/provenance-runtime-probe.mjs scripts/check-odds-attribution.mjs scripts/mutate-odds-attribution.mjs scripts/watch-odds-attribution-gap.mjs scripts/watch-odds-site-drift.mjs scripts/mutate-odds-site-drift.mjs scripts/watch-odds-daily-vs-vendor.mjs scripts/check-reconcile-tally.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 function fnBounds(lines, i) {
   let start = 0;
