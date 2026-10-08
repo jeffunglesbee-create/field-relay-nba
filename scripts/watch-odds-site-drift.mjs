@@ -57,6 +57,7 @@
 // READ-ONLY. One GET of /budget/odds per run. No credits: the route reads KV
 // counters and never reaches the vendor.
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { total } from './lib/summary-invariants.mjs';
 
 const RELAY  = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const SERIES = 'outbox/odds-site-drift-series.json';
@@ -464,10 +465,18 @@ say(`  unreadable     : ${(sample.unreadable_sites || []).join(', ') || 'none'}`
   else if (r === null) say(`  reconcile      : UNREADABLE — the tally could not be read, which is not "no decisions"`);
   else if (!r.length) say(`  reconcile      : no decisions recorded for ${sample.date}`);
   else {
-    const kept = r.reduce((a, x) => a + (Number(x.credits_kept) || 0), 0);
-    const calls = r.reduce((a, x) => a + (Number(x.n) || 0), 0);
-    say(`  reconcile      : ${calls} call(s) over ${r.length} cell(s), credits_kept ${kept}`
-      + ` of used ${sample.used}`);
+    // total(), not `reduce(a + (Number(x) || 0))`. The second form turns a
+    // missing field into a confident zero, and check-aggregate-launders-unknowns
+    // caught exactly that in these two lines before they ever ran against real
+    // rows — the same coercion that once published briefs_counted: 0 over 48
+    // nulls. total() sums only numbers and says how many it skipped.
+    const kept = total(r, 'credits_kept');
+    const calls = total(r, 'n');
+    say(`  reconcile      : ${calls.sum} call(s) over ${r.length} cell(s), credits_kept`
+      + ` ${kept.sum} of used ${sample.used}`
+      + (kept.skipped || calls.skipped
+          ? `   NOT SUMMED: ${kept.skipped} kept and ${calls.skipped} n were non-numeric`
+          : ''));
     say(`    site                        state         cache        n   kept`);
     for (const x of r.slice(0, 8)) {
       say(`    ${String(x.site).slice(0, 26).padEnd(28)}${String(x.state).padEnd(14)}`
