@@ -1152,6 +1152,12 @@ async function sendWebPush(sub, payload, env) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // League IDs for api-sports.io queries, keyed by FIELD sport identifier
+// The sports whose adapters must NOT run the soccer live-WP loop in
+// handleV2Games. Hoisted to one constant on 2026-10-08 because the gate below
+// and the loop's own `continue` both need it, and two copies of a literal list
+// is the drift this repo keeps paying for.
+const V2_NON_SOCCER_WP_SPORTS = ['baseball', 'football', 'basketball', 'australian-football'];
+
 // ── WC 2026 pre-game lambda cache ─────────────────────────────────────────────
 // Fetches Odds API h2h market once per ~5 min, converts to Poisson lambdas via
 // oddsToLambda(), and stores in a module-level Map for use in the WP loop.
@@ -4498,7 +4504,29 @@ async function handleV2Games(url, env, ctx, request = null) {
             }
         }
 
-        const wcLambdas = await getWCPregameLambdas(env);
+        // GATED BY THE LOOP'S OWN PREDICATE, because it was unconditional and
+        // the charge is real. getWCPregameLambdas spends 4 credits per attempt
+        // (markets h2h,totals x regions us,eu, and ODDS_REGIONS_MULTIPLY is
+        // true, measured 2026-09-05) and its only cache is _wcLambdaCache —
+        // module-level in a Worker isolate, so it does not survive across
+        // isolates and a cold one charges again. Every /v2/games request paid
+        // that, for every sport and every date.
+        //
+        // Measured 2026-10-07 from /budget/odds: by_site getWCPregameLambdas
+        // 2536 against 4 the day before, which is 634 charged attempts, and
+        // the day's 3800 ceiling was gone by 01:16:29Z. The provider billed
+        // 514 across the same 24.6h window, so almost none of those attempts
+        // reached the vendor — the edge cache answered them while our counter
+        // charged the estimate anyway.
+        //
+        // `wcLambdas` is read at exactly four places, all inside the loop
+        // below and all after both of its guards, so this gate changes no
+        // behaviour: when nothing passes the guards the value was never read.
+        // The sport test is request-scoped (cfg is one league per request), so
+        // it alone removes every /v2/games?sport=nfl|mlb|nba|afl call.
+        const _wcWpPossible = !V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)
+            && games.some(g => g.state === 'live' && g.situation);
+        const wcLambdas = _wcWpPossible ? await getWCPregameLambdas(env) : null;
 
         for (const g of games) {
             if (g.state !== 'live' || !g.situation) continue;
@@ -4515,7 +4543,7 @@ async function handleV2Games(url, env, ctx, request = null) {
             // games (Rule 1). Gate by excluding the non-soccer adapters — soccer's
             // own cfg.espnSport is undefined (defaults to 'soccer' at _espnSportPath),
             // so an exclude-list is the robust test, mirroring the dispatch at ~4008.
-            if (['baseball', 'football', 'basketball', 'australian-football'].includes(cfg.espnSport)) continue;
+            if (V2_NON_SOCCER_WP_SPORTS.includes(cfg.espnSport)) continue;
             const { situation: sit } = g;
             const hGoals = g.home.score ?? 0;
             const aGoals = g.away.score ?? 0;

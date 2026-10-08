@@ -82,6 +82,15 @@ jobs:
       # removed on 2026-09-19 and it now has zero.
       #
       # It also asserts both tables are in /d1/execute's ALLOWED_TABLES. That
+      # The spend this one prevents is the largest single-site charge the budget
+      # has ever taken: by_site getWCPregameLambdas read 2536 on 2026-10-07
+      # against 4 the day before, and the day's 3800 ceiling was gone by
+      # 01:16:29Z. Source-only, so it costs nothing and reaches nothing.
+      - name: the WC lambda call stays gated, and the sport list stays one list
+        run: |
+          node scripts/check-wc-lambdas-gated.mjs --self-test
+          node scripts/check-wc-lambdas-gated.mjs
+
       # route 403s anything else, and a 403 reads identically to a D1 failure
       # from outside — which is precisely how Task 0b was blocked.
       - name: the odds budget schema is on ARCHIVE_DB and readable from CI
