@@ -88,6 +88,14 @@ jobs:
           node scripts/check-wc-lambdas-gated.mjs --self-test
           node scripts/check-wc-lambdas-gated.mjs
 
+      # The guard fell open 245 times on 2026-10-07 for 1263 credits of real
+      # spend the counter never saw, and both catches discarded the error, so
+      # nothing said what threw. Source-only.
+      - name: a degrade-open names its error and counts it by reason
+        run: |
+          node scripts/check-degrade-open-reason.mjs --self-test
+          node scripts/check-degrade-open-reason.mjs
+
       # The half of the spend question `used` cannot answer: how much of what the
       # counter charged the provider never asked for. Four of reconcile's five
       # outcomes wrote nothing until 2026-10-08, so a refunded estimate and a

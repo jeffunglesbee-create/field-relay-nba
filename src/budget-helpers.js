@@ -155,17 +155,51 @@ function _degradeKey(date = new Date().toISOString().slice(0, 10)) {
     return `odds:degraded:${date}`;
 }
 
-async function _countDegradeOpen(env, units) {
+/** `reason` added 2026-10-08, and it is the whole point of this revision.
+ *
+ *  Both call sites were `catch (_)` — the error DISCARDED — so the counter said
+ *  how often the guard fell open and never what threw. Measured from
+ *  /budget/odds: 245 events and 1263 credits on 2026-10-07, 125 and 821 by
+ *  17:42 on 10-08. That is real spend the daily counter never saw, every day,
+ *  and the cause was unknowable from outside the worker by construction.
+ *
+ *  The histogram is keyed by a TRUNCATED message, so one recurring throw reads
+ *  as one key with a large count rather than as noise. Capped at 8 keys: an
+ *  unbounded map on a KV value is how a diagnostic becomes the outage. */
+export const DEGRADE_REASON_CAP = 8;
+export const DEGRADE_OTHER_KEY = '(other, over 8 distinct)';
+
+/** One more count for `reason` in a capped histogram, as a NEW object.
+ *
+ *  Capped because an unbounded map on a KV value is how a diagnostic becomes
+ *  the outage it was added to explain. An ALREADY-PRESENT key keeps counting
+ *  past the cap — otherwise the recurring throw this exists to find would stop
+ *  being counted the moment eight distinct messages had been seen, which is
+ *  the opposite of the point. */
+export function bumpReason(prev, reason) {
+    const reasons = (prev && typeof prev === 'object' && !Array.isArray(prev)) ? { ...prev } : {};
+    const r = String(reason || 'unnamed').slice(0, 120);
+    if (reasons[r] !== undefined || Object.keys(reasons).length < DEGRADE_REASON_CAP) {
+        reasons[r] = (Number(reasons[r]) || 0) + 1;
+    } else {
+        reasons[DEGRADE_OTHER_KEY] = (Number(reasons[DEGRADE_OTHER_KEY]) || 0) + 1;
+    }
+    return reasons;
+}
+
+async function _countDegradeOpen(env, units, reason = '') {
     try {
         const key = _degradeKey();
         const raw = await env.FIELD_JOURNALISM.get(key);
         const cur = raw ? JSON.parse(raw) : { events: 0, credits: 0 };
+        const reasons = bumpReason(cur.reasons, reason);
         await env.FIELD_JOURNALISM.put(key, JSON.stringify({
             events: (Number(cur.events) || 0) + 1,
             // Credits, not just events: one degraded historical call is 30 and
             // one degraded live call is 1. An event count would make those look
             // the same and could not be compared against an escape figure.
             credits: (Number(cur.credits) || 0) + (Number(units) || 0),
+            reasons,
             last: new Date().toISOString(),
         }), { expirationTtl: 172800 });
     } catch (_) {
@@ -300,11 +334,17 @@ async function chargeMonthlyOdds(env, units = 1) {
             await env.FIELD_JOURNALISM.put(warnedKey, new Date().toISOString(), { expirationTtl: 60 * 86400 });
         }
         return false;
-    } catch (_) {
+    } catch (e) {
         // Degrade-open, witnessed on the same counter the daily guard uses. The
         // call is about to spend while the month did not move, and an
         // unattributed discrepancy is what cost a day of elimination on 09-17.
-        await _countDegradeOpen(env, units);
+        //
+        // `e`, not `_`: this was an empty catch, so 1263 credits of degraded
+        // spend on 2026-10-07 had no attributable cause. The message is named
+        // rather than logged only, because a console line is not readable from
+        // outside the worker and /budget/odds is.
+        console.warn(`[odds-month-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);
+        await _countDegradeOpen(env, units, `month: ${String(e && e.message || e)}`);
         return true;
     }
 }
@@ -362,12 +402,20 @@ async function checkAndIncrementDailyOdds(env, units = 1, site = 'unattributed')
             }
             return false;
         }
-    } catch (_) {
+    } catch (e) {
         // DEGRADE-OPEN, AND NOW WITNESSED. The call is about to spend at the
         // vendor while odds:daily:* did not move; without this line the only
         // evidence is a discrepancy nobody can attribute, which is what cost a
         // day of elimination on 2026-09-17.
-        await _countDegradeOpen(env, units);
+        //
+        // `e`, not `_`. Witnessed is not the same as explained: the count said
+        // the guard fell open 245 times on 2026-10-07 and nothing said what
+        // threw. chargedFromBatch throws by design on an unexpected batch
+        // shape, ensureOddsBudgetTables throws when ARCHIVE_DB is missing, and
+        // db.batch can throw on its own — three causes with three different
+        // fixes, indistinguishable while the error was discarded.
+        console.warn(`[odds-daily-guard] degrade-open: ${String(e && e.message || e).slice(0, 160)}`);
+        await _countDegradeOpen(env, units, `daily: ${String(e && e.message || e)}`);
         return true; // degrade-open
     }
 }

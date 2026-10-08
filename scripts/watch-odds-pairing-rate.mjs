@@ -505,6 +505,28 @@ if (integrity.state === 'no_baseline') {
   console.log(`      known CI spend    : ${integrity.outsideLedger}   (${ci.runs} backfill run(s) in window${ci.undated ? `, ${ci.undated} undated row(s) NOT subtracted` : ''})`);
   console.log(`      UNEXPLAINED       : ${integrity.unexplained}   (tolerance ${integrity.tolerance})`);
   console.log(`      guard fell open   : ${degrade.state}${degrade.credits === null ? '' : ` — ${degrade.credits} credit(s)`}`);
+  // WHAT THREW, added 2026-10-08. `state` and `credits` say how often and how
+  // much; both degrade-open catches were `catch (_)` until today, so the cause
+  // was not recorded anywhere and this line had nothing to print. 245 events
+  // and 1263 credits on 2026-10-07 with no attributable cause.
+  //
+  // Absent is not empty: a reading from before the histogram existed carries no
+  // `reasons` at all, and saying "no reason recorded" over that would read as
+  // "it threw for no reason".
+  {
+    const rs = reading.degraded_open && reading.degraded_open.reasons;
+    if (degrade.state === 'none') { /* nothing fell open; no cause to name */ }
+    else if (!rs || typeof rs !== 'object') {
+      console.log(`      what threw        : NOT RECORDED — this reading predates the reason histogram`);
+    } else {
+      const pairs = Object.entries(rs).sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
+      if (!pairs.length) console.log(`      what threw        : the histogram is present and empty`);
+      else for (const [why, n] of pairs.slice(0, 5)) {
+        console.log(`      what threw        : ${String(n).padStart(5)} x  ${String(why).slice(0, 110)}`);
+      }
+      if (pairs.length > 5) console.log(`      ... and ${pairs.length - 5} more distinct reason(s)`);
+    }
+  }
   if (degrade.state === 'none' && integrity.unexplained > integrity.tolerance) {
     console.log(`      no guard degraded, so the unexplained credits are NOT a`);
     console.log(`      degrade-open. That eliminates the last named candidate.`);
