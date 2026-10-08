@@ -1,5 +1,88 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-08 — the guard suite was off for five days, and a call that took the whole cap
+
+**HEAD:** `b6f76b8` → `0674a24`. Last green deploy `0645fc8` (2026-10-04).
+Session docs: `outbox/cc-session-2026-10-06-bjk-cup-draw-unreachable.md`,
+`outbox/cc-session-2026-10-06-tennis-split-read-from-client.md`.
+Spent this session: **0 credits** at the vendor.
+
+**`guards.yml` has failed every run since 2026-10-03 and that silenced fourteen
+gates.** Last success was run 397 on 2026-09-23 — the same date as the close-out
+above. Step 6, `check-handoff-current.mjs`, went red on the staleness of this
+very document, and because the gates are sequential steps in ONE job, every step
+after it was *skipped*: the credential scan, the odds-budget schema, the monthly
+atomic charge, the `/d1/execute` allow-list, the team-name matcher, all of them.
+Run 407 shows a new gate added that day skipped on its first run. The job reports
+one red that reads as "HANDOFF stale", so nothing said the suite had stopped
+checking. The staleness step now runs LAST: a stale document must not blind the
+spend and credential gates.
+
+**`getWCPregameLambdas` was awaited on every `/v2/games` request and took the
+day's whole cap** (`0674a24`). 4 credits per attempt — markets h2h,totals over
+regions us,eu, `ODDS_REGIONS_MULTIPLY` true — and its only cache is
+`_wcLambdaCache`, module-level in a Worker isolate, so a cold isolate charges
+again. Measured 2026-10-07 from `/budget/odds`:
+
+```
+by_site getWCPregameLambdas  2536      (4 the day before)
+by_site handleCFLOddsProbs   1062      (54 the day before)
+by_site_sum                  3799 / 3800,  remaining 1
+ceiling_reached_at           2026-10-07T01:16:29.508Z
+```
+
+2536 / 4 = **634 charged attempts inside 76 minutes.** The provider billed 514
+across the same 24.6h window, so almost none reached the vendor — the
+`cacheEverything` edge cache answered them while `consumeOddsCredit` had already
+charged the estimate ahead of the fetch. Gated on the loop's own predicate, which
+changes no behaviour: `wcLambdas` is read at four places, all inside the loop and
+all after both its guards. `check-wc-lambdas-gated.mjs` holds it, 10 of 10, and
+the live source was mutated too.
+
+**NOT answered, and not guessed:** whether those 634 charges should have been
+refunded. `reconcileOddsCredit` refunds on `cf-cache-status: HIT` or a numeric
+`x-requests-last` and KEEPS the estimate on `no-header`, and it persists no state
+at all, so which branch fired is unmeasurable from outside. A tally would be a KV
+write on the highest-frequency path in the repo, so it is a decision rather than a
+patch. `handleCFLOddsProbs` at 1062 is untouched.
+
+**The daily-vs-monthly refusal had latched, and a watch had become its own
+finding.** `e0237d8` took condition (2)'s span from the trailing non-decreasing
+run of readings rather than the ends of the series FILE, so the 2026-09-30 reset
+no longer makes the delta negative forever; four runs had refused with
+`month-boundary` while the monthly counter climbed 162 → 474 → 1450, and none was
+red, because refusing is that watch's success path. `339b10f` added
+`check-refusal-streak.mjs`, which fails any gated watch that refuses three runs
+in a row and was RED on the committed record of the latch before the fix landed.
+`12d7a9c` excluded `silently-dead-crons.yml` from its own judgement — it exits 1
+on any finding, so three findings made it its own finding — verified working on
+the 2026-10-06 run.
+
+**The tennis split stopped being a copy** (`e351a92`, `7df7363`, `963bbab`).
+`tennis-tier-ladders.mjs` held two literals naming what jubilant-bassoon's Draw
+tab admits and excludes; the client changed on 2026-09-21, nothing mirrored it,
+and the run was red against its own stale copy for three weekly runs. It now reads
+the deployed page and `field.js` on main, refuses rather than reporting no drift
+when it cannot read either, and run 11 is green on both. The finding it had been
+reporting was real: BJK Cup 509 serves a QF/SF/F nation knockout and the client
+hid it by name.
+
+**The ceiling line claimed a whole-day refusal from a once-a-day marker**
+(`33c3d31`). `odds:daily:<date>:warned` is written on the FIRST vetoed charge and
+never again. On 2026-10-07 the watch printed "every odds fetch since then was
+refused" while its own table four lines below read used 3712 at 02:53 and 3799 at
+18:00 — 87 credits landed after the veto. Replaced with a measured lower bound
+that reads UNOBSERVED rather than zero when no interval lies wholly after the
+veto.
+
+**`forecast_observations` is on the `/d1/execute` allow-list** (`0645fc8`,
+deploy green 2026-10-04), for field-laboratory's EPL forecaster.
+
+**Watch 1 is green for the first time in weeks.** The closed day 2026-10-06 reads
+`tracks-the-bill`: vendor billed 569, our counter 451, known CI 80, residual 38
+against a tolerance of 50.
+
+
 ## SESSION CLOSE-OUT — 2026-09-23 — the dead-pair ledger, and two counters that never agreed
 
 **HEAD:** `43f38ab` → `b6f76b8`. Deploy 986 green.

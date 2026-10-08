@@ -55,9 +55,6 @@ jobs:
       - name: every anchored citation still resolves
         run: node scripts/check-doc-citations.mjs --self-test && node scripts/check-doc-citations.mjs
 
-      - name: HANDOFF.md is not stale
-        run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
-
       # AGE IS NOT THE ONLY WAY A HANDOFF GOES WRONG, AND IT WAS NOT THE ONE
       # THAT BIT. On 2026-09-19 the document above passed all day while saying a
       # 200-credit fill was UNRUN; it had run at 03:26Z. The age guard was
@@ -230,3 +227,19 @@ jobs:
         # .github/scripts/ and scripts/ (which only this job sees). One copy
         # would leave half the change ungated — the same trigger-vs-input gap
         # this file's header describes.
+      # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
+      # step 6, and the gates here are sequential steps in ONE job, so its red
+      # SKIPPED every step after it: the credential scan's siblings, the odds
+      # budget schema, the monthly atomic charge, the /d1/execute allow-list,
+      # the team-name matcher. Measured 2026-10-08: guards.yml last succeeded on
+      # run 397, 2026-09-23, and every run from 398 onward failed here and
+      # skipped fourteen gates. Run 407 shows a gate added that day skipped on
+      # its very first run. The job reported one red reading "HANDOFF stale", so
+      # nothing said the suite had stopped checking anything else.
+      #
+      # It still fails the job — a stale handoff is a real defect and
+      # continue-on-error would hide it. It fails LAST, so a stale document
+      # cannot blind the spend and credential gates.
+      - name: HANDOFF.md is not stale
+        if: always()
+        run: node scripts/check-handoff-current.mjs --self-test && node scripts/check-handoff-current.mjs
