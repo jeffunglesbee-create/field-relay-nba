@@ -15950,9 +15950,19 @@ export default {
                 // THIS RELAY COMPUTES NOTHING FOR IT (Rule 47). The model runs in
                 // Fable and the rows arrive already formed; the relay stores a value
                 // it did not derive.
+                //
+                // odds_reconcile_state added 2026-10-08. reconcileOddsCredit has
+                // five outcomes and recorded none of them; four of the five write
+                // no correction at all, so a refunded estimate and one KEPT for
+                // want of a provider receipt were indistinguishable from outside.
+                // That is the question 2026-10-07 could not answer: by_site
+                // getWCPregameLambdas read 2536 against a provider that billed 514.
+                // Read-only from CI, like every other counter here — the worker is
+                // the only writer.
                 'odds_fill_dead_pairs',
                 'forecast_observations',
-                'odds_budget_month'];
+                'odds_budget_month',
+                'odds_reconcile_state'];
             const tableName = sql.match(/(?:INTO|FROM|UPDATE|TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+(\w+)/i)?.[1];
             if (tableName && !ALLOWED_TABLES.includes(tableName)) {
                 return new Response(JSON.stringify({ ok: false, error: 'table not allowed', table: tableName }),

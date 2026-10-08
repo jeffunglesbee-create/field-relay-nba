@@ -197,6 +197,12 @@ export function sampleFrom(body, at = new Date().toISOString()) {
     // as undefined, which is a fourth thing — never measured — and is left
     // undefined rather than coerced to null.
     ceiling_reached_at: d.ceiling_reached_at,
+    // WHAT RECONCILE DECIDED TODAY, added 2026-10-08. An array of
+    // (site, state, cache, n, credits_kept) cells, or null when the tally could
+    // not be read — never [] on a failure, which the route already guarantees
+    // and this preserves rather than normalising away. Older samples predate
+    // the field and read as undefined: never measured, a fourth state.
+    reconcile: d.reconcile,
   } };
 }
 
@@ -339,6 +345,25 @@ if (process.argv.includes('--self-test')) {
         'never measured is not the same as measured-and-clean (Rule 99)');
   }
 
+  // THE RECONCILE TALLY, added 2026-10-08. Four states, and three of them are
+  // not each other: never measured, unreadable, and no decisions. Collapsing
+  // any pair of those is how a blank table would read as a clean one.
+  {
+    // Its own B: the one above is block-scoped, and borrowing it threw a
+    // ReferenceError that crashed the suite where a named FAIL belonged.
+    const B2 = (extra) => ({ daily: { date: 'd', used: 1, by_site: {}, by_site_sum: 0, ...extra } });
+    const rec = (extra) => sampleFrom(B2(extra), 'T').sample.reconcile;
+    one('an array of cells is carried through',
+        rec({ reconcile: [{ site: 's', state: 'no-header', cache: 'none', n: 2, credits_kept: 8 }] }).length, 1,
+        'the cells are what name a kept estimate');
+    one('null stays null', rec({ reconcile: null }), null,
+        'the tally could not be read, which is not "no decisions" (Rule 99)');
+    one('an empty array stays empty, not null', rec({ reconcile: [] }), [],
+        'no decisions today is a reading, and must not be coerced to unreadable');
+    one('a build that never reported it stays undefined', rec({}), undefined,
+        'never measured is a fourth state');
+  }
+
   // THE CEILING LINE'S WORDS. It said "every odds fetch since then was refused"
   // for any veto marker, and the marker is written once per day on the FIRST
   // refusal, so the sentence was an assertion the field cannot support. These
@@ -424,6 +449,33 @@ say(`  this reading   : ${sample.date}  used ${sample.used}  by_site_sum ${sampl
 const sameDay = series.filter(s => s.date === sample.date);
 say(`  ceiling        : ${ceilingLine(sample.ceiling_reached_at, sameDay, sample.used)}`);
 say(`  unreadable     : ${(sample.unreadable_sites || []).join(', ') || 'none'}`);
+// WHAT RECONCILE KEPT. This is the half of the spend question `used` cannot
+// answer: `used` is what the counter charged, and credits_kept is how much of
+// that the provider never asked for and reconcile did not hand back. On
+// 2026-10-07 by_site getWCPregameLambdas read 2536 against a provider that
+// billed 514 and nothing recorded which reconcile branch had fired.
+//
+// REPORTED, NOT JUDGED. There is no threshold here yet — the first days of this
+// table are the baseline, and a gate written before its own baseline is a
+// number invented to be met.
+{
+  const r = sample.reconcile;
+  if (r === undefined) say(`  reconcile      : NOT REPORTED — this build predates /budget/odds carrying it`);
+  else if (r === null) say(`  reconcile      : UNREADABLE — the tally could not be read, which is not "no decisions"`);
+  else if (!r.length) say(`  reconcile      : no decisions recorded for ${sample.date}`);
+  else {
+    const kept = r.reduce((a, x) => a + (Number(x.credits_kept) || 0), 0);
+    const calls = r.reduce((a, x) => a + (Number(x.n) || 0), 0);
+    say(`  reconcile      : ${calls} call(s) over ${r.length} cell(s), credits_kept ${kept}`
+      + ` of used ${sample.used}`);
+    say(`    site                        state         cache        n   kept`);
+    for (const x of r.slice(0, 8)) {
+      say(`    ${String(x.site).slice(0, 26).padEnd(28)}${String(x.state).padEnd(14)}`
+        + `${String(x.cache).padEnd(11)}${String(x.n).padStart(5)}${String(x.credits_kept).padStart(7)}`);
+    }
+    if (r.length > 8) say(`    ... and ${r.length - 8} more cell(s), ranked by kept`);
+  }
+}
 say(`  samples on file: ${series.length}  (keeping the last ${KEEP})\n`);
 
 const pairs = [];

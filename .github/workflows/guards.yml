@@ -88,6 +88,15 @@ jobs:
           node scripts/check-wc-lambdas-gated.mjs --self-test
           node scripts/check-wc-lambdas-gated.mjs
 
+      # The half of the spend question `used` cannot answer: how much of what the
+      # counter charged the provider never asked for. Four of reconcile's five
+      # outcomes wrote nothing until 2026-10-08, so a refunded estimate and a
+      # kept one were the same from outside.
+      - name: reconcile counts every call once, with no read
+        run: |
+          node scripts/check-reconcile-tally.mjs --self-test
+          node scripts/check-reconcile-tally.mjs
+
       # route 403s anything else, and a 403 reads identically to a D1 failure
       # from outside — which is precisely how Task 0b was blocked.
       - name: the odds budget schema is on ARCHIVE_DB and readable from CI

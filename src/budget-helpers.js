@@ -464,6 +464,27 @@ async function peekDailyOdds(env, forDate = null) {
         } catch (_) {
             degraded = null;
         }
+        // WHAT RECONCILE DECIDED TODAY. An ARRAY of cells or null — never [] on
+        // a failed read, for the same reason degraded_open is an object or null:
+        // "reconcile made no decisions today" and "the tally could not be read"
+        // are different answers (Rule 99), and an empty array reads as the first.
+        //
+        // credits_kept is the estimate reconcile did NOT hand back, so it is
+        // directly comparable to by_site.used above. A day where by_site is
+        // large and nearly all of it sits under state 'no-header' is the
+        // overcharge: the provider sent no receipt, the edge cache answered, and
+        // the estimate stood. That comparison is the entire reason for this.
+        let reconcile = null;
+        try {
+            if (env.ARCHIVE_DB && await ensureOddsBudgetTables(env)) {
+                const r = await env.ARCHIVE_DB.prepare(
+                    `SELECT site, state, cache, n, credits_kept FROM odds_reconcile_state
+                      WHERE day = ? ORDER BY credits_kept DESC, n DESC`).bind(date).all();
+                reconcile = Array.isArray(r && r.results) ? r.results : null;
+            }
+        } catch (_) {
+            reconcile = null;
+        }
         // WAS THE CEILING ACTUALLY HIT, AND WHEN. `used === ceiling` says the
         // budget is exhausted; it does not say a fetch was ever refused. The
         // guard writes this key only when it vetoes, so its presence is the
@@ -525,6 +546,8 @@ async function peekDailyOdds(env, forDate = null) {
             // degraded. The binding-absent path cannot write here at all — that
             // state surfaces as this route returning 503 instead.
             degraded_open: degraded,
+            // Present and null when unreadable, never [] — see the read above.
+            reconcile,
             grant_today: grants.length ? grants : null,
         };
     } catch (_) {
@@ -661,10 +684,36 @@ const SQL_MONTH_CHARGE = `UPDATE odds_budget_month SET used = used + ?
 // day's. Clamped at zero so a lost race cannot hand back headroom truly spent.
 const SQL_FIX_MONTH    = 'UPDATE odds_budget_month SET used = MAX(0, used + ?) WHERE month = ?';
 
+// WHAT RECONCILE DECIDED, AND WHAT IT KEPT. Added 2026-10-08.
+//
+// reconcileOddsCredit has five outcomes and recorded NONE of them. Four of the
+// five write nothing at all — no-kv, no-response, no-header, bad-header — and
+// `reconciled` with a zero delta returns before the correction block too. So
+// "the estimate was refunded" and "the estimate was kept because the provider
+// sent no receipt" were indistinguishable from outside the worker, which is
+// exactly the question 2026-10-07 could not answer: by_site
+// getWCPregameLambdas read 2536 against a provider that billed 514.
+//
+// One upsert, no read: the row is the (day, site, state, cache) cell and the
+// statement increments it. ON CONFLICT means concurrent isolates cannot lose
+// a count the way a KV read-modify-write does, which is the defect the daily
+// and monthly counters were both moved into D1 to escape.
+//
+// `cache` is cf-cache-status verbatim, or 'none'. It is a column rather than a
+// note because the repo already measured (2026-09-11, readQuotaHeader below)
+// that a Cloudflare edge cache hit returns the body WITHOUT the vendor's
+// headers — so a cache hit and a receipt-less origin response can land in the
+// same `no-header` state, and only this column separates them.
+const SQL_RECONCILE_TALLY = `INSERT INTO odds_reconcile_state (day, site, state, cache, n, credits_kept)
+            VALUES (?, ?, ?, ?, 1, ?)
+            ON CONFLICT(day, site, state, cache) DO UPDATE SET n = n + 1,
+                                                               credits_kept = credits_kept + ?`;
+
 export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHARGE,
                                  fixDay: SQL_FIX_DAY, fixSite: SQL_FIX_SITE,
                                  monthSeed: SQL_MONTH_SEED, monthCharge: SQL_MONTH_CHARGE,
-                                 fixMonth: SQL_FIX_MONTH };
+                                 fixMonth: SQL_FIX_MONTH,
+                                 reconcileTally: SQL_RECONCILE_TALLY };
 export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
 
 /** Did the batch charge? The daily UPDATE returns its row only when the ceiling
@@ -700,6 +749,21 @@ async function ensureOddsBudgetTables(env) {
               site TEXT NOT NULL,
               used INTEGER NOT NULL DEFAULT 0,
               PRIMARY KEY (day, site)
+            )`),
+        // WHAT RECONCILE DECIDED. See SQL_RECONCILE_TALLY for why this table
+        // exists; the short version is that four of reconcile's five outcomes
+        // wrote nothing, so a kept estimate and a refunded one looked the same
+        // from outside. credits_kept is the estimate that was NOT handed back,
+        // so it is directly comparable to odds_budget_site.used.
+        env.ARCHIVE_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS odds_reconcile_state (
+              day          TEXT NOT NULL,
+              site         TEXT NOT NULL,
+              state        TEXT NOT NULL,
+              cache        TEXT NOT NULL,
+              n            INTEGER NOT NULL DEFAULT 0,
+              credits_kept INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY (day, site, state, cache)
             )`),
         // THE MONTHLY COUNTER, 2026-09-23. It stayed a KV read-modify-write when
         // the daily one moved into a transaction on 09-19, with FOUR writers on
@@ -815,7 +879,55 @@ export function oddsCreditCost(url) {
 // Returns a report instead of a boolean, because "we could not tell" and "it
 // cost zero" are different answers and this session has now produced four
 // confident falsehoods from collapsing exactly that distinction.
+/** The estimate reconcile did NOT hand back, per outcome. `reconciled` keeps
+ *  what the provider actually billed; a cache hit keeps nothing; every outcome
+ *  that writes no correction keeps the whole estimate, which is the overcharge
+ *  2026-10-07 could not name.
+ *
+ *  It reads the INTENT, not the landing: if the D1 correction throws, the
+ *  warning in the correction block is the record of that, and this column would
+ *  otherwise need a second write to amend. Stated here rather than left for a
+ *  reader to discover from a number that is slightly too low. */
+export function creditsKeptBy(state, estimated, actual) {
+    if (state === 'cache-hit') return 0;
+    if (state === 'reconciled') return typeof actual === 'number' ? actual : estimated;
+    return estimated;
+}
+
+/** ONE TALLY SITE, WHICH IS WHY THIS IS A WRAPPER.
+ *
+ *  reconcileOddsCredit returns from six places — no-kv, no-response, no-header,
+ *  bad-header, a zero delta, and the end — and four of them write nothing. A
+ *  tally added before each `return out` is five chances to miss one, and the
+ *  one missed would be invisible: a state that never appears reads exactly like
+ *  a state that never happened (Rule 99). Wrapping makes the count structural.
+ *
+ *  The inner function's signature and return value are unchanged, and all nine
+ *  external call sites (index.js x6, ambient-do.js x2, wp-resolver.js x1) pass
+ *  (env, estimated, resp, site) and read `out`. */
 export async function reconcileOddsCredit(env, estimated, resp, site = '') {
+    const out = await _reconcileOddsCredit(env, estimated, resp, site);
+    try {
+        if (env && env.ARCHIVE_DB && await ensureOddsBudgetTables(env)) {
+            const kept = creditsKeptBy(out.state, estimated, out.actual);
+            const cache = (resp && resp.headers && resp.headers.get('cf-cache-status')) || 'none';
+            await env.ARCHIVE_DB.prepare(ODDS_BUDGET_SQL.reconcileTally)
+                .bind(new Date().toISOString().slice(0, 10), site || '(unnamed)', out.state,
+                      String(cache), kept, kept)
+                .run();
+        }
+    } catch (e) {
+        // A tally that cannot be written must never change what reconcile
+        // returned, and must not fail the fetch that already happened. Logged
+        // rather than swallowed, for the same reason the correction block logs:
+        // a missing count is a gap in the measurement, and a silent one is the
+        // gap plus a false reading of zero.
+        console.warn(`[odds-reconcile-tally] ${site} state=${out.state}: ${String(e && e.message || e).slice(0, 120)}`);
+    }
+    return out;
+}
+
+async function _reconcileOddsCredit(env, estimated, resp, site = '') {
     const out = { site, estimated, actual: null, delta: 0, state: 'unresolved' };
     try {
         if (!env || !env.FIELD_JOURNALISM) { out.state = 'no-kv'; return out; }
