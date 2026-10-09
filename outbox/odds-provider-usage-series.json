@@ -402,5 +402,24 @@
     "games_paired_in_window": 215,
     "games_paired_rows_counted": 14,
     "games_paired_rows_skipped": 0
+  },
+  {
+    "at": "2026-10-09T17:16:26.920Z",
+    "provider_used": "4959",
+    "provider_remaining": "95041",
+    "ledger_month_used": 11030,
+    "daily_used": 489,
+    "daily_ceiling": 3800,
+    "degraded_open": {
+      "events": 149,
+      "credits": 1084,
+      "reasons": {
+        "month: odds budget batch returned 2 result(s), expected 3": 149
+      },
+      "last": "2026-10-09T16:32:08.217Z"
+    },
+    "games_paired_in_window": 214,
+    "games_paired_rows_counted": 14,
+    "games_paired_rows_skipped": 0
   }
 ]
