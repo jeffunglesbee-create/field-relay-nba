@@ -4,7 +4,15 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (gap) — no new upstream call, no new credit, no new route
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-10. All four tasks executed, all four done conditions
+met, no stop condition hit, no new upstream call added. Session doc:
+`outbox/cc-session-2026-10-10-bsd-fields-already-arriving.md`.
+
+Two corrections the work produced, recorded here so the doc is not read as
+still-true: the fields are dropped at `src/index.js:4436` (the WC enrichment
+copies two fields off the row and discards the rest) rather than by any route,
+and `attendance` / `previous_leg_event_id` — proposed above as citable hooks —
+measured 0 of 193 populated on 2026-10-10.
 
 **Rule F:** nothing here is a composite or an interest level. Every field named
 below is a fact BSD already states on a row this relay already fetches.
