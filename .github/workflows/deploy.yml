@@ -133,6 +133,17 @@ jobs:
       - name: Every odds call is charged to the monthly ledger
         run: node scripts/check-odds-calls-guarded.mjs
 
+      # Blocking. The BSD event row carries fields that are null on most rows
+      # and false on many others, and the two must never be confused: collapse
+      # absence into 0 and a brief reports a crowd of nobody; collapse `false`
+      # into absence and the 193 rows that answered read as 193 that did not.
+      # Self-test first — a check that can no longer fail is not a check.
+      - name: The BSD absence check can still fail
+        run: node scripts/check-bsd-field-absence.mjs --self-test
+
+      - name: A missing BSD field is distinguishable from a zero one
+        run: node scripts/check-bsd-field-absence.mjs
+
       # Blocking. /context/game answers a lookup for any string, and findBriefs
       # falls back to `id LIKE '%<id>%'` -- so an id the endpoint cannot resolve
       # is answered with whatever shares that substring. Probed 2026-09-12:

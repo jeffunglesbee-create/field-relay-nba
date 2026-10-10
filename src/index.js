@@ -6,6 +6,7 @@ import { ARCHIVE_SPORT_TO_ODDS_KEY, archiveSportToOddsKey, cronSportLeagueToOdds
 import { readQuotaHeader } from './budget-helpers.js';
 import { oddsDigest, reachableCollisions as reachableOf } from './collision-reach.js';
 import { stampKickoff } from './odds-kickoff.js';
+import { forwardBsdFields } from './bsd-fields.js';
 // A closing line captured after kickoff is an in-play price. Prose must not
 // call it a close -- MEASURED 2026-09-14: 126 debrief rows would have.
 import { knownPostKickoff, parseOddsJSON } from './odds-consumer-rules.js';
@@ -4435,6 +4436,14 @@ async function handleV2Games(url, env, ctx, request = null) {
                         if (_hit) {
                             if (_hit.group_name) _g.round = _hit.group_name;
                             if (_hit.weather)    _g.weather = _hit.weather;
+                            // Everything else on this row used to stop here.
+                            // `_hit` is the full BSD event; two fields were
+                            // copied off it and the other ~38 were discarded at
+                            // the point of use — not stripped by a route, just
+                            // never read. No new call: same row, same fetch.
+                            // BSD's own names (Rule 62), absence as a sibling
+                            // rather than a zero (Rule 99). See src/bsd-fields.js.
+                            _g.bsd = forwardBsdFields(_hit);
                         }
                     }
                 }

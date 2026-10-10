@@ -164,6 +164,33 @@ function fieldConsumedPaths(file = 'src/index.js') {
     extraTime:  allStates.filter((s) => /extra|\bet\b|aet|overtime/i.test(s)),
     noResult:   allStates.filter((s) => /abandon|cancel|awarded|walkover|interrupt|suspend|postpon|no.?result|removed/i.test(s)),
   };
+  // Rule 99 — an empty list here is NOT "BSD has no such state". It is "no row
+  // in THIS sample carried one", and the two are different claims that the bare
+  // `[]` cannot tell apart. Halftime lasts about fifteen minutes per match, so
+  // a point-in-time sample of in-play rows will usually miss it even where the
+  // state exists: this harness ran at 2026-10-10T22:16Z and found none, while
+  // the same feed carried `period: "halftime"` on event 213711
+  // (Paderborn-Stuttgart, current_minute 45) earlier that day — recorded in
+  // docs/CC-CMD-2026-10-10-bsd-fields-already-arriving.md.
+  //
+  // So the denominator travels with the result (Rule 91). A reader who sees
+  // `halftime: []` beside `inPlayRowsSampled: 0` knows nothing was searched;
+  // beside a large count, the absence starts to mean something.
+  const _inPlay = Object.entries(states.livePeriod)
+    .filter(([k]) => k !== '(absent)' && k !== '' && k !== 'null')
+    .reduce((n, [, v]) => n + v, 0);
+  states.newsletterStatesEvidence = {
+    rowsSampled: states.eventsSeen ?? null,
+    liveRowsSampled: (Array.isArray(liveRows) ? liveRows : []).length,
+    inPlayRowsSampled: _inPlay,
+    meaningOfEmpty: 'not observed in this sample — NOT evidence the state is absent from the feed',
+    observedOutOfBand: {
+      halftime: { seen: true, date: '2026-10-10', eventId: 213711,
+                  evidence: 'period: "halftime", current_minute: 45',
+                  source: 'docs/CC-CMD-2026-10-10-bsd-fields-already-arriving.md' },
+      extraTime: { seen: false, note: 'still unobserved, which is not the same as absent' },
+    },
+  };
   out.claims.liveStates = states;
 
   // ---------------------------------------------------------------- CLAIM 2
@@ -348,6 +375,7 @@ function fieldConsumedPaths(file = 'src/index.js') {
       liveStatusVocabulary: states.liveStatus,
       livePeriodVocabulary: states.livePeriod,
       newsletterStatesFound: states.newsletterStates,
+      newsletterStatesEvidence: states.newsletterStatesEvidence,
     },
     claim2_odds: {
       verdict: verdict(odds.marketKeys != null, odds.blocked),
