@@ -24,7 +24,8 @@ them", which reads like a route strips them. **No route strips anything.**
 `/bsd/events/live` and `/bsd/events/by-date` both forward the upstream body
 verbatim.
 
-They die at **`src/index.js:4436`**, in the WC enrichment: it fetches the full
+They die at **`src/index.js:4446`**, at `_g.bsd = forwardBsdFields(_hit);` —
+in the WC enrichment, which fetches the full
 BSD event row into `_hit`, copies exactly two fields off it — `group_name` and
 `weather` — and discards the other ~38 at the point of use. Not stripped.
 Never read.
@@ -163,7 +164,8 @@ guards' step *"every anchored citation still resolves"* was green on every run
 up to and including `458c8d0`, went **red exactly at `563819f`** — this
 document's own closing commit — and stayed red across `d03db52` and `c2cc282`
 before `ae8b740` repaired it. Two later CC-CMDs inherited a red gate from this
-one. The cause was the bare `src/index.js:4436` citation in the DONE block;
+one. The cause was a bare citation of `_g.bsd = forwardBsdFields(_hit);` in
+the DONE block, given as a line number with nothing quoted beside it;
 deploy does not trigger on `docs/`, so nothing ran the ratchet until a `src`
 change rode alongside.
 
