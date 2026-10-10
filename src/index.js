@@ -10175,15 +10175,84 @@ export default {
                 return new Response(JSON.stringify({
                     ok: true,
                     coordinateSystem: {
-                        space:   'normalized-pitch',
+                        space:   'normalized-pitch-per-team',
                         xRange:  [0, 100],
                         yRange:  [0, 100],
-                        origin:  'home-team-defending-goal-line, bottom-left corner',
+                        origin:  'each team\'s OWN defending goal-line — not a shared pitch',
                         axes: {
-                            x: 'horizontal, 0 = home goal-line, 100 = away goal-line',
-                            y: 'vertical, 0 = bottom touchline, 100 = top touchline',
+                            x: 'horizontal, 0 = the goal this team DEFENDS, 100 = the goal it ATTACKS. Per team.',
+                            y: 'lateral, 0-100, expressed in each team\'s own attacking direction with the same handedness',
                         },
                         sampleRate: { ball: '~5s', stats: '~30s' },
+                        corrected: {
+                            on: '2026-10-10',
+                            was: {
+                                origin: 'home-team-defending-goal-line, bottom-left corner',
+                                x:      'horizontal, 0 = home goal-line, 100 = away goal-line',
+                            },
+                            why: 'Under the old wording an AWAY goalkeeper belongs at x ~ 90. ' +
+                                 'Six keepers across three events, probed via /bsd/events/{id}/average-positions ' +
+                                 'on 2026-10-10, all sit between 9.4 and 12.8. Not one is near 90.',
+                            keepers: [
+                                { event: 223324, side: 'away', name: 'Everson',           x: 10.4, y: 50.4 },
+                                { event: 223324, side: 'home', name: 'Cleiton',           x: 10.6, y: 49.0 },
+                                { event: 207987, side: 'away', name: 'F. Torgnascioli',   x:  9.4, y: 52.7 },
+                                { event: 207987, side: 'home', name: 'F. Zenobio',        x: 12.8, y: 49.8 },
+                                { event: 213708, side: 'away', name: 'M. Neuer',          x: 11.5, y: 50.9 },
+                                { event: 213708, side: 'home', name: 'F. Dahmen',         x:  9.4, y: 49.5 },
+                            ],
+                            outfieldGradient: 'Both sides of 213708 run low-defence to high-attack from their OWN ' +
+                                              'keeper — Augsburg 9.4/12.0/22.3/26.2/40.2/48.9/65.9, Bayern ' +
+                                              '11.5/42.8/47.0/57.6/69.5/84.2 — which a shared axis cannot produce for both.',
+                            verifier: 'scripts/bsd-coordinate-check.mjs, over scripts/fixtures/bsd-223324-coordinates.json',
+                        },
+                    },
+
+                    // THE FOUR FRAMES. The contract used to document one
+                    // coordinate system and four payload shapes under it. The
+                    // shapes do not share a frame, and the two PITCH frames
+                    // have OPPOSITE origins — that is the trap. A reader who
+                    // applies one frame's rule to the other draws shots into
+                    // the shooter's own penalty area. Look up the payload path
+                    // here rather than inferring from coordinateSystem alone.
+                    frames: {
+                        'average_positions[]': {
+                            frame:  'own-goal-relative',
+                            xZero:  'the goal this team DEFENDS',
+                            perTeam: true,
+                            note:   'Keepers read x ~ 10 on BOTH sides. See coordinateSystem.corrected.keepers.',
+                        },
+                        'shotmap[].pos': {
+                            frame:  'target-goal-relative',
+                            xZero:  'the goal this team ATTACKS',
+                            perTeam: true,
+                            note:   'OPPOSITE ORIGIN to average_positions[]. All 24 shots in 223324 fall between ' +
+                                    'x 2.3 and 30.8 for both teams — distance from the goal attacked. The same ' +
+                                    'event\'s keeper averages read 10.4 and 10.6 under the other convention.',
+                        },
+                        'incidents[].sequence[].pos': {
+                            frame:  'target-goal-relative',
+                            xZero:  'the goal this team ATTACKS',
+                            perTeam: true,
+                            note:   'Same frame as shotmap[].pos; `.end` and `.gk` are in it too. Confirmed by the ' +
+                                    '73\' goal in 223324: the DEFENDING keeper reads gk.x 5.4 beside the away ' +
+                                    'scorer\'s pos.x 7.3 — in front of the goal being attacked, not his own half.',
+                        },
+                        'shotmap[].gm': {
+                            frame:  'goal-plane',
+                            xZero:  'always 0 — this is NOT a pitch axis',
+                            perTeam: false,
+                            note:   '{x: 0, y: across the mouth, z: height}. `gml` labels it in words, and is the ' +
+                                    'one field in the feed that describes its own number.',
+                        },
+                        'incidents[] goal .gm': {
+                            frame:  'goal-mouth-2d',
+                            xZero:  'horizontal % across the mouth',
+                            perTeam: false,
+                            note:   'y is measured DOWNWARD. Same goal as shotmap[].gm, described twice under the ' +
+                                    'same key name with an inverted vertical axis: shotmap {x: 0, y: 49.3, z: 2.5} ' +
+                                    '"low-centre" is the incident\'s {x: 55.38, y: 94.67}.',
+                        },
                     },
                     frameShapes: {
                         livedata: {
@@ -10197,21 +10266,74 @@ export default {
                                        stats: { home_xg: 1.2, away_xg: 0.9, possession_home: 0.58 } },
                         },
                         shot: {
-                            example: { x: 88.3, y: 51.5, xg: 0.34, result: 'goal',
-                                       minute: 71, player: 'M. Salah', body_part: 'foot_right' },
+                            // VERBATIM from scripts/fixtures/bsd-223324-coordinates.json, captured
+                            // 2026-10-10. The previous example read {x: 88.3, y: 51.5, ...}: no field
+                            // in a real shot record holds 88.3 as a bare `x`. `gm.x` is always 0 and
+                            // `pos.x` spans 2.3-30.8.
+                            example: { gm: { x: 0, y: 49.7, z: 32.3 }, xg: 0.0161, gml: 'high-centre',
+                                       min: 90, pos: { x: 30.8, y: 71.4, z: 0 }, sit: 'assisted',
+                                       body: 'left-foot', home: true, type: 'save', xgot: 0.0119,
+                                       added: 5, block: { x: 1.1, y: 53.1, z: 0 },
+                                       player_id: 3953, xg_estimated: false },
+                            keys:   'gm{x,y,z}, pos{x,y,z}, block{x,y,z}?, xg, xgot, gml, min, sit, ' +
+                                    'body, home, type, gtype?, added?, player_id, xg_estimated',
+                            frames: 'pos -> shotmap[].pos (target-goal-relative); gm -> shotmap[].gm (goal plane)',
                             source: '/bsd/events/{id}/shotmap',
                         },
                         avgPosition: {
-                            example: { player: 'N. Kanté', x: 38.5, y: 52.0, touches: 71 },
+                            // VERBATIM, same capture. The previous example read
+                            // {player, x, y, touches}. The real keys are `name` and `n`;
+                            // `pos` and `player_id` were undocumented.
+                            example: { n: 46, x: 10.6, y: 49, pos: 'G', name: 'Cleiton', player_id: 276 },
+                            keys:   'n, x, y, pos, name, player_id',
+                            n:      'A COUNT, exact definition UNCONFIRMED. It is NOT a shirt number: ' +
+                                    '207987\'s home side carries two players at n: 32, and 223324\'s away ' +
+                                    'side two at n: 55 and two at n: 64, which is impossible on one team. ' +
+                                    'It behaves like a touch count; it is not documented as one.',
+                            frames: 'own-goal-relative, per team',
                             source: '/bsd/events/{id}/average-positions',
+                        },
+                        incidentSequence: {
+                            // VERBATIM, same capture — the 73' goal in 223324.
+                            example: { gk: { x: 5.4, y: 48.4 }, gm: { x: 55.38, y: 94.67 }, pid: 4723,
+                                       pos: { x: 7.3, y: 48 }, body: 'left-foot', event: 'goal',
+                                       player: 'T. Cuello' },
+                            keys:   'event, pid, player, pos{x,y}, end{x,y}?, gk{x,y}?, gm{x,y}?, body?, assist?',
+                            frames: 'pos/end/gk -> target-goal-relative; gm -> goal-mouth-2d, y DOWNWARD',
+                            source: '/bsd/events/{id}/incidents',
                         },
                     },
                     transformReference: {
                         toScreenSVG: 'cx = x * width / 100; cy = (100 - y) * height / 100  (invert y for screen coords)',
+                        // REQUIRED on the away side, not an optional "away perspective" view.
+                        // The two teams' frames are related by a 180 ROTATION of the pitch, which
+                        // maps (x, y) -> (100-x, 100-y). A REFLECTION would map (x, y) -> (100-x, y),
+                        // leave y alone, and reverse handedness — and it is ruled out by the feed's
+                        // own labels: across all 24 shots in 223324, gm.y > 50 <-> gml contains
+                        // "left" and gm.y < 50 <-> "right", identically on home: true and
+                        // home: false. "Left" means the same relative side for both teams, so the
+                        // handedness is shared. Rotation, therefore both axes.
+                        //
+                        // Without this applied to the away side, both teams cannot be drawn on one
+                        // pitch at all. A CSS scaleX(-1) is the WRONG mechanism: it is a reflection,
+                        // it flips y the wrong way, and it mirrors glyphs.
+                        //
+                        // The formula is unchanged from 2026-06-25. Whoever wrote it modelled the
+                        // data correctly; only the prose around it was wrong.
+                        mirrorAway: 'x = 100 - x; y = 100 - y',
+                        mirrorAwayRequired: true,
+                        mirrorAwayAppliesTo: 'the away side only, for any single-pitch render',
                         mirrorForAwayPerspective: 'x = 100 - x; y = 100 - y',
+                        mirrorForAwayPerspectiveNote: 'DEPRECATED NAME, kept so existing readers do not break. ' +
+                                                      'Same formula; use mirrorAway.',
                     },
-                    revision: '2026-06-25-1',
-                    status:   'provisional — pending live BSD verification of axis convention',
+                    revision: '2026-10-10-1',
+                    status:   'axes measured and settled 2026-10-10. OPEN: average-positions cannot ' +
+                              'name the CAUSE of an empty result — "finished but this competition ' +
+                              'never carries the tracking tier" (websocket_plus: false) is reported ' +
+                              'as the state finished-no-data, because /stats/ does not carry the ' +
+                              'flag and this route will not spend a second upstream call to fetch it. ' +
+                              'See X-AvgPos-State on /bsd/events/{id}/average-positions.',
                 }, null, 2), {
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=300', ...CORS },
@@ -10237,7 +10359,7 @@ export default {
             // that route's already-established 25s cache, so this doesn't
             // cost a fresh upstream call on every use, only at most every 25s.
             // Confirmed cheap in real testing (~0.24s uncached).
-            async function _bsdEventIsLive(eventId) {
+            async function _bsdEventLiveState(eventId) {
                 try {
                     const cacheKey = new Request(`${BSD_BASE}/api/v2/events/live/`);
                     let resp = await caches.default.match(cacheKey);
@@ -10257,14 +10379,29 @@ export default {
                     // consistently, regardless of which line in this function fails.
                     const data = await resp.clone().json();
                     const liveIds = new Set((data?.events || []).map(e => String(e.id)));
-                    return liveIds.has(String(eventId));
+                    return liveIds.has(String(eventId)) ? 'live' : 'not-live';
                 } catch (e) {
                     console.error("[BSD-LIVE-CHECK] live-check failed:", e.message);
-                    // Fail safe: if the live-check itself fails for any reason,
-                    // treat as live (no caching) rather than risk serving stale
-                    // data for a game that might genuinely be in progress.
-                    return true;
+                    // Rule 99: "the check failed" is its own answer, not a value.
+                    // Collapsing it into `true` is correct for a CACHING decision
+                    // and wrong for a REPORTED STATE — see _bsdEventIsLive below,
+                    // which applies that collapse deliberately, and the
+                    // X-AvgPos-State header, which must not.
+                    return 'unknown';
                 }
+            }
+
+            // Unchanged behaviour for both existing callers (shotmap, momentum):
+            // 'unknown' still maps to true, which is the documented fail-safe —
+            // if the live-check itself fails, treat as live and do not cache,
+            // rather than risk serving stale data for a game that might
+            // genuinely be in progress. 2026-10-10: split out of
+            // _bsdEventLiveState so a caller that REPORTS the state can tell an
+            // unknown apart from a live one. Callers audited before the split
+            // (Rule 13): src/index.js:10433 shotmap, :10449 momentum — both use
+            // it only to decide whether caching is safe, so both are unaffected.
+            async function _bsdEventIsLive(eventId) {
+                return (await _bsdEventLiveState(eventId)) !== 'not-live';
             }
 
             // /bsd/events/live → BSD /api/v2/events/live/
@@ -10396,6 +10533,43 @@ export default {
             // src/index.js:2378 (`parsed.average_positions`, customMetadata
             // source 'stats-fallback'), so the live route and the archived
             // object are the same shape rather than two variants (Rule 62).
+            //
+            // CORRECTION 2026-10-10 — THE "4 OF 4" HALF NO LONGER HOLDS.
+            // The 2026-08-13 measurement above concluded that post-final data
+            // is real and live data does not exist. The post-final half stands.
+            // The implied "finished => populated" does not. Six events, probed
+            // through this route on 2026-10-10:
+            //
+            //   event   state             websocket_plus   result
+            //   213708  finished today    true             populated   (Augsburg-Bayern)
+            //   223324  finished          unknown          populated
+            //   207987  finished          unknown          populated
+            //   588245  finished today    FALSE            {}          (Altrincham-Aldershot)
+            //   211914  in progress       true             {}          (Cracovia-Zaglebie)
+            //   210110  in progress       true             {}          (Genoa-Fiorentina)
+            //
+            // Both in-progress events return {} — the honest "not yet" this
+            // route was written to serve, confirmed. But 588245 is FINISHED and
+            // also returns {}, and the discriminator is its tracking tier.
+            // So the condition is match state AND tier, not match state alone.
+            //
+            // THREE STATES, now distinguishable at the boundary (Rule 99 —
+            // absence must be a sibling of the value, not a silent third
+            // meaning of the same empty object):
+            //
+            //   404                                  no such data at all
+            //   200 {} X-AvgPos-State: in-play       not yet; ask again after full time
+            //   200 {} X-AvgPos-State: finished-no-data   nothing is coming for this event
+            //   200 {} X-AvgPos-State: unknown       the live-check itself failed
+            //
+            // The relay reports the STATE, not the CAUSE. `websocket_plus` is
+            // the measured cause of the finished-no-data case, but /stats/ does
+            // not carry the flag — confirmed against a full capture of this
+            // event's payload on 2026-10-10 — and naming the cause would cost a
+            // second upstream call on every empty response. The state comes from
+            // _bsdEventLiveState, which shares the live feed's existing 25s
+            // cache, so it adds no upstream call in the common case and no
+            // computation beyond a Set lookup already performed elsewhere.
             const avgPosM = pathname.match(/^\/bsd\/events\/(\d+)\/average-positions$/);
             if (avgPosM) {
                 const r = await fetch(`${BSD_BASE}/api/v2/events/${avgPosM[1]}/stats/`,
@@ -10421,10 +10595,24 @@ export default {
                         detail: 'no average_positions in stats', event_id: Number(avgPosM[1]) }),
                         { status: 404, headers: { 'Content-Type': 'application/json', ...CORS } });
                 }
+                // Only an EMPTY result needs a state — a populated one is its
+                // own answer. Keeping the live-check off the populated path
+                // also keeps it off the hot path entirely.
+                const avgPosEmpty = avgPos && typeof avgPos === 'object'
+                    && Object.keys(avgPos).length === 0;
+                let avgPosState = null;
+                if (avgPosEmpty) {
+                    const st = await _bsdEventLiveState(avgPosM[1]);
+                    avgPosState = st === 'live' ? 'in-play'
+                                : st === 'not-live' ? 'finished-no-data'
+                                : 'unknown';
+                }
                 return new Response(JSON.stringify(avgPos), { status: 200,
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=120',
-                               'X-Source': 'stats-embedded', ...CORS } });
+                               'X-Source': 'stats-embedded',
+                               ...(avgPosState ? { 'X-AvgPos-State': avgPosState } : {}),
+                               ...CORS } });
             }
 
             // /bsd/tennis/matches/by-date?date=YYYY-MM-DD → BSD tennis matches for a day.
