@@ -1,0 +1,137 @@
+{
+  "capturedAt": "2026-10-10T22:55:01.565Z",
+  "endpoint": "/api/v2/coverage/",
+  "q1_tokenFree": {
+    "answer": true,
+    "noTokenStatus": 200,
+    "withTokenStatus": 200
+  },
+  "coverage": [
+    {
+      "sport": "football",
+      "name": "Football",
+      "status": "in_season",
+      "events_next_7d": 574,
+      "events_next_30d": 2440,
+      "events_last_7d": 420,
+      "priced_next_7d": 348,
+      "live_now": 0,
+      "next_event_at": "2026-10-10T23:00:00+00:00",
+      "last_event_at": "2026-10-10T22:15:00+00:00",
+      "docs_url": "/docs/football/",
+      "_state": "priced"
+    },
+    {
+      "sport": "tennis",
+      "name": "Tennis",
+      "status": "in_season",
+      "events_next_7d": 280,
+      "events_next_30d": 280,
+      "events_last_7d": 860,
+      "priced_next_7d": 17,
+      "live_now": 1,
+      "next_event_at": "2026-10-11T00:00:00+00:00",
+      "last_event_at": "2026-10-10T22:50:00+00:00",
+      "docs_url": "/docs/tennis/",
+      "_state": "priced"
+    },
+    {
+      "sport": "basketball",
+      "name": "Basketball",
+      "status": "in_season",
+      "events_next_7d": 57,
+      "events_next_30d": 389,
+      "events_last_7d": 62,
+      "priced_next_7d": 46,
+      "live_now": 0,
+      "next_event_at": "2026-10-11T10:00:00+00:00",
+      "last_event_at": "2026-10-10T19:00:00+00:00",
+      "docs_url": "/docs/basketball/",
+      "_state": "priced"
+    },
+    {
+      "sport": "hockey",
+      "name": "Hockey",
+      "status": "in_season",
+      "events_next_7d": 205,
+      "events_next_30d": 761,
+      "events_last_7d": 195,
+      "priced_next_7d": 55,
+      "live_now": 3,
+      "next_event_at": "2026-10-10T23:00:00+00:00",
+      "last_event_at": "2026-10-10T22:00:00+00:00",
+      "docs_url": "/docs/hockey/",
+      "_state": "priced"
+    },
+    {
+      "sport": "darts",
+      "name": "Darts",
+      "status": "in_season",
+      "events_next_7d": 51,
+      "events_next_30d": 51,
+      "events_last_7d": 134,
+      "priced_next_7d": 0,
+      "live_now": 3,
+      "next_event_at": "2026-10-11T10:00:00+00:00",
+      "last_event_at": "2026-10-10T20:55:00+00:00",
+      "docs_url": "/docs/darts/",
+      "_state": "in-season-unpriced"
+    },
+    {
+      "sport": "csgo",
+      "name": "CS2",
+      "status": "in_season",
+      "events_next_7d": 6,
+      "events_next_30d": 6,
+      "events_last_7d": 102,
+      "priced_next_7d": 0,
+      "live_now": 3,
+      "next_event_at": "2026-10-11T11:00:00+00:00",
+      "last_event_at": "2026-10-10T20:30:00+00:00",
+      "docs_url": "/docs/csgo/",
+      "_state": "in-season-unpriced"
+    },
+    {
+      "sport": "horseracing",
+      "name": "Horse Racing",
+      "status": "in_season",
+      "events_next_7d": 229,
+      "events_next_30d": 234,
+      "events_last_7d": 1043,
+      "priced_next_7d": 229,
+      "live_now": 0,
+      "next_event_at": "2026-10-10T22:56:00+00:00",
+      "last_event_at": "2026-10-10T22:32:00+00:00",
+      "docs_url": "/docs/horseracing/",
+      "_state": "priced"
+    }
+  ],
+  "q2_perLeagueSeason": {
+    "answer": "YES — a current-season flag exists upstream",
+    "leagueId": 1,
+    "season": {
+      "status": 200,
+      "evidence": {
+        "kind": "object",
+        "keys": [
+          "league_id",
+          "season"
+        ],
+        "flags": [],
+        "hasCurrentFlag": false
+      }
+    },
+    "seasons": {
+      "status": 200,
+      "evidence": {
+        "kind": "list",
+        "count": 35,
+        "flags": [
+          "is_current"
+        ],
+        "hasCurrentFlag": true
+      }
+    }
+  },
+  "coverageNote": "Coverage is per SPORT, not per competition. It says football is in season; it does not say the EFL Two is."
+}
