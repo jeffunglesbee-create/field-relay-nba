@@ -1,0 +1,60 @@
+name: BSD coordinate capture
+
+# Dispatch-only, NO schedule. Captures one finished event's three
+# coordinate-bearing payloads as a committed fixture, so
+# scripts/bsd-coordinate-check.mjs can verify the /bsd/contract frames with
+# no live match and no BSD token.
+#
+# CI because the sandbox cannot reach the relay: a CONNECT to
+# field-relay-nba.jeffunglesbee.workers.dev:443 is 403-denied there, measured
+# 2026-10-10. The capture must come from somewhere with egress, and this
+# repo's rule is that a runner is that somewhere.
+#
+# 223324 is the default because it carries BOTH goalkeepers in
+# average_positions, 24 shots labelled with `gml` across both teams, and a goal
+# sequence with `gk` — the three things the verifier's assertions need.
+
+on:
+  workflow_dispatch:
+    inputs:
+      event:
+        description: 'BSD event id to capture. Default: 223324.'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Capture
+        run: node scripts/bsd-coordinate-capture.mjs ${{ inputs.event }}
+
+      - name: Verify the capture the fixture is for
+        run: node scripts/bsd-coordinate-check.mjs
+
+      - name: Commit the fixture
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add scripts/fixtures/
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: BSD coordinate fixture"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop exits 0 when all three attempts fail: its last command is
+          # `sleep`, and `set -e` does not fire on a failing `&&` list. Without
+          # the check below a lost fixture reports as a green step.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
