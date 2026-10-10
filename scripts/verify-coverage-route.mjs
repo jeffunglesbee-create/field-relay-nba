@@ -10,14 +10,39 @@
 
 export const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev'
 
+/** Find the football row whatever the envelope is. The first version of this
+ *  file assumed `body.football` or a top-level array, which came from reading
+ *  the PROBE's normalised output rather than the raw payload — the
+ *  source-versus-copy substitution, committed and run before being caught.
+ *  This searches the shapes the feed could plausibly use and reports which one
+ *  matched, so the next reader does not have to guess either. */
+export const footballRow = (body) => {
+  if (!body || typeof body !== 'object') return { row: null, via: 'not-an-object' }
+  if (body.football && typeof body.football === 'object') return { row: body.football, via: 'top-level key' }
+  if (Array.isArray(body)) {
+    const row = body.find(x => (x?.sport ?? x?.name) === 'football')
+    if (row) return { row, via: 'top-level array' }
+  }
+  for (const k of ['sports', 'results', 'coverage', 'data']) {
+    const v = body[k]
+    if (!v) continue
+    if (Array.isArray(v)) {
+      const row = v.find(x => (x?.sport ?? x?.name) === 'football')
+      if (row) return { row, via: `${k}[] array` }
+    } else if (typeof v === 'object' && v.football) {
+      return { row: v.football, via: `${k}.football` }
+    }
+  }
+  return { row: null, via: 'not found' }
+}
+
 export const checks = (r, body, hdrs) => [
   ['the route answers 200', r.status === 200],
   ['X-Coverage-State says the payload is the vendor\'s', hdrs['x-coverage-state'] === 'vendor'],
   ['the TTL is not the 25s live-feed TTL',
     /max-age=(\d+)/.test(hdrs['cache-control'] ?? '') && Number(/max-age=(\d+)/.exec(hdrs['cache-control'])[1]) > 25],
-  ['the payload carries a football row', !!body?.football || (Array.isArray(body) && body.some(x => (x.sport ?? x.name) === 'football'))],
-  ['...with a status the client can read',
-    typeof (body?.football?.status ?? (Array.isArray(body) ? body.find(x => (x.sport ?? x.name) === 'football')?.status : null)) === 'string'],
+  ['the payload carries a football row', footballRow(body).row !== null],
+  ['...with a status the client can read', typeof footballRow(body).row?.status === 'string'],
 ]
 
 if (process.argv.includes('--self-test')) {
@@ -32,7 +57,13 @@ if (process.argv.includes('--self-test')) {
     { 'x-coverage-state': 'upstream-failed', 'cache-control': 'public, max-age=600' })[1][1])
   ck('MUTATION: a payload with no football row is caught',
     !checks({ status: 200 }, { tennis: {} }, { 'x-coverage-state': 'vendor', 'cache-control': 'max-age=600' })[3][1])
-  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${4 - failed}/4 self-tests`)
+  ck('a top-level football key is found', footballRow({ football: { status: 'x' } }).via === 'top-level key')
+  ck('a top-level array is found', footballRow([{ sport: 'football', status: 'x' }]).via === 'top-level array')
+  ck('a sports[] envelope is found', footballRow({ sports: [{ sport: 'football', status: 'x' }] }).via === 'sports[] array')
+  ck('a sports.football envelope is found', footballRow({ sports: { football: { status: 'x' } } }).via === 'sports.football')
+  ck('MUTATION: a payload with no football is "not found", not a null row silently passing',
+    footballRow({ tennis: {} }).via === 'not found')
+  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${9 - failed}/9 self-tests`)
   process.exit(failed)
 }
 
@@ -45,7 +76,10 @@ console.log(`=== /bsd/coverage, DEPLOYED  ${RELAY}/bsd/coverage`)
 console.log(`  HTTP ${r.status}  ${text.length}B`)
 console.log(`  X-Coverage-State: ${hdrs['x-coverage-state'] ?? '(absent)'}`)
 console.log(`  Cache-Control   : ${hdrs['cache-control'] ?? '(absent)'}`)
-console.log(`  X-FIELD-Source  : ${hdrs['x-field-source'] ?? '(absent)'}\n`)
+console.log(`  X-FIELD-Source  : ${hdrs['x-field-source'] ?? '(absent)'}`)
+console.log(`  top-level keys  : ${body && typeof body === 'object' ? Object.keys(body).slice(0, 12).join(', ') : '(not an object)'}`)
+const _fb = footballRow(body)
+console.log(`  football row via: ${_fb.via}\n`)
 
 let failed = 0
 for (const [n, ok] of checks(r, body, hdrs)) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}`); if (!ok) failed++ }
