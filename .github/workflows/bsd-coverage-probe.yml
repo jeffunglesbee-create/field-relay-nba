@@ -1,0 +1,58 @@
+name: BSD coverage probe
+
+# docs/CC-CMD-2026-10-10-coverage-replaces-season-date-math.md, the two
+# questions that gate the plumbing.
+#
+# Q1 — is /api/v2/coverage/ token-free? The CC-CMD measured it so from its
+# authoring sandbox. The sandbox executing it gets `CONNECT tunnel failed,
+# response 403` for sports.bzzoiro.com, which is that container's egress policy
+# and is not evidence about the token. Re-measured here by calling it BOTH ways.
+#
+# Q2 — Task 4: does per-league season state exist upstream? The CC-CMD says the
+# league season endpoints are declared in the schema and UNPROBED, and says not
+# to assume they carry a current-season flag. This probes EPL and reports.
+#
+# The token is passed for the LEAGUE endpoints only. The coverage call is made
+# once with no Authorization header at all, which is the measurement.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'   # weekly: a season boundary moves about that often
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/bsd-coverage-probe.mjs --self-test
+
+      - name: Probe coverage and the league season endpoints
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: node scripts/bsd-coverage-probe.mjs
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-coverage-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: BSD coverage probe reading"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
