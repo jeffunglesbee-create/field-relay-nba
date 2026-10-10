@@ -119,6 +119,46 @@ for (const [name, ok] of assertions(contract)) {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}`)
   if (!ok) failed++
 }
+// Done condition 3 — the three availability states must be distinguishable in
+// the RESPONSE, not just in the source. 588245 is the measured case: finished,
+// websocket_plus false, so it returns {} for a reason that is not "not yet".
+// A live event, taken from the live feed, is the in-play case. Both are read
+// from headers, because that is where a caller would read them.
+console.log('')
+const stateOf = async (id) => {
+  const r = await fetch(`${RELAY}/bsd/events/${id}/average-positions`, { headers: { Accept: 'application/json' } })
+  const body = await r.text()
+  let empty = null
+  try { const j = JSON.parse(body); empty = j && typeof j === 'object' && Object.keys(j).length === 0 } catch {}
+  return { status: r.status, state: r.headers.get('X-AvgPos-State'), empty }
+}
+
+const finished = await stateOf('588245')
+console.log(`  588245 (finished, websocket_plus false): HTTP ${finished.status} empty=${finished.empty} X-AvgPos-State=${finished.state}`)
+const stateChecks = [
+  ['an empty finished event names a state, not a bare {}',
+    finished.empty !== true || (finished.state !== null && finished.state !== undefined)],
+  ['...and that state is NOT in-play', finished.empty !== true || finished.state !== 'in-play'],
+]
+
+let liveId = null
+try {
+  const lr = await fetch(`${RELAY}/bsd/events/live`, { headers: { Accept: 'application/json' } })
+  const lj = await lr.json()
+  liveId = (lj?.events || [])[0]?.id ?? null
+} catch {}
+if (liveId) {
+  const inplay = await stateOf(liveId)
+  console.log(`  ${liveId} (in the live feed)                : HTTP ${inplay.status} empty=${inplay.empty} X-AvgPos-State=${inplay.state}`)
+  stateChecks.push(['a live event that is empty reads in-play',
+    inplay.empty !== true || inplay.state === 'in-play'])
+} else {
+  // Rule 99 / Rule 91: no live event is a COVERAGE gap, not a pass.
+  console.log('  (no event is live right now — the in-play case is UNCHECKED, not passed)')
+}
+for (const [n, ok] of stateChecks) { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}`); if (!ok) failed++ }
+console.log(`  state coverage: ${liveId ? 2 : 1} of 2 states exercised${liveId ? '' : ' (no live event available)'}`)
+
 const list = assertions(contract)
 console.log(`\nCOVERAGE: ${list.length} assertions over the live /bsd/contract response,`)
 console.log(`revision ${contract?.revision}. Source is not consulted — this is the served object.`)
