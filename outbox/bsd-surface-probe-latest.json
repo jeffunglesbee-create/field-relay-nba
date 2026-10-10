@@ -536,11 +536,13 @@
     }
   },
   "task5_rateLimits": {
-    "headersObserved": {
+    "rateLimitHeadersObserved": {},
+    "cacheHeadersObserved": {
       "x-cache-status": "MISS",
       "cf-cache-status": "DYNAMIC"
     },
-    "finding": "rate-limit headers observed: {\"x-cache-status\":\"MISS\",\"cf-cache-status\":\"DYNAMIC\"}"
+    "finding": "NO rate-limit header was returned on any call this run. The absence is the finding: the limits remain unmeasured from responses, and the docs' \"Conventions & limits\" is a claim, not a measurement. Cache headers WERE present ({\"x-cache-status\":\"MISS\",\"cf-cache-status\":\"DYNAMIC\"}) — they are not rate-limit headers and do not answer this.",
+    "recomputed": "Separated from the as-run capture, which lumped cache headers into RATE_HEADERS and therefore reported \"rate-limit headers observed\" on a run that saw none. No new calls."
   },
   "callLog": [
     {

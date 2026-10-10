@@ -17,16 +17,36 @@ export const CALL_BUDGET = 40
 
 // ── rate limits (Task 5) ────────────────────────────────────────────────────
 /** Every header worth capturing. A header is a measurement; a doc is a claim. */
+// RATE-LIMIT headers and CACHE headers are captured separately. Lumping them
+// together made the artifact read "rate-limit headers observed:
+// {x-cache-status, cf-cache-status}" on a run where NOT ONE rate-limit header
+// came back — a cache header answering a question about rate limits, which is
+// the exact substitution this CC-CMD was written to stop.
 export const RATE_HEADERS = [
   'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset',
   'x-ratelimit-used', 'ratelimit-limit', 'ratelimit-remaining', 'ratelimit-reset',
-  'retry-after', 'x-cache-status', 'x-cache', 'cf-cache-status',
+  'retry-after',
 ]
-export const rateHeadersOf = (hdrs) => {
+export const CACHE_HEADERS = ['x-cache-status', 'x-cache', 'cf-cache-status']
+export const pick = (hdrs, names) => {
   const out = {}
-  for (const k of RATE_HEADERS) if (hdrs[k] != null) out[k] = hdrs[k]
+  for (const k of names) if (hdrs[k] != null) out[k] = hdrs[k]
   return out
 }
+export const rateHeadersOf = (hdrs) => pick(hdrs, RATE_HEADERS)
+export const cacheHeadersOf = (hdrs) => pick(hdrs, CACHE_HEADERS)
+
+/** The finding, which must be about RATE LIMITS even when cache headers are
+ *  the only thing present. */
+export const rateLimitFinding = (rate, cache) =>
+  Object.keys(rate).length > 0
+    ? `rate-limit headers observed: ${JSON.stringify(rate)}`
+    : 'NO rate-limit header was returned on any call this run. The absence is the finding: '
+      + 'the limits remain unmeasured from responses, and the docs\' "Conventions & limits" is a '
+      + 'claim, not a measurement. '
+      + (Object.keys(cache).length
+          ? `Cache headers WERE present (${JSON.stringify(cache)}) — they are not rate-limit headers and do not answer this.`
+          : 'No cache header either.')
 
 // ── Task 1 verdict ──────────────────────────────────────────────────────────
 /** The four market families FIELD's model needs. Matched against BSD's keys by
@@ -127,12 +147,21 @@ function selfTest () {
   check('no rows is scoped:null — unjudgeable, not unscoped (Rule 99)',
     territoryScoped([]).scoped === null)
 
+  check('MUTATION: a cache header does NOT satisfy a rate-limit question',
+    /NO rate-limit header/.test(rateLimitFinding({}, { 'cf-cache-status': 'DYNAMIC' })))
+  check('...and the cache headers are still reported, labelled as not answering it',
+    /not rate-limit headers/.test(rateLimitFinding({}, { 'cf-cache-status': 'DYNAMIC' })))
+  check('a real rate-limit header IS the finding',
+    /observed/.test(rateLimitFinding({ 'x-ratelimit-remaining': '9' }, {})))
+  check('cache headers are captured separately, not as rate headers',
+    Object.keys(rateHeadersOf({ 'cf-cache-status': 'x' })).length === 0
+      && Object.keys(cacheHeadersOf({ 'cf-cache-status': 'x' })).length === 1)
   check('rate headers are picked out when present',
     rateHeadersOf({ 'x-ratelimit-remaining': '99', 'content-type': 'x' })['x-ratelimit-remaining'] === '99')
   check('MUTATION: an empty capture is an empty object, and the caller must say so',
     Object.keys(rateHeadersOf({ 'content-type': 'x' })).length === 0)
 
-  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${16 - failed}/16 self-tests`)
+  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${20 - failed}/20 self-tests`)
   return failed
 }
 
@@ -155,6 +184,7 @@ if (!TOKEN) { console.log('FAIL: BSD_API_TOKEN absent — every answer would be 
 
 let callsMade = 0
 const rateSeen = {}
+const cacheSeen = {}
 const callLog = []
 let budgetHit = false
 
@@ -170,6 +200,7 @@ const call = async (path, note) => {
       Authorization: `Token ${TOKEN}`, 'User-Agent': 'FIELD/1.0', Accept: 'application/json' } })
     const hdrs = Object.fromEntries([...r.headers].map(([k, v]) => [k.toLowerCase(), v]))
     Object.assign(rateSeen, rateHeadersOf(hdrs))
+    Object.assign(cacheSeen, cacheHeadersOf(hdrs))
     const text = await r.text()
     let json = null; try { json = JSON.parse(text) } catch {}
     callLog.push({ path, note, status: r.status, bytes: text.length })
@@ -311,9 +342,7 @@ console.log(`\n  TASK 4 lineup_status: ${t4lineups.map(l => `${l.label}=${l.line
 console.log(`  TASK 4 broadcasts territory-scoped: ${terr.scoped === null ? 'UNJUDGEABLE (no rows)' : terr.scoped}`)
 
 // ── TASK 5 — rate limits ────────────────────────────────────────────────────
-const rateFinding = Object.keys(rateSeen).length === 0
-  ? 'NO rate-limit header was returned on any call this run. The absence is the finding: the limits remain unmeasured from responses, and the docs\' "Conventions & limits" is a claim, not a measurement.'
-  : `rate-limit headers observed: ${JSON.stringify(rateSeen)}`
+const rateFinding = rateLimitFinding(rateSeen, cacheSeen)
 console.log(`\n  TASK 5: ${rateFinding}`)
 
 // ── artifact ────────────────────────────────────────────────────────────────
@@ -345,7 +374,7 @@ const artifact = {
     territory: terr,
     tvChannelProbe: channelProbe,
   },
-  task5_rateLimits: { headersObserved: rateSeen, finding: rateFinding },
+  task5_rateLimits: { rateLimitHeadersObserved: rateSeen, cacheHeadersObserved: cacheSeen, finding: rateFinding },
   callLog,
   coverage: `${callsMade} of a ${CALL_BUDGET}-call budget. One pre-match event, ` +
             `${states.live ? 'one live event' : 'NO live event was available'}, one finished event. ` +

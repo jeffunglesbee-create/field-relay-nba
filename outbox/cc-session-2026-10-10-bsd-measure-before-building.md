@@ -111,10 +111,10 @@ reported `rateLimit: {}` and this run explains why: there is nothing to
 capture. The docs' "Conventions & limits" is a claim, not a measurement, and
 nothing in the response stream will corroborate it.
 
-## Two defects in my own measuring apparatus
+## Three defects in my own measuring apparatus
 
-Both were in the analysis, not the product, and both were caught by reading the
-output rather than the code.
+All three were in the analysis, not the product, and all three were caught by
+reading the output rather than the code.
 
 1. **A two-letter needle.** The totals matcher included `'ou'`, which
    false-matched `double_chance` — d-o-**u**-ble — and reported a
@@ -125,7 +125,15 @@ output rather than the code.
    and the per-state split IS the finding, since pre-match lacks exactly what
    live has.
 
-Both recomputed from the recorded verbatim keys. **No new calls were spent**;
+3. **A cache header answering a question about rate limits.** `RATE_HEADERS`
+   included `x-cache-status` and `cf-cache-status`, so on a run that saw ZERO
+   rate-limit headers the artifact read *"rate-limit headers observed:
+   {x-cache-status: MISS, cf-cache-status: DYNAMIC}"* — the exact substitution
+   this CC-CMD exists to stop, committed into the artifact that was supposed to
+   stop it. Separated; the finding now states the absence and reports the cache
+   headers beside it, labelled as not answering the question.
+
+All three recomputed from the recorded values. **No new calls were spent**;
 `callsMade` stays 16. The timestamped artifact holds the as-run values; the
 `-latest` copy carries the corrected verdict with a `recomputed` block stating
 why it differs.
