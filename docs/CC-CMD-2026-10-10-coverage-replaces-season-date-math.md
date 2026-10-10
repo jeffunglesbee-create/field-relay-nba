@@ -4,7 +4,24 @@
 **Repo:** field-relay-nba, then jubilant-bassoon — one change, two repos, per Rule 70
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (correctness) — removes a guessed fact and replaces it with a stated one
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-10. All four tasks, all four done conditions, no stop
+condition hit. Session docs:
+`outbox/cc-session-2026-10-10-coverage-replaces-season-date-math.md` (relay) and
+`jubilant-bassoon/outbox/cc-session-2026-10-10-coverage-replaces-season-date-math.md`
+(client).
+
+Two corrections this work produced, recorded so the document is not read as
+still-true:
+
+1. **"reachable even from the authoring sandbox" is not portable.** The sandbox
+   that executed this returns `CONNECT tunnel failed, response 403` for
+   sports.bzzoiro.com — an egress policy per container, not a fact about the
+   endpoint. Token-free was re-measured from a runner: 200 with a token, 200
+   without.
+2. **Task 4 answered YES.** The document says not to assume the league
+   endpoints carry a current-season flag. `/api/v2/leagues/1/seasons/` returns
+   35 rows carrying `is_current`, so per-competition season state DOES have a
+   vendor source — at one call per competition.
 
 **Rule F:** "is this competition in season" is the most commodity fact in
 sport. **Rule 47:** pure forward; the relay computes no season.
