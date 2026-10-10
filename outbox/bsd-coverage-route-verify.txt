@@ -1,0 +1,19 @@
+=== /bsd/coverage, DEPLOYED  https://field-relay-nba.jeffunglesbee.workers.dev/bsd/coverage
+  HTTP 200  1957B
+  X-Coverage-State: vendor
+  Cache-Control   : public, max-age=600
+  X-FIELD-Source  : sports.bzzoiro.com
+
+PASS  the route answers 200
+PASS  X-Coverage-State says the payload is the vendor's
+PASS  the TTL is not the 25s live-feed TTL
+FAIL  the payload carries a football row
+FAIL  ...with a status the client can read
+
+  ?sport=football -> HTTP 200
+PASS  the ?sport= narrowing is forwarded
+
+COVERAGE: 2 live requests to the deployed route. No BSD token is held by this
+runner for either call — the route answering at all is the token-free proof.
+
+FAIL: 2 failure(s)
