@@ -48,4 +48,17 @@ jobs:
           git config user.email "claude@field.dev"
           git add outbox/wrangler-tail-capture-*.log 2>/dev/null || true
           git commit -m "temp: real wrangler tail capture, forced journalism cycle during window [skip ci]" || echo "nothing to commit"
-          git push origin main || echo "push failed, will need manual retry"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # `|| echo "will need manual retry"` used to stand here. It discards
+          # git's exit status whenever the echo succeeds, which it always does,
+          # so a lost capture reported as a green step and the manual retry it
+          # named was never prompted. The loop above has the same hazard from
+          # the other direction — its last command is `sleep`, and `set -e` does
+          # not fire on a failing `&&` list — so the push is not trusted until
+          # the commit is proven to be an ancestor of the remote.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }

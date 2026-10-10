@@ -31,3 +31,9 @@ jobs:
           node-version: '20'
       - name: Every workflow parses and is runnable
         run: node scripts/workflow-yaml-check.mjs
+
+      - name: The push-lands check can still fail
+        run: node scripts/check-push-lands.mjs --self-test
+
+      - name: Every pushing workflow lands its push or goes red
+        run: node scripts/check-push-lands.mjs
