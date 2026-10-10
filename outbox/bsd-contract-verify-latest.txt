@@ -1,0 +1,58 @@
+=== bsd contract, DEPLOYED  https://field-relay-nba.jeffunglesbee.workers.dev/bsd/contract
+PASS  revision is 2026-10-10-1
+PASS  status no longer says provisional
+PASS  space is per-team
+PASS  axes.x says the goal this team DEFENDS
+PASS  axes.x no longer says 0 = home goal-line
+PASS  the old wording is recorded, not deleted silently
+PASS  the six keepers are quoted as the measurement
+PASS  ...and none of them is near 90
+PASS  four distinct frames are documented
+PASS  the two pitch frames have OPPOSITE origins
+PASS  the mirror is marked REQUIRED
+PASS  the mirror formula is byte-identical
+PASS  the deprecated name still carries the same formula
+PASS  the shot example is a real record (gm.x is 0, not a bare x of 88.3)
+PASS  the avgPosition example uses the real keys n/name, not player/touches
+PASS  n is documented as a count of unconfirmed definition, not renamed touches
+PASS  the incidents sequence shape is documented
+PASS  the open item names the availability state, not the axes
+
+COVERAGE: 18 assertions over the live /bsd/contract response,
+revision 2026-10-10-1. Source is not consulted — this is the served object.
+
+PASS: 18/18
+=== bsd coordinate frames  fixture=scripts/fixtures/bsd-223324-coordinates.json  event=223324
+  shots in capture        : 32
+  discriminating (l/r)    : 21   skipped (centre/unlabelled): 11
+  gml agrees, home side   : 13/13
+  gml agrees, away side   : 8/8
+  keeper x, home / away   : 10.6 / 10.4   spread 0.1999999999999993
+
+PASS  gml agrees with sign(gm.y - 50) on every discriminating shot
+PASS  ...and agrees on BOTH sides, so the frames are a rotation
+PASS  both goalkeepers sit near their own goal line (per-team frame)
+
+COVERAGE: 1 event (223324), 21 of 32 shots
+discriminating; the rest are centre or unlabelled and constrain no sign.
+One capture, not a sample of the feed — widening it means capturing another event.
+
+PASS: 3/3 assertions
+=== bsd coordinate frames  fixture=scripts/fixtures/bsd-223324-coordinates.json  event=223324
+    --mutate: running the BROKEN one-sided forms; both MUST fail
+
+  shots in capture        : 32
+  discriminating (l/r)    : 13   skipped (centre/unlabelled): 9
+  gml agrees, home side   : 13/13
+  gml agrees, away side   : 0/0
+  keeper x, home / away   : 10.6 / 10.4   spread n/a
+
+PASS  gml agrees with sign(gm.y - 50) on every discriminating shot
+FAIL  ...and agrees on BOTH sides, so the frames are a rotation
+PASS  both goalkeepers sit near their own goal line (per-team frame)
+
+COVERAGE: 1 event (223324), 13 of 32 shots
+discriminating; the rest are centre or unlabelled and constrain no sign.
+One capture, not a sample of the feed — widening it means capturing another event.
+
+OK — the one-sided forms failed, as they must
