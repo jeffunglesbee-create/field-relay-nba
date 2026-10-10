@@ -22,7 +22,7 @@
     }
   },
   "task1_odds": {
-    "verdict": "sufficient only for a subset (moneyline, spread, total)",
+    "verdict": "sufficient only for a subset (spread)",
     "doneCondition2": "the free-odds substitution is NOT viable",
     "marketFamilies": {
       "moneyline": {
@@ -284,7 +284,85 @@
       "count",
       "results"
     ],
-    "note": "Market keys are BSD's, verbatim. No mapping to FIELD vocabulary is done here."
+    "note": "Market keys are BSD's, verbatim. No mapping to FIELD vocabulary is done here.",
+    "byState": {
+      "preMatch": {
+        "marketKeysVerbatim": [
+          "asian_handicap",
+          "btts",
+          "draw_no_bet"
+        ],
+        "families": {
+          "moneyline": {
+            "present": false,
+            "matchedKeys": []
+          },
+          "spread": {
+            "present": true,
+            "matchedKeys": [
+              "asian_handicap"
+            ]
+          },
+          "total": {
+            "present": false,
+            "matchedKeys": []
+          },
+          "opening": {
+            "present": false,
+            "matchedKeys": []
+          }
+        },
+        "verdict": "sufficient only for a subset (spread)"
+      },
+      "live": {
+        "marketKeysVerbatim": [
+          "asian_handicap",
+          "btts",
+          "double_chance",
+          "draw_no_bet",
+          "over_under_15",
+          "over_under_25",
+          "over_under_35",
+          "over_under_05",
+          "total_corners",
+          "1x2"
+        ],
+        "families": {
+          "moneyline": {
+            "present": true,
+            "matchedKeys": [
+              "1x2"
+            ]
+          },
+          "spread": {
+            "present": true,
+            "matchedKeys": [
+              "asian_handicap"
+            ]
+          },
+          "total": {
+            "present": true,
+            "matchedKeys": [
+              "over_under_15",
+              "over_under_25",
+              "over_under_35",
+              "over_under_05",
+              "total_corners"
+            ]
+          },
+          "opening": {
+            "present": false,
+            "matchedKeys": []
+          }
+        },
+        "verdict": "sufficient only for a subset (moneyline, spread, total)"
+      }
+    },
+    "recomputed": {
+      "at": "2026-10-10T23:33:41.312Z",
+      "why": "The shipped matcher false-matched double_chance as a goals total via a two-letter needle (ou), and merged pre-match with live keys into one verdict. Recomputed from the recorded verbatim keys — NO new calls.",
+      "mergedVerdictWasMisleading": "sufficient only for a subset (moneyline, spread, total)"
+    }
   },
   "task2_form": {
     "teamId": 4784,

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { pathToFileURL } from 'node:url'
 // docs/CC-CMD-2026-10-10-coverage-replaces-season-date-math.md — the two
 // questions that must be answered from a live call before any plumbing.
 //
@@ -81,8 +82,13 @@ function selfTest () {
 // from a sandbox with no egress, every call returned null, and it overwrote
 // the runner's good reading with a failed one. The check then reported the
 // STOP CONDITION against an artifact it had just destroyed itself.
-const _isEntry = import.meta.url === `file://${process.argv[1]}`
-  || import.meta.url.endsWith(String(process.argv[1] ?? '').replace(/^\.\//, ''))
+const _entryHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : null
+// `import.meta.url.endsWith(basename)` was here, and it is WRONG in two ways:
+// a `node -e` import leaves argv[1] empty, `''.endsWith('')` is true, and the
+// module ran anyway — defeating the very guard it is; and a basename match
+// would also fire for a same-named file in another directory. pathToFileURL
+// compares the resolved path, which is the only thing that settles it.
+const _isEntry = _entryHref !== null && import.meta.url === _entryHref
 if (!_isEntry) {
   // Imported, not run. The exports above are pure; nothing else happens.
 } else if (process.argv.includes('--self-test')) {

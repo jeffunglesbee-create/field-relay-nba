@@ -10,6 +10,7 @@
 // renamed in the artifact cannot be checked against the vendor's docs.
 
 import { writeFileSync, mkdirSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 
 export const BASE = 'https://sports.bzzoiro.com'
 export const CALL_BUDGET = 40
@@ -34,7 +35,11 @@ export const rateHeadersOf = (hdrs) => {
 export const MARKET_FAMILIES = {
   moneyline: ['1x2', 'match_winner', 'moneyline', 'match_odds', 'home_draw_away', 'winner', 'ml'],
   spread:    ['spread', 'handicap', 'asian', 'line'],
-  total:     ['total', 'over_under', 'over/under', 'ou', 'goals_over'],
+  // 'ou' was here and FALSE-MATCHED `double_chance` — d-o-u-ble — reporting a
+  // double-chance market as a goals total. A two-letter needle is not a market
+  // name. Removed; matchedKeys exists so this kind of thing is visible rather
+  // than hidden behind a boolean, and that is how it was caught.
+  total:     ['total', 'over_under', 'over/under', 'goals_over'],
   opening:   ['opening', 'open_price', 'first_price'],
 }
 export const familiesPresent = (marketKeys) => {
@@ -57,6 +62,17 @@ export const oddsVerdict = (fams) => {
 }
 
 /** Done condition 2, in the document's own words. */
+/** The verdict PER MATCH STATE. Merging pre-match and live keys into one
+ *  verdict hides the finding: BSD's odds product is described as PRE-MATCH, and
+ *  the pre-match sample carries neither a moneyline nor a goals total while the
+ *  live one carries both. A single merged answer reads as "mostly there" and is
+ *  wrong about the state that matters. */
+export const verdictByState = (keysByState) =>
+  Object.fromEntries(Object.entries(keysByState).map(([state, keys]) => {
+    const fams = familiesPresent(keys)
+    return [state, { marketKeysVerbatim: keys, families: fams, verdict: oddsVerdict(fams) }]
+  }))
+
 export const substitutionViable = (verdict) =>
   verdict === 'markets sufficient for the model'
     ? 'the free-odds substitution is viable'
@@ -91,6 +107,14 @@ function selfTest () {
     oddsVerdict(familiesPresent(['1x2'])) === 'sufficient only for a subset (moneyline)')
   check('the matched key is recorded, not just a boolean',
     familiesPresent(['asian_handicap']).spread.matchedKeys[0] === 'asian_handicap')
+  check('MUTATION: double_chance is NOT a goals total — the ou needle is gone',
+    familiesPresent(['double_chance']).total.present === false)
+  check('...while over_under_25 still is', familiesPresent(['over_under_25']).total.present === true)
+  check('per-state verdicts do not merge',
+    verdictByState({ pre: ['asian_handicap'], live: ['1x2', 'asian_handicap', 'over_under_25'] }).pre.verdict
+      !== verdictByState({ pre: ['asian_handicap'], live: ['1x2', 'asian_handicap', 'over_under_25'] }).live.verdict)
+  check('MUTATION: a thin pre-match state is named as such',
+    verdictByState({ pre: ['asian_handicap', 'btts'] }).pre.verdict === 'sufficient only for a subset (spread)')
   check('done condition 2 uses the document\'s words',
     substitutionViable('insufficient') === 'the free-odds substitution is NOT viable')
   check('...and the positive form too',
@@ -108,12 +132,18 @@ function selfTest () {
   check('MUTATION: an empty capture is an empty object, and the caller must say so',
     Object.keys(rateHeadersOf({ 'content-type': 'x' })).length === 0)
 
-  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${12 - failed}/12 self-tests`)
+  console.log(`\n${failed === 0 ? 'OK' : 'FAILED'} — ${16 - failed}/16 self-tests`)
   return failed
 }
 
 // IMPORT PURITY — everything below makes live calls and writes an artifact.
-const _isEntry = import.meta.url.endsWith(String(process.argv[1] ?? '').replace(/^.*\//, ''))
+const _entryHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : null
+// `import.meta.url.endsWith(basename)` was here, and it is WRONG in two ways:
+// a `node -e` import leaves argv[1] empty, `''.endsWith('')` is true, and the
+// module ran anyway — defeating the very guard it is; and a basename match
+// would also fire for a same-named file in another directory. pathToFileURL
+// compares the resolved path, which is the only thing that settles it.
+const _isEntry = _entryHref !== null && import.meta.url === _entryHref
 if (!_isEntry) {
   // imported; the exports above are pure
 } else if (process.argv.includes('--self-test')) {
@@ -296,6 +326,10 @@ const artifact = {
   eventStatesSampled: states,
   task1_odds: {
     verdict: t1verdict,
+    byState: verdictByState({
+      preMatch: t1pre.marketKeysVerbatim ?? [],
+      live: t1live.marketKeysVerbatim ?? [],
+    }),
     doneCondition2: substitutionViable(t1verdict),
     marketFamilies: fams,
     preMatch: t1pre, live: t1live,

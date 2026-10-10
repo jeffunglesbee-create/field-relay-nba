@@ -4,7 +4,16 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (probe) — **no feature ships from this document.** One artifact.
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-10. Five tasks, six done conditions, no feature
+shipped. 16 calls of a declared 40-call budget. Artifact:
+`outbox/bsd-surface-probe-latest.json`. Session doc:
+`outbox/cc-session-2026-10-10-bsd-measure-before-building.md`.
+
+Headline: **the free-odds substitution is NOT viable.** The 10-03 thin result
+was partly a finished-match artifact — a LIVE event carries `1x2`,
+`asian_handicap` and four `over_under_*` keys — but the PRE-MATCH sample, which
+is the product BSD describes, carries only `asian_handicap`, `btts` and
+`draw_no_bet`: no moneyline, no goals total, no opening price on either.
 
 ## Why this exists
 
