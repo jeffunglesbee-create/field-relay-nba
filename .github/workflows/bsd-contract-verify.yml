@@ -1,0 +1,62 @@
+name: BSD contract verify
+
+# Dispatch-only. Asserts done conditions 1 and 3 of
+# docs/CC-CMD-2026-10-10-bsd-coordinate-frames.md against the DEPLOYED
+# /bsd/contract, not against src/index.js.
+#
+# Reading the source to confirm the source is the substitution this repo's
+# rules exist to prevent: a correct object in the file proves nothing about
+# what the worker serves until it has deployed. Run this AFTER the deploy
+# for the contract change has gone green.
+#
+# CI because a CONNECT to the relay host is 403-denied in the sandbox.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Self-test the verifier first
+        run: node scripts/bsd-contract-verify.mjs --self-test
+
+      - name: Verify the deployed contract
+        run: |
+          mkdir -p outbox
+          node scripts/bsd-contract-verify.mjs 2>&1 \
+            | tee outbox/bsd-contract-verify-latest.txt
+
+      - name: Also re-run the frame verifier over the committed fixture
+        run: |
+          node scripts/bsd-coordinate-check.mjs 2>&1 \
+            | tee -a outbox/bsd-contract-verify-latest.txt
+          node scripts/bsd-coordinate-check.mjs --mutate 2>&1 \
+            | tee -a outbox/bsd-contract-verify-latest.txt
+
+      - name: Commit the reading
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-contract-verify-latest.txt
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: BSD contract verification result"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          # The loop exits 0 when all three attempts fail: its last command is
+          # `sleep`, and `set -e` does not fire on a failing `&&` list.
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }

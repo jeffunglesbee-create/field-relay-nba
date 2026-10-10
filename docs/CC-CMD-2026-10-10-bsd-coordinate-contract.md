@@ -5,7 +5,24 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (correction) — a published contract whose prose contradicts the data it describes
 
-**Status:** FILED, not started.
+**Status:** SUPERSEDED 2026-10-10 by
+`docs/CC-CMD-2026-10-10-bsd-coordinate-frames.md`, which was filed 5.5 minutes
+later (2737d59 13:52:56 -> b1fad7c 13:58:25) and neither doc referenced the
+other.
+
+The two conflict on one point, and the later one is right. This doc's done
+condition 2 requires `coordinateSystem.unresolved.y` naming the shotmap as the
+resolver; `-frames.md` RESOLVES y, from the shotmap — `gml` agrees with
+`sign(gm.y - 50)` on 24 of 24 shots in 223324, identically on both sides, which
+makes the two frames a rotation rather than a reflection. So `unresolved.y` was
+deliberately NOT added: adding it would have published an open question that had
+already been answered by the evidence this doc asked for.
+
+Everything else here is carried, not dropped: per-team axes, the real
+`avgPosition` example, the required-on-away transform with the `scaleX(-1)`
+warning, the keeper-spread check, and the `websocket_plus` finding in the
+`avgPosM` comment. Executed under the later doc on 2026-10-10 — see
+`outbox/cc-session-2026-10-10-bsd-coordinate-frames.md`.
 
 ## CONTEXT — the single source of truth is wrong about x
 

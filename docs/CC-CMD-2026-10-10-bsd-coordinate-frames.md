@@ -4,7 +4,9 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (correctness) — a declared single source of truth that is wrong
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-10. All seven tasks executed; three stop conditions
+checked and none hit. Session doc:
+`outbox/cc-session-2026-10-10-bsd-coordinate-frames.md`.
 
 **Rule 47:** untouched. Nothing here adds relay-side processing; every task
 corrects a declaration or adds a verifier over a committed capture.
