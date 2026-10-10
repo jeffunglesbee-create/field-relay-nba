@@ -5,6 +5,46 @@
 **Spec:** `docs/CC-CMD-2026-10-10-coverage-replaces-season-date-math.md`
 **Outcome:** Tasks 1, 2, 4 here; Task 3 in jubilant-bassoon. No stop condition hit.
 
+## HEAD progression
+
+Filed `62f4c18`, then:
+
+| commit | what |
+|---|---|
+| `d03db52` | the coverage probe and its workflow |
+| `6db2aa7` | *(runner)* probe reading — the token-free and per-league answers |
+| `c2cc282` | `/bsd/coverage`, above the 503 guard; the three-state check |
+| `dceb1fa` | route provenance manifest regenerated, 188 → 189 |
+| `ae8b740` | a bare citation anchored; the ratchet made to name its members |
+| `f52a7c9` | the deployed-route verifier |
+| `d605105` | *(runner)* verification artifact |
+| `b79d208` | the verifier's payload-shape guess corrected |
+| `2c4f606` | *(runner)* verification artifact, re-run |
+| `1e43c5b` | this session doc, and the CC-CMD closed out |
+| `d89fea0` | *(later)* `scripts/bsd-coverage-probe.mjs` entry guard fixed under the next CC-CMD |
+
+Client half: `42efd0db` the season-state change, `cbfc201` its session doc.
+
+**Two deploys failed before one succeeded, and neither failure was the route.**
+
+| run | sha | result |
+|---|---|---|
+| `38093353740` | `c2cc282` | FAILURE — *Route provenance manifest matches the code* |
+| `38093480803` | `dceb1fa` | FAILURE — *doc citations are anchored, not just numbered* |
+| `38094430758` | `ae8b740` | **success**, dispatched by hand |
+| `38094961673` | `42efd0db` | **success** — client deploy-gate |
+
+Two things in that table are worth more than the hashes.
+
+The citation failure was **inherited**: that bare citation was introduced by the
+PREVIOUS CC-CMD's closing commit `563819f`, and first ran here because this was
+the next change to touch `src/`.
+
+And `ae8b740` touched only `scripts/` and `docs/`, which are not deploy-trigger
+paths — **so no deploy fired for the commit that fixed the blocker**, and the
+route sat undeployed behind two green-looking commits until the run was
+dispatched manually. A red deploy is visible; a deploy that never fires is not.
+
 ## The route
 
 `/bsd/coverage` → `/api/v2/coverage/`, pure forward, **no token**, sitting

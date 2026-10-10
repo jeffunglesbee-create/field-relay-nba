@@ -1,5 +1,67 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-10 — five CC-CMDs, and a gate that was red the whole time
+
+**HEAD:** `04529d5` → `b49e566`. Last green deploy `ae8b740` (run `38094430758`).
+Client half in jubilant-bassoon: `42efd0db`, deploy-gate `38094961673` green.
+Spent this session: **0 credits** at the vendor. One probe declared a 40-call
+BSD budget and used 16.
+
+Session docs — all five, per Rule 67:
+
+- `outbox/cc-session-2026-10-10-bsd-coordinate-frames.md`
+- `outbox/cc-session-2026-10-10-push-lands-or-goes-red.md`
+- `outbox/cc-session-2026-10-10-bsd-fields-already-arriving.md`
+- `outbox/cc-session-2026-10-10-coverage-replaces-season-date-math.md`
+- `outbox/cc-session-2026-10-10-bsd-measure-before-building.md`
+
+**`guards.yml` failed every push today on step `HANDOFF.md is not stale`, and
+no session noticed.** 21 of 29 commits post-dated the 2026-10-08 close-out by
+more than a day. That step now runs LAST precisely so it cannot blind the spend
+and credential gates — the 2026-10-08 close-out above records why — and it did
+its job: the other gates kept running and kept reporting. What failed is that
+five consecutive CC-CMDs read a red `guards.yml` as furniture. This close-out is
+the repair.
+
+### What shipped
+
+**`/bsd/contract` declared one coordinate frame; the feed serves four**
+(`d2c32be`). The declared x axis was false and the transform under it was
+correct — six keepers across three events sit at x 9.4–12.8 where the old
+wording puts an away keeper at ~90. The mirror formula is unchanged byte for
+byte. Verified against the DEPLOYED route, 18/18.
+
+**Eleven BSD event fields that already arrive were being dropped** (`458c8d0`)
+— not by a route, but at `src/index.js:4446`, where the WC enrichment copied
+`group_name` and `weather` off the full row and discarded ~38 others. A live
+census first: `attendance` and `previous_leg_event_id` are **0 of 193**
+populated, so two fields the spec proposed as journalism hooks are schema-only.
+
+**`/bsd/coverage`** (`c2cc282`) — the vendor states whether a sport is in
+season, token-free, replacing eight-competition date arithmetic in the client.
+`_euSeasonActive()` demoted and labelled, not deleted.
+
+**A workflow that loses its push must go red** (`b6412bd`). Census found 1 real
+defect in 62 pushing run blocks, not the 35 a naive grep suggested.
+
+**A BSD surface probe** (`cb1255d`, probe-only): **the free-odds substitution is
+NOT viable** — pre-match carries no moneyline and no goals total, and no opening
+price exists at any state. Per-league season state DOES exist (`is_current`).
+NBA present, NHL absent. No rate-limit header exists at all.
+
+### Open
+
+- **The monthly odds guard fails open on every call.** `chargeMonthlyOdds`
+  submits a 2-statement batch into `chargedFromBatch`, which requires exactly 3
+  and throws. 402 throws / ~1,468 credits in a 22.8h window on 2026-10-10. One
+  arity fix; not done.
+- **Three unadmitted dead crons**, and all four baseline admissions expire
+  **2026-10-17**.
+- **No live read of a forwarded `_g.bsd` block** — the enrichment is gated
+  `sport === 'wc26'`, so it needs a World Cup fixture. STAGED.
+- Provenance Runtime Probe run `38091426917` lost its artifact on `Commit
+  result`; cause not established.
+
 ## SESSION CLOSE-OUT — 2026-10-08 — the guard suite was off for five days, and a call that took the whole cap
 
 **HEAD:** `b6f76b8` → `0674a24`. Last green deploy `0645fc8` (2026-10-04).

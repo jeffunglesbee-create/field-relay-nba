@@ -11,6 +11,34 @@ Artifact: `outbox/bsd-surface-probe-latest.json`.
 States sampled: pre-match `220230` (`notstarted`), live `207856`
 (`inprogress` / `2nd_half`), finished `223324`.
 
+## HEAD progression
+
+Filed `2c9ffda`, then:
+
+| commit | what |
+|---|---|
+| `cb1255d` | the surface probe and its workflow |
+| `b6b64b3` | *(runner)* the probe artifact, from run `38095337511` |
+| `d89fea0` | results, the session doc, and two fixes to the measuring apparatus |
+| `b49e566` | the cache-header-answering-a-rate-limit-question fix |
+
+**No feature shipped, and that was checked rather than asserted.** None of the
+four commits touches `src/` or `wrangler.toml`; all four are scripts, a
+workflow, an artifact and docs. No deploy ran, because none was triggered.
+
+### The spec's done-condition artifact still carries the uncorrected verdicts
+
+Done condition 1 names `outbox/bsd-surface-probe-<ts>.json` — the TIMESTAMPED
+file. Both post-run corrections (the `ou` needle, and the cache header reported
+as a rate-limit header) were written to `-latest.json` only. The timestamped
+file was never modified after `b6b64b3`, which is correct for a raw run record
+and wrong for the file the spec points at.
+
+Resolved by leaving the as-run numbers intact and adding a `_superseded` block
+to the timestamped file naming what was corrected and where the corrected
+values live. A run record that silently disagrees with the working copy is the
+same hazard as a stale doc.
+
 ## Task 1 — the free-odds substitution is NOT viable
 
 The CC-CMD's suspicion was right and its hedge was also right, in different

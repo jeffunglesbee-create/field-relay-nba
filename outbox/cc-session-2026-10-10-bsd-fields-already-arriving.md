@@ -144,6 +144,42 @@ by assertion.
 touch, and every other live smoke in the same job passed. One re-run, per the
 repo's own flake rule: it passed. Transient upstream. The run is green.
 
+## Corrected 2026-10-11 — three CI facts this doc originally omitted
+
+Written from an independent re-assembly of the record against git and the
+Actions API, not from memory. All three were missing when this doc was filed.
+
+**1. "the forwarder is live" was an inference, not a reading.** The original
+text rested on deploy run `38091092626`'s deploy job going green. A green
+deploy says the worker shipped; it does not say the `bsd` block appears in a
+response. The blocking gate in `deploy.yml` asserts the partition logic against
+the LOCAL committed artifact (`scripts/check-bsd-field-absence.mjs`,
+`CENSUS = 'outbox/bsd-field-census-latest.json'`). **No live read of a forwarded
+`_g.bsd` block exists.** The enrichment is gated `sport === 'wc26'`, so
+producing one needs a World Cup fixture in the slate. STAGED, not verified.
+
+**2. This CC-CMD broke the citation gate, and the break outlived it.** Repo
+guards' step *"every anchored citation still resolves"* was green on every run
+up to and including `458c8d0`, went **red exactly at `563819f`** — this
+document's own closing commit — and stayed red across `d03db52` and `c2cc282`
+before `ae8b740` repaired it. Two later CC-CMDs inherited a red gate from this
+one. The cause was the bare `src/index.js:4436` citation in the DONE block;
+deploy does not trigger on `docs/`, so nothing ran the ratchet until a `src`
+change rode alongside.
+
+**3. A probe in this CC-CMD's own deploy chain failed and lost its artifact.**
+Run `38091426917` (Provenance Runtime Probe, head `64045a5`): `Run probe` =
+success, **`Commit result` = failure**. Corroborated from git — no
+`chore: provenance runtime probe result` commit exists after `efdf417`
+(19:25:38Z), so that reading never reached the repo. Why the commit step failed
+is **not established**: raw logs are blocked and `scripts/probe-commit-retry.sh`
+has three distinct exit-1 paths.
+
+Also worth recording plainly: deploy `38091092626` attempt 1 had verify FAIL at
+step 12 (`/pl/fixtures route smoke`) and **steps 13–16 never ran at all** — they
+were skipped, not passed. Attempt 2 re-ran only the failed job; the worker was
+deployed once.
+
 ## Carry-forwards
 
 **None from this CC-CMD.**

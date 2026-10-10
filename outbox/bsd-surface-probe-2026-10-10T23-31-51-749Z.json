@@ -562,5 +562,12 @@
       "bytes": 11092
     }
   ],
-  "coverage": "16 of a 40-call budget. One pre-match event, one live event, one finished event. One team for form, one league list per sport. Not a survey of the feed."
+  "coverage": "16 of a 40-call budget. One pre-match event, one live event, one finished event. One team for form, one league list per sport. Not a survey of the feed.",
+  "_superseded": {
+    "note": "This is the AS-RUN record and its task1/task5 verdicts were later found wrong. The numbers below are unchanged; the corrected verdicts live in outbox/bsd-surface-probe-latest.json.",
+    "correctedAt": "2026-10-10",
+    "task1": "The totals matcher used a two-letter needle (ou) that false-matched double_chance as a goals total, and the verdict merged pre-match with live keys. Corrected verdict is PER STATE: pre-match \"sufficient only for a subset (spread)\", live \"sufficient only for a subset (moneyline, spread, total)\". Done condition 2: the free-odds substitution is NOT viable.",
+    "task5": "RATE_HEADERS included cache headers, so this file reports \"rate-limit headers observed\" on a run that saw none. Corrected: zero rate-limit headers; the two observed are cache headers and do not answer the question.",
+    "callsMadeUnchanged": "16 — both corrections were recomputed from the recorded verbatim values, spending no new calls."
+  }
 }
