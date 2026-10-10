@@ -18,6 +18,13 @@ PASS  n is documented as a count of unconfirmed definition, not renamed touches
 PASS  the incidents sequence shape is documented
 PASS  the open item names the availability state, not the axes
 
+  588245 (finished, websocket_plus false): HTTP 200 empty=true X-AvgPos-State=finished-no-data
+  588255 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
+PASS  an empty finished event names a state, not a bare {}
+PASS  ...and that state is NOT in-play
+PASS  a live event that is empty reads in-play
+  state coverage: 2 of 2 states exercised
+
 COVERAGE: 18 assertions over the live /bsd/contract response,
 revision 2026-10-10-1. Source is not consulted — this is the served object.
 
