@@ -144,6 +144,16 @@ jobs:
       - name: A missing BSD field is distinguishable from a zero one
         run: node scripts/check-bsd-field-absence.mjs
 
+      # Blocking. Two silent-failure modes on /bsd/coverage: the branch slipping
+      # BELOW the 503 token guard, where a token-free endpoint 503s for want of
+      # a token it never wanted; and a credential being attached to an endpoint
+      # that does not want one. Neither would be noticed from the outside.
+      - name: The coverage-state check can still fail
+        run: node scripts/check-coverage-states.mjs --self-test
+
+      - name: /bsd/coverage is token-free, above the guard, and three-stated
+        run: node scripts/check-coverage-states.mjs
+
       # Blocking. /context/game answers a lookup for any string, and findBriefs
       # falls back to `id LIKE '%<id>%'` -- so an id the endpoint cannot resolve
       # is answered with whatever shares that substring. Probed 2026-09-12:

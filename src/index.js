@@ -10349,6 +10349,65 @@ export default {
                 });
             }
 
+            // /bsd/coverage → /api/v2/coverage/ — pure forward, NO TOKEN.
+            //
+            // THIS BRANCH SITS ABOVE THE 503 TOKEN GUARD DELIBERATELY. The
+            // upstream needs no Authorization header — measured 2026-10-10 from
+            // a runner by calling it both ways, 200 with the token and 200
+            // without (outbox/bsd-coverage-probe-latest.json, q1_tokenFree).
+            // Below the guard this route would 503 whenever BSD_API_TOKEN were
+            // absent, which would make a token-free endpoint fail for want of a
+            // token it never wanted. No header is attached here either: sending
+            // a credential an endpoint does not require is how one leaks.
+            //
+            // TTL 600s, and the reason is the payload's own horizon: every
+            // field this route exists for — `status`, `events_next_7d`,
+            // `priced_next_7d` — describes a 7-day or 30-day window, and a
+            // season boundary moves about once. `live_now` is in the same
+            // payload and WILL be up to ten minutes stale at this TTL; that is
+            // accepted, not overlooked. A caller that wants liveness wants
+            // /bsd/events/live, which is cached at 25s for exactly that reason.
+            //
+            // Rule 47: nothing is computed. The vendor states whether a sport is
+            // in season; this forwards the statement.
+            if (pathname === '/bsd/coverage') {
+                const covQs = url.searchParams.get('sport')
+                    ? `?sport=${encodeURIComponent(url.searchParams.get('sport'))}`
+                    : '';
+                try {
+                    const r = await fetch(`https://sports.bzzoiro.com/api/v2/coverage/${covQs}`,
+                        { headers: { 'User-Agent': 'FIELD/1.0', 'Accept': 'application/json' } });
+                    const body = await r.text();
+                    // Rule 99 / Task 2 — THREE states, and the third must never
+                    // read as either of the first two:
+                    //   X-Coverage-State: vendor        the payload is the vendor's answer
+                    //   X-Coverage-State: upstream-failed   we do not know
+                    // A caller then reads `status` and `priced_next_7d` off the
+                    // payload for the other two. "in_season with priced_next_7d
+                    // 0" is a real state the vendor reports today for darts and
+                    // csgo — has fixtures, has no prices — and it is not
+                    // off-season. This repo has burned sessions on exactly that
+                    // conflation.
+                    if (!r.ok) {
+                        return new Response(JSON.stringify({
+                            error: 'coverage upstream failed', upstreamStatus: r.status,
+                            note: 'This is NOT off-season and NOT unpriced. The call failed; the season state is unknown.',
+                        }), { status: 502, headers: { 'Content-Type': 'application/json',
+                                 'X-Coverage-State': 'upstream-failed', ...CORS } });
+                    }
+                    return new Response(body, { status: 200,
+                        headers: { 'Content-Type': 'application/json',
+                                   'Cache-Control': 'public, max-age=600',
+                                   'X-Coverage-State': 'vendor', ...CORS } });
+                } catch (e) {
+                    return new Response(JSON.stringify({
+                        error: 'coverage fetch threw', detail: e.message,
+                        note: 'This is NOT off-season and NOT unpriced. The season state is unknown.',
+                    }), { status: 502, headers: { 'Content-Type': 'application/json',
+                             'X-Coverage-State': 'upstream-failed', ...CORS } });
+                }
+            }
+
             const bsdToken = env.BSD_API_TOKEN;
             if (!bsdToken) {
                 return new Response(JSON.stringify({ error: 'BSD_API_TOKEN not configured' }),

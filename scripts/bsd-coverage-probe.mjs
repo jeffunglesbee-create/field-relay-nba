@@ -74,7 +74,24 @@ function selfTest () {
   return failed
 }
 
-if (process.argv.includes('--self-test')) process.exit(selfTest())
+// IMPORT PURITY. Everything below performs live calls and WRITES outbox
+// artifacts. Without this guard, any module that imports a pure helper from
+// here runs the probe as a side effect — which happened on 2026-10-10:
+// scripts/check-coverage-states.mjs imported `coverageState`, the probe ran
+// from a sandbox with no egress, every call returned null, and it overwrote
+// the runner's good reading with a failed one. The check then reported the
+// STOP CONDITION against an artifact it had just destroyed itself.
+const _isEntry = import.meta.url === `file://${process.argv[1]}`
+  || import.meta.url.endsWith(String(process.argv[1] ?? '').replace(/^\.\//, ''))
+if (!_isEntry) {
+  // Imported, not run. The exports above are pure; nothing else happens.
+} else if (process.argv.includes('--self-test')) {
+  // Inside the guard too. Left outside, an importer whose OWN argv carries
+  // --self-test runs THIS file's self-test and exits before its own ever runs
+  // — which is what happened to scripts/check-coverage-states.mjs: it printed
+  // 11/11 and exited 0 without executing a single one of its own 13 checks.
+  process.exit(selfTest())
+} else {
 
 const TOKEN = process.env.BSD_API_TOKEN || null
 const get = async (path, withToken) => {
@@ -154,3 +171,5 @@ writeFileSync('outbox/bsd-coverage-probe-latest.json', JSON.stringify(artifact, 
 console.log(`\nwrote outbox/bsd-coverage-probe-${stamp}.json`)
 console.log(`\nCOVERAGE: 1 call to /api/v2/coverage/ each way, 2 league endpoints, 1 league (EPL).`)
 process.exit(tokenFree ? 0 : 1)
+
+}  // end entry guard
