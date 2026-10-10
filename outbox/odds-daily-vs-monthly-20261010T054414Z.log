@@ -1,0 +1,34 @@
+=== odds daily-vs-monthly  utc=2026-10-10T05:44:14.652Z ===
+series: outbox/odds-daily-vs-vendor-series.json
+readings on file: 22
+readings in the current month's segment: 10  (12 dropped at the reset of 2026-10-01T05:44:24.749Z)
+days fully inside the span: 8 (2026-10-02:890 · 2026-10-03:2348 · 2026-10-04:2225 · 2026-10-05:724 · 2026-10-06:451 · 2026-10-07:3799 · 2026-10-08:481 · 2026-10-09:3225)
+span: 2026-10-01T05:44:24.749Z  ->  2026-10-10T05:44:11.564Z
+verdict: daily-exceeds-monthly
+
+  PER-DAY, diagnostic only — each pair spans ~24h offset from the UTC day
+  day          dayUsed   monthlyD    excess   span
+  2026-10-01       357        312        45   23.7h
+  2026-10-02       890        976       -86   23.7h
+  2026-10-03      2348       2310        38   24.6h
+  2026-10-04      2225       2132        93   23.7h
+  2026-10-05       724        782       -58   24.7h
+  2026-10-06       451       3389     -2938   23.6h
+  2026-10-07      3799        255      3544   24.1h
+  2026-10-08       481        433        48   24.1h
+  2026-10-09      3225       3285       -60   23.7h
+
+  A row is not a verdict: the two windows differ by the read hour, so a
+  single excess of a few tens is window offset, not a counter defect. The
+  verdict above is the window-free inequality over the whole segment.
+
+  daily sum over contained days : 14143
+  monthly counter moved         : 13874
+  EXCESS                        : 269   (ratio 1.02x)
+
+  The monthly delta spans the SAME hours as those days PLUS the partial
+  hours at each edge, so it can only be larger. Daily exceeding it is not
+  a tolerance question — the excess is a FLOOR on the error, never an
+  estimate of it.
+
+  This says the two disagree. It does NOT say which one is wrong.
