@@ -1,0 +1,558 @@
+{
+  "capturedAt": "2026-10-10T22:16:57.434Z",
+  "date": "2026-10-10",
+  "endpoint": "/api/v2/events/",
+  "note": "No new upstream call: same endpoint and params the WC enrichment and the claims harness already use.",
+  "rows": 193,
+  "pages": 2,
+  "control": {
+    "field": "weather",
+    "present": 193
+  },
+  "named": {
+    "has_xg": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "pitch_condition": {
+      "absent": 0,
+      "null": 39,
+      "empty": 0,
+      "present": 154,
+      "rows": 193,
+      "presentPct": 79.8
+    },
+    "travel_distance_km": {
+      "absent": 0,
+      "null": 39,
+      "empty": 0,
+      "present": 154,
+      "rows": 193,
+      "presentPct": 79.8
+    },
+    "is_local_derby": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "is_neutral_ground": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "attendance": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "head_to_head": {
+      "absent": 0,
+      "null": 36,
+      "empty": 0,
+      "present": 157,
+      "rows": 193,
+      "presentPct": 81.3
+    },
+    "round_label": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "round_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 193,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "round_number": {
+      "absent": 0,
+      "null": 11,
+      "empty": 0,
+      "present": 182,
+      "rows": 193,
+      "presentPct": 94.3
+    },
+    "stage": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "stage_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "previous_leg_event_id": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "referee_id": {
+      "absent": 0,
+      "null": 57,
+      "empty": 0,
+      "present": 136,
+      "rows": 193,
+      "presentPct": 70.5
+    },
+    "home_coach_id": {
+      "absent": 0,
+      "null": 4,
+      "empty": 0,
+      "present": 189,
+      "rows": 193,
+      "presentPct": 97.9
+    },
+    "away_coach_id": {
+      "absent": 0,
+      "null": 4,
+      "empty": 0,
+      "present": 189,
+      "rows": 193,
+      "presentPct": 97.9
+    },
+    "highlights": {
+      "absent": 0,
+      "null": 0,
+      "empty": 134,
+      "present": 59,
+      "rows": 193,
+      "presentPct": 30.6
+    }
+  },
+  "headToHead": {
+    "rowsWithObject": 157,
+    "fields": {
+      "avg_total_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "away_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "away_win_rate": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "away_wins": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "draws": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "home_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "home_win_rate": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "home_wins": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "recent_matches": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      },
+      "total_matches": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 157,
+        "rows": 157,
+        "presentPct": 100
+      }
+    }
+  },
+  "allFields": {
+    "attendance": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "away_coach_id": {
+      "absent": 0,
+      "null": 4,
+      "empty": 0,
+      "present": 189,
+      "rows": 193,
+      "presentPct": 97.9
+    },
+    "away_score": {
+      "absent": 0,
+      "null": 15,
+      "empty": 0,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "away_score_ht": {
+      "absent": 0,
+      "null": 15,
+      "empty": 0,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "away_team": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "away_team_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "current_minute": {
+      "absent": 0,
+      "null": 15,
+      "empty": 0,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "event_date": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "extra_time_score": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "group_name": {
+      "absent": 0,
+      "null": 183,
+      "empty": 0,
+      "present": 10,
+      "rows": 193,
+      "presentPct": 5.2
+    },
+    "has_xg": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "head_to_head": {
+      "absent": 0,
+      "null": 36,
+      "empty": 0,
+      "present": 157,
+      "rows": 193,
+      "presentPct": 81.3
+    },
+    "highlights": {
+      "absent": 0,
+      "null": 0,
+      "empty": 134,
+      "present": 59,
+      "rows": 193,
+      "presentPct": 30.6
+    },
+    "home_coach_id": {
+      "absent": 0,
+      "null": 4,
+      "empty": 0,
+      "present": 189,
+      "rows": 193,
+      "presentPct": 97.9
+    },
+    "home_score": {
+      "absent": 0,
+      "null": 15,
+      "empty": 0,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "home_score_ht": {
+      "absent": 0,
+      "null": 15,
+      "empty": 0,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "home_team": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "home_team_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "is_local_derby": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "is_neutral_ground": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "league_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "live_websocket": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "penalty_shootout": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "period": {
+      "absent": 0,
+      "null": 0,
+      "empty": 15,
+      "present": 178,
+      "rows": 193,
+      "presentPct": 92.2
+    },
+    "pitch_condition": {
+      "absent": 0,
+      "null": 39,
+      "empty": 0,
+      "present": 154,
+      "rows": 193,
+      "presentPct": 79.8
+    },
+    "previous_leg_event_id": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "referee_id": {
+      "absent": 0,
+      "null": 57,
+      "empty": 0,
+      "present": 136,
+      "rows": 193,
+      "presentPct": 70.5
+    },
+    "replaced_by": {
+      "absent": 0,
+      "null": 193,
+      "empty": 0,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "round_label": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "round_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 193,
+      "present": 0,
+      "rows": 193,
+      "presentPct": 0
+    },
+    "round_number": {
+      "absent": 0,
+      "null": 11,
+      "empty": 0,
+      "present": 182,
+      "rows": 193,
+      "presentPct": 94.3
+    },
+    "season_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "stage": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "stage_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "status": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "travel_distance_km": {
+      "absent": 0,
+      "null": 39,
+      "empty": 0,
+      "present": 154,
+      "rows": 193,
+      "presentPct": 79.8
+    },
+    "venue_id": {
+      "absent": 0,
+      "null": 20,
+      "empty": 0,
+      "present": 173,
+      "rows": 193,
+      "presentPct": 89.6
+    },
+    "weather": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    },
+    "websocket_plus": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 193,
+      "rows": 193,
+      "presentPct": 100
+    }
+  },
+  "coverage": "193 rows on 2026-10-10, 40 distinct field names. One day, not the feed."
+}
