@@ -40,13 +40,18 @@ jobs:
           BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
         run: node scripts/bsd-coverage-probe.mjs
 
+      - name: Verify the DEPLOYED /bsd/coverage route
+        run: |
+          node scripts/verify-coverage-route.mjs --self-test
+          node scripts/verify-coverage-route.mjs 2>&1 | tee outbox/bsd-coverage-route-verify.txt
+
       - name: Commit the reading
         if: always()
         run: |
           set -euo pipefail
           git config user.email "claude@field.dev"
           git config user.name  "FIELD CI"
-          git add outbox/bsd-coverage-probe-*.json
+          git add outbox/bsd-coverage-probe-*.json outbox/bsd-coverage-route-verify.txt
           git diff --cached --quiet && echo "no change" && exit 0
           git commit -m "chore: BSD coverage probe reading"
           for i in 1 2 3; do
