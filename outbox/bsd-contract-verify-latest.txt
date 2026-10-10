@@ -19,7 +19,7 @@ PASS  the incidents sequence shape is documented
 PASS  the open item names the availability state, not the axes
 
   588245 (finished, websocket_plus false): HTTP 200 empty=true X-AvgPos-State=finished-no-data
-  588255 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
+  220875 (in the live feed)                : HTTP 200 empty=true X-AvgPos-State=in-play
 PASS  an empty finished event names a state, not a bare {}
 PASS  ...and that state is NOT in-play
 PASS  a live event that is empty reads in-play
@@ -62,4 +62,13 @@ COVERAGE: 1 event (223324), 13 of 32 shots
 discriminating; the rest are centre or unlabelled and constrain no sign.
 One capture, not a sample of the feed — widening it means capturing another event.
 
-OK — the one-sided forms failed, as they must
+--- mutation 1: assert gml on home shots only (the check is broken)
+    applied: true   (away bucket emptied: 0 shots)
+    caught : true
+
+--- mutation 2: flip the away keeper onto a SHARED axis (the data is broken)
+    applied: true   (away keeper x 10.4 -> 89.6)
+    caught by the spread check  : true   (spread 79)
+    MISSED by the one-sided check: true   <- why the one-sided form is banned
+
+OK — both mutations applied; both caught, and the banned forms missed them
