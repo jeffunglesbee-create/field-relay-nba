@@ -1,0 +1,349 @@
+=== wrangler tail capture start: Sat Oct 10 19:53:16 UTC 2026 ===
+wrangler tail PID 2072 started, waiting up to 180s for real activity...
+--- forcing a real journalism cycle to trigger during the tail window ---
+force-run HTTP 200
+{"triggered":"journalism-cycle","result":{"ok":true,"reason":"written","score":170,"gameCount":107,"briefLen":685,"gameBriefs":17}}=== wrangler tail capture end: Sat Oct 10 19:57:10 UTC 2026 ===
+--- raw tail output ---
+npm warn exec The following package was not found and will be installed: wrangler@4.149.0
+
+ ⛅️ wrangler 4.149.0
+────────────────────
+Successfully created tail, expires at 2026-10-11T01:53:25Z
+Connected to field-relay-nba, waiting for logs...
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=cfb&date=2026-10-10 - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:26 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:53:26 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:53:26 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:53:26 PM
+Alarm @ 10/10/2026, 7:53:27 PM - Ok
+Alarm @ 10/10/2026, 7:53:27 PM - Ok
+POST https://field-relay-nba.jeffunglesbee.workers.dev/archive/game - Ok @ 10/10/2026, 7:53:26 PM
+  (error) [FINALIZED-AT] regular_season_games migration failed: D1_ERROR: duplicate column name: finalized_at: SQLITE_ERROR
+  (error) [FINALIZED-AT] postseason_games migration failed: D1_ERROR: duplicate column name: finalized_at: SQLITE_ERROR
+  (error) [BRIEFS] updated_at migration: D1_ERROR: duplicate column name: updated_at: SQLITE_ERROR
+Alarm @ 10/10/2026, 7:53:28 PM - Ok
+Alarm @ 10/10/2026, 7:53:33 PM - Ok
+Alarm @ 10/10/2026, 7:53:34 PM - Ok
+POST https://field-relay-nba.jeffunglesbee.workers.dev/archive/game - Ok @ 10/10/2026, 7:53:39 PM
+POST https://field-relay-nba.jeffunglesbee.workers.dev/archive/game - Ok @ 10/10/2026, 7:53:40 PM
+POST https://field-relay-nba.jeffunglesbee.workers.dev/archive/game - Ok @ 10/10/2026, 7:53:40 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/context/date/2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=cfb&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:43 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:43 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:53:42 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401902645 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401898396 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401898398 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401898399 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401906510 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/basketball/nba/summary?event=401898397 - Ok @ 10/10/2026, 7:53:43 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-summary/sports/hockey/nhl/summary?event=401892470 - Ok @ 10/10/2026, 7:53:43 PM
+Alarm @ 10/10/2026, 7:53:45 PM - Ok
+Alarm @ 10/10/2026, 7:53:47 PM - Ok
+Alarm @ 10/10/2026, 7:53:47 PM - Ok
+Alarm @ 10/10/2026, 7:53:50 PM - Ok
+Alarm @ 10/10/2026, 7:53:52 PM - Ok
+Alarm @ 10/10/2026, 7:53:52 PM - Ok
+Alarm @ 10/10/2026, 7:53:53 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+Alarm @ 10/10/2026, 7:53:58 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:53:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:53:59 PM
+Alarm @ 10/10/2026, 7:53:59 PM - Ok
+Alarm @ 10/10/2026, 7:53:58 PM - Ok
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+  (warn) [closing-odds] odds credit guard declined — skipping capture
+Alarm @ 10/10/2026, 7:54:10 PM - Ok
+Alarm @ 10/10/2026, 7:54:12 PM - Ok
+Alarm @ 10/10/2026, 7:54:12 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:54:14 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:54:15 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:15 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:54:15 PM
+Alarm @ 10/10/2026, 7:54:15 PM - Ok
+Alarm @ 10/10/2026, 7:54:17 PM - Ok
+Alarm @ 10/10/2026, 7:54:17 PM - Ok
+Alarm @ 10/10/2026, 7:54:18 PM - Ok
+Alarm @ 10/10/2026, 7:54:23 PM - Ok
+Alarm @ 10/10/2026, 7:54:24 PM - Ok
+Alarm @ 10/10/2026, 7:53:50 PM - Ok
+Queue field-journalism-queue (5 messages) - Ok @ 10/10/2026, 7:54:02 PM
+  (error) [BRIEFS] updated_at migration: D1_ERROR: duplicate column name: updated_at: SQLITE_ERROR
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:54:31 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:31 PM
+Alarm @ 10/10/2026, 7:54:35 PM - Ok
+Alarm @ 10/10/2026, 7:54:37 PM - Ok
+Alarm @ 10/10/2026, 7:54:37 PM - Canceled
+Alarm @ 10/10/2026, 7:54:37 PM - Ok
+Alarm @ 10/10/2026, 7:54:40 PM - Ok
+Alarm @ 10/10/2026, 7:54:42 PM - Ok
+Alarm @ 10/10/2026, 7:54:42 PM - Ok
+Alarm @ 10/10/2026, 7:54:43 PM - Ok
+Queue field-journalism-queue (5 messages) - Ok @ 10/10/2026, 7:54:26 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:54:47 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:48 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:48 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:48 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:54:48 PM
+Alarm @ 10/10/2026, 7:54:48 PM - Ok
+Alarm @ 10/10/2026, 7:54:49 PM - Ok
+Alarm @ 10/10/2026, 7:54:50 PM - Ok
+Queue field-journalism-queue (2 messages) - Ok @ 10/10/2026, 7:54:46 PM
+Queue field-journalism-queue (5 messages) - Ok @ 10/10/2026, 7:54:39 PM
+Alarm @ 10/10/2026, 7:55:01 PM - Ok
+Alarm @ 10/10/2026, 7:55:02 PM - Ok
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:55:03 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:55:04 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:04 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:04 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:55:04 PM
+Alarm @ 10/10/2026, 7:55:05 PM - Ok
+Alarm @ 10/10/2026, 7:55:07 PM - Ok
+Alarm @ 10/10/2026, 7:55:07 PM - Ok
+Alarm @ 10/10/2026, 7:55:08 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/basketball/wnba/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/usa.1/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/football/nfl/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/baseball/mlb/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/hockey/nhl/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/fifa.world/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/basketball/nba/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/espn-gambit/apis/site/v2/sports/soccer/eng.1/scoreboard - Ok @ 10/10/2026, 7:55:11 PM
+Alarm @ 10/10/2026, 7:55:13 PM - Ok
+Alarm @ 10/10/2026, 7:55:14 PM - Ok
+Alarm @ 10/10/2026, 7:55:15 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:55:20 PM
+Alarm @ 10/10/2026, 7:55:26 PM - Ok
+Alarm @ 10/10/2026, 7:55:27 PM - Ok
+Alarm @ 10/10/2026, 7:55:30 PM - Ok
+Alarm @ 10/10/2026, 7:55:32 PM - Ok
+Alarm @ 10/10/2026, 7:55:32 PM - Ok
+Alarm @ 10/10/2026, 7:55:33 PM - Ok
+POST https://field/wp - Ok @ 10/10/2026, 7:55:36 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:36 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:36 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:37 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:37 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:37 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:37 PM
+Alarm @ 10/10/2026, 7:55:02 PM - Ok
+Alarm @ 10/10/2026, 7:55:39 PM - Ok
+Alarm @ 10/10/2026, 7:55:39 PM - Ok
+Alarm @ 10/10/2026, 7:55:40 PM - Ok
+Alarm @ 10/10/2026, 7:55:51 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:52 PM
+Alarm @ 10/10/2026, 7:55:52 PM - Ok
+POST https://field/wp - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:53 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:55:52 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:53 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:53 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:55:53 PM
+Alarm @ 10/10/2026, 7:55:55 PM - Ok
+Alarm @ 10/10/2026, 7:55:55 PM - Canceled
+Alarm @ 10/10/2026, 7:55:57 PM - Ok
+Alarm @ 10/10/2026, 7:55:57 PM - Ok
+Alarm @ 10/10/2026, 7:55:58 PM - Ok
+Alarm @ 10/10/2026, 7:56:02 PM - Ok
+Alarm @ 10/10/2026, 7:56:04 PM - Ok
+Alarm @ 10/10/2026, 7:56:04 PM - Ok
+Alarm @ 10/10/2026, 7:56:05 PM - Ok
+"*/5 * * * *" @ 10/10/2026, 7:55:07 PM - Ok
+  (log) [JOURNALISM-GATE] cron=*/5 * * * * fired=false
+  (log) [R2-WINDOW-GATE] cron=*/5 * * * * r2ShouldFire=false nhlSeriesShouldFire=false
+  (log) [BSD-CLUB-GATE] cron=*/5 * * * * fired=true
+  (log) [BSD-CLUB-ENDGAME] no club-league targets in 80-120min window
+POST https://field/wp - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:56:08 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=cfb&date=2026-10-10 - Ok @ 10/10/2026, 7:56:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:56:09 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:09 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:09 PM
+Alarm @ 10/10/2026, 7:56:16 PM - Ok
+Alarm @ 10/10/2026, 7:56:17 PM - Ok
+Alarm @ 10/10/2026, 7:56:22 PM - Ok
+Alarm @ 10/10/2026, 7:56:22 PM - Ok
+Alarm @ 10/10/2026, 7:56:23 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:56:24 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:56:25 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:25 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:56:25 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:25 PM
+Alarm @ 10/10/2026, 7:56:27 PM - Ok
+Alarm @ 10/10/2026, 7:56:29 PM - Ok
+Alarm @ 10/10/2026, 7:56:29 PM - Ok
+Alarm @ 10/10/2026, 7:56:30 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+Alarm @ 10/10/2026, 7:56:41 PM - Ok
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=ligue1&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:41 PM
+Alarm @ 10/10/2026, 7:56:42 PM - Ok
+Alarm @ 10/10/2026, 7:56:47 PM - Ok
+Alarm @ 10/10/2026, 7:56:47 PM - Ok
+Alarm @ 10/10/2026, 7:56:48 PM - Ok
+Alarm @ 10/10/2026, 7:56:52 PM - Ok
+Alarm @ 10/10/2026, 7:56:54 PM - Ok
+Alarm @ 10/10/2026, 7:56:54 PM - Ok
+Alarm @ 10/10/2026, 7:56:55 PM - Ok
+Alarm @ 10/10/2026, 7:56:20 PM - Ok
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mlb&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=bundesliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=seriea&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=laliga&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=epl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=mls&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=wnba&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+GET https://field-relay-nba.jeffunglesbee.workers.dev/v2/games?sport=nfl&date=2026-10-10 - Ok @ 10/10/2026, 7:56:57 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:58 PM
+POST https://field/wp - Ok @ 10/10/2026, 7:56:58 PM
+Alarm @ 10/10/2026, 7:57:06 PM - Ok
+Alarm @ 10/10/2026, 7:57:07 PM - Ok
