@@ -9,7 +9,8 @@ met, no stop condition hit, no new upstream call added. Session doc:
 `outbox/cc-session-2026-10-10-bsd-fields-already-arriving.md`.
 
 Two corrections the work produced, recorded here so the doc is not read as
-still-true: the fields are dropped at `src/index.js:4436` (the WC enrichment
+still-true: the fields are dropped at `src/index.js:4446`, at
+`_g.bsd = forwardBsdFields(_hit);` (the WC enrichment
 copies two fields off the row and discards the rest) rather than by any route,
 and `attendance` / `previous_leg_event_id` — proposed above as citable hooks —
 measured 0 of 193 populated on 2026-10-10.

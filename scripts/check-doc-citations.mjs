@@ -165,7 +165,7 @@ const bodyOf = p => {
 };
 
 let anchored = 0, bare = 0, noFile = 0, pathOnly = 0;
-const brokenAnchors = [], stale = [];
+const brokenAnchors = [], stale = [], bareList = [];
 for (const d of docs) {
   let text; try { text = readFileSync(d, 'utf8'); } catch { continue; }
   for (const c of classify(text, existsSync, bodyOf)) {
@@ -176,7 +176,7 @@ for (const d of docs) {
       if (c.line !== null && now !== null && now !== c.line) {
         stale.push(`${d}: ${c.path}:${c.line} → now :${now}   (${c.anchor.slice(0, 48)})`);
       }
-    } else if (c.state === 'bare') { bare++; }
+    } else if (c.state === 'bare') { bare++; bareList.push(`${d}: ${c.path}:${c.line}`); }
     else if (c.state === 'no-file') noFile++;
     else pathOnly++;
   }
@@ -206,6 +206,14 @@ if (stale.length) {
 }
 
 check('every anchored citation resolves', brokenAnchors.length === 0, brokenAnchors.join('; '));
+if (bareList.length) {
+  // NAME them. This ratchet used to report "10 against a budget of 9" and
+  // nothing else, which is a gate a reader cannot act on: finding the one
+  // that moved meant deleting docs one at a time and re-running. A count
+  // without its members is a measurement nobody can check (Rule 91).
+  console.log('\nBARE — a line number with nothing quoted beside it:');
+  for (const b of bareList) console.log(`  ${b}`);
+}
 check(`bare citations do not grow (budget ${budget})`,
   Number.isFinite(budget) && bare <= budget,
   `${bare} bare against a budget of ${budget}. A ratchet: new citations must quote what ` +
