@@ -205,9 +205,37 @@ console.log('discriminating; the rest are centre or unlabelled and constrain no 
 console.log('One capture, not a sample of the feed — widening it means capturing another event.')
 
 if (mutate) {
-  const caught = failed > 0
-  console.log(`\n${caught ? 'OK' : 'MUTATION NOT CAUGHT'} — the one-sided forms ${caught ? 'failed, as they must' : 'PASSED, so these assertions prove nothing'}`)
-  process.exit(caught ? 0 : 1)
+  // Rule 90's corollary: a mutation that changes no output is DEAD, and a
+  // harness that reports a result without checking its mutation was APPLIED
+  // is worse than no harness. Mutation 2 below was dead in its first form —
+  // swapping the keeper check to its one-sided variant changes nothing on a
+  // fixture whose data is correct, because the one-sided check only misleads
+  // on BROKEN data. So mutation 2 breaks the DATA, not the check.
+  console.log('\n--- mutation 1: assert gml on home shots only (the check is broken)')
+  const m1Applied = agree.buckets.away.n === 0 && agree.buckets.home.n > 0
+  const m1Caught = !(agree.ok && agree.awayRate === 1)
+  console.log(`    applied: ${m1Applied}   (away bucket emptied: ${agree.buckets.away.n} shots)`)
+  console.log(`    caught : ${m1Caught}`)
+
+  console.log('\n--- mutation 2: flip the away keeper onto a SHARED axis (the data is broken)')
+  const real = keepers(fx['average-positions'])
+  const brokenAway = { ...real.away, x: 100 - real.away.x }
+  const m2Applied = brokenAway.x !== real.away.x
+  const good = keeperSpread({ home: real.home, away: brokenAway })
+  const oneSided = keeperSpread({ home: real.home, away: brokenAway }, { oneSided: true })
+  console.log(`    applied: ${m2Applied}   (away keeper x ${real.away.x} -> ${brokenAway.x})`)
+  console.log(`    caught by the spread check  : ${!good.ok}   (spread ${good.spread})`)
+  console.log(`    MISSED by the one-sided check: ${oneSided.ok}   <- why the one-sided form is banned`)
+
+  const allApplied = m1Applied && m2Applied
+  const allCaught = m1Caught && !good.ok && oneSided.ok
+  if (!allApplied) {
+    console.log('\nMUTATION NOT APPLIED — the harness mutated nothing. This is worse than')
+    console.log('no test: it would report NOT CAUGHT on clean source. Fix the anchors.')
+    process.exit(1)
+  }
+  console.log(`\n${allCaught ? 'OK' : 'MUTATION NOT CAUGHT'} — both mutations applied; ${allCaught ? 'both caught, and the banned forms missed them' : 'at least one survived, so these assertions prove nothing'}`)
+  process.exit(allCaught ? 0 : 1)
 }
 
 console.log(`\n${failed === 0 ? 'PASS' : 'FAIL'}: ${3 - failed}/3 assertions`)
