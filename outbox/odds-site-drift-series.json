@@ -1,31 +1,5 @@
 [
   {
-    "at": "2026-09-25T18:58:54.992Z",
-    "date": "2026-09-25",
-    "used": 1357,
-    "by_site": {
-      "ambientCaptureClosingOdds": 585,
-      "ambientFetchLiveOdds": 448,
-      "fetchSportOddsHistorical": 90,
-      "fetchSportOddsLive": 162,
-      "getWCPregameLambdas": 0,
-      "handleCFLOddsProbs": 72,
-      "handleWCOddsProbs": 0,
-      "wpResolver": 0,
-      "oddsProxyRoute": 0,
-      "unattributed": 0
-    },
-    "by_site_sum": 1357,
-    "unreadable_sites": null,
-    "degraded_open": {
-      "events": 782,
-      "credits": 3096,
-      "last": "2026-09-25T18:58:54.129Z"
-    },
-    "source": "d1",
-    "ceiling_reached_at": null
-  },
-  {
     "at": "2026-09-25T23:39:46.130Z",
     "date": "2026-09-25",
     "used": 2192,
@@ -2177,6 +2151,165 @@
         "state": "cache-hit",
         "cache": "HIT",
         "n": 3,
+        "credits_kept": 0
+      },
+      {
+        "site": "handleWCOddsProbs",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 1,
+        "credits_kept": 0
+      }
+    ]
+  },
+  {
+    "at": "2026-10-10T20:46:18.753Z",
+    "date": "2026-10-10",
+    "used": 3800,
+    "by_site": {
+      "ambientCaptureClosingOdds": 594,
+      "ambientFetchLiveOdds": 2078,
+      "fetchSportOddsHistorical": 360,
+      "fetchSportOddsLive": 714,
+      "getWCPregameLambdas": 0,
+      "handleCFLOddsProbs": 54,
+      "handleWCOddsProbs": 0,
+      "wpResolver": 0,
+      "oddsProxyRoute": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 3800,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 925,
+      "credits": 4431,
+      "reasons": {
+        "month: odds budget batch returned 2 result(s), expected 3": 912,
+        "daily: D1_ERROR: D1 DB is overloaded. Requests queued for too long.": 6,
+        "month: D1_ERROR: D1 DB is overloaded. Requests queued for too long.": 7
+      },
+      "last": "2026-10-10T19:37:09.573Z"
+    },
+    "source": "d1",
+    "ceiling_reached_at": "2026-10-10T19:37:09.163Z",
+    "reconcile": [
+      {
+        "site": "ambientFetchLiveOdds",
+        "state": "no-header",
+        "cache": "EXPIRED",
+        "n": 1037,
+        "credits_kept": 2074
+      },
+      {
+        "site": "fetchSportOddsLive",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 233,
+        "credits_kept": 699
+      },
+      {
+        "site": "ambientCaptureClosingOdds",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 195,
+        "credits_kept": 585
+      },
+      {
+        "site": "fetchSportOddsHistorical",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 12,
+        "credits_kept": 360
+      },
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 3,
+        "credits_kept": 18
+      },
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 3,
+        "credits_kept": 18
+      },
+      {
+        "site": "fetchSportOddsLive",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 5,
+        "credits_kept": 15
+      },
+      {
+        "site": "ambientCaptureClosingOdds",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 3,
+        "credits_kept": 9
+      },
+      {
+        "site": "ambientFetchLiveOdds",
+        "state": "no-header",
+        "cache": "MISS",
+        "n": 2,
+        "credits_kept": 4
+      },
+      {
+        "site": "getWCPregameLambdas",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 201,
+        "credits_kept": 0
+      },
+      {
+        "site": "ambientFetchLiveOdds",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 186,
+        "credits_kept": 0
+      },
+      {
+        "site": "fetchSportOddsLive",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 101,
+        "credits_kept": 0
+      },
+      {
+        "site": "getWCPregameLambdas",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 93,
+        "credits_kept": 0
+      },
+      {
+        "site": "fetchSportOddsHistorical",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 63,
+        "credits_kept": 0
+      },
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 6,
+        "credits_kept": 0
+      },
+      {
+        "site": "getWCPregameLambdas",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 3,
+        "credits_kept": 0
+      },
+      {
+        "site": "handleWCOddsProbs",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 2,
         "credits_kept": 0
       },
       {
