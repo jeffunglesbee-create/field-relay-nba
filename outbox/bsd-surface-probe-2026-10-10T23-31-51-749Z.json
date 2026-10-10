@@ -1,0 +1,566 @@
+{
+  "capturedAt": "2026-10-10T23:31:51.749Z",
+  "callBudget": 40,
+  "callsMade": 16,
+  "budgetHit": false,
+  "unmeasured": [],
+  "eventStatesSampled": {
+    "preMatch": {
+      "id": 220230,
+      "status": "notstarted",
+      "period": ""
+    },
+    "live": {
+      "id": 207856,
+      "status": "inprogress",
+      "period": "2nd_half"
+    },
+    "finished": {
+      "id": 223324,
+      "status": "finished (known fixture)",
+      "period": null
+    }
+  },
+  "task1_odds": {
+    "verdict": "sufficient only for a subset (moneyline, spread, total)",
+    "doneCondition2": "the free-odds substitution is NOT viable",
+    "marketFamilies": {
+      "moneyline": {
+        "present": true,
+        "matchedKeys": [
+          "1x2"
+        ]
+      },
+      "spread": {
+        "present": true,
+        "matchedKeys": [
+          "asian_handicap",
+          "asian_handicap"
+        ]
+      },
+      "total": {
+        "present": true,
+        "matchedKeys": [
+          "double_chance",
+          "over_under_15",
+          "over_under_25",
+          "over_under_35",
+          "over_under_05",
+          "total_corners"
+        ]
+      },
+      "opening": {
+        "present": false,
+        "matchedKeys": []
+      }
+    },
+    "preMatch": {
+      "eventId": 220230,
+      "label": "pre-match",
+      "comparisonStatus": 200,
+      "oddsStatus": 200,
+      "marketKeysVerbatim": [
+        "asian_handicap",
+        "btts",
+        "draw_no_bet"
+      ],
+      "perMarket": {
+        "asian_handicap": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "HOME@-1.75",
+            "AWAY@-1.75",
+            "HOME@-1.25",
+            "AWAY@-1.25",
+            "HOME@-0.75",
+            "AWAY@-0.75",
+            "HOME@0.25",
+            "AWAY@0.25",
+            "HOME@0.75",
+            "AWAY@0.75",
+            "HOME@1.25",
+            "AWAY@1.25",
+            "HOME@-1.5",
+            "AWAY@-1.5",
+            "HOME@1.5",
+            "AWAY@1.5",
+            "HOME@-0.5",
+            "AWAY@-0.5",
+            "HOME@0.0",
+            "AWAY@0.0",
+            "HOME@0.5",
+            "AWAY@0.5",
+            "HOME@-2.0",
+            "AWAY@-2.0",
+            "HOME@-1.0",
+            "AWAY@-1.0",
+            "HOME@1.0",
+            "AWAY@1.0",
+            "HOME@-0.25",
+            "AWAY@-0.25"
+          ],
+          "hasOpeningValue": false
+        },
+        "btts": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "yes",
+            "no"
+          ],
+          "hasOpeningValue": false
+        },
+        "draw_no_bet": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "HOME",
+            "AWAY"
+          ],
+          "hasOpeningValue": false
+        }
+      },
+      "rawOddsTopLevelKeys": [
+        "event_id",
+        "odds",
+        "last_update_at",
+        "last_change_at",
+        "next_update_at",
+        "update_interval_seconds",
+        "update_reason"
+      ]
+    },
+    "live": {
+      "eventId": 207856,
+      "label": "live",
+      "comparisonStatus": 200,
+      "oddsStatus": 200,
+      "marketKeysVerbatim": [
+        "asian_handicap",
+        "btts",
+        "double_chance",
+        "draw_no_bet",
+        "over_under_15",
+        "over_under_25",
+        "over_under_35",
+        "over_under_05",
+        "total_corners",
+        "1x2"
+      ],
+      "perMarket": {
+        "asian_handicap": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "HOME@-1.75",
+            "AWAY@-1.75",
+            "HOME@-1.25",
+            "AWAY@-1.25",
+            "HOME@-0.75",
+            "AWAY@-0.75",
+            "HOME@0.25",
+            "AWAY@0.25",
+            "HOME@0.75",
+            "AWAY@0.75",
+            "HOME@1.25",
+            "AWAY@1.25",
+            "HOME@1.75",
+            "AWAY@1.75",
+            "HOME@-1.5",
+            "AWAY@-1.5",
+            "HOME@-2.5",
+            "AWAY@-2.5",
+            "HOME@1.5",
+            "AWAY@1.5",
+            "HOME@-0.5",
+            "AWAY@-0.5",
+            "HOME@0.0",
+            "AWAY@0.0",
+            "HOME@0.5",
+            "AWAY@0.5",
+            "HOME@-2.0",
+            "AWAY@-2.0",
+            "HOME@-1.0",
+            "AWAY@-1.0",
+            "HOME@1.0",
+            "AWAY@1.0",
+            "HOME@-0.25",
+            "AWAY@-0.25"
+          ],
+          "hasOpeningValue": false
+        },
+        "btts": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "yes",
+            "no"
+          ],
+          "hasOpeningValue": false
+        },
+        "double_chance": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "12",
+            "1X",
+            "X2"
+          ],
+          "hasOpeningValue": false
+        },
+        "draw_no_bet": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "HOME",
+            "AWAY"
+          ],
+          "hasOpeningValue": false
+        },
+        "over_under_15": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "over@1.5",
+            "under@1.5"
+          ],
+          "hasOpeningValue": false
+        },
+        "over_under_25": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "over@2.5",
+            "under@2.5"
+          ],
+          "hasOpeningValue": false
+        },
+        "over_under_35": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "over@3.5",
+            "under@3.5"
+          ],
+          "hasOpeningValue": false
+        },
+        "over_under_05": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "over@0.5",
+            "under@0.5"
+          ],
+          "hasOpeningValue": false
+        },
+        "total_corners": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "over@7.5",
+            "under@7.5",
+            "over@8.5",
+            "under@8.5",
+            "over@9.5",
+            "under@9.5",
+            "over@10.5",
+            "under@10.5",
+            "over@11.5",
+            "under@11.5"
+          ],
+          "hasOpeningValue": false
+        },
+        "1x2": {
+          "bookmakerCount": null,
+          "sampleKeys": [
+            "HOME",
+            "DRAW",
+            "AWAY"
+          ],
+          "hasOpeningValue": false
+        }
+      },
+      "rawOddsTopLevelKeys": [
+        "event_id",
+        "odds",
+        "last_update_at",
+        "last_change_at",
+        "next_update_at",
+        "update_interval_seconds",
+        "update_reason"
+      ]
+    },
+    "oddsBestStatus": 200,
+    "oddsBestTopLevelKeysVerbatim": [
+      "count",
+      "results"
+    ],
+    "note": "Market keys are BSD's, verbatim. No mapping to FIELD vocabulary is done here."
+  },
+  "task2_form": {
+    "teamId": 4784,
+    "status": 200,
+    "topLevelKeysVerbatim": [
+      "team_id",
+      "team_name",
+      "requested",
+      "matches",
+      "league_id",
+      "from_date",
+      "to_date",
+      "overall",
+      "home",
+      "away",
+      "vs_stronger",
+      "vs_weaker"
+    ],
+    "rowCount": null,
+    "rowKeysVerbatim": [],
+    "carriesXg": true,
+    "perCompetitionEvidence": [
+      "league_id"
+    ],
+    "verdict": "form shape served: non-list row(s), xG PRESENT, per-competition evidenced by league_id"
+  },
+  "task3_leagues": {
+    "verdict": "basketball 7 league(s), NBA PRESENT; hockey 13 league(s), NHL ABSENT",
+    "basketball": {
+      "status": 200,
+      "count": 7,
+      "namesVerbatim": [
+        "NBA",
+        "Euroleague",
+        "Liga ACB",
+        "Lega A Basket",
+        "Germany BBL",
+        "Eurocup",
+        "WNBA"
+      ],
+      "rowKeysVerbatim": [
+        "id",
+        "name",
+        "country",
+        "country_code",
+        "is_active",
+        "priority"
+      ]
+    },
+    "hockey": {
+      "status": 200,
+      "count": 13,
+      "namesVerbatim": [
+        "DEL",
+        "Elite A",
+        "Extraliga",
+        "HockeyAllsvenskan",
+        "ICE Hockey League",
+        "KHL",
+        "Liiga",
+        "National League A",
+        "SHL",
+        "Spengler Cup",
+        "Tipsport Liga",
+        "U20 World Championship",
+        "World League"
+      ],
+      "rowKeysVerbatim": [
+        "id",
+        "api_id",
+        "name",
+        "country",
+        "country_code",
+        "is_active",
+        "priority"
+      ]
+    }
+  },
+  "task4_broadcastsAndLineups": {
+    "lineupStatusByState": [
+      {
+        "label": "pre-match",
+        "eventId": 220230,
+        "status": 200,
+        "lineup_status": "predicted",
+        "beta": true,
+        "topLevelKeysVerbatim": [
+          "event_id",
+          "lineup_status",
+          "beta",
+          "lineups",
+          "unavailable_players",
+          "updated_at"
+        ]
+      },
+      {
+        "label": "live",
+        "eventId": 207856,
+        "status": 200,
+        "lineup_status": "confirmed",
+        "beta": false,
+        "topLevelKeysVerbatim": [
+          "event_id",
+          "lineup_status",
+          "beta",
+          "lineups",
+          "unavailable_players",
+          "updated_at"
+        ]
+      },
+      {
+        "label": "finished",
+        "eventId": 223324,
+        "status": 200,
+        "lineup_status": "confirmed",
+        "beta": false,
+        "topLevelKeysVerbatim": [
+          "event_id",
+          "lineup_status",
+          "beta",
+          "lineups",
+          "unavailable_players",
+          "updated_at"
+        ]
+      }
+    ],
+    "broadcastsPreMatchStatus": 200,
+    "broadcastsFinishedStatus": 200,
+    "territory": {
+      "scoped": true,
+      "territoryKeys": [
+        "country_code"
+      ],
+      "keysSeen": [
+        "id",
+        "event_id",
+        "home_team_id",
+        "home_team",
+        "away_team_id",
+        "away_team",
+        "league_id",
+        "league_name",
+        "event_date",
+        "country_code",
+        "channel_id",
+        "channel_name",
+        "channel_link",
+        "scheduled_start_time"
+      ]
+    },
+    "tvChannelProbe": {
+      "channelId": 583,
+      "status": 200,
+      "rowCount": 29,
+      "rowKeysVerbatim": [
+        "id",
+        "event_id",
+        "home_team_id",
+        "home_team",
+        "away_team_id",
+        "away_team",
+        "league_id",
+        "league_name",
+        "event_date",
+        "country_code",
+        "channel_id",
+        "channel_name",
+        "channel_link",
+        "scheduled_start_time"
+      ]
+    }
+  },
+  "task5_rateLimits": {
+    "headersObserved": {
+      "x-cache-status": "MISS",
+      "cf-cache-status": "DYNAMIC"
+    },
+    "finding": "rate-limit headers observed: {\"x-cache-status\":\"MISS\",\"cf-cache-status\":\"DYNAMIC\"}"
+  },
+  "callLog": [
+    {
+      "path": "/api/v2/events/?date_from=2026-10-11&date_to=2026-10-11&limit=20",
+      "note": "pre-match slate",
+      "status": 200,
+      "bytes": 51324
+    },
+    {
+      "path": "/api/v2/events/live/",
+      "note": "live slate",
+      "status": 200,
+      "bytes": 4127
+    },
+    {
+      "path": "/api/v2/events/220230/odds/comparison/",
+      "note": "task1 pre-match comparison",
+      "status": 200,
+      "bytes": 20240
+    },
+    {
+      "path": "/api/v2/events/220230/odds/",
+      "note": "task1 pre-match odds",
+      "status": 200,
+      "bytes": 403
+    },
+    {
+      "path": "/api/v2/events/207856/odds/comparison/",
+      "note": "task1 live comparison",
+      "status": 200,
+      "bytes": 30679
+    },
+    {
+      "path": "/api/v2/events/207856/odds/",
+      "note": "task1 live odds",
+      "status": 200,
+      "bytes": 417
+    },
+    {
+      "path": "/api/v2/odds/best/",
+      "note": "task1 odds/best",
+      "status": 200,
+      "bytes": 36603
+    },
+    {
+      "path": "/api/v2/teams/4784/form/",
+      "note": "task2 team form",
+      "status": 200,
+      "bytes": 12745
+    },
+    {
+      "path": "/basketball/api/v2/leagues/",
+      "note": "task3 basketball leagues",
+      "status": 200,
+      "bytes": 720
+    },
+    {
+      "path": "/hockey/api/v2/leagues/",
+      "note": "task3 hockey leagues",
+      "status": 200,
+      "bytes": 1548
+    },
+    {
+      "path": "/api/v2/events/220230/lineups/",
+      "note": "task4 lineups pre-match",
+      "status": 200,
+      "bytes": 5821
+    },
+    {
+      "path": "/api/v2/events/207856/lineups/",
+      "note": "task4 lineups live",
+      "status": 200,
+      "bytes": 5075
+    },
+    {
+      "path": "/api/v2/events/223324/lineups/",
+      "note": "task4 lineups finished",
+      "status": 200,
+      "bytes": 6747
+    },
+    {
+      "path": "/api/v2/events/220230/broadcasts/",
+      "note": "task4 broadcasts pre-match",
+      "status": 200,
+      "bytes": 757
+    },
+    {
+      "path": "/api/v2/events/223324/broadcasts/",
+      "note": "task4 broadcasts finished",
+      "status": 200,
+      "bytes": 1062
+    },
+    {
+      "path": "/api/v2/tv-channels/583/broadcasts/",
+      "note": "task4 tv-channel broadcasts",
+      "status": 200,
+      "bytes": 11092
+    }
+  ],
+  "coverage": "16 of a 40-call budget. One pre-match event, one live event, one finished event. One team for form, one league list per sport. Not a survey of the feed."
+}
