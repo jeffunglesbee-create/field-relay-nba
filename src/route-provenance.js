@@ -4,14 +4,14 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 188 routes describe themselves without 188 hand edits.
+// 189 routes describe themselves without 189 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-09-22T11:50:16.610Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-10T22:59:55.995Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -56,6 +56,7 @@ export const ROUTE_PROVENANCE = {
   "/briefs/spot-check": { k: "store", s: "d1:ARCHIVE_DB" },
   "/bsd/": { k: "upstream", s: "r2:FIELD_DATA + sports.bzzoiro.com", p: 1 },
   "/bsd/contract": { k: "computed", s: "r2:FIELD_DATA + sports.bzzoiro.com (inherited from the enclosing block)" },
+  "/bsd/coverage": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/events/by-date": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/events/live": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/events/season": { k: "upstream", s: "sports.bzzoiro.com" },
@@ -218,7 +219,7 @@ export const ROUTE_PROVENANCE = {
 // `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
 // forward at most 1500 lines looking for brace balance; when a handler block is
 // longer than that the scan gives up, and `s` describes only what fitted inside
-// the window. 1 of 188 entries are in that state.
+// the window. 1 of 189 entries are in that state.
 //
 // It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
 // so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
