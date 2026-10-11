@@ -47,8 +47,8 @@ And for FIELD's purpose it is the better feature. *"Ovechkin's goal was worth
 +0.31 win probability"* is a sentence a brief can carry and a scorer can check
 against the row. *"WP adjusted for who was on the ice"* is invisible to a
 reader. `src/journalism-quality.js:105` is explicit about which kind of input
-earns points: a **relation** between numbers that cannot be copied from the
-prompt.
+earns points — it `reads a RELATION between two numbers` that, in its own
+words, `cannot be copied from the prompt`.
 
 ## It also lets GSAx finally reach the goalie it describes
 
