@@ -431,9 +431,24 @@ function nhlAllowed(path) {
 // FIRST CALLED 2026-10-11, and its reachability from CI was measured rather
 // than assumed: HTTP 200, 692 shift rows for game 2026020053
 // (outbox/nhl-shiftcharts-probe-latest.json).
-const NHL_STATS_BASE = 'https://api.nhle.com';
+// THE BASE CARRIES THE FIXED PATH, and the allow-list gates only the part a
+// caller controls. Shipped the other way round — base `https://api.nhle.com`
+// with `/stats/rest/en/shiftcharts` in the allow-list — which made the route
+// internally consistent and WRONG against its own documented contract:
+// docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md Task 2 states
+// `/nhl-stats/*` → `api.nhle.com/stats/rest/en/*`, so `/nhl-stats/shiftcharts`
+// must reach `/stats/rest/en/shiftcharts`. It did not. It needed the caller to
+// repeat the fixed segment — `/nhl-stats/stats/rest/en/shiftcharts` — and
+// refused the documented form 403.
+//
+// MEASURED by outbox/live-route-probe-latest.json, run 38121468663, which is
+// also how the shape of the error was read rather than guessed: the refusal
+// body named `allowed: ["/stats/rest/en/shiftcharts"]` against a request for
+// `/shiftcharts`. Rule 60 — the relay owns the contract, and the document
+// states it, so the implementation is what moves.
+const NHL_STATS_BASE = 'https://api.nhle.com/stats/rest/en';
 const NHL_STATS_ALLOWED_PREFIXES = [
-    '/stats/rest/en/shiftcharts',   // ?cayenneExp=gameId=NNNNNNNNNN
+    '/shiftcharts',   // ?cayenneExp=gameId=NNNNNNNNNN
 ];
 function nhlStatsAllowed(path) {
     return NHL_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
