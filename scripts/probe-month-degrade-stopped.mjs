@@ -35,8 +35,31 @@ export function monthBatchCount(reasons) {
   return n;
 }
 
-/** PASS / FAIL / INCONCLUSIVE from two samples. Pure, so it can be made to fail. */
+/** The four states `degraded_open` can be in, kept apart (Rule 99).
+ *
+ *  The route is explicit that this matters: "Reported as an OBJECT or null —
+ *  never as 0 — because 'no degradation today' and 'the degrade counter could
+ *  not be read' are different answers and only one is good news." An absent KV
+ *  key comes back as {events:0,credits:0,last:null}, so absent and zero are the
+ *  same answer here and a null is the one that is not.
+ *
+ *  The first version of this probe coerced with `?? 0` and printed both as
+ *  "degrade events 0". On a day with real spend that would have read an
+ *  unreadable counter as proof the reason was gone — the probe passing because
+ *  it could not see, which is the failure this file exists to avoid. */
+export function degradeState(block) {
+  if (block === null) return 'unreadable';
+  if (block === undefined) return 'not-reported';
+  if (typeof block !== 'object' || Array.isArray(block)) return 'unreadable';
+  return 'read';
+}
+
+/** PASS / FAIL / INCONCLUSIVE / UNREADABLE from two samples. Pure, so it can be made to fail. */
 export function verdict(a, b) {
+  if (a.degradeState !== 'read' || b.degradeState !== 'read') {
+    return { state: 'UNREADABLE', grew: null, activity: null, degradeEvents: null,
+      detail: `the degrade counter was ${a.degradeState}/${b.degradeState} across the two samples — nothing can be concluded about a reason that cannot be read` };
+  }
   const grew = monthBatchCount(b.reasons) - monthBatchCount(a.reasons);
   const activity = (Number(b.used) || 0) - (Number(a.used) || 0);
   const degradeEvents = (Number(b.events) || 0) - (Number(a.events) || 0);
@@ -52,17 +75,25 @@ export function verdict(a, b) {
     detail: `the monthly batch reason did not grow (+0) across an interval that charged ${activity} credit(s) and saw ${degradeEvents} other degrade(s)` };
 }
 
-const sample = async () => {
-  const res = await fetch(`${RELAY}/budget/odds`, { headers: { Accept: 'application/json' } });
-  if (!res.ok) throw new Error(`/budget/odds returned HTTP ${res.status}`);
+const sample = async (date = null) => {
+  const q = date ? `?date=${date}` : '';
+  const res = await fetch(`${RELAY}/budget/odds${q}`, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`/budget/odds${q} returned HTTP ${res.status}`);
   const j = await res.json();
-  const d = j?.degraded_open || {};
+  // NOT `|| {}`. The whole point of the state above is that the block's own
+  // shape carries an answer, and defaulting it away destroys that answer.
+  const block = Object.prototype.hasOwnProperty.call(j, 'degraded_open') ? j.degraded_open : undefined;
+  const d = (block && typeof block === 'object') ? block : {};
   return {
     at: new Date().toISOString(),
+    forDate: date,
+    degradeState: degradeState(block),
+    raw: block === undefined ? '(key absent from the response)' : JSON.stringify(block),
     used: j?.daily?.used ?? j?.used ?? null,
-    events: d.events ?? 0,
-    credits: d.credits ?? 0,
-    reasons: d.reasons || null,
+    ceiling: j?.daily?.ceiling ?? null,
+    events: d.events ?? null,
+    credits: d.credits ?? null,
+    reasons: d.reasons ?? null,
     monthly_used: j?.monthly?.used ?? null,
   };
 };
@@ -70,7 +101,7 @@ const sample = async () => {
 if (process.argv.includes('--self-test')) {
   let ran = 0, fail = 0;
   const ok = (n, c, d = '') => { ran++; if (!c) { fail++; console.log(`  FAIL  ${n}${d ? `\n          ${d}` : ''}`); } else console.log(`  ok    ${n}`); };
-  const S = (reasons, used, events = 0) => ({ reasons, used, events });
+  const S = (reasons, used, events = 0) => ({ reasons, used, events, degradeState: 'read' });
   const R = `${MONTH_BATCH_REASON} (monthSeed, monthCharge)`;
 
   ok('a growing reason FAILS', verdict(S({ [MONTH_BATCH_REASON]: 10 }, 100), S({ [MONTH_BATCH_REASON]: 14 }, 200)).state === 'FAIL');
@@ -85,22 +116,54 @@ if (process.argv.includes('--self-test')) {
   ok('a degrade with no odds spend still counts as activity',
      verdict(S({ [MONTH_BATCH_REASON]: 1 }, 100, 0), S({ [MONTH_BATCH_REASON]: 1 }, 100, 4)).state === 'PASS');
 
+  // RULE 99, AND THE REASON THIS SECTION EXISTS. The first version of this
+  // probe coerced `degraded_open` with `?? 0`, so a null counter printed as
+  // "degrade events 0" and, on a day with spend, would have read as a PASS.
+  ok('an UNREADABLE counter cannot produce a pass',
+     verdict({ ...S({}, 100), degradeState: 'unreadable' }, S({}, 200)).state === 'UNREADABLE',
+     'a null degraded_open must not be read as "no degradation"');
+  ok('an unreadable SECOND sample is caught too',
+     verdict(S({}, 100), { ...S({}, 200), degradeState: 'unreadable' }).state === 'UNREADABLE');
+  ok('a degraded_open absent from the response is its own state',
+     degradeState(undefined) === 'not-reported');
+  ok('null is unreadable, not empty', degradeState(null) === 'unreadable');
+  ok('an object is read', degradeState({ events: 0 }) === 'read');
+  ok('an array is not a counter', degradeState([]) === 'unreadable');
+
   console.log(fail ? `\n${fail} FAILED of ${ran}` : `\nself-test: ${ran}/${ran}`);
   console.log(`COVERAGE: ${ran} assertion(s) on the pure verdict, including the quiet-interval`);
   console.log(`case. It does NOT reach the relay — run without --self-test for that.`);
   process.exitCode = fail ? 1 : 0;
 } else {
+  const show = (label, s) => {
+    console.log(`  ${label} : used ${s.used}/${s.ceiling}  monthly ${s.monthly_used}`);
+    console.log(`  ${' '.repeat(label.length)}   degraded_open is ${s.degradeState.toUpperCase()} — ${s.raw}`);
+    console.log(`  ${' '.repeat(label.length)}   monthly batch reason count ${monthBatchCount(s.reasons)}`);
+  };
+
   const a = await sample();
   console.log(`=== month degrade probe  utc=${a.at} ===\n`);
-  console.log(`  sample 1        : used ${a.used}  monthly ${a.monthly_used}  degrade events ${a.events} credits ${a.credits}`);
-  console.log(`  reasons         : ${a.reasons ? JSON.stringify(a.reasons) : 'none'}`);
-  console.log(`  monthly batch   : ${monthBatchCount(a.reasons)}`);
+  show('sample 1', a);
+
+  // THE CONTROL, and it is the half that tells you whether the counter works at
+  // all. A zero today is two different facts — nothing degraded, or nothing is
+  // being recorded — and a closed day inside the 2-day TTL separates them. Run
+  // 38168748424 is why this is here: it read zero events against a monthly
+  // counter that had grown 3065 in the same day, and those two cannot both be
+  // true of a path that throws on every call.
+  const prev = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  try {
+    const y = await sample(prev);
+    console.log('');
+    show(`closed ${prev}`, y);
+  } catch (e) {
+    console.log(`\n  closed ${prev} : unavailable — ${String(e.message || e)}`);
+  }
+
   console.log(`\n  waiting ${WAIT_S}s for the */5 cron to fire at least once...\n`);
   await new Promise((r) => setTimeout(r, WAIT_S * 1000));
   const b = await sample();
-  console.log(`  sample 2        : used ${b.used}  monthly ${b.monthly_used}  degrade events ${b.events} credits ${b.credits}`);
-  console.log(`  reasons         : ${b.reasons ? JSON.stringify(b.reasons) : 'none'}`);
-  console.log(`  monthly batch   : ${monthBatchCount(b.reasons)}`);
+  show('sample 2', b);
 
   const v = verdict(a, b);
   console.log(`\n  verdict: ${v.state}`);
@@ -109,6 +172,8 @@ if (process.argv.includes('--self-test')) {
   console.log(`It sees the UTC day's cumulative degrade counter only. A monthly batch throw`);
   console.log(`that happens outside this interval is invisible here, which is why the`);
   console.log(`interval has to show spend before a flat count is read as a pass.`);
-  process.exitCode = v.state === 'FAIL' ? 1 : 0;
-  if (v.state === 'INCONCLUSIVE') console.log(`\nINCONCLUSIVE is not a pass. Re-run during an active slate.`);
+  process.exitCode = (v.state === 'FAIL' || v.state === 'UNREADABLE') ? 1 : 0;
+  if (v.state === 'INCONCLUSIVE') console.log(`\nINCONCLUSIVE is not a pass. Re-run during an active slate — the daily`);
+  if (v.state === 'INCONCLUSIVE') console.log(`ceiling resets at 00:00 UTC and charges resume with the */5 cron.`);
+  if (v.state === 'UNREADABLE') console.log(`\nUNREADABLE fails on purpose: a counter that cannot be read is not evidence.`);
 }
