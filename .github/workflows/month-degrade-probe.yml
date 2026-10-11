@@ -13,15 +13,28 @@ name: Month degrade probe (read-only)
 # with open egress. That is the same reason the visual probes in this project
 # are workflows rather than local browser calls.
 #
-# DISPATCH ONLY. It is a done condition, not a standing watch: once the reason
-# has stopped growing across an active interval there is nothing for a schedule
-# to add, and scripts/check-batch-order.mjs in guards.yml is what keeps the
-# defect from coming back.
+# ONE SCHEDULED RUN A DAY, because the done condition needs an interval in
+# which odds are actually being charged and the session that wrote this could
+# not have one. The daily ceiling was already at 3800/3800 by 14:03:59Z on
+# 2026-10-11, and all three monthly-charge call sites gate on the daily layer
+# first — `if (!(await checkAndIncrementDailyOdds(...))) return false;` — so
+# chargeMonthlyOdds is not reached at all once the ceiling holds. Every probe
+# run that day returned INCONCLUSIVE, correctly.
 #
-# READ-ONLY AND FREE: two GETs of /budget/odds, which reads KV and D1 and never
-# reaches the vendor. No credits.
+# 01:47 UTC: after the 00:00 reset, after the */5 cron has fired a dozen times
+# on the new day, and off the hour because a schedule on minute 0 queues behind
+# everyone else's.
+#
+# DELETE THIS WORKFLOW once a run returns PASS. It settles a done condition; it
+# is not a standing watch. scripts/check-batch-order.mjs in guards.yml is what
+# keeps the defect from coming back, and it runs on every push.
+#
+# READ-ONLY AND FREE: three GETs of /budget/odds, which reads KV and D1 and
+# never reaches the vendor. No credits.
 
 on:
+  schedule:
+    - cron: '47 1 * * *'
   workflow_dispatch:
     inputs:
       wait_seconds:
@@ -55,7 +68,13 @@ jobs:
       - name: Probe
         shell: bash
         env:
-          PROBE_WAIT_SECONDS: ${{ inputs.wait_seconds }}
+          # `inputs` is empty on a scheduled run, so this is the empty string
+          # there. Belt and braces: the script already reads
+          # `Number(process.env.PROBE_WAIT_SECONDS || 420)`, and '' is falsy, so
+          # it lands on 420 either way — measured, not assumed, because
+          # Number('') is 0 and the two differ by which operator runs first.
+          # Kept in both places so neither file alone has to be right.
+          PROBE_WAIT_SECONDS: ${{ inputs.wait_seconds || '420' }}
         run: |
           set -o pipefail
           STAMP=$(date -u +%Y-%m-%dT%H%M)

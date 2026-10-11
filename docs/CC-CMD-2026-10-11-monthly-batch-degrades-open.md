@@ -137,6 +137,72 @@ would stop seeing the reason and read as a pass.
 A sandboxed session cannot check this — workers.dev is 403 at the agent proxy —
 so the read runs on a runner with open egress.
 
+## TASK 4's MEASUREMENT — the attribution, from the live counter
+
+Run `38169682259`, reading `daily.degraded_open` on two days:
+
+```
+2026-10-11  events 1230  credits 5995
+  month: odds budget batch returned 2 result(s), expected 3      1075
+  daily: D1_ERROR: D1 DB is overloaded. Requests queued too long.  77
+  month: D1_ERROR: D1 DB is overloaded. Requests queued too long.  78
+  last 2026-10-11T18:08:12.034Z
+
+2026-10-10  events 925  credits 4431
+  month: odds budget batch returned 2 result(s), expected 3       912
+```
+
+**1075 of 1230 degrade events on 2026-10-11 (87%), and 912 of 925 on
+2026-10-10 (99%), carry this defect's reason.** The attribution is measured,
+not inferred from the deduction above.
+
+`credits` is the spend that reached the vendor while a counter did not move:
+**5,995 on 10-11 and 4,431 on 10-10.**
+
+**TWO DEFECTS IN THE PROBE WERE CAUGHT BEFORE THIS NUMBER WAS BELIEVED**, and
+both would have produced a confident wrong answer:
+
+1. It read `degraded_open` with `?? 0`, collapsing "the counter says zero" into
+   "the counter could not be read". The route is explicit that these are
+   different answers. UNREADABLE is now its own verdict and exits non-zero.
+2. With that fixed, it read `j.degraded_open` — one level above the field,
+   which lives at `daily.degraded_open`. Run `38169528987` came back UNREADABLE
+   for that reason alone. Under the original coercion the same wrong path would
+   have printed `degrade events 0` and, on a day with spend, PASSED.
+
+The first version of this document said the counter read zero today against a
+monthly counter that had grown 3,065, and called those incompatible. They were:
+one of them was the probe.
+
+## TASK 4's VERDICT TODAY — INCONCLUSIVE, and that is correct
+
+Every run on 2026-10-11 returned INCONCLUSIVE. The daily ceiling was already at
+`3800/3800` by 14:03:59Z, and all three monthly-charge call sites gate on the
+daily layer first:
+
+```js
+if (!(await checkAndIncrementDailyOdds(env, units, site))) return false;
+return chargeMonthlyOdds(env, units);
+```
+
+So once the daily ceiling holds, `chargeMonthlyOdds` is not reached, no charge
+can degrade, and a flat count across the interval proves nothing. The probe's
+third state says so rather than reporting the flatness as a pass.
+
+The conclusive run is **automated, not deferred**:
+`.github/workflows/month-degrade-probe.yml` now runs at 01:47 UTC daily, after
+the 00:00 reset and a dozen `*/5` firings on the new day. The workflow carries
+its own deletion condition — once a run returns PASS it should be removed, since
+`scripts/check-batch-order.mjs` in `guards.yml` is what prevents the regression
+and it runs on every push.
+
+## A SECOND THING THE COUNTER SHOWED, not this defect
+
+`D1_ERROR: D1 DB is overloaded. Requests queued for too long.` went from 13
+events on 2026-10-10 (6 daily + 7 month) to **155 on 2026-10-11** (77 + 78), a
+12x rise in one day. Unrelated to the batch shape and not fixed here. Filed as
+`docs/CC-CMD-2026-10-11-d1-overload-degrades.md`, per Rule 87.4.
+
 ## Stop conditions
 
 - Do not loosen the daily helper to accept any length. Its strictness is what

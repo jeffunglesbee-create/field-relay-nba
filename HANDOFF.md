@@ -1,5 +1,57 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11e — the monthly guard threw on every call
+
+**HEAD:** `32e9bc4` → this commit. Per-commit hashes and every run id are in
+the session doc's manifest rather than guessed here. Session doc:
+`outbox/cc-session-2026-10-11-monthly-batch-degrades-open.md`.
+
+`docs/CC-CMD-2026-10-11-monthly-batch-degrades-open.md` — **DONE**, five tasks,
+with done condition 4 automated rather than deferred. Two new OPEN documents
+filed per Rule 87.4: `no-header-estimates-unreconciled` and
+`d1-overload-degrades`.
+
+### The defect
+
+`chargeMonthlyOdds` built a two-statement batch and handed it to
+`chargedFromBatch`, which required three. It threw on every monthly charge.
+The throw degrades open, so the charge landed and the answer was discarded —
+which left the `return false` on the 85,000 hard limit and the 50/75/90%
+warning ladder both inside a branch that never ran.
+
+Measured attribution, run `38169682259`: **1075 of 1230 degrade events on
+2026-10-11 (87%) and 912 of 925 on 2026-10-10 (99%)** carry this reason, for
+5,995 and 4,431 credits of spend the counter never saw. Month to date is 21,248
+of 85,000 (25.0%), so no warning rung was due and none was missed.
+
+### What the fix is, and what guards it
+
+The expected length now comes from the statement list rather than a number
+beside it: `ODDS_MONTH_ORDER` names the monthly batch, `ODDS_BUDGET_ORDER`
+stays the default so the daily path is unchanged. `scripts/check-batch-order.mjs`
+compares each batch against its reader's declared order — 7/7, M1 is this
+defect put back, green in CI as guards step 9.
+
+**Behaviour change:** the monthly ceiling can now veto.
+
+### Three of my own claims were corrected before shipping
+
+A double count, reconcile never correcting the month, and the degrade counter
+reading zero — all three refuted by one read or one run each. The third was my
+own probe reading `j.degraded_open` instead of `daily.degraded_open`.
+
+### Carry-forwards
+
+- Done condition 4 is STAGED on an interval with live odds charging: the daily
+  ceiling was at 3800/3800 by 14:03:59Z and all three monthly call sites gate
+  on the daily layer first, so nothing could degrade afterwards.
+  `.github/workflows/month-degrade-probe.yml` runs 01:47 UTC to settle it and
+  carries its own deletion condition.
+- `no-header-estimates-unreconciled` Task 0 needs approval: it spends 1-2
+  credits and two opposite fixes are consistent with the residual without it.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11d — the cron wrote settled prices as opening lines
 
 **HEAD:** `a240455` → `c078a70`+. Session doc:
