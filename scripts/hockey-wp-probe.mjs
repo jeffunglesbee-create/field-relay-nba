@@ -17,6 +17,7 @@
 // "connect_rejected / gateway answered 403 to CONNECT (policy").
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { total } from './lib/summary-invariants.mjs'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
@@ -235,14 +236,35 @@ const main = async () => {
     // its goalie — which situationCode must also say, from a different field.
     if (box.ok) {
       const pg = box.body.playerByGameStats || {}
-      const toiSec = (side) => (pg[side]?.goalies || []).reduce((a, g) => {
-        const [m, s] = String(g.toi ?? '0:00').split(':').map(Number)
-        return a + (m * 60 + (s || 0))
-      }, 0)
+      // ZERO IS A CONCLUSION HERE, NOT A DEFAULT. This summed
+      // `g.toi ?? '0:00'` over `pg[side]?.goalies || []`, so an absent goalies
+      // array or an unreadable toi produced 0 seconds — which in THIS
+      // cross-check reads as "that side had no goalie on the ice all game",
+      // the strongest possible claim, from no data at all.
+      // scripts/check-aggregate-launders-unknowns.mjs caught it in deploy and
+      // was right to: lib/summary-invariants.mjs total() sums only real
+      // numbers and reports how many were not.
+      const toiRows = (side) => (Array.isArray(pg[side]?.goalies) ? pg[side].goalies : null)
+      const toiOf = (side) => {
+        const rows = toiRows(side)
+        if (rows === null) return { seconds: null, goalies: 0, unreadable: null, reason: 'no goalies array in the boxscore' }
+        const parsed = rows.map(g => {
+          const m = /^(\d{1,3}):(\d{2})$/.exec(String(g?.toi ?? ''))
+          return { sec: m ? Number(m[1]) * 60 + Number(m[2]) : null }
+        })
+        const t = total(parsed, 'sec')
+        return {
+          seconds: t.skipped === 0 ? t.sum : null,
+          goalies: rows.length,
+          unreadable: t.skipped,
+          reason: t.skipped === 0 ? null : `${t.skipped} of ${rows.length} goalie toi values could not be read, so no total is published`
+        }
+      }
+      const home = toiOf('homeTeam'), away = toiOf('awayTeam')
       sc.goalie_toi_crosscheck = {
-        homeGoalieToiSec: toiSec('homeTeam'),
-        awayGoalieToiSec: toiSec('awayTeam'),
-        note: 'a side below regulation length pulled its goalie; situationCode must agree from a different field'
+        home, away,
+        note: 'a side below regulation length pulled its goalie; situationCode must agree from a different field',
+        usable: home.seconds !== null && away.seconds !== null
       }
     }
     out.premises.situation_code = sc
@@ -400,6 +422,17 @@ const selfTest = () => {
     })())
   t('deVig refuses a missing price rather than defaulting to 0.5',
     deVig(null, -110) === null && deVig(-110, undefined) === null)
+
+  t('an unreadable goalie toi yields NO total rather than a zero',
+    (() => {
+      // The regression check-aggregate-launders-unknowns.mjs caught: summing
+      // an absent toi produced 0 seconds, which in this cross-check means a
+      // side skated without a goalie for the whole game.
+      const t1 = total([{ sec: 1200 }, { sec: null }], 'sec')
+      return t1.skipped === 1 && t1.sum === 1200
+    })())
+  t('total() sums only real numbers and counts what it skipped',
+    (() => { const t = total([{ sec: 60 }, { sec: 60 }], 'sec'); return t.sum === 120 && t.skipped === 0 && t.n === 2 })())
 
   t('a missing needed column is reported absent, not silently dropped',
     (() => {
