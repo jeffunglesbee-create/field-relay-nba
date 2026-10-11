@@ -1,0 +1,559 @@
+{
+  "probed_at_utc": "20261011T140431Z",
+  "window": {
+    "from": "2026-06-23",
+    "to": "2026-07-11",
+    "dates": 19,
+    "served": 19
+  },
+  "totals": {
+    "rows": 315,
+    "atFinalisation": 180,
+    "rateOfAllRows": 0.5714,
+    "censusEligible": 179,
+    "censusEligibleAtFinalisation": 155,
+    "rateOfCensusEligible": 0.8659,
+    "withOddsProof": 173,
+    "atFinalisationWithProof": 149,
+    "atFinalisationNoProof": 31,
+    "proofShapes": {
+      "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 173
+    }
+  },
+  "perDate": [
+    {
+      "date": "2026-06-23",
+      "status": 200,
+      "rows": 5,
+      "states": {
+        "no-opening-odds": 4,
+        "at-finalisation": 1
+      },
+      "atFinalisation": 1,
+      "censusEligible": 1,
+      "censusEligibleAtFinalisation": 1,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 1,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-06-23_bluejays_astros",
+          "deltaS": 2.427,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "status": 200,
+      "rows": 10,
+      "states": {
+        "at-finalisation": 4,
+        "no-opening-odds": 6
+      },
+      "atFinalisation": 4,
+      "censusEligible": 2,
+      "censusEligibleAtFinalisation": 2,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 4,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-06-24_marlins_rangers",
+          "deltaS": 4.16,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-06-24_mets_cubs",
+          "deltaS": 3.7,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "status": 200,
+      "rows": 11,
+      "states": {
+        "at-finalisation": 3,
+        "no-opening-odds": 8
+      },
+      "atFinalisation": 3,
+      "censusEligible": 0,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 3,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": true,
+      "examples": [
+        {
+          "id": "MLB_2026-06-25_rays_royals",
+          "deltaS": 3.941,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-06-25_pirates_mariners",
+          "deltaS": 4.313,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "status": 200,
+      "rows": 10,
+      "states": {
+        "no-opening-odds": 10
+      },
+      "atFinalisation": 0,
+      "censusEligible": 0,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": true,
+      "examples": []
+    },
+    {
+      "date": "2026-06-27",
+      "status": 200,
+      "rows": 16,
+      "states": {
+        "no-opening-odds": 10,
+        "at-finalisation": 6
+      },
+      "atFinalisation": 6,
+      "censusEligible": 5,
+      "censusEligibleAtFinalisation": 5,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 6,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-06-27_redsox_yankees",
+          "deltaS": 1.873,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-06-27_tigers_astros",
+          "deltaS": 2.5,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "status": 200,
+      "rows": 21,
+      "states": {
+        "before-finalisation": 1,
+        "at-finalisation": 17,
+        "no-opening-odds": 3
+      },
+      "atFinalisation": 17,
+      "censusEligible": 11,
+      "censusEligibleAtFinalisation": 10,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 17,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "WNBA_2026-06-28_wings_lynx",
+          "deltaS": 2.16,
+          "sport": "WNBA"
+        },
+        {
+          "id": "MLB_2026-06-28_rays_diamondbacks",
+          "deltaS": 2.016,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "status": 200,
+      "rows": 4,
+      "states": {
+        "no-opening-odds": 4
+      },
+      "atFinalisation": 0,
+      "censusEligible": 0,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": true,
+      "examples": []
+    },
+    {
+      "date": "2026-06-30",
+      "status": 200,
+      "rows": 20,
+      "states": {
+        "no-opening-odds": 19,
+        "not-finalised": 1
+      },
+      "atFinalisation": 0,
+      "censusEligible": 0,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 0,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {},
+      "calledEmptyByTheDocument": true,
+      "examples": []
+    },
+    {
+      "date": "2026-07-01",
+      "status": 200,
+      "rows": 17,
+      "states": {
+        "before-finalisation": 14,
+        "no-opening-odds": 3
+      },
+      "atFinalisation": 0,
+      "censusEligible": 13,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 14,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 14
+      },
+      "calledEmptyByTheDocument": true,
+      "examples": []
+    },
+    {
+      "date": "2026-07-02",
+      "status": 200,
+      "rows": 18,
+      "states": {
+        "at-finalisation": 12,
+        "no-opening-odds": 4,
+        "not-finalised": 2
+      },
+      "atFinalisation": 12,
+      "censusEligible": 12,
+      "censusEligibleAtFinalisation": 12,
+      "withOddsProof": 12,
+      "atFinalisationWithProof": 12,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 12
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-02_phillies_pirates",
+          "deltaS": 49.624,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-02_brewers_reds",
+          "deltaS": 45.624,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "status": 200,
+      "rows": 22,
+      "states": {
+        "at-finalisation": 15,
+        "no-opening-odds": 5,
+        "not-finalised": 2
+      },
+      "atFinalisation": 15,
+      "censusEligible": 14,
+      "censusEligibleAtFinalisation": 14,
+      "withOddsProof": 15,
+      "atFinalisationWithProof": 15,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 15
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-03_cubs_cardinals",
+          "deltaS": 16.992,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-03_nationals_pirates",
+          "deltaS": 14.992,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-04",
+      "status": 200,
+      "rows": 21,
+      "states": {
+        "at-finalisation": 17,
+        "no-opening-odds": 4
+      },
+      "atFinalisation": 17,
+      "censusEligible": 16,
+      "censusEligibleAtFinalisation": 16,
+      "withOddsProof": 17,
+      "atFinalisationWithProof": 17,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 17
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-04_nationals_pirates",
+          "deltaS": 16.788,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-04_yankees_twins",
+          "deltaS": 15.788,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-05",
+      "status": 200,
+      "rows": 20,
+      "states": {
+        "at-finalisation": 17,
+        "no-opening-odds": 2,
+        "not-finalised": 1
+      },
+      "atFinalisation": 17,
+      "censusEligible": 15,
+      "censusEligibleAtFinalisation": 15,
+      "withOddsProof": 17,
+      "atFinalisationWithProof": 17,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 17
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-05_braves_mets",
+          "deltaS": 54.868,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-05_nationals_pirates",
+          "deltaS": 51.868,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-06",
+      "status": 200,
+      "rows": 14,
+      "states": {
+        "at-finalisation": 9,
+        "before-finalisation": 2,
+        "no-opening-odds": 2,
+        "not-finalised": 1
+      },
+      "atFinalisation": 9,
+      "censusEligible": 11,
+      "censusEligibleAtFinalisation": 9,
+      "withOddsProof": 11,
+      "atFinalisationWithProof": 9,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 11
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-06_royals_phillies",
+          "deltaS": 17.864,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-06_rays_yankees",
+          "deltaS": 15.864,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-07",
+      "status": 200,
+      "rows": 19,
+      "states": {
+        "at-finalisation": 15,
+        "before-finalisation": 2,
+        "no-opening-odds": 2
+      },
+      "atFinalisation": 15,
+      "censusEligible": 17,
+      "censusEligibleAtFinalisation": 15,
+      "withOddsProof": 17,
+      "atFinalisationWithProof": 15,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 17
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-07_cardinals_brewers",
+          "deltaS": 53.038,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-07_orioles_cubs",
+          "deltaS": 48.038,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-08",
+      "status": 200,
+      "rows": 22,
+      "states": {
+        "at-finalisation": 18,
+        "no-opening-odds": 4
+      },
+      "atFinalisation": 18,
+      "censusEligible": 10,
+      "censusEligibleAtFinalisation": 10,
+      "withOddsProof": 18,
+      "atFinalisationWithProof": 18,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 18
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-08_giants_bluejays",
+          "deltaS": 13.319,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-08_orioles_cubs",
+          "deltaS": 11.319,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-09",
+      "status": 200,
+      "rows": 24,
+      "states": {
+        "at-finalisation": 14,
+        "before-finalisation": 2,
+        "no-opening-odds": 8
+      },
+      "atFinalisation": 14,
+      "censusEligible": 16,
+      "censusEligibleAtFinalisation": 14,
+      "withOddsProof": 16,
+      "atFinalisationWithProof": 14,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 16
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-09_pirates_braves",
+          "deltaS": 11.752,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-09_mets_royals",
+          "deltaS": 10.752,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-10",
+      "status": 200,
+      "rows": 20,
+      "states": {
+        "not-finalised": 1,
+        "before-finalisation": 2,
+        "at-finalisation": 15,
+        "no-opening-odds": 2
+      },
+      "atFinalisation": 15,
+      "censusEligible": 18,
+      "censusEligibleAtFinalisation": 15,
+      "withOddsProof": 18,
+      "atFinalisationWithProof": 15,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 18
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-10_nationals_yankees",
+          "deltaS": 47.676,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-10_reds_cubs",
+          "deltaS": 43.676,
+          "sport": "MLB"
+        }
+      ]
+    },
+    {
+      "date": "2026-07-11",
+      "status": 200,
+      "rows": 21,
+      "states": {
+        "at-finalisation": 17,
+        "before-finalisation": 1,
+        "no-opening-odds": 2,
+        "not-finalised": 1
+      },
+      "atFinalisation": 17,
+      "censusEligible": 18,
+      "censusEligibleAtFinalisation": 17,
+      "withOddsProof": 18,
+      "atFinalisationWithProof": 17,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 18
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": [
+        {
+          "id": "MLB_2026-07-11_twins_angels",
+          "deltaS": 34.414,
+          "sport": "MLB"
+        },
+        {
+          "id": "MLB_2026-07-11_whitesox_athletics",
+          "deltaS": 31.414,
+          "sport": "MLB"
+        }
+      ]
+    }
+  ]
+}
