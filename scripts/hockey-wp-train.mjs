@@ -249,8 +249,14 @@ export const otSemantics = (rows) => {
     }
     const p = num(r.period)
     if (p !== null && p > g.maxPeriod) g.maxPeriod = p
-    if (r.wentToOT !== undefined) g.columnOT = r.wentToOT === '1'
-    if (r.wentToShootout !== undefined) g.columnSO = r.wentToShootout === '1'
+    // EMPTY IS NOT PRESENT. Season 2024's file lists wentToOT in the header and
+    // carries '' on every row; treating `!== undefined` as present made
+    // columnOT false for all 1400 games and produced a cross-check of 0.7918
+    // with 291 disagreements — exactly the 291 games the period derivation
+    // found. The four-state census (columnStates) is what established that,
+    // and the fix is to require a value, not merely a column.
+    if (r.wentToOT !== undefined && r.wentToOT !== '') g.columnOT = r.wentToOT === '1'
+    if (r.wentToShootout !== undefined && r.wentToShootout !== '') g.columnSO = r.wentToShootout === '1'
     byGame.set(r.game_id, g)
   }
   const all = [...byGame.values()]
@@ -868,6 +874,14 @@ const selfTest = () => {
   t('a column that disagrees with the periods is reported as a disagreement',
     otSemantics([{ game_id: '1', period: '3', wentToOT: '1', homeTeamWon: '1', isPlayoffGame: '0' }])
       .column_vs_derivation.disagree === 1)
+  t('AN EMPTY wentToOT COLUMN IS NOT CROSS-CHECKED AS IF IT SAID NO',
+    (() => {
+      const o = otSemantics([
+        { game_id: '1', period: '4', wentToOT: '', homeTeamWon: '1', isPlayoffGame: '0' },
+        { game_id: '2', period: '3', wentToOT: '', homeTeamWon: '0', isPlayoffGame: '0' }
+      ])
+      return o.wentToOT_column_present === false && o.column_vs_derivation === null && o.wentToOT === 1
+    })())
 
   t('a column present in the header but empty on every row is NOT reported usable',
     (() => {

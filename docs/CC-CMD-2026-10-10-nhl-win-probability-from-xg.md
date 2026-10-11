@@ -160,10 +160,7 @@ from `'Market estimate'` and from `'Statistical probability'` — this is a thir
 kind of number and conflating it with either is the substitution this repository
 keeps finding.
 
-**Task 5 — where the number goes.** `src/game-do.js:20` already documents
-`winProb: Poisson probability distribution output (factual)` and `:245` the V2
-polling loop that fills it for live football games. Reuse that path rather than
-inventing a second one. No new cron.
+**Task 5 — where the number goes.** `src/game-do.js:20` already sanctions the field — `Poisson probability distribution output (factual)` — and `:245` is the V2 polling loop that fills it for live football games. Reuse that path rather than inventing a second one. No new cron.
 
 ## Stop conditions
 

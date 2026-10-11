@@ -1380,3 +1380,61 @@ recognised forms. Neither reads the two new fields yet; both are additive.
 
 Gate: `scripts/check-context-game-id-forms.mjs`, blocking in `deploy.yml`,
 12 enumerated id forms, 3 proven mutations.
+
+## `game.winProb` — two models, one shape
+
+**Producer:** `src/index.js` — the soccer/WC path (`computeLiveWP`,
+`src/soccer-wp.js`) and, from 2026-10-11, the NHL path
+(`winProbFromPlayByPlay`, `src/hockey-wp.js`).
+**Consumer:** jubilant-bassoon, on the `/v2/games` payload.
+
+Both producers emit the SAME shape, so no consumer needs to branch on sport:
+
+```
+winProb: { homeWin: number, draw: number, awayWin: number, source: string }
+```
+
+NHL adds three fields, all additive:
+
+```
+           label: 'FIELD model probability'   // never 'Market estimate'
+           state: 'modelled' | 'prior'
+```
+
+### `draw` is 0 for hockey, and that is a fact
+
+An NHL game cannot end level — a tie after regulation is decided in overtime
+or a shootout. `draw: 0` is therefore the true probability, not a placeholder
+for an unmodelled outcome. It is also the reason the hockey model is a separate
+file: `soccer-wp.js`'s `DC_RHO = -0.130` is a low-score DRAW inflation
+correction, and porting it to a sport without draws would be a category error
+dressed as reuse.
+
+### A refusal is NOT a number
+
+`winProb` is **absent** when the model declined to score, and the reason is on
+the game object instead:
+
+| field | when |
+|---|---|
+| `winProbState: 'refused'` + `winProbProblems: [...]` | score, clock, strength or goalie state unreadable |
+| `winProbState: 'prior'` | no shots taken yet — `winProb.homeWin` is the measured home-win base rate, labelled `'FIELD pre-game prior'`, NOT a read of this game |
+| `winProbState: 'upstream-failed'` | the gamecenter play-by-play call did not answer |
+| `winProbCaveats: [...]` | scored, but an input was not reported (e.g. `goalieInNetId` absent — goalie quality is not a model input, so nothing was substituted) |
+
+A consumer that reads `winProb.homeWin` without checking `winProbState` gets
+`undefined` rather than a wrong number, which is the intended failure.
+
+### Labels are reserved and must not be reused
+
+`src/wp-resolver.js` serves two other probability labels and the hockey model
+must never carry either: `'Market estimate'` (a de-vigged book price, line 511)
+and `'Statistical probability'` (a vendor's own published model). These are
+three different kinds of number and conflating them is the substitution this
+repository keeps finding. Both reserved strings are exported as constants from
+`src/hockey-wp.js` so a check can assert the distinction rather than a spelling.
+
+Gate: `scripts/check-hockey-wp.mjs` (39 checks) and
+`scripts/mutate-hockey-wp.mjs` (13 mutations, all caught), both in `guards.yml`.
+The calibration that earned the model its place is
+`outbox/hockey-wp-calibration-latest.json`.

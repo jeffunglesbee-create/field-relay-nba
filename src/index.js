@@ -139,6 +139,12 @@ import {
   winProbsFromLambda,
 } from './soccer-wp.js';
 
+// NHL live win probability. A SEPARATE FILE AND A SEPARATE MODEL, deliberately:
+// soccer-wp.js is Poisson + Dixon-Coles and its DC_RHO is a low-score DRAW
+// inflation correction. Hockey has no draws, so porting it would be a category
+// error dressed as reuse. See docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md.
+import { winProbFromPlayByPlay, WP_LABEL, PRIOR_LABEL } from './hockey-wp.js';
+
 // ── MCP OAuth 2.1 + PKCE + DCR (Tier 1 Phase 2 — June 2 2026 PM-14) ────────
 // Adds OAuth surface required for claude.ai's custom-connector MCP discovery.
 // /mcp keeps FIELD_MCP_SECRET bearer for CI probes; additionally accepts
@@ -4709,6 +4715,83 @@ async function handleV2Games(url, env, ctx, request = null) {
             const nhleData   = await nhleResp.json();
             const todayEntry = (nhleData.gamesByDate || []).find(e => e.date === date);
             const games      = (todayEntry?.games || []).map(adaptNhle);
+
+            // ── NHL live win probability (Task 5) ─────────────────────────────
+            // Fills the SAME g.winProb field the soccer path fills and the same
+            // shape the client already consumes — {homeWin, draw, awayWin,
+            // source} — rather than inventing a second field. draw is 0 and
+            // that is a fact, not a placeholder: an NHL game cannot end level.
+            //
+            // One gamecenter play-by-play call per LIVE game, on a pull. Rule 78:
+            // the TTL and cacheKey shape are copied from the two NHL fetches
+            // already in this branch (scoreboard cacheTtl 30, landing 300). 20s
+            // sits below the scoreboard's own window because play-by-play is the
+            // faster-moving document; an explicit cacheKey keeps the entry off
+            // the request URL, matching the scoreboard call above.
+            //
+            // A refusal is NOT a number. hockeyWinProb returns state 'refused'
+            // when the score, clock, strength or goalie state cannot be read,
+            // and g.winProb stays null so no consumer renders a model value for
+            // a state the model declined to score.
+            const nhlLive = games.filter(g => g.state === 'live' && g.nhleGameId);
+            if (nhlLive.length > 0) {
+                await Promise.allSettled(nhlLive.map(async g => {
+                    try {
+                        const pbpUrl = `${NHL_BASE}/v1/gamecenter/${g.nhleGameId}/play-by-play`;
+                        const r = await fetch(pbpUrl, {
+                            headers: NHL_HEADERS,
+                            cf: { cacheTtl: 20, cacheEverything: true, cacheKey: pbpUrl },
+                        });
+                        if (!r.ok) { g.winProbState = 'upstream-failed'; return; }
+                        const res = winProbFromPlayByPlay(await r.json());
+                        g.winProbState   = res.state;
+                        g.winProbLabel   = res.label;
+                        g.winProbCaveats = res.caveats?.length ? res.caveats : undefined;
+                        g.winProbProblems = res.problems?.length ? res.problems : undefined;
+                        if (res.probability === null) return;
+                        g.winProb = {
+                            homeWin: res.probability,
+                            draw:    0,
+                            awayWin: Math.round((1 - res.probability) * 1000) / 1000,
+                            source:  res.source,
+                            label:   res.label,
+                            state:   res.state,
+                        };
+                    } catch (e) {
+                        g.winProbState = 'error';
+                        console.error(`[V2GAMES] NHL WP failed (${g.id}):`, e.message);
+                    }
+                }));
+
+                // The same DO route the soccer path posts to, for openingWP and
+                // wpDelta. game-do.js's own header sanctions winProb as a
+                // probability FACT. This runs on a pull, never on a cron.
+                if (env.GAME_DO) {
+                    const withWP = nhlLive.filter(g => g.winProb);
+                    const wpResults = await Promise.allSettled(withWP.map(async g => {
+                        const doStub = env.GAME_DO.get(env.GAME_DO.idFromName(g.id));
+                        const resp = await doStub.fetch(new Request('https://field/wp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                wp:          g.winProb,
+                                elapsed:     g.situation?.elapsed ?? null,
+                                advanceProb: null,
+                                ts:          Date.now(),
+                            }),
+                        }));
+                        if (!resp.ok) return null;
+                        return { g, state: await resp.json() };
+                    }));
+                    for (const result of wpResults) {
+                        if (result.status !== 'fulfilled' || !result.value?.state?.ok) continue;
+                        const { g, state } = result.value;
+                        g.openingWP       = state.openingWP     ?? null;
+                        g.wpDelta         = state.wpDelta       ?? null;
+                        g.recentWPHistory = state.recentHistory  ?? [];
+                    }
+                }
+            }
 
             // ── NHL brief pipeline (NHLE landing/threeStars variant) ───────────
             // Uses NHL's own three-star selections — curated performers per game.
