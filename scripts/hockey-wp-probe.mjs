@@ -29,6 +29,19 @@ export const CALL_BUDGET = 25
 export const MP_INDEX = 'https://moneypuck.com/data.htm'
 export const NHL_BASE = 'https://api-web.nhle.com/v1'
 export const ESPN_SB  = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard'
+export const ESPN_SUM = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/summary'
+
+// The de-vig at src/wp-resolver.js:511, lifted verbatim so the baseline is
+// computed by the SAME arithmetic that serves 'Market estimate' in production
+// rather than by a second implementation that could drift from it.
+export const deVig = (homePrice, awayPrice) => {
+  if (!Number.isFinite(homePrice) || !Number.isFinite(awayPrice)) return null
+  const implH = homePrice > 0 ? 100 / (homePrice + 100) : Math.abs(homePrice) / (Math.abs(homePrice) + 100)
+  const implA = awayPrice > 0 ? 100 / (awayPrice + 100) : Math.abs(awayPrice) / (Math.abs(awayPrice) + 100)
+  const vigSum = implH + implA
+  if (vigSum <= 0) return null
+  return Math.round((implH / vigSum) * 1000) / 1000
+}
 
 // Columns the model needs, as the CC-CMD's feature list implies them. Reported
 // as four states, never as a boolean: present / absent is the whole question,
@@ -103,6 +116,9 @@ const fetchJson = async (url, calls) => {
 }
 
 const main = async () => {
+  const onlyArg = process.argv.find(a => a.startsWith('--only='))
+  const only = onlyArg ? onlyArg.slice(7).split(',') : null
+  const wants = (name) => !only || only.includes(name)
   const started = new Date().toISOString()
   const calls = { n: 0 }
   const out = {
@@ -115,7 +131,7 @@ const main = async () => {
   }
 
   // ── Premise 1: where do MoneyPuck's shot files live, and what is in them?
-  try {
+  if (wants('moneypuck')) try {
     calls.n += 1
     const idx = await fetch(MP_INDEX, { signal: AbortSignal.timeout(25000) })
     const html = idx.ok ? await idx.text() : ''
@@ -174,7 +190,7 @@ const main = async () => {
 
   // ── Premise 2: is the declared situationCode reading right?
   // Confirmed against TWO independent derivations, per done condition 2.
-  try {
+  if (wants('situation')) try {
     const gameId = '2026020053'
     const pbp = await fetchJson(`${NHL_BASE}/gamecenter/${gameId}/play-by-play`, calls)
     const box = await fetchJson(`${NHL_BASE}/gamecenter/${gameId}/boxscore`, calls)
@@ -239,7 +255,7 @@ const main = async () => {
   // moneylines: the Odds API ceiling was REACHED 2026-10-07 and credits need
   // approval, and field-archive stores no odds column (checked: neither
   // regular_season_games nor postseason_games has one).
-  try {
+  if (wants('espn')) try {
     const dates = ['20240302', '20240413', '20241026']
     const espn = { dates: [], moneyline_key_paths: [], games_with_moneyline: 0, games_total: 0 }
     for (const d of dates) {
@@ -265,6 +281,45 @@ const main = async () => {
       }
       espn.dates.push(row)
     }
+
+    // The scoreboard is not the endpoint that carries odds. The CC-CMD's own
+    // probe recorded `pickcenter` and `odds` as top-level keys of the SUMMARY
+    // payload, so measure that before concluding anything about availability.
+    const firstDate = espn.dates.find(r => r.events > 0)
+    if (firstDate) {
+      const sb = await fetchJson(`${ESPN_SB}?dates=${firstDate.date}`, calls)
+      const ids = (sb.body?.events || []).slice(0, 3).map(ev => ev.id)
+      espn.summary_probe = { date: firstDate.date, event_ids: ids, games: [] }
+      for (const id of ids) {
+        const r = await fetchJson(`${ESPN_SUM}?event=${id}`, calls)
+        const g = { event: id, status: r.status }
+        if (r.ok) {
+          g.top_level_keys = Object.keys(r.body)
+          const pc = r.body.pickcenter || []
+          g.pickcenter_count = pc.length
+          if (pc.length) {
+            g.pickcenter_keys_verbatim = Object.keys(pc[0])
+            g.pickcenter_first_verbatim = JSON.parse(JSON.stringify(pc[0]))
+            const withMl = pc.filter(p =>
+              Number.isFinite(p?.homeTeamOdds?.moneyLine) && Number.isFinite(p?.awayTeamOdds?.moneyLine))
+            g.providers_with_moneyline = withMl.length
+            g.provider_names = pc.map(p => p?.provider?.name ?? null)
+            if (withMl.length) {
+              const p0 = withMl[0]
+              g.devig_sample = {
+                provider: p0.provider?.name ?? null,
+                homeMoneyLine: p0.homeTeamOdds.moneyLine,
+                awayMoneyLine: p0.awayTeamOdds.moneyLine,
+                pHomeDeVigged: deVig(p0.homeTeamOdds.moneyLine, p0.awayTeamOdds.moneyLine)
+              }
+            }
+          }
+          const comp = r.body.header?.competitions?.[0] || {}
+          g.final = (comp.competitors || []).map(c => ({ homeAway: c.homeAway, score: c.score, winner: c.winner ?? null }))
+        }
+        espn.summary_probe.games.push(g)
+      }
+    }
     out.premises.espn_market_archive = espn
   } catch (e) {
     out.premises.espn_market_archive = { error: String(e && e.message || e) }
@@ -283,10 +338,17 @@ const main = async () => {
   }
 
   mkdirSync('outbox', { recursive: true })
+  out.only = only
   const ts = started.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
-  const file = `outbox/hockey-wp-probe-${ts}.json`
+  // A PARTIAL RUN MUST NOT CLOBBER A COMPLETE ONE. Earlier today in this repo
+  // a narrowed re-run overwrote the full artifact a runner had just produced,
+  // and the check that read it then reported a stop condition against evidence
+  // its own sibling had destroyed. `latest` is only written by a full run.
+  const suffix = only ? `-${only.join('+')}` : ''
+  const file = `outbox/hockey-wp-probe-${ts}${suffix}.json`
   writeFileSync(file, JSON.stringify(out, null, 2))
-  writeFileSync('outbox/hockey-wp-probe-latest.json', JSON.stringify(out, null, 2))
+  if (!only) writeFileSync('outbox/hockey-wp-probe-latest.json', JSON.stringify(out, null, 2))
+  else writeFileSync(`outbox/hockey-wp-probe-latest${suffix}.json`, JSON.stringify(out, null, 2))
   console.log(`wrote ${file}`)
   console.log(`callsMade ${out.callsMade} of ${CALL_BUDGET}; ${out.coverage.statement}`)
   for (const [k, v] of Object.entries(out.premises))
@@ -328,6 +390,16 @@ const selfTest = () => {
     penaltyWindows([{ typeDescKey: 'penalty', timeInPeriod: '5:00', periodDescriptor: { number: 1 }, details: {} }]).length === 0)
   t('a non-penalty play contributes no window',
     penaltyWindows([{ typeDescKey: 'shot-on-goal', timeInPeriod: '5:00', periodDescriptor: { number: 1 } }]).length === 0)
+
+  t('deVig matches wp-resolver.js:511 on a pick-em pair',
+    deVig(-110, -110) === 0.5)
+  t('deVig on a -200/+170 pair favours the home side and sums to one',
+    (() => {
+      const h = deVig(-200, 170), a = deVig(170, -200)
+      return h > 0.6 && h < 0.72 && Math.abs(h + a - 1) < 0.002
+    })())
+  t('deVig refuses a missing price rather than defaulting to 0.5',
+    deVig(null, -110) === null && deVig(-110, undefined) === null)
 
   t('a missing needed column is reported absent, not silently dropped',
     (() => {
