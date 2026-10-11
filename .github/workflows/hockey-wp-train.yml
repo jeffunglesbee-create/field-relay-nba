@@ -36,6 +36,16 @@ on:
         required: false
         type: string
         default: "400"
+      out:
+        description: "outbox artifact prefix. Change it for a PARALLEL run that must not clobber the shipped calibration."
+        required: false
+        type: string
+        default: "hockey-wp-calibration"
+      no_model_write:
+        description: "true = never write src/hockey-wp-model.js. Required for any re-split run."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -57,8 +67,11 @@ jobs:
 
       - name: Train and calibrate
         run: |
+          EXTRA=""
+          if [ "${{ inputs.no_model_write }}" = "true" ]; then EXTRA="--no-model-write"; fi
           node --max-old-space-size=6144 scripts/hockey-wp-train.mjs \
-            "--seasons=${{ inputs.seasons }}" "--test=${{ inputs.test }}" "--iters=${{ inputs.iters }}"
+            "--seasons=${{ inputs.seasons }}" "--test=${{ inputs.test }}" "--iters=${{ inputs.iters }}" \
+            "--out=${{ inputs.out }}" $EXTRA
 
       - name: Commit the artifact and the coefficient table
         if: always()
@@ -66,7 +79,13 @@ jobs:
           set -euo pipefail
           git config user.email "claude@field.dev"
           git config user.name  "FIELD CI"
-          git add outbox/hockey-wp-calibration-*.json src/hockey-wp-model.js || true
+          # A PARALLEL RUN STAGES ONLY ITS OWN ARTIFACT. Staging
+          # src/hockey-wp-model.js on a re-split run would push a model fit on a
+          # different split over the deployed one.
+          git add "outbox/${{ inputs.out }}"-*.json || true
+          if [ "${{ inputs.no_model_write }}" != "true" ]; then
+            git add src/hockey-wp-model.js || true
+          fi
           # A FAILED RUN MUST COMMIT ITS REASON. The first train run died and
           # the cause was unreadable: this project's GitHub client cannot
           # follow the log blob redirect, and this step had nothing to stage.
