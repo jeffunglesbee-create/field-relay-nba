@@ -258,6 +258,12 @@ jobs:
           node scripts/check-nhl-onice.mjs
           node scripts/nhl-shiftcharts-probe.mjs --self-test
 
+      - name: No opening line is written onto a finished game
+        if: always()
+        run: |
+          node scripts/check-opening-odds-not-at-finalisation.mjs --self-test
+          node scripts/check-opening-odds-not-at-finalisation.mjs
+
       - name: No new bare empty catch
         if: always()
         run: |

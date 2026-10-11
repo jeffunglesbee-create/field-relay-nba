@@ -746,6 +746,11 @@ jobs:
       # half-applied fix: flag on the table, gate in the loop, and nothing
       # carrying the value between them reads `undefined` and passes everything.
       # Each link is mutated independently in the self-test.
+      - name: no opening line is written onto a finished game
+        run: |
+          node scripts/check-opening-odds-not-at-finalisation.mjs --self-test
+          node scripts/check-opening-odds-not-at-finalisation.mjs
+
       - name: no individual-competitor event reaches the archive catch-up or the slate prompt
         run: node scripts/check-individual-sports-not-archived.mjs --self-test && node scripts/check-individual-sports-not-archived.mjs
 

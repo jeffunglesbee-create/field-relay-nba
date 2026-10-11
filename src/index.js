@@ -6775,15 +6775,48 @@ async function fetchSportOddsLive(env, sportKey) {
 // list — archive sport vocabulary is uppercase short codes, not the
 // {sport,league} ESPN shape), then fetches live odds once per sport and
 // UPDATEs matching rows. Bails when the quota approaches the floor.
+// AN OPENING LINE WRITTEN AT COMPLETION IS NOT AN OPENING LINE.
+// docs/CC-CMD-2026-08-25-misjoined-opening-odds.md. This function selected on
+// `opening_odds IS NULL` alone, with no finality condition, and it runs from
+// handleJournalismCycle AFTER the archive catch-up finalises games in the same
+// tick. So a game that had just ended got its `opening_odds` filled with
+// whatever the vendor was serving at that moment — a settled price.
+//
+// MEASURED in the window 2026-06-23 → 07-11 (run 38145700814,
+// outbox/opening-odds-at-finalisation-latest.json):
+//
+//     archive rows                                   315
+//     captured within 60s of finalized_at            180   (57.1%)
+//     census-eligible rows                           179
+//     of those, captured at finalisation             155   (86.6%)
+//
+// The decisive row, MLB_2026-06-28_angels_athletics: moneyline -10000, a 2.5
+// handicap where an MLB run line is ±1.5, a 5.5 total against five runs scored,
+// captured_at 1.9 SECONDS after finalized_at. Every number describes the
+// finished game.
+//
+// THE GUARD IS HERE AND NOT ON runOddsBackfillForDate, which also fills
+// `opening_odds IS NULL` rows. That one passes `snapshotAt` to
+// extractOddsForGame and stamps the historical snapshot's own time; backfilling
+// a past date is supposed to touch finalised rows. This one calls
+// extractOddsForGame(og) with no third argument, so the stamp is the run clock.
+// That difference is what makes captured_at land on finalized_at, and it is why
+// only this function changes.
+//
+// Adding the condition to the sport DISCOVERY queries too means a sport whose
+// only pending rows are already finished no longer triggers a paid vendor fetch
+// (Rule 78).
 async function snapshotCronOdds(env, dateKey) {
   if (!env.ARCHIVE_DB) return null;
   const rsP = await env.ARCHIVE_DB.prepare(
     `SELECT DISTINCT sport FROM regular_season_games
-      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL`
+      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL
+        AND finalized_at IS NULL`
   ).bind(dateKey).all();
   const psP = await env.ARCHIVE_DB.prepare(
     `SELECT DISTINCT sport FROM postseason_games
-      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL`
+      WHERE date = ? AND opening_odds IS NULL AND sport IS NOT NULL
+        AND finalized_at IS NULL`
   ).bind(dateKey).all();
   const sports = [...new Set([
     ...(rsP.results || []).map(r => r.sport),
@@ -6812,7 +6845,8 @@ async function snapshotCronOdds(env, dateKey) {
     for (const table of ['regular_season_games', 'postseason_games']) {
       const rows = await env.ARCHIVE_DB.prepare(
         `SELECT id, home, away FROM ${table}
-          WHERE date = ? AND sport = ? AND opening_odds IS NULL`
+          WHERE date = ? AND sport = ? AND opening_odds IS NULL
+            AND finalized_at IS NULL`
       ).bind(dateKey, sport).all();
       // Build the per-row update list, then hand off to reconcile()
       // so the UPDATE + change_log INSERTs go out in batched form
