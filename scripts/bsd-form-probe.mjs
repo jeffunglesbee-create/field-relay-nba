@@ -50,11 +50,15 @@ export const fingerprint = (body) => {
     }
     return out
   }
+  // THE ECHOED PARAMETER IS NOT DATA. `league_id` comes back exactly as sent,
+  // so including it made every fingerprint differ from every other one and the
+  // control vacuous — the first real run reported FILTERS on four payloads
+  // whose only difference was the parameter echo. Compare the ANSWER, never
+  // the question.
   return JSON.stringify({
     team_id: body.team_id ?? null,
     requested: body.requested ?? null,
     matches: body.matches ?? null,
-    league_id: body.league_id ?? null,
     from_date: body.from_date ?? null,
     to_date: body.to_date ?? null,
     overall: pick(body.overall),
@@ -66,17 +70,32 @@ export const fingerprint = (body) => {
 }
 
 // The verdict is derived, never written by hand.
-export const classify = ({ aFp, bFp, cFp, dFp, statuses = [] }) => {
+export const classify = ({ aFp, bFp, cFp, dFp, statuses = [], aMatches = null, bMatches = null, cMatches = null, dMatches = null }) => {
   // A REFUSED CALL IS NOT A MEASUREMENT, and it must say WHY. Four 401s
   // fingerprint identically, and "all four agree" is one keystroke from
   // reading as "the parameter does nothing".
   const auth = statuses.filter(s => s === 401 || s === 403)
   if (auth.length) return { verdict: 'UNMEASURED', reason: `${auth.length} of ${statuses.length} calls were refused with ${[...new Set(auth)].join('/')} — an auth failure, not a finding` }
   if (!aFp || !bFp || !cFp) return { verdict: 'UNMEASURED', reason: 'one or more calls did not return a body' }
+
+  // A THIRD OUTCOME THE DOCUMENT DID NOT ANTICIPATE, and the one that actually
+  // happened: the parameter is accepted, it changes the answer, and every
+  // value empties it — including the club's OWN league and an id that cannot
+  // exist. That is neither filtering nor labelling. It is a parameter that
+  // breaks the query, and it fires the document's stop condition just as
+  // surely, because a per-competition scope cannot be built on it.
+  const emptied = (m) => m === 0
+  if (emptied(bMatches) && emptied(cMatches) && (dMatches === null || emptied(dMatches)) && !emptied(aMatches))
+    return {
+      verdict: 'ACCEPTED-BUT-EMPTIES',
+      reason: `no league_id returns ${aMatches} matches; league_id=1 (the club's own competition) returns ${bMatches}, `
+            + `league_id=7 returns ${cMatches}, and an impossible id returns ${dMatches}. The parameter is accepted and `
+            + 'empties the result for every value. It does not filter.',
+    }
   if (dFp !== null && dFp === aFp)
     return {
       verdict: 'LABELS-NOT-FILTERS',
-      reason: 'an impossible league_id returned the SAME payload as no league_id at all, so the parameter is inert. '
+      reason: 'an impossible league_id returned the SAME answer as no league_id at all, so the parameter is inert. '
             + 'Any difference between two real league_ids would be something other than filtering.',
     }
   if (bFp === cFp)
@@ -86,7 +105,8 @@ export const classify = ({ aFp, bFp, cFp, dFp, statuses = [] }) => {
     }
   return {
     verdict: 'FILTERS',
-    reason: 'two different real league_ids returned different numbers, and an impossible id did not reproduce the default page',
+    reason: 'two different real league_ids returned different numbers, an impossible id did not reproduce the default page, '
+          + 'and a real league_id returned a non-zero match count',
   }
 }
 
@@ -130,7 +150,12 @@ const main = async () => {
   const D = await get(url(LEAGUE_IMPOSSIBLE), token, calls)
 
   const fp = { aFp: fingerprint(A.body), bFp: fingerprint(B.body), cFp: fingerprint(C.body), dFp: fingerprint(D.body) }
-  const cls = classify({ ...fp, statuses: [A.status, B.status, C.status, D.status] })
+  const cls = classify({
+    ...fp,
+    statuses: [A.status, B.status, C.status, D.status],
+    aMatches: A.body?.matches ?? null, bMatches: B.body?.matches ?? null,
+    cMatches: C.body?.matches ?? null, dMatches: D.body?.matches ?? null,
+  })
 
   // THE WINDOW, read rather than assumed.
   const windowOf = (r, label) => ({
@@ -235,7 +260,26 @@ const selfTest = () => {
   t('a 403 is named the same way',
     /403/.test(classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q', statuses: [403, 200, 200, 200] }).reason))
   t('all-200 calls still reach a real verdict',
-    classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q', statuses: [200, 200, 200, 200] }).verdict === 'FILTERS')
+    classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q', statuses: [200, 200, 200, 200],
+               aMatches: 10, bMatches: 4, cMatches: 6, dMatches: 0 }).verdict === 'FILTERS')
+
+  // THE REGRESSION. The echoed parameter made every fingerprint differ, so the
+  // control could not fail and the first real run reported FILTERS over four
+  // payloads that all said matches: 0.
+  t('the echoed league_id is EXCLUDED from the fingerprint',
+    fingerprint({ ...base, league_id: 1 }) === fingerprint({ ...base, league_id: 99999999 }))
+  t('a parameter that empties the result for EVERY value is not FILTERS',
+    (() => {
+      const c = classify({ aFp: 'A', bFp: 'B', cFp: 'C', dFp: 'D', statuses: [200, 200, 200, 200],
+                           aMatches: 10, bMatches: 0, cMatches: 0, dMatches: 0 })
+      return c.verdict === 'ACCEPTED-BUT-EMPTIES' && /does not filter/.test(c.reason)
+    })())
+  t("...and that holds even though the club's OWN league was the one asked for",
+    classify({ aFp: 'A', bFp: 'B', cFp: 'C', dFp: 'D', statuses: [200, 200, 200, 200],
+               aMatches: 10, bMatches: 0, cMatches: 0, dMatches: 0 }).reason.includes("club's own competition"))
+  t('a genuine filter — non-zero counts that differ — still reads FILTERS',
+    classify({ aFp: 'A', bFp: 'B', cFp: 'C', dFp: 'D', statuses: [200, 200, 200, 200],
+               aMatches: 10, bMatches: 6, cMatches: 4, dMatches: 0 }).verdict === 'FILTERS')
 
   t('xG field names are found by name, not assumed',
     (() => {
