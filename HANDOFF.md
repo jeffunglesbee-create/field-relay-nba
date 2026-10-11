@@ -1,5 +1,54 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11 — NHL win probability, and the gate that nearly ruled on 8 games
+
+**HEAD:** `06392f1` → `be0ffab`. Spent at the vendor: **0 credits** — the Odds
+API was never called. Session doc, per Rule 67:
+`outbox/cc-session-2026-10-11-nhl-win-probability-from-xg.md`.
+
+CC-CMD: `docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md` — **DONE**,
+five tasks, six done conditions, no stop condition hit.
+
+**Gate: SHIPS over 1243 of 1400 games.** Held-out season 2023, 122,472 shot
+states, whole seasons held out and asserted (0 games on both sides). Model
+Brier **0.172669** against constant 0.5 **0.250000** and the de-vigged market
+**0.228414**.
+
+**And the comparison it loses, which belongs here and not only in the
+artifact:** over the first minute of play the market wins, **0.232640 to
+0.247177**. The model carries no team-strength feature, so at puck drop it
+knows nothing the market does not. The pre-game path returns a labelled
+`FIELD pre-game prior` rather than a model read, and `wp-resolver.js`'s
+`Market estimate` is untouched and remains the better pre-game number.
+
+New files: `src/hockey-wp.js`, `src/hockey-wp-lib.js`, `src/hockey-wp-model.js`
+(generated, written only when the gate passes), plus the trainer, market
+builder and probe under `scripts/`. **Nothing is ported from `soccer-wp.js` and
+`DC_RHO` is absent by design** — it corrects draw inflation and hockey has no
+draws.
+
+Wired into the path `src/game-do.js:20` already sanctions — `Poisson
+probability distribution output (factual)` — filling the same `g.winProb` shape
+the client consumes, on a pull, no new cron. `CONTRACTS.md` carries the
+contract, including that a refusal is absent rather than zero.
+
+**Checks:** 42 in `check-hockey-wp.mjs`, 13 of 13 mutations caught and 0
+unsound, plus 78 self-tests across the three scripts. All in `guards.yml`.
+
+**Eleven defects, each caught by a check rather than by review.** The two worth
+remembering: an absent `wentToOT` column was counted and published as
+`tieRate: 0.0000` across 1,400 games — Rule 99 violated in the same session as
+gates enforcing it — which then left the gate ruling `DOES NOT SHIP` on **8 of
+1,400 games**, with every number needed to see that already in the artifact and
+none of it in the verdict string. The verdict now refuses to rule below 50%
+coverage and always states used-of-available.
+
+Also recorded: I verified a commit with `node check | tail -1`, whose exit
+status is `tail`'s, and shipped four red assertions — the same pipeline defect
+I fixed in this repo's push loop earlier the same day.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-10 — five CC-CMDs, and a gate that was red the whole time
 
 **HEAD:** `04529d5` → `b49e566`. Last green deploy `ae8b740` (run `38094430758`).

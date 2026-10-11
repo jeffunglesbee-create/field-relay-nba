@@ -4,7 +4,54 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — a model, in the relay, one file
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Five tasks, six done conditions, no stop condition
+hit. Session doc:
+`outbox/cc-session-2026-10-11-nhl-win-probability-from-xg.md`.
+
+**Gate: SHIPS** — `SHIPS — beats constant 0.5 and the de-vigged market over
+1243 of 1400 games`. Held-out season 2023: model Brier **0.172669** against
+constant 0.5 **0.250000** and the de-vigged market **0.228414**.
+
+**The comparison it loses, stated here rather than in the artifact only.** Over
+the first minute of play — where the market knows the teams and the model
+carries no team-strength feature — the market wins: **0.232640 to 0.247177**
+over 1,575 states. The pre-game path therefore returns a labelled
+`FIELD pre-game prior`, never a model read, and `wp-resolver.js`'s
+`Market estimate` remains the better pre-game number.
+
+**Two premises in this document were wrong, and one of my refutations of it was
+wrong too.**
+
+1. *"The open internet sells odds, not models"* holds for live sources. ESPN's
+   summary `pickcenter` does carry a historical moneyline — but a **three-way**
+   one: the first three games de-vig to an overround of 0.818/0.822/0.819, and a
+   two-sided book cannot overround below 1. A census returned 10 of 10 games
+   three-way across three seasons. Unibet quotes hockey as a regulation
+   home/draw/away market, so the two-way normalisation that is correct for the
+   Odds API's `h2h` market is a category error over this one. Reconstructing it
+   needs the tie rate and the OT home share, both measured here.
+2. ESPN **retains** `pickcenter` by season: 1,312 of 1,315 games in 2023-24,
+   **0 of 16** from 2024-25 on. That boundary, not any property of the model,
+   is why the held-out season is 2023.
+3. I claimed mid-session that MoneyPuck's `homeWinProbability` column refutes
+   the sourcing section. **It does not.** A four-state column census measured it
+   present in the header and **empty on every row**, along with `wentToOT`,
+   `wentToShootout`, `homeTeamScore`, `roadTeamScore` and `timeLeft`. There is
+   no MoneyPuck baseline and this document's premise stands. Publishing that
+   refutation before measuring it was the defect, exactly as Rule 100's
+   corollary describes.
+
+**Task 2 resolved by measurement, as instructed.** Option (b) was built and
+cleared the bar, so option (a) was not built. The standardised coefficients say
+why the instruction was right: `sdPerSqrtT` **2.036** and `scoreDiff` **0.441**
+against `xgDiff` **0.185** — score differential and time remaining dominate xG
+by about eleven times.
+
+**Task 1's geometry is confirmed against the vendor's own columns**: 20,000
+shots, 20,000 distance and angle agreements, worst gap **0.0000**.
+
+**Done condition 3** is measured, not assumed: tie rate **0.2057**, OT home
+share **0.5417** with n = **288**.
 
 **Rule F:** cleared by the same argument `src/soccer-wp.js` makes in its own
 header — *"predicts binary outcome probability — arithmetic on game state. Not
