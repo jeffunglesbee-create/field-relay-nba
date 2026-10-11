@@ -70,12 +70,19 @@ const main = async () => {
       sum_of_deltas: c.sum_of_deltas, telescoped: c.telescoped_identity_holds,
       residual: c.residual, closes: c.closes,
       wentToOT: (pbp.body?.plays || []).some(p => (p.periodDescriptor?.number ?? 0) >= 4),
+      // A SHOOTOUT IS NOT AN OVERTIME. Period 5 in a regular-season game is the
+      // shootout, and the WP model has no representation of one: its features
+      // are score differential, time remaining and strength, none of which
+      // describe a penalty-shot round. Separating the two is the difference
+      // between "the check fails in overtime" and the true statement.
+      wentToShootout: (pbp.body?.plays || []).some(p => (p.periodDescriptor?.number ?? 0) >= 5),
     })
   }
 
   const scored = rows.filter(r => Number.isFinite(r.residual))
   const closes = scored.filter(r => r.closes).length
-  const ot = scored.filter(r => r.wentToOT)
+  const so = scored.filter(r => r.wentToShootout)
+  const ot = scored.filter(r => r.wentToOT && !r.wentToShootout)
   const reg = scored.filter(r => !r.wentToOT)
 
   const out = {
@@ -89,7 +96,8 @@ const main = async () => {
     telescoping_holds_on_every_game: scored.length > 0 && scored.every(r => r.telescoped === true),
     residual_all: summarise(scored.map(r => r.residual)),
     residual_regulation: summarise(reg.map(r => r.residual)),
-    residual_overtime: summarise(ot.map(r => r.residual)),
+    residual_overtime_no_shootout: summarise(ot.map(r => r.residual)),
+    residual_shootout: summarise(so.map(r => r.residual)),
     verdict: scored.length === 0
       ? 'UNMEASURED — no finished game was scored, so the check neither closed nor failed'
       : closes === scored.length
@@ -109,7 +117,8 @@ const main = async () => {
   console.log(`telescoping holds on every game: ${out.telescoping_holds_on_every_game}`)
   console.log(`residual all      : ${JSON.stringify(out.residual_all)}`)
   console.log(`residual regulation: ${JSON.stringify(out.residual_regulation)}`)
-  console.log(`residual overtime  : ${JSON.stringify(out.residual_overtime)}`)
+  console.log(`residual OT (no SO): ${JSON.stringify(out.residual_overtime_no_shootout)}`)
+  console.log(`residual shootout  : ${JSON.stringify(out.residual_shootout)}`)
   console.log(out.coverage)
 }
 
