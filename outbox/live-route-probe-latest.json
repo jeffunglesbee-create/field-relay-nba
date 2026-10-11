@@ -1,0 +1,66 @@
+{
+  "probed_at_utc": "20261011T071920Z",
+  "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
+  "date": "2026-10-11",
+  "calls": [
+    "/nhl-stats/shiftcharts?cayenneExp=gameId%3D2026020053&final=1",
+    "/nhl-stats/zzz-not-a-real-prefix",
+    "/bsd/events/by-date?date=2026-10-11",
+    "/bsd/events/220230/lineups",
+    "/bsd/events/220230/broadcasts"
+  ],
+  "findings": [
+    {
+      "name": "/nhl-stats/shiftcharts answers with rows",
+      "verdict": "FAIL",
+      "status": 403,
+      "routeState": "refused",
+      "rows": null,
+      "xState": null,
+      "xRows": null
+    },
+    {
+      "name": "/nhl-stats/* refuses a path outside the allow-list",
+      "verdict": "PASS",
+      "status": 403,
+      "routeState": "refused",
+      "body": "Path not allowed"
+    },
+    {
+      "name": "/bsd/events/by-date discovers an event id",
+      "verdict": "PASS",
+      "status": 200,
+      "rows": 50,
+      "eventId": 220230
+    },
+    {
+      "name": "/bsd/events/:id/lineups states one of four",
+      "verdict": "PASS",
+      "status": 200,
+      "routeState": "answered",
+      "xLineupState": "predicted",
+      "xLineupFill": "served",
+      "xLineupBeta": "true"
+    },
+    {
+      "name": "/bsd/events/:id/broadcasts states territory coverage",
+      "verdict": "PASS",
+      "status": 200,
+      "rows": 2,
+      "xTerritory": "2/2",
+      "channelId": null
+    },
+    {
+      "name": "/bsd/tv-channels/:id/broadcasts",
+      "verdict": "UNMEASURED",
+      "reason": "no tv_channel id in the event broadcasts rows — not invented"
+    }
+  ],
+  "summary": {
+    "pass": 4,
+    "fail": 1,
+    "unmeasured": 1,
+    "surfaces": 6
+  },
+  "coverage_note": "4 route blocks, 6 surfaces. The odds-refusal document ships no route."
+}
