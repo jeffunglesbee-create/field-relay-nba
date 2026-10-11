@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md",
   "task": "Task 1 — PROBE ONLY, nothing ships",
-  "started_at": "2026-10-11T06:49:57.727Z",
+  "started_at": "2026-10-11T06:52:47.357Z",
   "callBudget": 24,
   "callsMade": 11,
   "host_reachability": {
@@ -59,6 +59,39 @@
   ],
   "task1_2_eventNumberJoin": {
     "gameId": "2026020053",
+    "across_games": [
+      {
+        "gameId": "2020020001",
+        "shift_eventNumbers": 894,
+        "play_eventIds": 284,
+        "matched": 11,
+        "match_rate": 0.0123
+      },
+      {
+        "gameId": "2021020001",
+        "shift_eventNumbers": 791,
+        "play_eventIds": 321,
+        "matched": 8,
+        "match_rate": 0.0101
+      },
+      {
+        "gameId": "2022020001",
+        "shift_eventNumbers": 829,
+        "play_eventIds": 323,
+        "matched": 5,
+        "match_rate": 0.006
+      },
+      {
+        "gameId": "2023020001",
+        "shift_eventNumbers": 751,
+        "play_eventIds": 328,
+        "matched": 8,
+        "match_rate": 0.0107
+      }
+    ],
+    "games_checked": 5,
+    "matched_across_all_games": 32,
+    "denominator_across_all_games": 3265,
     "shift_rows": 692,
     "shift_eventNumbers_present": 692,
     "play_eventIds": 309,

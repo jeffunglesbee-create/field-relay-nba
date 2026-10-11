@@ -1,0 +1,263 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md",
+  "task": "Task 1 — PROBE ONLY, nothing ships",
+  "started_at": "2026-10-11T06:52:47.357Z",
+  "callBudget": 24,
+  "callsMade": 11,
+  "host_reachability": {
+    "host": "https://api.nhle.com",
+    "status": 200,
+    "ok": true,
+    "rows": 692,
+    "note": "reachable; this repo has never called this host before today"
+  },
+  "task1_1_historicalDepth": [
+    {
+      "season": "2020",
+      "gameId": "2020020001",
+      "control_playByPlay_status": 200,
+      "control_playCount": 284,
+      "gameExists": true,
+      "shiftcharts_status": 200,
+      "shiftRows": 894,
+      "distinctPlayers": 38,
+      "verdict": "shift charts served: 894 rows"
+    },
+    {
+      "season": "2021",
+      "gameId": "2021020001",
+      "control_playByPlay_status": 200,
+      "control_playCount": 321,
+      "gameExists": true,
+      "shiftcharts_status": 200,
+      "shiftRows": 791,
+      "distinctPlayers": 38,
+      "verdict": "shift charts served: 791 rows"
+    },
+    {
+      "season": "2022",
+      "gameId": "2022020001",
+      "control_playByPlay_status": 200,
+      "control_playCount": 323,
+      "gameExists": true,
+      "shiftcharts_status": 200,
+      "shiftRows": 829,
+      "distinctPlayers": 38,
+      "verdict": "shift charts served: 829 rows"
+    },
+    {
+      "season": "2023",
+      "gameId": "2023020001",
+      "control_playByPlay_status": 200,
+      "control_playCount": 328,
+      "gameExists": true,
+      "shiftcharts_status": 200,
+      "shiftRows": 751,
+      "distinctPlayers": 38,
+      "verdict": "shift charts served: 751 rows"
+    }
+  ],
+  "task1_2_eventNumberJoin": {
+    "gameId": "2026020053",
+    "across_games": [
+      {
+        "gameId": "2020020001",
+        "shift_eventNumbers": 894,
+        "play_eventIds": 284,
+        "matched": 11,
+        "match_rate": 0.0123
+      },
+      {
+        "gameId": "2021020001",
+        "shift_eventNumbers": 791,
+        "play_eventIds": 321,
+        "matched": 8,
+        "match_rate": 0.0101
+      },
+      {
+        "gameId": "2022020001",
+        "shift_eventNumbers": 829,
+        "play_eventIds": 323,
+        "matched": 5,
+        "match_rate": 0.006
+      },
+      {
+        "gameId": "2023020001",
+        "shift_eventNumbers": 751,
+        "play_eventIds": 328,
+        "matched": 8,
+        "match_rate": 0.0107
+      }
+    ],
+    "games_checked": 5,
+    "matched_across_all_games": 32,
+    "denominator_across_all_games": 3265,
+    "shift_rows": 692,
+    "shift_eventNumbers_present": 692,
+    "play_eventIds": 309,
+    "matched": 0,
+    "denominator": 692,
+    "match_rate": 0,
+    "verdict": "CONFIRMED NEGATIVE: 0 of 692 shift eventNumbers appear as a play eventId. They are different numbering spaces."
+  },
+  "task1_3_intervalJoin": {
+    "exclusive": {
+      "endExclusive": true,
+      "shots": 125,
+      "agrees_with_situationCode": 119,
+      "disagrees": 6,
+      "resolves_to_nobody": 0,
+      "uncomparable": 0,
+      "agreement_rate": 0.952,
+      "examples": [
+        {
+          "timeInPeriod": "17:37",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "17:41",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "17:56",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "18:04",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "18:12",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        }
+      ]
+    },
+    "inclusive": {
+      "endExclusive": false,
+      "shots": 125,
+      "agrees_with_situationCode": 108,
+      "disagrees": 17,
+      "resolves_to_nobody": 0,
+      "uncomparable": 0,
+      "agreement_rate": 0.864,
+      "examples": [
+        {
+          "timeInPeriod": "00:23",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 9,
+          "awayOnIce": 11,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "09:57",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "11:51",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 8,
+          "awayOnIce": 10,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "17:37",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        },
+        {
+          "timeInPeriod": "17:41",
+          "period": 1,
+          "situationCode": "1551",
+          "comparable": true,
+          "homeOnIce": 6,
+          "awayOnIce": 7,
+          "homeExpected": 6,
+          "awayExpected": 6,
+          "agrees": false,
+          "resolvesToNobody": false
+        }
+      ]
+    },
+    "better": "endTime EXCLUSIVE",
+    "note": "situationCode is the independent control. A reconstruction that disagrees with it is wrong, not interesting."
+  },
+  "task1_4_boundary": {
+    "question": "is endTime inclusive or exclusive?",
+    "exclusive_agreement": 0.952,
+    "inclusive_agreement": 0.864,
+    "verdict": "EXCLUSIVE agrees with situationCode more often"
+  },
+  "task1_5_clockDirection": {
+    "shifts_compared": 692,
+    "end_after_start": 692,
+    "end_before_start": 0,
+    "equal": 0,
+    "verdict": "COUNTS UP, same direction as the WP model's (period-1)*1200 + mm*60 + ss"
+  },
+  "coverage": "4 season control games, 1 current game for the join measurements, 125 shots and 692 shift rows. One game is not the API's policy."
+}
