@@ -4,7 +4,72 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (gap) — the census measures the right thing at the wrong grain
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Four tasks, five done conditions. One stop
+condition fired, on the half of Task 2 it was written for. Artifact:
+`outbox/bsd-field-census-latest.json` (run 38119110647, 178 rows on 2026-10-11).
+No new upstream call — the same endpoint and params, regrouped and sampled.
+
+**TASK 4 OVERTURNS TWO OF THE THREE DEAD FIELDS.** Sampling one value per field
+was written to catch an opaque integer hiding behind a healthy rate. It caught
+something better: two fields this document declares dead are **sparse, not
+empty**.
+
+| field | 10-10 verdict | 10-11 measurement | sampled value |
+|---|---|---|---|
+| `attendance` | dead, null 193/193 | **0%**, null 178/178 | — **confirmed dead** |
+| `round_name` | dead, empty 193/193 | **1.7%** (3 of 178) | **`"Round of 16"`** |
+| `previous_leg_event_id` | dead, null 193/193 | **1.1%** (2 of 178) | **`604502`** |
+
+Both read 0% on 2026-10-10 because that day's slate had no knockout rounds and
+no two-legged ties. `round_name` names a round when a round has a name;
+`previous_leg_event_id` points at the first leg when there is one. A field that
+is empty on a league matchday is not a dead field, and "0% on one day's rows" is
+not "the vendor states nothing". Only `attendance` has now been null on every
+row of two separate days.
+
+**And the opaque-integer case Task 4 was actually written for:**
+`pitch_condition` samples as **`1`** — a bare number with no stated scale. At
+any rate it is not prose, and nothing can be written from it without the
+vendor's key. By contrast `round_label` samples as
+**`"League phase · Matchday 14"`**, which is usable as written.
+
+**TASK 1 — THE OVERLAP IS *DIFFERENT ROWS*, which refutes this document's own
+hypothesis.** It argues that `pitch_condition` and `travel_distance_km` both
+missing exactly 39 of 193 "is unlikely to be random absence; the probable cause
+is a league or a provider tier that serves neither." Measured:
+
+```
+missing pitch_condition      169       missing travel_distance_km   63
+missing BOTH                  62       only pitch_condition        107
+                                       only travel_distance_km       1
+identical_sets: false  →  Two causes, two answers.
+```
+
+The identical-39 coincidence did not survive one day. **The shape of the
+argument did**: across 47 leagues, `pitch_condition` runs 0% in most and 16.7%,
+20%, 33.3%, 50%, 60% in others, while `travel_distance_km` ranges 0% to 100%.
+A pooled rate genuinely does hide per-league holes — which is this document's
+real point, and it stands independently of the arithmetic that prompted it.
+
+Today's pooled rates are themselves a warning about anchoring on them:
+`pitch_condition` **79.8% → 5.1%** and `travel_distance_km` **79.8% → 64.6%**
+in one day.
+
+**TASK 2 — THE STOP CONDITION FIRED.** `total_matches` is positive on all 137
+rows carrying `head_to_head`, **zero on none**, and absent-within-the-object on
+none. So *"never met"* is **NOT distinguishable** from *"we could not read it"*
+from this endpoint, and per the stop condition it is recorded as a finding
+rather than synthesised from an empty `recent_matches[]`.
+
+**TASK 3 — the three-property admission bar** is written into
+`src/journalism-quality.js`, beside the era-6 entry whose margin-agreement
+rebuild learned it. Measured presence from a census of data, not schema; a
+relation rather than a value; checkable after the fact. The table above is the
+bar's first application, and it changed three verdicts.
+
+**Rule 91 note:** this script's self-test printed `14/14` while running 24
+checks — the denominator was hardcoded. Ten assertions were invisible in the
+summary. It counts them now.
 
 **Second CC-CMD per Rule 87.4**, opened rather than editing
 `docs/CC-CMD-2026-10-10-bsd-fields-already-arriving.md`, which closed DONE
