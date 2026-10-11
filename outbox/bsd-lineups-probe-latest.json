@@ -1,14 +1,14 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-bsd-predicted-lineups.md",
   "tasks": "Tasks 3 and 4 — the inner shape at PRE-MATCH, and the reason rate with a denominator",
-  "started_at": "2026-10-11T06:34:03.369Z",
+  "started_at": "2026-10-11T15:27:38.898Z",
   "date_probed": "2026-10-11",
   "callBudget": 24,
   "callsMade": 9,
   "discovery": {
     "listStatus": 200,
     "rowsSeen": 100,
-    "preMatchSeen": 99,
+    "preMatchSeen": 49,
     "finishedSeen": 0
   },
   "stateCounts": {
@@ -25,7 +25,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:56Z",
+      "updated_at": "2026-10-11T14:34:03Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -96,7 +96,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:54Z",
+      "updated_at": "2026-10-11T14:34:00Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -167,7 +167,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:52Z",
+      "updated_at": "2026-10-11T14:33:58Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -243,7 +243,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:50Z",
+      "updated_at": "2026-10-11T14:33:57Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -319,7 +319,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:48Z",
+      "updated_at": "2026-10-11T14:33:55Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -395,7 +395,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:46Z",
+      "updated_at": "2026-10-11T14:33:53Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -471,7 +471,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:45Z",
+      "updated_at": "2026-10-11T14:33:52Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
@@ -537,7 +537,7 @@
       "lineupState": "predicted-beta",
       "lineup_status": "predicted",
       "beta": true,
-      "updated_at": "2026-10-11T02:35:42Z",
+      "updated_at": "2026-10-11T14:33:50Z",
       "lineupsFill": "object:away,home",
       "topLevelKeys": [
         "beta",
