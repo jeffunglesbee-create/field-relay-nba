@@ -1,5 +1,80 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11d — the cron wrote settled prices as opening lines
+
+**HEAD:** `a240455` → `c078a70`+. Session doc:
+`outbox/cc-session-2026-10-11-misjoined-opening-odds.md`.
+
+`docs/CC-CMD-2026-08-25-misjoined-opening-odds.md` — **DONE.** Four asks, three
+done conditions.
+
+### The in-window denominator was the open question, and it is 86.6%
+
+Run `38145700814`, 19 dates all served 200:
+
+```
+archive rows in the window          315
+captured within 60s of finalized_at 180   (57.1%)
+census-eligible rows                179
+of those, at finalisation           155   (86.6%)
+```
+
+The document asked whether the path was wrong for the whole period or only
+intermittently. **The whole period.** And 155 lands on its own 156, from a
+different endpoint.
+
+**Four of the five "empty" dates had 0 census-eligible rows** — absent from the
+corpus, not clean. **07-01 is genuinely clean**, 13 eligible and 0 flagged.
+
+### The writer
+
+**`snapshotCronOdds`**, from `handleJournalismCycle`, **after** the catch-up
+finalises games in the same tick, selecting on `opening_odds IS NULL` with no
+finality condition. **It still ran.** The stamp names it over the other filler
+of that column: it calls `extractOddsForGame(og)` — one argument, run clock —
+while `runOddsBackfillForDate` passes `snapshotAt`. Only the first lands
+`captured_at` 1.9s after `finalized_at`.
+
+**The document's signal 3 is refuted: 149 of the 180 flagged rows DO carry
+`_oddsProof`**, one shape. Three rows were sampled and generalised.
+
+### The fix and the guard
+
+`AND finalized_at IS NULL` on three selections in that one function — the row
+query and both sport-discovery queries, so a sport whose only pending rows are
+finished no longer triggers a paid fetch. **Not** on `runOddsBackfillForDate`,
+which is supposed to touch finalised rows.
+`scripts/check-opening-odds-not-at-finalisation.mjs` asserts that difference and
+counts the selections rather than matching one. Blocking in `deploy.yml` and
+`guards.yml`. **The 156 rows are not corrected**, per the scope boundary.
+
+### Two red deploys, both mine, both in gate categories I skipped
+
+| run | gate | cause |
+|---|---|---|
+| `38145913886` | `check-captured-at-explicit` | my comment wrote `extractOddsForGame(og)` in prose and the line-based scan counted the sentence as a call site |
+| `38146259667` | `mutate-odds-writers-sport-scoped` M1 | the finality condition split a WHERE clause onto a third line and the anchor stopped matching |
+
+I had run **5 of 89** checks and **0 of 42** mutation harnesses before the first
+push. Both harnesses reported ANCHOR or a named assertion rather than a false
+pass. All 89 and all 42 now run clean locally, bar four needing network or an
+argument.
+
+### Open
+
+| document | state |
+|---|---|
+| `2026-10-11-golf-reaches-the-per-game-enqueue-too` | FILED — `buildGameLine`'s second caller has no `individual` in scope |
+| `2026-10-11-regex-routed-paths-outside-the-population` | FILED — 11 routes outside the provenance population |
+| `2026-10-11-predicted-xi-render-decision` | FILED |
+| `2026-10-11-wpa-shootout-residual` | FILED |
+| `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human** |
+
+Nothing else in `docs/` is open. The provenance mark was applied on 2026-09-15
+and its stale header was corrected today.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11c — golf reached the journalism prompt as "-15 @ -16"
 
 **HEAD:** `aa7d7f5` → `17071f4`+. Session docs, per Rule 67:

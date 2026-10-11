@@ -6,7 +6,67 @@
 
 **Filed from:** field-laboratory, from a 60-day census.
 **Ask to:** field-relay-nba.
-**Status:** OPEN, and **substantially rewritten 2026-08-25** after a 90-day
+**Status:** DONE 2026-10-11. Four asks, all three done conditions met. Session
+doc: `outbox/cc-session-2026-10-11-misjoined-opening-odds.md`.
+
+**STEP 1 — THE IN-WINDOW DENOMINATOR, 86.6%.** Run `38145700814`, 19 dates all
+served 200:
+
+```
+archive rows in the window          315
+captured within 60s of finalized_at 180   (57.1%)
+census-eligible rows                179
+of those, at finalisation           155   (86.6%)
+```
+
+This document asked *"if it is nearly all of them, the capture path was wrong
+for that whole period rather than intermittently."* It was. And 155 lands on
+this document's own 156, reached from a different endpoint a different way.
+
+**The five "empty" dates are settled.** 06-25, 06-26, 06-29 and 06-30 carry **0
+census-eligible rows** — absent from the corpus, not clean. **07-01 is genuinely
+clean**: 13 eligible, 0 flagged. So the block was discontinuous, and exactly one
+of the five dates says so.
+
+**STEP 2 — THE WRITER: `snapshotCronOdds`**, called from
+`handleJournalismCycle` AFTER the archive catch-up finalises games in the same
+tick, selecting on `opening_odds IS NULL` with no finality condition. **It still
+runs**, every 15 minutes, so this was live. The stamp is what names it over the
+other filler of the same column: `snapshotCronOdds` calls
+`extractOddsForGame(og)` — one argument, run clock — while
+`runOddsBackfillForDate` passes `snapshotAt` and stamps the historical
+snapshot's own time. Only the first can land `captured_at` 1.9s after
+`finalized_at`.
+
+**SIGNAL 3 IS REFUTED.** This document says these rows carry no `_oddsProof`.
+Measured: **149 of the 180 flagged rows DO carry it**, all one shape,
+`{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"}`. Three rows from
+06-28 were sampled and generalised. The marker landed 2026-09-20, after the
+window — so it names the writer from the blob, not only from source.
+
+**STEPS 3 AND 4 — one condition, three selections, one function.**
+`AND finalized_at IS NULL` on the cron's row query and both sport-discovery
+queries, so a sport whose only pending rows are finished no longer triggers a
+paid vendor fetch (Rule 78). **Not** on `runOddsBackfillForDate`: backfilling a
+past date is supposed to touch finalised rows.
+`scripts/check-opening-odds-not-at-finalisation.mjs` asserts that difference and
+counts the selections rather than matching one — three exist, and a check
+passing on any single one would have missed the two that spend money. Blocking
+in `deploy.yml` and `guards.yml`.
+
+**The 156 rows are NOT corrected**, per the scope boundary below.
+
+**TWO RED DEPLOYS, BOTH MINE, BOTH IN GATE CATEGORIES I HAD SKIPPED.** A comment
+in the fix wrote the words `extractOddsForGame(og)` in prose and
+`check-captured-at-explicit` counted the sentence as a fourth call site
+(`38145913886`); then the finality condition split a WHERE clause across a third
+line and `mutate-odds-writers-sport-scoped` M1 lost its anchor
+(`38146259667`). I had run 5 of 89 checks and 0 of 42 mutation harnesses. Both
+harnesses reported ANCHOR or a named assertion rather than a false pass.
+
+---
+
+**Filed 2026-08-25 and substantially rewritten the same day** after a 90-day
 census. The original title and premise were both wrong; they are corrected
 below rather than quietly replaced.
 
