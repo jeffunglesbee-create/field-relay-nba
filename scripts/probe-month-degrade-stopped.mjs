@@ -80,17 +80,32 @@ const sample = async (date = null) => {
   const res = await fetch(`${RELAY}/budget/odds${q}`, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`/budget/odds${q} returned HTTP ${res.status}`);
   const j = await res.json();
-  // NOT `|| {}`. The whole point of the state above is that the block's own
-  // shape carries an answer, and defaulting it away destroys that answer.
-  const block = Object.prototype.hasOwnProperty.call(j, 'degraded_open') ? j.degraded_open : undefined;
+  // INSIDE `daily`, NOT AT THE TOP LEVEL. The route returns
+  // `{ ok, daily, monthly, provider }` and degraded_open is built by
+  // peekDailyOdds, so it lives at j.daily.degraded_open. The first version read
+  // j.degraded_open and got NOT-REPORTED on every sample, which is how run
+  // 38169528987 came back UNREADABLE — the reader was looking one level up.
+  //
+  // NOT `|| {}`. The whole point of degradeState is that the block's own shape
+  // carries an answer, and defaulting it away destroys that answer.
+  const daily = (j && typeof j.daily === 'object' && j.daily !== null) ? j.daily : {};
+  const block = Object.prototype.hasOwnProperty.call(daily, 'degraded_open') ? daily.degraded_open : undefined;
   const d = (block && typeof block === 'object') ? block : {};
+  // AND SAY WHERE IT IS IF IT IS NOT THERE. A not-reported that is really a
+  // wrong path reads identically to a relay that stopped serving the field, and
+  // those have opposite fixes.
+  const elsewhere = block === undefined
+    ? Object.keys(j || {}).filter((k) => j[k] && typeof j[k] === 'object' && 'degraded_open' in j[k])
+    : [];
   return {
     at: new Date().toISOString(),
     forDate: date,
     degradeState: degradeState(block),
-    raw: block === undefined ? '(key absent from the response)' : JSON.stringify(block),
-    used: j?.daily?.used ?? j?.used ?? null,
-    ceiling: j?.daily?.ceiling ?? null,
+    raw: block === undefined
+      ? (elsewhere.length ? `(absent at daily.degraded_open — but present under: ${elsewhere.join(', ')})` : '(absent from daily, and from every other object in the response)')
+      : JSON.stringify(block),
+    used: daily.used ?? null,
+    ceiling: daily.ceiling ?? null,
     events: d.events ?? null,
     credits: d.credits ?? null,
     reasons: d.reasons ?? null,
@@ -136,7 +151,8 @@ if (process.argv.includes('--self-test')) {
   process.exitCode = fail ? 1 : 0;
 } else {
   const show = (label, s) => {
-    console.log(`  ${label} : used ${s.used}/${s.ceiling}  monthly ${s.monthly_used}`);
+    const m = s.forDate ? `monthly ${s.monthly_used} (current month — peekMonthlyOdds takes no date)` : `monthly ${s.monthly_used}`;
+    console.log(`  ${label} : used ${s.used}/${s.ceiling}  ${m}`);
     console.log(`  ${' '.repeat(label.length)}   degraded_open is ${s.degradeState.toUpperCase()} — ${s.raw}`);
     console.log(`  ${' '.repeat(label.length)}   monthly batch reason count ${monthBatchCount(s.reasons)}`);
   };
