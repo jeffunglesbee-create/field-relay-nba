@@ -152,7 +152,8 @@ for (const d of dates) {
     ...(body?.games?.postseason || []),
   ]
   const states = {}
-  let eligible = 0, eligibleAtFin = 0, withProof = 0
+  let eligible = 0, eligibleAtFin = 0, withProof = 0, atFinWithProof = 0, atFinNoProof = 0
+  const proofShapes = {}
   const examples = []
   for (const row of rows) {
     const c = classifyRow(row)
@@ -164,13 +165,25 @@ for (const d of dates) {
       if (examples.length < 2) examples.push({ id: row.id, deltaS: c.deltaS, sport: row.sport })
     }
     const o = parseOdds(row.opening_odds)
-    if (o && typeof o === 'object' && o._oddsProof) withProof++
+    const hasProof = !!(o && typeof o === 'object' && o._oddsProof)
+    if (hasProof) withProof++
+    // THE DOCUMENT'S SIGNAL 3 SAYS THESE ROWS CARRY NO `_oddsProof`. Whether
+    // that holds for the flagged rows specifically, rather than for the window
+    // as a whole, decides whether the writer can be named from the blob — so
+    // the overlap is counted instead of inferred from two separate totals.
+    if (c.state === 'at-finalisation' && hasProof) atFinWithProof++
+    if (c.state === 'at-finalisation' && !hasProof) atFinNoProof++
+    if (hasProof && o._oddsProof) {
+      const k = JSON.stringify(o._oddsProof)
+      proofShapes[k] = (proofShapes[k] || 0) + 1
+    }
   }
   perDate.push({
     date: d, status, rows: rows.length, states,
     atFinalisation: states['at-finalisation'] || 0,
     censusEligible: eligible, censusEligibleAtFinalisation: eligibleAtFin,
-    withOddsProof: withProof,
+    withOddsProof: withProof, atFinalisationWithProof: atFinWithProof,
+    atFinalisationNoProof: atFinNoProof, proofShapes,
     calledEmptyByTheDocument: CALLED_EMPTY.has(d),
     examples,
   })
@@ -182,6 +195,9 @@ const sum = (k) => perDate.reduce((a, r) => a + (r[k] || 0), 0)
 const totalRows = sum('rows'), atFin = sum('atFinalisation')
 const elig = sum('censusEligible'), eligAtFin = sum('censusEligibleAtFinalisation')
 const proof = sum('withOddsProof')
+const atFinProof = sum('atFinalisationWithProof'), atFinNo = sum('atFinalisationNoProof')
+const allShapes = {}
+for (const r of perDate) for (const [k, n] of Object.entries(r.proofShapes || {})) allShapes[k] = (allShapes[k] || 0) + n
 const served = perDate.filter(r => r.status === 200).length
 
 const out = {
@@ -195,6 +211,9 @@ const out = {
     censusEligibleAtFinalisation: eligAtFin,
     rateOfCensusEligible: elig ? +(eligAtFin / elig).toFixed(4) : null,
     withOddsProof: proof,
+    atFinalisationWithProof: atFinProof,
+    atFinalisationNoProof: atFinNo,
+    proofShapes: allShapes,
   },
   perDate,
 }
@@ -211,7 +230,11 @@ console.log(`  archive rows in the window          : ${totalRows}`)
 console.log(`  of those, captured at finalisation  : ${atFin}  (${totalRows ? (100 * atFin / totalRows).toFixed(1) : '—'}%)`)
 console.log(`  census-eligible rows                : ${elig}   (moneyline + balanced handicap)`)
 console.log(`  of those, captured at finalisation  : ${eligAtFin}  (${elig ? (100 * eligAtFin / elig).toFixed(1) : '—'}%)`)
-console.log(`  carrying _oddsProof                 : ${proof}   (added 2026-09-20, so 0 is expected in-window)`)
+console.log(`  carrying _oddsProof                 : ${proof}`)
+console.log(`    of the flagged rows, WITH proof   : ${atFinProof}`)
+console.log(`    of the flagged rows, WITHOUT      : ${atFinNo}   (the document's signal 3 claims all of them)`)
+for (const [k, n] of Object.entries(allShapes).sort((a, b) => b[1] - a[1]).slice(0, 4))
+  console.log(`    proof shape x${String(n).padStart(4)}            : ${k.slice(0, 96)}`)
 console.log(`\n  per date  (E = the document calls this date empty)`)
 console.log(`  date         rows   atFin   eligible   eligAtFin`)
 for (const r of perDate) {
