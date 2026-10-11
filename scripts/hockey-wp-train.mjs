@@ -229,29 +229,62 @@ export const finalScoreSemantics = (rows) => {
 }
 
 export const otSemantics = (rows) => {
+  // DERIVED FROM THE PERIODS, NOT FROM A COLUMN. wentToOT is present in the
+  // 2020 and 2024 shot files and ABSENT from 2021, 2022 and 2023 — and the
+  // first version of this function counted `r.wentToOT === '1'` over
+  // undefined, producing tieRate 0.0000 across 1400 games and reporting it as
+  // a measurement. An absent column rendered as a measured zero is the exact
+  // substitution Rule 99 exists to stop, committed here while gating it
+  // elsewhere. It then disabled the three-way reconstruction for 1243 games
+  // and the gate returned a verdict on the 8 that survived.
+  //
+  // A game reached overtime if any of its shots is in period 4 or later. That
+  // works on every season, and where the column DOES exist the two
+  // derivations are compared — a cross-check, not a restatement.
   const byGame = new Map()
   for (const r of rows) {
-    if (byGame.has(r.game_id)) continue
-    byGame.set(r.game_id, {
-      wentToOT: r.wentToOT, wentToShootout: r.wentToShootout,
+    const g = byGame.get(r.game_id) || {
+      maxPeriod: 0, columnOT: undefined, columnSO: undefined,
       homeTeamWon: num(r.homeTeamWon), isPlayoff: r.isPlayoffGame === '1'
-    })
+    }
+    const p = num(r.period)
+    if (p !== null && p > g.maxPeriod) g.maxPeriod = p
+    if (r.wentToOT !== undefined) g.columnOT = r.wentToOT === '1'
+    if (r.wentToShootout !== undefined) g.columnSO = r.wentToShootout === '1'
+    byGame.set(r.game_id, g)
   }
   const all = [...byGame.values()]
-  const ot = all.filter(g => g.wentToOT === '1')
-  const so = all.filter(g => g.wentToShootout === '1')
-  const otHomeWins = ot.filter(g => g.homeTeamWon === 1).length
-  const soHomeWins = so.filter(g => g.homeTeamWon === 1).length
+  const derivedOT = all.filter(g => g.maxPeriod >= 4)
+  const derivedSO = all.filter(g => g.maxPeriod >= 5)
+  const otHomeWins = derivedOT.filter(g => g.homeTeamWon === 1).length
+  const soHomeWins = derivedSO.filter(g => g.homeTeamWon === 1).length
+
+  const columnPresent = all.some(g => g.columnOT !== undefined)
+  let columnAgreement = null
+  if (columnPresent) {
+    const withCol = all.filter(g => g.columnOT !== undefined)
+    const agree = withCol.filter(g => g.columnOT === (g.maxPeriod >= 4)).length
+    columnAgreement = {
+      inspected: withCol.length, agree, disagree: withCol.length - agree,
+      agreement_rate: withCol.length ? +(agree / withCol.length).toFixed(4) : null,
+      note: 'the period derivation against the vendor wentToOT column, where that column exists'
+    }
+  }
+
   return {
     games: all.length,
-    wentToOT: ot.length,
-    wentToShootout: so.length,
-    tieRate: all.length ? +(ot.length / all.length).toFixed(4) : null,
-    // Done condition 3: a MEASURED constant with its sample size, not 0.5.
-    otHomeShare: ot.length ? +(otHomeWins / ot.length).toFixed(4) : null,
-    otHomeShare_n: ot.length,
-    shootoutHomeShare: so.length ? +(soHomeWins / so.length).toFixed(4) : null,
-    shootoutHomeShare_n: so.length,
+    source: 'derived from max period per game',
+    wentToOT_column_present: columnPresent,
+    column_vs_derivation: columnAgreement,
+    wentToOT: derivedOT.length,
+    wentToShootout: derivedSO.length,
+    tieRate: all.length ? +(derivedOT.length / all.length).toFixed(4) : null,
+    // Done condition 3: a MEASURED constant with its sample size, not 0.5 —
+    // and null rather than a number when there is nothing to measure.
+    otHomeShare: derivedOT.length ? +(otHomeWins / derivedOT.length).toFixed(4) : null,
+    otHomeShare_n: derivedOT.length,
+    shootoutHomeShare: derivedSO.length ? +(soHomeWins / derivedSO.length).toFixed(4) : null,
+    shootoutHomeShare_n: derivedSO.length,
     homeWinRate_all: all.length ? +(all.filter(g => g.homeTeamWon === 1).length / all.length).toFixed(4) : null
   }
 }
@@ -609,7 +642,24 @@ const main = async () => {
 
   const beats = (a, b) => (a?.brier !== null && a?.brier !== undefined && b?.brier !== null && b?.brier !== undefined)
     ? a.brier < b.brier : null
+
+  // THE VERDICT CARRIES ITS DENOMINATOR, because the first run of this gate
+  // did not. It reported "DOES NOT SHIP — the model loses to the de-vigged
+  // market baseline" on EIGHT of 1400 games: the OT term had been measured as
+  // zero from an absent column, so the three-way reconstruction returned null
+  // for 1243 paired games and only the nine genuinely two-way prices
+  // survived. Every number needed to see that was in the artifact and the
+  // verdict mentioned none of them. Rule 91 — the coverage prints where the
+  // result is read, which for a ship/no-ship decision is the verdict string.
+  const MARKET_GAME_FLOOR = 0.5
+  const marketGames = marketJoin.matched ?? 0
+  const marketAvailable = marketJoin.moneypuck_games ?? null
+  const marketCoverage = marketAvailable ? marketGames / marketAvailable : 0
   const gate = {
+    market_games_used: marketGames,
+    market_games_available: marketAvailable,
+    market_coverage: +marketCoverage.toFixed(4),
+    market_coverage_floor: MARKET_GAME_FLOOR,
     beats_constant_half: beats(results.model, results.constant_half),
     beats_market_overall: results.market ? beats(results.model_on_market_games, results.market) : null,
     beats_market_pregame: results.market_pregame_only ? beats(results.model_pregame_only, results.market_pregame_only) : null,
@@ -617,10 +667,18 @@ const main = async () => {
     verdict: null
   }
   gate.verdict =
-    gate.beats_market_overall === null ? 'UNDECIDED — no market baseline was joined, so the gate was not evaluated'
-    : gate.beats_market_overall === false ? 'DOES NOT SHIP — the model loses to the de-vigged market baseline'
-    : gate.beats_constant_half === false ? 'DOES NOT SHIP — the model loses to constant 0.5'
-    : 'SHIPS — beats both required baselines'
+    !marketJoin.attempted
+      ? `UNDECIDED — no market baseline was joined (${marketJoin.reason ?? 'reason not recorded'})`
+    : marketJoin.refused
+      ? `UNDECIDED — ${marketJoin.refused}`
+    : marketCoverage < MARKET_GAME_FLOOR
+      ? `UNDECIDED — the market baseline covers only ${marketGames} of ${marketAvailable} games `
+        + `(${(marketCoverage * 100).toFixed(1)}%, floor ${MARKET_GAME_FLOOR * 100}%); a verdict on that sample would be noise`
+    : gate.beats_market_overall === false
+      ? `DOES NOT SHIP — the model loses to the de-vigged market baseline over ${marketGames} of ${marketAvailable} games`
+    : gate.beats_constant_half === false
+      ? 'DOES NOT SHIP — the model loses to constant 0.5'
+    : `SHIPS — beats constant 0.5 and the de-vigged market over ${marketGames} of ${marketAvailable} games`
 
   const out = {
     cc_cmd: 'docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md',
@@ -714,17 +772,37 @@ const selfTest = () => {
       { game_id: '1', homeTeamScore: '4', homeTeamGoals: '1' }
     ]).verdict.startsWith('homeTeamScore is the FINAL'))
 
-  t('the OT home share is measured and carries its sample size',
+  t('the OT home share is derived from the periods and carries its sample size',
     (() => {
       const o = otSemantics([
-        { game_id: '1', wentToOT: '1', wentToShootout: '0', homeTeamWon: '1', isPlayoffGame: '0' },
-        { game_id: '2', wentToOT: '1', wentToShootout: '1', homeTeamWon: '0', isPlayoffGame: '0' },
-        { game_id: '3', wentToOT: '0', wentToShootout: '0', homeTeamWon: '1', isPlayoffGame: '0' }
+        { game_id: '1', period: '4', homeTeamWon: '1', isPlayoffGame: '0' },
+        { game_id: '2', period: '5', homeTeamWon: '0', isPlayoffGame: '0' },
+        { game_id: '3', period: '3', homeTeamWon: '1', isPlayoffGame: '0' }
       ])
-      return o.wentToOT === 2 && o.otHomeShare === 0.5 && o.otHomeShare_n === 2 && o.tieRate === 0.6667
+      return o.wentToOT === 2 && o.wentToShootout === 1 && o.otHomeShare === 0.5
+        && o.otHomeShare_n === 2 && o.tieRate === 0.6667
     })())
   t('with no overtime games the OT share is null, NOT 0.5',
-    otSemantics([{ game_id: '1', wentToOT: '0', wentToShootout: '0', homeTeamWon: '1', isPlayoffGame: '0' }]).otHomeShare === null)
+    otSemantics([{ game_id: '1', period: '3', homeTeamWon: '1', isPlayoffGame: '0' }]).otHomeShare === null)
+  t('AN ABSENT wentToOT COLUMN NO LONGER PRODUCES A TIE RATE OF ZERO',
+    (() => {
+      const o = otSemantics([
+        { game_id: '1', period: '4', homeTeamWon: '1', isPlayoffGame: '0' },
+        { game_id: '2', period: '3', homeTeamWon: '0', isPlayoffGame: '0' }
+      ])
+      return o.wentToOT_column_present === false && o.tieRate === 0.5 && o.otHomeShare === 1
+    })())
+  t('where the column exists it is cross-checked against the derivation, not trusted',
+    (() => {
+      const o = otSemantics([
+        { game_id: '1', period: '4', wentToOT: '1', homeTeamWon: '1', isPlayoffGame: '0' },
+        { game_id: '2', period: '3', wentToOT: '0', homeTeamWon: '0', isPlayoffGame: '0' }
+      ])
+      return o.wentToOT_column_present === true && o.column_vs_derivation.agreement_rate === 1
+    })())
+  t('a column that disagrees with the periods is reported as a disagreement',
+    otSemantics([{ game_id: '1', period: '3', wentToOT: '1', homeTeamWon: '1', isPlayoffGame: '0' }])
+      .column_vs_derivation.disagree === 1)
 
   t('timeLeft counting to the end of regulation is identified as such',
     clockSemantics([{ time: '600', timeLeft: '3000', period: '1' }]).verdict.includes('REGULATION'))
