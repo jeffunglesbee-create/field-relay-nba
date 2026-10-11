@@ -1,0 +1,24 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "failed_at": "2026-10-11T03:23:33.196Z",
+  "argv": [
+    "--seasons=2020,2021,2022",
+    "--test=2023",
+    "--iters=400"
+  ],
+  "error": "required column absent from the vendor file: homeTeamScore",
+  "stack": "Error: required column absent from the vendor file: homeTeamScore\n    at parseCsv (file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/hockey-wp-train.mjs:64:13)\n    at main (file:///home/runner/work/field-relay-nba/field-relay-nba/scripts/hockey-wp-train.mjs:355:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)",
+  "breadcrumbs": [
+    "2026-10-11T03:23:31.114Z reading the vendor index",
+    "2026-10-11T03:23:31.326Z fetching season 2020",
+    "2026-10-11T03:23:32.504Z season 2020: 78611 shot rows, 952 games",
+    "2026-10-11T03:23:32.504Z fetching season 2021"
+  ],
+  "heap": {
+    "rss": 452472832,
+    "heapTotal": 317771776,
+    "heapUsed": 279588960,
+    "external": 64657610,
+    "arrayBuffers": 53579566
+  }
+}
