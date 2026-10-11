@@ -27,9 +27,9 @@ builder and probe under `scripts/`. **Nothing is ported from `soccer-wp.js` and
 `DC_RHO` is absent by design** — it corrects draw inflation and hockey has no
 draws.
 
-Wired into the path `src/game-do.js:20` already sanctions — `Poisson
-probability distribution output (factual)` — filling the same `g.winProb` shape
-the client consumes, on a pull, no new cron. `CONTRACTS.md` carries the
+Wired into the path `src/game-do.js:20` already sanctions:
+`Poisson probability distribution output (factual)`. It fills the same
+`g.winProb` shape the client consumes, on a pull, with no new cron. `CONTRACTS.md` carries the
 contract, including that a refusal is absent rather than zero.
 
 **Checks:** 42 in `check-hockey-wp.mjs`, 13 of 13 mutations caught and 0

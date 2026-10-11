@@ -213,6 +213,16 @@ if (bareList.length) {
   // without its members is a measurement nobody can check (Rule 91).
   console.log('\nBARE — a line number with nothing quoted beside it:');
   for (const b of bareList) console.log(`  ${b}`);
+  // THE MOST LIKELY CAUSE, NAMED. anchorsIn's pattern is `[^`\n]{6,160}`, so a
+  // backtick-quoted fragment BROKEN ACROSS A LINE never matches — and the
+  // report said only "bare", which looks identical to no quote at all. That
+  // cost two cycles on 2026-10-11, twice: once from a quote that normalised the
+  // cited line's internal whitespace, once from one that line-wrapped. A hint
+  // cannot change pass or fail; it only says where to look.
+  console.log('  If a quote IS present, two things stop it anchoring: a fragment');
+  console.log('  broken across a line (backticks must open and close on ONE line),');
+  console.log('  and a quote that normalises the cited line\'s own whitespace —');
+  console.log('  the fragment has to be a literal substring of the file.');
 }
 check(`bare citations do not grow (budget ${budget})`,
   Number.isFinite(budget) && bare <= budget,
