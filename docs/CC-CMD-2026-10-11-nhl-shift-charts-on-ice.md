@@ -4,7 +4,78 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A then C — **Task 1 is a probe and nothing ships from it**
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Tasks 1, 2 and 3 executed; Task 4 is do-nothing
+and `src/hockey-wp.js` is byte-identical; Task 5 skipped because 1.1 cleared.
+Artifact: `outbox/nhl-shiftcharts-probe-latest.json` (run 38119484420).
+
+**TASK 1 CLEARS ON EVERY QUESTION, and the headline claim holds: on-ice state
+is a backfill, not a wait.** `api.nhle.com` had never been called from this
+repository and its reachability was measured rather than assumed — HTTP 200,
+692 rows.
+
+| season | control game | plays | shift rows | players |
+|---|---|---|---|---|
+| 2020 | 2020020001 | 284 | **894** | 38 |
+| 2021 | 2021020001 | 321 | **791** | 38 |
+| 2022 | 2022020001 | 323 | **829** | 38 |
+| 2023 | 2023020001 | 328 | **751** | 38 |
+
+Every season of the WP model's train and test range serves. Each game id was
+**controlled against api-web play-by-play first**, because a `cayenneExp` query
+with a wrong id answers 200 with an empty array and that reads identically to
+"this season has no shift charts" — which is this document's own done condition
+1, satisfiable without proving anything. The row count is the measurement; the
+status never is.
+
+**THE eventNumber NEGATIVE HOLDS, BUT IT IS NOT ZERO, AND THE DIFFERENCE IS
+WORTH STATING.** This document predicts zero from nine samples. Widened to
+every row across five games:
+
+```
+2026020053    0 of 692     0.0000
+2020020001   11 of 894     0.0123
+2021020001    8 of 791     0.0101
+2022020001    5 of 829     0.0060
+2023020001    8 of 751     0.0107
+                           ────────
+all games    32 of 3,265   ~1%
+```
+
+**One per cent is chance collision between two overlapping integer ranges, not
+a join.** The practical finding is unchanged and is in fact sharper than
+"zero": a join built on `eventNumber` would silently fail to attach 99% of
+shifts while attaching 1% to an arbitrary play. That is worse than an error,
+which is the document's own argument.
+
+**TASK 1.3 / 1.4 — the boundary rule is MEASURED.** Interval join against
+`situationCode`, the confirmed independent control:
+
+| endTime treated as | agrees | disagrees | resolves to nobody |
+|---|---|---|---|
+| **EXCLUSIVE** | **119 of 125 (0.952)** | 6 | 0 |
+| inclusive | 108 of 125 (0.864) | 17 | 0 |
+
+Exclusive, therefore. The six disagreements share one shape — one extra body on
+a side, `awayOnIce 7` against `awayExpected 6` — which is a line change in
+progress, a player leaving and another arriving within the same second.
+
+**TASK 1.5 — the clock counts UP on 692 of 692 shifts**, the same direction as
+`hockey-wp.js`'s `(period - 1) * 1200 + mm * 60 + ss`. A mixed convention would
+have silently inverted every join, which is why it was checked rather than
+assumed.
+
+**TASK 2 — the route takes its own host.** `/nhl-stats/*` →
+`api.nhle.com/stats/rest/en/*`, with `NHL_STATS_BASE`, `nhlStatsAllowed` and a
+403 on anything outside it. `/stats/rest/...` was NOT added to `nhlAllowed`, per
+the stop condition: that points at `api-web.nhle.com` and would have failed like
+a missing path. Two TTLs with their reason, defaulting to the SHORT one — a
+stale immutable chart costs a re-fetch, a cached live one is wrong.
+
+**TASK 3 — `src/nhl-onice.js`, four states, none of them an empty array.**
+resolved / disagrees-with-situation / no-shift-data / instant-in-no-interval.
+A reconstruction contradicting `situationCode` is refused rather than returned,
+because `situationCode` is confirmed by two independent derivations and this is
+not. 14 checks in `scripts/check-nhl-onice.mjs`, in `guards.yml`.
 
 **Rule F:** a shift chart is a timekeeper's record. Commodity.
 **Rule A:** pull only. No cron in this document.
