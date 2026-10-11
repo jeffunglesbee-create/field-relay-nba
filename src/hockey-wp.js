@@ -47,6 +47,14 @@ export const PRIOR_LABEL = 'FIELD pre-game prior'
 export const MARKET_LABEL = 'Market estimate'          // do not reuse
 export const VENDOR_LABEL = 'Statistical probability'  // do not reuse
 
+// Task 5 of docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md. WPA is a FIFTH kind
+// of number: not a probability at all but a DIFFERENCE between two of our own,
+// attributed to a named player. It gets its own label for the same reason the
+// four above are listed here rather than written inline — so a check can assert
+// the distinction instead of a spelling, and so no caller can render a swing as
+// though it were a probability.
+export const WPA_LABEL = 'FIELD win probability added'
+
 export const SHOT_TYPES_PBP = new Set([
   'shot-on-goal', 'missed-shot', 'blocked-shot', 'goal'
 ])
@@ -208,7 +216,7 @@ export const hockeyWinProb = (state, { wp = HOCKEY_WP_MODEL } = {}) => {
 // ── derive the state from an NHL play-by-play payload ───────────────────────
 // One walk: accumulate xG, carry the previous play for rebound/rush, and read
 // the final state from the last shot event.
-export const stateFromPlayByPlay = (pbp) => {
+export const stateFromPlayByPlay = (pbp, { snapshots = null } = {}) => {
   const plays = Array.isArray(pbp?.plays) ? pbp.plays : []
   const homeTeamId = pbp?.homeTeam?.id
   const awayTeamId = pbp?.awayTeam?.id
@@ -228,6 +236,17 @@ export const stateFromPlayByPlay = (pbp) => {
   // win probability read at that moment should use.
   let homeScore = 0, awayScore = 0, scoreSeen = false
   for (const play of plays) {
+    // THE SCORE IS APPLIED BEFORE THE SNAPSHOT, not after. A goal's details
+    // carry the score INCLUDING that goal, and the win probability a goal
+    // produced is the one that holds AFTER it. With the carry below this
+    // block, a goal's snapshot held the pre-goal score, its own swing landed
+    // on whatever shot came next, and the scorer was credited a delta near
+    // zero — measured as -0.0012 on a goal that opened the scoring.
+    if (Number.isFinite(play.details?.homeScore) && Number.isFinite(play.details?.awayScore)) {
+      homeScore = play.details.homeScore
+      awayScore = play.details.awayScore
+      scoreSeen = true
+    }
     if (SHOT_TYPES_PBP.has(play.typeDescKey)) {
       const r = shotXg(play, { ...ctxBase, previousPlay: prev })
       if (r.xg === null) xgProblems += 1
@@ -235,11 +254,31 @@ export const stateFromPlayByPlay = (pbp) => {
       else axg += r.xg
       shotsSeen += 1
       last = play
-    }
-    if (Number.isFinite(play.details?.homeScore) && Number.isFinite(play.details?.awayScore)) {
-      homeScore = play.details.homeScore
-      awayScore = play.details.awayScore
-      scoreSeen = true
+      // Task 1 of the WPA document: the delta series is emitted from THIS walk.
+      // Not a second pass, and not a second import of the model — one model,
+      // one owner, one evaluation path.
+      if (snapshots) {
+        // The strength is parsed PER SNAPSHOT. stateFromPlayByPlay parses it
+        // once, for the last shot, which is all a single current reading needs
+        // — a delta series needs it at every shot, and without it every
+        // snapshot refuses on 'strength-unreadable' and the whole series reads
+        // as both-endpoints-refused.
+        const sitAt = parseSituation(play.situationCode)
+        snapshots.push({
+          play,
+          elapsedSeconds: toElapsedSeconds(play.periodDescriptor?.number, play.timeInPeriod),
+          period: play.periodDescriptor?.number ?? null,
+          homeScore, awayScore,
+          homeSkaters: sitAt ? sitAt.homeSkaters : null,
+          awaySkaters: sitAt ? sitAt.awaySkaters : null,
+          homeEmptyNet: sitAt ? !sitAt.homeGoalie : null,
+          awayEmptyNet: sitAt ? !sitAt.awayGoalie : null,
+          xgDiff: +(hxg - axg).toFixed(6),
+          situationCode: play.situationCode ?? null,
+          goalieInNetId: play.details?.goalieInNetId ?? null,
+          isPlayoff: pbp?.gameType === 3,
+        })
+      }
     }
     prev = play
   }
@@ -278,3 +317,138 @@ export const stateFromPlayByPlay = (pbp) => {
 
 export const winProbFromPlayByPlay = (pbp, opts) =>
   hockeyWinProb(stateFromPlayByPlay(pbp), opts)
+
+// ── WIN PROBABILITY ADDED ───────────────────────────────────────────────────
+// docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md
+//
+// A difference between two of our own probabilities, attributed to the player
+// the vendor already names on the event. Arithmetic on numbers this relay
+// already produces — no model change, no retraining, no new upstream call.
+//
+// TASK 2 — CREDIT IS A CONVENTION AND IT IS STATED HERE, not buried in a
+// constant. A goal's swing belongs to more than the scorer, and how much more
+// is a choice nobody can measure. These are the splits, in one place a future
+// reader can change, with the reasoning attached:
+export const WPA_CREDIT = {
+  // A goal is the scorer's event and the assists' too. 60/25/15 keeps the
+  // scorer dominant while making a primary assist worth clearly more than a
+  // secondary — which is the ordering every hockey scoring system already
+  // asserts. It is NOT derived from anything; it is a convention.
+  goal: { scorer: 0.60, assist1: 0.25, assist2: 0.15 },
+  // A save is the goalie's event. The shooter created the swing that did not
+  // happen, so the goalie takes the whole of the (negative-for-the-shooter)
+  // delta and the shooter is recorded at zero rather than credited.
+  save: { goalie: 1.00, shooter: 0.00 },
+  // A block is the blocker's. A miss is nobody's — the shooter generated the
+  // chance, the outcome was the shooter's own.
+  block: { blocker: 1.00 },
+  miss: { shooter: 1.00 },
+}
+
+// TASK 3 — FOUR STATES, AND NONE OF THEM IS A ΔWP OF ZERO.
+// A play that changed nothing and a play we could not evaluate are different
+// facts. The prior-to-first-shot transition is excluded explicitly: the prior
+// is a base rate for the training seasons, not a read of this game, and
+// differencing against it would manufacture a large bogus opening swing.
+export const WPA_STATE = {
+  COMPUTED: 'computed',
+  ONE_ENDPOINT_REFUSED: 'one-endpoint-refused',
+  BOTH_REFUSED: 'both-refused',
+  NO_PLAYER_NAMED: 'play-names-no-player',
+}
+
+const _playersOn = (play) => {
+  const d = play?.details || {}
+  const out = []
+  if (play.typeDescKey === 'goal') {
+    if (d.scoringPlayerId) out.push({ playerId: d.scoringPlayerId, role: 'scorer', share: WPA_CREDIT.goal.scorer })
+    if (d.assist1PlayerId) out.push({ playerId: d.assist1PlayerId, role: 'assist1', share: WPA_CREDIT.goal.assist1 })
+    if (d.assist2PlayerId) out.push({ playerId: d.assist2PlayerId, role: 'assist2', share: WPA_CREDIT.goal.assist2 })
+  } else if (play.typeDescKey === 'shot-on-goal') {
+    if (d.goalieInNetId) out.push({ playerId: d.goalieInNetId, role: 'goalie', share: WPA_CREDIT.save.goalie })
+  } else if (play.typeDescKey === 'blocked-shot') {
+    if (d.blockingPlayerId) out.push({ playerId: d.blockingPlayerId, role: 'blocker', share: WPA_CREDIT.block.blocker })
+  } else if (play.typeDescKey === 'missed-shot') {
+    if (d.shootingPlayerId) out.push({ playerId: d.shootingPlayerId, role: 'shooter', share: WPA_CREDIT.miss.shooter })
+  }
+  return out
+}
+
+export const winProbAddedFromPlayByPlay = (pbp, { wp = HOCKEY_WP_MODEL } = {}) => {
+  const snapshots = []
+  const finalState = stateFromPlayByPlay(pbp, { snapshots })
+  const series = []
+  let prev = null
+  let computed = 0, oneRefused = 0, bothRefused = 0, noPlayer = 0
+  let sumDelta = 0
+
+  for (const snap of snapshots) {
+    const r = hockeyWinProb({ ...snap, shotsSeen: 1 }, { wp })
+    const ok = r.state === 'modelled' && typeof r.probability === 'number'
+    let state, delta = null
+    if (!ok && (prev === null || !prev.ok)) { state = WPA_STATE.BOTH_REFUSED; bothRefused += 1 }
+    else if (!ok || prev === null || !prev.ok) { state = WPA_STATE.ONE_ENDPOINT_REFUSED; oneRefused += 1 }
+    else {
+      // The FIRST modelled shot has no predecessor to difference against. The
+      // prior is not one: it is a base rate for the training seasons, and
+      // differencing against it would invent an opening swing.
+      delta = +(r.probability - prev.p).toFixed(6)
+      state = WPA_STATE.COMPUTED
+      computed += 1
+      sumDelta += delta
+    }
+    const credits = _playersOn(snap.play)
+    if (state === WPA_STATE.COMPUTED && credits.length === 0) { noPlayer += 1 }
+    series.push({
+      typeDescKey: snap.play.typeDescKey,
+      period: snap.period, timeInPeriod: snap.play.timeInPeriod,
+      elapsedSeconds: snap.elapsedSeconds,
+      wp: ok ? r.probability : null,
+      deltaWP: delta,
+      state,
+      label: WPA_LABEL,
+      credits: delta === null ? [] : credits.map(c => ({ ...c, wpa: +(delta * c.share).toFixed(6) })),
+      refusal: ok ? null : r.problems,
+    })
+    prev = { ok, p: ok ? r.probability : null }
+  }
+
+  // TASK 4 — THE CONSERVATION CHECK, which is what makes this falsifiable.
+  const homeWon = (() => {
+    const h = pbp?.homeTeam?.score, a = pbp?.awayTeam?.score
+    return Number.isFinite(h) && Number.isFinite(a) && h !== a ? (h > a ? 1 : 0) : null
+  })()
+  const firstModelled = series.find(x => x.wp !== null)
+  const lastModelled = [...series].reverse().find(x => x.wp !== null)
+  const conservation = {
+    outcome: homeWon,
+    first_modelled_wp: firstModelled ? firstModelled.wp : null,
+    last_modelled_wp: lastModelled ? lastModelled.wp : null,
+    sum_of_deltas: +sumDelta.toFixed(6),
+    // The deltas TELESCOPE: sum(wp_i - wp_{i-1}) is identically
+    // wp_last - wp_first, so the sum carries no information the two endpoints
+    // do not. The residual is therefore outcome - wp_last, and it is whatever
+    // happened after the final shot.
+    telescoped_identity_holds: firstModelled && lastModelled
+      ? Math.abs((lastModelled.wp - firstModelled.wp) - sumDelta) < 1e-6 : null,
+    residual: (homeWon !== null && lastModelled) ? +(homeWon - lastModelled.wp).toFixed(6) : null,
+    closes: null,
+  }
+  // Tolerance 0.01, chosen as the rounding floor: the scorer rounds its
+  // probability to three decimals, so anything below ~0.001 is representation
+  // and 0.01 is a comfortable order above it. A residual larger than that is a
+  // real gap, not arithmetic.
+  conservation.tolerance = 0.01
+  conservation.closes = conservation.residual === null ? null : Math.abs(conservation.residual) <= conservation.tolerance
+
+  return {
+    label: WPA_LABEL,
+    source: WP_SOURCE,
+    finalState,
+    shots: snapshots.length,
+    stateCounts: { computed, one_endpoint_refused: oneRefused, both_refused: bothRefused, computed_but_no_player_named: noPlayer },
+    conservation,
+    creditConvention: WPA_CREDIT,
+    series,
+  }
+}

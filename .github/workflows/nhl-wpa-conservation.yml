@@ -1,0 +1,51 @@
+name: NHL WPA conservation
+
+# docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md — Task 4.
+#
+# "Over a complete game, the sum of all deltaWP plus the opening prior must
+#  equal the final outcome within tolerance... A non-closing sum means plays
+#  are being double-counted or dropped."
+#
+# The stop condition: if it does not close, STOP and report the residual. This
+# runs it over real finished games and reports the distribution. It does not
+# widen the tolerance to make it pass.
+#
+# CI because api-web.nhle.com is 403-at-CONNECT from the container.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/nhl-wpa-conservation.mjs --self-test
+
+      - name: Run the conservation check
+        run: node scripts/nhl-wpa-conservation.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/nhl-wpa-conservation-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: NHL WPA conservation artifact (Task 4)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }

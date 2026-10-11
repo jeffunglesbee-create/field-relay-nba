@@ -13,7 +13,8 @@ import { pathToFileURL } from 'node:url'
 import {
   hockeyWinProb, stateFromPlayByPlay, winProbFromPlayByPlay, shotXg,
   parseSituation, toElapsedSeconds,
-  WP_LABEL, PRIOR_LABEL, MARKET_LABEL, VENDOR_LABEL, WP_SOURCE
+  WP_LABEL, PRIOR_LABEL, MARKET_LABEL, VENDOR_LABEL, WP_SOURCE,
+  winProbAddedFromPlayByPlay, WPA_LABEL, WPA_CREDIT, WPA_STATE
 } from '../src/hockey-wp.js'
 import { HOCKEY_WP_MODEL } from '../src/hockey-wp-model.js'
 import { FEATURES, XG_FEATURES, attackingNetX } from '../src/hockey-wp-lib.js'
@@ -296,6 +297,82 @@ export const run = () => {
         plays: [shot(), shot({ timeInPeriod: '12:00' })]
       })
       return s.xgShotsUnscored === 0 && s.shotsSeen === 2
+    })())
+
+  // ── WPA — docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md ──────────────────
+  const wshot = (o = {}) => ({
+    typeDescKey: 'shot-on-goal', timeInPeriod: '10:00', periodDescriptor: { number: 1 },
+    situationCode: '1551', homeTeamDefendingSide: 'left',
+    details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, goalieInNetId: 7 }, ...o })
+  const wgoal = {
+    ...wshot({ timeInPeriod: '15:00' }), typeDescKey: 'goal',
+    details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, goalieInNetId: 7,
+               homeScore: 1, awayScore: 0, scoringPlayerId: 11, assist1PlayerId: 12, assist2PlayerId: 13 } }
+  const wgame = { plays: [wshot(), wgoal, wshot({ timeInPeriod: '18:00' })],
+                  homeTeam: { id: 10, score: 1 }, awayTeam: { id: 20, score: 0 }, gameType: 2 }
+
+  t('WPA carries its OWN label, distinct from all four that already exist',
+    WPA_LABEL !== WP_LABEL && WPA_LABEL !== PRIOR_LABEL && WPA_LABEL !== MARKET_LABEL && WPA_LABEL !== VENDOR_LABEL)
+  t('the credit split is a STATED convention, reachable and changeable in one place',
+    WPA_CREDIT.goal.scorer + WPA_CREDIT.goal.assist1 + WPA_CREDIT.goal.assist2 === 1)
+
+  // THE ORDERING DEFECT THIS CAUGHT. With the score applied AFTER the snapshot,
+  // a goal's own swing landed on the next shot and its scorer was credited
+  // -0.0012 on a goal that opened the scoring.
+  t('A GOAL IS CREDITED ITS OWN SWING, not the swing of the shot after it',
+    (() => {
+      const r = winProbAddedFromPlayByPlay(wgame)
+      const g = r.series[1]
+      return g.typeDescKey === 'goal' && g.deltaWP > 0.1
+        && g.credits.find(c => c.role === 'scorer').wpa > 0.05
+    })())
+  t('the scorer takes more than the primary assist, which takes more than the secondary',
+    (() => {
+      const c = winProbAddedFromPlayByPlay(wgame).series[1].credits
+      const by = Object.fromEntries(c.map(x => [x.role, x.wpa]))
+      return by.scorer > by.assist1 && by.assist1 > by.assist2
+    })())
+
+  // FOUR STATES, and none of them is a delta of zero.
+  t('a shot whose state cannot be modelled is ONE-ENDPOINT-REFUSED, not a delta of 0',
+    (() => {
+      const bad = wshot({ timeInPeriod: '11:00', situationCode: 'xx' })
+      const r = winProbAddedFromPlayByPlay({ ...wgame, plays: [wshot(), bad, wshot({ timeInPeriod: '12:00' })] })
+      const s2 = r.series[1]
+      return s2.state === WPA_STATE.ONE_ENDPOINT_REFUSED && s2.deltaWP === null
+    })())
+  t('two unreadable shots in a row are BOTH-REFUSED, a third distinct state',
+    (() => {
+      const bad = (tp) => wshot({ timeInPeriod: tp, situationCode: 'xx' })
+      const r = winProbAddedFromPlayByPlay({ ...wgame, plays: [bad('10:00'), bad('11:00')] })
+      return r.series[1].state === WPA_STATE.BOTH_REFUSED && r.series[1].deltaWP === null
+    })())
+  t('THE FIRST MODELLED SHOT HAS NO DELTA — the prior is not an endpoint',
+    winProbAddedFromPlayByPlay(wgame).series[0].deltaWP === null)
+  t('a refused endpoint carries its reason rather than a silent null',
+    (() => {
+      const bad = wshot({ timeInPeriod: '11:00', situationCode: 'xx' })
+      const r = winProbAddedFromPlayByPlay({ ...wgame, plays: [wshot(), bad] })
+      return Array.isArray(r.series[1].refusal) && r.series[1].refusal.length > 0
+    })())
+
+  // TASK 4 — the conservation check, and what it actually proves.
+  t('THE DELTAS TELESCOPE: their sum is identically last minus first',
+    winProbAddedFromPlayByPlay(wgame).conservation.telescoped_identity_holds === true)
+  t('the residual is outcome minus the LAST modelled probability',
+    (() => {
+      const c = winProbAddedFromPlayByPlay(wgame).conservation
+      return Math.abs(c.residual - (c.outcome - c.last_modelled_wp)) < 1e-9
+    })())
+  t('the conservation check REPORTS not closing rather than widening its tolerance',
+    (() => {
+      const c = winProbAddedFromPlayByPlay(wgame).conservation
+      return c.closes === false && c.tolerance === 0.01
+    })())
+  t('an unfinished game yields a null outcome and no verdict, not a residual of zero',
+    (() => {
+      const c = winProbAddedFromPlayByPlay({ ...wgame, homeTeam: { id: 10, score: 1 }, awayTeam: { id: 20, score: 1 } }).conservation
+      return c.outcome === null && c.residual === null && c.closes === null
     })())
 
   console.log(`\n${pass}/${pass + fail} checks passed`)
