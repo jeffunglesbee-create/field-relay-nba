@@ -1,0 +1,49 @@
+name: BSD form probe
+
+# docs/CC-CMD-2026-10-10-bsd-form-into-forecaster.md — Task 1, and only Task 1.
+#
+# The document stops here if league_id does not filter: "Everything downstream
+# assumes per-competition scope." So this runs before any route is written.
+#
+# CI because the container cannot reach sports.bzzoiro.com (403 at CONNECT) and
+# because BSD_API_TOKEN lives here as a secret rather than in the container.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/bsd-form-probe.mjs --self-test
+
+      - name: Read the window and test whether league_id filters
+        env:
+          BSD_API_TOKEN: ${{ secrets.BSD_API_TOKEN }}
+        run: node scripts/bsd-form-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/bsd-form-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: BSD form probe artifact (Task 1)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
