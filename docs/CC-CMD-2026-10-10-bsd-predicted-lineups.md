@@ -4,7 +4,51 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — one route; the pre-game surface soccer has never had
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Five tasks, no stop condition hit.
+Route live at `src/index.js` as `/bsd/events/:id/lineups`. Probe artifact:
+`outbox/bsd-lineups-probe-latest.json` (run 38118474339, 9 calls of 24).
+Task 5's deferred renderer is filed as
+`docs/CC-CMD-2026-10-11-predicted-xi-render-decision.md` (Rule 87.4).
+
+**TASK 3 — THE PRE-MATCH INNER SHAPE, WHICH WAS NOT MEASURED, NOW IS.** The
+surface probe recorded top-level keys only and the sub-field list this document
+quotes came from a FINISHED event. Measured on **8 pre-match events**, all 8
+`lineup_status: predicted` with `beta: true`, and it is a real team sheet, not a
+formation with gaps:
+
+```
+lineups.{home,away}.formation      lineups.{home,away}.confidence
+lineups.{home,away}.team_id        lineups.{home,away}.team_name
+lineups.{home,away}.players[]      id, name, short_name, jersey_number,
+lineups.{home,away}.substitutes[]  position, ai_score
+unavailable_players.{home,away}[]  with a reason
+```
+
+**`ai_score` strengthens this document's own argument.** The vendor admits the
+row is model output twice — `beta: true` and a per-player score — which is a
+second reason a predicted XI must not render with a confirmed one's authority.
+
+**TASK 4 — the reason rate, with its denominator.** 8 events, 23 named
+unavailable players, **23 carry the `reason` key and 22 are non-null: 0.9565**.
+The worry this task was written against — "a hook present on a tenth of rows" —
+does not apply. It also reconciles the two samples that disagreed: the
+container is `{home, away}`, and the `reason` lives on the players inside it.
+
+**TASKS 1 and 2 — the route.** Pure forward, shape verbatim, `lineup_status` and
+`beta` never dropped. Two TTLs with their reason written beside them: a
+predicted lineup churns as team news lands (120s), a confirmed one never changes
+again (3600s), and anything absent or failed is `no-store` rather than cached as
+if it were an answer. Four states on `X-Lineup-State`, and an absent
+`lineup_status` defaults to neither `predicted` nor `confirmed`.
+`X-Lineup-Fill: served-empty` keeps the third thing this document names —
+served and empty — distinct from a 404 and from a team sheet.
+
+**One correction to this document's framing, from the premise audit.** Its
+opening says soccer "gets a scoreline and a market price" and has no pre-game
+surface. The client already renders a Premier League starting XI through
+`/pl/match/{id}`. What soccer lacks is a PREDICTED XI before kickoff and a
+BSD-wide one beyond the PL, which is what this route adds — the gap is real and
+narrower than stated.
 
 **Rule F:** a team sheet is a fact every provider publishes. Commodity.
 **Rule A:** pull only. This renders on request; nothing is pushed on change.

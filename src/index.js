@@ -10683,6 +10683,98 @@ export default {
                                'Cache-Control': 'public, max-age=60', ...CORS } });
             }
 
+            // /bsd/events/:id/lineups → BSD /api/v2/events/:id/lineups/
+            //
+            // docs/CC-CMD-2026-10-10-bsd-predicted-lineups.md, Tasks 1 and 2.
+            // Pure forward, BSD's shape VERBATIM (Rule 62). `lineup_status` and
+            // `beta` are never dropped or renamed: they are the two fields that
+            // decide whether a caller may render the row at all.
+            //
+            // MEASURED 2026-10-11, 8 pre-match events, 9 calls of a declared 24
+            // (outbox/bsd-lineups-probe-latest.json). Every one came back
+            // `lineup_status: 'predicted'` with `beta: true`, and the payload is
+            // a real team sheet rather than a formation with gaps:
+            //
+            //   lineups.{home,away}.formation      e.g. "4-2-3-1"
+            //   lineups.{home,away}.confidence     the vendor's own uncertainty
+            //   lineups.{home,away}.team_id, .team_name
+            //   lineups.{home,away}.players[]      id, name, short_name,
+            //                                      jersey_number, position, ai_score
+            //   lineups.{home,away}.substitutes[]  same keys
+            //   unavailable_players.{home,away}[]  with a `reason`
+            //
+            // `ai_score` is the vendor saying this row is model output, which is
+            // the same admission `beta` makes and a second reason not to render
+            // a predicted XI with a confirmed one's authority.
+            //
+            // TWO TTLs, because the two states have different horizons. A
+            // PREDICTED lineup churns as team news lands in the hour before
+            // kickoff; a CONFIRMED one never changes again. 120s and 3600s.
+            // Anything absent or failed is NOT cached as if it were an answer.
+            // `updated_at` is echoed in a header so a caller reads the route's
+            // freshness rather than inferring it.
+            //
+            // FOUR STATES, NEVER COLLAPSED (Rule 99, Task 2). A missing
+            // `lineup_status` must not default to `predicted` OR to `confirmed`:
+            //   X-Lineup-State: predicted       vendor says predicted, beta true
+            //   X-Lineup-State: confirmed       vendor says confirmed
+            //   X-Lineup-State: status-absent   served, and it says neither
+            //   X-Lineup-State: upstream-failed we do not know
+            // And a fifth that is NOT a fourth: served with an EMPTY `lineups`
+            // is reported as X-Lineup-Fill: served-empty. That is not a 404 and
+            // not a team sheet, and the document is explicit that it must not be
+            // smoothed into either.
+            //
+            // Rule A: pull only. No cron, no watch, no diff-on-change — a lineup
+            // that changes is exactly the shape that tempts a notification, and
+            // notification is not cleared.
+            const lineupsM = pathname.match(/^\/bsd\/events\/(\d+)\/lineups$/);
+            if (lineupsM) {
+                try {
+                    const r = await fetch(`${BSD_BASE}/api/v2/events/${lineupsM[1]}/lineups/`,
+                        { headers: bsdHeaders });
+                    const text = await r.text();
+                    if (!r.ok) {
+                        return new Response(JSON.stringify({
+                            error: 'lineups upstream failed', upstreamStatus: r.status,
+                            note: 'This is NOT "no lineup announced" and NOT a confirmed sheet. The call failed; the lineup state is unknown.',
+                        }), { status: 502, headers: { 'Content-Type': 'application/json',
+                                 'X-Lineup-State': 'upstream-failed', ...CORS } });
+                    }
+                    let parsed = null;
+                    try { parsed = JSON.parse(text); } catch (_) { /* forwarded verbatim below */ }
+                    const st = parsed && typeof parsed === 'object' ? parsed.lineup_status : undefined;
+                    const state = (st === undefined || st === null || st === '')
+                        ? 'status-absent'
+                        : (st === 'predicted' || st === 'confirmed') ? st : `status-unrecognised:${st}`;
+                    const l = parsed && typeof parsed === 'object' ? parsed.lineups : undefined;
+                    const fill = l === undefined ? 'absent'
+                        : l === null ? 'null'
+                        : (Array.isArray(l) ? l.length === 0 : (typeof l === 'object' && Object.keys(l).length === 0))
+                            ? 'served-empty'
+                            : 'served';
+                    const maxAge = state === 'confirmed' ? 3600 : state === 'predicted' ? 120 : 0;
+                    const hdrs = {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': maxAge ? `public, max-age=${maxAge}` : 'no-store',
+                        'X-Lineup-State': state,
+                        'X-Lineup-Fill': fill,
+                        ...CORS,
+                    };
+                    const upd = parsed && typeof parsed === 'object' ? parsed.updated_at : null;
+                    if (upd) hdrs['X-Lineup-Updated-At'] = String(upd);
+                    if (parsed && typeof parsed === 'object' && parsed.beta !== undefined)
+                        hdrs['X-Lineup-Beta'] = String(parsed.beta);
+                    return new Response(text, { status: 200, headers: hdrs });
+                } catch (e) {
+                    return new Response(JSON.stringify({
+                        error: 'lineups fetch threw', detail: e.message,
+                        note: 'This is NOT "no lineup announced". The lineup state is unknown.',
+                    }), { status: 502, headers: { 'Content-Type': 'application/json',
+                             'X-Lineup-State': 'upstream-failed', ...CORS } });
+                }
+            }
+
             // /bsd/events/:id/odds → BSD /api/v2/events/:id/odds/comparison/
             const oddsM = pathname.match(/^\/bsd\/events\/(\d+)\/odds$/);
             if (oddsM) {
