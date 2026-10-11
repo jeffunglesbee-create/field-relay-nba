@@ -1,0 +1,56 @@
+name: Golf slate line probe
+
+# docs/CC-CMD-2026-08-25-golf-slate-line.md ask 1: what does buildGameLine
+# ACTUALLY return for a golf event?
+#
+# That document is explicit that its reasoning is read from source and has
+# never been observed, and that a harmless line closes it as WITHDRAWN. So this
+# probe decides whether anything ships.
+#
+# CI because site.api.espn.com is 403-at-CONNECT from the container — measured
+# again on 2026-10-11: curl returns 000.
+
+on:
+  workflow_dispatch:
+    inputs:
+      espn_date:
+        description: "YYYYMMDD to probe. Empty = today."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The slicer can still fail
+        run: node scripts/golf-slate-line-probe.mjs --self-test
+
+      - name: Probe buildGameLine on a golf event
+        env:
+          ESPN_DATE: ${{ inputs.espn_date }}
+        run: |
+          export PROBE_STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          node scripts/golf-slate-line-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/golf-slate-line-probe-*.json || true
+          git diff --staged --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: golf slate line probe result"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((2 ** i))
+          done
+          exit 1
