@@ -17,12 +17,18 @@ wired in                                 .github/workflows/deploy.yml
 The check locates them itself, so the invariant still holds where the prose no
 longer points.
 
-**One thing is genuinely open, and it is a decision for the owner rather than
-deferred work:** the honest repair is a mark saying the timestamp is not a
-measurement. **It is already BUILT** —
-`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`, dry-run only, refusing to
-write without the literal input `apply`. What is missing is authorisation for a
-D1 write to 58 rows, not the tool.
+**NOTHING IS OPEN HERE. Corrected 2026-10-11.** The honest repair — a mark
+saying the timestamp is not a measurement — was **applied on 2026-09-15**, run
+`34980428015`, the same day this document was filed:
+`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`.
+
+This paragraph previously said it was "built, dry-run only, waiting on
+authorisation for a D1 write to 58 rows". Both wrong. The population is **874**
+— 58 was one of three keyhole measurements that document's own correction
+section replaced — and the write was done.
+
+Re-measured 2026-10-11 (run `38143984631`): **0 unmarked, 874 marked**, watch
+green at baseline 0.
 
 Second CC-CMD required by Rule 87.4, opened because
 `CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time` Task 0 proved who

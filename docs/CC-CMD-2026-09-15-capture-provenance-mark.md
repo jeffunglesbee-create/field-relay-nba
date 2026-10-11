@@ -1,7 +1,35 @@
 # CC-CMD-2026-09-15 — mark the run-clock captures, do not repair them
 
-**Status:** BUILT, dry-run only. **The write is not authorised** and the
-workflow will not perform it without the literal input `apply`.
+**Status:** APPLIED and verified 2026-09-15T14:15:55Z, run `34980428015` — see
+the section at the bottom of this document, which has recorded that since the
+day it happened. Header corrected 2026-10-11.
+
+**874 marked, 0 unmarked, `captured_at` altered by the mark: 0.** Re-measured
+2026-10-11T13:38:39Z (run `38143984631`,
+`outbox/run-clock-closing-watch-2026-10-11T13-38-40-667Z.log`):
+
+```
+baseline (committed)                   : 0
+replayed-with-run-clock, unmarked      : 0
+replayed-with-run-clock, marked        : 874
+newest replayed run-clock stamp        : 2026-08-22T10:01:04.210Z
+live captures stamping their own clock : 42  (NOT gated — correct)
+```
+
+The watch has been green every day from 2026-09-15 to 2026-10-11, and the
+newest gated stamp has not moved in 50 days — no new writer, all residue.
+
+**THE STALE HEADER COST SOMETHING.** It said "BUILT, dry-run only, the write is
+not authorised" for 26 days while the apply was recorded 130 lines below it. On
+2026-10-11 a triage read the header, not the document, and reported to the owner
+**twice** that a "58-row mark is built and waiting on your apply" — a number
+this document's own correction section had already replaced with **874**, for
+work that was already done. Two wrong figures and one wrong state, from reading
+the top of a file that contradicts itself.
+
+That is the same defect this session corrected in two sibling documents on the
+same morning, missed here because the fix was applied to the two that said
+`FILED, not started` and this one said something subtler.
 
 ## Why a mark and not a repair
 
@@ -131,8 +159,8 @@ new one since. Measured, not assumed.
 | kickoff not decidable from the window | **1** (`EPL_2026-08-22_hull_manunited`) |
 | baseline committed | 874 |
 
-The write remains **unauthorised**. The workflow applies only on the literal
-input `apply`.
+The write was **unauthorised at the time this section was written**, and was
+authorised and performed later the same day — see the APPLIED section below.
 
 ---
 

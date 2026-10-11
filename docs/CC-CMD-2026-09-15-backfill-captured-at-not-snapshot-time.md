@@ -13,10 +13,16 @@ not repairable from a measurement, and the honest fix is a MARK saying the
 timestamp is not a measurement. The successor's own verification concluded **do
 not run the anchor repair**.
 
-**That mark is already BUILT** —
-`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`, dry-run only, and it will
-not write without the literal input `apply`. What is missing is authorisation
-for a D1 write to 58 rows, not the tool.
+**That mark was APPLIED on 2026-09-15**, run `34980428015` —
+`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`. **Nothing is open here.**
+Corrected 2026-10-11: this paragraph said the mark was "built, dry-run only,
+waiting on authorisation for a D1 write to 58 rows". Both the state and the
+number were wrong. The population is **874**, not 58 — 58 was one of three
+keyhole measurements the mark's own document replaced — and the write happened
+the same day this document was filed.
+
+Re-measured 2026-10-11 (run `38143984631`): **0 unmarked, 874 marked**, watch
+green at baseline 0 every day since.
 
 Opened by the residual measurement of
 `CC-CMD-2026-09-14-closing-odds-captured-after-kickoff` Task 2.

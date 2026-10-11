@@ -205,8 +205,22 @@ documents carry `FILED, not started` besides the two filed today — the two
 2026-09-15 documents and `empty-catch-gate` (10-03) — four carry `OPEN`
 (`golf-slate-line`, `misjoined-opening-odds`, `port-citation-check`,
 `rotate-relay-secret`, whose step 3 needs a human), and
-`2026-09-15-capture-provenance-mark` is `BUILT, dry-run only` with the write
-unauthorised. The audit found both 2026-09-15 documents **OBSOLETE** — their
-work landed the day they were filed and only the stale headers remain. That
-verdict is the audit's and was not re-verified today. See HANDOFF.md for the
-table.
+`2026-09-15-capture-provenance-mark` reads `BUILT, dry-run only` with the write
+unauthorised.
+
+**That last one is wrong, and this is a correction appended 2026-10-11 rather
+than a quiet edit.** The mark was APPLIED on 2026-09-15, run `34980428015` —
+874 rows, 0 unmarked — and its own document has recorded that 130 lines below
+the header this line was read from. Re-measured 2026-10-11 (run `38143984631`):
+still 0 unmarked, 874 marked, watch green at baseline 0.
+
+The irony is the lesson: this paragraph says in its next sentence that the two
+2026-09-15 documents are obsolete because "only the stale headers remain", and
+it then repeated a third stale header as current state. Reading a header is not
+reading a document, and the correction below was earned twice — the figure
+reported to the owner was "58 rows", a number that document's own correction
+section had already replaced with 874.
+
+The audit found both 2026-09-15 documents **OBSOLETE** — their work landed the
+day they were filed and only the stale headers remain. That verdict is the
+audit's and was not re-verified today. See HANDOFF.md for the table.

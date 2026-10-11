@@ -63,7 +63,7 @@ on a green deploy.
 | `2026-10-11-wpa-shootout-residual` | FILED |
 | `2026-08-25-misjoined-opening-odds` | OPEN — ~156 rows hold in-play odds, needs a D1 census |
 | `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human** |
-| `2026-09-15-capture-provenance-mark` | BUILT, dry-run only — **the 58-row mark is unauthorised** |
+| ~~`2026-09-15-capture-provenance-mark`~~ | **NOT OPEN — applied 2026-09-15, run 34980428015.** This row was wrong: 874 rows, not 58, and already written. Corrected 2026-10-11 |
 
 ---
 
@@ -120,13 +120,20 @@ first four reasons added landed above the `try` and changed the count by
 | `2026-08-25-port-citation-check` | OPEN and **still real** — neither jubilant-bassoon nor field-playground has the script |
 | `2026-08-25-misjoined-opening-odds` | OPEN — ~156 rows hold in-play odds; needs a D1 census |
 | `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human** with Cloudflare and GitHub credentials |
-| `2026-09-15-capture-provenance-mark` | BUILT, dry-run only — **the 58-row mark is ready and unauthorised** |
+| ~~`2026-09-15-capture-provenance-mark`~~ | **NOT OPEN — applied 2026-09-15, run 34980428015.** This row was wrong: 874 rows, not 58, and already written. Corrected 2026-10-11 |
 
-**Waiting on the owner, not on work:** the 58-row provenance mark exists, refuses
-to write without the literal input `apply`, and is what both 09-15 documents
-concluded was the honest fix. Nothing is broken today — 57 of 58 kickoff
-verdicts are unaffected and the one that moves carries the more plausible of two
-unprovable values.
+**CORRECTED 2026-10-11 — the provenance mark was NOT waiting on anything.** It
+was applied on 2026-09-15, run `34980428015`, the same day it was filed: 874
+rows marked, 0 unmarked, `captured_at` altered by the mark 0. Re-measured
+2026-10-11 (run `38143984631`): still 0 unmarked, 874 marked, watch green at
+baseline 0 every day for 26 days, and the newest gated stamp unmoved for 50.
+
+The paragraph that stood here said a "58-row mark" was "waiting on the owner".
+Both the number and the state were wrong, and the number had already been
+replaced by **874** in that document's own correction section. The cause was
+reading its stale header — *"BUILT, dry-run only, the write is not
+authorised"* — which sat 130 lines above the APPLIED record in the same file.
+It was reported to the owner twice before anyone opened the document.
 
 ---
 
