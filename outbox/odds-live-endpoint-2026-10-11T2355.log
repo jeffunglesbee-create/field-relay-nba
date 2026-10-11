@@ -1,0 +1,19 @@
+=== does /odds-live exist  utc=2026-10-11T23:55:21.040Z ===
+
+  key sent: the literal string INVALID_KEY_FOR_PATH_TEST — nothing billable, no real key read
+
+  soccer_fifa_world_cup    /odds       HTTP 401  path-exists
+                                       body: {"message":"API key is not valid. Get an API key at https://the-odds-api.com","error_code":"INVALID_KEY","details_url":"https://the-odds-api.com/liveapi/guides/v4/api-error-codes.html#invalid-key"} 
+  soccer_fifa_world_cup    /odds-live  HTTP 404  path-missing
+                                       body: <!doctype html> <html lang=en> <title>404 Not Found</title> <h1>Not Found</h1> <p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try agai
+  soccer_epl               /odds       HTTP 401  path-exists
+                                       body: {"message":"API key is not valid. Get an API key at https://the-odds-api.com","error_code":"INVALID_KEY","details_url":"https://the-odds-api.com/liveapi/guides/v4/api-error-codes.html#invalid-key"} 
+  soccer_epl               /odds-live  HTTP 404  path-missing
+                                       body: <!doctype html> <html lang=en> <title>404 Not Found</title> <h1>Not Found</h1> <p>The requested URL was not found on the server. If you entered the URL manually please check your spelling and try agai
+
+  verdict: MISSING
+  /odds-live returned 404 on 2 of 2 sport(s) while /odds resolved on 2 of 2 — the vendor does not serve this path, so it bills nothing and sends no usage header
+
+COVERAGE: 2 sport key(s) x 2 path(s), one request each, with an
+invalid key. It answers whether the PATH resolves and nothing else — it does
+not show what a valid key would return, or what the vendor bills for a 404.
