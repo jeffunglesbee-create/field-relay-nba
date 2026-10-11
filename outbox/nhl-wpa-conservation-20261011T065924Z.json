@@ -1,0 +1,598 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md",
+  "task": "Task 4 — the conservation check",
+  "started_at": "2026-10-11T06:59:24.617Z",
+  "callBudget": 40,
+  "callsMade": 31,
+  "dates": [
+    "2026-10-08",
+    "2026-10-09",
+    "2026-10-10"
+  ],
+  "games_found": 28,
+  "games_scored": 28,
+  "tolerance": 0.01,
+  "closes_count": 21,
+  "closes_rate": 0.75,
+  "telescoping_holds_on_every_game": true,
+  "residual_all": {
+    "n": 28,
+    "min": -0.007,
+    "p25": 0,
+    "median": 0,
+    "p75": 0.012,
+    "max": 0.701,
+    "mean": 0.1193,
+    "median_ABS": 0,
+    "within_0_01": 21
+  },
+  "residual_regulation": {
+    "n": 21,
+    "min": 0,
+    "p25": 0,
+    "median": 0,
+    "p75": 0,
+    "max": 0.019,
+    "mean": 0.0015,
+    "median_ABS": 0,
+    "within_0_01": 19
+  },
+  "residual_overtime_no_shootout": {
+    "n": 2,
+    "min": -0.007,
+    "p25": -0.007,
+    "median": 0.006,
+    "p75": 0.006,
+    "max": 0.006,
+    "mean": -0.0005,
+    "median_ABS": 0.007,
+    "within_0_01": 2
+  },
+  "residual_shootout": {
+    "n": 5,
+    "min": 0.635,
+    "p25": 0.643,
+    "median": 0.652,
+    "p75": 0.68,
+    "max": 0.701,
+    "mean": 0.6622,
+    "median_ABS": 0.652,
+    "within_0_01": 0
+  },
+  "verdict": "DOES NOT CLOSE on 7 of 28 games at tolerance 0.01. STOP per the document and report the residual.",
+  "rows": [
+    {
+      "gameId": 2026020056,
+      "shots": 115,
+      "stateCounts": {
+        "computed": 114,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.523,
+      "last_wp": 1,
+      "sum_of_deltas": 0.477,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020057,
+      "shots": 102,
+      "stateCounts": {
+        "computed": 101,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.532,
+      "last_wp": 0,
+      "sum_of_deltas": -0.532,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020058,
+      "shots": 110,
+      "stateCounts": {
+        "computed": 109,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.536,
+      "last_wp": 0,
+      "sum_of_deltas": -0.536,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020059,
+      "shots": 114,
+      "stateCounts": {
+        "computed": 113,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.537,
+      "last_wp": 0.981,
+      "sum_of_deltas": 0.444,
+      "telescoped": true,
+      "residual": 0.019,
+      "closes": false,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020060,
+      "shots": 132,
+      "stateCounts": {
+        "computed": 131,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.526,
+      "last_wp": 0.988,
+      "sum_of_deltas": 0.462,
+      "telescoped": true,
+      "residual": 0.012,
+      "closes": false,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020061,
+      "shots": 95,
+      "stateCounts": {
+        "computed": 94,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.54,
+      "last_wp": 1,
+      "sum_of_deltas": 0.46,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020062,
+      "shots": 91,
+      "stateCounts": {
+        "computed": 90,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.533,
+      "last_wp": 1,
+      "sum_of_deltas": 0.467,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020063,
+      "shots": 107,
+      "stateCounts": {
+        "computed": 106,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.537,
+      "last_wp": 0.007,
+      "sum_of_deltas": -0.53,
+      "telescoped": true,
+      "residual": -0.007,
+      "closes": true,
+      "wentToOT": true,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020064,
+      "shots": 123,
+      "stateCounts": {
+        "computed": 122,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.533,
+      "last_wp": 0,
+      "sum_of_deltas": -0.533,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020065,
+      "shots": 147,
+      "stateCounts": {
+        "computed": 146,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.357,
+      "last_wp": 0.365,
+      "sum_of_deltas": 0.008,
+      "telescoped": true,
+      "residual": 0.635,
+      "closes": false,
+      "wentToOT": true,
+      "wentToShootout": true
+    },
+    {
+      "gameId": 2026020066,
+      "shots": 135,
+      "stateCounts": {
+        "computed": 134,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.535,
+      "last_wp": 0,
+      "sum_of_deltas": -0.535,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020067,
+      "shots": 101,
+      "stateCounts": {
+        "computed": 100,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.535,
+      "last_wp": 1,
+      "sum_of_deltas": 0.465,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020068,
+      "shots": 138,
+      "stateCounts": {
+        "computed": 137,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.543,
+      "last_wp": 0.357,
+      "sum_of_deltas": -0.186,
+      "telescoped": true,
+      "residual": 0.643,
+      "closes": false,
+      "wentToOT": true,
+      "wentToShootout": true
+    },
+    {
+      "gameId": 2026020069,
+      "shots": 92,
+      "stateCounts": {
+        "computed": 91,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.537,
+      "last_wp": 0,
+      "sum_of_deltas": -0.537,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020070,
+      "shots": 101,
+      "stateCounts": {
+        "computed": 100,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.53,
+      "last_wp": 1,
+      "sum_of_deltas": 0.47,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020071,
+      "shots": 105,
+      "stateCounts": {
+        "computed": 104,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.536,
+      "last_wp": 1,
+      "sum_of_deltas": 0.464,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020072,
+      "shots": 93,
+      "stateCounts": {
+        "computed": 92,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.536,
+      "last_wp": 0,
+      "sum_of_deltas": -0.536,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020073,
+      "shots": 115,
+      "stateCounts": {
+        "computed": 114,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.533,
+      "last_wp": 0,
+      "sum_of_deltas": -0.533,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020074,
+      "shots": 137,
+      "stateCounts": {
+        "computed": 136,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.533,
+      "last_wp": 0,
+      "sum_of_deltas": -0.533,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020075,
+      "shots": 141,
+      "stateCounts": {
+        "computed": 140,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.542,
+      "last_wp": 0.32,
+      "sum_of_deltas": -0.222,
+      "telescoped": true,
+      "residual": 0.68,
+      "closes": false,
+      "wentToOT": true,
+      "wentToShootout": true
+    },
+    {
+      "gameId": 2026020076,
+      "shots": 118,
+      "stateCounts": {
+        "computed": 117,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.531,
+      "last_wp": 0.348,
+      "sum_of_deltas": -0.183,
+      "telescoped": true,
+      "residual": 0.652,
+      "closes": false,
+      "wentToOT": true,
+      "wentToShootout": true
+    },
+    {
+      "gameId": 2026020077,
+      "shots": 130,
+      "stateCounts": {
+        "computed": 129,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.537,
+      "last_wp": 0.299,
+      "sum_of_deltas": -0.238,
+      "telescoped": true,
+      "residual": 0.701,
+      "closes": false,
+      "wentToOT": true,
+      "wentToShootout": true
+    },
+    {
+      "gameId": 2026020078,
+      "shots": 120,
+      "stateCounts": {
+        "computed": 119,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.535,
+      "last_wp": 0,
+      "sum_of_deltas": -0.535,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020079,
+      "shots": 106,
+      "stateCounts": {
+        "computed": 105,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.534,
+      "last_wp": 1,
+      "sum_of_deltas": 0.466,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020080,
+      "shots": 121,
+      "stateCounts": {
+        "computed": 120,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.531,
+      "last_wp": 0,
+      "sum_of_deltas": -0.531,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020081,
+      "shots": 97,
+      "stateCounts": {
+        "computed": 96,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.542,
+      "last_wp": 0,
+      "sum_of_deltas": -0.542,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020082,
+      "shots": 126,
+      "stateCounts": {
+        "computed": 125,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 0,
+      "first_wp": 0.536,
+      "last_wp": 0,
+      "sum_of_deltas": -0.536,
+      "telescoped": true,
+      "residual": 0,
+      "closes": true,
+      "wentToOT": false,
+      "wentToShootout": false
+    },
+    {
+      "gameId": 2026020083,
+      "shots": 120,
+      "stateCounts": {
+        "computed": 119,
+        "one_endpoint_refused": 1,
+        "both_refused": 0,
+        "computed_but_no_player_named": 0
+      },
+      "outcome": 1,
+      "first_wp": 0.534,
+      "last_wp": 0.994,
+      "sum_of_deltas": 0.46,
+      "telescoped": true,
+      "residual": 0.006,
+      "closes": true,
+      "wentToOT": true,
+      "wentToShootout": false
+    }
+  ],
+  "coverage": "28 finished games across 3 dates. Not a season."
+}

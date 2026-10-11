@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md",
   "task": "Task 4 — the conservation check",
-  "started_at": "2026-10-11T06:57:53.252Z",
+  "started_at": "2026-10-11T06:59:24.617Z",
   "callBudget": 40,
   "callsMade": 31,
   "dates": [
@@ -37,16 +37,27 @@
     "median_ABS": 0,
     "within_0_01": 19
   },
-  "residual_overtime": {
-    "n": 7,
+  "residual_overtime_no_shootout": {
+    "n": 2,
     "min": -0.007,
-    "p25": 0.006,
-    "median": 0.643,
+    "p25": -0.007,
+    "median": 0.006,
+    "p75": 0.006,
+    "max": 0.006,
+    "mean": -0.0005,
+    "median_ABS": 0.007,
+    "within_0_01": 2
+  },
+  "residual_shootout": {
+    "n": 5,
+    "min": 0.635,
+    "p25": 0.643,
+    "median": 0.652,
     "p75": 0.68,
     "max": 0.701,
-    "mean": 0.4729,
-    "median_ABS": 0.643,
-    "within_0_01": 2
+    "mean": 0.6622,
+    "median_ABS": 0.652,
+    "within_0_01": 0
   },
   "verdict": "DOES NOT CLOSE on 7 of 28 games at tolerance 0.01. STOP per the document and report the residual.",
   "rows": [
@@ -66,7 +77,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020057,
@@ -84,7 +96,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020058,
@@ -102,7 +115,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020059,
@@ -120,7 +134,8 @@
       "telescoped": true,
       "residual": 0.019,
       "closes": false,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020060,
@@ -138,7 +153,8 @@
       "telescoped": true,
       "residual": 0.012,
       "closes": false,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020061,
@@ -156,7 +172,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020062,
@@ -174,7 +191,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020063,
@@ -192,7 +210,8 @@
       "telescoped": true,
       "residual": -0.007,
       "closes": true,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020064,
@@ -210,7 +229,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020065,
@@ -228,7 +248,8 @@
       "telescoped": true,
       "residual": 0.635,
       "closes": false,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": true
     },
     {
       "gameId": 2026020066,
@@ -246,7 +267,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020067,
@@ -264,7 +286,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020068,
@@ -282,7 +305,8 @@
       "telescoped": true,
       "residual": 0.643,
       "closes": false,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": true
     },
     {
       "gameId": 2026020069,
@@ -300,7 +324,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020070,
@@ -318,7 +343,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020071,
@@ -336,7 +362,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020072,
@@ -354,7 +381,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020073,
@@ -372,7 +400,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020074,
@@ -390,7 +419,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020075,
@@ -408,7 +438,8 @@
       "telescoped": true,
       "residual": 0.68,
       "closes": false,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": true
     },
     {
       "gameId": 2026020076,
@@ -426,7 +457,8 @@
       "telescoped": true,
       "residual": 0.652,
       "closes": false,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": true
     },
     {
       "gameId": 2026020077,
@@ -444,7 +476,8 @@
       "telescoped": true,
       "residual": 0.701,
       "closes": false,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": true
     },
     {
       "gameId": 2026020078,
@@ -462,7 +495,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020079,
@@ -480,7 +514,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020080,
@@ -498,7 +533,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020081,
@@ -516,7 +552,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020082,
@@ -534,7 +571,8 @@
       "telescoped": true,
       "residual": 0,
       "closes": true,
-      "wentToOT": false
+      "wentToOT": false,
+      "wentToShootout": false
     },
     {
       "gameId": 2026020083,
@@ -552,7 +590,8 @@
       "telescoped": true,
       "residual": 0.006,
       "closes": true,
-      "wentToOT": true
+      "wentToOT": true,
+      "wentToShootout": false
     }
   ],
   "coverage": "28 finished games across 3 dates. Not a season."
