@@ -1,0 +1,46 @@
+{
+  "probed_at_utc": "20261011T142119Z",
+  "window": {
+    "from": "2026-10-11",
+    "to": "2026-10-11",
+    "dates": 1,
+    "served": 1
+  },
+  "totals": {
+    "rows": 46,
+    "atFinalisation": 0,
+    "rateOfAllRows": 0,
+    "censusEligible": 1,
+    "censusEligibleAtFinalisation": 0,
+    "rateOfCensusEligible": 0,
+    "withOddsProof": 12,
+    "atFinalisationWithProof": 0,
+    "atFinalisationNoProof": 0,
+    "proofShapes": {
+      "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 12
+    }
+  },
+  "perDate": [
+    {
+      "date": "2026-10-11",
+      "status": 200,
+      "rows": 46,
+      "states": {
+        "not-finalised": 11,
+        "no-opening-odds": 34,
+        "before-finalisation": 1
+      },
+      "atFinalisation": 0,
+      "censusEligible": 1,
+      "censusEligibleAtFinalisation": 0,
+      "withOddsProof": 12,
+      "atFinalisationWithProof": 0,
+      "atFinalisationNoProof": 0,
+      "proofShapes": {
+        "{\"adapterId\":\"odds-api\",\"sourceId\":\"odds-api-the-odds-api\"}": 12
+      },
+      "calledEmptyByTheDocument": false,
+      "examples": []
+    }
+  ]
+}
