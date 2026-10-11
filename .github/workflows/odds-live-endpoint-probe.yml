@@ -1,0 +1,59 @@
+name: Does /odds-live exist (read-only, no credits)
+
+# `ambientFetchLiveOdds` calls
+#   https://api.the-odds-api.com/v4/sports/{sport}/odds-live
+# and is the only reconcile site that ever lands in state `no-header` — every
+# call, 1037 of them on 2026-10-10 for 2074 credits, always exactly 2.0 each.
+# The Odds API v4's documented reads are `/odds` and `/historical/.../odds`.
+#
+# If `/odds-live` is not a path the vendor serves, every one of those calls is a
+# 404: no usage header, nothing billed, and 2 credits charged to our own ledger
+# for each. That would make the whole `we-overcharge-ourselves` residual a
+# 404 loop, and it is answerable without spending anything.
+#
+# NO CREDITS. The key sent is the literal string INVALID_KEY_FOR_PATH_TEST.
+# A 401 means the path resolved and auth was checked; a 404 means it did not.
+# Neither is billable and no real key is read by the workflow or the script.
+#
+# DISPATCH ONLY. It answers a question once. Delete it once the answer is in
+# the CC-CMD.
+#
+# The sandbox cannot reach api.the-odds-api.com (HTTP 000 at the agent proxy),
+# which is why this is a runner and not a local command.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The control is the whole design: both paths 404 means a wrong sport key,
+      # not a missing endpoint, and the verdict must REFUSE rather than conclude.
+      - name: the probe can refuse
+        run: node scripts/probe-odds-live-endpoint.mjs --self-test
+
+      - name: Probe
+        shell: bash
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          node scripts/probe-odds-live-endpoint.mjs 2>&1 \
+            | tee "outbox/odds-live-endpoint-${STAMP}.log" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-live-endpoint-probe" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: does /odds-live exist"
