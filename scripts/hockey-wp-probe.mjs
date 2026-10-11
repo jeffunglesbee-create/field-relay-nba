@@ -225,6 +225,31 @@ const main = async () => {
           examples.unreadable.push({ situationCode: p.situationCode, typeDescKey: p.typeDescKey })
       }
       sc.situation_code_distribution = dist
+
+      // WHICH details KEYS ACTUALLY APPEAR, PER EVENT TYPE. The CC-CMD's
+      // measurement listed homeScore and awayScore under details for shot
+      // events, and I wrote the scorer against that prose instead of measuring
+      // it (Rule 72 — an inherited claim is a hypothesis). Deployed, the live
+      // route refused two real games with score-unreadable. This census is the
+      // measurement that should have come first.
+      const keysByType = {}
+      for (const p2 of plays) {
+        const t = p2.typeDescKey || 'unknown'
+        const e = keysByType[t] || (keysByType[t] = { n: 0, keys: {} })
+        e.n += 1
+        for (const k of Object.keys(p2.details || {})) e.keys[k] = (e.keys[k] || 0) + 1
+      }
+      sc.details_keys_by_event_type = keysByType
+      sc.score_fields = {
+        shot_events_with_details_homeScore: shots.filter(p2 => Number.isFinite(p2.details?.homeScore)).length,
+        shot_events_total: shots.length,
+        goal_events_with_details_homeScore: plays.filter(p2 => p2.typeDescKey === 'goal' && Number.isFinite(p2.details?.homeScore)).length,
+        goal_events_total: plays.filter(p2 => p2.typeDescKey === 'goal').length,
+        root_homeTeam_score: pbp.body.homeTeam?.score ?? null,
+        root_awayTeam_score: pbp.body.awayTeam?.score ?? null,
+        root_homeTeam_keys: Object.keys(pbp.body.homeTeam || {}),
+        note: 'if shot events carry no homeScore, the scorer must read the root team scores or carry the last known score forward'
+      }
       sc.penalty_crosscheck = { agree, disagree, agree_rate: shots.length ? +(agree / shots.length).toFixed(4) : null, agreed_because_both_negative: noPenaltyAndEven }
       sc.examples = examples
       sc.home_defending_side = pbp.body.homeTeamDefendingSide ?? null
