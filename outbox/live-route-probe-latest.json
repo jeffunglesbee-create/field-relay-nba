@@ -1,5 +1,5 @@
 {
-  "probed_at_utc": "20261011T072820Z",
+  "probed_at_utc": "20261011T073330Z",
   "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "date": "2026-10-11",
   "calls": [
@@ -12,12 +12,12 @@
   "findings": [
     {
       "name": "/nhl-stats/shiftcharts answers with rows",
-      "verdict": "FAIL",
-      "status": 403,
-      "routeState": "refused",
-      "rows": null,
-      "xState": null,
-      "xRows": null
+      "verdict": "PASS",
+      "status": 200,
+      "routeState": "answered",
+      "rows": 692,
+      "xState": "vendor",
+      "xRows": "692"
     },
     {
       "name": "/nhl-stats/* refuses a path outside the allow-list, in its own words",
@@ -26,7 +26,7 @@
       "routeState": "refused",
       "ownRefusalShape": true,
       "refusedBy": "nhlStatsAllowed",
-      "body": "{\"error\":\"path not allowed\",\"path\":\"/zzz-not-a-real-prefix\",\"allowed\":[\"/stats/rest/en/shiftcharts\"]}"
+      "body": "{\"error\":\"path not allowed\",\"path\":\"/zzz-not-a-real-prefix\",\"allowed\":[\"/shiftcharts\"]}"
     },
     {
       "name": "/bsd/events/by-date discovers an event id",
@@ -59,8 +59,8 @@
     }
   ],
   "summary": {
-    "pass": 4,
-    "fail": 1,
+    "pass": 5,
+    "fail": 0,
     "unmeasured": 1,
     "surfaces": 6
   },
