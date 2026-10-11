@@ -1,0 +1,57 @@
+name: NHL shift charts probe
+
+# docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md — Task 1. PROBE ONLY.
+#
+# Nothing ships from this workflow. It measures five things the document
+# currently asserts only in prose, and it exists because NO WORKFLOW COULD RUN
+# TASK 1 — the document names none, and the container reaches neither host.
+#
+# A SECOND HOST. src/index.js proxies /nhl/* to api-web.nhle.com. Shift charts
+# are on api.nhle.com, which this repository has never called. CI demonstrably
+# reaches api-web.nhle.com (outbox/hockey-wp-probe-latest-situation.json carries
+# pbp_status 200); api.nhle.com is unproven, so the probe reports its
+# reachability as a finding rather than assuming it.
+#
+# AND DONE CONDITION 1 IS SATISFIABLE WITHOUT PROVING ANYTHING. A cayenneExp
+# query with a wrong gameId will answer 200 with an empty array, which reads
+# identically to "this season has no shift charts". So every season's game id is
+# CONTROLLED against api-web play-by-play first, and the row count is the
+# measurement, never the status.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/nhl-shiftcharts-probe.mjs --self-test
+
+      - name: Probe the shift charts
+        run: node scripts/nhl-shiftcharts-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/nhl-shiftcharts-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: NHL shift charts probe artifact (Task 1)"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
