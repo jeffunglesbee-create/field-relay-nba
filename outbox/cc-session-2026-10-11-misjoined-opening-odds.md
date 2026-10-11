@@ -149,5 +149,34 @@ about.
 
 `favourite-band-census` over 120 days, run `38145971449`:
 **`opening odds captured at finalisation 120 of 140`**. That is the
-retrospective baseline. History cannot shrink, so the test is growth: a game
-finishing after the fix must not add to it.
+retrospective baseline. History cannot shrink, so the test is growth.
+
+Deploy `38146540922` — **deploy and verify both `success`, 122 of 122 gate
+steps, 0 failed.** The fix is live.
+
+Two readings of today's date after it, one cron cycle apart (`38146824024`,
+`38146944806`):
+
+```
+rows                 46        46
+atFinalisation        0         0
+census-eligible       1         1
+of those, flagged     0         0
+states    not-finalised 11, no-opening-odds 34, before-finalisation 1   (both)
+```
+
+**Zero flagged, and the one row carrying both odds and a `finalized_at` was
+captured BEFORE it** — which is what `opening_odds` is supposed to mean.
+
+**What those two readings do NOT show.** They are byte-identical, state
+distribution included, so **no game finalised between them**. The cycle did not
+exercise a finalisation transition, and a fix that has not been crossed is not
+a fix that has been tested in production. What is tested: the condition is in
+the deployed source, and a gate that counts all three selections and fails on
+any one of them runs in both `deploy.yml` and `guards.yml`.
+
+**The real exposure that remains, stated:** 34 of today's rows carry no
+`opening_odds` at all. Before the fix, the first cron tick after any of them
+finished would have filled it with a settled price. After it, `finalized_at IS
+NULL` excludes them. Tomorrow's census is the reading that crosses that
+boundary with real games — and the watch is the ratchet, not this session.
