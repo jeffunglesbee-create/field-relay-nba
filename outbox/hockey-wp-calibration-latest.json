@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
-  "started_at": "2026-10-11T03:36:34.443Z",
-  "finished_at": "2026-10-11T03:36:48.016Z",
+  "started_at": "2026-10-11T03:39:19.847Z",
+  "finished_at": "2026-10-11T03:39:37.182Z",
   "architecture": "CC-CMD option (b): a direct logistic on game state. Score differential and time remaining dominate; cumulative xG is one of nine features. Option (a) — xG rates into a Poisson over remaining time — was NOT built, because (b) cleared the bar. Nothing is ported from soccer-wp.js and DC_RHO is absent by design: it corrects draw inflation and hockey has no draws.",
   "split": {
     "trainSeasons": [
@@ -104,6 +104,62 @@
       "unmapped": [],
       "unmapped_row_share": 0
     },
+    "column_states": {
+      "homeWinProbability": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "wentToOT": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "wentToShootout": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "homeTeamScore": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "roadTeamScore": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "timeLeft": {
+        "absent_from_header": 0,
+        "empty": 119870,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      }
+    },
     "geometry_vs_vendor_columns": {
       "inspected": 20000,
       "distance_agrees": 20000,
@@ -117,7 +173,7 @@
   },
   "xgModel": {
     "version": 1,
-    "trainedAt": "2026-10-11T03:36:34.443Z",
+    "trainedAt": "2026-10-11T03:39:19.847Z",
     "trainSeasons": [
       "2020",
       "2021",
@@ -292,7 +348,7 @@
   },
   "model": {
     "version": 1,
-    "trainedAt": "2026-10-11T03:36:34.443Z",
+    "trainedAt": "2026-10-11T03:39:19.847Z",
     "trainSeasons": [
       "2020",
       "2021",
@@ -1315,26 +1371,26 @@
     "verdict": "UNDECIDED — the join's own outcome cross-check came in at 0.4933, below the 0.98 floor — the baseline is NOT used"
   },
   "breadcrumbs": [
-    "2026-10-11T03:36:34.443Z reading the vendor index",
-    "2026-10-11T03:36:34.747Z fetching season 2020",
-    "2026-10-11T03:36:35.817Z season 2020: 78611 shot rows, 952 games",
-    "2026-10-11T03:36:35.817Z fetching season 2021",
-    "2026-10-11T03:36:37.160Z season 2021: 121471 shot rows, 1400 games",
-    "2026-10-11T03:36:37.160Z fetching season 2022",
-    "2026-10-11T03:36:38.676Z season 2022: 122026 shot rows, 1400 games",
-    "2026-10-11T03:36:38.677Z fetching season 2024",
-    "2026-10-11T03:36:39.994Z season 2024: 119870 shot rows, 1398 games",
-    "2026-10-11T03:36:39.994Z measuring the data premises on the held-out season",
-    "2026-10-11T03:36:40.153Z training the xG model",
-    "2026-10-11T03:36:43.856Z building WP state rows",
-    "2026-10-11T03:36:44.076Z states built for 2020, raw rows released; heap 1463MB",
-    "2026-10-11T03:36:44.315Z states built for 2021, raw rows released; heap 1544MB",
-    "2026-10-11T03:36:44.549Z states built for 2022, raw rows released; heap 1625MB",
-    "2026-10-11T03:36:44.788Z training WP on 322108 states from 3752 games",
-    "2026-10-11T03:36:47.861Z evaluating against the baselines",
-    "2026-10-11T03:36:47.925Z joining the market baseline on the ordinal meeting",
-    "2026-10-11T03:36:47.967Z market join REFUSED: outcome agreement 0.4933",
-    "2026-10-11T03:36:47.967Z splitting by game state"
+    "2026-10-11T03:39:19.847Z reading the vendor index",
+    "2026-10-11T03:39:20.075Z fetching season 2020",
+    "2026-10-11T03:39:21.217Z season 2020: 78611 shot rows, 952 games",
+    "2026-10-11T03:39:21.217Z fetching season 2021",
+    "2026-10-11T03:39:22.806Z season 2021: 121471 shot rows, 1400 games",
+    "2026-10-11T03:39:22.806Z fetching season 2022",
+    "2026-10-11T03:39:24.274Z season 2022: 122026 shot rows, 1400 games",
+    "2026-10-11T03:39:24.275Z fetching season 2024",
+    "2026-10-11T03:39:25.821Z season 2024: 119870 shot rows, 1398 games",
+    "2026-10-11T03:39:25.821Z measuring the data premises on the held-out season",
+    "2026-10-11T03:39:26.034Z training the xG model",
+    "2026-10-11T03:39:31.488Z building WP state rows",
+    "2026-10-11T03:39:31.686Z states built for 2020, raw rows released; heap 1468MB",
+    "2026-10-11T03:39:31.981Z states built for 2021, raw rows released; heap 1552MB",
+    "2026-10-11T03:39:32.285Z states built for 2022, raw rows released; heap 1627MB",
+    "2026-10-11T03:39:32.625Z training WP on 322108 states from 3752 games",
+    "2026-10-11T03:39:36.979Z evaluating against the baselines",
+    "2026-10-11T03:39:37.067Z joining the market baseline on the ordinal meeting",
+    "2026-10-11T03:39:37.118Z market join REFUSED: outcome agreement 0.4933",
+    "2026-10-11T03:39:37.118Z splitting by game state"
   ],
   "coverage": "held-out season 2024: 1398 games / 119870 states; market baseline covers 748 of those games (match rate 0.5351); MoneyPuck baseline covers 0 states"
 }
