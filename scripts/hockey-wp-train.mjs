@@ -289,6 +289,35 @@ export const otSemantics = (rows) => {
   }
 }
 
+// RULE 99 HAS FOUR STATES, NOT TWO. A column can be absent from the header,
+// present and empty, present and unparseable, or present and usable — and the
+// first version of this script treated "in the header" as "usable". Season
+// 2024's file lists both homeWinProbability and wentToOT and produced a
+// MoneyPuck baseline of n=0 and an OT cross-check of 0.7918, neither of which
+// the artifact explained. This counts the states so the explanation is a
+// measurement.
+export const columnStates = (rows, names) => {
+  const out = {}
+  for (const name of names) {
+    const st = { absent_from_header: 0, empty: 0, na_literal: 0, unparseable: 0, usable: 0, sample_values: [] }
+    for (const r of rows) {
+      const v = r[name]
+      if (v === undefined) { st.absent_from_header += 1; continue }
+      if (v === '') { st.empty += 1; continue }
+      if (v === 'NA' || v === 'na' || v === 'NaN') { st.na_literal += 1; continue }
+      if (!Number.isFinite(Number(v))) { st.unparseable += 1; if (st.sample_values.length < 5) st.sample_values.push(v); continue }
+      st.usable += 1
+      if (st.sample_values.length < 5) st.sample_values.push(v)
+    }
+    st.verdict = st.absent_from_header === rows.length ? 'absent from the header'
+      : st.usable === 0 ? 'present in the header and carrying NO usable value'
+      : st.usable === rows.length ? 'present and usable on every row'
+      : `present and usable on ${st.usable} of ${rows.length} rows`
+    out[name] = st
+  }
+  return out
+}
+
 export const clockSemantics = (rows) => {
   const sample = rows.filter(r => num(r.time) !== null && num(r.timeLeft) !== null).slice(0, 5000)
   let matchesGame = 0, matchesPeriod = 0
@@ -411,6 +440,8 @@ const main = async () => {
     clock_column: clockSemantics(bySeason[testSeason]),
     overtime: otSemantics(bySeason[testSeason]),
     shot_type_vocabulary: shotTypeVocabulary(bySeason[testSeason]),
+    column_states: columnStates(bySeason[testSeason],
+      ['homeWinProbability', 'wentToOT', 'wentToShootout', 'homeTeamScore', 'roadTeamScore', 'timeLeft']),
     geometry_vs_vendor_columns: geometryAgreement(bySeason[testSeason])
   }
   const scoreIsPreShot = premises.score_columns.verdict.startsWith('pre-shot')
@@ -837,6 +868,23 @@ const selfTest = () => {
   t('a column that disagrees with the periods is reported as a disagreement',
     otSemantics([{ game_id: '1', period: '3', wentToOT: '1', homeTeamWon: '1', isPlayoffGame: '0' }])
       .column_vs_derivation.disagree === 1)
+
+  t('a column present in the header but empty on every row is NOT reported usable',
+    (() => {
+      const c = columnStates([{ a: '' }, { a: '' }], ['a'])
+      return c.a.empty === 2 && c.a.usable === 0 && /NO usable value/.test(c.a.verdict)
+    })())
+  t('a column absent from the header is distinguished from one that is empty',
+    (() => {
+      const c = columnStates([{ b: '' }, { b: '' }], ['a', 'b'])
+      return c.a.verdict === 'absent from the header' && /NO usable value/.test(c.b.verdict)
+    })())
+  t('an NA literal is its own state, not an unparseable one',
+    columnStates([{ a: 'NA' }], ['a']).a.na_literal === 1)
+  t('a fully usable column says so',
+    columnStates([{ a: '0.5' }, { a: '0.6' }], ['a']).a.verdict === 'present and usable on every row')
+  t('a partly usable column reports the fraction rather than a boolean',
+    /usable on 1 of 2 rows/.test(columnStates([{ a: '0.5' }, { a: '' }], ['a']).a.verdict))
 
   t('timeLeft counting to the end of regulation is identified as such',
     clockSemantics([{ time: '600', timeLeft: '3000', period: '1' }]).verdict.includes('REGULATION'))
