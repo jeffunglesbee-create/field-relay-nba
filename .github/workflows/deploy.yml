@@ -190,6 +190,21 @@ jobs:
           node scripts/check-odds-matcher-wiring.mjs
           node scripts/mutate-odds-matcher.mjs
 
+      - name: No new bare empty catch
+        run: |
+          # DUPLICATED FROM guards.yml ON PURPOSE. guards.yml carries
+          # `paths-ignore: src/**`, so on a src-only push it does not run — and
+          # a bare catch added to src/index.js is precisely a src-only push.
+          # The guard set's trigger has to cover the guard set's inputs; this
+          # file's own header records what happened the last time it did not.
+          python3 -m pip install --quiet tree-sitter tree-sitter-javascript
+          node scripts/check-empty-catches.mjs --self-test
+          node scripts/check-empty-catches.mjs src scripts \
+            --baseline=112 \
+            --require=src/ambient-do.js:306 \
+            --control
+          node scripts/mutate-empty-catches.mjs
+
       - name: No claim is wider than its declared scope
         run: |
           node scripts/check-scope-claims.mjs --self-test

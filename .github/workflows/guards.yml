@@ -258,6 +258,20 @@ jobs:
           node scripts/check-nhl-onice.mjs
           node scripts/nhl-shiftcharts-probe.mjs --self-test
 
+      - name: No new bare empty catch
+        if: always()
+        run: |
+          # The AST control adjudicates the fast scanner. It found two defects
+          # in it that reading did not, so an absent tree-sitter FAILS the gate
+          # rather than skipping it.
+          python3 -m pip install --quiet tree-sitter tree-sitter-javascript
+          node scripts/check-empty-catches.mjs --self-test
+          node scripts/check-empty-catches.mjs src scripts \
+            --baseline=112 \
+            --require=src/ambient-do.js:306 \
+            --control
+          node scripts/mutate-empty-catches.mjs
+
       - name: The hockey WP scorer still refuses what it cannot read
         if: always()
         run: |

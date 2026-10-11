@@ -5,7 +5,62 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — CI gate for an auditor that already exists
 
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Four tasks, five done conditions, no stop
+condition hit. Session doc:
+`outbox/cc-session-2026-10-03-empty-catch-gate.md`.
+
+Gate: `scripts/check-empty-catches.mjs`, wired into **both** `guards.yml` and
+`deploy.yml` at `--baseline=112`. Mutation: `scripts/mutate-empty-catches.mjs`,
+**9 of 9 caught, 0 never placed.** 35 self-tests. The 112 were NOT fixed, per
+Task 3.
+
+**TASK 0.1 — the totals moved and the difference is accounted for.** At HEAD:
+**181 empty across 396 files, 112 bare, 69 reasoned** against this document's
+158/61. A glob sweep of `src/*.js scripts/*.mjs` returns 177 and the remaining 4
+are two scripts this session added before measuring. **Seven of the nine
+per-file `src/` figures below match exactly**; `index.js` moved 20 → 22 and
+`game-do.js` 7 → 4 in eight days.
+
+**`budget-helpers.js` holds as the control: 0 bare, 6 reasoned.**
+
+**TASK 0.3 — THE DEPENDENCY ANSWER CHANGED ONCE IT WAS MEASURED.** The first
+decision was to keep `pip install tree-sitter tree-sitter-javascript` out of CI
+and port to the client's shape. Both halves of that were wrong.
+
+The client's `check-absence-collapse.mjs` classifies ONE LINE AT A TIME, which
+is correct for `|| 0` collapses and cannot see a body spanning lines — the exact
+defect `audit-empty-catches.py` exists to avoid. So the engine reads whole
+bodies by brace-matching a code-only mask, and takes only the CONVENTIONS from
+the client.
+
+And the auditor, run as an adjudicator against that new scanner, found two
+defects in it that reading would not have:
+
+| defect | cost |
+|---|---|
+| a regex literal holding quotes — `src/browser-do.js:122` reads `selector.match(/:text\(['"](.+)['"]\)/)?.[1];` | 4 catch sites read where the AST read 13; everything after that line invisible |
+| a nested template literal, `` `${x ? `<b>${y}</b>` : ''}` `` | four whole files lost, `src/context-assembler.js` and its 11 empty catches among them |
+
+Each was a silent zero over most of a file. So `--control` runs **in** the gate,
+the install is in both workflows, and an absent tree-sitter FAILS rather than
+skipping — a control that did not run is not a pass. **396 of 396 files
+compared, 0 disagreed.**
+
+The auditor gained a multi-file mode for this (one `PERFILE <path> <n>` line
+each, single-file output unchanged); with one fix to the scanner — a regex over
+the whole accumulated mask on every slash — the full scan plus adjudication went
+**2m15s → 1.9s** with identical counts.
+
+**THE SUPPRESSION MECHANISM HAD TO BE MADE REACHABLE.** Written body-only first.
+The first four reasons added went above the `try` and the bare count changed by
+**nothing: 116 before, 116 after** — a bare `catch (_) {}` has nowhere inside it
+to write one. The pragma is now honoured on the catch's own header and closing
+lines, which is the client's trailing form; bare then fell to 112.
+
+**AND guards.yml CANNOT SEE src/.** It carries `paths-ignore: src/**`, so a bare
+catch added to `src/index.js` — precisely a src-only push — would never be
+gated. Duplicated into `deploy.yml` the way its four other src-reading guards
+already are.
 
 ## CONTEXT — the relay has the instrument and no gate
 

@@ -86,21 +86,50 @@ def audit_file(path, start_line=None, end_line=None):
     walk(root)
     return block_catches, promise_catches
 
-if __name__ == '__main__':
-    path = sys.argv[1]
-    start = int(sys.argv[2]) if len(sys.argv) > 2 else None
-    end = int(sys.argv[3]) if len(sys.argv) > 3 else None
+def report_one(path, start=None, end=None, verbose=True):
     blocks, promises = audit_file(path, start, end)
-
     empty_blocks = [b for b in blocks if b[1]]
     empty_promises = [p for p in promises if p[1]]
+    if verbose:
+        print(f"=== catch(e){{}} block statements: {len(blocks)} total, {len(empty_blocks)} empty ===")
+        for line, empty, snippet in empty_blocks:
+            print(f"  L{line}: {snippet}")
+        print()
+        print(f"=== .catch(callback) promise chains: {len(promises)} total, {len(empty_promises)} empty ===")
+        for line, empty, snippet in empty_promises:
+            print(f"  L{line}: {snippet}")
+        print()
+        print(f"TOTAL genuinely empty (both patterns): {len(empty_blocks) + len(empty_promises)}")
+    return len(empty_blocks) + len(empty_promises)
 
-    print(f"=== catch(e){{}} block statements: {len(blocks)} total, {len(empty_blocks)} empty ===")
-    for line, empty, snippet in empty_blocks:
-        print(f"  L{line}: {snippet}")
-    print()
-    print(f"=== .catch(callback) promise chains: {len(promises)} total, {len(empty_promises)} empty ===")
-    for line, empty, snippet in empty_promises:
-        print(f"  L{line}: {snippet}")
-    print()
-    print(f"TOTAL genuinely empty (both patterns): {len(empty_blocks) + len(empty_promises)}")
+if __name__ == '__main__':
+    argv = sys.argv[1:]
+    if not argv:
+        print("usage: audit-empty-catches.py FILE [start_line end_line]", file=sys.stderr)
+        print("       audit-empty-catches.py FILE FILE ...   (one PERFILE line each)", file=sys.stderr)
+        sys.exit(2)
+
+    # MULTI-FILE MODE, added 2026-10-11 so this tool can adjudicate a whole tree
+    # in one process. check-empty-catches.mjs --control spawned this once per
+    # file over 395 files, which is correct and far too slow to run in a gate;
+    # the fast scanner was then the only thing running in CI and the AST had no
+    # say there. One `PERFILE <path> <n>` line per file keeps the comparison
+    # machine-readable without changing the single-file output below, which other
+    # callers and this document's own measurements depend on.
+    numeric_range = len(argv) > 1 and argv[1].lstrip('-').isdigit()
+    if len(argv) > 1 and not numeric_range:
+        grand = 0
+        for path in argv:
+            try:
+                n = report_one(path, verbose=False)
+            except Exception as e:                      # a file this parser cannot read
+                print(f"PERFILE {path} ERROR {type(e).__name__}")
+                continue
+            print(f"PERFILE {path} {n}")
+            grand += n
+        print(f"FILES {len(argv)}")
+        print(f"TOTAL genuinely empty (both patterns): {grand}")
+    else:
+        start = int(argv[1]) if len(argv) > 1 else None
+        end = int(argv[2]) if len(argv) > 2 else None
+        report_one(argv[0], start, end)

@@ -101,7 +101,7 @@ const get = async (path) => {
     const r = await fetch(url, { headers: { 'User-Agent': 'FIELD/1.0' } })
     const text = await r.text()
     let body = null
-    try { body = JSON.parse(text) } catch (_) {}
+    try { body = JSON.parse(text) } catch (_) {} // catch-ok: a non-json body is a real answer from a route; the raw text is kept
     const h = {}
     for (const [k, v] of r.headers) if (/^x-/i.test(k)) h[k.toLowerCase()] = v
     calls.push(path)
