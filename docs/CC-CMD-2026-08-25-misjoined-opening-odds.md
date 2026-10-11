@@ -56,16 +56,58 @@ in `deploy.yml` and `guards.yml`.
 
 **The 156 rows are NOT corrected**, per the scope boundary below.
 
-**DONE CONDITION 3 — the growth check, with its limit stated.** Deploy
-`38146540922`, deploy and verify both `success`, 122 of 122 gate steps.
-`favourite-band-census` baseline over 120 days (`38145971449`):
-`opening odds captured at finalisation 120 of 140`. Three readings of today over ~18
-minutes: **46 rows, 0 flagged, every time**, and the single row carrying odds
-plus a `finalized_at` was captured BEFORE it.
+**DONE CONDITION 3 — MET, and the baseline it was first written against was
+junk. Both halves matter.**
 
-All three are byte-identical, so **no game finalised across any of them** — the
-window did not cross a finalisation. The condition is in deployed source and gated in two
-workflows; tomorrow's census is the reading that crosses it with real games.
+**CORRECTED 2026-10-11, census run `38164136622`, 120 days:**
+
+```
+120 date(s) read, 0 unavailable, 1341 game(s)
+opening odds captured at finalisation   158 of 1341
+  inside this document's window (06-23 .. 07-11)   155
+  after it                                           3   (08-15 ×1, 09-02 ×2)
+  latest flagged date                       2026-09-02
+```
+
+**155 in-window is this document's own figure, reached a third way.** Step 1's
+D1 census said 155 at finalisation from the archive endpoint; the slate census
+says 155 from `/context/date` over a window six times longer. And only **three**
+rows fall outside, the last of them on **2026-09-02** — 39 days before this
+reading, and nothing at all since the condition deployed. That is the growth
+check, with a denominator.
+
+**WHAT THE FIRST BASELINE ACTUALLY MEASURED.** The reading originally recorded
+here was `opening odds captured at finalisation 120 of 140` from run
+`38145971449`. That run is bracketed by two FAILED relay deploys:
+
+```
+14:07:33Z  deploy FAILURE  efcf893
+14:08:24Z  census run 38145971449   <- the baseline
+14:12:44Z  deploy FAILURE  9c136d0
+14:16:56Z  deploy success  c078a70
+```
+
+It read 120 dates, reported **0 unavailable**, and saw **140** games where the
+healthy relay serves **1341** — 94 MLB games across 120 days, which no MLB
+season produces. Every response was a 200. `scripts/favourite-band-census.mjs`
+is byte-identical between the two runs (`git diff 7200e55 0b9b0ea` over that
+path is empty), so the difference is entirely in what the relay served.
+
+Causation is not proven — the relay as it stood at 14:08Z cannot be re-queried.
+The correlation is tight and no other explanation survives the identical script.
+
+**THE CENSUS TRUSTED A 200**, which is the defect worth carrying forward from
+this. It called a relay serving a tenth of its archive "0 unavailable", because
+`res.ok` was the whole test. This repository already names that distinction —
+`scripts/probe-epl-substrate.mjs` classifies `empty` separately from `present`
+for exactly this reason — and the census did not use it. Fixed in
+field-laboratory the same day; see that repo's
+`outbox/cc-session-2026-10-11-census-trusted-a-200.md`.
+
+**The three same-day readings stand, and prove less than they looked like.**
+46 rows, 0 flagged, byte-identical across ~18 minutes — so no game finalised
+across any of them, and that window never crossed a finalisation. The corrected
+census above is the reading that does.
 
 **TWO RED DEPLOYS, BOTH MINE, BOTH IN GATE CATEGORIES I HAD SKIPPED.** A comment
 in the fix wrote the words `extractOddsForGame(og)` in prose and
