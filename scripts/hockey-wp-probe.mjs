@@ -23,7 +23,8 @@ import { total } from './lib/summary-invariants.mjs'
 // scorer_end_to_end block below IS that artifact — it proves the modelled path
 // returns a number on live-shaped data, and does not depend on a game being in
 // progress when the probe runs.
-import { winProbFromPlayByPlay, stateFromPlayByPlay } from '../src/hockey-wp.js'
+import { winProbFromPlayByPlay, stateFromPlayByPlay, parseSituation as _ps } from '../src/hockey-wp.js'
+import { attackingNetX, geometryFromCoords, NET_X } from '../src/hockey-wp-lib.js'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
@@ -266,7 +267,57 @@ const main = async () => {
         on_shot_plays: shots.filter(p2 => p2.homeTeamDefendingSide !== undefined).length,
         shot_plays_total: shots.length,
         distinct_values_on_plays: [...new Set(plays.map(p2 => p2.homeTeamDefendingSide).filter(v => v !== undefined))],
-        root_keys: Object.keys(pbp.body).filter(k => /defend|side/i.test(k))
+        root_keys: Object.keys(pbp.body).filter(k => /defend|side/i.test(k)),
+        by_period: (() => {
+          const m = {}
+          for (const p2 of plays) {
+            if (p2.homeTeamDefendingSide === undefined) continue
+            const per = p2.periodDescriptor?.number ?? '?'
+            const k = `P${per}`
+            m[k] = m[k] || {}
+            m[k][p2.homeTeamDefendingSide] = (m[k][p2.homeTeamDefendingSide] || 0) + 1
+          }
+          return m
+        })(),
+        note: 'if the value already differs BY PERIOD it encodes the flip, and a second period flip in attackingNetX would be wrong'
+      }
+
+      // WHICH READING IS RIGHT, DECIDED BY THE DISTANCES IT PRODUCES. Shots are
+      // taken in the offensive zone, so the correct attacking net yields mostly
+      // short distances; aiming at the wrong net puts nearly every shot beyond
+      // 100 feet and still returns a number. This compares the two candidate
+      // readings on the same 125 shots.
+      const distStats = (useFlip) => {
+        const ds = []
+        for (const p2 of shots) {
+          const d2 = p2.details || {}
+          const sit = _ps(p2.situationCode)
+          if (!sit || !Number.isFinite(d2.xCoord) || !Number.isFinite(d2.yCoord)) continue
+          const shooterIsHome = d2.eventOwnerTeamId === pbp.body.homeTeam?.id
+          const side = p2.homeTeamDefendingSide
+          let netX
+          if (useFlip) netX = attackingNetX({ shooterIsHome, period: p2.periodDescriptor?.number ?? 1, homeTeamDefendingSide: side })
+          else {
+            if (side !== 'left' && side !== 'right') continue
+            const homeAttacksX = side === 'left' ? NET_X : -NET_X
+            netX = shooterIsHome ? homeAttacksX : -homeAttacksX
+          }
+          const g2 = geometryFromCoords({ xCoord: d2.xCoord, yCoord: d2.yCoord, netX })
+          if (g2) ds.push(g2.distance)
+        }
+        ds.sort((a, b) => a - b)
+        return {
+          n: ds.length,
+          median: ds.length ? +ds[Math.floor(ds.length / 2)].toFixed(2) : null,
+          p90: ds.length ? +ds[Math.floor(ds.length * 0.9)].toFixed(2) : null,
+          over_100ft: ds.filter(x => x > 100).length,
+          share_over_100ft: ds.length ? +(ds.filter(x => x > 100).length / ds.length).toFixed(4) : null
+        }
+      }
+      sc.net_reading_comparison = {
+        with_period_flip: distStats(true),
+        play_side_as_given: distStats(false),
+        verdict: 'the reading with the SMALLER share over 100ft is the correct one; shots happen in the offensive zone'
       }
       sc.score_fields = {
         shot_events_with_details_homeScore: shots.filter(p2 => Number.isFinite(p2.details?.homeScore)).length,
