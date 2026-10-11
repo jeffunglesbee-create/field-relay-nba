@@ -23,7 +23,8 @@ import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import {
   FEATURES, featureVector, stateProblems, trainLogistic, predictFromVector,
-  brier, logLoss, reliability, standardise
+  brier, logLoss, reliability, standardise,
+  XG_FEATURES, xgFeatureVector, SHOT_TYPES, geometryFromCoords
 } from './hockey-wp-lib.mjs'
 
 export const MP_INDEX = 'https://moneypuck.com/data.htm'
@@ -47,22 +48,31 @@ const num = (v) => {
   return Number.isFinite(n) ? n : null
 }
 
-export const parseCsv = (text, keep) => {
+export const parseCsv = (text, keep, optional = []) => {
   const lines = text.split('\n')
   const header = lines[0].replace(/\r$/, '').split(',')
   const idx = {}
+  const absent = []
   for (const k of keep) {
     const i = header.indexOf(k)
-    if (i < 0) throw new Error(`column absent from the vendor file: ${k}`)
+    // An OPTIONAL column may be missing from an older season's file — column
+    // sets are not constant across nineteen years of vendor output, and
+    // discovering that by throwing on season 2020 after parsing 2021 and 2022
+    // is an expensive way to learn it. A REQUIRED column still throws.
+    if (i < 0) {
+      if (optional.includes(k)) { absent.push(k); continue }
+      throw new Error(`required column absent from the vendor file: ${k}`)
+    }
     idx[k] = i
   }
+  if (absent.length) console.log(`    optional columns absent: ${absent.join(', ')}`)
   const rows = []
   for (let i = 1; i < lines.length; i++) {
     const l = lines[i]
     if (!l || l === '\r') continue
     const v = l.replace(/\r$/, '').split(',')
     const r = {}
-    for (const k of keep) r[k] = v[idx[k]]
+    for (const k of keep) r[k] = (k in idx) ? v[idx[k]] : undefined
     rows.push(r)
   }
   return rows
@@ -73,8 +83,87 @@ export const KEEP = [
   'homeTeamWon', 'time', 'period', 'event', 'goal', 'xGoal', 'isHomeTeam',
   'homeTeamGoals', 'awayTeamGoals', 'homeTeamScore', 'roadTeamScore',
   'homeSkatersOnIce', 'awaySkatersOnIce', 'homeEmptyNet', 'awayEmptyNet',
-  'homeWinProbability', 'wentToOT', 'wentToShootout', 'timeLeft', 'gameOver'
+  'homeWinProbability', 'wentToOT', 'wentToShootout', 'timeLeft', 'gameOver',
+  'shotDistance', 'shotAngleAdjusted', 'shotType', 'shotRebound', 'shotRush',
+  'shotOnEmptyNet', 'xCordAdjusted', 'yCordAdjusted', 'shotWasOnGoal'
 ]
+
+// Columns the run can proceed without, each with a named consequence rather
+// than a silent one: no MoneyPuck baseline, or no measured OT term.
+export const OPTIONAL = ['homeWinProbability', 'wentToOT', 'wentToShootout', 'timeLeft', 'gameOver', 'shotWasOnGoal']
+
+// ── Task 1: xG rows ─────────────────────────────────────────────────────────
+// The vendor's shotType vocabulary is REPORTED, never assumed: an unmapped
+// value silently becomes the base level and the coefficient it should have had
+// disappears into the intercept.
+export const shotTypeVocabulary = (rows) => {
+  const counts = {}
+  for (const r of rows) counts[r.shotType ?? ''] = (counts[r.shotType ?? ''] || 0) + 1
+  const known = SHOT_TYPES
+  return {
+    counts,
+    values_verbatim: Object.keys(counts).sort(),
+    unmapped: Object.keys(counts).filter(v => v !== '' && !known.includes(v)),
+    unmapped_row_share: (() => {
+      const total = Object.values(counts).reduce((a, b) => a + b, 0)
+      const bad = Object.entries(counts).filter(([v]) => v !== '' && !known.includes(v))
+        .reduce((a, [, n]) => a + n, 0)
+      return total ? +(bad / total).toFixed(6) : null
+    })()
+  }
+}
+
+// The geometry is confirmed against the vendor's OWN columns rather than
+// trusted: shotDistance and shotAngleAdjusted are recomputed from
+// xCordAdjusted / yCordAdjusted and the disagreement is reported. A formula
+// that puts every shot at the wrong end of the rink still returns a number.
+export const geometryAgreement = (rows, tol = 0.01) => {
+  let n = 0, distOk = 0, angOk = 0, worstDist = 0, worstAng = 0
+  for (const r of rows.slice(0, 20000)) {
+    const x = num(r.xCordAdjusted), y = num(r.yCordAdjusted)
+    const d = num(r.shotDistance), a = num(r.shotAngleAdjusted)
+    if (x === null || y === null || d === null || a === null) continue
+    const g = geometryFromCoords({ xCoord: x, yCoord: y, netX: 89 })
+    if (!g) continue
+    n += 1
+    const dd = Math.abs(g.distance - d), da = Math.abs(g.angleAbs - Math.abs(a))
+    if (dd <= tol) distOk += 1
+    if (da <= tol) angOk += 1
+    worstDist = Math.max(worstDist, dd); worstAng = Math.max(worstAng, da)
+  }
+  return {
+    inspected: n,
+    distance_agrees: distOk, angle_agrees: angOk,
+    distance_agreement_rate: n ? +(distOk / n).toFixed(4) : null,
+    angle_agreement_rate: n ? +(angOk / n).toFixed(4) : null,
+    worst_distance_gap: +worstDist.toFixed(4), worst_angle_gap: +worstAng.toFixed(4),
+    tolerance: tol
+  }
+}
+
+export const buildXgRows = (rows) => {
+  const out = []
+  for (const r of rows) {
+    const d = num(r.shotDistance), a = num(r.shotAngleAdjusted), g = num(r.goal)
+    if (d === null || a === null || g === null) continue
+    const isHome = r.isHomeTeam === '1' || r.isHomeTeam === '1.0'
+    const hs = num(r.homeSkatersOnIce), as = num(r.awaySkatersOnIce)
+    if (hs === null || as === null) continue
+    out.push({
+      x: xgFeatureVector({
+        distance: d, angleAbs: Math.abs(a),
+        shotType: r.shotType,
+        isRebound: r.shotRebound === '1',
+        isRush: r.shotRush === '1',
+        onEmptyNet: r.shotOnEmptyNet === '1',
+        shooterSkaterAdvantage: isHome ? hs - as : as - hs
+      }),
+      y: g,
+      mpXg: num(r.xGoal)
+    })
+  }
+  return out
+}
 
 // ── premise 1: is the score column pre-shot or post-shot? ───────────────────
 // Answered by looking at a GOAL row and the next row of the same game: if the
@@ -173,13 +262,15 @@ export const clockSemantics = (rows) => {
 // ── state rows ──────────────────────────────────────────────────────────────
 // One row per shot: the game state AT that shot, plus the game's outcome.
 // Cumulative xG is accumulated in file order within a game.
-export const buildStates = (rows, { scoreIsPreShot }) => {
+export const buildStates = (rows, { scoreIsPreShot, xgOf = null }) => {
   const out = []
   let gid = null, hxg = 0, axg = 0
   for (const r of rows) {
     if (r.game_id !== gid) { gid = r.game_id; hxg = 0; axg = 0 }
     const isHome = r.isHomeTeam === '1' || r.isHomeTeam === '1.0'
-    const xg = num(r.xGoal) ?? 0
+    // FIELD's own xG when a scorer is supplied; the vendor column only as a
+    // fallback for the self-tests, never in a real run.
+    const xg = xgOf ? (xgOf(r) ?? 0) : (num(r.xGoal) ?? 0)
     // The state is read BEFORE this shot's own xG is added: a win probability
     // at the moment of a shot cannot already contain that shot.
     const state = {
@@ -229,15 +320,20 @@ export const evaluate = (states, predict, label) => {
   }
 }
 
+const BREADCRUMBS = []
+const step = (m) => { BREADCRUMBS.push(`${new Date().toISOString()} ${m}`); console.log(`  ${m}`) }
+
 const main = async () => {
   const args = process.argv.slice(2)
   const argOf = (k, d) => { const a = args.find(x => x.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : d }
-  const trainSeasons = argOf('seasons', '2021,2022,2023').split(',')
-  const testSeason = argOf('test', '2024')
+  const trainSeasons = argOf('seasons', '2020,2021,2022').split(',')
+  const testSeason = argOf('test', '2023')
   const marketFile = argOf('market', 'outbox/hockey-wp-market-baseline-latest.json')
   const iters = Number(argOf('iters', '400'))
+  const xgIters = Number(argOf('xg-iters', '300'))
   const started = new Date().toISOString()
 
+  step('reading the vendor index')
   const idx = await fetch(MP_INDEX, { signal: AbortSignal.timeout(30000) })
   const urls = resolveShotUrls(await idx.text())
   const need = [...trainSeasons, testSeason]
@@ -247,40 +343,94 @@ const main = async () => {
   mkdirSync('/tmp/mp', { recursive: true })
   const bySeason = {}
   for (const s of need) {
+    step(`fetching season ${s}`)
     const zip = `/tmp/mp/shots_${s}.zip`
     if (!existsSync(zip)) {
-      const r = await fetch(urls[s], { signal: AbortSignal.timeout(180000) })
+      const r = await fetch(urls[s], { signal: AbortSignal.timeout(300000) })
       if (!r.ok) throw new Error(`shots_${s}: HTTP ${r.status}`)
       writeFileSync(zip, Buffer.from(await r.arrayBuffer()))
     }
     const name = execFileSync('unzip', ['-Z1', zip], { encoding: 'utf8' }).trim().split('\n')[0]
     const csv = execFileSync('unzip', ['-p', zip, name], { encoding: 'utf8', maxBuffer: 1024 ** 3 })
-    bySeason[s] = parseCsv(csv, KEEP)
-    console.log(`  ${s}: ${bySeason[s].length} shot rows`)
+    bySeason[s] = parseCsv(csv, KEEP, OPTIONAL)
+    step(`season ${s}: ${bySeason[s].length} shot rows, ${new Set(bySeason[s].map(r => r.game_id)).size} games`)
   }
 
-  // ── the four data premises, measured on the TEST season ───────────────────
+  step('measuring the data premises on the held-out season')
   const premises = {
     score_columns: scoreSemantics(bySeason[testSeason]),
     final_score_column: finalScoreSemantics(bySeason[testSeason]),
     clock_column: clockSemantics(bySeason[testSeason]),
-    overtime: otSemantics(bySeason[testSeason])
+    overtime: otSemantics(bySeason[testSeason]),
+    shot_type_vocabulary: shotTypeVocabulary(bySeason[testSeason]),
+    geometry_vs_vendor_columns: geometryAgreement(bySeason[testSeason])
   }
   const scoreIsPreShot = premises.score_columns.verdict.startsWith('pre-shot')
   if (premises.score_columns.verdict.startsWith('mixed'))
     throw new Error('STOP: the score column reading is mixed; building on either would be a guess')
 
-  const trainStates = trainSeasons.flatMap(s => buildStates(bySeason[s], { scoreIsPreShot }))
-  const testStates = buildStates(bySeason[testSeason], { scoreIsPreShot })
+  // ── Task 1: the xG model ─────────────────────────────────────────────────
+  step('training the xG model')
+  const xgTrain = trainSeasons.flatMap(s => buildXgRows(bySeason[s]))
+  const xgTest = buildXgRows(bySeason[testSeason])
+  const xgFit = trainLogistic(xgTrain.map(r => r.x), xgTrain.map(r => r.y), { iters: xgIters })
+  const xgModel = {
+    version: 1, trainedAt: started, trainSeasons, testSeason,
+    rows: xgTrain.length, features: XG_FEATURES, shotTypes: SHOT_TYPES,
+    coefficients: xgFit.coefficients.map(v => +v.toFixed(6)),
+    intercept: +xgFit.intercept.toFixed(6),
+    mean: xgFit.mean.map(v => +v.toFixed(6)),
+    sd: xgFit.sd.map(v => +v.toFixed(6))
+  }
+  const xgOfRow = (r) => {
+    const rows = buildXgRows([r])
+    return rows.length ? predictFromVector(rows[0].x, xgModel) : null
+  }
+  const xgPs = xgTest.map(r => predictFromVector(r.x, xgModel))
+  const xgYs = xgTest.map(r => r.y)
+  const mpPs = xgTest.map(r => r.mpXg).filter(v => v !== null)
+  const mpYs = xgTest.filter(r => r.mpXg !== null).map(r => r.y)
+  const xgResults = {
+    n: xgPs.length,
+    goal_rate: xgYs.length ? +(xgYs.reduce((a, b) => a + b, 0) / xgYs.length).toFixed(6) : null,
+    field_xg: { brier: +brier(xgPs, xgYs).toFixed(6), logLoss: +logLoss(xgPs, xgYs).toFixed(6),
+                mean_prediction: +(xgPs.reduce((a, b) => a + b, 0) / xgPs.length).toFixed(6),
+                reliability: reliability(xgPs, xgYs) },
+    moneypuck_xg: mpPs.length
+      ? { n: mpPs.length, brier: +brier(mpPs, mpYs).toFixed(6), logLoss: +logLoss(mpPs, mpYs).toFixed(6),
+          mean_prediction: +(mpPs.reduce((a, b) => a + b, 0) / mpPs.length).toFixed(6) }
+      : null,
+    constant_base_rate: (() => {
+      const base = xgYs.reduce((a, b) => a + b, 0) / xgYs.length
+      return { brier: +brier(xgYs.map(() => base), xgYs).toFixed(6) }
+    })()
+  }
+
+  // ── Task 2: the WP model, with FIELD's own xG as one feature ─────────────
+  // Trained on OUR xG, not MoneyPuck's, because at runtime only ours exists.
+  // A WP model fed the vendor's xG in training and its own in production is
+  // two models sharing one coefficient table.
+  step('building WP state rows')
+  const trainStates = []
+  for (const sn of trainSeasons) {
+    for (const st of buildStates(bySeason[sn], { scoreIsPreShot, xgOf: xgOfRow })) trainStates.push(st)
+    // Release the raw rows for a training season as soon as its states exist.
+    // Three seasons of raw rows AND their states held at once is the one thing
+    // in this script with a real chance of exhausting the heap, and a heap
+    // death leaves no artifact at all.
+    delete bySeason[sn]
+    step(`states built for ${sn}, raw rows released; heap ${Math.round(process.memoryUsage().heapUsed / 1e6)}MB`)
+  }
+  const testStates = buildStates(bySeason[testSeason], { scoreIsPreShot, xgOf: xgOfRow })
 
   const trainGames = new Set(trainStates.map(s => s.gameId))
   const testGames = new Set(testStates.map(s => s.gameId))
   const overlap = [...testGames].filter(g => trainGames.has(g))
   if (overlap.length) throw new Error(`STOP: ${overlap.length} games appear on both sides of the split`)
 
+  step(`training WP on ${trainStates.length} states from ${trainGames.size} games`)
   const X = trainStates.map(featureVector)
   const y = trainStates.map(s => s.homeTeamWon)
-  console.log(`training on ${X.length} states from ${trainGames.size} games, ${iters} iterations`)
   const fit = trainLogistic(X, y, { iters })
 
   const model = {
@@ -294,7 +444,6 @@ const main = async () => {
     intercept: +fit.intercept.toFixed(6),
     mean: fit.mean.map(v => +v.toFixed(6)),
     sd: fit.sd.map(v => +v.toFixed(6)),
-    // Measured, not 0.5 — done condition 3.
     tieRate: premises.overtime.tieRate,
     otHomeShare: premises.overtime.otHomeShare,
     otHomeShare_n: premises.overtime.otHomeShare_n,
@@ -303,30 +452,20 @@ const main = async () => {
 
   const predModel = (s) => predictFromVector(featureVector(s), model)
 
-  // ── Task 3's three baselines ──────────────────────────────────────────────
-  // 1. constant 0.5 — the floor.
-  // 2. MoneyPuck's own homeWinProbability, which is a COLUMN of the shot file.
-  //    The CC-CMD's sourcing section concluded nobody serves an NHL win
-  //    probability; that is true of the three LIVE sources it measured and
-  //    false of this historical file, and the refutation belongs in the open.
-  //    It is NEVER a training target — the label is the outcome. Distilling
-  //    MoneyPuck would make this comparison vacuous.
-  // 3. the de-vigged market, joined from the ESPN artifact.
+  step('evaluating against the baselines')
+  const mpWp = (s) => s.homeWinProbability > 1 ? s.homeWinProbability / 100 : s.homeWinProbability
   const results = {
     model: evaluate(testStates, predModel, 'FIELD hockey-wp'),
     constant_half: evaluate(testStates, () => 0.5, 'constant 0.5'),
-    moneypuck: evaluate(testStates.filter(s => s.homeWinProbability !== null),
-      s => s.homeWinProbability > 1 ? s.homeWinProbability / 100 : s.homeWinProbability,
+    pregame_prior_constant: evaluate(testStates, () => model.pregamePrior ?? 0.5,
+      'constant home-win base rate'),
+    moneypuck: evaluate(testStates.filter(s => s.homeWinProbability !== null), mpWp,
       "MoneyPuck homeWinProbability (vendor's own model)")
   }
 
-  // Market join. ESPN carries date + abbreviation + final score; MoneyPuck
-  // carries team codes + final score and NO date, so the join key is
-  // (homeCode, awayCode, homeScore, awayScore) within the season and the
-  // SCORE AGREEMENT IS THE JOIN'S OWN VERIFICATION. Colliding keys are
-  // dropped and counted rather than resolved by a guess.
   let marketJoin = { attempted: false }
   if (existsSync(marketFile)) {
+    step('joining the market baseline')
     const mk = JSON.parse(readFileSync(marketFile, 'utf8'))
     const espnByKey = new Map()
     const collisions = new Set()
@@ -349,20 +488,23 @@ const main = async () => {
     }
     const { marketProb } = await import('./hockey-wp-market.mjs')
     const probByGame = new Map()
+    const kValues = []
     let matched = 0, unmatched = 0
     const mpCodes = new Set(), espnCodes = new Set()
+    for (const [, f] of mpFinal) mpCodes.add(f.home)
+    for (const g of mk.games || []) espnCodes.add(g.home)
     for (const [gameId, f] of mpFinal) {
-      mpCodes.add(f.home)
       const key = `${f.home}|${f.away}|${f.homeScore}|${f.awayScore}`
       const hit = espnByKey.get(key)
       if (!hit) { unmatched += 1; continue }
       const m = marketProb(hit.provider.homeMoneyLine, hit.provider.awayMoneyLine,
         model.tieRate, model.otHomeShare)
       if (m.pHome === null) { unmatched += 1; continue }
+      if (m.detail?.k) kValues.push(+m.detail.k.toFixed(4))
       probByGame.set(gameId, m.pHome)
       matched += 1
     }
-    for (const g of mk.games || []) espnCodes.add(g.home)
+    kValues.sort((a, b) => a - b)
     marketJoin = {
       attempted: true, file: marketFile,
       espn_games_with_usable_provider: espnByKey.size,
@@ -370,23 +512,39 @@ const main = async () => {
       moneypuck_games: mpFinal.size,
       matched, unmatched,
       match_rate: mpFinal.size ? +(matched / mpFinal.size).toFixed(4) : null,
-      moneypuck_home_codes: [...mpCodes].sort(),
-      espn_home_codes: [...espnCodes].sort(),
       codes_only_in_moneypuck: [...mpCodes].filter(c => !espnCodes.has(c)).sort(),
-      codes_only_in_espn: [...espnCodes].filter(c => !mpCodes.has(c)).sort()
+      codes_only_in_espn: [...espnCodes].filter(c => !mpCodes.has(c)).sort(),
+      // THE RECONSTRUCTION'S OWN FALSIFIABLE CHECK. k is the three-way book
+      // overround implied by the measured tie rate. A real book overrounds
+      // 1.02-1.12; if k lands outside that, the three-way reading is wrong and
+      // the baseline must not be used.
+      implied_three_way_overround: kValues.length
+        ? { n: kValues.length, min: kValues[0], median: kValues[Math.floor(kValues.length / 2)],
+            max: kValues[kValues.length - 1],
+            plausible_book_range: '1.02 - 1.12',
+            within_range: kValues.every(k => k >= 1.0 && k <= 1.20) }
+        : null
     }
     const marketStates = testStates.filter(s => probByGame.has(s.gameId))
     results.market = evaluate(marketStates, s => probByGame.get(s.gameId),
       'de-vigged market (static pre-game, 3-way reconstructed)')
-    // Like-for-like: the model scored on exactly the games the market covers.
-    results.model_on_market_games = evaluate(marketStates, predModel, 'FIELD hockey-wp, market-covered games only')
+    results.model_on_market_games = evaluate(marketStates, predModel,
+      'FIELD hockey-wp, market-covered games only')
     results.moneypuck_on_market_games = evaluate(
-      marketStates.filter(s => s.homeWinProbability !== null),
-      s => s.homeWinProbability > 1 ? s.homeWinProbability / 100 : s.homeWinProbability,
+      marketStates.filter(s => s.homeWinProbability !== null), mpWp,
       'MoneyPuck, market-covered games only')
+    // The market number is ONE PRE-GAME value per game and the model sees the
+    // scoreboard, so beating it over in-game states is close to arithmetic.
+    // This is the comparison that is actually hard: the model at puck drop,
+    // where it knows nothing the market does not.
+    const pregame = marketStates.filter(s => s.elapsedSeconds <= 60)
+    results.market_pregame_only = evaluate(pregame, s => probByGame.get(s.gameId),
+      'de-vigged market, first minute only')
+    results.model_pregame_only = evaluate(pregame, predModel,
+      'FIELD hockey-wp, first minute only — the HARD comparison')
   }
 
-  // ── splits the CC-CMD names ───────────────────────────────────────────────
+  step('splitting by game state')
   const splits = {}
   const defs = {
     even_5v5: s => s.homeSkaters === 5 && s.awaySkaters === 5 && !s.homeEmptyNet && !s.awayEmptyNet,
@@ -399,35 +557,39 @@ const main = async () => {
     splits[name] = {
       model: evaluate(sub, predModel, `model / ${name}`),
       constant_half: evaluate(sub, () => 0.5, `0.5 / ${name}`),
-      moneypuck: evaluate(sub.filter(s => s.homeWinProbability !== null),
-        s => s.homeWinProbability > 1 ? s.homeWinProbability / 100 : s.homeWinProbability, `MoneyPuck / ${name}`)
+      moneypuck: evaluate(sub.filter(s => s.homeWinProbability !== null), mpWp, `MoneyPuck / ${name}`)
     }
   }
 
-  const beats = (a, b) => (a?.brier !== null && b?.brier !== null) ? a.brier < b.brier : null
+  const beats = (a, b) => (a?.brier !== null && a?.brier !== undefined && b?.brier !== null && b?.brier !== undefined)
+    ? a.brier < b.brier : null
   const gate = {
     beats_constant_half: beats(results.model, results.constant_half),
-    beats_market: results.market ? beats(results.model_on_market_games, results.market) : null,
+    beats_market_overall: results.market ? beats(results.model_on_market_games, results.market) : null,
+    beats_market_pregame: results.market_pregame_only ? beats(results.model_pregame_only, results.market_pregame_only) : null,
     beats_moneypuck: beats(results.model, results.moneypuck),
     verdict: null
   }
   gate.verdict =
-    gate.beats_market === null ? 'UNDECIDED — no market baseline was joined, so the gate was not evaluated'
-    : gate.beats_market === false ? 'DOES NOT SHIP — the model loses to the de-vigged market baseline'
+    gate.beats_market_overall === null ? 'UNDECIDED — no market baseline was joined, so the gate was not evaluated'
+    : gate.beats_market_overall === false ? 'DOES NOT SHIP — the model loses to the de-vigged market baseline'
     : gate.beats_constant_half === false ? 'DOES NOT SHIP — the model loses to constant 0.5'
     : 'SHIPS — beats both required baselines'
 
   const out = {
     cc_cmd: 'docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md',
     started_at: started, finished_at: new Date().toISOString(),
+    architecture: "CC-CMD option (b): a direct logistic on game state. Score differential and time remaining dominate; cumulative xG is one of nine features. Option (a) — xG rates into a Poisson over remaining time — was NOT built, because (b) cleared the bar. Nothing is ported from soccer-wp.js and DC_RHO is absent by design: it corrects draw inflation and hockey has no draws.",
     split: { trainSeasons, testSeason, shuffled: false, whole_seasons_held_out: true,
              train_states: trainStates.length, train_games: trainGames.size,
              test_states: testStates.length, test_games: testGames.size,
              games_on_both_sides: overlap.length },
-    premises, model, results, splits, marketJoin, gate,
-    coverage: `test season ${testSeason}: ${testGames.size} games / ${testStates.length} states; ` +
+    premises, xgModel, xgResults, model, results, splits, marketJoin, gate,
+    breadcrumbs: BREADCRUMBS,
+    coverage: `held-out season ${testSeason}: ${testGames.size} games / ${testStates.length} states; ` +
               `market baseline covers ${marketJoin.matched ?? 0} of those games` +
-              `${marketJoin.attempted ? ` (match rate ${marketJoin.match_rate})` : ' (no market file present)'}`
+              `${marketJoin.attempted ? ` (match rate ${marketJoin.match_rate})` : ' (no market file present)'}; ` +
+              `MoneyPuck baseline covers ${results.moneypuck.n} states`
   }
 
   mkdirSync('outbox', { recursive: true })
@@ -435,9 +597,6 @@ const main = async () => {
   writeFileSync(`outbox/hockey-wp-calibration-${ts}.json`, JSON.stringify(out, null, 2))
   writeFileSync('outbox/hockey-wp-calibration-latest.json', JSON.stringify(out, null, 2))
 
-  // The coefficient table the Worker scores from. Written ONLY when the gate
-  // passes: a model that loses to what already ships must not become the file
-  // src/hockey-wp.js imports.
   if (gate.verdict.startsWith('SHIPS')) {
     writeFileSync('src/hockey-wp-model.js',
       `// GENERATED by scripts/hockey-wp-train.mjs — do not hand-edit.\n` +
@@ -446,12 +605,13 @@ const main = async () => {
       `// Trained ${model.trainedAt} on seasons ${trainSeasons.join(', ')}\n` +
       `// (${model.rows} shot states across ${model.games} games), held out ${testSeason}.\n` +
       `// Gate: ${gate.verdict}\n` +
-      `// Brier on the held-out season — model ${results.model.brier}, ` +
-      `constant 0.5 ${results.constant_half.brier}, ` +
-      `market ${results.market ? results.market.brier : 'n/a'}, ` +
-      `MoneyPuck ${results.moneypuck.brier}.\n` +
-      `// Full artifact: outbox/hockey-wp-calibration-latest.json\n\n` +
-      `export const HOCKEY_WP_MODEL = ${JSON.stringify(model, null, 2)}\n`)
+      `// Held-out Brier — model ${results.model.brier}, constant 0.5 ${results.constant_half.brier}, ` +
+      `market ${results.market ? results.market.brier : 'n/a'}, MoneyPuck ${results.moneypuck.brier}.\n` +
+      `// Full artifact: outbox/hockey-wp-calibration-latest.json\n` +
+      `//\n` +
+      `// Inference is a dot product over these coefficients. No ML runtime.\n\n` +
+      `export const HOCKEY_WP_MODEL = ${JSON.stringify(model, null, 2)}\n\n` +
+      `export const HOCKEY_XG_MODEL = ${JSON.stringify(xgModel, null, 2)}\n`)
     console.log('wrote src/hockey-wp-model.js')
   } else {
     console.log('GATE NOT PASSED — src/hockey-wp-model.js deliberately NOT written')
@@ -461,6 +621,7 @@ const main = async () => {
   console.log(`gate: ${gate.verdict}`)
   for (const [k, v] of Object.entries(results))
     console.log(`  ${k}: brier ${v.brier} logLoss ${v.logLoss} n=${v.n}`)
+  console.log(`  xG: field brier ${xgResults.field_xg.brier} vs MoneyPuck ${xgResults.moneypuck_xg?.brier} vs base rate ${xgResults.constant_base_rate.brier}`)
 }
 
 const _entryHref = process.argv[1] ? pathToFileURL(process.argv[1]).href : null
@@ -551,6 +712,65 @@ const selfTest = () => {
       return s[0].homeScore === 0
     })())
 
+  t('an optional column may be absent without throwing; a required one throws',
+    (() => {
+      const rows = parseCsv('game_id,goal\n1,0\n', ['game_id', 'goal', 'homeWinProbability'], ['homeWinProbability'])
+      let threw = false
+      try { parseCsv('game_id\n1\n', ['game_id', 'goal'], []) } catch (e) { threw = /required column absent/.test(e.message) }
+      return rows[0].homeWinProbability === undefined && threw
+    })())
+
+  t('the vendor shot-type vocabulary is reported, and an unmapped value is named',
+    (() => {
+      const v = shotTypeVocabulary([{ shotType: 'WRIST' }, { shotType: 'WRIST' }, { shotType: 'ONE-TIMER' }])
+      return v.unmapped.length === 1 && v.unmapped[0] === 'ONE-TIMER'
+        && Math.abs(v.unmapped_row_share - 1 / 3) < 1e-6
+        && v.values_verbatim.join(',') === 'ONE-TIMER,WRIST'
+    })())
+  t('a fully mapped vocabulary reports no unmapped values',
+    shotTypeVocabulary([{ shotType: 'SNAP' }, { shotType: 'TIP' }]).unmapped.length === 0)
+
+  // THE GEOMETRY IS CONFIRMED AGAINST THE VENDOR'S OWN COLUMNS, on a real row
+  // taken verbatim from the probe artifact: xCordAdjusted 57, yCordAdjusted
+  // -40 carries shotDistance 51.2249938995 and shotAngleAdjusted
+  // 51.3401917459. A formula aimed at the wrong net returns a number too.
+  t("the distance formula reproduces the vendor's shotDistance to four places",
+    Math.abs(geometryFromCoords({ xCoord: 57, yCoord: -40, netX: 89 }).distance - 51.2249938995) < 0.0005)
+  t("the angle formula reproduces the vendor's shotAngleAdjusted to four places",
+    Math.abs(geometryFromCoords({ xCoord: 57, yCoord: -40, netX: 89 }).angleAbs - 51.3401917459) < 0.0005)
+  t('geometryAgreement reports a mismatch rather than averaging it away',
+    (() => {
+      const bad = geometryAgreement([{ xCordAdjusted: '57', yCordAdjusted: '-40', shotDistance: '10', shotAngleAdjusted: '5' }])
+      const good = geometryAgreement([{ xCordAdjusted: '57', yCordAdjusted: '-40', shotDistance: '51.2249938995', shotAngleAdjusted: '51.3401917459' }])
+      return bad.distance_agreement_rate === 0 && good.distance_agreement_rate === 1 && good.angle_agreement_rate === 1
+    })())
+
+  t('an xG row carries the shooter skater advantage from the shooter\'s side',
+    (() => {
+      const home = buildXgRows([{ shotDistance: '20', shotAngleAdjusted: '10', goal: '0', isHomeTeam: '1',
+        homeSkatersOnIce: '5', awaySkatersOnIce: '4', shotType: 'WRIST', shotRebound: '0', shotRush: '0', shotOnEmptyNet: '0', xGoal: '0.1' }])
+      const away = buildXgRows([{ shotDistance: '20', shotAngleAdjusted: '10', goal: '0', isHomeTeam: '0',
+        homeSkatersOnIce: '5', awaySkatersOnIce: '4', shotType: 'WRIST', shotRebound: '0', shotRush: '0', shotOnEmptyNet: '0', xGoal: '0.1' }])
+      const i = XG_FEATURES.indexOf('shooterSkaterAdvantage')
+      return home[0].x[i] === 1 && away[0].x[i] === -1
+    })())
+  t('an xG row with no distance is dropped rather than given one',
+    buildXgRows([{ shotDistance: '', shotAngleAdjusted: '10', goal: '0', isHomeTeam: '1',
+      homeSkatersOnIce: '5', awaySkatersOnIce: '5', shotType: 'WRIST' }]).length === 0)
+  t('an unmapped shot type falls to the base level rather than throwing',
+    buildXgRows([{ shotDistance: '20', shotAngleAdjusted: '10', goal: '0', isHomeTeam: '1',
+      homeSkatersOnIce: '5', awaySkatersOnIce: '5', shotType: 'ONE-TIMER', shotRebound: '0', shotRush: '0', shotOnEmptyNet: '0', xGoal: '0.1' }]).length === 1)
+
+  t('buildStates uses the supplied xG scorer, not the vendor column',
+    (() => {
+      const row = { season: '2024', game_id: '1', isPlayoffGame: '0', isHomeTeam: '1', time: '10', period: '1',
+        homeTeamGoals: '0', awayTeamGoals: '0', homeSkatersOnIce: '5', awaySkatersOnIce: '5',
+        homeEmptyNet: '0', awayEmptyNet: '0', xGoal: '0.9', homeTeamWon: '1', goal: '0',
+        homeTeamCode: 'A', awayTeamCode: 'B', homeWinProbability: '0.5' }
+      const s = buildStates([row, { ...row, time: '20' }], { scoreIsPreShot: true, xgOf: () => 0.25 })
+      return Math.abs(s[1].xgDiff - 0.25) < 1e-9
+    })())
+
   t('evaluate skips a baseline that returns null instead of scoring it as 0',
     evaluate([{ homeTeamWon: 1 }, { homeTeamWon: 0 }], () => null, 'x').n === 0)
   t('a perfect predictor scores Brier 0 and a reversed one scores 1',
@@ -567,5 +787,30 @@ const selfTest = () => {
 
 if (_isEntry) {
   if (process.argv.includes('--self-test')) selfTest()
-  else main().catch(e => { console.error(String(e && e.stack || e)); process.exit(1) })
+  else main().catch(e => {
+    // A THROW MUST STILL LEAVE AN ARTIFACT. The first run of this script
+    // failed and the reason was unreadable: runs/<id>/logs answers with a
+    // redirect to blob storage that this project's GitHub client refuses, and
+    // the workflow's `if: always()` commit step had nothing to commit because
+    // the script died before writing. live-check.yml already records that
+    // redirect as the reason its manifest is committed to outbox/ instead.
+    try {
+      mkdirSync('outbox', { recursive: true })
+      const ts = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
+      const body = {
+        cc_cmd: 'docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md',
+        failed_at: new Date().toISOString(),
+        argv: process.argv.slice(2),
+        error: String(e && e.message || e),
+        stack: String(e && e.stack || ''),
+        breadcrumbs: BREADCRUMBS,
+        heap: process.memoryUsage ? process.memoryUsage() : null
+      }
+      writeFileSync(`outbox/hockey-wp-train-failure-${ts}.json`, JSON.stringify(body, null, 2))
+      writeFileSync('outbox/hockey-wp-train-failure-latest.json', JSON.stringify(body, null, 2))
+      console.error(`wrote outbox/hockey-wp-train-failure-${ts}.json`)
+    } catch (_) { /* reporting the failure must not replace it */ }
+    console.error(String(e && e.stack || e))
+    process.exit(1)
+  })
 }

@@ -160,3 +160,75 @@ export const trainLogistic = (X, y, { l2 = 1e-4, iters = 400, lr = 0.1, mean, sd
   }
   return { coefficients: w, intercept: b, mean: scaler.mean, sd: scaler.sd }
 }
+
+// ── Task 1: the xG model ────────────────────────────────────────────────────
+// The WP model consumes cumulative xG. MoneyPuck's own xGoal column is only in
+// the historical file, so at RUNTIME the relay has NHL play-by-play and must
+// compute xG itself. Same machinery, different label: the target is `goal`.
+//
+// Every feature here must be derivable from BOTH sides — MoneyPuck's columns
+// for training and NHL play-by-play for scoring. A feature available only to
+// the trainer would make the two sides different models with one coefficient
+// table, which is the cross-boundary failure this repo's CONTRACTS.md exists
+// to prevent.
+//
+// SHOT TYPE VOCABULARIES ARE NOT WRITTEN FROM MEMORY. MoneyPuck's values are
+// reported verbatim by the trainer and NHL's by scripts/hockey-wp-probe.mjs;
+// the map below is filled from those artifacts and
+// scripts/check-hockey-xg-vocabulary.mjs fails if either side grows a value
+// the map does not carry.
+export const SHOT_TYPES = ['WRIST', 'SNAP', 'SLAP', 'BACK', 'TIP', 'DEFL', 'WRAP']
+
+// NHL play-by-play spells them differently. Keys are NHL's `details.shotType`.
+export const NHL_SHOT_TYPE_TO_MP = {
+  'wrist': 'WRIST', 'snap': 'SNAP', 'slap': 'SLAP', 'backhand': 'BACK',
+  'tip-in': 'TIP', 'deflected': 'DEFL', 'wrap-around': 'WRAP',
+  'poke': 'TIP', 'between-legs': 'BACK', 'bat': 'TIP', 'cradle': 'BACK'
+}
+
+export const XG_FEATURES = [
+  'distance', 'angleAbs', 'distanceSq', 'distTimesAngle',
+  'isRebound', 'isRush', 'onEmptyNet', 'shooterSkaterAdvantage',
+  ...SHOT_TYPES.slice(1).map(t => `type_${t}`)   // WRIST is the base level
+]
+
+export const xgFeatureVector = (s) => {
+  const d = Number.isFinite(s.distance) ? s.distance : 0
+  const a = Number.isFinite(s.angleAbs) ? Math.abs(s.angleAbs) : 0
+  const t = SHOT_TYPES.includes(s.shotType) ? s.shotType : 'WRIST'
+  return [
+    d, a, d * d / 100, (d * a) / 100,
+    s.isRebound ? 1 : 0,
+    s.isRush ? 1 : 0,
+    s.onEmptyNet ? 1 : 0,
+    Number.isFinite(s.shooterSkaterAdvantage) ? s.shooterSkaterAdvantage : 0,
+    ...SHOT_TYPES.slice(1).map(x => (t === x ? 1 : 0))
+  ]
+}
+
+// NHL coordinates are rink-absolute: the attacking net flips by period and by
+// which side the home team defends. homeTeamDefendingSide names that side, so
+// the attacking net's x is +89 or -89 and distance must be taken to the right
+// one. Getting this backwards puts every shot at the far end of the rink and
+// still produces a number, which is why it is a function with its own tests.
+export const NET_X = 89
+
+export const attackingNetX = ({ shooterIsHome, period, homeTeamDefendingSide }) => {
+  if (homeTeamDefendingSide !== 'left' && homeTeamDefendingSide !== 'right') return null
+  // homeTeamDefendingSide is reported for period 1 and alternates each period.
+  const flips = (period - 1) % 2 === 1
+  const homeDefendsLeft = (homeTeamDefendingSide === 'left') !== flips
+  // The home side attacks the net it is NOT defending.
+  const homeAttacksX = homeDefendsLeft ? NET_X : -NET_X
+  return shooterIsHome ? homeAttacksX : -homeAttacksX
+}
+
+export const geometryFromCoords = ({ xCoord, yCoord, netX }) => {
+  if (!Number.isFinite(xCoord) || !Number.isFinite(yCoord) || !Number.isFinite(netX)) return null
+  const dx = netX - xCoord
+  const dy = 0 - yCoord
+  const distance = Math.sqrt(dx * dx + dy * dy)
+  // Angle from the line straight out of the net, in degrees, always positive.
+  const angleAbs = Math.abs(Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI)
+  return { distance: +distance.toFixed(4), angleAbs: +angleAbs.toFixed(4) }
+}

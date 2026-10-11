@@ -67,6 +67,10 @@ jobs:
           git config user.email "claude@field.dev"
           git config user.name  "FIELD CI"
           git add outbox/hockey-wp-calibration-*.json src/hockey-wp-model.js || true
+          # A FAILED RUN MUST COMMIT ITS REASON. The first train run died and
+          # the cause was unreadable: this project's GitHub client cannot
+          # follow the log blob redirect, and this step had nothing to stage.
+          git add outbox/hockey-wp-train-failure-*.json || true
           git diff --cached --quiet && echo "no change" && exit 0
           git commit -m "feat: hockey WP coefficients and calibration artifact [skip ci]"
           for i in 1 2 3; do
