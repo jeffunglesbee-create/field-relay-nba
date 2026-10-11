@@ -1,0 +1,7421 @@
+{
+  "capturedAt": "2026-10-11T06:45:50.511Z",
+  "date": "2026-10-11",
+  "endpoint": "/api/v2/events/",
+  "note": "No new upstream call: same endpoint and params the WC enrichment and the claims harness already use.",
+  "rows": 178,
+  "pages": 2,
+  "control": {
+    "field": "weather",
+    "present": 178
+  },
+  "named": {
+    "has_xg": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "pitch_condition": {
+      "absent": 0,
+      "null": 169,
+      "empty": 0,
+      "present": 9,
+      "rows": 178,
+      "presentPct": 5.1
+    },
+    "travel_distance_km": {
+      "absent": 0,
+      "null": 63,
+      "empty": 0,
+      "present": 115,
+      "rows": 178,
+      "presentPct": 64.6
+    },
+    "is_local_derby": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "is_neutral_ground": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "attendance": {
+      "absent": 0,
+      "null": 178,
+      "empty": 0,
+      "present": 0,
+      "rows": 178,
+      "presentPct": 0
+    },
+    "head_to_head": {
+      "absent": 0,
+      "null": 41,
+      "empty": 0,
+      "present": 137,
+      "rows": 178,
+      "presentPct": 77
+    },
+    "round_label": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "round_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 175,
+      "present": 3,
+      "rows": 178,
+      "presentPct": 1.7
+    },
+    "round_number": {
+      "absent": 0,
+      "null": 8,
+      "empty": 0,
+      "present": 170,
+      "rows": 178,
+      "presentPct": 95.5
+    },
+    "stage": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "stage_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "previous_leg_event_id": {
+      "absent": 0,
+      "null": 176,
+      "empty": 0,
+      "present": 2,
+      "rows": 178,
+      "presentPct": 1.1
+    },
+    "referee_id": {
+      "absent": 0,
+      "null": 72,
+      "empty": 0,
+      "present": 106,
+      "rows": 178,
+      "presentPct": 59.6
+    },
+    "home_coach_id": {
+      "absent": 0,
+      "null": 20,
+      "empty": 0,
+      "present": 158,
+      "rows": 178,
+      "presentPct": 88.8
+    },
+    "away_coach_id": {
+      "absent": 0,
+      "null": 22,
+      "empty": 0,
+      "present": 156,
+      "rows": 178,
+      "presentPct": 87.6
+    },
+    "highlights": {
+      "absent": 0,
+      "null": 0,
+      "empty": 164,
+      "present": 14,
+      "rows": 178,
+      "presentPct": 7.9
+    }
+  },
+  "headToHead": {
+    "rowsWithObject": 137,
+    "fields": {
+      "avg_total_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "away_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "away_win_rate": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "away_wins": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "draws": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "home_goals": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "home_win_rate": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "home_wins": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "recent_matches": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      },
+      "total_matches": {
+        "absent": 0,
+        "null": 0,
+        "empty": 0,
+        "present": 137,
+        "rows": 137,
+        "presentPct": 100
+      }
+    }
+  },
+  "perLeague": {
+    "1": {
+      "league_id": 1,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "2": {
+      "league_id": 2,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 1,
+          "rows": 3,
+          "presentPct": 33.3
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "3": {
+      "league_id": 3,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 2,
+          "rows": 4,
+          "presentPct": 50
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "4": {
+      "league_id": 4,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        }
+      }
+    },
+    "5": {
+      "league_id": 5,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "6": {
+      "league_id": 6,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "9": {
+      "league_id": 9,
+      "rows": 6,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 1,
+          "rows": 6,
+          "presentPct": 16.7
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 5,
+          "rows": 6,
+          "presentPct": 83.3
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 6,
+          "empty": 0,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 6,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 6,
+          "empty": 0,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 1,
+          "rows": 6,
+          "presentPct": 16.7
+        }
+      }
+    },
+    "10": {
+      "league_id": 10,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "11": {
+      "league_id": 11,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 2,
+          "rows": 3,
+          "presentPct": 66.7
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 2,
+          "rows": 3,
+          "presentPct": 66.7
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "12": {
+      "league_id": 12,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "13": {
+      "league_id": 13,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "14": {
+      "league_id": 14,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "15": {
+      "league_id": 15,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "17": {
+      "league_id": 17,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 2,
+          "rows": 3,
+          "presentPct": 66.7
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "18": {
+      "league_id": 18,
+      "rows": 6,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 2,
+          "rows": 6,
+          "presentPct": 33.3
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 4,
+          "rows": 6,
+          "presentPct": 66.7
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 6,
+          "empty": 0,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 6,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 6,
+          "empty": 0,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 6,
+          "empty": 0,
+          "present": 0,
+          "rows": 6,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 6,
+          "rows": 6,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 5,
+          "rows": 6,
+          "presentPct": 83.3
+        }
+      }
+    },
+    "19": {
+      "league_id": 19,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 2,
+          "rows": 4,
+          "presentPct": 50
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 2,
+          "rows": 4,
+          "presentPct": 50
+        }
+      }
+    },
+    "22": {
+      "league_id": 22,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "23": {
+      "league_id": 23,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 1,
+          "rows": 2,
+          "presentPct": 50
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "24": {
+      "league_id": 24,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 2,
+          "rows": 4,
+          "presentPct": 50
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "25": {
+      "league_id": 25,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "26": {
+      "league_id": 26,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "28": {
+      "league_id": 28,
+      "rows": 7,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 7,
+          "empty": 0,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 7,
+          "empty": 0,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 7,
+          "empty": 0,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 5,
+          "rows": 7,
+          "presentPct": 71.4
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 7,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 7,
+          "rows": 7,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 7,
+          "empty": 0,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 7,
+          "empty": 0,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 4,
+          "rows": 7,
+          "presentPct": 57.1
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 4,
+          "rows": 7,
+          "presentPct": 57.1
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 7,
+          "present": 0,
+          "rows": 7,
+          "presentPct": 0
+        }
+      }
+    },
+    "34": {
+      "league_id": 34,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 3,
+          "rows": 5,
+          "presentPct": 60
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        }
+      }
+    },
+    "38": {
+      "league_id": 38,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "41": {
+      "league_id": 41,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 1,
+          "rows": 2,
+          "presentPct": 50
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "47": {
+      "league_id": 47,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 3,
+          "rows": 4,
+          "presentPct": 75
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "49": {
+      "league_id": 49,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "50": {
+      "league_id": 50,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "52": {
+      "league_id": 52,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 1,
+          "rows": 3,
+          "presentPct": 33.3
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "53": {
+      "league_id": 53,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "54": {
+      "league_id": 54,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "55": {
+      "league_id": 55,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "57": {
+      "league_id": 57,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 3,
+          "rows": 5,
+          "presentPct": 60
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        }
+      }
+    },
+    "79": {
+      "league_id": 79,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "80": {
+      "league_id": 80,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 1,
+          "rows": 3,
+          "presentPct": 33.3
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "81": {
+      "league_id": 81,
+      "rows": 1,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 1,
+          "rows": 1,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 1,
+          "present": 0,
+          "rows": 1,
+          "presentPct": 0
+        }
+      }
+    },
+    "82": {
+      "league_id": 82,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 2,
+          "rows": 5,
+          "presentPct": 40
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 4,
+          "rows": 5,
+          "presentPct": 80
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 4,
+          "rows": 5,
+          "presentPct": 80
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        }
+      }
+    },
+    "84": {
+      "league_id": 84,
+      "rows": 4,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 4,
+          "rows": 4,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 0,
+          "rows": 4,
+          "presentPct": 0
+        }
+      }
+    },
+    "85": {
+      "league_id": 85,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 1,
+          "rows": 5,
+          "presentPct": 20
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 2,
+          "rows": 5,
+          "presentPct": 40
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 4,
+          "present": 1,
+          "rows": 5,
+          "presentPct": 20
+        }
+      }
+    },
+    "88": {
+      "league_id": 88,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 2,
+          "rows": 3,
+          "presentPct": 66.7
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "94": {
+      "league_id": 94,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "95": {
+      "league_id": 95,
+      "rows": 26,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 26,
+          "empty": 0,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 20,
+          "empty": 0,
+          "present": 6,
+          "rows": 26,
+          "presentPct": 23.1
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 26,
+          "empty": 0,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 23,
+          "empty": 0,
+          "present": 3,
+          "rows": 26,
+          "presentPct": 11.5
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 26,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 26,
+          "rows": 26,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 26,
+          "empty": 0,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 26,
+          "empty": 0,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 12,
+          "empty": 0,
+          "present": 14,
+          "rows": 26,
+          "presentPct": 53.8
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 12,
+          "empty": 0,
+          "present": 14,
+          "rows": 26,
+          "presentPct": 53.8
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 26,
+          "present": 0,
+          "rows": 26,
+          "presentPct": 0
+        }
+      }
+    },
+    "96": {
+      "league_id": 96,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "97": {
+      "league_id": 97,
+      "rows": 2,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 2,
+          "rows": 2,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 2,
+          "present": 0,
+          "rows": 2,
+          "presentPct": 0
+        }
+      }
+    },
+    "98": {
+      "league_id": 98,
+      "rows": 5,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 5,
+          "rows": 5,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 5,
+          "empty": 0,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 2,
+          "rows": 5,
+          "presentPct": 40
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 4,
+          "empty": 0,
+          "present": 1,
+          "rows": 5,
+          "presentPct": 20
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 5,
+          "present": 0,
+          "rows": 5,
+          "presentPct": 0
+        }
+      }
+    },
+    "99": {
+      "league_id": 99,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    },
+    "100": {
+      "league_id": 100,
+      "rows": 3,
+      "leagueName": null,
+      "fields": {
+        "has_xg": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "pitch_condition": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "travel_distance_km": {
+          "absent": 0,
+          "null": 1,
+          "empty": 0,
+          "present": 2,
+          "rows": 3,
+          "presentPct": 66.7
+        },
+        "is_local_derby": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "is_neutral_ground": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "attendance": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "head_to_head": {
+          "absent": 0,
+          "null": 2,
+          "empty": 0,
+          "present": 1,
+          "rows": 3,
+          "presentPct": 33.3
+        },
+        "round_label": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "round_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "round_number": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "stage_name": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "previous_leg_event_id": {
+          "absent": 0,
+          "null": 3,
+          "empty": 0,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        },
+        "referee_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "home_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "away_coach_id": {
+          "absent": 0,
+          "null": 0,
+          "empty": 0,
+          "present": 3,
+          "rows": 3,
+          "presentPct": 100
+        },
+        "highlights": {
+          "absent": 0,
+          "null": 0,
+          "empty": 3,
+          "present": 0,
+          "rows": 3,
+          "presentPct": 0
+        }
+      }
+    }
+  },
+  "absenceOverlap": {
+    "fieldA": "pitch_condition",
+    "fieldB": "travel_distance_km",
+    "missing_A": 169,
+    "missing_B": 63,
+    "missing_BOTH": 62,
+    "missing_only_A": 107,
+    "missing_only_B": 1,
+    "identical_sets": false,
+    "verdict": "DIFFERENT ROWS: 107 miss only pitch_condition, 1 miss only travel_distance_km, 62 miss both. Two causes, two answers."
+  },
+  "neverMet": {
+    "rows": 178,
+    "head_to_head_present": 137,
+    "head_to_head_null_or_absent": 41,
+    "total_matches_absent_within_object": 0,
+    "total_matches_ZERO": 0,
+    "total_matches_positive": 137,
+    "discriminable": false,
+    "verdict": "\"never met\" is NOT distinguishable from unreadable on this endpoint — total_matches never appears as 0 across 178 rows. STOP per the document; do not synthesise it from an empty recent_matches[]."
+  },
+  "sampledValues": {
+    "has_xg": {
+      "hasPresentRow": true,
+      "sample": false,
+      "jsType": "boolean",
+      "note": null
+    },
+    "pitch_condition": {
+      "hasPresentRow": true,
+      "sample": 1,
+      "jsType": "number",
+      "note": null
+    },
+    "travel_distance_km": {
+      "hasPresentRow": true,
+      "sample": 279,
+      "jsType": "number",
+      "note": null
+    },
+    "is_local_derby": {
+      "hasPresentRow": true,
+      "sample": false,
+      "jsType": "boolean",
+      "note": null
+    },
+    "is_neutral_ground": {
+      "hasPresentRow": true,
+      "sample": false,
+      "jsType": "boolean",
+      "note": null
+    },
+    "attendance": {
+      "hasPresentRow": false,
+      "sample": null,
+      "jsType": null,
+      "note": "no row carries this field in a present state, so no value could be sampled"
+    },
+    "head_to_head": {
+      "hasPresentRow": true,
+      "sample": {
+        "total_matches": 9,
+        "home_wins": 4,
+        "draws": 3,
+        "away_wins": 2,
+        "home_goals": 13,
+        "away_goals": 10
+      },
+      "jsType": "object",
+      "note": null
+    },
+    "round_label": {
+      "hasPresentRow": true,
+      "sample": "League phase · Matchday 14",
+      "jsType": "string",
+      "note": null
+    },
+    "round_name": {
+      "hasPresentRow": true,
+      "sample": "Round of 16",
+      "jsType": "string",
+      "note": null
+    },
+    "round_number": {
+      "hasPresentRow": true,
+      "sample": 14,
+      "jsType": "number",
+      "note": null
+    },
+    "stage": {
+      "hasPresentRow": true,
+      "sample": "league-phase",
+      "jsType": "string",
+      "note": null
+    },
+    "stage_name": {
+      "hasPresentRow": true,
+      "sample": "League phase",
+      "jsType": "string",
+      "note": null
+    },
+    "previous_leg_event_id": {
+      "hasPresentRow": true,
+      "sample": 604502,
+      "jsType": "number",
+      "note": null
+    },
+    "referee_id": {
+      "hasPresentRow": true,
+      "sample": 2215,
+      "jsType": "number",
+      "note": null
+    },
+    "home_coach_id": {
+      "hasPresentRow": true,
+      "sample": 2850,
+      "jsType": "number",
+      "note": null
+    },
+    "away_coach_id": {
+      "hasPresentRow": true,
+      "sample": 3526,
+      "jsType": "number",
+      "note": null
+    },
+    "highlights": {
+      "hasPresentRow": true,
+      "sample": [
+        {
+          "kind": "goals",
+          "title": "América 1 - 1 Monterrey — 45'+4 Santiago Bueno",
+          "url": "https://www.youtube.com/watch?v=psSpa_2DRJ0",
+          "thumbnail": "https://i.ytimg.com/vi/psSpa_2DRJ0/hqdefault.jpg",
+          "published_at": "2026-10-11T04:32:06+00:00"
+        }
+      ],
+      "jsType": "array",
+      "note": null
+    }
+  },
+  "allFields": {
+    "attendance": {
+      "absent": 0,
+      "null": 178,
+      "empty": 0,
+      "present": 0,
+      "rows": 178,
+      "presentPct": 0
+    },
+    "away_coach_id": {
+      "absent": 0,
+      "null": 22,
+      "empty": 0,
+      "present": 156,
+      "rows": 178,
+      "presentPct": 87.6
+    },
+    "away_score": {
+      "absent": 0,
+      "null": 160,
+      "empty": 0,
+      "present": 18,
+      "rows": 178,
+      "presentPct": 10.1
+    },
+    "away_score_ht": {
+      "absent": 0,
+      "null": 159,
+      "empty": 0,
+      "present": 19,
+      "rows": 178,
+      "presentPct": 10.7
+    },
+    "away_team": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "away_team_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "current_minute": {
+      "absent": 0,
+      "null": 159,
+      "empty": 0,
+      "present": 19,
+      "rows": 178,
+      "presentPct": 10.7
+    },
+    "event_date": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "extra_time_score": {
+      "absent": 0,
+      "null": 178,
+      "empty": 0,
+      "present": 0,
+      "rows": 178,
+      "presentPct": 0
+    },
+    "group_name": {
+      "absent": 0,
+      "null": 143,
+      "empty": 0,
+      "present": 35,
+      "rows": 178,
+      "presentPct": 19.7
+    },
+    "has_xg": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "head_to_head": {
+      "absent": 0,
+      "null": 41,
+      "empty": 0,
+      "present": 137,
+      "rows": 178,
+      "presentPct": 77
+    },
+    "highlights": {
+      "absent": 0,
+      "null": 0,
+      "empty": 164,
+      "present": 14,
+      "rows": 178,
+      "presentPct": 7.9
+    },
+    "home_coach_id": {
+      "absent": 0,
+      "null": 20,
+      "empty": 0,
+      "present": 158,
+      "rows": 178,
+      "presentPct": 88.8
+    },
+    "home_score": {
+      "absent": 0,
+      "null": 160,
+      "empty": 0,
+      "present": 18,
+      "rows": 178,
+      "presentPct": 10.1
+    },
+    "home_score_ht": {
+      "absent": 0,
+      "null": 159,
+      "empty": 0,
+      "present": 19,
+      "rows": 178,
+      "presentPct": 10.7
+    },
+    "home_team": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "home_team_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "is_local_derby": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "is_neutral_ground": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "league_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "live_websocket": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "penalty_shootout": {
+      "absent": 0,
+      "null": 178,
+      "empty": 0,
+      "present": 0,
+      "rows": 178,
+      "presentPct": 0
+    },
+    "period": {
+      "absent": 0,
+      "null": 0,
+      "empty": 159,
+      "present": 19,
+      "rows": 178,
+      "presentPct": 10.7
+    },
+    "pitch_condition": {
+      "absent": 0,
+      "null": 169,
+      "empty": 0,
+      "present": 9,
+      "rows": 178,
+      "presentPct": 5.1
+    },
+    "previous_leg_event_id": {
+      "absent": 0,
+      "null": 176,
+      "empty": 0,
+      "present": 2,
+      "rows": 178,
+      "presentPct": 1.1
+    },
+    "referee_id": {
+      "absent": 0,
+      "null": 72,
+      "empty": 0,
+      "present": 106,
+      "rows": 178,
+      "presentPct": 59.6
+    },
+    "replaced_by": {
+      "absent": 0,
+      "null": 178,
+      "empty": 0,
+      "present": 0,
+      "rows": 178,
+      "presentPct": 0
+    },
+    "round_label": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "round_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 175,
+      "present": 3,
+      "rows": 178,
+      "presentPct": 1.7
+    },
+    "round_number": {
+      "absent": 0,
+      "null": 8,
+      "empty": 0,
+      "present": 170,
+      "rows": 178,
+      "presentPct": 95.5
+    },
+    "season_id": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "stage": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "stage_name": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "status": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "travel_distance_km": {
+      "absent": 0,
+      "null": 63,
+      "empty": 0,
+      "present": 115,
+      "rows": 178,
+      "presentPct": 64.6
+    },
+    "venue_id": {
+      "absent": 0,
+      "null": 49,
+      "empty": 0,
+      "present": 129,
+      "rows": 178,
+      "presentPct": 72.5
+    },
+    "weather": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    },
+    "websocket_plus": {
+      "absent": 0,
+      "null": 0,
+      "empty": 0,
+      "present": 178,
+      "rows": 178,
+      "presentPct": 100
+    }
+  },
+  "coverage": "178 rows on 2026-10-11, 40 distinct field names. One day, not the feed."
+}
