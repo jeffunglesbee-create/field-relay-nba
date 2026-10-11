@@ -97,6 +97,43 @@ export const SCORING_ERAS = [
     measuredEffect: 'BEFORE -> AFTER, same script, same 128 fact-stratified rows, artifacts outbox/rescore-quality-6b-20260824T053829Z.json and -20260824T121117Z.json. THE HEADLINE: the LIVE_LANG prose gap collapsed from -14.1 at 4.4x the standard error to -0.2 at 0.1x (rescored.gap_rescored in both manifests). CORRECTED 2026-08-24: this first read "-11.1 at 4.1x" for the BEFORE. That number is not from the before-run at all -- it is candidates.current in the AFTER run, and that block was itself broken: scripts/rescore-quality-6b.mjs mapped DIM_TO_SCALE.matchupDepth -> "matchup" with no entry for finality, so after era 5 added Dim 11 the candidate reconstruction silently omitted 20 of 294 points and (dims[k] || 0) * (W[k] ?? 0) coerced the missing names to zero. So the published before/after compared two different instruments inside one run, one of them measuring a rubric that excluded the very dimension the era added. The figures above use gap_rescored on both runs, which agreed with the candidate block before era 5 (-14.0 vs -14.1) and diverged by 10.9 after it -- that divergence is how the defect was found. THE CONCLUSION IS UNCHANGED AND THE EFFECT IS LARGER than was published. Before era 5 the rubric paid briefs using in-progress language 14.1 points MORE than briefs reading as final, significantly; it now pays them the same. That is the correction era 4 set out to make and did not, because era 4 changed a table the scorer does not read for dims 6-10. Dim 11 charges 10-20 points on exactly the rows that were benefiting -- 28 of 128 briefs hedge about games that had already finished, against 1 that calls a live game final. SECONDARY, and largely definitional since Dim 11 defines the groups: agrees-vs-disagrees separation -4.0 (0.9x) -> +15.7 (3.6x). It is 15.7 rather than 20 because the arc 45->33 and ctx 25->17 refund costs 4.3 points back, which is the funding showing up rather than being asserted. Dim 11 scores non-zero on both sides of the fact (6.9 on finalized rows, 10.0 on live), the test Dim 10 failed silently for two months at zero on 190 of 190. CAVEAT ON THE FIRST ATTEMPT: run 20260824T062958Z showed no movement because the rescore script passed opts.game without finalizedAt, so the dimension abstained on all 128 rows; both paths now cross-check per row (path_disagreement, 0 in the run cited) and the workflow fails rather than publishing totals scored by an abstaining dimension.',
     recordedRetroactively: false,
   },
+  // ── THE ADMISSION BAR FOR A JOURNALISM INPUT ────────────────────────────
+  // docs/CC-CMD-2026-10-10-bsd-hook-admission-and-per-league-rates.md, Task 3.
+  //
+  // Written here because era 6 below is where this rubric learned it. Dim 10
+  // was re-pointed off `matchupNote` precisely because a populated note would
+  // have made the dimension WORSE — the note is injected into the prompt, so
+  // counting its words in the prose pays points for parroting an input.
+  // `marginAgreement` reads a RELATION between two numbers instead, and that
+  // is the property that made it work.
+  //
+  // WHAT PROMPTED THE BAR. On 2026-10-10 a vendor field census killed three
+  // fields that a census of field NAMES had recommended as editorial hooks:
+  //
+  //   attendance              null on 193 of 193 rows
+  //   round_name              empty string on 193 of 193
+  //   previous_leg_event_id   null on 193 of 193
+  //
+  // Schema presence had been read as data presence. The three properties below
+  // are the generalisation, and a field must have ALL THREE:
+  //
+  //   1. MEASURED PRESENCE, with a denominator, from a census of DATA and not
+  //      of schema. "The key exists" and "the field is populated" are different
+  //      claims and the first does not imply the second.
+  //
+  //   2. A RELATION, NOT A VALUE. Something the model must compute from two or
+  //      more facts rather than copy out of its prompt. This is the one that
+  //      disqualifies `attendance` EVEN WHEN POPULATED: it is a number to
+  //      parrot. That is the durable reason to drop it, independent of it being
+  //      null — and it is why "find a replacement field" is the wrong question.
+  //
+  //   3. CHECKABLE AFTER THE FACT against the row, so a scorer can disagree
+  //      with the prose rather than take its word.
+  //
+  // `head_to_head` against the final score passes all three and is the same
+  // shape as `marginAgreement`. A pooled presence rate is not sufficient for
+  // property 1: see the per-league table in the document above, where one
+  // competition at 0% can hide inside a healthy-looking 79.8%.
   {
     era: 6,
     from: '2026-08-24T13:10:00Z',
