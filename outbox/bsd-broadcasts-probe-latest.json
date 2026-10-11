@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-bsd-broadcasts-territory.md",
   "tasks": "Task 3 (the gate) and Task 5 (coverage)",
-  "started_at": "2026-10-11T06:38:08.036Z",
+  "started_at": "2026-10-11T06:40:07.153Z",
   "date_probed": "2026-10-11",
   "callBudget": 30,
   "callsMade": 17,
@@ -578,6 +578,17 @@
       },
       "stop_condition_fires": false,
       "verdict": "country_code is stated on 171 of 171 rows. The territory field is real."
+    },
+    "task4_join": {
+      "fixtures_total": 12,
+      "both_sides_resolved": 12,
+      "one_side_resolved": 0,
+      "neither_side_resolved": 0,
+      "join_rate_both_sides": 1,
+      "rate_denominator": 12,
+      "misses": [],
+      "misses_total": 0,
+      "note": "rate is per FIXTURE, not per broadcast row"
     }
   },
   "tvChannel": {
