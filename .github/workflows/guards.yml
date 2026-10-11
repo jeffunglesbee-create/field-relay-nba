@@ -106,6 +106,18 @@ jobs:
           node scripts/check-batch-order.mjs --self-test
           node scripts/check-batch-order.mjs
 
+      # _fetchLiveOdds called /v4/sports/{sport}/odds-live, which the vendor
+      # 404s — measured, run 38186065943, with /odds returning 401 on the same
+      # sport keys as the control. Every call was a 404, so it never produced an
+      # odds row, and the line above its fetch charged 2 credits for each
+      # attempt: 1037 calls / 2074 credits on 2026-10-10. The guard has to
+      # return BEFORE the charge, which is the half a reading would miss.
+      # Source-only.
+      - name: the odds-live 404 path returns before the charge
+        run: |
+          node scripts/check-odds-live-disabled.mjs --self-test
+          node scripts/check-odds-live-disabled.mjs
+
       # The half of the spend question `used` cannot answer: how much of what the
       # counter charged the provider never asked for. Four of reconcile's five
       # outcomes wrote nothing until 2026-10-08, so a refunded estimate and a

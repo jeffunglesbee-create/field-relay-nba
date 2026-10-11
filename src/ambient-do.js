@@ -60,6 +60,11 @@ const ODDS_SPORT_KEYS = AMBIENT_SPORT_TO_ODDS_KEY;
 import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcileOddsCredit } from './budget-helpers.js';
 import { withKvProvenance } from './kv-provenance.js';
 
+// `/v4/sports/{sport}/odds-live` is a 404 at the vendor — measured, see
+// _fetchLiveOdds. Named rather than inlined so one grep finds the guard, the
+// URL and the check that ties them together.
+const ODDS_LIVE_PATH_404 = true;
+
 const POLL_LIVE_MS  = 15_000;
 const POLL_IDLE_MS  = 60_000;
 const PING_MS       = 20_000;
@@ -558,6 +563,40 @@ export class AmbientDO {
     async _fetchLiveOdds() {
         const apiKey = this.env.ODDS_API_KEY;
         if (!apiKey) return;
+        // THE VENDOR DOES NOT SERVE THIS PATH, and has not for as long as the
+        // reconcile tally has been recording. Measured 2026-10-11 from a runner
+        // with a deliberately invalid key, two sport keys, run 38186065943:
+        //
+        //   /v4/sports/soccer_fifa_world_cup/odds       401 INVALID_KEY
+        //   /v4/sports/soccer_fifa_world_cup/odds-live  404 Not Found
+        //   /v4/sports/soccer_epl/odds                  401 INVALID_KEY
+        //   /v4/sports/soccer_epl/odds-live             404 Not Found
+        //
+        // The control is what makes that readable: /odds resolving to an auth
+        // error on both keys means the sport keys are right and the path is not.
+        //
+        // So every call this function has made was a 404. `if (!r.ok) return`
+        // below means it has never produced a single odds row — and the charge
+        // one line above that fetch billed our own ledger 2 credits for each
+        // attempt. 1037 calls / 2074 credits on 2026-10-10, 289 / 578 by 16:51
+        // on 10-11, every one recorded by reconcile as state `no-header`,
+        // because a 404 carries no x-requests-last to reconcile against. That
+        // is the whole of the daily-vs-vendor watch's -1967 residual for
+        // 2026-10-10, to within 107.
+        //
+        // DISABLED, NOT REPOINTED. Changing `odds-live` to `odds` would make
+        // these calls succeed and start billing for real, across eleven sports
+        // on a 15-second poll. src/odds-sport-keys.js says in as many words that
+        // raising ambient's odds coverage is "a budget change gated by
+        // CC-CMD-2026-09-11 Task 2 and it is NOT made here" — this is that same
+        // decision, and a fix for a 404 does not get to make it.
+        //
+        // UNBLOCK: docs/CC-CMD-2026-10-11-odds-live-path-404.md decides between
+        // repointing at /odds with a budget and deleting the path. Until it
+        // does, this returns before the charge, which is the only part that was
+        // costing anything. scripts/check-odds-live-disabled.mjs fails if this
+        // guard is removed while the URL below still says odds-live.
+        if (ODDS_LIVE_PATH_404) return;
 
         // Group live games by sport
         const liveBySport = {};
