@@ -14,12 +14,17 @@ const BAK = `${SRC}.mutbak`;
 
 const MUTATIONS = [
   { name: 'M1  snapshotCronOdds stops filtering its SELECT on sport',
-    // Anchored on two lines, not one. The single-line form is a SUBSTRING of
+    // Anchored on three lines, not one. The single-line form is a SUBSTRING of
     // the /identity/mismatches copy, which is indented deeper — the harness
     // reported ANCHOR occurs 2 times and mutated nothing, which is the whole
     // reason it asserts uniqueness before printing a verdict.
-    anchor: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND sport = ? AND opening_odds IS NULL`',
-    replace: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND opening_odds IS NULL`',
+    //
+    // RE-ANCHORED 2026-10-11 when the finality condition
+    // (docs/CC-CMD-2026-08-25-misjoined-opening-odds.md) split the WHERE clause
+    // across a third line. The harness reported ANCHOR again rather than a
+    // false CAUGHT, which is the same corollary paying twice on one query.
+    anchor: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND sport = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
+    replace: 'SELECT id, home, away FROM ${table}\n          WHERE date = ? AND opening_odds IS NULL\n            AND finalized_at IS NULL`',
     expect: 'snapshotCronOdds selects only rows of the sport it just fetched' },
 
   { name: 'M2  the backfill hardcodes one sport instead of dispatching per bucket',
