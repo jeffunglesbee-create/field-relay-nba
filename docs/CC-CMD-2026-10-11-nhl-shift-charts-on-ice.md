@@ -71,6 +71,33 @@ the stop condition: that points at `api-web.nhle.com` and would have failed like
 a missing path. Two TTLs with their reason, defaulting to the SHORT one — a
 stale immutable chart costs a re-fetch, a cached live one is wrong.
 
+**AND IT SHIPPED BROKEN, TWICE OVER, WHICH THIS STATUS CLAIMED OTHERWISE FOR
+AN HOUR.** Measured on the deployed worker,
+`outbox/live-route-probe-latest.json`:
+
+1. **The block was inside `if (pathname.startsWith('/bsd/'))`.** A path cannot
+   start with both prefixes, so no request could reach it. It fell through to
+   the `/nba/*` catch-all at the end of the handler and came back 403
+   `Path not allowed`. The generated manifest had recorded the consequence
+   without anyone reading it: `"/bsd/"` listed `api.nhle.com` among its
+   sources, because the code was lexically inside that block. A **false**
+   source, produced silently.
+2. **Underneath it, the forward was wrong.** The base was the bare host and the
+   allow-list held `/stats/rest/en/shiftcharts`, so the documented form
+   `/nhl-stats/shiftcharts` was refused and the working form required the
+   caller to repeat the fixed segment. Internally consistent, and wrong against
+   the contract stated in this very task.
+
+The second was invisible until the first was fixed — the catch-all was
+answering for the route. **The probe's own negative control passed on the
+catch-all's 403** before it was taught to assert the route's own refusal body,
+which is Rule 90's lesson arriving in a check written the same hour.
+
+Neither defect is reachable by reading. Both needed one request to the deployed
+worker, which is why `.github/workflows/live-route-probe.yml` now exists: the
+step named *"the routes this deploy touched still answer"* probes two routes a
+past deploy touched.
+
 **TASK 3 — `src/nhl-onice.js`, four states, none of them an empty array.**
 resolved / disagrees-with-situation / no-shift-data / instant-in-no-interval.
 A reconstruction contradicting `situationCode` is refused rather than returned,

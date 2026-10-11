@@ -98,7 +98,65 @@ baseline in any season file, so `beats_moneypuck: null` is the correct value and
 not a gap. One result survived: a model fit on 2021-2023 and tested on 2020
 scores **0.17404** against the shipped **0.172669** on 2023.
 
-## Defects found in my own work, each before it was published
+## The deploy was red for the whole queue, and I did not look
+
+Every deploy from `3765a55` through `defc1e1` **failed**. Cause: doc 1 added
+one comment line each to `src/odds-consumer-rules.js` and `src/odds-shape.js`
+naming the metered vendor's base constant, which pulled both files into the
+population of *"every odds call is charged to the monthly ledger"*. Two prose
+pointers, four stopped deploys.
+
+So four route blocks were unshipped while three documents were closed saying
+**"route live"**. The probes behind those documents called BSD and
+`api.nhle.com` directly from a runner — real vendor data, no information about
+the relay. Deployed state asserted from local reading, which is assumption
+class A in this repository's own rule.
+
+Once deployed, a live probe found two more defects, stacked:
+
+| | |
+|---|---|
+| `/nhl-stats/*` | shipped **inside** `if (pathname.startsWith('/bsd/'))` — unreachable by construction; the `/nba/*` catch-all answered 403 |
+| the forward | base was the bare host against an allow-list of `/stats/rest/en/shiftcharts`, so the documented form was refused |
+
+The second was invisible until the first was fixed: the catch-all was answering
+for the route. **And the probe's own negative control passed on the catch-all's
+403**, because both requests came back 403 and status alone cannot tell them
+apart — Rule 90's lesson landing in a check written the same hour. It now
+asserts the route's own refusal body, which carries `allowed`.
+
+The generated provenance manifest had already recorded the first defect and
+nobody read it: `"/bsd/"` listed `api.nhle.com` among its sources because the
+block was lexically inside it. A **false** source, generated silently. The
+missing `/nhl-stats` entry is the lesser half — `route-scan.mjs` builds its
+population from `pathname === '…'` and `pathname.startsWith('…')` only, so
+**11 routes at HEAD** (9 `/bsd`, 1 `/cfl`, 1 `/nhl-stats`) are not counted at
+all, and *"189 routes mapped, 187 with a declared source"* reads as a
+denominator that includes them. Filed as
+`docs/CC-CMD-2026-10-11-regex-routed-paths-outside-the-population.md`.
+
+Live now, run 38121763921 — **5 PASS, 0 FAIL, 1 UNMEASURED of 6 surfaces**:
+
+```
+/nhl-stats/shiftcharts            200   rows 692   X-NhlStats-State: vendor
+/nhl-stats/zzz-not-a-real-prefix  403   refusedBy: nhlStatsAllowed
+/bsd/events/220230/lineups        200   predicted / served / beta true
+/bsd/events/220230/broadcasts     200   X-Broadcast-Territory-Stated 2/2
+/bsd/tv-channels/:id/broadcasts   UNMEASURED — no channel id in those 2 rows
+```
+
+692 is the same count the vendor probe measured on that game, from the other
+side of the relay.
+
+`.github/workflows/live-route-probe.yml` exists because deploy.yml's own last
+step, named *"the routes this deploy touched still answer"*, probes two routes
+a past deploy touched.
+
+## Defects found in my own work
+
+The six below were caught before publication. The four above were not — three
+documents were closed on an unshipped deploy, and the live probe is what found
+them.
 
 1. **A control that compared the question, not the answer.** `league_id` is
    echoed in the payload and my fingerprint included it, so every fingerprint

@@ -4,9 +4,26 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — two routes into the product's defining column
-**Status:** DONE 2026-10-11. Five tasks, no stop condition hit. Two routes live
-at `src/index.js`. Artifact: `outbox/bsd-broadcasts-probe-latest.json`
-(run 38118916517, 23 calls of a declared 30).
+**Status:** DONE 2026-10-11. Five tasks, no stop condition hit. Artifact:
+`outbox/bsd-broadcasts-probe-latest.json` (run 38118916517, 23 calls of a
+declared 30).
+
+**"Two routes live" was written before either was deployed.** Every deploy from
+`3765a55` through `defc1e1` failed on the scope-claims gate, so the routes
+existed only in `src/index.js`. The artifact above calls BSD directly from a
+runner and is unaffected — which is exactly why it could not have caught this.
+
+Verified live, `outbox/live-route-probe-latest.json`:
+
+```
+/bsd/events/220230/broadcasts        200   rows 2   X-Broadcast-Territory-Stated: 2/2
+/bsd/tv-channels/:id/broadcasts      UNMEASURED — no tv_channel id in those 2 rows
+```
+
+The channel route is **UNMEASURED, not failing**: the probe takes its channel id
+from the event's own broadcast rows and those two carried none. Inventing an id
+would make a 404 indistinguishable from a broken route. The vendor measurement
+for channel 583 (34 of 34 `country_code`) stands and is a different claim.
 
 **TASK 3 WAS THE GATE AND ITS PREMISE HAD NEVER BEEN MEASURED.** The surface
 probe recorded `country_code` as a KEY NAME and set `territory.scoped: true`

@@ -5,10 +5,25 @@
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — one route; the pre-game surface soccer has never had
 **Status:** DONE 2026-10-11. Five tasks, no stop condition hit.
-Route live at `src/index.js` as `/bsd/events/:id/lineups`. Probe artifact:
-`outbox/bsd-lineups-probe-latest.json` (run 38118474339, 9 calls of 24).
-Task 5's deferred renderer is filed as
+Probe artifact: `outbox/bsd-lineups-probe-latest.json` (run 38118474339, 9
+calls of 24). Task 5's deferred renderer is filed as
 `docs/CC-CMD-2026-10-11-predicted-xi-render-decision.md` (Rule 87.4).
+
+**"Route live" was written before it was true, and is now measured.** When this
+status was first filed the route existed in `src/index.js` and the deployed
+worker did not have it: every deploy from `3765a55` through `defc1e1` failed on
+the scope-claims gate, so nothing shipped for roughly 45 minutes while four
+documents were closed. The probe artifact above is real and proves nothing
+about the relay — it calls BSD directly from a runner, which is why it returned
+a team sheet either way. This was deployed state asserted from local reading,
+the first of the five assumption classes.
+
+Verified live on the deployed worker, `outbox/live-route-probe-latest.json`:
+
+```
+/bsd/events/220230/lineups   200
+  X-Lineup-State: predicted      X-Lineup-Fill: served     X-Lineup-Beta: true
+```
 
 **TASK 3 — THE PRE-MATCH INNER SHAPE, WHICH WAS NOT MEASURED, NOW IS.** The
 surface probe recorded top-level keys only and the sub-field list this document

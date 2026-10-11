@@ -22,6 +22,47 @@ Eight documents, in the order the owner gave:
 **All three stops fired on a measurement, at the document's own stop
 condition.** None stopped for want of access.
 
+### THE DEPLOY WAS RED FOR THE WHOLE QUEUE, AND THREE DOCUMENTS SAID "ROUTE LIVE"
+
+Every deploy from `3765a55` through `defc1e1` **failed** on the scope-claims
+gate. Cause: doc 1 added one comment line each to `src/odds-consumer-rules.js`
+and `src/odds-shape.js` naming `const ODDS_BASE`, which pulled both files into
+the population of *"every odds call is charged to the monthly ledger"*. Two
+prose pointers, four stopped deploys, four route blocks unshipped while their
+documents were being closed DONE.
+
+The probes that produced those documents' numbers called BSD and `api.nhle.com`
+**directly from a runner**, so they returned real vendor data and carried no
+information about the relay at all. "Route live" was deployed state asserted
+from local reading — assumption class A, in the repository whose own rule names
+it.
+
+Once deployed, the live probe found two more, stacked:
+
+| | |
+|---|---|
+| `/nhl-stats/*` | shipped **inside** `if (pathname.startsWith('/bsd/'))` — unreachable by construction; the `/nba/*` catch-all answered 403 |
+| the forward | base was the bare host against an allow-list of `/stats/rest/en/shiftcharts`, so the documented form was refused |
+
+The second was invisible until the first was fixed. The generated provenance
+manifest had already recorded the first: `"/bsd/"` listed `api.nhle.com` as a
+source because the block was lexically inside it. A **false** source, generated
+silently, and nobody read it.
+
+Live now, `outbox/live-route-probe-latest.json`:
+
+```
+/nhl-stats/shiftcharts            200   rows 692   X-NhlStats-State: vendor
+/nhl-stats/zzz-not-a-real-prefix  403   refusedBy: nhlStatsAllowed
+/bsd/events/220230/lineups        200   predicted / served / beta true
+/bsd/events/220230/broadcasts     200   X-Broadcast-Territory-Stated 2/2
+/bsd/tv-channels/:id/broadcasts   UNMEASURED — no channel id in those 2 rows
+```
+
+`.github/workflows/live-route-probe.yml` exists because deploy.yml's own step
+named *"the routes this deploy touched still answer"* probes two routes a past
+deploy touched.
+
 ### What is new in the tree
 
 Four route blocks in `src/index.js`: the BSD odds refusal (a comment, not code
