@@ -1,0 +1,1393 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "started_at": "2026-10-11T07:01:45.613Z",
+  "finished_at": "2026-10-11T07:02:03.741Z",
+  "architecture": "CC-CMD option (b): a direct logistic on game state. Score differential and time remaining dominate; cumulative xG is one of nine features. Option (a) — xG rates into a Poisson over remaining time — was NOT built, because (b) cleared the bar. Nothing is ported from soccer-wp.js and DC_RHO is absent by design: it corrects draw inflation and hockey has no draws.",
+  "split": {
+    "trainSeasons": [
+      "2021",
+      "2022",
+      "2023"
+    ],
+    "testSeason": "2020",
+    "shuffled": false,
+    "whole_seasons_held_out": true,
+    "train_states": 365969,
+    "train_games": 4200,
+    "test_states": 78611,
+    "test_games": 952,
+    "games_on_both_sides": 0
+  },
+  "optional_columns_absent_by_season": {
+    "2020": [],
+    "2021": [
+      "homeTeamScore",
+      "roadTeamScore",
+      "homeWinProbability",
+      "wentToOT",
+      "wentToShootout",
+      "timeLeft",
+      "gameOver"
+    ],
+    "2022": [
+      "homeTeamScore",
+      "roadTeamScore",
+      "homeWinProbability",
+      "wentToOT",
+      "wentToShootout",
+      "timeLeft",
+      "gameOver"
+    ],
+    "2023": [
+      "homeTeamScore",
+      "roadTeamScore",
+      "homeWinProbability",
+      "wentToOT",
+      "wentToShootout",
+      "timeLeft",
+      "gameOver"
+    ]
+  },
+  "premises": {
+    "score_columns": {
+      "inspected": 5172,
+      "consistent_with_pre_shot": 5172,
+      "consistent_with_post_shot": 0,
+      "verdict": "pre-shot: the goal is NOT yet counted on its own row"
+    },
+    "final_score_column": {
+      "games": 952,
+      "homeTeamScore_constant_within_game": 952,
+      "homeTeamScore_varies_within_game": 0,
+      "homeTeamGoals_constant_within_game": 71,
+      "verdict": "homeTeamScore is the FINAL score (constant within a game); homeTeamGoals is the running one"
+    },
+    "clock_column": {
+      "inspected": 0,
+      "matches_game_remaining": 0,
+      "matches_period_remaining": 0,
+      "verdict": "neither — do not use timeLeft"
+    },
+    "overtime": {
+      "games": 952,
+      "source": "derived from max period per game",
+      "wentToOT_column_present": false,
+      "column_vs_derivation": null,
+      "wentToOT": 222,
+      "wentToShootout": 5,
+      "tieRate": 0.2332,
+      "otHomeShare": 0.4775,
+      "otHomeShare_n": 222,
+      "shootoutHomeShare": 0.8,
+      "shootoutHomeShare_n": 5,
+      "homeWinRate_all": 0.5347
+    },
+    "shot_type_vocabulary": {
+      "counts": {
+        "WRIST": 43536,
+        "BACK": 5604,
+        "SNAP": 10243,
+        "SLAP": 11616,
+        "TIP": 4836,
+        "WRAP": 698,
+        "DEFL": 2073,
+        "": 5
+      },
+      "values_verbatim": [
+        "",
+        "BACK",
+        "DEFL",
+        "SLAP",
+        "SNAP",
+        "TIP",
+        "WRAP",
+        "WRIST"
+      ],
+      "unmapped": [],
+      "unmapped_row_share": 0
+    },
+    "column_states": {
+      "homeWinProbability": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "wentToOT": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "wentToShootout": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "homeTeamScore": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "roadTeamScore": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      },
+      "timeLeft": {
+        "absent_from_header": 0,
+        "empty": 78611,
+        "na_literal": 0,
+        "unparseable": 0,
+        "usable": 0,
+        "sample_values": [],
+        "verdict": "present in the header and carrying NO usable value"
+      }
+    },
+    "geometry_vs_vendor_columns": {
+      "inspected": 20000,
+      "distance_agrees": 20000,
+      "angle_agrees": 20000,
+      "distance_agreement_rate": 1,
+      "angle_agreement_rate": 1,
+      "worst_distance_gap": 0,
+      "worst_angle_gap": 0,
+      "tolerance": 0.01
+    }
+  },
+  "xgModel": {
+    "version": 1,
+    "trainedAt": "2026-10-11T07:01:45.613Z",
+    "trainSeasons": [
+      "2021",
+      "2022",
+      "2023"
+    ],
+    "testSeason": "2020",
+    "rows": 365969,
+    "features": [
+      "distance",
+      "angleAbs",
+      "distanceSq",
+      "distTimesAngle",
+      "isRebound",
+      "isRush",
+      "onEmptyNet",
+      "shooterSkaterAdvantage",
+      "type_SNAP",
+      "type_SLAP",
+      "type_BACK",
+      "type_TIP",
+      "type_DEFL",
+      "type_WRAP"
+    ],
+    "shotTypes": [
+      "WRIST",
+      "SNAP",
+      "SLAP",
+      "BACK",
+      "TIP",
+      "DEFL",
+      "WRAP"
+    ],
+    "coefficients": [
+      -1.076449,
+      -0.213637,
+      0.173355,
+      -0.172631,
+      0.052566,
+      0.00516,
+      0.3644,
+      0.10572,
+      0.161936,
+      0.17118,
+      -0.106698,
+      -0.152734,
+      -0.075886,
+      -0.091553
+    ],
+    "intercept": -2.956824,
+    "mean": [
+      33.338145,
+      32.251399,
+      14.785477,
+      9.924145,
+      0.066506,
+      0.001642,
+      0.006626,
+      0.139952,
+      0.140826,
+      0.124562,
+      0.073296,
+      0.080824,
+      0.021958,
+      0.008353
+    ],
+    "sd": [
+      19.160265,
+      21.126723,
+      15.223182,
+      7.480145,
+      0.249164,
+      0.040491,
+      0.081132,
+      0.446499,
+      0.347842,
+      0.330222,
+      0.260621,
+      0.272564,
+      0.146547,
+      0.091013
+    ]
+  },
+  "xgResults": {
+    "n": 78611,
+    "goal_rate": 0.069736,
+    "field_xg": {
+      "brier": 0.05974,
+      "logLoss": 0.221995,
+      "mean_prediction": 0.068127,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "n": 61352,
+          "predictedMean": 0.0422,
+          "observedRate": 0.0399,
+          "gap": -0.0023
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 14713,
+          "predictedMean": 0.1353,
+          "observedRate": 0.1537,
+          "gap": 0.0184
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 2004,
+          "predictedMean": 0.2322,
+          "observedRate": 0.242,
+          "gap": 0.0098
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 198,
+          "predictedMean": 0.335,
+          "observedRate": 0.3283,
+          "gap": -0.0067
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 48,
+          "predictedMean": 0.4521,
+          "observedRate": 0.4583,
+          "gap": 0.0062
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 53,
+          "predictedMean": 0.5502,
+          "observedRate": 0.6415,
+          "gap": 0.0913
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 52,
+          "predictedMean": 0.64,
+          "observedRate": 0.5385,
+          "gap": -0.1015
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 54,
+          "predictedMean": 0.7505,
+          "observedRate": 0.6852,
+          "gap": -0.0653
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 75,
+          "predictedMean": 0.8534,
+          "observedRate": 0.6,
+          "gap": -0.2534
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 62,
+          "predictedMean": 0.9309,
+          "observedRate": 0.9194,
+          "gap": -0.0115
+        }
+      ]
+    },
+    "moneypuck_xg": {
+      "n": 78611,
+      "brier": 0.055084,
+      "logLoss": 0.204033,
+      "mean_prediction": 0.066744
+    },
+    "constant_base_rate": {
+      "brier": 0.064873
+    }
+  },
+  "model": {
+    "version": 1,
+    "trainedAt": "2026-10-11T07:01:45.613Z",
+    "trainSeasons": [
+      "2021",
+      "2022",
+      "2023"
+    ],
+    "testSeason": "2020",
+    "rows": 365969,
+    "games": 4200,
+    "features": [
+      "scoreDiff",
+      "sdPerSqrtT",
+      "tRem",
+      "skaterDiff",
+      "homeEmptyNet",
+      "awayEmptyNet",
+      "xgDiff",
+      "isOT",
+      "isPlayoff"
+    ],
+    "coefficients": [
+      0.39761,
+      2.126459,
+      0.038298,
+      0.066666,
+      0.03788,
+      -0.104381,
+      0.173657,
+      -0.014396,
+      -0.050563
+    ],
+    "intercept": 0.232007,
+    "mean": [
+      0.10173,
+      0.242998,
+      0.49225,
+      0.009864,
+      0.013996,
+      0.014026,
+      0.127203,
+      0.014895,
+      0.065508
+    ],
+    "sd": [
+      1.658136,
+      4.700153,
+      0.290262,
+      0.467814,
+      0.117473,
+      0.117597,
+      0.818611,
+      0.121132,
+      0.247421
+    ],
+    "tieRate": 0.2332,
+    "otHomeShare": 0.4775,
+    "otHomeShare_n": 222,
+    "pregamePrior": 0.5347
+  },
+  "results": {
+    "model": {
+      "label": "FIELD hockey-wp",
+      "n": 78611,
+      "brier": 0.17404,
+      "logLoss": 0.510695,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "n": 6833,
+          "predictedMean": 0.0387,
+          "observedRate": 0.037,
+          "gap": -0.0017
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 5006,
+          "predictedMean": 0.1517,
+          "observedRate": 0.1602,
+          "gap": 0.0085
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 5208,
+          "predictedMean": 0.2575,
+          "observedRate": 0.2546,
+          "gap": -0.0029
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 7736,
+          "predictedMean": 0.3422,
+          "observedRate": 0.3513,
+          "gap": 0.0091
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 6703,
+          "predictedMean": 0.4705,
+          "observedRate": 0.4895,
+          "gap": 0.019
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 20670,
+          "predictedMean": 0.5394,
+          "observedRate": 0.5458,
+          "gap": 0.0064
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 2774,
+          "predictedMean": 0.6663,
+          "observedRate": 0.7066,
+          "gap": 0.0403
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 8859,
+          "predictedMean": 0.7385,
+          "observedRate": 0.717,
+          "gap": -0.0215
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 5942,
+          "predictedMean": 0.8553,
+          "observedRate": 0.8714,
+          "gap": 0.0161
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 8880,
+          "predictedMean": 0.9646,
+          "observedRate": 0.975,
+          "gap": 0.0104
+        }
+      ]
+    },
+    "constant_half": {
+      "label": "constant 0.5",
+      "n": 78611,
+      "brier": 0.25,
+      "logLoss": 0.693147,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 78611,
+          "predictedMean": 0.5,
+          "observedRate": 0.5319,
+          "gap": 0.0319
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        }
+      ]
+    },
+    "pregame_prior_constant": {
+      "label": "constant home-win base rate",
+      "n": 78611,
+      "brier": 0.248993,
+      "logLoss": 0.691132,
+      "reliability": [
+        {
+          "bin": "0.0-0.1",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.1-0.2",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.2-0.3",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.3-0.4",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.4-0.5",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.5-0.6",
+          "n": 78611,
+          "predictedMean": 0.5347,
+          "observedRate": 0.5319,
+          "gap": -0.0028
+        },
+        {
+          "bin": "0.6-0.7",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.7-0.8",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.8-0.9",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        },
+        {
+          "bin": "0.9-1.0",
+          "n": 0,
+          "predictedMean": null,
+          "observedRate": null,
+          "gap": null
+        }
+      ]
+    },
+    "moneypuck": {
+      "label": "MoneyPuck homeWinProbability (vendor's own model)",
+      "n": 0,
+      "brier": null,
+      "logLoss": null,
+      "reliability": null
+    }
+  },
+  "splits": {
+    "even_5v5": {
+      "model": {
+        "label": "model / even_5v5",
+        "n": 62263,
+        "brier": 0.177828,
+        "logLoss": 0.520872,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 4840,
+            "predictedMean": 0.042,
+            "observedRate": 0.0424,
+            "gap": 0.0004
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 4060,
+            "predictedMean": 0.1528,
+            "observedRate": 0.1579,
+            "gap": 0.0051
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 4105,
+            "predictedMean": 0.2578,
+            "observedRate": 0.2453,
+            "gap": -0.0125
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 6324,
+            "predictedMean": 0.3405,
+            "observedRate": 0.3496,
+            "gap": 0.0091
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 4670,
+            "predictedMean": 0.473,
+            "observedRate": 0.5116,
+            "gap": 0.0386
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 17794,
+            "predictedMean": 0.538,
+            "observedRate": 0.5419,
+            "gap": 0.0039
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 1824,
+            "predictedMean": 0.6709,
+            "observedRate": 0.7133,
+            "gap": 0.0424
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 7418,
+            "predictedMean": 0.7367,
+            "observedRate": 0.7131,
+            "gap": -0.0236
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 4826,
+            "predictedMean": 0.8552,
+            "observedRate": 0.8734,
+            "gap": 0.0182
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 6402,
+            "predictedMean": 0.9625,
+            "observedRate": 0.9755,
+            "gap": 0.013
+          }
+        ]
+      },
+      "constant_half": {
+        "label": "0.5 / even_5v5",
+        "n": 62263,
+        "brier": 0.25,
+        "logLoss": 0.693147,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 62263,
+            "predictedMean": 0.5,
+            "observedRate": 0.5324,
+            "gap": 0.0324
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          }
+        ]
+      },
+      "moneypuck": {
+        "label": "MoneyPuck / even_5v5",
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "reliability": null
+      }
+    },
+    "power_play": {
+      "model": {
+        "label": "model / power_play",
+        "n": 14667,
+        "brier": 0.155844,
+        "logLoss": 0.462515,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 1922,
+            "predictedMean": 0.031,
+            "observedRate": 0.025,
+            "gap": -0.006
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 889,
+            "predictedMean": 0.1463,
+            "observedRate": 0.1766,
+            "gap": 0.0303
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 1045,
+            "predictedMean": 0.2562,
+            "observedRate": 0.2967,
+            "gap": 0.0405
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 1297,
+            "predictedMean": 0.3494,
+            "observedRate": 0.3616,
+            "gap": 0.0122
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 1484,
+            "predictedMean": 0.4663,
+            "observedRate": 0.4562,
+            "gap": -0.0101
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 2371,
+            "predictedMean": 0.5505,
+            "observedRate": 0.5719,
+            "gap": 0.0214
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 920,
+            "predictedMean": 0.6573,
+            "observedRate": 0.6902,
+            "gap": 0.0329
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 1343,
+            "predictedMean": 0.748,
+            "observedRate": 0.7394,
+            "gap": -0.0086
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 1058,
+            "predictedMean": 0.8556,
+            "observedRate": 0.862,
+            "gap": 0.0064
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 2338,
+            "predictedMean": 0.9704,
+            "observedRate": 0.9722,
+            "gap": 0.0018
+          }
+        ]
+      },
+      "constant_half": {
+        "label": "0.5 / power_play",
+        "n": 14667,
+        "brier": 0.25,
+        "logLoss": 0.693147,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 14667,
+            "predictedMean": 0.5,
+            "observedRate": 0.5339,
+            "gap": 0.0339
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          }
+        ]
+      },
+      "moneypuck": {
+        "label": "MoneyPuck / power_play",
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "reliability": null
+      }
+    },
+    "final_two_minutes": {
+      "model": {
+        "label": "model / final_two_minutes",
+        "n": 2777,
+        "brier": 0.066692,
+        "logLoss": 0.211493,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 1060,
+            "predictedMean": 0.0154,
+            "observedRate": 0.0283,
+            "gap": 0.0129
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 16,
+            "predictedMean": 0.1119,
+            "observedRate": 0.25,
+            "gap": 0.1381
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 1,
+            "predictedMean": 0.2373,
+            "observedRate": 0,
+            "gap": -0.2373
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 33,
+            "predictedMean": 0.366,
+            "observedRate": 0.6061,
+            "gap": 0.2401
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 194,
+            "predictedMean": 0.4637,
+            "observedRate": 0.3402,
+            "gap": -0.1235
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 260,
+            "predictedMean": 0.5429,
+            "observedRate": 0.5769,
+            "gap": 0.034
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 13,
+            "predictedMean": 0.6163,
+            "observedRate": 0.7692,
+            "gap": 0.1529
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 56,
+            "predictedMean": 0.8717,
+            "observedRate": 0.8393,
+            "gap": -0.0324
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 1144,
+            "predictedMean": 0.9865,
+            "observedRate": 0.9781,
+            "gap": -0.0084
+          }
+        ]
+      },
+      "constant_half": {
+        "label": "0.5 / final_two_minutes",
+        "n": 2777,
+        "brier": 0.25,
+        "logLoss": 0.693147,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 2777,
+            "predictedMean": 0.5,
+            "observedRate": 0.5207,
+            "gap": 0.0207
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          }
+        ]
+      },
+      "moneypuck": {
+        "label": "MoneyPuck / final_two_minutes",
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "reliability": null
+      }
+    },
+    "empty_net": {
+      "model": {
+        "label": "model / empty_net",
+        "n": 2017,
+        "brier": 0.052978,
+        "logLoss": 0.189513,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 883,
+            "predictedMean": 0.0196,
+            "observedRate": 0.0283,
+            "gap": 0.0087
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 59,
+            "predictedMean": 0.1323,
+            "observedRate": 0.2034,
+            "gap": 0.0711
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 47,
+            "predictedMean": 0.2739,
+            "observedRate": 0.3404,
+            "gap": 0.0665
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 22,
+            "predictedMean": 0.3361,
+            "observedRate": 0.4545,
+            "gap": 0.1184
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 26,
+            "predictedMean": 0.4497,
+            "observedRate": 0.5,
+            "gap": 0.0503
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 17,
+            "predictedMean": 0.5489,
+            "observedRate": 0.8235,
+            "gap": 0.2746
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 41,
+            "predictedMean": 0.6432,
+            "observedRate": 0.7073,
+            "gap": 0.0641
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 16,
+            "predictedMean": 0.7602,
+            "observedRate": 0.8125,
+            "gap": 0.0523
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 90,
+            "predictedMean": 0.8602,
+            "observedRate": 0.8667,
+            "gap": 0.0065
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 816,
+            "predictedMean": 0.9787,
+            "observedRate": 0.9681,
+            "gap": -0.0106
+          }
+        ]
+      },
+      "constant_half": {
+        "label": "0.5 / empty_net",
+        "n": 2017,
+        "brier": 0.25,
+        "logLoss": 0.693147,
+        "reliability": [
+          {
+            "bin": "0.0-0.1",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.1-0.2",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.2-0.3",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.3-0.4",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.4-0.5",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.5-0.6",
+            "n": 2017,
+            "predictedMean": 0.5,
+            "observedRate": 0.4958,
+            "gap": -0.0042
+          },
+          {
+            "bin": "0.6-0.7",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.7-0.8",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.8-0.9",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          },
+          {
+            "bin": "0.9-1.0",
+            "n": 0,
+            "predictedMean": null,
+            "observedRate": null,
+            "gap": null
+          }
+        ]
+      },
+      "moneypuck": {
+        "label": "MoneyPuck / empty_net",
+        "n": 0,
+        "brier": null,
+        "logLoss": null,
+        "reliability": null
+      }
+    }
+  },
+  "marketJoin": {
+    "attempted": true,
+    "file": "outbox/hockey-wp-market-baseline-latest.json",
+    "key": "ordinal meeting within the season",
+    "espn_pairs": 990,
+    "moneypuck_pairs": 216,
+    "moneypuck_games": 952,
+    "matched": 0,
+    "unmatched": 952,
+    "pairs_with_a_different_number_of_meetings": 216,
+    "match_rate": 0,
+    "outcome_crosscheck": {
+      "inspected": 0,
+      "agree": 0,
+      "disagree": 0,
+      "agreement_rate": null,
+      "floor": 0.98,
+      "passed": false
+    },
+    "codes_only_in_moneypuck": [
+      "L.A",
+      "N.J",
+      "S.J",
+      "T.B"
+    ],
+    "codes_only_in_espn": [
+      "LAK",
+      "MAT",
+      "MCD",
+      "NJD",
+      "SEA",
+      "SJS",
+      "TBL"
+    ],
+    "dropped_for_implausible_overround": 0,
+    "accepted_overround_band": {
+      "min": 1,
+      "max": 1.25
+    },
+    "implied_three_way_overround": null,
+    "refused": "the join's own outcome cross-check came in at null, below the 0.98 floor — the baseline is NOT used"
+  },
+  "gate": {
+    "market_games_used": 0,
+    "market_games_available": 952,
+    "market_coverage": 0,
+    "market_coverage_floor": 0.5,
+    "beats_constant_half": true,
+    "beats_market_overall": null,
+    "beats_market_pregame": null,
+    "beats_moneypuck": null,
+    "verdict": "UNDECIDED — the join's own outcome cross-check came in at null, below the 0.98 floor — the baseline is NOT used"
+  },
+  "breadcrumbs": [
+    "2026-10-11T07:01:45.613Z reading the vendor index",
+    "2026-10-11T07:01:45.937Z fetching season 2021",
+    "2026-10-11T07:01:48.025Z season 2021: 121471 shot rows, 1400 games",
+    "2026-10-11T07:01:48.026Z fetching season 2022",
+    "2026-10-11T07:01:50.173Z season 2022: 122026 shot rows, 1400 games",
+    "2026-10-11T07:01:50.173Z fetching season 2023",
+    "2026-10-11T07:01:52.061Z season 2023: 122472 shot rows, 1400 games",
+    "2026-10-11T07:01:52.061Z fetching season 2020",
+    "2026-10-11T07:01:53.784Z season 2020: 78611 shot rows, 952 games",
+    "2026-10-11T07:01:53.785Z measuring the data premises on the held-out season",
+    "2026-10-11T07:01:53.904Z training the xG model",
+    "2026-10-11T07:01:58.933Z building WP state rows",
+    "2026-10-11T07:01:59.168Z states built for 2021, raw rows released; heap 1495MB",
+    "2026-10-11T07:01:59.381Z states built for 2022, raw rows released; heap 1582MB",
+    "2026-10-11T07:01:59.591Z states built for 2023, raw rows released; heap 1670MB",
+    "2026-10-11T07:01:59.757Z training WP on 365969 states from 4200 games",
+    "2026-10-11T07:02:03.622Z evaluating against the baselines",
+    "2026-10-11T07:02:03.678Z joining the market baseline on the ordinal meeting",
+    "2026-10-11T07:02:03.710Z market join REFUSED: outcome agreement null",
+    "2026-10-11T07:02:03.710Z splitting by game state"
+  ],
+  "coverage": "held-out season 2020: 952 games / 78611 states; market baseline covers 0 of those games (match rate 0); MoneyPuck baseline covers 0 states"
+}
