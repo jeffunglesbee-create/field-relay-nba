@@ -101,6 +101,21 @@ export const marketProb = (homePrice, awayPrice, tieRate, otHomeShare) => {
   return { ...c, pHome: null }   // absent / ambiguous carry no number
 }
 
+// ESPN and MoneyPuck do not agree on team codes. The disagreement is small
+// and enumerable, and the JOIN REPORT verifies the map rather than trusting
+// it: scripts/hockey-wp-train.mjs prints codes_only_in_espn after mapping, and
+// a non-empty list is a finding. A two-letter normalisation was rejected
+// because NYI and NYR both collapse to NY.
+export const ESPN_TO_MP = {
+  NJ: 'NJD', LA: 'LAK', SJ: 'SJS', TB: 'TBL', UTAH: 'UTA',
+  // 4 Nations Face-Off entries appear in the NHL scoreboard and are not NHL
+  // clubs. Mapped to themselves so they survive into the artifact and fail to
+  // join, rather than being silently dropped here.
+  USA: 'USA', CAN: 'CAN', SWE: 'SWE', FIN: 'FIN'
+}
+
+export const normalizeTeam = (code) => code === null || code === undefined ? null : (ESPN_TO_MP[code] ?? code)
+
 const getJson = async (url, calls) => {
   calls.n += 1
   try {
@@ -133,7 +148,9 @@ export const outcomeOf = (ev) => {
   if (hs === as) return null   // a completed NHL game is never tied
   return {
     espnId: ev.id, date: (ev.date || '').slice(0, 10),
-    home: home.team?.abbreviation ?? null, away: away.team?.abbreviation ?? null,
+    home: normalizeTeam(home.team?.abbreviation ?? null),
+    away: normalizeTeam(away.team?.abbreviation ?? null),
+    homeRaw: home.team?.abbreviation ?? null, awayRaw: away.team?.abbreviation ?? null,
     homeScore: hs, awayScore: as, homeWon: hs > as ? 1 : 0
   }
 }
@@ -173,7 +190,13 @@ const main = async () => {
       const sums = await Promise.all(slice.map(o => getJson(`${ESPN_SUM}?event=${o.espnId}`, calls)))
       slice.forEach((o, j) => {
         const s = sums[j]
-        const row = { ...o, providers: [] }
+        // WITHOUT THIS STATUS A FAILED FETCH READS AS "NO ODDS". The first
+        // full-season build reported 0 of 1317 games carrying a provider and
+        // the number was unreadable: nothing in the artifact distinguished
+        // ESPN serving no pickcenter from this script failing to ask. The
+        // season boundary turned out to be the real cause, but it was found by
+        // comparing two artifacts, not by reading one — which is the defect.
+        const row = { ...o, summaryStatus: s.status ?? 0, summaryOk: !!s.ok, providers: [] }
         if (s.ok) {
           for (const pc of (s.body.pickcenter || [])) {
             const name = pc?.provider?.name ?? 'unknown'
@@ -201,6 +224,8 @@ const main = async () => {
   }
 
   const withAny = games.filter(g => g.providers.length > 0).length
+  const fetchFailed = games.filter(g => g.summaryOk === false).length
+  const servedNoOdds = games.filter(g => g.summaryOk === true && g.providers.length === 0).length
   const out = {
     cc_cmd: 'docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md',
     purpose: census ? 'census: establish the market shape per provider before trusting any de-vig'
@@ -217,7 +242,11 @@ const main = async () => {
   out.callsMade = calls.n
   out.finished_at = new Date().toISOString()
   // Rule 91: the denominator prints where the result is read.
-  out.coverage = `${withAny} of ${games.length} completed games carry a pickcenter provider; ${dates.length} dates requested, ${truncated ? 'TRUNCATED at the call budget' : 'all walked'}`
+  out.fetch_failed = fetchFailed
+  out.served_no_odds = servedNoOdds
+  out.coverage = `${withAny} of ${games.length} completed games carry a pickcenter provider — ` +
+    `${servedNoOdds} were served and carried none, ${fetchFailed} could not be fetched at all; ` +
+    `${dates.length} dates requested, ${truncated ? 'TRUNCATED at the call budget' : 'all walked'}`
 
   mkdirSync('outbox', { recursive: true })
   const ts = started.replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
@@ -281,6 +310,22 @@ const selfTest = () => {
     (() => { const d = datesInRange('2024-10-08', '2024-10-10'); return d.length === 3 && d[0] === '20241008' && d[2] === '20241010' })())
   t('an unfinished game yields no outcome rather than a 0',
     outcomeOf({ id: '1', competitions: [{ status: { type: { completed: false } }, competitors: [] }] }) === null)
+  t('ESPN NJ maps to MoneyPuck NJD, and an already-three-letter code is left alone',
+    normalizeTeam('NJ') === 'NJD' && normalizeTeam('CAR') === 'CAR')
+  t('the New York pair survive normalisation as distinct codes',
+    normalizeTeam('NYI') !== normalizeTeam('NYR'))
+  t('a 4 Nations entry maps to itself rather than being dropped',
+    normalizeTeam('SWE') === 'SWE')
+  t('an absent code normalises to null, not to a string',
+    normalizeTeam(null) === null && normalizeTeam(undefined) === null)
+  t('outcomeOf applies the crosswalk and keeps the raw code beside it',
+    (() => {
+      const o = outcomeOf({ id: '1', competitions: [{ status: { type: { completed: true } },
+        competitors: [{ homeAway: 'home', score: '3', team: { abbreviation: 'NJ' } },
+                      { homeAway: 'away', score: '1', team: { abbreviation: 'LA' } }] }] })
+      return o.home === 'NJD' && o.homeRaw === 'NJ' && o.away === 'LAK' && o.awayRaw === 'LA'
+    })())
+
   t('a completed game yields homeWon from the scores',
     (() => {
       const o = outcomeOf({ id: '9', date: '2024-10-08T23:00Z', competitions: [{ status: { type: { completed: true } },

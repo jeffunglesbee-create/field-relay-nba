@@ -1,0 +1,78 @@
+name: Hockey WP train
+
+# docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md — Tasks 1-4.
+#
+# Trains offline and commits a coefficient table; the Worker then scores live
+# shots with a dot product and no ML runtime, which is the CC-CMD's first stop
+# condition.
+#
+# CI because the shot files are 403-at-CONNECT from the container, and because
+# three seasons of shots is ~60MB of download and ~400k rows of fitting.
+#
+# THE SPLIT IS WHOLE SEASONS. The script refuses to continue if any game id
+# appears on both sides, because shots from one game share one label and a
+# shuffled split would let Task 3's gate pass on memorised outcomes.
+#
+# src/hockey-wp-model.js is written ONLY when the gate passes. A model that
+# loses to the de-vigged market baseline must not become the file the Worker
+# imports — the CC-CMD's second stop condition is to report the numbers, not
+# to ship anyway.
+
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "training seasons, comma separated"
+        required: false
+        type: string
+        default: "2021,2022,2023"
+      test:
+        description: "held-out season"
+        required: false
+        type: string
+        default: "2024"
+      iters:
+        description: "optimiser iterations"
+        required: false
+        type: string
+        default: "400"
+
+permissions:
+  contents: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The trainer can still fail
+        run: |
+          node scripts/hockey-wp-lib.mjs  2>/dev/null || true
+          node scripts/hockey-wp-train.mjs --self-test
+          node scripts/hockey-wp-market.mjs --self-test
+
+      - name: Train and calibrate
+        run: |
+          node --max-old-space-size=6144 scripts/hockey-wp-train.mjs \
+            "--seasons=${{ inputs.seasons }}" "--test=${{ inputs.test }}" "--iters=${{ inputs.iters }}"
+
+      - name: Commit the artifact and the coefficient table
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/hockey-wp-calibration-*.json src/hockey-wp-model.js || true
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "feat: hockey WP coefficients and calibration artifact [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
