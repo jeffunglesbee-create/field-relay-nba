@@ -1,0 +1,25 @@
+=== month degrade probe  utc=2026-10-11T19:48:06.044Z ===
+
+  sample 1 : used 3800/3800  monthly 21248
+             degraded_open is NOT-REPORTED — (key absent from the response)
+             monthly batch reason count 0
+
+  closed 2026-10-10 : used 3800/3800  monthly 21248
+                      degraded_open is NOT-REPORTED — (key absent from the response)
+                      monthly batch reason count 0
+
+  waiting 60s for the */5 cron to fire at least once...
+
+  sample 2 : used 3800/3800  monthly 21248
+             degraded_open is NOT-REPORTED — (key absent from the response)
+             monthly batch reason count 0
+
+  verdict: UNREADABLE
+  the degrade counter was not-reported/not-reported across the two samples — nothing can be concluded about a reason that cannot be read
+
+COVERAGE: 2 sample(s) of /budget/odds, 60s apart, on 2026-10-11.
+It sees the UTC day's cumulative degrade counter only. A monthly batch throw
+that happens outside this interval is invisible here, which is why the
+interval has to show spend before a flat count is read as a pass.
+
+UNREADABLE fails on purpose: a counter that cannot be read is not evidence.
