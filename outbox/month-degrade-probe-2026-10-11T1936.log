@@ -1,0 +1,21 @@
+=== month degrade probe  utc=2026-10-11T19:36:44.787Z ===
+
+  sample 1        : used 3800  monthly 21248  degrade events 0 credits 0
+  reasons         : none
+  monthly batch   : 0
+
+  waiting 420s for the */5 cron to fire at least once...
+
+  sample 2        : used 3800  monthly 21248  degrade events 0 credits 0
+  reasons         : none
+  monthly batch   : 0
+
+  verdict: INCONCLUSIVE
+  the reason did not grow, but neither did the day's odds counter (+0) nor any degrade (+0) — nothing happened in this interval, so a flat count proves nothing
+
+COVERAGE: 2 sample(s) of /budget/odds, 420s apart, on 2026-10-11.
+It sees the UTC day's cumulative degrade counter only. A monthly batch throw
+that happens outside this interval is invisible here, which is why the
+interval has to show spend before a flat count is read as a pass.
+
+INCONCLUSIVE is not a pass. Re-run during an active slate.
