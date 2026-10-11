@@ -91,14 +91,33 @@ export const run = () => {
   t('a present goalie id adds no goalie caveat',
     !/goalieInNetId absent/.test(hockeyWinProb(liveState(), { wp: FAKE }).caveats.join(' ')))
 
-  // ── the real committed model refuses until training writes one ───────────
-  t('the committed placeholder model is null, not a plausible set of numbers',
-    HOCKEY_WP_MODEL === null)
-  t('with no trained model the scorer refuses instead of answering',
+  // ── the committed model is EITHER absent or well-formed ─────────────────
+  // These pinned `HOCKEY_WP_MODEL === null` and broke the moment training
+  // wrote a real table — testing which state the file happens to be in rather
+  // than the guard that matters. The guard is now tested by injection, and the
+  // committed file is tested for being one of two legitimate things.
+  t('the committed model is either absent or a complete, labelled table',
+    HOCKEY_WP_MODEL === null || (
+      Array.isArray(HOCKEY_WP_MODEL.coefficients)
+      && HOCKEY_WP_MODEL.coefficients.length === FEATURES.length
+      && HOCKEY_WP_MODEL.features.join(',') === FEATURES.join(',')
+      && typeof HOCKEY_WP_MODEL.trainedAt === 'string'
+      && HOCKEY_WP_MODEL.rows > 0))
+  t('a committed model carries the training date, row count and feature list the CC-CMD requires',
+    HOCKEY_WP_MODEL === null || (
+      HOCKEY_WP_MODEL.trainedAt && HOCKEY_WP_MODEL.rows && Array.isArray(HOCKEY_WP_MODEL.features)
+      && Array.isArray(HOCKEY_WP_MODEL.trainSeasons) && HOCKEY_WP_MODEL.trainSeasons.length > 0))
+  t('a trained model carries a MEASURED pre-game prior and OT share, never 0.5',
+    HOCKEY_WP_MODEL === null || (
+      HOCKEY_WP_MODEL.pregamePrior !== 0.5 && HOCKEY_WP_MODEL.otHomeShare !== 0.5
+      && HOCKEY_WP_MODEL.otHomeShare_n > 0))
+  t('a null model refuses instead of answering',
     (() => {
-      const r = hockeyWinProb(liveState())
+      const r = hockeyWinProb(liveState(), { wp: null })
       return r.state === 'refused' && r.problems.includes('model-absent') && r.probability === null
     })())
+  t('a model whose coefficients are not an array refuses too',
+    hockeyWinProb(liveState(), { wp: { intercept: 0 } }).problems.includes('model-absent'))
 
   // ── direction and shape ─────────────────────────────────────────────────
   t('a two-goal home lead scores above an equal game, which scores above a deficit',
@@ -156,13 +175,14 @@ export const run = () => {
       return p1 !== null && p2 !== null && Math.abs(p1 - p2) > 1e-6
     })())
 
-  t('with no trained xG model a shot yields no xG instead of throwing',
+  t('a null xG model yields no xG instead of throwing',
     (() => {
-      const r = shotXg(shot(), { homeTeamId: 10, homeTeamDefendingSide: 'left' })
+      const r = shotXg(shot(), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, null)
       return r.xg === null && r.problems.includes('xg-model-absent')
     })())
-  t('...and the whole payload walk survives it',
-    stateFromPlayByPlay({ homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left', plays: [shot()] }).xgShotsUnscored === 1)
+  t('...and an xG model with no coefficient array is refused the same way',
+    shotXg(shot(), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, { intercept: 0 })
+      .problems.includes('xg-model-absent'))
 
   t('a shot with an unreadable situationCode yields no xG rather than a default',
     shotXg(shot({ situationCode: 'xx' }), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG).xg === null)
@@ -194,8 +214,9 @@ export const run = () => {
       })
       return s.homeScore === 2 && s.elapsedSeconds === 900 && s.shotsSeen === 2
     })())
-  t('a payload with no trained model refuses through the whole path',
-    winProbFromPlayByPlay({ plays: [shot()], homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left' }).state === 'refused')
+  t('a payload walked with a null model refuses through the whole path',
+    winProbFromPlayByPlay({ plays: [shot()], homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left' },
+      { wp: null }).state === 'refused')
   t('shots whose xG could not be scored are counted, not hidden',
     (() => {
       const s = stateFromPlayByPlay({

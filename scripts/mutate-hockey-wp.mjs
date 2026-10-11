@@ -70,7 +70,7 @@ const MUTATIONS = [
     file: VICTIM,
     anchor: "  if (!wp || !Array.isArray(wp.coefficients))\n    return { ...base, state: 'refused', problems: ['model-absent'] }",
     replace: "  if (!wp || !Array.isArray(wp.coefficients))\n    return { ...base, state: 'modelled', probability: 0.5, label: WP_LABEL, problems: [] }",
-    expect: 'refuses instead of answering'
+    expect: 'a null model refuses instead of answering'
   },
   {
     name: 'M8  an absent goalie id stops being reported',
@@ -105,7 +105,7 @@ const MUTATIONS = [
     file: VICTIM,
     anchor: "  if (!model || !Array.isArray(model.coefficients))\n    return { xg: null, problems: ['xg-model-absent'], notReported: [] }",
     replace: "  if (false)\n    return { xg: null, problems: ['xg-model-absent'], notReported: [] }",
-    expect: 'no trained xG model'
+    expect: 'a null xG model yields no xG instead of throwing'
   },
   {
     name: 'M13 an unmapped shot type stops being reported',
