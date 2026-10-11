@@ -1,0 +1,68 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-bsd-form-into-forecaster.md",
+  "task": "Task 1 only — nothing ships from this file",
+  "started_at": "2026-10-11T06:27:24.550Z",
+  "callBudget": 8,
+  "callsMade": 4,
+  "teamId": 4784,
+  "calls": {
+    "A_no_league_id": {
+      "label": "no league_id",
+      "status": 401,
+      "requested": null,
+      "matches": null,
+      "league_id": null,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    },
+    "B_league_1_epl": {
+      "label": "league_id=1 (EPL)",
+      "status": 401,
+      "requested": null,
+      "matches": null,
+      "league_id": null,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    },
+    "C_league_7_ucl": {
+      "label": "league_id=7 (UCL)",
+      "status": 401,
+      "requested": null,
+      "matches": null,
+      "league_id": null,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    },
+    "D_league_impossible": {
+      "label": "league_id=99999999 (cannot exist)",
+      "status": 401,
+      "requested": null,
+      "matches": null,
+      "league_id": null,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    }
+  },
+  "fingerprintsEqual": {
+    "A==B": true,
+    "A==D": true,
+    "B==C": true
+  },
+  "league_id_verdict": "UNMEASURED",
+  "league_id_reason": "one or more calls did not return a body",
+  "xgFields": {
+    "overall": [],
+    "home": [],
+    "away": [],
+    "vs_stronger": [],
+    "vs_weaker": []
+  },
+  "overallKeysVerbatim": [],
+  "overallVerbatim": null,
+  "topLevelKeysVerbatim": [],
+  "coverage": "ONE club (team 4784), FOUR calls. One club is not the vendor's policy — a per-competition claim for other clubs or other leagues is not established by this run."
+}
