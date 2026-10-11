@@ -149,7 +149,7 @@ export const run = () => {
   // ── xG from play-by-play ────────────────────────────────────────────────
   const shot = (over = {}) => ({
     typeDescKey: 'shot-on-goal', timeInPeriod: '10:00', periodDescriptor: { number: 1 },
-    situationCode: '1551',
+    situationCode: '1551', homeTeamDefendingSide: 'left',
     details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, goalieInNetId: 1 },
     ...over
   })
@@ -158,21 +158,37 @@ export const run = () => {
   // The attacking net flips every period. Getting this wrong puts every shot
   // at the far end of the rink and still returns a number, so it is pinned
   // here and not only by the trainer's agreement rate against the vendor.
-  t('the attacking net flips with each period',
-    attackingNetX({ shooterIsHome: true, period: 1, homeTeamDefendingSide: 'left' }) === 89
-    && attackingNetX({ shooterIsHome: true, period: 2, homeTeamDefendingSide: 'left' }) === -89
-    && attackingNetX({ shooterIsHome: true, period: 3, homeTeamDefendingSide: 'left' }) === 89)
-  t('the two sides attack opposite nets in the same period',
-    attackingNetX({ shooterIsHome: true, period: 1, homeTeamDefendingSide: 'left' })
-    === -attackingNetX({ shooterIsHome: false, period: 1, homeTeamDefendingSide: 'left' }))
-  t('an identical shot scores differently in period 1 and period 2, because the net moved',
+  // THE PLAY'S SIDE IS TAKEN AS GIVEN. homeTeamDefendingSide already alternates
+  // by period in the payload (P1 right, P2 left, P3 right on game 2026020053),
+  // so a second flip here put 41 of 125 shots beyond 100 feet against 1 of 125
+  // without it. Settled by distances, not by argument.
+  t('the attacking net does NOT flip again by period — the payload already did',
+    attackingNetX({ shooterIsHome: true, homeTeamDefendingSide: 'left' }) === 89
+    && attackingNetX({ shooterIsHome: true, homeTeamDefendingSide: 'right' }) === -89)
+  t('the two sides attack opposite nets at the same moment',
+    attackingNetX({ shooterIsHome: true, homeTeamDefendingSide: 'left' })
+    === -attackingNetX({ shooterIsHome: false, homeTeamDefendingSide: 'left' }))
+  t('an unreadable side yields no net rather than a default end of the rink',
+    attackingNetX({ shooterIsHome: true, homeTeamDefendingSide: null }) === null)
+  t("the PLAY's defending side is preferred over the payload root, which carries none",
     (() => {
       const XG2 = { version: 0, features: XG_FEATURES,
         coefficients: XG_FEATURES.map(f => f === 'distance' ? -0.1 : 0),
         intercept: 0, mean: new Array(XG_FEATURES.length).fill(0), sd: new Array(XG_FEATURES.length).fill(1) }
-      const p1 = shotXg(shot({ periodDescriptor: { number: 1 } }), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG2).xg
-      const p2 = shotXg(shot({ periodDescriptor: { number: 2 } }), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG2).xg
-      return p1 !== null && p2 !== null && Math.abs(p1 - p2) > 1e-6
+      // root says nothing; the play says 'left'. It must still score.
+      const fromPlay = shotXg(shot({ homeTeamDefendingSide: 'left' }), { homeTeamId: 10 }, XG2)
+      // and the play's value must WIN over a conflicting root value
+      const wins = shotXg(shot({ homeTeamDefendingSide: 'left' }), { homeTeamId: 10, homeTeamDefendingSide: 'right' }, XG2)
+      return fromPlay.xg !== null && wins.xg !== null && Math.abs(fromPlay.xg - wins.xg) < 1e-12
+    })())
+  t('a shot whose own side is a short slot distance scores higher than a long one',
+    (() => {
+      const XG2 = { version: 0, features: XG_FEATURES,
+        coefficients: XG_FEATURES.map(f => f === 'distance' ? -0.1 : 0),
+        intercept: 0, mean: new Array(XG_FEATURES.length).fill(0), sd: new Array(XG_FEATURES.length).fill(1) }
+      const near = shotXg(shot({ homeTeamDefendingSide: 'left', details: { ...shot().details, xCoord: 80, yCoord: 0 } }), { homeTeamId: 10 }, XG2).xg
+      const far  = shotXg(shot({ homeTeamDefendingSide: 'left', details: { ...shot().details, xCoord: 0, yCoord: 0 } }), { homeTeamId: 10 }, XG2).xg
+      return near > far
     })())
 
   t('a null xG model yields no xG instead of throwing',
@@ -186,8 +202,9 @@ export const run = () => {
 
   t('a shot with an unreadable situationCode yields no xG rather than a default',
     shotXg(shot({ situationCode: 'xx' }), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG).xg === null)
-  t('a shot with no defending side yields no xG rather than guessing the net',
-    shotXg(shot(), { homeTeamId: 10, homeTeamDefendingSide: null }, XG).problems.includes('defending-side-unreadable'))
+  t('a shot with no defending side on EITHER the play or the root yields no xG',
+    shotXg(shot({ homeTeamDefendingSide: undefined }), { homeTeamId: 10, homeTeamDefendingSide: null }, XG)
+      .problems.includes('defending-side-unreadable'))
   t('a shot with absent coordinates yields no xG',
     shotXg(shot({ details: { shotType: 'wrist', eventOwnerTeamId: 10 } }), { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG).problems.includes('coordinates-absent'))
   t('an unmapped shot type still scores but names the input it could not use',
@@ -268,9 +285,17 @@ export const run = () => {
     (() => {
       const s = stateFromPlayByPlay({
         homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: null,
-        plays: [shot(), shot()]
+        plays: [shot({ homeTeamDefendingSide: undefined }), shot({ homeTeamDefendingSide: undefined })]
       })
       return s.xgShotsUnscored === 2
+    })())
+  t('a payload whose plays DO carry a side scores every shot',
+    (() => {
+      const s = stateFromPlayByPlay({
+        homeTeam: { id: 10 }, awayTeam: { id: 20 },   // root carries none, as the real payload does
+        plays: [shot(), shot({ timeInPeriod: '12:00' })]
+      })
+      return s.xgShotsUnscored === 0 && s.shotsSeen === 2
     })())
 
   console.log(`\n${pass}/${pass + fail} checks passed`)

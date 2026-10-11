@@ -213,13 +213,25 @@ export const xgFeatureVector = (s) => {
 // still produces a number, which is why it is a function with its own tests.
 export const NET_X = 89
 
-export const attackingNetX = ({ shooterIsHome, period, homeTeamDefendingSide }) => {
+// NO PERIOD FLIP, and that is measured rather than reasoned.
+//
+// homeTeamDefendingSide is a PER-PLAY field — present on 125 of 125 shots on
+// game 2026020053 — and it already alternates by period: P1 right (111 plays),
+// P2 left (112), P3 right (86). An earlier version of this function applied a
+// second `(period - 1) % 2` flip on top of that, and the two readings were
+// compared on the same 125 shots:
+//
+//   play side as given   median 28.32 ft   p90 59.03 ft    1 of 125 over 100ft
+//   with a period flip   median 44.91 ft   p90 164.30 ft  41 of 125 over 100ft
+//
+// Shots are taken in the offensive zone, so the first reading is the correct
+// one. A net aimed at the wrong end returns a number just as readily, which is
+// why this was settled by a distance distribution and not by argument.
+// outbox/hockey-wp-probe-latest-situation.json carries both columns.
+export const attackingNetX = ({ shooterIsHome, homeTeamDefendingSide }) => {
   if (homeTeamDefendingSide !== 'left' && homeTeamDefendingSide !== 'right') return null
-  // homeTeamDefendingSide is reported for period 1 and alternates each period.
-  const flips = (period - 1) % 2 === 1
-  const homeDefendsLeft = (homeTeamDefendingSide === 'left') !== flips
-  // The home side attacks the net it is NOT defending.
-  const homeAttacksX = homeDefendsLeft ? NET_X : -NET_X
+  // The home side attacks the net it is NOT defending, at this moment.
+  const homeAttacksX = homeTeamDefendingSide === 'left' ? NET_X : -NET_X
   return shooterIsHome ? homeAttacksX : -homeAttacksX
 }
 

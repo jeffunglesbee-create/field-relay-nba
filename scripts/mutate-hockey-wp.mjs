@@ -94,11 +94,28 @@ const MUTATIONS = [
     expect: 'LAST shot event, not the last play'
   },
   {
-    name: 'M11 the attacking net stops flipping by period',
+    // Re-aimed. The period flip was REMOVED as a measured defect, so the
+    // mutation that proves the assertion is inverting the net, not disabling a
+    // flip that no longer exists.
+    name: 'M11 the attacking net is inverted',
     file: LIB,
-    anchor: "  const flips = (period - 1) % 2 === 1",
-    replace: "  const flips = false",
-    expect: 'flips with each period'
+    anchor: "  const homeAttacksX = homeTeamDefendingSide === 'left' ? NET_X : -NET_X",
+    replace: "  const homeAttacksX = homeTeamDefendingSide === 'right' ? NET_X : -NET_X",
+    expect: 'short slot distance scores higher'
+  },
+  {
+    name: 'M17 the payload root outranks the play for the defending side',
+    file: VICTIM,
+    anchor: "  const side = play?.homeTeamDefendingSide ?? ctx.homeTeamDefendingSide",
+    replace: "  const side = ctx.homeTeamDefendingSide ?? play?.homeTeamDefendingSide",
+    expect: "defending side is preferred over the payload root"
+  },
+  {
+    name: 'M18 a period flip is re-introduced on top of the payload',
+    file: LIB,
+    anchor: "export const attackingNetX = ({ shooterIsHome, homeTeamDefendingSide }) => {",
+    replace: "export const attackingNetX = ({ shooterIsHome, homeTeamDefendingSide }) => {\n  if (homeTeamDefendingSide === 'left') homeTeamDefendingSide = 'right'\n  else if (homeTeamDefendingSide === 'right') homeTeamDefendingSide = 'left'",
+    expect: 'does NOT flip again by period'
   },
   {
     name: 'M12 the xG model guard is removed again',

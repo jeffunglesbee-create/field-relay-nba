@@ -91,7 +91,13 @@ export const shotXg = (play, ctx, model = HOCKEY_XG_MODEL) => {
   if (d.eventOwnerTeamId === undefined || ctx.homeTeamId === undefined)
     return { xg: null, problems: ['shooter-side-unknown'] }
 
-  const netX = attackingNetX({ shooterIsHome, period, homeTeamDefendingSide: ctx.homeTeamDefendingSide })
+  // The PLAY's own side first. The payload root carries no
+  // homeTeamDefendingSide at all (measured null on game 2026020053), so
+  // reading it from the root left every shot unscoreable — xgShotsUnscored
+  // came back 125 of 125 on the live end-to-end artifact, with the WP model
+  // then running on xgDiff 0 while it had been trained on real values.
+  const side = play?.homeTeamDefendingSide ?? ctx.homeTeamDefendingSide
+  const netX = attackingNetX({ shooterIsHome, homeTeamDefendingSide: side })
   if (netX === null) return { xg: null, problems: ['defending-side-unreadable'] }
   const geo = geometryFromCoords({ xCoord: d.xCoord, yCoord: d.yCoord, netX })
   if (!geo) return { xg: null, problems: ['coordinates-absent'] }
