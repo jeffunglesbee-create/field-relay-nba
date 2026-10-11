@@ -1,0 +1,107 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "probe_only": true,
+  "started_at": "2026-10-11T03:46:48.566Z",
+  "callBudget": 25,
+  "callsMade": 2,
+  "premises": {
+    "situation_code": {
+      "gameId": "2026020053",
+      "pbp_status": 200,
+      "boxscore_status": 200,
+      "play_count": 309,
+      "shot_count": 125,
+      "penalty_windows": 8,
+      "situation_code_distribution": {
+        "1351": 4,
+        "1451": 14,
+        "1541": 8,
+        "1551": 92,
+        "0651": 7
+      },
+      "penalty_crosscheck": {
+        "agree": 125,
+        "disagree": 0,
+        "agree_rate": 1,
+        "agreed_because_both_negative": 99
+      },
+      "examples": {
+        "emptyNet": [
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "16:32",
+            "period": 3,
+            "typeDescKey": "missed-shot"
+          },
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "17:02",
+            "period": 3,
+            "typeDescKey": "missed-shot"
+          },
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "17:12",
+            "period": 3,
+            "typeDescKey": "blocked-shot"
+          }
+        ],
+        "homeAdvantage": [
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "05:34",
+            "period": 1,
+            "inPenaltyWindow": true
+          },
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "05:41",
+            "period": 1,
+            "inPenaltyWindow": true
+          },
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "06:06",
+            "period": 1,
+            "inPenaltyWindow": true
+          }
+        ],
+        "unreadable": []
+      },
+      "home_defending_side": null,
+      "clock_keys": [
+        "timeRemaining",
+        "secondsRemaining",
+        "running",
+        "inIntermission"
+      ],
+      "goalie_toi_crosscheck": {
+        "home": {
+          "seconds": 3600,
+          "goalies": 2,
+          "unreadable": 0,
+          "reason": null
+        },
+        "away": {
+          "seconds": 3364,
+          "goalies": 2,
+          "unreadable": 0,
+          "reason": null
+        },
+        "note": "a side below regulation length pulled its goalie; situationCode must agree from a different field",
+        "usable": true
+      }
+    }
+  },
+  "budget_respected": true,
+  "finished_at": "2026-10-11T03:46:48.815Z",
+  "coverage": {
+    "moneypuck_seasons_examined": 1,
+    "nhl_games_examined": 1,
+    "espn_dates_examined": 3,
+    "statement": "one MoneyPuck season file, one NHL game, three ESPN dates — not a survey of any of the three"
+  },
+  "only": [
+    "situation"
+  ]
+}
