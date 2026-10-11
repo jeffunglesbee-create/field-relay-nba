@@ -1,6 +1,16 @@
 // src/odds-consumer-rules.js
 // WHICH PRICE A CONSUMER SHOULD READ, and why it is not always `closing_odds`.
 //
+// BSD'S FREE FOOTBALL ODDS CANNOT SUPPLY THESE PRICES. Measured 2026-10-10:
+// a PRE-MATCH BSD event carries asian_handicap, btts and draw_no_bet only —
+// no moneyline, no goals total — and hasOpeningValue is false on every market
+// in both the pre-match and live states, which kills opening-versus-closing
+// outright. The full measurement, its two event ids and the three conditions
+// that would reverse it are beside `const ODDS_BASE` in src/index.js;
+// the artifact is outbox/bsd-surface-probe-latest.json and the decision is
+// docs/CC-CMD-2026-10-10-bsd-odds-substitution-refused.md. FOOTBALL ONLY —
+// basketball, hockey and tennis were not probed and are unmeasured, not refused.
+//
 // MEASURED 2026-09-14: of the archive rows whose closing line could be checked
 // against kickoff, 219 were captured AFTER the match started. Those are not
 // closing lines; they are in-play lines sitting in a column named closing. The

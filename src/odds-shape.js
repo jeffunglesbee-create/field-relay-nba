@@ -1,5 +1,10 @@
 // Which h2h outcome is the draw — the one decision in the soccer three-way fix.
 //
+// BSD's free football odds cannot replace the metered vendor: a pre-match BSD
+// event carries no moneyline and no goals total, and no market carries an
+// opening value (measured 2026-10-10). See `const ODDS_BASE` in src/index.js
+// for the numbers and the three reversal conditions.
+//
 // Split out from extractOddsForGame so a deploy gate can exercise it. src/index.js
 // imports @cloudflare/puppeteer, which deploy.yml does not install, so a guard
 // that imported the whole worker could not run there. One implementation,

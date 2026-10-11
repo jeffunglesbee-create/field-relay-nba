@@ -591,6 +591,51 @@ function fdCacheTtl(path) {
 // FIELD uses: drama_bb preGameScore · pre-game EMBER · BNI divergence ·
 //             J5 upset detection · totals pace · line movement · series odds
 const ODDS_BASE    = 'https://api.the-odds-api.com';
+
+// ── REFUSED 2026-10-10: BSD's free football odds cannot replace this vendor ──
+// docs/CC-CMD-2026-10-10-bsd-odds-substitution-refused.md
+// Measured by scripts/bsd-surface-probe.mjs, artifact
+// outbox/bsd-surface-probe-latest.json, capturedAt 2026-10-10T23:31:51.749Z,
+// 16 calls of a declared 40.
+//
+// BSD football odds are free and this vendor is metered, so the substitution
+// will be proposed again. It was measured and it does not work. The numbers,
+// not the conclusion, are what make that checkable:
+//
+//   pre-match  event 220230, status `notstarted`
+//              markets, verbatim: asian_handicap, btts, draw_no_bet
+//              NO moneyline. NO goals total. hasOpeningValue: false on all three.
+//
+//   live       event 207856, status `inprogress`, period `2nd_half`
+//              adds: 1x2, over_under_05, over_under_15, over_under_25,
+//                    over_under_35, double_chance, total_corners
+//              hasOpeningValue: false here too.
+//
+// Verdict, verbatim from the artifact:
+//   "sufficient only for a subset (spread)"
+//   "the free-odds substitution is NOT viable"
+//
+// BSD's odds are RICHER LIVE THAN PRE-MATCH. FIELD prices pre-match —
+// opening_odds and closing_odds are columns on every archive game row — so the
+// state that matters is the one with no moneyline and no total. And
+// hasOpeningValue: false everywhere kills opening-versus-closing outright,
+// which this repository has a whole apparatus around: src/odds-kickoff.js,
+// the inplay_odds relabelling column, and the capture-provenance marks that
+// exist so a post-kickoff capture cannot masquerade as a closing price.
+//
+// THREE CONDITIONS REVERSE THIS. A refusal with no reversal condition is a
+// belief; this one is falsifiable:
+//   1. a PRE-MATCH event carrying 1x2 AND any over_under_* key — one event is
+//      not the vendor's policy, and exactly one pre-match event was sampled;
+//   2. any market carrying an opening value;
+//   3. FIELD ceasing to need a pre-match moneyline and total, which is a
+//      product decision and not BSD's to make.
+//
+// SCOPE IS FOOTBALL ONLY. basketball, hockey and tennis odds were NOT probed.
+// BSD's basketball league list includes the NBA and WNBA, so the cost argument
+// for those sports is UNMEASURED, not refused. Collapsing "not viable for
+// football" into "not viable" is the substitution this repository keeps
+// finding.
 // ODDS API key — rotate via Cloudflare dashboard (Workers > field-relay-nba > Settings > Variables)
 //   ODDS_API_KEY            primary paid-tier key (20K credits / month)
 //   ODDS_API_KEY_FALLBACK   Starter-tier key (500 credits / month) — used as a

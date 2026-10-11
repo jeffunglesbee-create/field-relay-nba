@@ -4,7 +4,44 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** D (decision record) — **nothing is built and nothing is migrated**
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Three tasks, four done conditions, no stop
+condition hit. The refusal is now in `src/index.js` beside `const ODDS_BASE`,
+with pointers from `src/odds-consumer-rules.js` and `src/odds-shape.js`.
+`git diff` is 60 insertions, 0 deletions, comments only.
+
+**THE MEASUREMENT HOLDS COMPLETELY.** Seventeen premises were re-verified
+against `outbox/bsd-surface-probe-latest.json` before anything was written into
+`src/`: the pre-match market list, the live market list, `hasOpeningValue:
+false` in both states, both event ids and both states, and the two verbatim
+verdict strings all reproduce exactly.
+
+**FOUR CITATIONS IN THIS DOCUMENT WERE REFUTED AND WERE NOT COMMITTED.** A
+decision record whose job is to be believed by a future reader must not carry
+unsourced claims into production code:
+
+1. **Task 1's placement was wrong.** `src/odds-consumer-rules.js` is not "the
+   code that would be changed" — the metered vendor is consumed in
+   `src/index.js`, where `const ODDS_BASE = 'https://api.the-odds-api.com'`
+   lives. The block went there, with a pointer left in the two odds modules so
+   a reader landing on either still finds it.
+2. **The precedent does not exist.** `CC-CMD-2026-07-12-cliche-freshness-scoring.md`
+   is not in `docs/`, and `grep -rn 'Do NOT re-dispatch' docs/ src/ outbox/`
+   returns only this document. The argument it was offered for — a refusal has
+   to be findable where the work would start — is sound on its own and is made
+   without the citation.
+3. **The vendor quote has no source.** `grep -rn 'multi-bookmaker'` across
+   `docs/ src/ outbox/ scripts/ CONTRACTS.md HANDOFF.md` returns only this
+   document. The *finding* — BSD's odds are richer live than pre-match — is
+   measured and kept; the claim that it contradicts the vendor's own wording is
+   dropped, because that wording is not on file.
+4. **Rule 47 is the wrong rule.** It is RELAY-IS-DUMB, governing what the relay
+   may compute. "No behaviour changes" is this document's own Type D scope, not
+   Rule 47, and the committed block does not cite a rule it does not follow.
+
+Found by a Rule 100 premise audit run before execution
+(`/workflows` run `wf_d94e8d5b-563`, 25 agents). The pattern is the one this
+repository names repeatedly: the numbers were measured and the prose around
+them was not.
 
 ## This document exists to be found, not to be executed
 
