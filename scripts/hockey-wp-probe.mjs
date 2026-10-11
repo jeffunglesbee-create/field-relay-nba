@@ -246,6 +246,28 @@ const main = async () => {
         for (const k of Object.keys(p2.details || {})) e.keys[k] = (e.keys[k] || 0) + 1
       }
       sc.details_keys_by_event_type = keysByType
+
+      // PLAY-LEVEL keys too, not just details. The CC-CMD's "every shot
+      // carries" block lists root fields, play-level fields and details fields
+      // in one group, and I read the grouping as authoritative three times:
+      // homeScore/awayScore are goal-only, blocked shots carry no shotType,
+      // and homeTeamDefendingSide is not on the root at all. Censusing both
+      // levels is what stops a fourth.
+      const playKeys = {}
+      for (const p2 of plays) {
+        const t = p2.typeDescKey || 'unknown'
+        const e = playKeys[t] || (playKeys[t] = { n: 0, keys: {} })
+        e.n += 1
+        for (const k of Object.keys(p2)) if (k !== 'details') e.keys[k] = (e.keys[k] || 0) + 1
+      }
+      sc.play_level_keys_by_event_type = playKeys
+      sc.defending_side = {
+        on_root: pbp.body.homeTeamDefendingSide ?? null,
+        on_shot_plays: shots.filter(p2 => p2.homeTeamDefendingSide !== undefined).length,
+        shot_plays_total: shots.length,
+        distinct_values_on_plays: [...new Set(plays.map(p2 => p2.homeTeamDefendingSide).filter(v => v !== undefined))],
+        root_keys: Object.keys(pbp.body).filter(k => /defend|side/i.test(k))
+      }
       sc.score_fields = {
         shot_events_with_details_homeScore: shots.filter(p2 => Number.isFinite(p2.details?.homeScore)).length,
         shot_events_total: shots.length,
