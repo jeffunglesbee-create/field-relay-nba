@@ -1,0 +1,362 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-bsd-form-into-forecaster.md",
+  "task": "Task 1 only — nothing ships from this file",
+  "started_at": "2026-10-11T06:28:25.503Z",
+  "callBudget": 8,
+  "callsMade": 4,
+  "teamId": 4784,
+  "calls": {
+    "A_no_league_id": {
+      "label": "no league_id",
+      "status": 200,
+      "requested": 10,
+      "matches": 10,
+      "league_id": null,
+      "from_date": "2026-08-08T19:00:00+00:00",
+      "to_date": "2026-10-03T21:05:00+00:00",
+      "spanDays": 56
+    },
+    "B_league_1_epl": {
+      "label": "league_id=1 (EPL)",
+      "status": 200,
+      "requested": 10,
+      "matches": 0,
+      "league_id": 1,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    },
+    "C_league_7_ucl": {
+      "label": "league_id=7 (UCL)",
+      "status": 200,
+      "requested": 10,
+      "matches": 0,
+      "league_id": 7,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    },
+    "D_league_impossible": {
+      "label": "league_id=99999999 (cannot exist)",
+      "status": 200,
+      "requested": 10,
+      "matches": 0,
+      "league_id": 99999999,
+      "from_date": null,
+      "to_date": null,
+      "spanDays": null
+    }
+  },
+  "fingerprintsEqual": {
+    "A==B": false,
+    "A==D": false,
+    "B==C": false
+  },
+  "league_id_verdict": "FILTERS",
+  "league_id_reason": "two different real league_ids returned different numbers, and an impossible id did not reproduce the default page",
+  "xgFields": {
+    "overall": [],
+    "home": [],
+    "away": [],
+    "vs_stronger": [],
+    "vs_weaker": []
+  },
+  "overallKeysVerbatim": [
+    "drawn",
+    "form",
+    "goals_against",
+    "goals_for",
+    "lost",
+    "matches",
+    "points_per_match",
+    "stats",
+    "won"
+  ],
+  "overallVerbatim": {
+    "matches": 10,
+    "won": 3,
+    "drawn": 3,
+    "lost": 4,
+    "goals_for": 10,
+    "goals_against": 11,
+    "form": "DWLLWWDDLL",
+    "points_per_match": 1.2,
+    "stats": {
+      "accurate_passes": {
+        "average": 224.2,
+        "total": 2242,
+        "matches": 10
+      },
+      "aerial_duels": {
+        "average": 36.9,
+        "total": 369,
+        "matches": 10
+      },
+      "average_rating": {
+        "average": 6.812,
+        "total": 68.12,
+        "matches": 10
+      },
+      "ball_possession": {
+        "average": 40.9,
+        "total": 409,
+        "matches": 10
+      },
+      "big_chances": {
+        "average": 1.333,
+        "total": 12,
+        "matches": 9
+      },
+      "big_chances_missed": {
+        "average": 0.833,
+        "total": 5,
+        "matches": 6
+      },
+      "big_chances_scored": {
+        "average": 1,
+        "total": 7,
+        "matches": 7
+      },
+      "big_saves": {
+        "average": 1.667,
+        "total": 5,
+        "matches": 3
+      },
+      "blocked_shots": {
+        "average": 1.6,
+        "total": 16,
+        "matches": 10
+      },
+      "clearances": {
+        "average": 21.4,
+        "total": 214,
+        "matches": 10
+      },
+      "corner_kicks": {
+        "average": 4,
+        "total": 40,
+        "matches": 10
+      },
+      "crosses": {
+        "average": 16.2,
+        "total": 162,
+        "matches": 10
+      },
+      "dispossessed": {
+        "average": 4.3,
+        "total": 43,
+        "matches": 10
+      },
+      "dribbles": {
+        "average": 41,
+        "total": 410,
+        "matches": 10
+      },
+      "duels": {
+        "average": 48.4,
+        "total": 484,
+        "matches": 10
+      },
+      "errors_lead_to_a_goal": {
+        "average": 0.5,
+        "total": 1,
+        "matches": 2
+      },
+      "expected_goals": {
+        "average": 0.858,
+        "total": 8.58,
+        "matches": 10
+      },
+      "expected_goals_on_target": {
+        "average": 0.78,
+        "total": 7.8,
+        "matches": 10
+      },
+      "final_third_entries": {
+        "average": 58.5,
+        "total": 585,
+        "matches": 10
+      },
+      "final_third_phase": {
+        "average": 52,
+        "total": 520,
+        "matches": 10
+      },
+      "fouled_in_final_third": {
+        "average": 1.7,
+        "total": 17,
+        "matches": 10
+      },
+      "fouls": {
+        "average": 13.1,
+        "total": 131,
+        "matches": 10
+      },
+      "free_kicks": {
+        "average": 10.9,
+        "total": 109,
+        "matches": 10
+      },
+      "goal_kicks": {
+        "average": 8.4,
+        "total": 84,
+        "matches": 10
+      },
+      "goalkeeper_saves": {
+        "average": 4.2,
+        "total": 42,
+        "matches": 10
+      },
+      "goals_prevented": {
+        "average": 0.173,
+        "total": 1.73,
+        "matches": 10
+      },
+      "ground_duels": {
+        "average": 51.8,
+        "total": 518,
+        "matches": 10
+      },
+      "high_claims": {
+        "average": 0,
+        "total": 0,
+        "matches": 2
+      },
+      "hit_woodwork": {
+        "average": 0.375,
+        "total": 3,
+        "matches": 8
+      },
+      "interceptions": {
+        "average": 8.7,
+        "total": 87,
+        "matches": 10
+      },
+      "long_balls": {
+        "average": 36.1,
+        "total": 361,
+        "matches": 10
+      },
+      "number_of_sprints": {
+        "average": 48.667,
+        "total": 146,
+        "matches": 3
+      },
+      "offsides": {
+        "average": 2,
+        "total": 20,
+        "matches": 10
+      },
+      "pass_accuracy_pct": {
+        "average": 72.16,
+        "total": 721.6,
+        "matches": 10
+      },
+      "passes": {
+        "average": 295.1,
+        "total": 2951,
+        "matches": 10
+      },
+      "punches": {
+        "average": 1.167,
+        "total": 7,
+        "matches": 6
+      },
+      "recoveries": {
+        "average": 40.6,
+        "total": 406,
+        "matches": 10
+      },
+      "red_cards": {
+        "average": 1,
+        "total": 2,
+        "matches": 2
+      },
+      "shots_inside_box": {
+        "average": 4.5,
+        "total": 45,
+        "matches": 10
+      },
+      "shots_off_target": {
+        "average": 3.1,
+        "total": 31,
+        "matches": 10
+      },
+      "shots_on_target": {
+        "average": 2.7,
+        "total": 27,
+        "matches": 10
+      },
+      "shots_outside_box": {
+        "average": 2.9,
+        "total": 29,
+        "matches": 10
+      },
+      "tackles": {
+        "average": 13.8,
+        "total": 138,
+        "matches": 10
+      },
+      "tackles_won": {
+        "average": 80.4,
+        "total": 804,
+        "matches": 10
+      },
+      "through_balls": {
+        "average": 0.2,
+        "total": 1,
+        "matches": 5
+      },
+      "throw_ins": {
+        "average": 18.6,
+        "total": 186,
+        "matches": 10
+      },
+      "total_saves": {
+        "average": 4.2,
+        "total": 42,
+        "matches": 10
+      },
+      "total_shots": {
+        "average": 7.4,
+        "total": 74,
+        "matches": 10
+      },
+      "total_tackles": {
+        "average": 13.8,
+        "total": 138,
+        "matches": 10
+      },
+      "touches_in_penalty_area": {
+        "average": 13,
+        "total": 130,
+        "matches": 10
+      },
+      "xg": {
+        "average": 0.877,
+        "total": 8.77,
+        "matches": 10
+      },
+      "yellow_cards": {
+        "average": 2.2,
+        "total": 22,
+        "matches": 10
+      }
+    }
+  },
+  "topLevelKeysVerbatim": [
+    "team_id",
+    "team_name",
+    "requested",
+    "matches",
+    "league_id",
+    "from_date",
+    "to_date",
+    "overall",
+    "home",
+    "away",
+    "vs_stronger",
+    "vs_weaker"
+  ],
+  "coverage": "ONE club (team 4784), FOUR calls. One club is not the vendor's policy — a per-competition claim for other clubs or other leagues is not established by this run."
+}
