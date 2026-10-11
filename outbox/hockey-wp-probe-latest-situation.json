@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
   "probe_only": true,
-  "started_at": "2026-10-11T04:13:49.321Z",
+  "started_at": "2026-10-11T04:17:14.480Z",
   "callBudget": 25,
   "callsMade": 2,
   "premises": {
@@ -257,11 +257,65 @@
         },
         "note": "a side below regulation length pulled its goalie; situationCode must agree from a different field",
         "usable": true
+      },
+      "scorer_end_to_end": {
+        "state": {
+          "shotsSeen": 125,
+          "xgShotsUnscored": 125,
+          "elapsedSeconds": 3552,
+          "period": 3,
+          "homeScore": 5,
+          "awayScore": 3,
+          "scoreCarriedFromGoalEvents": true,
+          "rootScoreDisagrees": false,
+          "rootScore": {
+            "home": 5,
+            "away": 3
+          },
+          "homeSkaters": 5,
+          "awaySkaters": 6,
+          "homeEmptyNet": false,
+          "awayEmptyNet": true,
+          "goalieInNetId": null,
+          "xgDiff": 0,
+          "isPlayoff": false,
+          "situationCode": "0651"
+        },
+        "result": {
+          "source": "field-hockey-wp",
+          "probability": 0.999,
+          "label": "FIELD model probability",
+          "state": "modelled",
+          "problems": [],
+          "caveats": [
+            "goalieInNetId absent; goalie quality is not a model input, so nothing was substituted for it"
+          ],
+          "inputs": {
+            "scoreDiff": 2,
+            "elapsedSeconds": 3552,
+            "homeSkaters": 5,
+            "awaySkaters": 6,
+            "homeEmptyNet": false,
+            "awayEmptyNet": true,
+            "xgDiff": 0
+          },
+          "model": {
+            "trainedAt": "2026-10-11T03:45:21.331Z",
+            "trainSeasons": [
+              "2020",
+              "2021",
+              "2022"
+            ],
+            "rows": 322108
+          }
+        },
+        "modelled": true,
+        "note": "modelled: probability 0.999, label FIELD model probability"
       }
     }
   },
   "budget_respected": true,
-  "finished_at": "2026-10-11T04:13:49.664Z",
+  "finished_at": "2026-10-11T04:17:14.720Z",
   "coverage": {
     "moneypuck_seasons_examined": 1,
     "nhl_games_examined": 1,
