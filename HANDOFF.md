@@ -1,5 +1,96 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11 — the eight queued CC-CMDs, executed in order
+
+**HEAD:** `be0ffab` → `a71b4ea`. Spent at the vendor: **0 credits** — the Odds
+API was never called. Session doc, per Rule 67:
+`outbox/cc-session-2026-10-11-eight-queued-cc-cmds.md`.
+
+Eight documents, in the order the owner gave:
+
+| # | document | outcome |
+|---|---|---|
+| 1 | `bsd-odds-substitution-refused` | **DONE** — 4 of its own citations refuted, none committed |
+| 2 | `bsd-form-into-forecaster` | **STOPPED at Task 1** — `league_id` does not filter |
+| 3 | `bsd-predicted-lineups` | **DONE** — route live, renderer CC-CMD filed |
+| 4 | `bsd-broadcasts-territory` | **DONE** — two routes live, territory 171/171 |
+| 5 | `bsd-hook-admission-and-per-league-rates` | **DONE** — two "dead" fields overturned |
+| 6 | `nhl-shift-charts-on-ice` | **DONE** — all four seasons serve |
+| 7 | `nhl-wpa-attribution` | **STOPPED at Task 4** — residual is the shootout |
+| 8 | `hockey-wp-moneypuck-baseline` | **STOPPED at Task 1** — column empty 78,611/78,611 |
+
+**All three stops fired on a measurement, at the document's own stop
+condition.** None stopped for want of access.
+
+### What is new in the tree
+
+Four route blocks in `src/index.js`: the BSD odds refusal (a comment, not code
+— it records why the metered vendor is not substituted), `/bsd/events/:id/lineups`
+with `X-Lineup-State` over four states and `X-Lineup-Fill` distinguishing
+served-empty, `/bsd/events/:id/broadcasts` + `/bsd/tv-channels/:id/broadcasts`
+with `X-Broadcast-Territory-Stated`, and `/nhl-stats/*` on a **second host**
+(`api.nhle.com`, `NHL_STATS_BASE`, `nhlStatsAllowed`) deliberately NOT folded
+into `nhlAllowed`.
+
+New: `src/nhl-onice.js` (four states, none an empty array) and the WPA block in
+`src/hockey-wp.js` (`WPA_LABEL`, `WPA_CREDIT`, `WPA_STATE` — the credit split is
+a stated convention in one changeable place). Five probe scripts and five
+workflows. `src/journalism-quality.js` carries the three-property admission bar
+beside the margin-agreement comment that taught it.
+
+### The three measurements worth carrying forward
+
+**WPA conservation closes on 21 of 23 non-shootout games** (regulation median
+residual 0.000) and fails on 5 of 5 shootouts (0.635–0.701). **And the check
+proves less than it appears to:** the deltas telescope, so the sum is
+identically `wp_last − wp_first` — true on all 28 games — and a double-counted
+play in the middle would cancel out. It tests the endpoints, not the
+attribution between them.
+
+**There is no MoneyPuck baseline in any season file.** `beats_moneypuck: null`
+on the shipped artifact is the correct value, not a gap. A re-split model fit on
+2021-2023 and tested on 2020 scores **0.17404** against the shipped 0.172669 on
+2023 — weak evidence, pointing the same way.
+
+**`api.nhle.com` serves shift charts for all four of the WP model's seasons**
+(894 / 791 / 829 / 751 rows), so on-ice state is a backfill rather than a wait.
+`endTime` is EXCLUSIVE (119 of 125 against `situationCode`, versus 108
+inclusive) and the clock counts up on 692 of 692. `eventNumber` is **not** the
+join key: 32 of 3,265 (~1%), which is chance collision — a join on it would
+silently fail to attach 99% of shifts.
+
+### Open
+
+**No deferred work.** Two follow-up CC-CMDs **filed** per Rule 87.4:
+`docs/CC-CMD-2026-10-11-predicted-xi-render-decision.md` and
+`docs/CC-CMD-2026-10-11-wpa-shootout-residual.md`.
+
+**What is still open in `docs/`, counted rather than recalled** — three carry
+`FILED, not started` besides the two filed today, four carry `OPEN`, and one is
+`BUILT, dry-run only`:
+
+| document | header |
+|---|---|
+| `2026-09-15-backfill-captured-at-not-snapshot-time` | FILED — audit: **OBSOLETE**, work landed the day it was filed |
+| `2026-09-15-name-the-draftkings-writer` | FILED — audit: **OBSOLETE**, same |
+| `2026-10-03-empty-catch-gate` | FILED, not started |
+| `2026-08-25-golf-slate-line` | OPEN |
+| `2026-08-25-misjoined-opening-odds` | OPEN |
+| `2026-08-25-port-citation-check` | OPEN |
+| `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human**, the rotation itself |
+| `2026-09-15-capture-provenance-mark` | BUILT, dry-run only — **the write is not authorised** |
+
+The two OBSOLETE verdicts are the audit's and were not re-verified today; their
+stale headers are the only reason they appear on a queue.
+
+**Checks:** `check-hockey-wp` 63, `mutate-hockey-wp` 18 of 18 caught and 0
+unsound, `check-nhl-onice` 14, plus **90 self-tests across the six probe
+scripts** this queue touched — `bsd-form-probe` 21, `bsd-field-census` 24,
+`bsd-broadcasts-probe` 16, `bsd-lineups-probe` 15, `nhl-shiftcharts-probe` 10,
+`nhl-wpa-conservation` 4. All in `guards.yml`.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11 — NHL win probability, and the gate that nearly ruled on 8 games
 
 **HEAD:** `06392f1` → `be0ffab`. Spent at the vendor: **0 credits** — the Odds
