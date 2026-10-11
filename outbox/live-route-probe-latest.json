@@ -1,5 +1,5 @@
 {
-  "probed_at_utc": "20261011T071920Z",
+  "probed_at_utc": "20261011T072820Z",
   "base": "https://field-relay-nba.jeffunglesbee.workers.dev",
   "date": "2026-10-11",
   "calls": [
@@ -20,11 +20,13 @@
       "xRows": null
     },
     {
-      "name": "/nhl-stats/* refuses a path outside the allow-list",
+      "name": "/nhl-stats/* refuses a path outside the allow-list, in its own words",
       "verdict": "PASS",
       "status": 403,
       "routeState": "refused",
-      "body": "Path not allowed"
+      "ownRefusalShape": true,
+      "refusedBy": "nhlStatsAllowed",
+      "body": "{\"error\":\"path not allowed\",\"path\":\"/zzz-not-a-real-prefix\",\"allowed\":[\"/stats/rest/en/shiftcharts\"]}"
     },
     {
       "name": "/bsd/events/by-date discovers an event id",
