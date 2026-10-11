@@ -115,6 +115,34 @@ export function vendorDay(prev, curr) {
  *  residual = vendorDay - ourDay - knownCI, and it is an UPPER bound: only
  *  odds-backfill records its own credits, so any other direct-vendor script
  *  (targeted-odds-fill, confirmed) is not subtracted. */
+/**
+ * The part of an overcharge that is already named, so the residual stops
+ * carrying it silently (Rule 91).
+ *
+ * `no-header` is reconcile's state for a call whose response had no
+ * x-requests-last to settle the estimate against, so the estimate stood. On
+ * 2026-10-11 the only site ever in it was `ambientFetchLiveOdds`, calling
+ * `/v4/sports/{sport}/odds-live` — a path the vendor 404s (run 38186065943).
+ * A 404 is billed nothing and carries no usage header, so every one of those
+ * credits was ours alone: 2074 on 2026-10-10 against a residual of -1967.
+ *
+ * NULL, NOT ZERO, when the tally cannot be read. "Nothing was unreconciled"
+ * and "we could not find out" are different answers and only one of them
+ * explains a residual.
+ */
+export function noHeaderCredits(reconcileRows) {
+  if (!Array.isArray(reconcileRows)) return null;
+  let credits = 0, calls = 0;
+  const sites = new Set();
+  for (const r of reconcileRows) {
+    if (!r || r.state !== 'no-header') continue;
+    credits += Number(r.credits_kept) || 0;
+    calls += Number(r.n) || 0;
+    if (r.site) sites.add(r.site);
+  }
+  return { credits, calls, sites: [...sites].sort() };
+}
+
 export function residualVerdict(vendorDayCredits, ourDay, knownCI) {
   if (typeof vendorDayCredits !== 'number' || typeof ourDay !== 'number') {
     return { state: 'unreadable', residual: null };
@@ -190,8 +218,25 @@ if (process.argv.includes('--self-test')) {
       '5% of ours would be 250 and would shrink exactly as our counter under-reports');
   one('an unreadable side', residualVerdict(null, 1, 0).state, 'unreadable', 'never a number derived from a missing one');
 
+  // The named part of an overcharge. Rule 99 on the null, because "nothing was
+  // unreconciled" and "we could not read the tally" do not explain a residual
+  // the same way.
+  const NH = (rows) => noHeaderCredits(rows);
+  const row = (site, state, n, kept) => ({ site, state, cache: 'EXPIRED', n, credits_kept: kept });
+  one('an absent tally is null, not zero', NH(undefined), null, 'a missing tally explains nothing');
+  one('a non-array is null too', NH({ site: 'x' }), null);
+  one('an empty tally is a real zero', NH([]).credits, 0, 'read and empty is an answer');
+  one('only no-header rows count',
+      NH([row('a', 'no-header', 10, 20), row('b', 'reconciled', 99, 300)]).credits, 20,
+      'a reconciled row has already been settled and is not part of the overcharge');
+  one('calls are summed beside credits', NH([row('a', 'no-header', 10, 20), row('a', 'no-header', 5, 10)]).calls, 15);
+  one('the sites are named', NH([row('b', 'no-header', 1, 2), row('a', 'no-header', 1, 2)]).sites.join(','), 'a,b',
+      'the reader needs which site, not only how much');
+  one('a cache-hit row is not an overcharge', NH([row('a', 'cache-hit', 9, 0)]).credits, 0,
+      'reconcile already refunded those in full');
+
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: 20/20`);
-  console.log(`COVERAGE: three pure predicates over ENUMERATED inputs. It does NOT reach`);
+  console.log(`COVERAGE: FOUR pure predicates over ENUMERATED inputs. It does NOT reach`);
   console.log(`/budget/odds, D1, or the vendor, and it cannot see spend by any script that`);
   console.log(`does not record itself — so the residual is an UPPER bound, never a level.`);
   process.exit(bad ? 1 : 0);
@@ -213,7 +258,8 @@ say(`=== odds daily vs vendor  day=${YESTERDAY}  utc=${NOW} ===\n`);
 
 const res = await fetch(`${RELAY}/budget/odds?date=${YESTERDAY}`, { headers: { Accept: 'application/json' } });
 if (!res.ok) { err(`FAIL: /budget/odds?date=${YESTERDAY} returned HTTP ${res.status}`); die(1); }
-const parsed = readingFrom(await res.json(), YESTERDAY, NOW);
+const rawBudget = await res.json();
+const parsed = readingFrom(rawBudget, YESTERDAY, NOW);
 if (!parsed.ok) {
   err(`FAIL: no usable reading — ${parsed.why}.`);
   err(`      Recording it anyway is how a garbage reading passes as a quiet one.`);
@@ -262,6 +308,25 @@ say(`\n  vendor billed that day : ${vd.vendorDay}`);
 say(`  our daily counter      : ${reading.day_used}`);
 say(`  known CI spend         : ${ci.credits}   (${ci.runs} run(s), ${ci.undated} undated)`);
 say(`  residual               : ${v.residual}   tolerance ${v.tol}`);
+
+// THE KNOWN PART OF THE OVERCHARGE, NAMED. It is reported beside the residual
+// and deliberately NOT folded into it: netting it out would silently reclassify
+// days, and the verdict's three states are what every other watch and document
+// quotes. Rule 91 asks for the denominator to be visible, not for the
+// arithmetic to be rewritten.
+const nh = noHeaderCredits(rawBudget?.daily?.reconcile);
+if (nh === null) {
+  say(`  unreconciled estimate  : UNREADABLE — daily.reconcile is not an array, so none of`);
+  say(`                           the residual above can be attributed to a kept estimate`);
+} else if (nh.credits === 0) {
+  say(`  unreconciled estimate  : 0 — no call kept an estimate for want of a receipt`);
+} else {
+  const after = v.residual + nh.credits;
+  say(`  unreconciled estimate  : ${nh.credits} over ${nh.calls} call(s) in state no-header`);
+  say(`                           from ${nh.sites.join(', ')}`);
+  say(`  residual after it      : ${after}   (the part no named cause accounts for)`);
+}
+
 say(`\n  verdict: ${v.state}`);
 
 say(`\nCOVERAGE: ONE closed day (${YESTERDAY}), ${series.length} reading(s) on file. knownCI is a`);

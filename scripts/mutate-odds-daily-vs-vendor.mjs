@@ -90,6 +90,15 @@ const MUTATIONS = [
     anchor: '  const n = Number(v);\n  return Number.isFinite(n) ? n : null;',
     replace: "  return typeof v === 'number' ? v : null;",
     catches: 'the exact 2026-09-19 failure — the vendor sends "76945" and every real reading is refused' },
+  { name: 'V13 a null tally reads as nothing unreconciled',
+    anchor: '  if (!Array.isArray(reconcileRows)) return null;',
+    replace: '  if (!Array.isArray(reconcileRows)) return { credits: 0, calls: 0, sites: [] };',
+    catches: 'an unreadable tally reports 0 unreconciled credits, so a residual that is entirely a kept estimate reads as entirely unexplained (Rule 99)' },
+
+  { name: 'V14 reconciled rows counted as unreconciled',
+    anchor: "    if (!r || r.state !== 'no-header') continue;",
+    replace: '    if (!r) continue;',
+    catches: 'every settled call is added to the named overcharge, which would make the residual look fully explained on any day' },
 ];
 
 let caught = 0;
@@ -112,7 +121,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: the three pure predicates. It does NOT exercise /budget/odds, the`);
+console.log(`COVERAGE: the FOUR pure predicates. It does NOT exercise /budget/odds, the`);
 console.log(`D1 read, or the series file — sandbox egress to the relay is blocked (403 at`);
 console.log(`the proxy), so those are verified by dispatching the workflow.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
