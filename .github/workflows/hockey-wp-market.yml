@@ -1,0 +1,91 @@
+name: Hockey WP market baseline
+
+# docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md — Task 3's baseline.
+#
+# The gate is "beat the de-vigged market estimate wp-resolver.js:511 already
+# serves." Building that baseline for a held-out season needs a free archive of
+# historical moneylines, and three candidate sources were eliminated by
+# measurement before this workflow existed:
+#
+#   Odds API historical  — ceiling REACHED 2026-10-07, credits need approval
+#   field-archive (D1)   — no odds column in either games table
+#   ESPN scoreboard      — 0 of 40 past games carry odds
+#
+# ESPN's summary pickcenter does. But its first three games de-vig to an
+# overround of ~0.82, which is BELOW 1 and therefore not a two-sided book:
+# Unibet quotes hockey three-way (regulation home/draw/away). The census mode
+# measures that per provider across seasons before any de-vig is trusted.
+#
+# CI because site.api.espn.com is 403-at-CONNECT from the container.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "census (shape per provider) or build (the full baseline)"
+        required: true
+        type: choice
+        options: [census, build]
+        default: census
+      dates:
+        description: "census only: comma list of YYYYMMDD across seasons"
+        required: false
+        type: string
+        default: "20231115,20240302,20241210,20250312,20251101"
+      from:
+        description: "build only: first date, YYYY-MM-DD"
+        required: false
+        type: string
+        default: "2024-10-08"
+      to:
+        description: "build only: last date, YYYY-MM-DD"
+        required: false
+        type: string
+        default: "2025-04-17"
+      budget:
+        description: "hard call budget for the run"
+        required: false
+        type: string
+        default: "60"
+
+permissions:
+  contents: write
+
+jobs:
+  market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The baseline builder can still fail
+        run: node scripts/hockey-wp-market.mjs --self-test
+
+      - name: Build
+        run: |
+          if [ "${{ inputs.mode }}" = "census" ]; then
+            node scripts/hockey-wp-market.mjs --census \
+              "--dates=${{ inputs.dates }}" "--budget=${{ inputs.budget }}"
+          else
+            node scripts/hockey-wp-market.mjs \
+              "--from=${{ inputs.from }}" "--to=${{ inputs.to }}" "--budget=${{ inputs.budget }}"
+          fi
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/hockey-wp-market-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: hockey WP market ${{ inputs.mode }} artifact"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
