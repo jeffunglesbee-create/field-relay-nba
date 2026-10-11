@@ -1,0 +1,54 @@
+name: Hockey WP probe
+
+# docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md — the probe that runs
+# BEFORE the model is written.
+#
+# Three of the CC-CMD's load-bearing premises are cross-boundary facts that
+# reading cannot verify: MoneyPuck's shot-file column names, the declared
+# four-digit reading of NHL situationCode, and whether any FREE archive of
+# de-vigged moneylines exists for Task 3's gate. The Odds API ceiling was
+# REACHED 2026-10-07 and credits need approval, and field-archive carries no
+# odds column in either games table — so without a free market archive the
+# gate cannot be evaluated at all, and that is a finding, not a detail.
+#
+# CI because the container cannot reach any of the three hosts: moneypuck.com,
+# api-web.nhle.com and site.api.espn.com are all 403-at-CONNECT (measured
+# 2026-10-11; only github.com answered).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/hockey-wp-probe.mjs --self-test
+
+      - name: Probe the four premises
+        run: node scripts/hockey-wp-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.email "claude@field.dev"
+          git config user.name  "FIELD CI"
+          git add outbox/hockey-wp-probe-*.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "chore: hockey WP premise probe artifact"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin main && break
+            sleep $((i * 5))
+          done
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main \
+            || { echo "FAIL: push did not land after 3 attempts"; exit 1; }
