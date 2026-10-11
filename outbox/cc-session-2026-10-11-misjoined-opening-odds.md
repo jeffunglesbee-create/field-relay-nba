@@ -154,24 +154,26 @@ retrospective baseline. History cannot shrink, so the test is growth.
 Deploy `38146540922` — **deploy and verify both `success`, 122 of 122 gate
 steps, 0 failed.** The fix is live.
 
-Two readings of today's date after it, one cron cycle apart (`38146824024`,
-`38146944806`):
+Three readings of today's date after it, spanning ~18 minutes — `38146824024`
+(14:21Z), `38146944806` (14:23Z) and `38148042547` (14:39Z):
 
 ```
-rows                 46        46
-atFinalisation        0         0
-census-eligible       1         1
-of those, flagged     0         0
-states    not-finalised 11, no-opening-odds 34, before-finalisation 1   (both)
+rows                 46        46        46
+atFinalisation        0         0         0
+census-eligible       1         1         1
+of those, flagged     0         0         0
+states    not-finalised 11, no-opening-odds 34, before-finalisation 1   (all three)
 ```
 
 **Zero flagged, and the one row carrying both odds and a `finalized_at` was
 captured BEFORE it** — which is what `opening_odds` is supposed to mean.
 
-**What those two readings do NOT show.** They are byte-identical, state
-distribution included, so **no game finalised between them**. The cycle did not
-exercise a finalisation transition, and a fix that has not been crossed is not
-a fix that has been tested in production. What is tested: the condition is in
+**What those readings do NOT show.** All three are byte-identical, state
+distribution included, so **no game finalised across any of them**. The window
+did not exercise a finalisation transition, and a fix that has not been crossed
+is not a fix that has been tested in production. The third reading came from a
+stale background waiter rather than a plan, and it is kept because it extends
+the span without changing that limit. What is tested: the condition is in
 the deployed source, and a gate that counts all three selections and fails on
 any one of them runs in both `deploy.yml` and `guards.yml`.
 

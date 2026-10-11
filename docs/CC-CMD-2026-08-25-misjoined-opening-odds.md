@@ -59,12 +59,12 @@ in `deploy.yml` and `guards.yml`.
 **DONE CONDITION 3 — the growth check, with its limit stated.** Deploy
 `38146540922`, deploy and verify both `success`, 122 of 122 gate steps.
 `favourite-band-census` baseline over 120 days (`38145971449`):
-`opening odds captured at finalisation 120 of 140`. Two readings of today one
-cron cycle apart: **46 rows, 0 flagged, both times**, and the single row
-carrying odds plus a `finalized_at` was captured BEFORE it.
+`opening odds captured at finalisation 120 of 140`. Three readings of today over ~18
+minutes: **46 rows, 0 flagged, every time**, and the single row carrying odds
+plus a `finalized_at` was captured BEFORE it.
 
-They are byte-identical, so **no game finalised between them** — the cycle did
-not cross a finalisation. The condition is in deployed source and gated in two
+All three are byte-identical, so **no game finalised across any of them** — the
+window did not cross a finalisation. The condition is in deployed source and gated in two
 workflows; tomorrow's census is the reading that crosses it with real games.
 
 **TWO RED DEPLOYS, BOTH MINE, BOTH IN GATE CATEGORIES I HAD SKIPPED.** A comment
