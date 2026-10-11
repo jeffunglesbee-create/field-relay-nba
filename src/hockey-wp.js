@@ -420,6 +420,37 @@ export const winProbAddedFromPlayByPlay = (pbp, { wp = HOCKEY_WP_MODEL } = {}) =
   })()
   const firstModelled = series.find(x => x.wp !== null)
   const lastModelled = [...series].reverse().find(x => x.wp !== null)
+  // THE SERIES TRUNCATES AT THE LAST REGULATION-OR-OVERTIME SHOT, and that is
+  // a decision rather than an accident.
+  // docs/CC-CMD-2026-10-11-wpa-shootout-residual.md offers three options and
+  // declines to pick. This is option (1), truncate, and the reason is that
+  // option (2) is not available from the data:
+  //
+  //   wentToShootout column   absent_from_header 122472 of 122472 rows
+  //   period-5 derivation            4 of 1400 games
+  //   period-4 derivation          288 of 1400 games
+  //   shootoutHomeShare_n            4
+  //
+  // Both figures were already committed in
+  // outbox/hockey-wp-calibration-latest.json before that document was filed.
+  // The vendor column is absent on every row across four seasons, and the
+  // `maxPeriod >= 5` derivation — exactly the "one comparison away" the
+  // document describes — finds four games against 288 reaching period 4. So
+  // the shots file does not record a shootout's attempts as period-5 shot rows
+  // at all, and n=4 is this source's ceiling rather than a small sample. The
+  // document's own done condition asks for n > 100 and its third stop
+  // condition says to refuse the number otherwise.
+  //
+  // Option (3), giving the model a shootout feature, re-opens the Brier
+  // 0.171551 calibration gate and is a separate document by that document's
+  // own words.
+  //
+  // WHAT TRUNCATION COSTS IS STATED, NOT ABSORBED: the deciding moment of a
+  // shootout game is outside the series, so `residual` on those games is the
+  // whole shootout and the conservation check excludes them from its closing
+  // denominator BY NAME. scripts/nhl-wpa-conservation.mjs reports both
+  // denominators and names the exclusion in the verdict sentence itself, every
+  // time, including when every eligible game closes.
   const conservation = {
     outcome: homeWon,
     first_modelled_wp: firstModelled ? firstModelled.wp : null,
