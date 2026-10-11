@@ -1,0 +1,57 @@
+{
+  "probed_at_utc": "20261011T133254Z",
+  "espnDate": "20261011",
+  "buildGameLine": {
+    "startLine": 5690,
+    "bodyChars": 4269
+  },
+  "calls": [
+    "/golf/pga/scoreboard?dates=20261011",
+    "/football/nfl/scoreboard?dates=20261011",
+    "/basketball/nba/scoreboard?dates=20261011",
+    "/v2/golf/enriched?dates=20261011"
+  ],
+  "findings": {
+    "golf": {
+      "status": 200,
+      "events": 1,
+      "eventName": "Baycurrent Classic",
+      "statusState": "post",
+      "statusDescription": "Final",
+      "competitors": 72,
+      "firstHasTeam": false,
+      "firstHasAthlete": true,
+      "firstHomeAway": null,
+      "firstScore": "-16",
+      "firstAthleteName": "Michael Brennan"
+    },
+    "line": "-15 @ -16 · Final · Golf Chnl",
+    "lineIsNull": false,
+    "bothNamesEmpty": true,
+    "control_nfl": {
+      "status": 200,
+      "events": 13,
+      "line": "Eagles (2-2) 0 @ Jaguars (3-1) 0 · In Progress (15:00 P1) · Tottenham Hotspur Stadium · NFL Net · NFL London Games"
+    },
+    "control_nba": {
+      "status": 200,
+      "events": 4,
+      "line": "Mavericks (1-1) 132 @ Rockets (1-1) 115 · Final · Venetian Arena [indoor] · NBA TV · NBA China Game · HOU: Marcus Smart 20 Pts, Jabari Smith Jr. 9 Reb, Amen Thompson 6 Ast · DAL: Kyrie Irving 17 Pts, Sergio de Larrea 7 Reb, Cooper Flagg 7 Ast"
+    },
+    "golfBlockInputs": {
+      "status": 200,
+      "active": true,
+      "eventName": "Baycurrent Classic",
+      "round": 4,
+      "leaderboardRows": 72,
+      "firstRowFields": {
+        "pos": "1",
+        "name": "Michael Brennan",
+        "toPar": "-16",
+        "today": "-3",
+        "thru": 18
+      },
+      "wouldRender": true
+    }
+  }
+}
