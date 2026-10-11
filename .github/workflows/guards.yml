@@ -96,6 +96,16 @@ jobs:
           node scripts/check-degrade-open-reason.mjs --self-test
           node scripts/check-degrade-open-reason.mjs
 
+      # And the other half of the SAME incident: what threw, those 245 times,
+      # was chargedFromBatch — the monthly batch is two statements and the
+      # helper demanded three, so every monthly charge degraded open and the
+      # 85,000 hard limit could not veto. The gate above proved the error was
+      # being named; this one proves the error is not there. Source-only.
+      - name: a batch and the helper reading it agree on their statement count
+        run: |
+          node scripts/check-batch-order.mjs --self-test
+          node scripts/check-batch-order.mjs
+
       # The half of the spend question `used` cannot answer: how much of what the
       # counter charged the provider never asked for. Four of reconcile's five
       # outcomes wrote nothing until 2026-10-08, so a refunded estimate and a

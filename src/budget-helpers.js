@@ -302,7 +302,7 @@ async function chargeMonthlyOdds(env, units = 1) {
             db.prepare(ODDS_BUDGET_SQL.monthSeed).bind(month, carried),
             db.prepare(ODDS_BUDGET_SQL.monthCharge).bind(units, month, units, ODDS_HARD_LIMIT),
         ]);
-        const charged = chargedFromBatch(results);
+        const charged = chargedFromBatch(results, ODDS_MONTH_ORDER);
         if (charged) {
             // The post-charge total is what RETURNING gives, so the crossing is
             // read from the transaction rather than recomputed from a stale
@@ -763,16 +763,33 @@ export const ODDS_BUDGET_SQL = { seed: SQL_SEED, site: SQL_SITE, charge: SQL_CHA
                                  fixMonth: SQL_FIX_MONTH,
                                  reconcileTally: SQL_RECONCILE_TALLY };
 export const ODDS_BUDGET_ORDER = ['seed', 'site', 'charge'];
+// THE MONTHLY BATCH IS TWO STATEMENTS, and until 2026-10-11 nothing said so.
+// chargeMonthlyOdds sent those two to a helper hard-coded to three, so it threw
+// on EVERY monthly charge — the exact string /budget/odds reported as the
+// degrade reason, `month: odds budget batch returned 2 result(s), expected 3`.
+// The charge landed (db.batch commits before anything inspects results), but
+// the return value was lost to the catch, which degrades open. Consequence:
+// the `return false` on the hard limit below was unreachable, and so were the
+// ODDS_THRESHOLDS warnings, so a monthly ceiling of 85,000 could not veto and
+// no warning could fire. The expected length now comes from the statement list
+// itself rather than a number written beside it, because a number beside it is
+// what drifted.
+export const ODDS_MONTH_ORDER = ['monthSeed', 'monthCharge'];
 
-/** Did the batch charge? The daily UPDATE returns its row only when the ceiling
+/** Did the batch charge? The UPDATE returns its row only when the ceiling
  *  allowed it, so zero rows is a veto and not an error. Absent results (a shape
  *  this code has never seen) are NOT read as a veto: that would silently stop
- *  every odds call, so it throws to the degrade path where it is counted. */
-export function chargedFromBatch(results) {
-  if (!Array.isArray(results) || results.length !== 3) {
-    throw new Error(`odds budget batch returned ${Array.isArray(results) ? results.length : typeof results} result(s), expected 3`);
+ *  every odds call, so it throws to the degrade path where it is counted.
+ *
+ *  `order` is the batch these results came from — ODDS_BUDGET_ORDER (daily,
+ *  three) or ODDS_MONTH_ORDER (monthly, two). The charge is the LAST statement
+ *  in both, which is the same convention _usedFromBatch already reads by. */
+export function chargedFromBatch(results, order = ODDS_BUDGET_ORDER) {
+  const want = Array.isArray(order) ? order.length : 0;
+  if (!Array.isArray(results) || results.length !== want) {
+    throw new Error(`odds budget batch returned ${Array.isArray(results) ? results.length : typeof results} result(s), expected ${want} (${Array.isArray(order) ? order.join(', ') : 'no statement order given'})`);
   }
-  const charge = results[2];
+  const charge = results[results.length - 1];
   if (!charge || !Array.isArray(charge.results)) {
     throw new Error('odds budget batch: the charge statement returned no results array');
   }
