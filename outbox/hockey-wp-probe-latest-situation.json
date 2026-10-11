@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
   "probe_only": true,
-  "started_at": "2026-10-11T03:46:48.566Z",
+  "started_at": "2026-10-11T04:13:49.321Z",
   "callBudget": 25,
   "callsMade": 2,
   "premises": {
@@ -18,6 +18,173 @@
         "1541": 8,
         "1551": 92,
         "0651": 7
+      },
+      "details_keys_by_event_type": {
+        "period-start": {
+          "n": 3,
+          "keys": {}
+        },
+        "faceoff": {
+          "n": 53,
+          "keys": {
+            "eventOwnerTeamId": 53,
+            "losingPlayerId": 53,
+            "winningPlayerId": 53,
+            "xCoord": 53,
+            "yCoord": 53,
+            "zoneCode": 53
+          }
+        },
+        "hit": {
+          "n": 29,
+          "keys": {
+            "xCoord": 29,
+            "yCoord": 29,
+            "zoneCode": 29,
+            "eventOwnerTeamId": 29,
+            "hittingPlayerId": 29,
+            "hitteePlayerId": 29
+          }
+        },
+        "giveaway": {
+          "n": 32,
+          "keys": {
+            "xCoord": 32,
+            "yCoord": 32,
+            "zoneCode": 32,
+            "eventOwnerTeamId": 32,
+            "playerId": 32
+          }
+        },
+        "goal": {
+          "n": 8,
+          "keys": {
+            "xCoord": 8,
+            "yCoord": 8,
+            "zoneCode": 8,
+            "shotType": 8,
+            "scoringPlayerId": 8,
+            "scoringPlayerTotal": 8,
+            "assist1PlayerId": 7,
+            "assist1PlayerTotal": 7,
+            "eventOwnerTeamId": 8,
+            "goalieInNetId": 8,
+            "awayScore": 8,
+            "homeScore": 8,
+            "highlightClipSharingUrl": 8,
+            "highlightClipSharingUrlFr": 8,
+            "highlightClip": 8,
+            "highlightClipFr": 8,
+            "discreteClip": 8,
+            "discreteClipFr": 8,
+            "assist2PlayerId": 3,
+            "assist2PlayerTotal": 3
+          }
+        },
+        "takeaway": {
+          "n": 9,
+          "keys": {
+            "xCoord": 9,
+            "yCoord": 9,
+            "zoneCode": 9,
+            "playerId": 9,
+            "eventOwnerTeamId": 9
+          }
+        },
+        "missed-shot": {
+          "n": 30,
+          "keys": {
+            "xCoord": 30,
+            "yCoord": 30,
+            "zoneCode": 30,
+            "reason": 30,
+            "shotType": 30,
+            "shootingPlayerId": 30,
+            "goalieInNetId": 30,
+            "eventOwnerTeamId": 30
+          }
+        },
+        "shot-on-goal": {
+          "n": 49,
+          "keys": {
+            "xCoord": 49,
+            "yCoord": 49,
+            "zoneCode": 49,
+            "shotType": 49,
+            "shootingPlayerId": 49,
+            "goalieInNetId": 49,
+            "eventOwnerTeamId": 49,
+            "awaySOG": 49,
+            "homeSOG": 49
+          }
+        },
+        "stoppage": {
+          "n": 44,
+          "keys": {
+            "reason": 44,
+            "secondaryReason": 9
+          }
+        },
+        "delayed-penalty": {
+          "n": 2,
+          "keys": {
+            "eventOwnerTeamId": 2
+          }
+        },
+        "penalty": {
+          "n": 8,
+          "keys": {
+            "xCoord": 8,
+            "yCoord": 8,
+            "zoneCode": 8,
+            "typeCode": 8,
+            "descKey": 8,
+            "duration": 8,
+            "committedByPlayerId": 8,
+            "drawnByPlayerId": 7,
+            "eventOwnerTeamId": 8
+          }
+        },
+        "blocked-shot": {
+          "n": 38,
+          "keys": {
+            "xCoord": 38,
+            "yCoord": 38,
+            "zoneCode": 38,
+            "blockingPlayerId": 38,
+            "shootingPlayerId": 38,
+            "eventOwnerTeamId": 38,
+            "reason": 38
+          }
+        },
+        "period-end": {
+          "n": 3,
+          "keys": {}
+        },
+        "game-end": {
+          "n": 1,
+          "keys": {}
+        }
+      },
+      "score_fields": {
+        "shot_events_with_details_homeScore": 8,
+        "shot_events_total": 125,
+        "goal_events_with_details_homeScore": 8,
+        "goal_events_total": 8,
+        "root_homeTeam_score": 5,
+        "root_awayTeam_score": 3,
+        "root_homeTeam_keys": [
+          "id",
+          "commonName",
+          "abbrev",
+          "score",
+          "sog",
+          "logo",
+          "darkLogo",
+          "placeName",
+          "placeNameWithPreposition"
+        ],
+        "note": "if shot events carry no homeScore, the scorer must read the root team scores or carry the last known score forward"
       },
       "penalty_crosscheck": {
         "agree": 125,
@@ -94,7 +261,7 @@
     }
   },
   "budget_respected": true,
-  "finished_at": "2026-10-11T03:46:48.815Z",
+  "finished_at": "2026-10-11T04:13:49.664Z",
   "coverage": {
     "moneypuck_seasons_examined": 1,
     "nhl_games_examined": 1,
