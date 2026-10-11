@@ -111,9 +111,22 @@ export const classify = ({ aFp, bFp, cFp, dFp, statuses = [], aMatches = null, b
 }
 
 // xG field names inside the aggregate blocks — Task 1 asks for these by name.
-export const xgFieldsIn = (block) => {
+// RECURSES, because the fields are NOT at the top level. `overall` carries
+// matches/won/drawn/lost/goals_for/goals_against/form/points_per_match and a
+// `stats` object with 52 sub-keys — and all three xG fields live in there:
+// expected_goals, expected_goals_on_target and xg. A top-level-only scan
+// reported `[]` and would have published "BSD form carries no xG", refuting
+// this document's headline premise on a payload that carries it three times.
+export const xgFieldsIn = (block, prefix = '') => {
   if (!block || typeof block !== 'object') return []
-  return Object.keys(block).filter(k => /xg|expected_goal/i.test(k)).sort()
+  const out = []
+  for (const k of Object.keys(block)) {
+    const path = prefix ? `${prefix}.${k}` : k
+    if (/xg|expected_goal/i.test(k)) out.push(path)
+    const v = block[k]
+    if (v && typeof v === 'object' && !Array.isArray(v)) out.push(...xgFieldsIn(v, path))
+  }
+  return [...new Set(out)].sort()
 }
 
 const get = async (url, token, calls) => {
@@ -286,6 +299,15 @@ const selfTest = () => {
       const f = xgFieldsIn({ ppg: 1, xg_for: 2, expected_goals_against: 3, shots: 4 })
       return f.length === 2 && f.includes('xg_for') && f.includes('expected_goals_against')
     })())
+  // THE SECOND REGRESSION ON THIS FILE. A top-level-only scan reported [] on a
+  // payload carrying three xG fields one level down, inside `stats`.
+  t('NESTED xG fields are found, with their path',
+    (() => {
+      const f = xgFieldsIn({ matches: 10, stats: { expected_goals: { average: 0.858 }, xg: { average: 0.877 }, passes: 1 } })
+      return f.includes('stats.expected_goals') && f.includes('stats.xg') && f.length === 2
+    })())
+  t('a payload with xG only at depth does NOT report empty',
+    xgFieldsIn({ a: { b: { expected_goals_on_target: 1 } } }).length === 1)
   t('a block with no xG field reports an EMPTY list rather than a default name',
     xgFieldsIn({ ppg: 1 }).length === 0)
   t('an absent block reports empty rather than throwing',
