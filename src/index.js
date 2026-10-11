@@ -10725,6 +10725,21 @@ export default {
             // UNMEASURED, not unsupported. FIELD's broadcast holes are in the
             // NBA rows of /context/date; this route does not fill them.
             //
+            // TASK 4 — THE JOIN RATE, AND IT IS LOW. Measured the same run:
+            // 1 of 12 BSD broadcast fixtures join a FIELD fixture for the same
+            // date (0.0833), against a FIELD slate of 15 across six leagues.
+            // The misses name the reason — Boyaca Chico, Pachuca, Atletico San
+            // Luis, Bahia, Racing Club — BSD's daily football slate is global
+            // (Colombian, Mexican, Brazilian, Argentine) while FIELD carries
+            // EPL, MLS, UCL, Serie A, LaLiga and Bundesliga. The two barely
+            // overlap on an arbitrary date.
+            //
+            // That is a sampling fact, not a defect in this route: the probe
+            // walked BSD's slate rather than querying BSD for FIELD's leagues.
+            // But nobody should plan on these rows filling FIELD's broadcast
+            // column until a league-targeted join is measured, because an
+            // unjoined broadcast row is a channel beside no game.
+            //
             // TTLs with their reason: a listing firms up as the fixture
             // approaches and is immutable afterwards, so 300s. A channel's
             // schedule spans days and moves less, so 900s.

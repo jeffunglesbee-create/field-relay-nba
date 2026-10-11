@@ -4,7 +4,53 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — two routes into the product's defining column
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Five tasks, no stop condition hit. Two routes live
+at `src/index.js`. Artifact: `outbox/bsd-broadcasts-probe-latest.json`
+(run 38118916517, 23 calls of a declared 30).
+
+**TASK 3 WAS THE GATE AND ITS PREMISE HAD NEVER BEEN MEASURED.** The surface
+probe recorded `country_code` as a KEY NAME and set `territory.scoped: true`
+from its presence. The same artifact proved, twice, that this vendor serves a
+field and leaves it empty — `attendance` null on 193 of 193, `round_name` an
+empty string on 193 of 193. So the value was measured before either route was
+written:
+
+| | rows | populated | absent | null | empty-string |
+|---|---|---|---|---|---|
+| event broadcasts | **171** | **171** | 0 | 0 | 0 |
+| tv-channel 583 | **34** | **34** | 0 | 0 | 0 |
+
+**100%, across 73 distinct territories.** The stop condition does not fire and
+the territory field is real.
+
+**TASK 5 — football only, and say which.**
+`/basketball/api/v2/events/{id}/broadcasts/` returned **HTTP 404** on a real
+basketball event id. Hockey returned **no events at all** for the probed date,
+so it is **UNMEASURED, not unsupported**. FIELD's actual broadcast holes are
+the NBA rows in `/context/date`, and these routes do not fill them.
+
+**TASK 4 — the join rate, and it is low: 1 of 12 (0.0833).** FIELD's slate for
+the same date was 15 fixtures across six leagues. The misses name the reason:
+Boyacá Chicó, CF Pachuca, Atlético San Luis, Bahia, Racing Club. BSD's daily
+football slate is global — Colombian, Mexican, Brazilian, Argentine — while
+FIELD carries EPL, MLS, UCL, Serie A, LaLiga and Bundesliga. A sampling fact
+rather than a defect in the routes, but nobody should plan on these rows
+filling FIELD's broadcast column until a league-targeted join is measured.
+
+### The join measurement was vacuous first, and scored 12 of 12
+
+It resolved each BSD team name through `resolveTeamKey` and counted a non-null
+result as a join. That function **folds any string into a slug** — `Qqqq Zzzz
+United` returns `qqqqzzzzunited` — so it was measuring "the name is non-empty",
+never "FIELD knows this club". A perfect score from a check with no failure
+mode. It is now a membership test against FIELD's own slate, accepting either
+home/away order, and an unreadable slate reports UNMEASURED rather than a rate
+of zero.
+
+**Rule 89 note on this document's own spec:** done conditions 3, 4 and 5 say
+"reported" and "states" and name no artifact. They are satisfied by
+`outbox/bsd-broadcasts-probe-latest.json` and by the comment block beside the
+routes, but the document should have named a path when it was written.
 
 **Rule F:** who is televising a match is a listing, not a composite. Commodity.
 **Rule A:** pull only.
