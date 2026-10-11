@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md",
   "task": "Task 4 — the conservation check",
-  "started_at": "2026-10-11T06:59:24.617Z",
+  "started_at": "2026-10-11T15:19:09.771Z",
   "callBudget": 40,
   "callsMade": 31,
   "dates": [
@@ -14,52 +14,26 @@
   "tolerance": 0.01,
   "closes_count": 21,
   "closes_rate": 0.75,
-  "telescoping_holds_on_every_game": true,
-  "residual_all": {
-    "n": 28,
-    "min": -0.007,
-    "p25": 0,
-    "median": 0,
-    "p75": 0.012,
-    "max": 0.701,
-    "mean": 0.1193,
-    "median_ABS": 0,
-    "within_0_01": 21
+  "decision": {
+    "cc_cmd": "docs/CC-CMD-2026-10-11-wpa-shootout-residual.md",
+    "chosen": "truncate — the series ends at the last regulation-or-overtime shot",
+    "shootout_games_excluded_from_the_closing_denominator": 5,
+    "reason": "the WP model has no feature describing a penalty-shot round, and a shootout term cannot be measured from this source: wentToShootout is absent from the header on 122,472 of 122,472 rows and the period-5 derivation yields 4 of 1400 games, against 288 reaching period 4",
+    "option_2_refused_because": "shootoutHomeShare_n = 4 is the ceiling of this source, not a small sample — done condition 3 asks for n > 100",
+    "option_3_is_a_separate_document": "a feature-set change re-opens the Brier 0.171551 calibration gate against both baselines",
+    "what_truncation_costs": "the deciding moment of 5 of 28 scored games"
   },
-  "residual_regulation": {
-    "n": 21,
-    "min": 0,
-    "p25": 0,
-    "median": 0,
-    "p75": 0,
-    "max": 0.019,
-    "mean": 0.0015,
-    "median_ABS": 0,
-    "within_0_01": 19
+  "closing": {
+    "eligible": 23,
+    "eligible_closes": 21,
+    "eligible_rate": 0.913,
+    "excluded_shootout": 5,
+    "excluded_reason": "period 5 is a penalty-shot round the model has no representation of",
+    "all_scored": 28,
+    "all_closes": 21,
+    "note": "eligible = scored minus shootout. BOTH denominators are reported so the exclusion cannot be read as a clean sweep."
   },
-  "residual_overtime_no_shootout": {
-    "n": 2,
-    "min": -0.007,
-    "p25": -0.007,
-    "median": 0.006,
-    "p75": 0.006,
-    "max": 0.006,
-    "mean": -0.0005,
-    "median_ABS": 0.007,
-    "within_0_01": 2
-  },
-  "residual_shootout": {
-    "n": 5,
-    "min": 0.635,
-    "p25": 0.643,
-    "median": 0.652,
-    "p75": 0.68,
-    "max": 0.701,
-    "mean": 0.6622,
-    "median_ABS": 0.652,
-    "within_0_01": 0
-  },
-  "verdict": "DOES NOT CLOSE on 7 of 28 games at tolerance 0.01. STOP per the document and report the residual.",
+  "verdict": "DOES NOT CLOSE on 2 of 23 non-shootout games at tolerance 0.01. STOP per the document and report the residual. 5 shootout game(s) excluded from this denominator: period 5 is a penalty-shot round the model has no representation of, and a shootout term is unmeasurable from this source (wentToShootout absent on 122,472 of 122,472 rows; period-5 derivation 4 of 1400 games).",
   "rows": [
     {
       "gameId": 2026020056,
