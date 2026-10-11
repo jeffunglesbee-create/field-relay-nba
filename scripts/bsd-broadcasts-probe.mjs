@@ -22,6 +22,11 @@
 
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+// Task 4's join uses THIS REPO'S OWN matcher, not a fresh one. resolveTeamKey
+// is what every other identity question in the relay goes through, and
+// src/odds-name-match.js exists because EPL club matching needed its own
+// module — a second implementation here would measure a join nothing uses.
+import { resolveTeamKey } from '../src/identity-resolver.js'
 
 export const BASE = 'https://sports.bzzoiro.com'
 export const CALL_BUDGET = 30
@@ -33,6 +38,44 @@ export const fieldState = (v) => {
   if (v === null) return 'null'
   if (typeof v === 'string' && v.trim() === '') return 'empty-string'
   return 'populated'
+}
+
+// TASK 4 — the join rate, with a denominator, and the misses NAMED.
+// An unjoined broadcast row is a channel beside no game, so the useful number
+// is per FIXTURE, not per broadcast row: one fixture carrying 40 territories
+// would otherwise swamp the rate.
+export const joinRate = (rows, resolve = resolveTeamKey) => {
+  const fixtures = new Map()
+  for (const r of rows) {
+    const key = `${r?.event_id}`
+    if (!fixtures.has(key)) fixtures.set(key, { event_id: r?.event_id, home: r?.home_team, away: r?.away_team, rows: 0 })
+    fixtures.get(key).rows += 1
+  }
+  const misses = []
+  let both = 0, one = 0, neither = 0
+  for (const f of fixtures.values()) {
+    let h = null, a = null
+    try { h = resolve(f.home) } catch (_) {}
+    try { a = resolve(f.away) } catch (_) {}
+    f.homeKey = h || null
+    f.awayKey = a || null
+    if (h && a) both += 1
+    else if (h || a) { one += 1; misses.push({ event_id: f.event_id, home: f.home, away: f.away, homeKey: h || null, awayKey: a || null }) }
+    else { neither += 1; misses.push({ event_id: f.event_id, home: f.home, away: f.away, homeKey: null, awayKey: null }) }
+  }
+  const total = fixtures.size
+  return {
+    fixtures_total: total,
+    both_sides_resolved: both,
+    one_side_resolved: one,
+    neither_side_resolved: neither,
+    join_rate_both_sides: total ? +(both / total).toFixed(4) : null,
+    rate_denominator: total,
+    // Named, not counted. "An unjoined broadcast row is a channel beside no game."
+    misses: misses.slice(0, 40),
+    misses_total: misses.length,
+    note: total === 0 ? 'UNMEASURED — no broadcast rows, so no fixtures to join' : 'rate is per FIXTURE, not per broadcast row',
+  }
 }
 
 // The rate Task 3 asks for, with its denominator, and each absence kept apart.
@@ -148,6 +191,7 @@ const main = async () => {
       eventsSeen: evRows.length, eventsSampled: perEvent.length,
       perEvent,
       task3_eventBroadcasts: territoryRate(allRows),
+      task4_join: joinRate(allRows),
     },
     tvChannel: {
       channelId: TV_CHANNEL_ID, status: chan.status, rowCount: chanRows.length,
@@ -166,6 +210,9 @@ const main = async () => {
   console.log(`wrote outbox/bsd-broadcasts-probe-${ts}.json`)
   console.log(`callsMade ${calls.n} of ${CALL_BUDGET}`)
   console.log(`event broadcasts : ${out.football.task3_eventBroadcasts.verdict}`)
+  const j = out.football.task4_join
+  console.log(`task4 join       : ${j.both_sides_resolved} of ${j.fixtures_total} fixtures resolve BOTH sides `
+            + `(rate ${j.join_rate_both_sides}); ${j.misses_total} miss`)
   console.log(`channel broadcasts: ${out.tvChannel.task3_channelBroadcasts.verdict}`)
   for (const [s, v] of Object.entries(task5)) console.log(`task5 ${s}: ${v.verdict}`)
   console.log(out.coverage)
@@ -211,6 +258,34 @@ const selfTest = () => {
     territoryRate([{ country_code: '' }]).country_code_populated === 0)
   t('a row missing the key entirely is counted absent, not null',
     territoryRate([{}]).counts.absent === 1 && territoryRate([{}]).counts.null === 0)
+
+  // Task 4, with an injected resolver so the join logic is testable without
+  // the identity table.
+  const fake = (n) => (n === 'Arsenal' ? 'arsenal' : null)
+  t('THE JOIN RATE IS PER FIXTURE, not per broadcast row',
+    (() => {
+      const rows = [
+        { event_id: 1, home_team: 'Arsenal', away_team: 'Arsenal', country_code: 'US' },
+        { event_id: 1, home_team: 'Arsenal', away_team: 'Arsenal', country_code: 'GB' },
+        { event_id: 1, home_team: 'Arsenal', away_team: 'Arsenal', country_code: 'DE' },
+      ]
+      const j = joinRate(rows, fake)
+      return j.fixtures_total === 1 && j.rate_denominator === 1 && j.join_rate_both_sides === 1
+    })())
+  t('a fixture resolving ONE side is a miss, not a join',
+    (() => {
+      const j = joinRate([{ event_id: 2, home_team: 'Arsenal', away_team: 'Nowhere FC' }], fake)
+      return j.both_sides_resolved === 0 && j.one_side_resolved === 1 && j.join_rate_both_sides === 0
+    })())
+  t('the misses are NAMED, not just counted',
+    (() => {
+      const j = joinRate([{ event_id: 3, home_team: 'Nowhere FC', away_team: 'Elsewhere United' }], fake)
+      return j.misses.length === 1 && j.misses[0].home === 'Nowhere FC' && j.misses[0].homeKey === null
+    })())
+  t('no rows yields UNMEASURED rather than a join rate of zero',
+    joinRate([], fake).join_rate_both_sides === null)
+  t('a resolver that throws is a miss, not a crash',
+    joinRate([{ event_id: 4, home_team: 'x', away_team: 'y' }], () => { throw new Error('boom') }).neither_side_resolved === 1)
 
   console.log(`\n${pass}/${pass + fail} checks passed`)
   if (fail) process.exit(1)

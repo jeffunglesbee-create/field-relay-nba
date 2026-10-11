@@ -10683,6 +10683,102 @@ export default {
                                'Cache-Control': 'public, max-age=60', ...CORS } });
             }
 
+            // /bsd/events/:id/broadcasts     → BSD /api/v2/events/:id/broadcasts/
+            // /bsd/tv-channels/:id/broadcasts → BSD /api/v2/tv-channels/:id/broadcasts/
+            //
+            // docs/CC-CMD-2026-10-10-bsd-broadcasts-territory.md, Tasks 1-3.
+            // Pure forward, BSD's shape VERBATIM (Rule 62), including
+            // `country_code`, `channel_link` and `scheduled_start_time`.
+            //
+            // TASK 2, WHICH IS THE POINT: these rows are NOT flattened into the
+            // existing free-text `streams` column. Comma-joining `channel_name`
+            // would destroy `country_code` on the way and reproduce the defect
+            // this route exists to fix — /context/date carries
+            // "ESPN+, MSGB, Prime Video (Local)" as one string, which nothing
+            // downstream can filter, join, or read a territory off.
+            //
+            // TASK 3 — TERRITORY IS A FILTER THE CALLER APPLIES, and this route
+            // does not apply it. A row whose `country_code` is null is NOT a US
+            // row and NOT a non-US row; it is a listing of unstated territory
+            // and must stay distinguishable from both. The relay forwards all
+            // rows and states the rate; a caller that wants US rows filters for
+            // them and decides for itself what to do with the unstated ones.
+            //
+            // MEASURED 2026-10-11 before either route was written, because the
+            // field being POPULATED was the gating premise and only its key
+            // name had been recorded (outbox/bsd-broadcasts-probe-latest.json,
+            // 17 calls of a declared 30):
+            //
+            //   event broadcasts    country_code stated on 171 of 171 rows
+            //   tv-channel 583      stated on 34 of 34 rows
+            //   absent 0, null 0, empty-string 0; 73 distinct territories
+            //
+            // That mattered: the same vendor serves `attendance` null on 193 of
+            // 193 rows and `round_name` as an empty string on 193 of 193, so
+            // "the key exists" and "the field is populated" are different
+            // claims here and the first does not imply the second.
+            //
+            // TASK 5 — COVERAGE, so nobody plans a fix on the wrong sport.
+            // `/basketball/api/v2/events/{id}/broadcasts/` answered HTTP 404 on
+            // a real basketball event id, so this is FOOTBALL ONLY in practice.
+            // Hockey returned no events for the probed date and is therefore
+            // UNMEASURED, not unsupported. FIELD's broadcast holes are in the
+            // NBA rows of /context/date; this route does not fill them.
+            //
+            // TTLs with their reason: a listing firms up as the fixture
+            // approaches and is immutable afterwards, so 300s. A channel's
+            // schedule spans days and moves less, so 900s.
+            //
+            // Rule A: pull only. Rule 47: nothing is computed — the vendor
+            // states who is televising a match and this forwards the statement.
+            const bcastEventM = pathname.match(/^\/bsd\/events\/(\d+)\/broadcasts$/);
+            const bcastChanM  = pathname.match(/^\/bsd\/tv-channels\/(\d+)\/broadcasts$/);
+            if (bcastEventM || bcastChanM) {
+                const upstream = bcastEventM
+                    ? `${BSD_BASE}/api/v2/events/${bcastEventM[1]}/broadcasts/`
+                    : `${BSD_BASE}/api/v2/tv-channels/${bcastChanM[1]}/broadcasts/`;
+                const maxAge = bcastEventM ? 300 : 900;
+                try {
+                    const r = await fetch(upstream, { headers: bsdHeaders });
+                    const text = await r.text();
+                    if (!r.ok) {
+                        return new Response(JSON.stringify({
+                            error: 'broadcasts upstream failed', upstreamStatus: r.status,
+                            note: 'This is NOT "not televised" and NOT "no territory". The call failed; the listing is unknown.',
+                        }), { status: 502, headers: { 'Content-Type': 'application/json',
+                                 'X-Broadcast-State': 'upstream-failed', ...CORS } });
+                    }
+                    // The rate is STATED, never applied. A caller filtering by
+                    // territory needs to know how much of the set states one.
+                    let rows = [];
+                    try {
+                        const parsed = JSON.parse(text);
+                        rows = Array.isArray(parsed) ? parsed
+                             : (parsed?.results || parsed?.data || parsed?.broadcasts || []);
+                        if (!Array.isArray(rows)) rows = [];
+                    } catch (_) { /* forwarded verbatim regardless */ }
+                    const stated = rows.filter(x => {
+                        const c = x?.country_code;
+                        return c !== undefined && c !== null && !(typeof c === 'string' && c.trim() === '');
+                    }).length;
+                    return new Response(text, { status: 200, headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': `public, max-age=${maxAge}`,
+                        'X-Broadcast-State': rows.length === 0 ? 'served-empty' : 'vendor',
+                        // Denominator included deliberately: a rate without one
+                        // cannot be told from a rate of zero.
+                        'X-Broadcast-Territory-Stated': `${stated}/${rows.length}`,
+                        ...CORS,
+                    } });
+                } catch (e) {
+                    return new Response(JSON.stringify({
+                        error: 'broadcasts fetch threw', detail: e.message,
+                        note: 'This is NOT "not televised". The listing is unknown.',
+                    }), { status: 502, headers: { 'Content-Type': 'application/json',
+                             'X-Broadcast-State': 'upstream-failed', ...CORS } });
+                }
+            }
+
             // /bsd/events/:id/lineups → BSD /api/v2/events/:id/lineups/
             //
             // docs/CC-CMD-2026-10-10-bsd-predicted-lineups.md, Tasks 1 and 2.
