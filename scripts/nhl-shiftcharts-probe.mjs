@@ -114,6 +114,7 @@ const main = async () => {
 
   // ── 1.1 HISTORICAL DEPTH, with an existence control per game ──────────────
   const depth = []
+  const perGameEventNumber = []   // done condition 2 asks for THREE games
   for (const [season, gid] of Object.entries(SEASON_GAMES)) {
     if (calls.n >= CALL_BUDGET - 6) break
     const control = await getJson(`${WEB_BASE}/v1/gamecenter/${gid}/play-by-play`, calls)
@@ -134,6 +135,15 @@ const main = async () => {
         : rows.length > 0 ? `shift charts served: ${rows.length} rows`
         : 'SERVED AND EMPTY — the game exists and shift charts returned no rows. The backfill window is bounded here.',
     })
+    // The eventNumber negative, on THIS game too — done condition 2 asks for
+    // three games and all shift rows, not one game and nine samples.
+    if (control.ok && rows.length) {
+      const ids = new Set((control.body?.plays || []).map(p => p.eventId).filter(v => v !== undefined))
+      const ens = rows.map(r => r.eventNumber).filter(v => v !== undefined && v !== null)
+      const m = ens.filter(n => ids.has(n)).length
+      perGameEventNumber.push({ gameId: gid, shift_eventNumbers: ens.length, play_eventIds: ids.size, matched: m,
+                                match_rate: ens.length ? +(m / ens.length).toFixed(4) : null })
+    }
   }
   out.task1_1_historicalDepth = depth
 
@@ -148,8 +158,13 @@ const main = async () => {
   const playIds = new Set(plays.map(p => p.eventId).filter(v => v !== undefined))
   const shiftEventNumbers = shifts.map(s => s.eventNumber).filter(v => v !== undefined && v !== null)
   const matched = shiftEventNumbers.filter(n => playIds.has(n)).length
+  const acrossGames = [...perGameEventNumber, null].filter(Boolean)
   out.task1_2_eventNumberJoin = {
     gameId: current,
+    across_games: acrossGames,
+    games_checked: acrossGames.length + 1,
+    matched_across_all_games: acrossGames.reduce((a, g) => a + g.matched, 0),
+    denominator_across_all_games: acrossGames.reduce((a, g) => a + g.shift_eventNumbers, 0),
     shift_rows: shifts.length,
     shift_eventNumbers_present: shiftEventNumbers.length,
     play_eventIds: playIds.size,

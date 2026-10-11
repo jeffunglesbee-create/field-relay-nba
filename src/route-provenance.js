@@ -11,7 +11,7 @@
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-10T22:59:55.995Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-11T06:52:07.622Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -54,8 +54,8 @@ export const ROUTE_PROVENANCE = {
   "/backfill/game-briefs": { k: "trigger", s: "d1:ARCHIVE_DB + field-claude-proxy.jeffunglesbee.workers.dev" },
   "/bdl": { k: "proxy", s: "api.balldontlie.io", p: 1 },
   "/briefs/spot-check": { k: "store", s: "d1:ARCHIVE_DB" },
-  "/bsd/": { k: "upstream", s: "r2:FIELD_DATA + sports.bzzoiro.com", p: 1 },
-  "/bsd/contract": { k: "computed", s: "r2:FIELD_DATA + sports.bzzoiro.com (inherited from the enclosing block)" },
+  "/bsd/": { k: "upstream", s: "api.nhle.com + r2:FIELD_DATA + sports.bzzoiro.com", p: 1 },
+  "/bsd/contract": { k: "computed", s: "api.nhle.com + r2:FIELD_DATA + sports.bzzoiro.com (inherited from the enclosing block)" },
   "/bsd/coverage": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/events/by-date": { k: "upstream", s: "sports.bzzoiro.com" },
   "/bsd/events/live": { k: "upstream", s: "sports.bzzoiro.com" },

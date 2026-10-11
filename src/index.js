@@ -419,6 +419,26 @@ function nhlAllowed(path) {
     if (NHL_ALLOWED_EXACT.includes(path)) return true;
     return NHL_ALLOWED_PREFIXES.some(p => path.startsWith(p));
 }
+// ── NHL STATS (api.nhle.com) — A SECOND HOST, NOT A SECOND PATH ───────────
+// docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md, Task 2.
+//
+// NHL_BASE above is api-web.nhle.com. Shift charts live on api.nhle.com, which
+// is a DIFFERENT HOST. Adding '/stats/rest/...' to NHL_ALLOWED_PREFIXES would
+// forward it to api-web.nhle.com and fail in a way that looks like a missing
+// path, which is why this gets its own base constant, its own allow-list and
+// its own route. The document's stop condition says so explicitly.
+//
+// FIRST CALLED 2026-10-11, and its reachability from CI was measured rather
+// than assumed: HTTP 200, 692 shift rows for game 2026020053
+// (outbox/nhl-shiftcharts-probe-latest.json).
+const NHL_STATS_BASE = 'https://api.nhle.com';
+const NHL_STATS_ALLOWED_PREFIXES = [
+    '/stats/rest/en/shiftcharts',   // ?cayenneExp=gameId=NNNNNNNNNN
+];
+function nhlStatsAllowed(path) {
+    return NHL_STATS_ALLOWED_PREFIXES.some(p => path.startsWith(p));
+}
+
 function nhlCacheTtl(path) {
     if (path.startsWith('/v1/standings')) return NHL_CACHE_TTL_STANDINGS;
     if (path.startsWith('/v1/schedule')) return NHL_CACHE_TTL_SCHEDULE;
@@ -10681,6 +10701,80 @@ export default {
                 return new Response(await r.text(), { status: r.status,
                     headers: { 'Content-Type': 'application/json',
                                'Cache-Control': 'public, max-age=60', ...CORS } });
+            }
+
+            // /nhl-stats/* → api.nhle.com/stats/rest/en/*
+            //
+            // docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md, Task 2, which
+            // ships only because Task 1 cleared. Measured 2026-10-11
+            // (outbox/nhl-shiftcharts-probe-latest.json, 11 calls of 24):
+            //
+            //   shift charts serve ALL FOUR of the WP model's seasons —
+            //     2020: 894 rows / 38 players    2022: 829 / 38
+            //     2021: 791 / 38                 2023: 751 / 38
+            //   every one against a control game proved to exist first, because
+            //   a cayenneExp query with a wrong id answers 200 with an empty
+            //   array and that reads identically to "this season has none".
+            //
+            // So on-ice state is a BACKFILL, not a wait — which is the whole
+            // claim of the document.
+            //
+            // THE JOIN IS BY TIME, NOT eventNumber: 0 of 692 shift
+            // eventNumbers appear as a play eventId on 2026020053, and 0 across
+            // the four season games. The ranges overlap, so they look joinable.
+            // src/nhl-onice.js does the interval join and refuses any
+            // reconstruction that contradicts situationCode.
+            //
+            // TWO TTLs, each from what the data does: a FINISHED game's shift
+            // chart is immutable, so 86400s; a LIVE game's grows every shift,
+            // so 30s. The route cannot tell which without another call, so it
+            // takes the caller's word via ?final=1 and defaults to the SHORT
+            // ttl — a stale immutable chart costs a re-fetch, a cached live one
+            // is wrong.
+            const nhlStatsM = pathname.match(/^\/nhl-stats(\/.*)$/);
+            if (nhlStatsM) {
+                const statsPath = nhlStatsM[1];
+                if (!nhlStatsAllowed(statsPath)) {
+                    return new Response(JSON.stringify({
+                        error: 'path not allowed', path: statsPath,
+                        allowed: NHL_STATS_ALLOWED_PREFIXES,
+                    }), { status: 403, headers: { 'Content-Type': 'application/json', ...CORS } });
+                }
+                const ttl = url.searchParams.get('final') === '1' ? 86400 : 30;
+                const upstream = `${NHL_STATS_BASE}${statsPath}${url.search}`;
+                try {
+                    const r = await fetch(upstream, {
+                        headers: { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' },
+                        cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: upstream },
+                    });
+                    const text = await r.text();
+                    if (!r.ok) {
+                        return new Response(JSON.stringify({
+                            error: 'nhl stats upstream failed', upstreamStatus: r.status,
+                            note: 'This is NOT "no shift data for this game". The call failed.',
+                        }), { status: 502, headers: { 'Content-Type': 'application/json',
+                                 'X-NhlStats-State': 'upstream-failed', ...CORS } });
+                    }
+                    // A 200 with zero rows is a REAL answer and a different one
+                    // from a failure — the row count is the measurement, never
+                    // the status. Stated in a header so no caller has to parse
+                    // to find out.
+                    let rows = null;
+                    try { const b = JSON.parse(text); rows = Array.isArray(b?.data) ? b.data.length : (Array.isArray(b) ? b.length : null); } catch (_) {}
+                    return new Response(text, { status: 200, headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': `public, max-age=${ttl}`,
+                        'X-NhlStats-State': rows === 0 ? 'served-empty' : 'vendor',
+                        ...(rows === null ? {} : { 'X-NhlStats-Rows': String(rows) }),
+                        ...CORS,
+                    } });
+                } catch (e) {
+                    return new Response(JSON.stringify({
+                        error: 'nhl stats fetch threw', detail: e.message,
+                        note: 'This is NOT "no shift data for this game".',
+                    }), { status: 502, headers: { 'Content-Type': 'application/json',
+                             'X-NhlStats-State': 'upstream-failed', ...CORS } });
+                }
             }
 
             // /bsd/events/:id/broadcasts     → BSD /api/v2/events/:id/broadcasts/

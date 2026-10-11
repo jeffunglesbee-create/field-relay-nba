@@ -249,6 +249,15 @@ jobs:
       # that silently became 0.5, a label that silently became 'Market
       # estimate', and an absent goalie that silently became an average one.
       # Thirteen mutations prove each is load-bearing.
+      # The on-ice reconstruction. Four states, and the two that matter are the
+      # ones an empty array would swallow: no shift data at all, and an instant
+      # the shift data does not cover. Neither is "nobody on the ice".
+      - name: The on-ice reconstruction still refuses what contradicts situationCode
+        if: always()
+        run: |
+          node scripts/check-nhl-onice.mjs
+          node scripts/nhl-shiftcharts-probe.mjs --self-test
+
       - name: The hockey WP scorer still refuses what it cannot read
         if: always()
         run: |
