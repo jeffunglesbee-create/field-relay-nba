@@ -1,5 +1,72 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11c — golf reached the journalism prompt as "-15 @ -16"
+
+**HEAD:** `aa7d7f5` → `17071f4`+. Session docs, per Rule 67:
+`outbox/cc-session-2026-10-03-empty-catch-gate.md`,
+`outbox/cc-session-2026-10-11-port-citation-check.md`,
+`outbox/cc-session-2026-10-11-golf-slate-line.md`.
+
+Three more CC-CMDs closed: **empty-catch-gate**, **port-citation-check** (into
+jubilant-bassoon and field-playground) and **golf-slate-line**.
+
+### The measurement that decided golf-slate-line
+
+`docs/CC-CMD-2026-08-25-golf-slate-line.md` said its own reasoning was read from
+source and had never been observed. Observed, run `38142889937`:
+
+```
+LINE: '-15 @ -16 · Final · Golf Chnl'
+```
+
+Baycurrent Classic, 72 competitors, every one carrying `athlete` and no `team`,
+**`homeAway` null on all of them** — which the document did not predict. The
+fallback does not fail to find a home side; it takes the leaderboard's top two
+players and tells the model an away side scored -15 at a home side scoring -16.
+
+**Two of its four asks were wrong about the code**, and both corrections are in
+the source as comments:
+
+| ask | what was found |
+|---|---|
+| gate `gameLines.push` | `gameMeta` is pushed in the same block and the odds step indexes one array by the other's position — a push-only gate would have mis-attributed every odds annotation after the golf entry |
+| `buildGolfCronContext` has no caller, so golf would vanish | golf was **always** in the prompt: twenty lines of that function's body sat **copied inline**. The Rule 63 defect was duplication |
+
+Guards: `scripts/check-individual-sports-not-archived.mjs` now carries three
+gates, **11 self-tests, 9 live assertions**. `beforeFetch` **passed its own
+mutation when first written** — it searched the whole file and a second LEAGUES
+walk always supplied a later fetch. Scoped to the loop head now.
+
+### Done condition met in part, and the gap is a decision for the owner
+
+The condition wants a **captured slate prompt**. Nothing exposes one, read
+rather than assumed: `/journalism/game-lines` returns per-game *brief* first
+sentences, `/journalism/context-probe` carries its own five-league list with no
+golf, and none of the four `/debug/*` routes touches `buildPrompt`. Adding one
+means publishing `FIELD_VOICE_REGISTER` and `JQ_STYLE` unauthenticated, or
+extracting the slate walk out of `handleJournalismCycle` — which fires every 15
+minutes and is covered by the structural-change guardrail.
+
+**Proven instead, from the deployed worker** (run `38143603883`):
+`active True`, `round 4`, `72` leaderboard rows, and all five fields the block
+reads populated on row one — `wouldRender: True`. So the `PGA TOUR —` block
+renders. The prompt string itself is unverified and said so rather than closed
+on a green deploy.
+
+### Still open, counted
+
+| document | state |
+|---|---|
+| `2026-10-11-golf-reaches-the-per-game-enqueue-too` | **FILED** — `buildGameLine`'s second caller at `src/index.js:9383` has no `individual` in scope |
+| `2026-10-11-regex-routed-paths-outside-the-population` | FILED — 11 routes outside the provenance population |
+| `2026-10-11-predicted-xi-render-decision` | FILED |
+| `2026-10-11-wpa-shootout-residual` | FILED |
+| `2026-08-25-misjoined-opening-odds` | OPEN — ~156 rows hold in-play odds, needs a D1 census |
+| `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human** |
+| `2026-09-15-capture-provenance-mark` | BUILT, dry-run only — **the 58-row mark is unauthorised** |
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11b — the empty-catch gate, and the queue after it
 
 **HEAD:** `829af39` → `aa7d7f5`. Session doc, per Rule 67:

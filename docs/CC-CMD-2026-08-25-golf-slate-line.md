@@ -1,7 +1,75 @@
 # CC-CMD-2026-08-25-golf-slate-line
 
 **Filed:** 2026-08-25, from the golf-sport-label work.
-**Status:** OPEN. This is the SECOND CC-CMD required by Rule 87 §4 — the first
+**Status:** DONE 2026-10-11, with the done condition **met in part** and the
+remainder stated rather than closed on a green deploy — per this document's own
+instruction. Session doc:
+`outbox/cc-session-2026-10-11-golf-slate-line.md`.
+
+**ASK 1 — VERDICT: SHIPS.** Measured on the live feed, run `38142889937`
+(`outbox/golf-slate-line-probe-latest.json`):
+
+```
+LINE: '-15 @ -16 · Final · Golf Chnl'
+```
+
+Baycurrent Classic, 1 event, **72 competitors**, every one carrying `athlete`
+and no `team` — and **`homeAway` null on all of them**, which this document did
+not predict. So the fallback does not fail to find a home side; it takes the
+leaderboard's **top two players** and tells the model an away side scored -15 at
+a home side scoring -16. Controls on the same date, through the same function:
+`Eagles (2-2) 0 @ Jaguars (3-1) 0 · Scheduled · …` and
+`Mavericks (1-1) 132 @ Rockets (1-1) 115 · Final · …`.
+
+**ASK 2 — THE GATE IS NOT AT `gameLines.push`, DELIBERATELY.** `gameMeta.push`
+is in the same block and its own comment calls it *"Parallel to gameLines"*; the
+odds step builds `new Array(gameLines.length)` and indexes one by the other's
+position. A push-only gate would have desynchronised them and mis-attributed
+every odds annotation after the golf entry — a worse defect, invisible until a
+golf day with odds. `if (individual) continue;` sits at the top of the loop,
+which also saves one ESPN call per tick.
+
+**ASK 3 — ITS PREMISE IS REFUTED.** This document reads
+`buildGolfCronContext`'s single grep hit as "never called" and concludes golf
+would vanish from the prompt. **Golf was always in the prompt.** `buildPrompt`
+has carried a `golfContext` slot all along, fed by **twenty lines of that
+function's body, copied inline**. The Rule 63 defect was duplication, not a
+missing feature, so the copy is deleted and the call takes its place — one
+definition, one caller, one fetch, with an optional `preFetched` argument so the
+slate path does not pay for a second request.
+
+**ASK 4 — guards extended in
+`scripts/check-individual-sports-not-archived.mjs`: 11 self-tests, 9 live
+assertions, blocking in `deploy.yml`.** One of them, `beforeFetch`, **passed its
+own mutation when first written** — it searched the whole file for a later fetch
+and a second LEAGUES walk always supplied one. Now scoped to the loop head's
+window, and the mutation is caught.
+
+**DONE CONDITION — the prompt has no read path, and that was read rather than
+assumed:** `/journalism/game-lines` returns per-game *brief* first sentences,
+`/journalism/context-probe` carries its own five-league list with no golf in it,
+and none of the four `/debug/*` routes touches `buildPrompt`. Exposing one would
+publish `FIELD_VOICE_REGISTER` and `JQ_STYLE` unauthenticated, or require
+extracting the slate walk out of `handleJournalismCycle`, which fires every 15
+minutes and is covered by the structural-change guardrail.
+
+**That is a decision for the owner, not a schedule.** A cron re-check would fire
+against a surface that does not exist. What is proven: the measured line, the
+gate in deployed source under 9 assertions, the duplication removed, and the
+golf block's inputs read from the **deployed** `/v2/golf/enriched`. What is not:
+the prompt string itself. Re-dispatch `golf-slate-line-probe.yml` on any golf
+day to refresh the measured half.
+
+**SECOND CC-CMD FILED (Rule 87.4):** `buildGameLine` has **two** callers and
+this document discusses one. `src/index.js:9383` iterates
+`for (const {sport, league, label} of LEAGUES)` — no `individual` in scope, no
+downstream guard. Read from source and **not yet probed**, which is the state
+this document's own headline claim was in until today. See
+`docs/CC-CMD-2026-10-11-golf-reaches-the-per-game-enqueue-too.md`.
+
+---
+
+This is the SECOND CC-CMD required by Rule 87 §4 — the first
 (`field-laboratory docs/CC-CMD-2026-08-25-golf-sport-label.md`) is closed by the
 archive gate, and this covers what that gate deliberately left alone.
 
