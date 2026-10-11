@@ -1,5 +1,68 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11b — the empty-catch gate, and the queue after it
+
+**HEAD:** `829af39` → `aa7d7f5`. Session doc, per Rule 67:
+`outbox/cc-session-2026-10-03-empty-catch-gate.md`.
+
+`docs/CC-CMD-2026-10-03-empty-catch-gate.md` — **DONE.** Four tasks, five done
+conditions, no stop condition hit.
+
+```
+  bare                    112      ← the baseline; the gate fails when it RISES
+  suppressed-with-reason  69       (65 plain comment, 4 catch-ok)
+  clean (catch sites)     927
+  UNPARSED (files)        0
+  empty total             181      across 396 files
+```
+
+**The 112 were NOT fixed** — Task 3 puts that out of scope. 50 files carry at
+least one; `src/` holds 60, `scripts/` 52 across 41 files.
+`src/budget-helpers.js` is the control and holds at **0 bare, 6 reasoned**.
+
+New: `scripts/check-empty-catches.mjs` (35 self-tests) and
+`scripts/mutate-empty-catches.mjs` (**9 of 9 caught, 0 never placed**). Wired
+into **both** `guards.yml` and `deploy.yml` — both proven green — because
+guards.yml carries `paths-ignore: src/**` and a bare catch in `src/index.js` is
+precisely a src-only push.
+
+### The dependency answer changed once it was measured
+
+Keeping tree-sitter out of CI was the first decision and it was wrong. Run as an
+adjudicator against the new dependency-free scanner, the AST auditor found two
+defects in it that reading would not have — a regex literal holding quotes
+(`src/browser-do.js:122` reads `selector.match(/:text\(['"](.+)['"]\)/)?.[1];`,
+and 4 catch sites were read there where the AST read 13) and a nested
+template literal (four whole files lost, `src/context-assembler.js` and its 11
+empty catches among them). Each was a **silent zero over most of a file**. So
+`--control` runs in the gate and an absent tree-sitter FAILS rather than
+skipping. **396 of 396 files compared, 0 disagreed.** Scan plus adjudication:
+**1.9s**, down from 2m15s, counts identical.
+
+And the suppression mechanism had to be made reachable: written body-only, the
+first four reasons added landed above the `try` and changed the count by
+**nothing — 116 before, 116 after**.
+
+### Queue state, measured against HEAD rather than inherited
+
+| document | state |
+|---|---|
+| `2026-09-15-backfill-captured-at-not-snapshot-time` | **header corrected to CLOSED** — work landed 09-15 |
+| `2026-09-15-name-the-draftkings-writer` | **header corrected to CLOSED** — check verified 7/7, wired in deploy.yml |
+| `2026-08-25-golf-slate-line` | OPEN and **still real** — `buildGameLine` at `src/index.js:5690` carries the defect |
+| `2026-08-25-port-citation-check` | OPEN and **still real** — neither jubilant-bassoon nor field-playground has the script |
+| `2026-08-25-misjoined-opening-odds` | OPEN — ~156 rows hold in-play odds; needs a D1 census |
+| `2026-08-25-rotate-relay-secret` | OPEN — **step 3 needs a human** with Cloudflare and GitHub credentials |
+| `2026-09-15-capture-provenance-mark` | BUILT, dry-run only — **the 58-row mark is ready and unauthorised** |
+
+**Waiting on the owner, not on work:** the 58-row provenance mark exists, refuses
+to write without the literal input `apply`, and is what both 09-15 documents
+concluded was the honest fix. Nothing is broken today — 57 of 58 kickoff
+verdicts are unaffected and the one that moves carries the more plausible of two
+unprovable values.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11 — the eight queued CC-CMDs, executed in order
 
 **HEAD:** `be0ffab` → `a71b4ea`. Spent at the vendor: **0 credits** — the Odds
