@@ -217,6 +217,53 @@ export const run = () => {
   t('a payload walked with a null model refuses through the whole path',
     winProbFromPlayByPlay({ plays: [shot()], homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left' },
       { wp: null }).state === 'refused')
+  // THE DEFECT THE LIVE DEPLOY FOUND. Only goal events carry a score — 8 of 8
+  // goals and 0 of 117 other shot events, measured on game 2026020053 — so a
+  // scorer that reads the last SHOT's details.homeScore refuses every game.
+  t('the score is carried forward from goal events, not read off the last shot',
+    (() => {
+      const g = { typeDescKey: 'goal', timeInPeriod: '05:00', periodDescriptor: { number: 1 },
+        situationCode: '1551',
+        details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, homeScore: 1, awayScore: 0 } }
+      const st = stateFromPlayByPlay({ homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left',
+        plays: [g, shot({ timeInPeriod: '12:00' })] })
+      return st.homeScore === 1 && st.awayScore === 0 && st.scoreCarriedFromGoalEvents === true
+    })())
+  t('a game with no goals yet reads 0-0 and says that was an assumption',
+    (() => {
+      const st = stateFromPlayByPlay({ homeTeam: { id: 10 }, awayTeam: { id: 20 }, homeTeamDefendingSide: 'left', plays: [shot()] })
+      return st.homeScore === 0 && st.awayScore === 0 && st.scoreCarriedFromGoalEvents === false
+    })())
+  t('a shot-only payload is now SCORED rather than refused for an unreadable score',
+    (() => {
+      const r = hockeyWinProb(stateFromPlayByPlay({ homeTeam: { id: 10 }, awayTeam: { id: 20 },
+        homeTeamDefendingSide: 'left', plays: [shot()] }), { wp: FAKE })
+      return r.state === 'modelled' && r.probability !== null
+    })())
+  t('a root score that disagrees with the carried one is reported, not silently preferred',
+    (() => {
+      const g = { typeDescKey: 'goal', timeInPeriod: '05:00', periodDescriptor: { number: 1 }, situationCode: '1551',
+        details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, homeScore: 1, awayScore: 0 } }
+      const st = stateFromPlayByPlay({ homeTeam: { id: 10, score: 4 }, awayTeam: { id: 20, score: 2 },
+        homeTeamDefendingSide: 'left', plays: [g, shot({ timeInPeriod: '12:00' })] })
+      const r = hockeyWinProb(st, { wp: FAKE })
+      return st.rootScoreDisagrees === true && /disagrees with the payload/.test(r.caveats.join(' '))
+    })())
+  t('an agreeing root score adds no caveat',
+    (() => {
+      const g = { typeDescKey: 'goal', timeInPeriod: '05:00', periodDescriptor: { number: 1 }, situationCode: '1551',
+        details: { xCoord: 57, yCoord: -40, shotType: 'wrist', zoneCode: 'O', eventOwnerTeamId: 10, homeScore: 1, awayScore: 0 } }
+      const st = stateFromPlayByPlay({ homeTeam: { id: 10, score: 1 }, awayTeam: { id: 20, score: 0 },
+        homeTeamDefendingSide: 'left', plays: [g, shot({ timeInPeriod: '12:00' })] })
+      return st.rootScoreDisagrees === false && !/disagrees/.test(hockeyWinProb(st, { wp: FAKE }).caveats.join(' '))
+    })())
+  t('a blocked shot, which carries NO shotType at all, is named as unreported',
+    (() => {
+      const blocked = { typeDescKey: 'blocked-shot', timeInPeriod: '05:00', periodDescriptor: { number: 1 },
+        situationCode: '1551', details: { xCoord: 57, yCoord: -40, zoneCode: 'O', eventOwnerTeamId: 10 } }
+      return shotXg(blocked, { homeTeamId: 10, homeTeamDefendingSide: 'left' }, XG).notReported.includes('shotType')
+    })())
+
   t('shots whose xG could not be scored are counted, not hidden',
     (() => {
       const s = stateFromPlayByPlay({

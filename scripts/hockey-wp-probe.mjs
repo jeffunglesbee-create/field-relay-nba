@@ -18,6 +18,12 @@
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { total } from './lib/summary-invariants.mjs'
+// The REAL scorer, run on a REAL payload. Rule 61: a feature is not done until
+// the full path works, and Rule 89: the verification names its artifact. The
+// scorer_end_to_end block below IS that artifact — it proves the modelled path
+// returns a number on live-shaped data, and does not depend on a game being in
+// progress when the probe runs.
+import { winProbFromPlayByPlay, stateFromPlayByPlay } from '../src/hockey-wp.js'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
@@ -291,6 +297,20 @@ const main = async () => {
         note: 'a side below regulation length pulled its goalie; situationCode must agree from a different field',
         usable: home.seconds !== null && away.seconds !== null
       }
+    }
+    // ── end-to-end: the committed scorer against this exact payload ───────
+    try {
+      const st = stateFromPlayByPlay(pbp.body)
+      const wp = winProbFromPlayByPlay(pbp.body)
+      sc.scorer_end_to_end = {
+        state: st, result: wp,
+        modelled: wp.state === 'modelled' && typeof wp.probability === 'number',
+        note: wp.state === 'refused'
+          ? `REFUSED: ${(wp.problems || []).join(', ')} — the feature does not work on this payload`
+          : `${wp.state}: probability ${wp.probability}, label ${wp.label}`
+      }
+    } catch (e) {
+      sc.scorer_end_to_end = { error: String(e && e.message || e) }
     }
     out.premises.situation_code = sc
   } catch (e) {

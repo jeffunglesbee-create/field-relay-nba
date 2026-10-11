@@ -126,7 +126,11 @@ export const shotXg = (play, ctx, model = HOCKEY_XG_MODEL) => {
     problems: [],
     // Named, not defaulted silently: an unmapped shot type scores at the base
     // level and the caller is told which input was not reported.
-    notReported: mapped === null && d.shotType !== undefined ? ['shotType'] : []
+    // MEASURED: blocked-shot events carry NO shotType key at all (0 of 38 on
+    // game 2026020053), and missed/on-goal events carry one. Both the absent
+    // and the unmapped case score at the base level, so both are named —
+    // reporting only the unmapped one hid 38 of 125 shots.
+    notReported: mapped === null ? ['shotType'] : []
   }
 }
 
@@ -169,6 +173,10 @@ export const hockeyWinProb = (state, { wp = HOCKEY_WP_MODEL } = {}) => {
     caveats.push('goalieInNetId absent; goalie quality is not a model input, so nothing was substituted for it')
   if (state.xgDiff === null || state.xgDiff === undefined)
     caveats.push('cumulative xG unavailable; the xG feature entered as zero difference, which is its no-information value')
+  if (state.rootScoreDisagrees)
+    caveats.push(`the score carried from goal events (${state.homeScore}-${state.awayScore}) disagrees with the payload's own team scores (${state.rootScore?.home}-${state.rootScore?.away}); the carried value was used`)
+  if (state.scoreCarriedFromGoalEvents === false && (state.homeScore !== 0 || state.awayScore !== 0))
+    caveats.push('no goal event carried a score, so 0-0 is an assumption rather than a reading')
 
   const p = predictFromVector(featureVector(state), wp)
   return {
@@ -202,6 +210,17 @@ export const stateFromPlayByPlay = (pbp) => {
 
   let hxg = 0, axg = 0, shotsSeen = 0, xgProblems = 0
   let last = null, prev = null
+  // THE SCORE IS CARRIED FORWARD, because only GOAL events carry it.
+  // MEASURED 2026-10-11 on game 2026020053: details.homeScore / awayScore
+  // appear on 8 of 8 goal events and 0 of the other 117 shot events. The
+  // CC-CMD's field list placed them under a shot event's details, I wrote this
+  // against that prose, and the deployed route then refused two real live
+  // games with 'score-unreadable'. See
+  // outbox/hockey-wp-probe-latest-situation.json, details_keys_by_event_type.
+  //
+  // A goal's details.homeScore is the score AFTER that goal, which is what a
+  // win probability read at that moment should use.
+  let homeScore = 0, awayScore = 0, scoreSeen = false
   for (const play of plays) {
     if (SHOT_TYPES_PBP.has(play.typeDescKey)) {
       const r = shotXg(play, { ...ctxBase, previousPlay: prev })
@@ -211,6 +230,11 @@ export const stateFromPlayByPlay = (pbp) => {
       shotsSeen += 1
       last = play
     }
+    if (Number.isFinite(play.details?.homeScore) && Number.isFinite(play.details?.awayScore)) {
+      homeScore = play.details.homeScore
+      awayScore = play.details.awayScore
+      scoreSeen = true
+    }
     prev = play
   }
 
@@ -219,13 +243,22 @@ export const stateFromPlayByPlay = (pbp) => {
   const sit = parseSituation(last.situationCode)
   const d = last.details || {}
   const elapsed = toElapsedSeconds(last.periodDescriptor?.number, last.timeInPeriod)
+  // The root team scores are the score NOW. For a finished walk they must equal
+  // the carried value; a disagreement means goals exist outside the plays array
+  // and is reported rather than silently preferred one way or the other.
+  const rootHome = pbp?.homeTeam?.score, rootAway = pbp?.awayTeam?.score
+  const rootDisagrees = Number.isFinite(rootHome) && Number.isFinite(rootAway)
+    && (rootHome !== homeScore || rootAway !== awayScore)
   return {
     shotsSeen,
     xgShotsUnscored: xgProblems,
     elapsedSeconds: elapsed,
     period: last.periodDescriptor?.number ?? null,
-    homeScore: Number.isFinite(d.homeScore) ? d.homeScore : null,
-    awayScore: Number.isFinite(d.awayScore) ? d.awayScore : null,
+    homeScore,
+    awayScore,
+    scoreCarriedFromGoalEvents: scoreSeen,
+    rootScoreDisagrees: rootDisagrees,
+    rootScore: Number.isFinite(rootHome) && Number.isFinite(rootAway) ? { home: rootHome, away: rootAway } : null,
     homeSkaters: sit ? sit.homeSkaters : null,
     awaySkaters: sit ? sit.awaySkaters : null,
     homeEmptyNet: sit ? !sit.homeGoalie : null,

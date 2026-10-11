@@ -89,8 +89,8 @@ const MUTATIONS = [
   {
     name: 'M10 the walk reads the last PLAY instead of the last shot',
     file: VICTIM,
-    anchor: "      shotsSeen += 1\n      last = play\n    }\n    prev = play",
-    replace: "      shotsSeen += 1\n    }\n    last = play\n    prev = play",
+    anchor: "      shotsSeen += 1\n      last = play\n    }",
+    replace: "      shotsSeen += 1\n    }\n    last = play\n    if (false) {",
     expect: 'LAST shot event, not the last play'
   },
   {
@@ -108,9 +108,33 @@ const MUTATIONS = [
     expect: 'a null xG model yields no xG instead of throwing'
   },
   {
-    name: 'M13 an unmapped shot type stops being reported',
+    name: 'M14 the score goes back to being read off the last shot',
     file: VICTIM,
-    anchor: "    notReported: mapped === null && d.shotType !== undefined ? ['shotType'] : []",
+    anchor: "    homeScore,\n    awayScore,\n    scoreCarriedFromGoalEvents: scoreSeen,",
+    replace: "    homeScore: Number.isFinite(d.homeScore) ? d.homeScore : null,\n    awayScore: Number.isFinite(d.awayScore) ? d.awayScore : null,\n    scoreCarriedFromGoalEvents: scoreSeen,",
+    expect: 'carried forward from goal events'
+  },
+  {
+    name: 'M15 a root score that disagrees stops being reported',
+    file: VICTIM,
+    anchor: "    && (rootHome !== homeScore || rootAway !== awayScore)",
+    replace: "    && false",
+    expect: 'reported, not silently preferred'
+  },
+  {
+    name: 'M16 an absent shot type stops being named again',
+    file: VICTIM,
+    anchor: "    notReported: mapped === null ? ['shotType'] : []",
+    replace: "    notReported: mapped === null && d.shotType !== undefined ? ['shotType'] : []",
+    expect: 'carries NO shotType at all'
+  },
+  {
+    // Re-aimed: the source now names BOTH the absent and the unmapped case, so
+    // the mutation that proves this assertion is emptying the report outright.
+    // Narrowing it back to unmapped-only is M16.
+    name: 'M13 the unreported-input list is emptied',
+    file: VICTIM,
+    anchor: "    notReported: mapped === null ? ['shotType'] : []",
     replace: "    notReported: []",
     expect: 'names the input it could not use'
   }
