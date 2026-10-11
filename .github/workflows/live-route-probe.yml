@@ -1,0 +1,66 @@
+name: Live route probe
+
+# Do the four route blocks shipped on 2026-10-11 ANSWER on the deployed worker?
+#
+# deploy.yml's own last step is named "the routes this deploy touched still
+# answer" and probes two routes a PAST deploy touched. This one probes the ones
+# this deploy touched, and reports its denominator.
+#
+# Written because every deploy from 3765a55 through defc1e1 failed on the
+# scope-claims gate, so four route blocks were never live while their documents
+# were closed as DONE. The documents' numbers came from calling the vendor
+# directly on a runner — real data, no evidence about the relay.
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "YYYY-MM-DD for event discovery. Empty = today."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The probe can still fail
+        run: node scripts/live-route-probe.mjs --self-test
+
+      - name: Probe the deployed worker
+        env:
+          PROBE_DATE: ${{ inputs.date }}
+        run: |
+          mkdir -p outbox
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          export PROBE_STAMP="$STAMP"
+          export PROBE_OUT="outbox/live-route-probe-${STAMP}.json"
+          set +e
+          node scripts/live-route-probe.mjs | tee /tmp/probe.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          cp "$PROBE_OUT" outbox/live-route-probe-latest.json
+          echo "PROBE_OUT=$PROBE_OUT" >> "$GITHUB_ENV"
+          exit $rc
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/live-route-probe-*.json || true
+          git diff --staged --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: live route probe result"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((2 ** i))
+          done
+          exit 1
