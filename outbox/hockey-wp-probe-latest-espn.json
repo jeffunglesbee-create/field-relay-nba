@@ -1,0 +1,889 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "probe_only": true,
+  "started_at": "2026-10-11T03:05:48.211Z",
+  "callBudget": 25,
+  "callsMade": 7,
+  "premises": {
+    "espn_market_archive": {
+      "dates": [
+        {
+          "date": "20240302",
+          "status": 200,
+          "events": 13,
+          "withOdds": 0,
+          "withMoneyline": 0,
+          "sampleOddsKeys": null,
+          "sampleOdds": null
+        },
+        {
+          "date": "20240413",
+          "status": 200,
+          "events": 13,
+          "withOdds": 0,
+          "withMoneyline": 0,
+          "sampleOddsKeys": null,
+          "sampleOdds": null
+        },
+        {
+          "date": "20241026",
+          "status": 200,
+          "events": 14,
+          "withOdds": 0,
+          "withMoneyline": 0,
+          "sampleOddsKeys": null,
+          "sampleOdds": null
+        }
+      ],
+      "moneyline_key_paths": [],
+      "games_with_moneyline": 0,
+      "games_total": 40,
+      "summary_probe": {
+        "date": "20240302",
+        "event_ids": [
+          "401560183",
+          "401560188",
+          "401560185"
+        ],
+        "games": [
+          {
+            "event": "401560183",
+            "status": 200,
+            "top_level_keys": [
+              "boxscore",
+              "format",
+              "gameInfo",
+              "leaders",
+              "seasonseries",
+              "injuries",
+              "broadcasts",
+              "pickcenter",
+              "odds",
+              "againstTheSpread",
+              "news",
+              "plays",
+              "article",
+              "videos",
+              "header",
+              "wallclockAvailable",
+              "onIce",
+              "meta",
+              "standings"
+            ],
+            "pickcenter_count": 1,
+            "pickcenter_keys_verbatim": [
+              "provider",
+              "details",
+              "overUnder",
+              "spread",
+              "overOdds",
+              "underOdds",
+              "awayTeamOdds",
+              "homeTeamOdds",
+              "open",
+              "current",
+              "moneyline",
+              "pointSpread",
+              "total",
+              "link"
+            ],
+            "pickcenter_first_verbatim": {
+              "provider": {
+                "id": "36",
+                "name": "Unibet",
+                "priority": 0
+              },
+              "details": "CAR +102",
+              "overUnder": 5.5,
+              "spread": -1.5,
+              "overOdds": -106,
+              "underOdds": -115,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "moneyLine": 210,
+                "spreadOdds": -195,
+                "open": {
+                  "favorite": false,
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.45,
+                    "displayValue": "5/11",
+                    "alternateDisplayValue": "-220",
+                    "decimal": 1.45,
+                    "fraction": "5/11",
+                    "american": "-220"
+                  },
+                  "moneyLine": {
+                    "value": 2.75,
+                    "displayValue": "7/4",
+                    "alternateDisplayValue": "+175",
+                    "decimal": 2.75,
+                    "fraction": "7/4",
+                    "american": "+175"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.51,
+                    "displayValue": "20/39",
+                    "alternateDisplayValue": "-195",
+                    "decimal": 1.51,
+                    "fraction": "20/39",
+                    "american": "-195"
+                  },
+                  "moneyLine": {
+                    "value": 3.1,
+                    "displayValue": "21/10",
+                    "alternateDisplayValue": "+210",
+                    "decimal": 3.1,
+                    "fraction": "21/10",
+                    "american": "+210"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/28?lang=en&region=us"
+                },
+                "teamId": "28"
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "moneyLine": 102,
+                "spreadOdds": 155,
+                "open": {
+                  "favorite": true,
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 2.75,
+                    "displayValue": "7/4",
+                    "alternateDisplayValue": "+175",
+                    "decimal": 2.75,
+                    "fraction": "7/4",
+                    "american": "+175"
+                  },
+                  "moneyLine": {
+                    "value": 2.18,
+                    "displayValue": "59/50",
+                    "alternateDisplayValue": "+118",
+                    "decimal": 2.18,
+                    "fraction": "59/50",
+                    "american": "+118"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 2.55,
+                    "displayValue": "31/20",
+                    "alternateDisplayValue": "+155",
+                    "decimal": 2.55,
+                    "fraction": "31/20",
+                    "american": "+155"
+                  },
+                  "moneyLine": {
+                    "value": 2.02,
+                    "displayValue": "51/50",
+                    "alternateDisplayValue": "+102",
+                    "decimal": 2.02,
+                    "fraction": "51/50",
+                    "american": "+102"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/7?lang=en&region=us"
+                },
+                "teamId": "7"
+              },
+              "open": {
+                "over": {
+                  "value": 1.16,
+                  "displayValue": "4/25",
+                  "alternateDisplayValue": "-625",
+                  "decimal": 1.16,
+                  "fraction": "4/25",
+                  "american": "-625"
+                },
+                "under": {
+                  "value": 5,
+                  "displayValue": "4/1",
+                  "alternateDisplayValue": "+400",
+                  "decimal": 5,
+                  "fraction": "4/1",
+                  "american": "+400"
+                },
+                "total": {
+                  "value": 3.5,
+                  "displayValue": "3.5",
+                  "alternateDisplayValue": "3.5",
+                  "decimal": 3.5,
+                  "fraction": "3.5",
+                  "american": "3.5"
+                }
+              },
+              "current": {
+                "over": {
+                  "value": 1.94,
+                  "displayValue": "50/53",
+                  "alternateDisplayValue": "-106",
+                  "decimal": 1.94,
+                  "fraction": "50/53",
+                  "american": "-106"
+                },
+                "under": {
+                  "value": 1.87,
+                  "displayValue": "20/23",
+                  "alternateDisplayValue": "-115",
+                  "decimal": 1.87,
+                  "fraction": "20/23",
+                  "american": "-115"
+                },
+                "total": {
+                  "value": 5.5,
+                  "displayValue": "5.5",
+                  "alternateDisplayValue": "5.5",
+                  "decimal": 5.5,
+                  "fraction": "5.5",
+                  "american": "5.5"
+                }
+              },
+              "moneyline": {
+                "displayName": "Moneyline",
+                "shortDisplayName": "ML",
+                "home": {},
+                "away": {}
+              },
+              "pointSpread": {
+                "displayName": "Spread",
+                "shortDisplayName": "Spread",
+                "home": {},
+                "away": {}
+              },
+              "total": {
+                "displayName": "Total",
+                "shortDisplayName": "Total",
+                "over": {},
+                "under": {}
+              },
+              "link": {
+                "text": "See More Odds",
+                "language": "en-US",
+                "rel": [
+                  "main",
+                  "desktop",
+                  "bets"
+                ],
+                "isExternal": true,
+                "isPremium": false
+              }
+            },
+            "providers_with_moneyline": 1,
+            "provider_names": [
+              "Unibet"
+            ],
+            "devig_sample": {
+              "provider": "Unibet",
+              "homeMoneyLine": 102,
+              "awayMoneyLine": 210,
+              "pHomeDeVigged": 0.605
+            },
+            "final": [
+              {
+                "homeAway": "home",
+                "score": "3",
+                "winner": false
+              },
+              {
+                "homeAway": "away",
+                "score": "5",
+                "winner": true
+              }
+            ]
+          },
+          {
+            "event": "401560188",
+            "status": 200,
+            "top_level_keys": [
+              "boxscore",
+              "format",
+              "gameInfo",
+              "leaders",
+              "seasonseries",
+              "injuries",
+              "broadcasts",
+              "pickcenter",
+              "odds",
+              "againstTheSpread",
+              "news",
+              "onIce",
+              "article",
+              "videos",
+              "plays",
+              "header",
+              "wallclockAvailable",
+              "meta",
+              "standings"
+            ],
+            "pickcenter_count": 1,
+            "pickcenter_keys_verbatim": [
+              "provider",
+              "details",
+              "overUnder",
+              "spread",
+              "overOdds",
+              "underOdds",
+              "awayTeamOdds",
+              "homeTeamOdds",
+              "open",
+              "current",
+              "moneyline",
+              "pointSpread",
+              "total",
+              "link"
+            ],
+            "pickcenter_first_verbatim": {
+              "provider": {
+                "id": "36",
+                "name": "Unibet",
+                "priority": 0
+              },
+              "details": "DET +220",
+              "overUnder": 5.5,
+              "spread": -1.5,
+              "overOdds": -165,
+              "underOdds": 133,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "moneyLine": -104,
+                "spreadOdds": -455,
+                "open": {
+                  "favorite": false,
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.26,
+                    "displayValue": "20/77",
+                    "alternateDisplayValue": "-385",
+                    "decimal": 1.26,
+                    "fraction": "20/77",
+                    "american": "-385"
+                  },
+                  "moneyLine": {
+                    "value": 2.18,
+                    "displayValue": "59/50",
+                    "alternateDisplayValue": "+118",
+                    "decimal": 2.18,
+                    "fraction": "59/50",
+                    "american": "+118"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.22,
+                    "displayValue": "20/91",
+                    "alternateDisplayValue": "-455",
+                    "decimal": 1.22,
+                    "fraction": "20/91",
+                    "american": "-455"
+                  },
+                  "moneyLine": {
+                    "value": 1.96,
+                    "displayValue": "25/26",
+                    "alternateDisplayValue": "-104",
+                    "decimal": 1.96,
+                    "fraction": "25/26",
+                    "american": "-104"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/26?lang=en&region=us"
+                },
+                "teamId": "26"
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "moneyLine": 220,
+                "spreadOdds": 335,
+                "open": {
+                  "favorite": true,
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 3.9,
+                    "displayValue": "29/10",
+                    "alternateDisplayValue": "+290",
+                    "decimal": 3.9,
+                    "fraction": "29/10",
+                    "american": "+290"
+                  },
+                  "moneyLine": {
+                    "value": 2.75,
+                    "displayValue": "7/4",
+                    "alternateDisplayValue": "+175",
+                    "decimal": 2.75,
+                    "fraction": "7/4",
+                    "american": "+175"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 4.35,
+                    "displayValue": "67/20",
+                    "alternateDisplayValue": "+335",
+                    "decimal": 4.35,
+                    "fraction": "67/20",
+                    "american": "+335"
+                  },
+                  "moneyLine": {
+                    "value": 3.2,
+                    "displayValue": "11/5",
+                    "alternateDisplayValue": "+220",
+                    "decimal": 3.2,
+                    "fraction": "11/5",
+                    "american": "+220"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/5?lang=en&region=us"
+                },
+                "teamId": "5"
+              },
+              "open": {
+                "over": {
+                  "value": 1.63,
+                  "displayValue": "100/159",
+                  "alternateDisplayValue": "-159",
+                  "decimal": 1.63,
+                  "fraction": "100/159",
+                  "american": "-159"
+                },
+                "under": {
+                  "value": 2.3,
+                  "displayValue": "13/10",
+                  "alternateDisplayValue": "+130",
+                  "decimal": 2.3,
+                  "fraction": "13/10",
+                  "american": "+130"
+                },
+                "total": {
+                  "value": 5.5,
+                  "displayValue": "5.5",
+                  "alternateDisplayValue": "5.5",
+                  "decimal": 5.5,
+                  "fraction": "5.5",
+                  "american": "5.5"
+                }
+              },
+              "current": {
+                "over": {
+                  "value": 1.61,
+                  "displayValue": "20/33",
+                  "alternateDisplayValue": "-165",
+                  "decimal": 1.61,
+                  "fraction": "20/33",
+                  "american": "-165"
+                },
+                "under": {
+                  "value": 2.33,
+                  "displayValue": "133/100",
+                  "alternateDisplayValue": "+133",
+                  "decimal": 2.33,
+                  "fraction": "133/100",
+                  "american": "+133"
+                },
+                "total": {
+                  "value": 5.5,
+                  "displayValue": "5.5",
+                  "alternateDisplayValue": "5.5",
+                  "decimal": 5.5,
+                  "fraction": "5.5",
+                  "american": "5.5"
+                }
+              },
+              "moneyline": {
+                "displayName": "Moneyline",
+                "shortDisplayName": "ML",
+                "home": {},
+                "away": {}
+              },
+              "pointSpread": {
+                "displayName": "Spread",
+                "shortDisplayName": "Spread",
+                "home": {},
+                "away": {}
+              },
+              "total": {
+                "displayName": "Total",
+                "shortDisplayName": "Total",
+                "over": {},
+                "under": {}
+              },
+              "link": {
+                "text": "See More Odds",
+                "language": "en-US",
+                "rel": [
+                  "main",
+                  "desktop",
+                  "bets"
+                ],
+                "isExternal": true,
+                "isPremium": false
+              }
+            },
+            "providers_with_moneyline": 1,
+            "provider_names": [
+              "Unibet"
+            ],
+            "devig_sample": {
+              "provider": "Unibet",
+              "homeMoneyLine": 220,
+              "awayMoneyLine": -104,
+              "pHomeDeVigged": 0.38
+            },
+            "final": [
+              {
+                "homeAway": "home",
+                "score": "0",
+                "winner": false
+              },
+              {
+                "homeAway": "away",
+                "score": "4",
+                "winner": true
+              }
+            ]
+          },
+          {
+            "event": "401560185",
+            "status": 200,
+            "top_level_keys": [
+              "boxscore",
+              "format",
+              "gameInfo",
+              "leaders",
+              "seasonseries",
+              "injuries",
+              "broadcasts",
+              "pickcenter",
+              "odds",
+              "againstTheSpread",
+              "news",
+              "plays",
+              "article",
+              "videos",
+              "header",
+              "wallclockAvailable",
+              "onIce",
+              "meta",
+              "standings"
+            ],
+            "pickcenter_count": 1,
+            "pickcenter_keys_verbatim": [
+              "provider",
+              "details",
+              "overUnder",
+              "spread",
+              "overOdds",
+              "underOdds",
+              "awayTeamOdds",
+              "homeTeamOdds",
+              "open",
+              "current",
+              "moneyline",
+              "pointSpread",
+              "total",
+              "link"
+            ],
+            "pickcenter_first_verbatim": {
+              "provider": {
+                "id": "36",
+                "name": "Unibet",
+                "priority": 0
+              },
+              "details": "SEA +205",
+              "overUnder": 5.5,
+              "spread": -1.5,
+              "overOdds": -159,
+              "underOdds": 130,
+              "awayTeamOdds": {
+                "favorite": false,
+                "underdog": true,
+                "moneyLine": 104,
+                "spreadOdds": -400,
+                "open": {
+                  "favorite": false,
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.28,
+                    "displayValue": "5/18",
+                    "alternateDisplayValue": "-360",
+                    "decimal": 1.28,
+                    "fraction": "5/18",
+                    "american": "-360"
+                  },
+                  "moneyLine": {
+                    "value": 2.18,
+                    "displayValue": "59/50",
+                    "alternateDisplayValue": "+118",
+                    "decimal": 2.18,
+                    "fraction": "59/50",
+                    "american": "+118"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "alternateDisplayValue": "+1.5",
+                    "american": "+1.5"
+                  },
+                  "spread": {
+                    "value": 1.25,
+                    "displayValue": "1/4",
+                    "alternateDisplayValue": "-400",
+                    "decimal": 1.25,
+                    "fraction": "1/4",
+                    "american": "-400"
+                  },
+                  "moneyLine": {
+                    "value": 2.04,
+                    "displayValue": "26/25",
+                    "alternateDisplayValue": "+104",
+                    "decimal": 2.04,
+                    "fraction": "26/25",
+                    "american": "+104"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/6?lang=en&region=us"
+                },
+                "teamId": "6"
+              },
+              "homeTeamOdds": {
+                "favorite": true,
+                "underdog": false,
+                "moneyLine": 205,
+                "spreadOdds": 310,
+                "open": {
+                  "favorite": true,
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 3.75,
+                    "displayValue": "11/4",
+                    "alternateDisplayValue": "+275",
+                    "decimal": 3.75,
+                    "fraction": "11/4",
+                    "american": "+275"
+                  },
+                  "moneyLine": {
+                    "value": 2.75,
+                    "displayValue": "7/4",
+                    "alternateDisplayValue": "+175",
+                    "decimal": 2.75,
+                    "fraction": "7/4",
+                    "american": "+175"
+                  }
+                },
+                "current": {
+                  "pointSpread": {
+                    "value": -1.5,
+                    "displayValue": "-1.5",
+                    "alternateDisplayValue": "-1.5",
+                    "decimal": -1.5,
+                    "fraction": "-1.5",
+                    "american": "-1.5"
+                  },
+                  "spread": {
+                    "value": 4.1,
+                    "displayValue": "31/10",
+                    "alternateDisplayValue": "+310",
+                    "decimal": 4.1,
+                    "fraction": "31/10",
+                    "american": "+310"
+                  },
+                  "moneyLine": {
+                    "value": 3.05,
+                    "displayValue": "41/20",
+                    "alternateDisplayValue": "+205",
+                    "decimal": 3.05,
+                    "fraction": "41/20",
+                    "american": "+205"
+                  }
+                },
+                "team": {
+                  "$ref": "http://sports.core.api.espn.pvt/v2/sports/hockey/leagues/nhl/seasons/2024/teams/124292?lang=en&region=us"
+                },
+                "teamId": "124292"
+              },
+              "open": {
+                "over": {
+                  "value": 1.67,
+                  "displayValue": "2/3",
+                  "alternateDisplayValue": "-150",
+                  "decimal": 1.67,
+                  "fraction": "2/3",
+                  "american": "-150"
+                },
+                "under": {
+                  "value": 2.23,
+                  "displayValue": "123/100",
+                  "alternateDisplayValue": "+123",
+                  "decimal": 2.23,
+                  "fraction": "123/100",
+                  "american": "+123"
+                },
+                "total": {
+                  "value": 5.5,
+                  "displayValue": "5.5",
+                  "alternateDisplayValue": "5.5",
+                  "decimal": 5.5,
+                  "fraction": "5.5",
+                  "american": "5.5"
+                }
+              },
+              "current": {
+                "over": {
+                  "value": 1.63,
+                  "displayValue": "100/159",
+                  "alternateDisplayValue": "-159",
+                  "decimal": 1.63,
+                  "fraction": "100/159",
+                  "american": "-159"
+                },
+                "under": {
+                  "value": 2.3,
+                  "displayValue": "13/10",
+                  "alternateDisplayValue": "+130",
+                  "decimal": 2.3,
+                  "fraction": "13/10",
+                  "american": "+130"
+                },
+                "total": {
+                  "value": 5.5,
+                  "displayValue": "5.5",
+                  "alternateDisplayValue": "5.5",
+                  "decimal": 5.5,
+                  "fraction": "5.5",
+                  "american": "5.5"
+                }
+              },
+              "moneyline": {
+                "displayName": "Moneyline",
+                "shortDisplayName": "ML",
+                "home": {},
+                "away": {}
+              },
+              "pointSpread": {
+                "displayName": "Spread",
+                "shortDisplayName": "Spread",
+                "home": {},
+                "away": {}
+              },
+              "total": {
+                "displayName": "Total",
+                "shortDisplayName": "Total",
+                "over": {},
+                "under": {}
+              },
+              "link": {
+                "text": "See More Odds",
+                "language": "en-US",
+                "rel": [
+                  "main",
+                  "desktop",
+                  "bets"
+                ],
+                "isExternal": true,
+                "isPremium": false
+              }
+            },
+            "providers_with_moneyline": 1,
+            "provider_names": [
+              "Unibet"
+            ],
+            "devig_sample": {
+              "provider": "Unibet",
+              "homeMoneyLine": 205,
+              "awayMoneyLine": 104,
+              "pHomeDeVigged": 0.401
+            },
+            "final": [
+              {
+                "homeAway": "home",
+                "score": "1",
+                "winner": false
+              },
+              {
+                "homeAway": "away",
+                "score": "2",
+                "winner": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "budget_respected": true,
+  "finished_at": "2026-10-11T03:05:49.013Z",
+  "coverage": {
+    "moneypuck_seasons_examined": 1,
+    "nhl_games_examined": 1,
+    "espn_dates_examined": 3,
+    "statement": "one MoneyPuck season file, one NHL game, three ESPN dates — not a survey of any of the three"
+  },
+  "only": [
+    "espn"
+  ]
+}
