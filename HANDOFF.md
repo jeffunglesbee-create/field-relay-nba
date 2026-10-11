@@ -32,8 +32,21 @@ Wired into the path `src/game-do.js:20` already sanctions:
 `g.winProb` shape the client consumes, on a pull, with no new cron. `CONTRACTS.md` carries the
 contract, including that a refusal is absent rather than zero.
 
-**Checks:** 42 in `check-hockey-wp.mjs`, 13 of 13 mutations caught and 0
-unsound, plus 78 self-tests across the three scripts. All in `guards.yml`.
+**Checks:** 51 in `check-hockey-wp.mjs`, 18 of 18 mutations caught and 0
+unsound, plus 80 self-tests across the three scripts. All in `guards.yml`.
+
+**Deployed and proven, run 38111574403 (deploy + verify both green).** Shipping
+it is what proved it was broken: the first live read refused two real games
+with `score-unreadable`, because three of the CC-CMD's field groupings are
+wrong — `details.homeScore` is on GOAL events only, `homeTeamDefendingSide` is
+per-play and absent from the root, and `blocked-shot` carries no `shotType`.
+The second made every xG unscoreable (125 of 125) so the model ran on a dead
+feature it had been trained on. A fourth came out of the fix: the per-play
+defending side already flips by period and the code flipped it again, putting
+41 of 125 shots beyond 100 feet. Settled by comparing distance distributions,
+since a net aimed at the wrong end returns a number just as readily. Proof:
+`outbox/hockey-wp-probe-latest-situation.json` → `scorer_end_to_end`,
+`modelled 0.999`, `xgDiff 0.9188`, `xgShotsUnscored 0 of 125`.
 
 **Eleven defects, each caught by a check rather than by review.** The two worth
 remembering: an absent `wentToOT` column was counted and published as

@@ -53,6 +53,32 @@ shots, 20,000 distance and angle agreements, worst gap **0.0000**.
 **Done condition 3** is measured, not assumed: tie rate **0.2057**, OT home
 share **0.5417** with n = **288**.
 
+**Task 5 shipped, and shipping it is what proved it was broken.** The first
+live read of `/v2/games?sport=nhl` returned two real live games both refusing
+with `score-unreadable`. Three of this document's own field groupings are wrong,
+and the "Every shot carries:" block is where I took them from — it lists root,
+play-level and `details` fields together:
+
+| the block implies | the payload says |
+|---|---|
+| shot events carry `details.homeScore` / `awayScore` | **goal events only** — 8 of 8 goals, 0 of the other 117 shots |
+| `homeTeamDefendingSide` sits beside `situationCode` on the shot | the ROOT carries none; it is **per-play**, on 125 of 125 shots, and already alternates by period |
+| every shot carries `shotType` | `blocked-shot` carries **none** — 0 of 38 |
+
+The second compounded into the worst of the three: read from the root it was
+null for every shot, so every xG was refused — `xgShotsUnscored: 125 of 125`,
+`xgDiff: 0` — and the WP model ran live on a dead feature it had been trained
+on. A fourth defect surfaced in the fix: the per-play value already flips by
+period and `attackingNetX` flipped it again, putting 41 of 125 shots beyond
+100 feet. Settled by comparing both readings' distance distributions, because a
+net aimed at the wrong end returns a number just as readily.
+
+Proof, independent of a game being in progress:
+`outbox/hockey-wp-probe-latest-situation.json` → `scorer_end_to_end` —
+`modelled: probability 0.999`, `xgDiff 0.9188`, `xgShotsUnscored 0 of 125`,
+score carried 5-3 and the payload's own root score agreeing. Deploy and verify
+both green, run **38111574403**.
+
 **Rule F:** cleared by the same argument `src/soccer-wp.js` makes in its own
 header — *"predicts binary outcome probability — arithmetic on game state. Not
 an interest/excitement level. Relay-is-dumb: writes probabilities (facts), not

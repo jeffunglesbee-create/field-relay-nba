@@ -247,6 +247,75 @@ fetches already in that branch (scoreboard 30s, landing 300s).
 `CONTRACTS.md` now carries the whole contract, including that a refusal is
 absent rather than zero, and that the two reserved labels must not be reused.
 
+## End-to-end, on the deployed worker — and the three defects only the deploy found
+
+Rule 61: a feature is not done until the full path works. Shipping it is what
+proved it did not.
+
+**First live observation, immediately after deploy.** `/v2/games?sport=nhl`
+returned two real live games, both:
+
+```
+"winProbState": "refused", "winProbProblems": ["score-unreadable"]
+```
+
+The refusal path worked exactly as designed. The feature did not work at all.
+Three defects, each from reading the CC-CMD's measured field list instead of
+the payload — the list groups root fields, play-level fields and `details`
+fields together, and I treated that grouping as authoritative three separate
+times.
+
+| premise I inherited | what the payload says |
+|---|---|
+| shot events carry `details.homeScore` | **goal events only** — 8 of 8 goals, 0 of the other 117 shots |
+| the root carries `homeTeamDefendingSide` | the root carries **none**; it is a **per-play** field, on 125 of 125 shots |
+| a shot carries `details.shotType` | `blocked-shot` carries **none at all** — 0 of 38 |
+
+The second one compounded the first: with the side read from the root it was
+`null` for every shot, so **every** xG was refused — `xgShotsUnscored: 125 of
+125`, `xgDiff: 0` — and the WP model ran on a dead feature it had been trained
+on. That is exactly the train/serve skew the shared feature vector exists to
+prevent, shipped.
+
+**And a fourth, found while fixing the second.** The per-play
+`homeTeamDefendingSide` already alternates by period — P1 `right` (111 plays),
+P2 `left` (112), P3 `right` (86) — and `attackingNetX` applied a second
+`(period - 1) % 2` flip on top. Both readings were compared on the same 125
+shots:
+
+| reading | median | p90 | over 100 ft |
+|---|---|---|---|
+| **play side as given** | **28.32 ft** | **59.03 ft** | **1 of 125** |
+| with a period flip | 44.91 ft | 164.30 ft | 41 of 125 |
+
+Shots are taken in the offensive zone, so the first is correct. **A net aimed
+at the wrong end of the rink returns a number just as readily**, which is why
+this was settled by a distance distribution and not by argument.
+
+### The artifact that now proves the path
+
+`outbox/hockey-wp-probe-latest-situation.json`, `scorer_end_to_end` — the
+committed scorer run against a real play-by-play payload on a runner, so the
+proof does not depend on a game being in progress:
+
+```
+modelled: probability 0.999, label FIELD model probability
+inputs: scoreDiff 2, elapsedSeconds 3552, homeSkaters 5, awaySkaters 6,
+        awayEmptyNet true, xgDiff 0.9188
+xgShotsUnscored: 0 of 125     score carried 5-3, root score agrees 5-3
+caveat: goalieInNetId absent; goalie quality is not a model input
+```
+
+A home side leading 5-3 with 48 seconds left and the opposing net empty. Before
+the fixes this same payload produced `xgDiff: 0` and, through the route, a
+refusal.
+
+**Deploy state:** `deploy` + `verify` both green, run **38111574403**. Two
+earlier runs failed on routes this diff does not touch — `/identity/
+substitution-census` returned `D1_ERROR: D1 DB is overloaded` and `/pl/fixtures`
+failed a shape smoke — and both were probed directly and found healthy, so each
+got one re-run rather than a change.
+
 ## Defects found, each by a check rather than by review
 
 1. **An absent column measured as a tie rate of zero.** `wentToOT` is absent
@@ -301,6 +370,19 @@ absent rather than zero, and that the two reserved labels must not be reused.
     reported CAUGHT while being caught by a *different* assertion than the one
     they exist to prove — the dead-keeper shape, again.
 
+12. **Only goal events carry a score**, so the deployed route refused every NHL
+    game with `score-unreadable`. The score is now carried forward across the
+    walk, which is also more correct than a current total: it gives the score
+    AT each shot.
+13. **The payload root carries no `homeTeamDefendingSide`** — it is per-play.
+    Reading it from the root made every xG unscoreable.
+14. **The attacking net was flipped twice**, because the per-play side already
+    alternates by period. 41 of 125 shots landed beyond 100 feet and every one
+    still returned a number.
+15. **`blocked-shot` carries no `shotType` key at all.** Those 38 shots scored
+    at the base level and said nothing, because the report fired only on an
+    unmapped type, never an absent one.
+
 ### A false finding that was checked instead of published
 
 `V2_NON_SOCCER_WP_SPORTS` lists `baseball`, `football`, `basketball` and
@@ -314,11 +396,11 @@ hockey. One read of the guard, before saying anything.
 
 | | |
 |---|---|
-| `scripts/check-hockey-wp.mjs` | **42** checks |
-| `scripts/mutate-hockey-wp.mjs` | **13** mutations, **13 caught, 0 unsound** |
+| `scripts/check-hockey-wp.mjs` | **51** checks |
+| `scripts/mutate-hockey-wp.mjs` | **18** mutations, **18 caught, 0 unsound** |
 | `scripts/hockey-wp-train.mjs --self-test` | 37 |
 | `scripts/hockey-wp-market.mjs --self-test` | 23 |
-| `scripts/hockey-wp-probe.mjs --self-test` | 18 |
+| `scripts/hockey-wp-probe.mjs --self-test` | 20 |
 
 All wired into `guards.yml`. The harness asserts each anchor is unique and was
 applied before reporting; one mutation initially survived — the attacking net
