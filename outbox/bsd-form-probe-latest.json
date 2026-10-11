@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-bsd-form-into-forecaster.md",
   "task": "Task 1 only — nothing ships from this file",
-  "started_at": "2026-10-11T06:29:45.621Z",
+  "started_at": "2026-10-11T06:30:57.201Z",
   "callBudget": 8,
   "callsMade": 4,
   "teamId": 4784,
@@ -55,10 +55,26 @@
   "league_id_verdict": "ACCEPTED-BUT-EMPTIES",
   "league_id_reason": "no league_id returns 10 matches; league_id=1 (the club's own competition) returns 0, league_id=7 returns 0, and an impossible id returns 0. The parameter is accepted and empties the result for every value. It does not filter.",
   "xgFields": {
-    "overall": [],
-    "home": [],
-    "away": [],
-    "vs_stronger": [],
+    "overall": [
+      "stats.expected_goals",
+      "stats.expected_goals_on_target",
+      "stats.xg"
+    ],
+    "home": [
+      "stats.expected_goals",
+      "stats.expected_goals_on_target",
+      "stats.xg"
+    ],
+    "away": [
+      "stats.expected_goals",
+      "stats.expected_goals_on_target",
+      "stats.xg"
+    ],
+    "vs_stronger": [
+      "stats.expected_goals",
+      "stats.expected_goals_on_target",
+      "stats.xg"
+    ],
     "vs_weaker": []
   },
   "overallKeysVerbatim": [
