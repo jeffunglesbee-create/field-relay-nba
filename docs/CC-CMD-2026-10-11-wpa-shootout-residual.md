@@ -4,7 +4,48 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (gap) — one state the model has no representation of
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Three tasks, four done conditions. Session doc:
+`outbox/cc-session-2026-10-11-wpa-shootout-residual.md`.
+
+**TASK 1 — OPTION (1), TRUNCATE. Option (2) is not available from this data,
+and the refuting numbers were committed before this document was filed:**
+
+```
+wentToShootout column   absent_from_header 122472 of 122472 rows
+period-5 derivation            4 of 1400 games
+period-4 derivation          288 of 1400 games
+shootoutHomeShare_n            4
+```
+
+Both derivations sit in `outbox/hockey-wp-calibration-latest.json`. The vendor
+column is absent on every row across four seasons, and `maxPeriod >= 5` — which
+is *exactly* the "one comparison away" Task 3 describes — finds four games
+against 288 reaching period 4. **The shots file does not record a shootout's
+attempts as period-5 shot rows at all**, so `n = 4` is this source's ceiling
+rather than a small sample. Done condition 3 asks for n above 100 and the third
+stop condition says to refuse the number otherwise. Refused.
+
+**TASK 3 NEEDED NO RUN.** Its premise — that the trainer is one comparison away
+— is false, and the comparison it names is already being made.
+
+**TASK 2 — both denominators, and the exclusion in the sentence a reader
+quotes.** Run `38150764442`:
+
+```
+DOES NOT CLOSE on 2 of 23 non-shootout games at tolerance 0.01. STOP per the
+document and report the residual. 5 shootout game(s) excluded from this
+denominator: period 5 is a penalty-shot round the model has no representation
+of, and a shootout term is unmeasurable from this source (wentToShootout absent
+on 122,472 of 122,472 rows; period-5 derivation 4 of 1400 games).
+```
+
+`eligible 23 / eligible_closes 21 / excluded_shootout 5 / all_scored 28`.
+`closingDenominator()` and `verdictFor()` are exported so the exclusion can be
+made to fail — **16 self-tests**, including that a clean sweep still names the
+exclusion and that "no shootout" says so explicitly rather than staying silent.
+
+**Done condition 4 holds:** `src/hockey-wp-model.js` and
+`outbox/hockey-wp-calibration-latest.json` are untouched.
 
 **Required by Rule 87.4.** `docs/CC-CMD-2026-10-11-nhl-wpa-attribution.md`
 stopped at its own Task 4 stop condition. This is the second document that stop
