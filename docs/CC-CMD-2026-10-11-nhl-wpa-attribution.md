@@ -4,7 +4,52 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** C (feature) — **no model change, no retraining, no new upstream call**
-**Status:** FILED, not started.
+**Status:** TASKS 1, 2, 3 AND 5 DONE 2026-10-11. **STOPPED AT TASK 4** by this
+document's own stop condition: *"If the Task 4 conservation check does not
+close, STOP and report the residual."* Artifact:
+`outbox/nhl-wpa-conservation-latest.json` (run 38119842995, 28 games, 31 calls
+of a declared 40). Second document filed per Rule 87.4:
+`docs/CC-CMD-2026-10-11-wpa-shootout-residual.md`.
+
+**THE CHECK DOES NOT CLOSE, AND THE RESIDUAL IS ENTIRELY THE SHOOTOUT.**
+
+| cohort | n | median residual | within 0.01 |
+|---|---|---|---|
+| regulation | 21 | **0.000** (max 0.019) | **19 of 21** |
+| overtime decided by a goal | 2 | −0.007 / 0.006 | **2 of 2** |
+| **shootout** | **5** | **0.652** (0.635–0.701) | **0 of 5** |
+
+21 of 23 non-shootout games close. 5 of 5 shootouts fail, all with the home
+side winning from a last modelled probability of 0.30–0.37 — because the NHL's
+final score includes the shootout-winning goal while the last shot state says
+the home team was behind. The model's nine features describe score, clock,
+strength and xG; **none describes a penalty-shot round**, and period 5 is a
+different game.
+
+**AND THE CHECK PROVES LESS THAN IT APPEARS TO.** The deltas **telescope**:
+`sum(wp_i − wp_{i−1})` is identically `wp_last − wp_first`, measured true on
+every one of the 28 games. So the sum carries no information the two endpoints
+do not, and the residual is just `outcome − wp_last`. A double-counted or
+dropped play in the middle of a game would cancel out and the check would still
+close. It is a real check on the ENDPOINTS and not on the attribution between
+them, and that limit belongs beside it.
+
+### A defect the conservation check could not have caught
+
+The score carry sat BELOW the snapshot push in the walk, so a goal's snapshot
+held the **pre-goal** score, its own swing landed on whatever shot came next,
+and the scorer was credited **−0.0012** on a goal that opened the scoring. The
+same goal now credits **+0.1068** to the scorer and +0.0445 / +0.0267 to the
+assists. Telescoping means the conservation sum was identical either way — this
+was caught by reading one credited number, not by the check that exists to make
+the work falsifiable.
+
+**Tasks 1, 2, 3 and 5 are complete and committed.** The delta series comes from
+the existing walk with one model evaluation per shot state; the 60/25/15 credit
+split is stated as a convention in one changeable place with its reasoning; four
+states are distinguished and none is a ΔWP of zero, with the prior excluded as
+an endpoint; and `WPA_LABEL` is asserted distinct from the four labels that
+already exist. 63 checks, 18 of 18 mutations caught.
 
 **Rule F:** a difference between two of our own probabilities, attributed to the
 player the vendor names on the event. Arithmetic. Commodity.
