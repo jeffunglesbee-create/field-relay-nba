@@ -1,0 +1,566 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "probe_only": true,
+  "started_at": "2026-10-11T04:22:12.524Z",
+  "callBudget": 25,
+  "callsMade": 2,
+  "premises": {
+    "situation_code": {
+      "gameId": "2026020053",
+      "pbp_status": 200,
+      "boxscore_status": 200,
+      "play_count": 309,
+      "shot_count": 125,
+      "penalty_windows": 8,
+      "situation_code_distribution": {
+        "1351": 4,
+        "1451": 14,
+        "1541": 8,
+        "1551": 92,
+        "0651": 7
+      },
+      "details_keys_by_event_type": {
+        "period-start": {
+          "n": 3,
+          "keys": {}
+        },
+        "faceoff": {
+          "n": 53,
+          "keys": {
+            "eventOwnerTeamId": 53,
+            "losingPlayerId": 53,
+            "winningPlayerId": 53,
+            "xCoord": 53,
+            "yCoord": 53,
+            "zoneCode": 53
+          }
+        },
+        "hit": {
+          "n": 29,
+          "keys": {
+            "xCoord": 29,
+            "yCoord": 29,
+            "zoneCode": 29,
+            "eventOwnerTeamId": 29,
+            "hittingPlayerId": 29,
+            "hitteePlayerId": 29
+          }
+        },
+        "giveaway": {
+          "n": 32,
+          "keys": {
+            "xCoord": 32,
+            "yCoord": 32,
+            "zoneCode": 32,
+            "eventOwnerTeamId": 32,
+            "playerId": 32
+          }
+        },
+        "goal": {
+          "n": 8,
+          "keys": {
+            "xCoord": 8,
+            "yCoord": 8,
+            "zoneCode": 8,
+            "shotType": 8,
+            "scoringPlayerId": 8,
+            "scoringPlayerTotal": 8,
+            "assist1PlayerId": 7,
+            "assist1PlayerTotal": 7,
+            "eventOwnerTeamId": 8,
+            "goalieInNetId": 8,
+            "awayScore": 8,
+            "homeScore": 8,
+            "highlightClipSharingUrl": 8,
+            "highlightClipSharingUrlFr": 8,
+            "highlightClip": 8,
+            "highlightClipFr": 8,
+            "discreteClip": 8,
+            "discreteClipFr": 8,
+            "assist2PlayerId": 3,
+            "assist2PlayerTotal": 3
+          }
+        },
+        "takeaway": {
+          "n": 9,
+          "keys": {
+            "xCoord": 9,
+            "yCoord": 9,
+            "zoneCode": 9,
+            "playerId": 9,
+            "eventOwnerTeamId": 9
+          }
+        },
+        "missed-shot": {
+          "n": 30,
+          "keys": {
+            "xCoord": 30,
+            "yCoord": 30,
+            "zoneCode": 30,
+            "reason": 30,
+            "shotType": 30,
+            "shootingPlayerId": 30,
+            "goalieInNetId": 30,
+            "eventOwnerTeamId": 30
+          }
+        },
+        "shot-on-goal": {
+          "n": 49,
+          "keys": {
+            "xCoord": 49,
+            "yCoord": 49,
+            "zoneCode": 49,
+            "shotType": 49,
+            "shootingPlayerId": 49,
+            "goalieInNetId": 49,
+            "eventOwnerTeamId": 49,
+            "awaySOG": 49,
+            "homeSOG": 49
+          }
+        },
+        "stoppage": {
+          "n": 44,
+          "keys": {
+            "reason": 44,
+            "secondaryReason": 9
+          }
+        },
+        "delayed-penalty": {
+          "n": 2,
+          "keys": {
+            "eventOwnerTeamId": 2
+          }
+        },
+        "penalty": {
+          "n": 8,
+          "keys": {
+            "xCoord": 8,
+            "yCoord": 8,
+            "zoneCode": 8,
+            "typeCode": 8,
+            "descKey": 8,
+            "duration": 8,
+            "committedByPlayerId": 8,
+            "drawnByPlayerId": 7,
+            "eventOwnerTeamId": 8
+          }
+        },
+        "blocked-shot": {
+          "n": 38,
+          "keys": {
+            "xCoord": 38,
+            "yCoord": 38,
+            "zoneCode": 38,
+            "blockingPlayerId": 38,
+            "shootingPlayerId": 38,
+            "eventOwnerTeamId": 38,
+            "reason": 38
+          }
+        },
+        "period-end": {
+          "n": 3,
+          "keys": {}
+        },
+        "game-end": {
+          "n": 1,
+          "keys": {}
+        }
+      },
+      "play_level_keys_by_event_type": {
+        "period-start": {
+          "n": 3,
+          "keys": {
+            "eventId": 3,
+            "periodDescriptor": 3,
+            "timeInPeriod": 3,
+            "timeRemaining": 3,
+            "situationCode": 3,
+            "homeTeamDefendingSide": 3,
+            "typeCode": 3,
+            "typeDescKey": 3,
+            "sortOrder": 3
+          }
+        },
+        "faceoff": {
+          "n": 53,
+          "keys": {
+            "eventId": 53,
+            "periodDescriptor": 53,
+            "timeInPeriod": 53,
+            "timeRemaining": 53,
+            "situationCode": 53,
+            "homeTeamDefendingSide": 53,
+            "typeCode": 53,
+            "typeDescKey": 53,
+            "sortOrder": 53
+          }
+        },
+        "hit": {
+          "n": 29,
+          "keys": {
+            "eventId": 29,
+            "periodDescriptor": 29,
+            "timeInPeriod": 29,
+            "timeRemaining": 29,
+            "situationCode": 29,
+            "homeTeamDefendingSide": 29,
+            "typeCode": 29,
+            "typeDescKey": 29,
+            "sortOrder": 29
+          }
+        },
+        "giveaway": {
+          "n": 32,
+          "keys": {
+            "eventId": 32,
+            "periodDescriptor": 32,
+            "timeInPeriod": 32,
+            "timeRemaining": 32,
+            "situationCode": 32,
+            "homeTeamDefendingSide": 32,
+            "typeCode": 32,
+            "typeDescKey": 32,
+            "sortOrder": 32
+          }
+        },
+        "goal": {
+          "n": 8,
+          "keys": {
+            "eventId": 8,
+            "periodDescriptor": 8,
+            "timeInPeriod": 8,
+            "timeRemaining": 8,
+            "situationCode": 8,
+            "homeTeamDefendingSide": 8,
+            "typeCode": 8,
+            "typeDescKey": 8,
+            "sortOrder": 8,
+            "pptReplayUrl": 8
+          }
+        },
+        "takeaway": {
+          "n": 9,
+          "keys": {
+            "eventId": 9,
+            "periodDescriptor": 9,
+            "timeInPeriod": 9,
+            "timeRemaining": 9,
+            "situationCode": 9,
+            "homeTeamDefendingSide": 9,
+            "typeCode": 9,
+            "typeDescKey": 9,
+            "sortOrder": 9
+          }
+        },
+        "missed-shot": {
+          "n": 30,
+          "keys": {
+            "eventId": 30,
+            "periodDescriptor": 30,
+            "timeInPeriod": 30,
+            "timeRemaining": 30,
+            "situationCode": 30,
+            "homeTeamDefendingSide": 30,
+            "typeCode": 30,
+            "typeDescKey": 30,
+            "sortOrder": 30
+          }
+        },
+        "shot-on-goal": {
+          "n": 49,
+          "keys": {
+            "eventId": 49,
+            "periodDescriptor": 49,
+            "timeInPeriod": 49,
+            "timeRemaining": 49,
+            "situationCode": 49,
+            "homeTeamDefendingSide": 49,
+            "typeCode": 49,
+            "typeDescKey": 49,
+            "sortOrder": 49
+          }
+        },
+        "stoppage": {
+          "n": 44,
+          "keys": {
+            "eventId": 44,
+            "periodDescriptor": 44,
+            "timeInPeriod": 44,
+            "timeRemaining": 44,
+            "situationCode": 44,
+            "homeTeamDefendingSide": 44,
+            "typeCode": 44,
+            "typeDescKey": 44,
+            "sortOrder": 44
+          }
+        },
+        "delayed-penalty": {
+          "n": 2,
+          "keys": {
+            "eventId": 2,
+            "periodDescriptor": 2,
+            "timeInPeriod": 2,
+            "timeRemaining": 2,
+            "situationCode": 2,
+            "homeTeamDefendingSide": 2,
+            "typeCode": 2,
+            "typeDescKey": 2,
+            "sortOrder": 2
+          }
+        },
+        "penalty": {
+          "n": 8,
+          "keys": {
+            "eventId": 8,
+            "periodDescriptor": 8,
+            "timeInPeriod": 8,
+            "timeRemaining": 8,
+            "situationCode": 8,
+            "homeTeamDefendingSide": 8,
+            "typeCode": 8,
+            "typeDescKey": 8,
+            "sortOrder": 8
+          }
+        },
+        "blocked-shot": {
+          "n": 38,
+          "keys": {
+            "eventId": 38,
+            "periodDescriptor": 38,
+            "timeInPeriod": 38,
+            "timeRemaining": 38,
+            "situationCode": 38,
+            "homeTeamDefendingSide": 38,
+            "typeCode": 38,
+            "typeDescKey": 38,
+            "sortOrder": 38
+          }
+        },
+        "period-end": {
+          "n": 3,
+          "keys": {
+            "eventId": 3,
+            "periodDescriptor": 3,
+            "timeInPeriod": 3,
+            "timeRemaining": 3,
+            "situationCode": 3,
+            "homeTeamDefendingSide": 3,
+            "typeCode": 3,
+            "typeDescKey": 3,
+            "sortOrder": 3
+          }
+        },
+        "game-end": {
+          "n": 1,
+          "keys": {
+            "eventId": 1,
+            "periodDescriptor": 1,
+            "timeInPeriod": 1,
+            "timeRemaining": 1,
+            "situationCode": 1,
+            "homeTeamDefendingSide": 1,
+            "typeCode": 1,
+            "typeDescKey": 1,
+            "sortOrder": 1
+          }
+        }
+      },
+      "defending_side": {
+        "on_root": null,
+        "on_shot_plays": 125,
+        "shot_plays_total": 125,
+        "distinct_values_on_plays": [
+          "right",
+          "left"
+        ],
+        "root_keys": [],
+        "by_period": {
+          "P1": {
+            "right": 111
+          },
+          "P2": {
+            "left": 112
+          },
+          "P3": {
+            "right": 86
+          }
+        },
+        "note": "if the value already differs BY PERIOD it encodes the flip, and a second period flip in attackingNetX would be wrong"
+      },
+      "net_reading_comparison": {
+        "with_period_flip": {
+          "n": 125,
+          "median": 28.32,
+          "p90": 59.03,
+          "over_100ft": 1,
+          "share_over_100ft": 0.008
+        },
+        "play_side_as_given": {
+          "n": 125,
+          "median": 28.32,
+          "p90": 59.03,
+          "over_100ft": 1,
+          "share_over_100ft": 0.008
+        },
+        "verdict": "the reading with the SMALLER share over 100ft is the correct one; shots happen in the offensive zone"
+      },
+      "score_fields": {
+        "shot_events_with_details_homeScore": 8,
+        "shot_events_total": 125,
+        "goal_events_with_details_homeScore": 8,
+        "goal_events_total": 8,
+        "root_homeTeam_score": 5,
+        "root_awayTeam_score": 3,
+        "root_homeTeam_keys": [
+          "id",
+          "commonName",
+          "abbrev",
+          "score",
+          "sog",
+          "logo",
+          "darkLogo",
+          "placeName",
+          "placeNameWithPreposition"
+        ],
+        "note": "if shot events carry no homeScore, the scorer must read the root team scores or carry the last known score forward"
+      },
+      "penalty_crosscheck": {
+        "agree": 125,
+        "disagree": 0,
+        "agree_rate": 1,
+        "agreed_because_both_negative": 99
+      },
+      "examples": {
+        "emptyNet": [
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "16:32",
+            "period": 3,
+            "typeDescKey": "missed-shot"
+          },
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "17:02",
+            "period": 3,
+            "typeDescKey": "missed-shot"
+          },
+          {
+            "situationCode": "0651",
+            "timeInPeriod": "17:12",
+            "period": 3,
+            "typeDescKey": "blocked-shot"
+          }
+        ],
+        "homeAdvantage": [
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "05:34",
+            "period": 1,
+            "inPenaltyWindow": true
+          },
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "05:41",
+            "period": 1,
+            "inPenaltyWindow": true
+          },
+          {
+            "situationCode": "1451",
+            "timeInPeriod": "06:06",
+            "period": 1,
+            "inPenaltyWindow": true
+          }
+        ],
+        "unreadable": []
+      },
+      "home_defending_side": null,
+      "clock_keys": [
+        "timeRemaining",
+        "secondsRemaining",
+        "running",
+        "inIntermission"
+      ],
+      "goalie_toi_crosscheck": {
+        "home": {
+          "seconds": 3600,
+          "goalies": 2,
+          "unreadable": 0,
+          "reason": null
+        },
+        "away": {
+          "seconds": 3364,
+          "goalies": 2,
+          "unreadable": 0,
+          "reason": null
+        },
+        "note": "a side below regulation length pulled its goalie; situationCode must agree from a different field",
+        "usable": true
+      },
+      "scorer_end_to_end": {
+        "state": {
+          "shotsSeen": 125,
+          "xgShotsUnscored": 0,
+          "elapsedSeconds": 3552,
+          "period": 3,
+          "homeScore": 5,
+          "awayScore": 3,
+          "scoreCarriedFromGoalEvents": true,
+          "rootScoreDisagrees": false,
+          "rootScore": {
+            "home": 5,
+            "away": 3
+          },
+          "homeSkaters": 5,
+          "awaySkaters": 6,
+          "homeEmptyNet": false,
+          "awayEmptyNet": true,
+          "goalieInNetId": null,
+          "xgDiff": 0.918842,
+          "isPlayoff": false,
+          "situationCode": "0651"
+        },
+        "result": {
+          "source": "field-hockey-wp",
+          "probability": 0.999,
+          "label": "FIELD model probability",
+          "state": "modelled",
+          "problems": [],
+          "caveats": [
+            "goalieInNetId absent; goalie quality is not a model input, so nothing was substituted for it"
+          ],
+          "inputs": {
+            "scoreDiff": 2,
+            "elapsedSeconds": 3552,
+            "homeSkaters": 5,
+            "awaySkaters": 6,
+            "homeEmptyNet": false,
+            "awayEmptyNet": true,
+            "xgDiff": 0.9188
+          },
+          "model": {
+            "trainedAt": "2026-10-11T03:45:21.331Z",
+            "trainSeasons": [
+              "2020",
+              "2021",
+              "2022"
+            ],
+            "rows": 322108
+          }
+        },
+        "modelled": true,
+        "note": "modelled: probability 0.999, label FIELD model probability"
+      }
+    }
+  },
+  "budget_respected": true,
+  "finished_at": "2026-10-11T04:22:12.844Z",
+  "coverage": {
+    "moneypuck_seasons_examined": 1,
+    "nhl_games_examined": 1,
+    "espn_dates_examined": 3,
+    "statement": "one MoneyPuck season file, one NHL game, three ESPN dates — not a survey of any of the three"
+  },
+  "only": [
+    "situation"
+  ]
+}

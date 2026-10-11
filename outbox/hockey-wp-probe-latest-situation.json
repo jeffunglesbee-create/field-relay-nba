@@ -1,7 +1,7 @@
 {
   "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
   "probe_only": true,
-  "started_at": "2026-10-11T04:19:38.120Z",
+  "started_at": "2026-10-11T04:22:12.524Z",
   "callBudget": 25,
   "callsMade": 2,
   "premises": {
@@ -390,10 +390,10 @@
       "net_reading_comparison": {
         "with_period_flip": {
           "n": 125,
-          "median": 44.91,
-          "p90": 164.3,
-          "over_100ft": 41,
-          "share_over_100ft": 0.328
+          "median": 28.32,
+          "p90": 59.03,
+          "over_100ft": 1,
+          "share_over_100ft": 0.008
         },
         "play_side_as_given": {
           "n": 125,
@@ -499,7 +499,7 @@
       "scorer_end_to_end": {
         "state": {
           "shotsSeen": 125,
-          "xgShotsUnscored": 125,
+          "xgShotsUnscored": 0,
           "elapsedSeconds": 3552,
           "period": 3,
           "homeScore": 5,
@@ -515,7 +515,7 @@
           "homeEmptyNet": false,
           "awayEmptyNet": true,
           "goalieInNetId": null,
-          "xgDiff": 0,
+          "xgDiff": 0.918842,
           "isPlayoff": false,
           "situationCode": "0651"
         },
@@ -535,7 +535,7 @@
             "awaySkaters": 6,
             "homeEmptyNet": false,
             "awayEmptyNet": true,
-            "xgDiff": 0
+            "xgDiff": 0.9188
           },
           "model": {
             "trainedAt": "2026-10-11T03:45:21.331Z",
@@ -553,7 +553,7 @@
     }
   },
   "budget_respected": true,
-  "finished_at": "2026-10-11T04:19:38.464Z",
+  "finished_at": "2026-10-11T04:22:12.844Z",
   "coverage": {
     "moneypuck_seasons_examined": 1,
     "nhl_games_examined": 1,
