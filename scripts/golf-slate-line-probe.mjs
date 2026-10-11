@@ -134,6 +134,42 @@ for (const [sport, league, label] of [['football', 'nfl', 'NFL'], ['basketball',
   out.findings[`control_${league}`] = { status: r.status, events: r.body.events.length, line: buildGameLine(e, label) }
 }
 
+// 4 — THE GOLF BLOCK'S INPUTS, read from the DEPLOYED relay rather than from
+// the ESPN feed. buildGolfCronContext renders from handleESPNGolfScoreboard's
+// shape, which /v2/golf/enriched serves, so this is the half of the CC-CMD's
+// done condition that is reachable without a read path for the prompt itself.
+// The prompt has none: /journalism/game-lines lists per-game brief first
+// sentences, /journalism/context-probe carries its own five-league list with no
+// golf in it, and no /debug/* route exposes buildPrompt. Each was read.
+{
+  const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev'
+  const path = `/v2/golf/enriched?dates=${DATE}`
+  calls.push(path)
+  let g = null, status = null
+  try {
+    const r = await fetch(`${RELAY}${path}`, { headers: { 'User-Agent': 'FIELD/1.0' } })
+    status = r.status
+    if (r.ok) g = await r.json()
+  } catch (e) { status = `threw: ${e.message}` }
+  const lb = Array.isArray(g?.leaderboard) ? g.leaderboard : []
+  const p0 = lb[0] || null
+  // Rule 99: a key that exists and a key that carries a value are different
+  // facts, and this block renders nothing from an empty one.
+  out.findings.golfBlockInputs = {
+    status,
+    active: g?.active ?? null,
+    eventName: g?.eventName ?? g?.name ?? null,
+    round: g?.round ?? null,
+    leaderboardRows: lb.length,
+    firstRowFields: p0 ? {
+      pos: p0.pos ?? p0.position ?? null, name: p0.name ?? null,
+      toPar: p0.toPar ?? null, today: p0.today ?? null, thru: p0.thru ?? null,
+    } : null,
+    // What buildGolfCronContext needs before it returns anything at all.
+    wouldRender: !!(g && g.active !== false && lb.length > 0),
+  }
+}
+
 out.calls = calls
 mkdirSync('outbox', { recursive: true })
 const stamp = process.env.PROBE_STAMP || 'latest'
@@ -141,7 +177,9 @@ writeFileSync(`outbox/golf-slate-line-probe-${stamp}.json`, JSON.stringify(out, 
 writeFileSync('outbox/golf-slate-line-probe-latest.json', JSON.stringify(out, null, 2))
 console.log(JSON.stringify(out, null, 2))
 
-console.log(`\nCOVERAGE: 1 golf event of ${out.findings.golf.events ?? 0} on ${DATE}, plus 2 team-sport controls.`)
+console.log(`\nCOVERAGE: 1 golf event of ${out.findings.golf.events ?? 0} on ${DATE}, plus 2 team-sport`)
+console.log('controls and the deployed relay\'s own golf block inputs. It does NOT read')
+console.log('the assembled slate prompt — nothing exposes it.')
 console.log(`calls: ${calls.length}`)
 
 // THE VERDICT IS NOT A PASS/FAIL. This probe decides whether the CC-CMD ships
