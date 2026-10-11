@@ -4,7 +4,75 @@
 **Repo:** jubilant-bassoon or field-laboratory — the decision is which, and that is Task 1
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** D then C — a display decision first, then one renderer
-**Status:** FILED, not started.
+**Status:** DONE 2026-10-11. Four tasks, four done conditions. Built in
+**field-laboratory** — that was Task 1 and the reason is recorded beside the
+code in `src/Lineups.fs`. Session doc:
+`field-laboratory/outbox/cc-session-2026-10-11-predicted-xi.md`.
+
+**TASK 1 — field-laboratory. Five measurements, taken before the decision.**
+
+1. The client is NOT a blank slate: `src/legacy/field.js` already renders a
+   Lineups section from `PL_RELAY_BASE/match/{id}` — the Premier League's own
+   `fixture.teamLists`, published about an hour before kickoff and confirmed by
+   definition. Its rows are `#shirt POS Name` with no qualifier, so a BSD
+   predicted XI placed there would be this document's own opening claim, word
+   for word.
+2. It collapses every non-answer to one outcome — `if (!starters.length)
+   continue;` and `anchor.remove()` on any failure. Task 3 forbids exactly that,
+   so its failure handling would have to be replaced, not extended.
+3. The laboratory already carries the refusal Task 3 needs at the type level:
+   `type ProbablePitcher = private ProbablePitcher of string`.
+4. **Only the laboratory can satisfy done condition 2 today.** It renders from
+   committed captures pinned by a query parameter; the client fetches PL live on
+   page load with no fixture path.
+5. It is already a BSD consumer (`RELAY_DRAW`) and already renders the
+   probable-starter row this feature is the soccer equivalent of.
+
+Nothing is built in jubilant-bassoon.
+
+**THE TWO STATES ARE BOTH CAPTURABLE, which done condition 2 needed and nobody
+had established.** `bsd-lineups-probe.yml` runs `38118474339` / `38151345923` /
+`38151411240`:
+
+```
+pre-match events, 2026-10-11 06:34Z   predicted  8 of 8   beta true
+pre-match events, 2026-10-11 15:27Z   predicted  8 of 8   beta true
+finished events,  2026-10-10          confirmed  3 of 3   beta false
+```
+
+Sixteen pre-match observations nine hours apart never said `confirmed`; three
+finished events never said anything else. So `confirmed` is captured from a
+PLAYED event and `predicted` from an unplayed one, and neither fixture is
+hand-made — which `data/PROVENANCE.md` and `scripts/capture-render-fixture.mjs`
+both forbid.
+
+**TASK 2 — the mark is a column, twenty-two times a side, and the numbers are
+sealed.** A per-card badge does not survive a row being cropped, quoted or read
+aloud; a per-row word means the two sheets differ on every line. The colour is
+the redundant channel (`Palette.Semantic.Caution`), never the primary one.
+
+This document's reasoning about `ai_score` needed correcting, and the bytes did
+it. The KEYS `confidence` and `ai_score` are present on a confirmed sheet; every
+VALUE is null — `confidence` null/null, `ai_score` 0 of 22 populated, against
+0.791/0.85 and 22 of 22 at 0.411–0.87 on the predicted one. They do discriminate.
+They are still not rendered: `SealedScore` has no formatter, because the observed
+interval can be stated and what the number MEASURES cannot.
+
+**TASK 3 — there are FIVE non-answers, not three.** `X-Lineup-State` carries
+`status-unrecognised:<word>`, which this document does not name and which is the
+dangerous one: a renderer built to three falls through on the fourth, and falling
+through draws the sheet. `Lineups.Answer` has seven cases. Measured on the
+rendered page: five routed bodies, five distinct `data-answer` values, five
+distinct sentences, no grid on the three that carry no players.
+
+**TASK 4 — beside the XI.** 7 of 7 named players carry a non-null reason across
+both captures. Rendering it beside the sheet exposed a contradiction in the
+vendor's own confirmed payload: **Idan Toklomati is in Charlotte FC's starting
+eleven AND listed injured**. The page now reports it and resolves nothing.
+
+**Stop conditions held.** No cron, no watch, no diff-on-change — and
+`scripts/check-lineups-pull-only.mjs` plus two mutations keep it that way after
+this diff.
 
 **Required by Rule 87.4.** `docs/CC-CMD-2026-10-10-bsd-predicted-lineups.md`
 closed with Task 5 reading *"nothing renders from this document... whether the
