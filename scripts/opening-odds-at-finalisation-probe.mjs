@@ -191,7 +191,21 @@ for (const d of dates) {
 }
 process.stderr.write('\n')
 
-const sum = (k) => perDate.reduce((a, r) => a + (r[k] || 0), 0)
+// `(r[k] || 0)` was the first version and check-aggregate-launders-unknowns
+// refused it, correctly: a field absent from a per-date record and a field
+// that genuinely counted zero would both contribute 0, and the total could not
+// tell them apart. total() reports `skipped` instead, and a nonzero skipped
+// count means a per-date record is missing a key this summary claims to add up.
+const { total } = await import('./lib/summary-invariants.mjs')
+const sum = (k) => {
+  const t = total(perDate, k)
+  if (t.skipped !== 0) {
+    console.error(`FAIL — ${t.skipped} of ${perDate.length} per-date record(s) carry no numeric '${k}'.`)
+    console.error('A total built over those cannot be read, so none is printed.')
+    process.exit(1)
+  }
+  return t.sum
+}
 const totalRows = sum('rows'), atFin = sum('atFinalisation')
 const elig = sum('censusEligible'), eligAtFin = sum('censusEligibleAtFinalisation')
 const proof = sum('withOddsProof')
