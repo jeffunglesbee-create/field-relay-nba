@@ -532,6 +532,11 @@ const main = async () => {
     // against a table only one had unwrapped; agreement on zero is still
     // agreement, so the comparison here is of outcomes, which can disagree.
     const AGREEMENT_FLOOR = 0.98
+    // A real book's three-way overround. The floor of 1 is arithmetic, not
+    // taste: below it the book loses money on every outcome. The ceiling is a
+    // judgement and the full distribution is reported so the choice is
+    // visible rather than buried.
+    const K_MIN = 1.00, K_MAX = 1.25
 
     const espnByPair = new Map()
     for (const g of mk.games || []) {
@@ -559,6 +564,7 @@ const main = async () => {
     const probByGame = new Map()
     const kValues = []
     let matched = 0, unmatched = 0, lengthMismatchPairs = 0, outcomeAgree = 0, outcomeDisagree = 0
+    let droppedImplausibleK = 0
     const mpCodes = new Set([...mpGames.values()].map(g => g.home))
     const espnCodes = new Set((mk.games || []).map(g => g.home))
 
@@ -573,6 +579,21 @@ const main = async () => {
         const m = marketProb(eg.provider.homeMoneyLine, eg.provider.awayMoneyLine, model.tieRate, model.otHomeShare)
         if (m.pHome === null) { unmatched += 1; continue }
         if (m.detail?.k) kValues.push(+m.detail.k.toFixed(4))
+        // THE RECONSTRUCTION'S OWN CHECK, ENFORCED PER GAME AND NOT JUST
+        // REPORTED. k is the three-way overround implied by the measured tie
+        // rate. A book cannot overround BELOW 1 — that is paying out more than
+        // it takes — so k < 1 means these two prices are not a matched pair,
+        // and the first run that merely reported the distribution found a
+        // minimum of 0.3548.
+        //
+        // This matters in a direction that is easy to miss: a garbage market
+        // probability makes the MARKET's Brier worse, which flatters the
+        // model. Leaving them in would have bought a SHIPS verdict with the
+        // baseline's own corrupt rows.
+        if (m.detail?.k !== undefined && (m.detail.k < K_MIN || m.detail.k > K_MAX)) {
+          droppedImplausibleK += 1
+          continue
+        }
         probByGame.set(ids[i], m.pHome)
         matched += 1
       }
@@ -592,10 +613,23 @@ const main = async () => {
                             passed: agreementRate !== null && agreementRate >= AGREEMENT_FLOOR },
       codes_only_in_moneypuck: [...mpCodes].filter(c => !espnCodes.has(c)).sort(),
       codes_only_in_espn: [...espnCodes].filter(c => !mpCodes.has(c)).sort(),
+      dropped_for_implausible_overround: droppedImplausibleK,
+      accepted_overround_band: { min: K_MIN, max: K_MAX },
       implied_three_way_overround: kValues.length
-        ? { n: kValues.length, min: kValues[0], median: kValues[Math.floor(kValues.length / 2)],
-            max: kValues[kValues.length - 1], plausible_book_range: '1.02 - 1.12',
-            within_range: kValues.every(k => k >= 1.0 && k <= 1.20) }
+        ? (() => {
+            const q = (f) => kValues[Math.min(kValues.length - 1, Math.floor(kValues.length * f))]
+            return {
+              n: kValues.length, min: kValues[0], p05: q(0.05), p25: q(0.25),
+              median: q(0.5), p75: q(0.75), p95: q(0.95), max: kValues[kValues.length - 1],
+              below_1: kValues.filter(k => k < 1).length,
+              above_max: kValues.filter(k => k > K_MAX).length,
+              note: 'k is the three-way overround implied by the measured tie rate. '
+                + 'A median near 1.03-1.07 is evidence the three-way reading is right; '
+                + 'the tails are dropped per game, not explained away. One known limitation: '
+                + 'k uses one global tie rate, so a badly mismatched fixture has its own true '
+                + 'draw probability and its k is mis-estimated by that much.'
+            }
+          })()
         : null
     }
 
