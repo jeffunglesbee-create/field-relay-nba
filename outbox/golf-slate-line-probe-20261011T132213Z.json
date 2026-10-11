@@ -1,0 +1,41 @@
+{
+  "probed_at_utc": "20261011T132213Z",
+  "espnDate": "20261011",
+  "buildGameLine": {
+    "startLine": 5690,
+    "bodyChars": 4269
+  },
+  "calls": [
+    "/golf/pga/scoreboard?dates=20261011",
+    "/football/nfl/scoreboard?dates=20261011",
+    "/basketball/nba/scoreboard?dates=20261011"
+  ],
+  "findings": {
+    "golf": {
+      "status": 200,
+      "events": 1,
+      "eventName": "Baycurrent Classic",
+      "statusState": "post",
+      "statusDescription": "Final",
+      "competitors": 72,
+      "firstHasTeam": false,
+      "firstHasAthlete": true,
+      "firstHomeAway": null,
+      "firstScore": "-16",
+      "firstAthleteName": "Michael Brennan"
+    },
+    "line": "-15 @ -16 · Final · Golf Chnl",
+    "lineIsNull": false,
+    "bothNamesEmpty": true,
+    "control_nfl": {
+      "status": 200,
+      "events": 13,
+      "line": "Eagles (2-2) 0 @ Jaguars (3-1) 0 · Scheduled · Tottenham Hotspur Stadium · NFL Net · NFL London Games · JAX: Trevor Lawrence 72/104, 843 YDS, 8 TD, 2 INT PASS, Bhayshul Tuten 60 CAR, 277 YDS, 2 TD RUSH, Parker Washington 16 REC, 228 YDS, 2 TD REC · PHI: Jalen Hurts 68/114, 713 YDS, 7 TD, 3 INT PASS, Jalen Hurts 21 CAR, 105 YDS, 1 TD RUSH, Dontayvion Wicks 12 REC, 197 YDS, 1 TD REC"
+    },
+    "control_nba": {
+      "status": 200,
+      "events": 4,
+      "line": "Mavericks (1-1) 132 @ Rockets (1-1) 115 · Final · Venetian Arena [indoor] · NBA TV · NBA China Game · HOU: Marcus Smart 20 Pts, Jabari Smith Jr. 9 Reb, Amen Thompson 6 Ast · DAL: Kyrie Irving 17 Pts, Sergio de Larrea 7 Reb, Cooper Flagg 7 Ast"
+    }
+  }
+}
