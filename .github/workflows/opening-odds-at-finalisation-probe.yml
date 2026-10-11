@@ -1,0 +1,60 @@
+name: Opening odds at finalisation probe
+
+# docs/CC-CMD-2026-08-25-misjoined-opening-odds.md step 1 — the in-window
+# denominator. 156 of 789 across 90 days is measured; the open question is the
+# rate inside 2026-06-23 → 07-11, because "if it is nearly all of them, the
+# capture path was wrong for that whole period rather than intermittently".
+#
+# Read-only. /context/date serves opening_odds verbatim and publicly, so there
+# is no credential and no Odds API call — no quota spend.
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "First date, YYYY-MM-DD. Empty = 2026-06-23."
+        required: false
+        type: string
+        default: ""
+      to:
+        description: "Last date, YYYY-MM-DD. Empty = 2026-07-11."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: The classifier can still fail
+        run: node scripts/opening-odds-at-finalisation-probe.mjs --self-test
+
+      - name: Walk the window
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          export PROBE_STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          node scripts/opening-odds-at-finalisation-probe.mjs
+
+      - name: Commit the artifact
+        if: always()
+        run: |
+          git config user.email "claude@field.dev"
+          git config user.name "FIELD CI"
+          git add outbox/opening-odds-at-finalisation-*.json || true
+          git diff --staged --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "chore: opening-odds-at-finalisation denominator"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((2 ** i))
+          done
+          exit 1
