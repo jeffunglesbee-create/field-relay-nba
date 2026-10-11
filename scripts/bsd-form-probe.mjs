@@ -66,7 +66,12 @@ export const fingerprint = (body) => {
 }
 
 // The verdict is derived, never written by hand.
-export const classify = ({ aFp, bFp, cFp, dFp }) => {
+export const classify = ({ aFp, bFp, cFp, dFp, statuses = [] }) => {
+  // A REFUSED CALL IS NOT A MEASUREMENT, and it must say WHY. Four 401s
+  // fingerprint identically, and "all four agree" is one keystroke from
+  // reading as "the parameter does nothing".
+  const auth = statuses.filter(s => s === 401 || s === 403)
+  if (auth.length) return { verdict: 'UNMEASURED', reason: `${auth.length} of ${statuses.length} calls were refused with ${[...new Set(auth)].join('/')} — an auth failure, not a finding` }
   if (!aFp || !bFp || !cFp) return { verdict: 'UNMEASURED', reason: 'one or more calls did not return a body' }
   if (dFp !== null && dFp === aFp)
     return {
@@ -95,7 +100,11 @@ const get = async (url, token, calls) => {
   calls.n += 1
   try {
     const r = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      // `Token`, not `Bearer`. src/index.js authenticates every BSD call as
+      // `Authorization: Token ${env.BSD_API_TOKEN}` (:2437, :3056, :4468).
+      // Guessing `Bearer` returned 401 on all four calls of the first run —
+      // which the classifier correctly refused to read as a verdict.
+      headers: { 'Authorization': `Token ${token}`, 'Accept': 'application/json' },
       signal: AbortSignal.timeout(25000),
     })
     const text = await r.text()
@@ -121,7 +130,7 @@ const main = async () => {
   const D = await get(url(LEAGUE_IMPOSSIBLE), token, calls)
 
   const fp = { aFp: fingerprint(A.body), bFp: fingerprint(B.body), cFp: fingerprint(C.body), dFp: fingerprint(D.body) }
-  const cls = classify(fp)
+  const cls = classify({ ...fp, statuses: [A.status, B.status, C.status, D.status] })
 
   // THE WINDOW, read rather than assumed.
   const windowOf = (r, label) => ({
@@ -218,6 +227,15 @@ const selfTest = () => {
     classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q' }).verdict === 'FILTERS')
   t('a missing call yields UNMEASURED, never a filter verdict',
     classify({ aFp: null, bFp: 'Y', cFp: 'Z', dFp: 'Q' }).verdict === 'UNMEASURED')
+  t('FOUR REFUSED CALLS ARE AN AUTH FAILURE, NOT "the parameter does nothing"',
+    (() => {
+      const c = classify({ aFp: null, bFp: null, cFp: null, dFp: null, statuses: [401, 401, 401, 401] })
+      return c.verdict === 'UNMEASURED' && /auth failure/.test(c.reason) && /401/.test(c.reason)
+    })())
+  t('a 403 is named the same way',
+    /403/.test(classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q', statuses: [403, 200, 200, 200] }).reason))
+  t('all-200 calls still reach a real verdict',
+    classify({ aFp: 'X', bFp: 'Y', cFp: 'Z', dFp: 'Q', statuses: [200, 200, 200, 200] }).verdict === 'FILTERS')
 
   t('xG field names are found by name, not assumed',
     (() => {
