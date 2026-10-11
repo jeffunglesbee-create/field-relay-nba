@@ -37,7 +37,20 @@ import { readFileSync } from 'node:fs';
 // ODDS_BASE only in a comment recording that provenance-census's analyser
 // mentions the constant without calling it (2026-09-18 degrade-open work).
 // Excluded by name rather than by the list quietly being shorter.
-// SCOPE-EXCLUDES: src/budget-helpers.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
+//
+// src/odds-consumer-rules.js and src/odds-shape.js entered this population on
+// 2026-10-11 the same way mutate-scope-claims did: each gained ONE comment line
+// pointing at `const ODDS_BASE` in src/index.js, where
+// docs/CC-CMD-2026-10-10-bsd-odds-substitution-refused.md records why the
+// metered vendor is not replaced by BSD. Neither file fetches anything.
+//
+// The cost of not noticing is on the record. Those two comment lines pulled
+// both files into this scope, the scope gate went red, and **Deploy RELAY
+// Worker failed on four consecutive commits** (c35997b, 9f1d763, 4a1505b,
+// defc1e1) — so four route blocks sat unshipped while their documents read
+// DONE. A prose pointer is enough to widen a population; a widened population
+// is enough to stop a deploy.
+// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds is
