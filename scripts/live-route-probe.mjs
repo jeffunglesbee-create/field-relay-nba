@@ -79,6 +79,13 @@ if (process.argv.includes('--self-test')) {
   eq(lineupStateValid(undefined), false, 'lineup state absent')
   eq(lineupStateValid(''), false, 'lineup state empty')
 
+  // The discriminator the catch-all defeated. A 403 from this route carries an
+  // `allowed` array; a 403 from anywhere else does not.
+  const ownRefusal = (body) => Array.isArray(body?.allowed)
+  eq(ownRefusal({ error: 'path not allowed', allowed: ['/shiftcharts'] }), true, 'the route\'s own 403')
+  eq(ownRefusal(null), false, 'a plain-text 403 (the /nba/* catch-all)')
+  eq(ownRefusal({ error: 'path not allowed' }), false, 'a 403 with the right words and no list')
+
   console.log(`\nself-test: ${ran - bad}/${ran}`)
   console.log('COVERAGE: both classifiers against synthetic responses. Makes no')
   console.log('HTTP call and proves nothing about the deployed worker.')
@@ -131,14 +138,27 @@ console.log(`date    ${today}\n`)
       xRows: r.headers['x-nhlstats-rows'] ?? null })
 }
 
-// 2 — THE NEGATIVE CONTROL. The allow-list must refuse. Without this the
-// route above could be a blanket proxy and both would look identical.
+// 2 — THE NEGATIVE CONTROL, AND A 403 IS NOT ENOUGH TO PASS IT.
+//
+// Run 38120962865 is why. This control reported PASS while the route above
+// reported FAIL, and both had been refused by the SAME thing: the /nba/*
+// catch-all at the end of the fetch handler, because the route block had
+// shipped inside the /bsd/ section and could never match. On status alone the
+// two are identical, so the control was passing for a reason unrelated to the
+// allow-list it exists to exercise.
+//
+// So the assertion is the route's OWN refusal shape: a json body carrying
+// `allowed`, which only nhlStatsAllowed's branch emits. The catch-all answers
+// the plain string 'Path not allowed' and fails this.
 {
   const r = await get('/nhl-stats/zzz-not-a-real-prefix')
   const st = routeState({ status: r.status, headers: r.headers })
-  record('/nhl-stats/* refuses a path outside the allow-list',
-    st === 'refused' ? 'PASS' : 'FAIL',
-    { status: r.status, routeState: st, body: r.text })
+  const ownRefusal = Array.isArray(r.body?.allowed)
+  record('/nhl-stats/* refuses a path outside the allow-list, in its own words',
+    st === 'refused' && ownRefusal ? 'PASS' : 'FAIL',
+    { status: r.status, routeState: st, ownRefusalShape: ownRefusal,
+      refusedBy: ownRefusal ? 'nhlStatsAllowed' : 'something else — body is not this route\'s',
+      body: r.text })
 }
 
 // 3 — discover an event from the deployed relay, not from the vendor.

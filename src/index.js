@@ -10703,80 +10703,6 @@ export default {
                                'Cache-Control': 'public, max-age=60', ...CORS } });
             }
 
-            // /nhl-stats/* → api.nhle.com/stats/rest/en/*
-            //
-            // docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md, Task 2, which
-            // ships only because Task 1 cleared. Measured 2026-10-11
-            // (outbox/nhl-shiftcharts-probe-latest.json, 11 calls of 24):
-            //
-            //   shift charts serve ALL FOUR of the WP model's seasons —
-            //     2020: 894 rows / 38 players    2022: 829 / 38
-            //     2021: 791 / 38                 2023: 751 / 38
-            //   every one against a control game proved to exist first, because
-            //   a cayenneExp query with a wrong id answers 200 with an empty
-            //   array and that reads identically to "this season has none".
-            //
-            // So on-ice state is a BACKFILL, not a wait — which is the whole
-            // claim of the document.
-            //
-            // THE JOIN IS BY TIME, NOT eventNumber: 0 of 692 shift
-            // eventNumbers appear as a play eventId on 2026020053, and 0 across
-            // the four season games. The ranges overlap, so they look joinable.
-            // src/nhl-onice.js does the interval join and refuses any
-            // reconstruction that contradicts situationCode.
-            //
-            // TWO TTLs, each from what the data does: a FINISHED game's shift
-            // chart is immutable, so 86400s; a LIVE game's grows every shift,
-            // so 30s. The route cannot tell which without another call, so it
-            // takes the caller's word via ?final=1 and defaults to the SHORT
-            // ttl — a stale immutable chart costs a re-fetch, a cached live one
-            // is wrong.
-            const nhlStatsM = pathname.match(/^\/nhl-stats(\/.*)$/);
-            if (nhlStatsM) {
-                const statsPath = nhlStatsM[1];
-                if (!nhlStatsAllowed(statsPath)) {
-                    return new Response(JSON.stringify({
-                        error: 'path not allowed', path: statsPath,
-                        allowed: NHL_STATS_ALLOWED_PREFIXES,
-                    }), { status: 403, headers: { 'Content-Type': 'application/json', ...CORS } });
-                }
-                const ttl = url.searchParams.get('final') === '1' ? 86400 : 30;
-                const upstream = `${NHL_STATS_BASE}${statsPath}${url.search}`;
-                try {
-                    const r = await fetch(upstream, {
-                        headers: { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' },
-                        cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: upstream },
-                    });
-                    const text = await r.text();
-                    if (!r.ok) {
-                        return new Response(JSON.stringify({
-                            error: 'nhl stats upstream failed', upstreamStatus: r.status,
-                            note: 'This is NOT "no shift data for this game". The call failed.',
-                        }), { status: 502, headers: { 'Content-Type': 'application/json',
-                                 'X-NhlStats-State': 'upstream-failed', ...CORS } });
-                    }
-                    // A 200 with zero rows is a REAL answer and a different one
-                    // from a failure — the row count is the measurement, never
-                    // the status. Stated in a header so no caller has to parse
-                    // to find out.
-                    let rows = null;
-                    try { const b = JSON.parse(text); rows = Array.isArray(b?.data) ? b.data.length : (Array.isArray(b) ? b.length : null); } catch (_) {}
-                    return new Response(text, { status: 200, headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': `public, max-age=${ttl}`,
-                        'X-NhlStats-State': rows === 0 ? 'served-empty' : 'vendor',
-                        ...(rows === null ? {} : { 'X-NhlStats-Rows': String(rows) }),
-                        ...CORS,
-                    } });
-                } catch (e) {
-                    return new Response(JSON.stringify({
-                        error: 'nhl stats fetch threw', detail: e.message,
-                        note: 'This is NOT "no shift data for this game".',
-                    }), { status: 502, headers: { 'Content-Type': 'application/json',
-                             'X-NhlStats-State': 'upstream-failed', ...CORS } });
-                }
-            }
-
             // /bsd/events/:id/broadcasts     → BSD /api/v2/events/:id/broadcasts/
             // /bsd/tv-channels/:id/broadcasts → BSD /api/v2/tv-channels/:id/broadcasts/
             //
@@ -16776,6 +16702,100 @@ export default {
                 await reconcileOddsCredit(env, oddsCreditCost(targetUrl), _proxyResp, 'oddsProxyRoute');
             }
             return _proxyResp;
+        }
+
+        // PLACEMENT IS LOAD-BEARING, and this block was in the wrong place.
+        // It shipped inside `if (pathname.startsWith('/bsd/'))` (L10326), where
+        // no /nhl-stats request can ever arrive: a path cannot start with both
+        // prefixes. The request fell through to the /nba/* catch-all at the end
+        // of this handler, whose `pathname.replace(/^\/nba/, '')` leaves
+        // /nhl-stats/shiftcharts untouched and hands it to nbaAllowed(), which
+        // refuses it as 403 'Path not allowed'.
+        //
+        // MEASURED by outbox/live-route-probe-latest.json, run 38120962865:
+        // /nhl-stats/shiftcharts?cayenneExp=gameId=2026020053 answered 403, with
+        // the SAME body as /nhl-stats/zzz-not-a-real-prefix. The negative control
+        // in that probe therefore passed for the wrong reason — both were refused
+        // by the catch-all rather than by nhlStatsAllowed, and from outside the
+        // two are indistinguishable on status alone. The probe now asserts the
+        // route's OWN json body shape, which carries `allowed`.
+        //
+        // It sits above /nhl/* deliberately. That block requires the trailing
+        // slash — the fix from CC-CMD-2026-07-11-nhl-series-gsax-403, after the
+        // same prefix collision hit /nhl-series and /nhl-gsax — so /nhl-stats
+        // does not collide with it. Being adjacent keeps that reasoning visible.
+        // /nhl-stats/* → api.nhle.com/stats/rest/en/*
+        //
+        // docs/CC-CMD-2026-10-11-nhl-shift-charts-on-ice.md, Task 2, which
+        // ships only because Task 1 cleared. Measured 2026-10-11
+        // (outbox/nhl-shiftcharts-probe-latest.json, 11 calls of 24):
+        //
+        //   shift charts serve ALL FOUR of the WP model's seasons —
+        //     2020: 894 rows / 38 players    2022: 829 / 38
+        //     2021: 791 / 38                 2023: 751 / 38
+        //   every one against a control game proved to exist first, because
+        //   a cayenneExp query with a wrong id answers 200 with an empty
+        //   array and that reads identically to "this season has none".
+        //
+        // So on-ice state is a BACKFILL, not a wait — which is the whole
+        // claim of the document.
+        //
+        // THE JOIN IS BY TIME, NOT eventNumber: 0 of 692 shift
+        // eventNumbers appear as a play eventId on 2026020053, and 0 across
+        // the four season games. The ranges overlap, so they look joinable.
+        // src/nhl-onice.js does the interval join and refuses any
+        // reconstruction that contradicts situationCode.
+        //
+        // TWO TTLs, each from what the data does: a FINISHED game's shift
+        // chart is immutable, so 86400s; a LIVE game's grows every shift,
+        // so 30s. The route cannot tell which without another call, so it
+        // takes the caller's word via ?final=1 and defaults to the SHORT
+        // ttl — a stale immutable chart costs a re-fetch, a cached live one
+        // is wrong.
+        const nhlStatsM = pathname.match(/^\/nhl-stats(\/.*)$/);
+        if (nhlStatsM) {
+            const statsPath = nhlStatsM[1];
+            if (!nhlStatsAllowed(statsPath)) {
+                return new Response(JSON.stringify({
+                    error: 'path not allowed', path: statsPath,
+                    allowed: NHL_STATS_ALLOWED_PREFIXES,
+                }), { status: 403, headers: { 'Content-Type': 'application/json', ...CORS } });
+            }
+            const ttl = url.searchParams.get('final') === '1' ? 86400 : 30;
+            const upstream = `${NHL_STATS_BASE}${statsPath}${url.search}`;
+            try {
+                const r = await fetch(upstream, {
+                    headers: { 'Accept': 'application/json', 'User-Agent': 'FIELD/1.0' },
+                    cf: { cacheTtl: ttl, cacheEverything: true, cacheKey: upstream },
+                });
+                const text = await r.text();
+                if (!r.ok) {
+                    return new Response(JSON.stringify({
+                        error: 'nhl stats upstream failed', upstreamStatus: r.status,
+                        note: 'This is NOT "no shift data for this game". The call failed.',
+                    }), { status: 502, headers: { 'Content-Type': 'application/json',
+                             'X-NhlStats-State': 'upstream-failed', ...CORS } });
+                }
+                // A 200 with zero rows is a REAL answer and a different one
+                // from a failure — the row count is the measurement, never
+                // the status. Stated in a header so no caller has to parse
+                // to find out.
+                let rows = null;
+                try { const b = JSON.parse(text); rows = Array.isArray(b?.data) ? b.data.length : (Array.isArray(b) ? b.length : null); } catch (_) {}
+                return new Response(text, { status: 200, headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': `public, max-age=${ttl}`,
+                    'X-NhlStats-State': rows === 0 ? 'served-empty' : 'vendor',
+                    ...(rows === null ? {} : { 'X-NhlStats-Rows': String(rows) }),
+                    ...CORS,
+                } });
+            } catch (e) {
+                return new Response(JSON.stringify({
+                    error: 'nhl stats fetch threw', detail: e.message,
+                    note: 'This is NOT "no shift data for this game".',
+                }), { status: 502, headers: { 'Content-Type': 'application/json',
+                         'X-NhlStats-State': 'upstream-failed', ...CORS } });
+            }
         }
 
         // /nhl/* → api-web.nhle.com

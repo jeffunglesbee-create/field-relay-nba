@@ -81,6 +81,17 @@ const PROTOCOL = /^\/(\.well-known|oauth)\//;
 
 // ── Extract the route table ──────────────────────────────────────────────────
 const routes = [];
+// THE POPULATION IS TWO SPELLINGS, AND A THIRD EXISTS. This finds
+// `pathname === '...'` and `pathname.startsWith('...')`. It does NOT find
+// `pathname.match(/^\/.../)`, so a regex-routed path is not merely undeclared —
+// it is never counted, and "189 routes mapped, 187 with a declared source"
+// reads as a denominator that includes it.
+//
+// MEASURED 2026-10-11 on src/index.js: 11 such routes — 9 under /bsd/, 1 /cfl,
+// 1 /nhl-stats. Gate 2 still covers them when the runtime census has probed
+// them, because that cross-check keys on the census's own path list rather than
+// on this scan. Widening the scan is
+// docs/CC-CMD-2026-10-11-regex-routed-paths-outside-the-population.md.
 const RE = /pathname\s*(===|\.startsWith\()\s*'([^']+)'/g;
 lines.forEach((line, i) => {
   if (line.trimStart().startsWith('//') || line.trimStart().startsWith('*')) return;
