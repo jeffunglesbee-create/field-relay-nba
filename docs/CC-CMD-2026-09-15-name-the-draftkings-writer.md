@@ -1,8 +1,32 @@
 # CC-CMD-2026-09-15 — name the writer that emits a DraftKings blob with no total
 
-**Status:** FILED, not started. Second CC-CMD required by Rule 87.4, opened
-because `CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time` Task 0 proved
-who the writer is **not**.
+**Status:** CLOSED — header corrected 2026-10-11. The writer was named from
+source on 2026-09-15, the invariant was written as a check that can fail, and a
+repair verification ran the same day and concluded **do not run the anchor
+repair**. The `FILED, not started` header outlived all three by nearly a month.
+Re-verified against HEAD rather than taken from an audit's word (Rule 72):
+
+```
+scripts/check-captured-at-explicit.mjs   7/7 assertions pass
+                                         3 call site(s): 6825, 6961, 13518
+wired in                                 .github/workflows/deploy.yml
+```
+
+**The call-site line numbers in the table below have drifted** — it records
+6646 / 6782 / 13032 against the 6825 / 6961 / 13518 the check reports today.
+The check locates them itself, so the invariant still holds where the prose no
+longer points.
+
+**One thing is genuinely open, and it is a decision for the owner rather than
+deferred work:** the honest repair is a mark saying the timestamp is not a
+measurement. **It is already BUILT** —
+`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`, dry-run only, refusing to
+write without the literal input `apply`. What is missing is authorisation for a
+D1 write to 58 rows, not the tool.
+
+Second CC-CMD required by Rule 87.4, opened because
+`CC-CMD-2026-09-15-backfill-captured-at-not-snapshot-time` Task 0 proved who
+the writer is **not**.
 
 ## What is known
 

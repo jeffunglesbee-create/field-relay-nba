@@ -1,6 +1,24 @@
 # CC-CMD-2026-09-15 — 22 archived closing lines carry a captured_at that is not their snapshot_time
 
-**Status:** FILED, not started. Opened by the residual measurement of
+**Status:** CLOSED — header corrected 2026-10-11. Task 0 closed on 2026-09-15
+and Tasks 1-3 were superseded the same day by
+`docs/CC-CMD-2026-09-15-name-the-draftkings-writer.md`, which named the writer.
+The `FILED, not started` header outlived both by nearly a month and put this on
+a queue of unstarted work; re-verified against HEAD rather than taken from an
+audit's word (Rule 72).
+
+**One thing is genuinely open and it is not deferred work — it is a decision
+for the owner:** the 22 (really 58, see the successor) `captured_at` values are
+not repairable from a measurement, and the honest fix is a MARK saying the
+timestamp is not a measurement. The successor's own verification concluded **do
+not run the anchor repair**.
+
+**That mark is already BUILT** —
+`docs/CC-CMD-2026-09-15-capture-provenance-mark.md`, dry-run only, and it will
+not write without the literal input `apply`. What is missing is authorisation
+for a D1 write to 58 rows, not the tool.
+
+Opened by the residual measurement of
 `CC-CMD-2026-09-14-closing-odds-captured-after-kickoff` Task 2.
 
 ## What was measured (2026-09-15, `outbox/odds-history-snapshot-time-*.log`)
