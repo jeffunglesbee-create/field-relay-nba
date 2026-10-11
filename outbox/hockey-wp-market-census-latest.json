@@ -1,0 +1,379 @@
+{
+  "cc_cmd": "docs/CC-CMD-2026-10-10-nhl-win-probability-from-xg.md",
+  "purpose": "census: establish the market shape per provider before trusting any de-vig",
+  "started_at": "2026-10-11T03:10:07.458Z",
+  "finished_at": "2026-10-11T03:10:09.391Z",
+  "range": {
+    "explicit_dates": [
+      "20231115",
+      "20240302",
+      "20241210",
+      "20250312",
+      "20251101"
+    ]
+  },
+  "callsMade": 31,
+  "callBudget": 60,
+  "truncated": false,
+  "thresholds": {
+    "TWO_WAY_MIN": 1,
+    "THREE_WAY_MAX": 0.95
+  },
+  "games_total": 26,
+  "games_with_any_provider": 10,
+  "providerStats": {
+    "Unibet": {
+      "n": 10,
+      "kinds": {
+        "3way": 10
+      },
+      "overround_min": 0.8176,
+      "overround_median": 0.8223,
+      "overround_max": 0.8587,
+      "overround_mean": 0.8272
+    }
+  },
+  "games": [
+    {
+      "espnId": "401559471",
+      "date": "2023-11-16",
+      "home": "CAR",
+      "away": "PHI",
+      "homeScore": 1,
+      "awayScore": 3,
+      "homeWon": 0,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": -148,
+          "awayMoneyLine": 295,
+          "kind": "3way",
+          "overround": 0.8499387505104125
+        }
+      ]
+    },
+    {
+      "espnId": "401559472",
+      "date": "2023-11-16",
+      "home": "EDM",
+      "away": "SEA",
+      "homeScore": 4,
+      "awayScore": 3,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": -122,
+          "awayMoneyLine": 260,
+          "kind": "3way",
+          "overround": 0.8273273273273274
+        }
+      ]
+    },
+    {
+      "espnId": "401559473",
+      "date": "2023-11-16",
+      "home": "COL",
+      "away": "ANA",
+      "homeScore": 8,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": -186,
+          "awayMoneyLine": 380,
+          "kind": "3way",
+          "overround": 0.8586829836829837
+        }
+      ]
+    },
+    {
+      "espnId": "401559474",
+      "date": "2023-11-16",
+      "home": "VAN",
+      "away": "NYI",
+      "homeScore": 4,
+      "awayScore": 3,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 102,
+          "awayMoneyLine": 205,
+          "kind": "3way",
+          "overround": 0.8229183574095114
+        }
+      ]
+    },
+    {
+      "espnId": "401560183",
+      "date": "2024-03-02",
+      "home": "CAR",
+      "away": "WPG",
+      "homeScore": 3,
+      "awayScore": 5,
+      "homeWon": 0,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 102,
+          "awayMoneyLine": 210,
+          "kind": "3way",
+          "overround": 0.8176301501117853
+        }
+      ]
+    },
+    {
+      "espnId": "401560188",
+      "date": "2024-03-02",
+      "home": "DET",
+      "away": "FLA",
+      "homeScore": 0,
+      "awayScore": 4,
+      "homeWon": 0,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 220,
+          "awayMoneyLine": -104,
+          "kind": "3way",
+          "overround": 0.8223039215686274
+        }
+      ]
+    },
+    {
+      "espnId": "401560185",
+      "date": "2024-03-02",
+      "home": "SEA",
+      "away": "EDM",
+      "homeScore": 1,
+      "awayScore": 2,
+      "homeWon": 0,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 205,
+          "awayMoneyLine": 104,
+          "kind": "3way",
+          "overround": 0.8180649308903889
+        }
+      ]
+    },
+    {
+      "espnId": "401560192",
+      "date": "2024-03-02",
+      "home": "STL",
+      "away": "MIN",
+      "homeScore": 3,
+      "awayScore": 1,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 170,
+          "awayMoneyLine": 123,
+          "kind": "3way",
+          "overround": 0.818800863643913
+        }
+      ]
+    },
+    {
+      "espnId": "401560193",
+      "date": "2024-03-02",
+      "home": "NSH",
+      "away": "COL",
+      "homeScore": 5,
+      "awayScore": 1,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 185,
+          "awayMoneyLine": 114,
+          "kind": "3way",
+          "overround": 0.8181669126086244
+        }
+      ]
+    },
+    {
+      "espnId": "401560186",
+      "date": "2024-03-03",
+      "home": "BUF",
+      "away": "VGK",
+      "homeScore": 7,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": [
+        {
+          "provider": "Unibet",
+          "homeMoneyLine": 155,
+          "awayMoneyLine": 135,
+          "kind": "3way",
+          "overround": 0.8176887776387151
+        }
+      ]
+    },
+    {
+      "espnId": "401688045",
+      "date": "2024-12-11",
+      "home": "NJ",
+      "away": "TOR",
+      "homeScore": 1,
+      "awayScore": 2,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688046",
+      "date": "2024-12-11",
+      "home": "PIT",
+      "away": "COL",
+      "homeScore": 2,
+      "awayScore": 6,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688047",
+      "date": "2024-12-11",
+      "home": "CAR",
+      "away": "SJ",
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401688048",
+      "date": "2024-12-11",
+      "home": "CBJ",
+      "away": "PHI",
+      "homeScore": 3,
+      "awayScore": 5,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688049",
+      "date": "2024-12-11",
+      "home": "NYI",
+      "away": "LA",
+      "homeScore": 1,
+      "awayScore": 3,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688050",
+      "date": "2024-12-11",
+      "home": "NSH",
+      "away": "CGY",
+      "homeScore": 3,
+      "awayScore": 4,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688635",
+      "date": "2025-03-12",
+      "home": "DET",
+      "away": "BUF",
+      "homeScore": 7,
+      "awayScore": 3,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401688636",
+      "date": "2025-03-13",
+      "home": "CGY",
+      "away": "VAN",
+      "homeScore": 3,
+      "awayScore": 4,
+      "homeWon": 0,
+      "providers": []
+    },
+    {
+      "espnId": "401688637",
+      "date": "2025-03-13",
+      "home": "UTAH",
+      "away": "ANA",
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401688638",
+      "date": "2025-03-13",
+      "home": "SEA",
+      "away": "MTL",
+      "homeScore": 5,
+      "awayScore": 4,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802532",
+      "date": "2025-11-01",
+      "home": "BOS",
+      "away": "CAR",
+      "homeScore": 2,
+      "awayScore": 1,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802533",
+      "date": "2025-11-01",
+      "home": "WPG",
+      "away": "PIT",
+      "homeScore": 5,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802534",
+      "date": "2025-11-01",
+      "home": "NSH",
+      "away": "CGY",
+      "homeScore": 4,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802535",
+      "date": "2025-11-01",
+      "home": "SJ",
+      "away": "COL",
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802536",
+      "date": "2025-11-01",
+      "home": "FLA",
+      "away": "DAL",
+      "homeScore": 4,
+      "awayScore": 3,
+      "homeWon": 1,
+      "providers": []
+    },
+    {
+      "espnId": "401802537",
+      "date": "2025-11-01",
+      "home": "BUF",
+      "away": "WSH",
+      "homeScore": 4,
+      "awayScore": 3,
+      "homeWon": 1,
+      "providers": []
+    }
+  ],
+  "coverage": "10 of 26 completed games carry a pickcenter provider; 5 dates requested, all walked"
+}
