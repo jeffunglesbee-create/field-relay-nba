@@ -1,0 +1,73 @@
+name: Month degrade probe (read-only)
+
+# THE DONE CONDITION for the two-statement monthly batch fix, run where it can
+# actually be run.
+#
+# chargeMonthlyOdds threw on every call — its two-statement batch went to a
+# helper demanding three — and the throw was caught by a degrade-open path that
+# counted it as `month: odds budget batch returned 2 result(s), expected 3`.
+# The fix predicts that reason stops growing.
+#
+# A SANDBOXED SESSION CANNOT CHECK THIS. workers.dev is unreachable from the
+# agent proxy (403), so the one read that settles it has to happen on a runner
+# with open egress. That is the same reason the visual probes in this project
+# are workflows rather than local browser calls.
+#
+# DISPATCH ONLY. It is a done condition, not a standing watch: once the reason
+# has stopped growing across an active interval there is nothing for a schedule
+# to add, and scripts/check-batch-order.mjs in guards.yml is what keeps the
+# defect from coming back.
+#
+# READ-ONLY AND FREE: two GETs of /budget/odds, which reads KV and D1 and never
+# reaches the vendor. No credits.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_seconds:
+        description: 'Seconds between the two samples (the push cron is */5, so 420 gives it at least one firing)'
+        required: false
+        default: '420'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The verdict must be able to come back FAIL and INCONCLUSIVE before a
+      # PASS from it means anything. The quiet-interval case is the one that
+      # matters: a flat count over an interval where nothing happened is not
+      # evidence, and a probe that reported it as a pass would be worse than no
+      # probe at all.
+      - name: the probe can fail
+        run: node scripts/probe-month-degrade-stopped.mjs --self-test
+
+      # pipefail: without it the step's exit code is tee's, which is how run
+      # 35012890540 reported success over a script that exited 1.
+      - name: Probe
+        shell: bash
+        env:
+          PROBE_WAIT_SECONDS: ${{ inputs.wait_seconds }}
+        run: |
+          set -o pipefail
+          STAMP=$(date -u +%Y-%m-%dT%H%M)
+          node scripts/probe-month-degrade-stopped.mjs 2>&1 \
+            | tee "outbox/month-degrade-probe-${STAMP}.log" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): a FAIL is the run carrying the evidence, so its log is the one
+      # most worth keeping.
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="month-degrade-probe" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: month degrade probe"
