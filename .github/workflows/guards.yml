@@ -244,6 +244,20 @@ jobs:
         # .github/scripts/ and scripts/ (which only this job sees). One copy
         # would leave half the change ungated — the same trigger-vs-input gap
         # this file's header describes.
+      # The NHL win probability scorer. The three assertions worth gating are
+      # the ones that pass whether or not they are aimed at anything: a refusal
+      # that silently became 0.5, a label that silently became 'Market
+      # estimate', and an absent goalie that silently became an average one.
+      # Thirteen mutations prove each is load-bearing.
+      - name: The hockey WP scorer still refuses what it cannot read
+        if: always()
+        run: |
+          node scripts/check-hockey-wp.mjs
+          node scripts/mutate-hockey-wp.mjs
+          node scripts/hockey-wp-train.mjs --self-test
+          node scripts/hockey-wp-market.mjs --self-test
+          node scripts/hockey-wp-probe.mjs --self-test
+
       # LAST, AND THAT IS THE POINT. This checked HANDOFF.md's staleness from
       # step 6, and the gates here are sequential steps in ONE job, so its red
       # SKIPPED every step after it: the credential scan's siblings, the odds

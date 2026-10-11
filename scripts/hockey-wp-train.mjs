@@ -25,7 +25,7 @@ import {
   FEATURES, featureVector, stateProblems, trainLogistic, predictFromVector,
   brier, logLoss, reliability, standardise,
   XG_FEATURES, xgFeatureVector, SHOT_TYPES, geometryFromCoords
-} from './hockey-wp-lib.mjs'
+} from '../src/hockey-wp-lib.js'
 
 export const MP_INDEX = 'https://moneypuck.com/data.htm'
 
@@ -90,7 +90,19 @@ export const KEEP = [
 
 // Columns the run can proceed without, each with a named consequence rather
 // than a silent one: no MoneyPuck baseline, or no measured OT term.
-export const OPTIONAL = ['homeWinProbability', 'wentToOT', 'wentToShootout', 'timeLeft', 'gameOver', 'shotWasOnGoal']
+export const OPTIONAL = [
+  'homeWinProbability',   // absent => no vendor-model baseline
+  'wentToOT',             // absent => no measured OT term
+  'wentToShootout',
+  'timeLeft', 'gameOver', 'shotWasOnGoal',
+  // MEASURED 2026-10-11: present in season 2024's file, ABSENT from 2021's.
+  // The run that found this had already parsed 2020 (78,611 rows) and threw
+  // on 2021 — which is why the trainer writes a failure artifact, since the
+  // run log was unreadable. Needed only to key the market join on the test
+  // season, and their absence there is reported rather than silently costing
+  // every match.
+  'homeTeamScore', 'roadTeamScore'
+]
 
 // ── Task 1: xG rows ─────────────────────────────────────────────────────────
 // The vendor's shotType vocabulary is REPORTED, never assumed: an unmapped
@@ -464,7 +476,17 @@ const main = async () => {
   }
 
   let marketJoin = { attempted: false }
-  if (existsSync(marketFile)) {
+  const testHasFinalScores = bySeason[testSeason].length > 0
+    && bySeason[testSeason][0].homeTeamScore !== undefined
+    && bySeason[testSeason][0].roadTeamScore !== undefined
+  if (!existsSync(marketFile)) {
+    marketJoin = { attempted: false, reason: `no market artifact at ${marketFile}` }
+  } else if (!testHasFinalScores) {
+    // Named rather than silent: without the final-score columns the join key
+    // cannot be built, and every game would read as unmatched — which looks
+    // identical to a market that covers nothing.
+    marketJoin = { attempted: false, reason: `season ${testSeason}'s file carries no homeTeamScore/roadTeamScore, so the join key cannot be built` }
+  } else {
     step('joining the market baseline')
     const mk = JSON.parse(readFileSync(marketFile, 'utf8'))
     const espnByKey = new Map()
