@@ -66,6 +66,7 @@ export const parseCsv = (text, keep, optional = []) => {
     idx[k] = i
   }
   if (absent.length) console.log(`    optional columns absent: ${absent.join(', ')}`)
+  parseCsv.lastAbsent = absent
   const rows = []
   for (let i = 1; i < lines.length; i++) {
     const l = lines[i]
@@ -354,6 +355,7 @@ const main = async () => {
 
   mkdirSync('/tmp/mp', { recursive: true })
   const bySeason = {}
+  const absentBySeason = {}
   for (const s of need) {
     step(`fetching season ${s}`)
     const zip = `/tmp/mp/shots_${s}.zip`
@@ -365,6 +367,7 @@ const main = async () => {
     const name = execFileSync('unzip', ['-Z1', zip], { encoding: 'utf8' }).trim().split('\n')[0]
     const csv = execFileSync('unzip', ['-p', zip, name], { encoding: 'utf8', maxBuffer: 1024 ** 3 })
     bySeason[s] = parseCsv(csv, KEEP, OPTIONAL)
+    absentBySeason[s] = parseCsv.lastAbsent || []
     step(`season ${s}: ${bySeason[s].length} shot rows, ${new Set(bySeason[s].map(r => r.game_id)).size} games`)
   }
 
@@ -476,94 +479,115 @@ const main = async () => {
   }
 
   let marketJoin = { attempted: false }
-  const testHasFinalScores = bySeason[testSeason].length > 0
-    && bySeason[testSeason][0].homeTeamScore !== undefined
-    && bySeason[testSeason][0].roadTeamScore !== undefined
   if (!existsSync(marketFile)) {
     marketJoin = { attempted: false, reason: `no market artifact at ${marketFile}` }
-  } else if (!testHasFinalScores) {
-    // Named rather than silent: without the final-score columns the join key
-    // cannot be built, and every game would read as unmatched — which looks
-    // identical to a market that covers nothing.
-    marketJoin = { attempted: false, reason: `season ${testSeason}'s file carries no homeTeamScore/roadTeamScore, so the join key cannot be built` }
   } else {
-    step('joining the market baseline')
+    step('joining the market baseline on the ordinal meeting')
     const mk = JSON.parse(readFileSync(marketFile, 'utf8'))
-    const espnByKey = new Map()
-    const collisions = new Set()
+
+    // THE JOIN KEY IS THE ORDINAL MEETING, NOT THE FINAL SCORE. Season 2023's
+    // shot file carries no homeTeamScore/roadTeamScore — measured, after a run
+    // keyed on them matched nothing — so the key is (home, away, k-th meeting
+    // of the season), with ESPN ordered by date and MoneyPuck by game_id.
+    //
+    // AND THE JOIN VERIFIES ITSELF. For every matched pair the two sources'
+    // OUTCOMES are compared. A mis-ordered join disagrees on roughly half of
+    // them, so an agreement rate near 1 is evidence the ordering is right, and
+    // anything below the floor below refuses the baseline instead of scoring
+    // against a shuffled one. This repository's EPA route reported "149 route
+    // plays, 149 client plays, 0 disagreements" while comparing both sides
+    // against a table only one had unwrapped; agreement on zero is still
+    // agreement, so the comparison here is of outcomes, which can disagree.
+    const AGREEMENT_FLOOR = 0.98
+
+    const espnByPair = new Map()
     for (const g of mk.games || []) {
       const p = (g.providers || []).find(p => p.kind === '3way' || p.kind === '2way')
       if (!p) continue
-      const key = `${g.home}|${g.away}|${g.homeScore}|${g.awayScore}`
-      if (espnByKey.has(key)) collisions.add(key)
-      espnByKey.set(key, { ...g, provider: p })
+      const k = `${g.home}|${g.away}`
+      if (!espnByPair.has(k)) espnByPair.set(k, [])
+      espnByPair.get(k).push({ ...g, provider: p })
     }
-    for (const k of collisions) espnByKey.delete(k)
+    for (const [, arr] of espnByPair) arr.sort((a, b) => String(a.date).localeCompare(String(b.date)))
 
-    const mpFinal = new Map()
+    const mpByPair = new Map()
+    const mpGames = new Map()
     for (const r of bySeason[testSeason]) {
-      const k = `${r.season}-${r.game_id}`
-      if (!mpFinal.has(k)) mpFinal.set(k, {
-        home: r.homeTeamCode, away: r.awayTeamCode,
-        homeScore: num(r.homeTeamScore), awayScore: num(r.roadTeamScore)
-      })
+      const id = `${r.season}-${r.game_id}`
+      if (mpGames.has(id)) continue
+      mpGames.set(id, { home: r.homeTeamCode, away: r.awayTeamCode, homeTeamWon: num(r.homeTeamWon), num: Number(r.game_id) })
+      const k = `${r.homeTeamCode}|${r.awayTeamCode}`
+      if (!mpByPair.has(k)) mpByPair.set(k, [])
+      mpByPair.get(k).push(id)
     }
+    for (const [, arr] of mpByPair) arr.sort((a, b) => mpGames.get(a).num - mpGames.get(b).num)
+
     const { marketProb } = await import('./hockey-wp-market.mjs')
     const probByGame = new Map()
     const kValues = []
-    let matched = 0, unmatched = 0
-    const mpCodes = new Set(), espnCodes = new Set()
-    for (const [, f] of mpFinal) mpCodes.add(f.home)
-    for (const g of mk.games || []) espnCodes.add(g.home)
-    for (const [gameId, f] of mpFinal) {
-      const key = `${f.home}|${f.away}|${f.homeScore}|${f.awayScore}`
-      const hit = espnByKey.get(key)
-      if (!hit) { unmatched += 1; continue }
-      const m = marketProb(hit.provider.homeMoneyLine, hit.provider.awayMoneyLine,
-        model.tieRate, model.otHomeShare)
-      if (m.pHome === null) { unmatched += 1; continue }
-      if (m.detail?.k) kValues.push(+m.detail.k.toFixed(4))
-      probByGame.set(gameId, m.pHome)
-      matched += 1
+    let matched = 0, unmatched = 0, lengthMismatchPairs = 0, outcomeAgree = 0, outcomeDisagree = 0
+    const mpCodes = new Set([...mpGames.values()].map(g => g.home))
+    const espnCodes = new Set((mk.games || []).map(g => g.home))
+
+    for (const [pair, ids] of mpByPair) {
+      const espn = espnByPair.get(pair) || []
+      if (espn.length !== ids.length) { lengthMismatchPairs += 1; unmatched += ids.length; continue }
+      for (let i = 0; i < ids.length; i++) {
+        const mpg = mpGames.get(ids[i]), eg = espn[i]
+        if (mpg.homeTeamWon !== null) {
+          if (mpg.homeTeamWon === eg.homeWon) outcomeAgree += 1; else outcomeDisagree += 1
+        }
+        const m = marketProb(eg.provider.homeMoneyLine, eg.provider.awayMoneyLine, model.tieRate, model.otHomeShare)
+        if (m.pHome === null) { unmatched += 1; continue }
+        if (m.detail?.k) kValues.push(+m.detail.k.toFixed(4))
+        probByGame.set(ids[i], m.pHome)
+        matched += 1
+      }
     }
     kValues.sort((a, b) => a - b)
+    const inspected = outcomeAgree + outcomeDisagree
+    const agreementRate = inspected ? +(outcomeAgree / inspected).toFixed(4) : null
+
     marketJoin = {
-      attempted: true, file: marketFile,
-      espn_games_with_usable_provider: espnByKey.size,
-      espn_key_collisions_dropped: collisions.size,
-      moneypuck_games: mpFinal.size,
-      matched, unmatched,
-      match_rate: mpFinal.size ? +(matched / mpFinal.size).toFixed(4) : null,
+      attempted: true, file: marketFile, key: 'ordinal meeting within the season',
+      espn_pairs: espnByPair.size, moneypuck_pairs: mpByPair.size,
+      moneypuck_games: mpGames.size,
+      matched, unmatched, pairs_with_a_different_number_of_meetings: lengthMismatchPairs,
+      match_rate: mpGames.size ? +(matched / mpGames.size).toFixed(4) : null,
+      outcome_crosscheck: { inspected, agree: outcomeAgree, disagree: outcomeDisagree,
+                            agreement_rate: agreementRate, floor: AGREEMENT_FLOOR,
+                            passed: agreementRate !== null && agreementRate >= AGREEMENT_FLOOR },
       codes_only_in_moneypuck: [...mpCodes].filter(c => !espnCodes.has(c)).sort(),
       codes_only_in_espn: [...espnCodes].filter(c => !mpCodes.has(c)).sort(),
-      // THE RECONSTRUCTION'S OWN FALSIFIABLE CHECK. k is the three-way book
-      // overround implied by the measured tie rate. A real book overrounds
-      // 1.02-1.12; if k lands outside that, the three-way reading is wrong and
-      // the baseline must not be used.
       implied_three_way_overround: kValues.length
         ? { n: kValues.length, min: kValues[0], median: kValues[Math.floor(kValues.length / 2)],
-            max: kValues[kValues.length - 1],
-            plausible_book_range: '1.02 - 1.12',
+            max: kValues[kValues.length - 1], plausible_book_range: '1.02 - 1.12',
             within_range: kValues.every(k => k >= 1.0 && k <= 1.20) }
         : null
     }
-    const marketStates = testStates.filter(s => probByGame.has(s.gameId))
-    results.market = evaluate(marketStates, s => probByGame.get(s.gameId),
-      'de-vigged market (static pre-game, 3-way reconstructed)')
-    results.model_on_market_games = evaluate(marketStates, predModel,
-      'FIELD hockey-wp, market-covered games only')
-    results.moneypuck_on_market_games = evaluate(
-      marketStates.filter(s => s.homeWinProbability !== null), mpWp,
-      'MoneyPuck, market-covered games only')
-    // The market number is ONE PRE-GAME value per game and the model sees the
-    // scoreboard, so beating it over in-game states is close to arithmetic.
-    // This is the comparison that is actually hard: the model at puck drop,
-    // where it knows nothing the market does not.
-    const pregame = marketStates.filter(s => s.elapsedSeconds <= 60)
-    results.market_pregame_only = evaluate(pregame, s => probByGame.get(s.gameId),
-      'de-vigged market, first minute only')
-    results.model_pregame_only = evaluate(pregame, predModel,
-      'FIELD hockey-wp, first minute only — the HARD comparison')
+
+    if (!marketJoin.outcome_crosscheck.passed) {
+      marketJoin.refused = `the join's own outcome cross-check came in at ${agreementRate}, below the ${AGREEMENT_FLOOR} floor — the baseline is NOT used`
+      step(`market join REFUSED: outcome agreement ${agreementRate}`)
+    } else {
+      const marketStates = testStates.filter(s => probByGame.has(s.gameId))
+      results.market = evaluate(marketStates, s => probByGame.get(s.gameId),
+        'de-vigged market (static pre-game, 3-way reconstructed)')
+      results.model_on_market_games = evaluate(marketStates, predModel,
+        'FIELD hockey-wp, market-covered games only')
+      results.moneypuck_on_market_games = evaluate(
+        marketStates.filter(s => s.homeWinProbability !== null), mpWp,
+        'MoneyPuck, market-covered games only')
+      // The market number is ONE PRE-GAME value per game while the model sees
+      // the scoreboard, so beating it across in-game states is close to
+      // arithmetic. This is the comparison that is actually hard: the model at
+      // puck drop, where it knows nothing the market does not.
+      const pregame = marketStates.filter(s => s.elapsedSeconds <= 60)
+      results.market_pregame_only = evaluate(pregame, s => probByGame.get(s.gameId),
+        'de-vigged market, first minute only')
+      results.model_pregame_only = evaluate(pregame, predModel,
+        'FIELD hockey-wp, first minute only — the HARD comparison')
+    }
   }
 
   step('splitting by game state')
@@ -606,6 +630,7 @@ const main = async () => {
              train_states: trainStates.length, train_games: trainGames.size,
              test_states: testStates.length, test_games: testGames.size,
              games_on_both_sides: overlap.length },
+    optional_columns_absent_by_season: absentBySeason,
     premises, xgModel, xgResults, model, results, splits, marketJoin, gate,
     breadcrumbs: BREADCRUMBS,
     coverage: `held-out season ${testSeason}: ${testGames.size} games / ${testStates.length} states; ` +
