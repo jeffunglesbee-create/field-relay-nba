@@ -4,7 +4,64 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (measurement) — **this document ships no model and changes no coefficient**
-**Status:** FILED, not started.
+**Status:** STOPPED AT TASK 1, 2026-10-11, by this document's own stop
+condition: *"If `homeWinProbability` in 2020 is sparse, unit-ambiguous, or on a
+different row grain, STOP and report rather than aligning by assumption."*
+Tasks 2-6 were not executed. Artifact:
+`outbox/hockey-wp-resplit-moneypuck-latest.json` (run 38119987123).
+
+**THE CENTRAL PREMISE IS REFUTED. 2020's `homeWinProbability` IS EMPTY ON
+78,611 OF 78,611 ROWS.**
+
+```
+homeWinProbability   absent_from_header 0   empty 78611   na_literal 0
+                     unparseable 0          usable 0
+                     "present in the header and carrying NO usable value"
+```
+
+This document reads `optional_columns_absent_by_season: { "2020": [] }` as
+"present only in 2020". That list records which columns are **absent from the
+header**, and an empty list means none were. It says nothing about whether any
+row carries a value — which is exactly the presence-versus-population
+distinction the predecessor's own four-state census was built for, applied to
+2024 and never run on 2020.
+
+**So there is no MoneyPuck baseline in ANY season file**, and
+`beats_moneypuck: null` on the shipped artifact is not a gap to be filled. It is
+the correct value. The thing this document set out to measure does not exist in
+the data it planned to measure it from.
+
+Task 1 is explicit about what that means: *"a baseline measured on a biased
+subset of 2020 is worse than `null`, because `null` cannot be quoted."* A
+100% null rate is the limit of that case.
+
+### What the run established anyway
+
+The re-split ran to completion before the column was read, so it carries one
+real result: **a model fit on 2021-2023 and tested on 2020 scores Brier
+0.17404**, against the shipped model's 0.172669 on 2023 and constant-0.5 at
+0.25. Two different models on two different test seasons land within 0.0014 of
+each other. That is weak evidence and it points the same way: the approach, not
+one lucky split, is what produced the number.
+
+Task 6 asked for a tension report if the two disagreed. They do not.
+
+### Done condition 6 held, and it needed enforcing
+
+`src/hockey-wp.js`, `src/hockey-wp-model.js` and
+`outbox/hockey-wp-calibration-latest.json` are **unchanged** — all still at
+commit `a062e1f`. That was not automatic. Taken literally, *"same code path,
+only the split changes"* would have replaced them: the trainer writes
+`hockey-wp-calibration-latest.json` unconditionally and the workflow git-adds
+and pushes it along with the coefficient file. A re-split run would have pushed
+a model fit on a different split over the deployed one, and overwritten the
+evidence its gate rests on. `--out` and `--no-model-write` were added first, and
+the workflow now stages only the artifact a run was told to write.
+
+**What would unblock this document:** a MoneyPuck source that actually carries
+the column — their shots files do not, in any season checked (2020, 2021, 2022,
+2023, 2024). That is a different source, and it needs its own document rather
+than a quiet substitution here.
 
 **Rule F:** comparing our own probability against a published one. Commodity.
 **Rule A:** pull only. No cron.
