@@ -89,8 +89,16 @@ const MUTATIONS = [
   {
     name: 'M10 the walk reads the last PLAY instead of the last shot',
     file: VICTIM,
-    anchor: "      shotsSeen += 1\n      last = play\n    }",
-    replace: "      shotsSeen += 1\n    }\n    last = play\n    if (false) {",
+    // Re-anchored twice. The WPA snapshot block landed between `last = play`
+    // and the closing brace, so the original anchor stopped matching and the
+    // harness reported ANCHOR rather than a false CAUGHT — the corollary doing
+    // its job. The first re-anchor matched but mutated the WRONG THING: it
+    // renamed the assignment target, so `last` was never set at all, which is
+    // a different defect from the one this mutation is named for. This one
+    // assigns `last` from the END of the loop body, outside the shot branch,
+    // which is exactly "the walk reads the last PLAY instead of the last shot".
+    anchor: "    prev = play\n  }\n",
+    replace: "    prev = play\n    if (shotsSeen > 0) last = play\n  }\n",
     expect: 'LAST shot event, not the last play'
   },
   {
