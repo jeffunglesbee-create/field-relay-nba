@@ -60,6 +60,61 @@ export function parseLeagues(src) {
 }
 
 /** Does the catch-up loop refuse a flagged entry, and can it see the flag? */
+// THE SECOND GATE, one loop earlier than the archive one.
+// docs/CC-CMD-2026-08-25-golf-slate-line.md. The archive gate sits at the
+// catch-up WRITE, so a flagged event is still walked, still run through
+// buildGameLine, and still pushed into `gameLines` — which is the journalism
+// PROMPT. Measured on the live feed 2026-10-11 (run 38142889937): the line
+// read `-15 @ -16 · Final · Golf Chnl`, two scores either side of an @ and no
+// names, because golf competitors carry `athlete` and `homeAway` is null on
+// all 72 of them.
+export function slateGateState(src) {
+  return {
+    // The gate, before the fetch rather than at gameLines.push: gameMeta is
+    // pushed in the same block and the odds step indexes one array by the
+    // other's position, so a push-only gate would desynchronise them.
+    gated: /for \(const \{sport,league,label,individual\} of LEAGUES\) \{[\s\S]{0,3000}?if \(individual\) continue;/.test(src),
+    // `individual` must be destructured in THAT loop's head, not just the
+    // catch-up's. Both loops iterate LEAGUES and only one used to carry it.
+    destructured: /for \(const \{sport,league,label,individual\} of LEAGUES\)/.test(src),
+    // And the gate has to sit above the ESPN call it is meant to skip.
+    //
+    // SCOPED TO THE LOOP THAT HOLDS THE GATE. Written first as
+    // `indexOf(fetch, gateIndex) > gateIndex` over the whole file, which
+    // passed its own mutation: there is a SECOND LEAGUES walk further down
+    // (the per-game brief enqueue) with its own identical fetch, so any gate
+    // position had some later fetch to point at. The self-test below moves the
+    // gate under gameLines.push and the loose version still reported
+    // beforeFetch true — an assertion satisfiable without testing its claim.
+    beforeFetch: (() => {
+      const head = src.indexOf('for (const {sport,league,label,individual} of LEAGUES)');
+      if (head < 0) return false;
+      const win = src.slice(head, head + 4000);
+      const g = win.indexOf('if (individual) continue;');
+      const f = win.indexOf('/sports/${sport}/${league}/scoreboard?dates=${espnDate}');
+      return g >= 0 && f >= 0 && g < f;
+    })(),
+  };
+}
+
+// buildGolfCronContext had exactly ONE occurrence for weeks — its own
+// definition — while twenty lines of its body sat copied inline at the slate
+// prompt. The CC-CMD read that single hit as "golf is absent from the prompt";
+// golf was always there, through the copy. The Rule 63 defect was duplication.
+// This asserts the duplicate has not come back: the function is defined once,
+// called at least once, and the inline copy's signature string is gone.
+export function golfBuilderState(src) {
+  const defs = (src.match(/function buildGolfCronContext\(/g) || []).length;
+  const uses = (src.match(/buildGolfCronContext\(/g) || []).length;
+  return {
+    definedOnce: defs === 1,
+    hasCaller: uses - defs >= 1,
+    // The copy's own give-away line. If this string reappears outside the
+    // function, the inline block is back.
+    noInlineCopy: (src.match(/Use leaderboard positions and scores only/g) || []).length === 1,
+  };
+}
+
 export function gateState(src) {
   return {
     // The gate itself.
@@ -104,6 +159,32 @@ if (SELF_TEST) {
     rows !== null && rows.some(r => !TEAM_SPORTS.has(r.sport) && !r.individual),
     'the pre-fix table parsed as compliant');
 
+  // ── the slate gate ──────────────────────────────────────────────────────
+  const sg = slateGateState(good);
+  check('the real source gates the slate walk too',
+    sg.gated && sg.destructured && sg.beforeFetch, JSON.stringify(sg));
+  check('removing the slate gate is detected',
+    !slateGateState(good.replace('if (individual) continue;', '')).gated,
+    'still reported gated with the line deleted');
+  // A gate BELOW the fetch would skip the push and still spend the call. The
+  // CC-CMD's own wording ("gate gameLines.push") describes exactly that.
+  check('a gate placed after the fetch is detected',
+    !slateGateState(good
+      .replace('if (individual) continue;', '')
+      .replace('gameLines.push(line);', 'if (individual) continue; gameLines.push(line);')).beforeFetch,
+    'a gate below the ESPN call passed the before-fetch assertion');
+
+  // ── the golf builder ────────────────────────────────────────────────────
+  const gb = golfBuilderState(good);
+  check('buildGolfCronContext is defined once and called',
+    gb.definedOnce && gb.hasCaller && gb.noInlineCopy, JSON.stringify(gb));
+  check('losing the only caller is detected',
+    !golfBuilderState(good.replace('golfContext = await buildGolfCronContext(espnDate, env, golfData);', "golfContext = '';")).hasCaller,
+    'still reported as having a caller with the call deleted');
+  check('the inline copy coming back is detected',
+    !golfBuilderState(good + "\n// Use leaderboard positions and scores only — never reference strokes gained.\n").noInlineCopy,
+    'a second copy of the give-away line was not noticed');
+
   process.exit(failed === 0 ? 0 : 1);
 }
 
@@ -137,6 +218,18 @@ check('the flagged entries are exactly the non-team ones',
   flagged.every(r => !TEAM_SPORTS.has(r.sport)),
   flagged.filter(r => TEAM_SPORTS.has(r.sport)).map(r => r.label).join('; ') +
   ' — a team sport marked individual would drop real games from the archive');
+
+const sg = slateGateState(src);
+check('the slate walk refuses a flagged event', sg.gated && sg.beforeFetch,
+  `gated=${sg.gated} beforeFetch=${sg.beforeFetch} — without both, a golf event reaches gameLines and the journalism prompt gets a line with two empty names`);
+check('the flag is destructured in the slate loop', sg.destructured,
+  'the loop head does not carry `individual`, so the gate reads undefined and passes everything');
+
+const gb = golfBuilderState(src);
+check('buildGolfCronContext is defined once, called, and not duplicated inline',
+  gb.definedOnce && gb.hasCaller && gb.noInlineCopy,
+  `definedOnce=${gb.definedOnce} hasCaller=${gb.hasCaller} noInlineCopy=${gb.noInlineCopy} — ` +
+  'a second copy of its body inline is how this function spent weeks looking uncalled');
 
 const g = gateState(src);
 check('the catch-up refuses a flagged event', g.gated,

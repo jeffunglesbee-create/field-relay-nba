@@ -746,7 +746,7 @@ jobs:
       # half-applied fix: flag on the table, gate in the loop, and nothing
       # carrying the value between them reads `undefined` and passes everything.
       # Each link is mutated independently in the self-test.
-      - name: no individual-competitor event reaches the archive catch-up
+      - name: no individual-competitor event reaches the archive catch-up or the slate prompt
         run: node scripts/check-individual-sports-not-archived.mjs --self-test && node scripts/check-individual-sports-not-archived.mjs
 
       # A ratchet, not a ban, and the difference is why it can be green today.

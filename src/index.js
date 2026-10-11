@@ -7508,9 +7508,13 @@ async function pickNextBackfillDate(env) {
 // Called during live hours when a PGA tournament is active. Uses the same
 // handleESPNGolfScoreboard that powers /v2/golf/enriched. Returns a context
 // block for the slate prompt or '' when no tournament is live.
-async function buildGolfCronContext(espnDate, env) {
+// `preFetched` exists so the one caller does not pay for a second fetch. The
+// slate path already holds the scoreboard — it needs `golfData` again for the
+// per-round brief — and calling this without it would double every tick's golf
+// request against the same endpoint (Rule 78).
+async function buildGolfCronContext(espnDate, env, preFetched = null) {
   try {
-    const data = await handleESPNGolfScoreboard(espnDate, env, {});
+    const data = preFetched ?? await handleESPNGolfScoreboard(espnDate, env, {});
     if (!data || data.active === false) return '';
     const evName = data.eventName || data.name || 'PGA Tour event';
     const round = data.round ? `Round ${data.round}` : '';
@@ -8429,6 +8433,34 @@ async function handleJournalismCycle(env, opts = {}) {
   const gameMeta = [];
   try {
     for (const {sport,league,label,individual} of LEAGUES) {
+      // AN INDIVIDUAL SPORT HAS NO TWO SIDES, AND buildGameLine INVENTS THEM.
+      // docs/CC-CMD-2026-08-25-golf-slate-line.md. MEASURED on the deployed
+      // ESPN feed, 2026-10-11, run 38142889937
+      // (outbox/golf-slate-line-probe-latest.json): the Baycurrent Classic
+      // returns ONE event with 72 competitors, every one carrying `athlete`
+      // and no `team`, and `homeAway` null on all of them. So
+      // `teams.find(homeAway === 'home') || teams[0]` takes the leaderboard's
+      // top two players, and buildGameLine returned, literally:
+      //
+      //     -15 @ -16 · Final · Golf Chnl
+      //
+      // Two scores either side of an @ and no names at all — fed into the
+      // journalism prompt as an away side scoring -15 at a home side scoring
+      // -16. The controls on the same date prove the formatter is fine:
+      // `Eagles (2-2) 0 @ Jaguars (3-1) 0 · Scheduled · …` and
+      // `Mavericks (1-1) 132 @ Rockets (1-1) 115 · Final · …`.
+      //
+      // THE GATE IS HERE, NOT AT gameLines.push. The CC-CMD asks for the push,
+      // but gameMeta is pushed in the same block and its own comment calls it
+      // "Parallel to gameLines" — the odds-injection step below indexes one by
+      // the other's position. Gating only the push would have desynchronised
+      // them and mis-attributed every odds annotation after the golf entry.
+      // Skipping the league also saves one ESPN call per tick (Rule 78), and
+      // this loop's only outputs are those two arrays.
+      //
+      // Golf still reaches the prompt. It always did — see the `golfContext`
+      // block below, which is where a leaderboard belongs.
+      if (individual) continue;
       try {
         const r = await fetch(`${ESPN_API_BASE}/sports/${sport}/${league}/scoreboard?dates=${espnDate}`);
         if (!r.ok) continue;
@@ -8866,27 +8898,18 @@ async function handleJournalismCycle(env, opts = {}) {
     // Golf tournament context — active PGA events get a leaderboard block in
     // the slate prompt. Uses handleESPNGolfScoreboard (same as /v2/golf/enriched).
     // Enhancement — wrapped per Rule 5.
+    // THIS WAS TWENTY LINES OF buildGolfCronContext, COPIED. The function at
+    // ~7511 and this block built the same string from the same fetch, and
+    // docs/CC-CMD-2026-08-25-golf-slate-line.md read the function's single
+    // grep hit as "it has never been called" and concluded golf was absent
+    // from the prompt. Measured: golf was always in the prompt, through this
+    // copy. The Rule 63 defect was duplication, not a missing feature — so the
+    // fix is to delete the copy rather than add a call beside it.
     let golfContext = '';
     let golfData = null;
     try {
       golfData = await handleESPNGolfScoreboard(espnDate, env, {});
-      if (golfData && golfData.active !== false) {
-        const evName = golfData.eventName || golfData.name || 'PGA Tour event';
-        const round = golfData.round ? `Round ${golfData.round}` : '';
-        const players = (golfData.leaderboard || []).slice(0, 10);
-        if (players.length) {
-          const lbLines = players.map(p => {
-            const pos = p.pos || p.position || '';
-            const tp = p.toPar != null ? String(p.toPar) : 'E';
-            const today = p.today != null ? ` (today ${p.today})` : '';
-            const thru = p.thru ? ` thru ${p.thru}` : '';
-            return `  ${pos} ${p.name} ${tp}${today}${thru}`.trim();
-          });
-          golfContext = ['', `PGA TOUR — ${evName}${round ? ' · ' + round : ''}:`,
-            ...lbLines, 'Use leaderboard positions and scores only — never reference strokes gained.'
-          ].join('\n');
-        }
-      }
+      golfContext = await buildGolfCronContext(espnDate, env, golfData);
     }
     catch (e) { console.error("[GOLF] slate-context fetch failed:", e.message); /* golf context failure cannot break journalism cron */ }
 
