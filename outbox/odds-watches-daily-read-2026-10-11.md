@@ -106,6 +106,25 @@ count that error in the worker's logs or tail for 2026-10-11, or add the count
 to the site-drift artifact. Until then it is a guess, and it is recorded here
 as one.
 
+> **CORRECTION, 2026-10-12.** The two bold sentences above are false. The
+> site-drift artifact ALREADY counted it: `outbox/odds-site-drift-series.json`
+> and `outbox/odds-provider-usage-series.json` store the whole
+> `daily.degraded_open` block per sample, reasons map included, and the
+> 2026-10-11T16:51Z sample reads `events 1183, credits 5849`, with
+> `month: odds budget batch returned 2 result(s), expected 3` at **1072**. Those
+> are the same figures this note dropped as untraceable.
+>
+> The search that missed them looked for the field NAMES `degraded_events` and
+> `degraded_credits`; the series stores `events` and `credits` inside a
+> `degraded_open` object. It never searched `outbox/` for the reason string at
+> all — "nowhere in `outbox/`" was asserted, not measured. Rule 100's
+> corollary, in the note that was careful to cite it.
+>
+> No conclusion changes: the hypothesis was confirmed the same evening by
+> runtime proof and a live read (`docs/CC-CMD-2026-10-11-monthly-batch-degrades-open.md`),
+> and the figures had moved on to 1230 / 5995 by then. What was wrong was the
+> claim that nothing on file could check it.
+
 ## Visible downstream, with one row that does not support it
 
 `field-laboratory/outbox/drift-log.md`, today:

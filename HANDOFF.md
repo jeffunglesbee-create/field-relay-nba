@@ -1,5 +1,38 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-12b — D1 overload degrades
+
+Session doc: `outbox/cc-session-2026-10-12-d1-overload-degrades.md`.
+`docs/CC-CMD-2026-10-11-d1-overload-degrades.md` — **DONE**.
+`docs/CC-CMD-2026-10-12-degrade-reasons-by-hour.md` — filed OPEN per Rule 87.4.
+
+**The odds guard is the WITNESS, not the cause.** Its per-call D1 cost did not
+change and its fetched calls fell 12% (2,149 → 1,891) while overloads rose 12x
+(13 → 155). It is the only D1 caller that counts its own failures, so contention
+on `field-archive` from any writer shows up there first — and on 10-11 the window
+that took 111 of the 155 also held 4 deploys and 5 archive-scanning probes from
+this repo's own CI (87 runs that window vs 25 on the clean 10-09).
+
+Task 1 (merge the guard's batches) **rejected**. Task 2's premise (Cloudflare
+contention, nothing changed here) **not established**. Task 2's action — an
+alert — **adopted**, because a daily-path overload after the ceiling turns a
+veto into a spend.
+
+### Expect a red watch, and it is correct
+
+`odds-pairing-rate-watch` now reads the CLOSED day's `degraded_open` and fails
+over a ratchet budget of 13. Its next scheduled run judges 2026-10-11, which was
+155. **That red is the alert working, not a regression.** Do not dispatch this
+watch to check it: it differences consecutive readings with no window gate.
+
+### Read before trusting the degrade series
+
+`outbox/odds-site-drift-series.json` carries a `reasons` map only from
+2026-10-09T00:44Z. Earlier samples have NO reasons key — "0 overloads" there is
+an absent field. Check the key per row before believing a zero.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-12 — the third odds key
 
 **HEAD:** `1c929a4` → this commit. Session doc:
