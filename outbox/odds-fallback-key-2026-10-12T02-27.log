@@ -1,0 +1,19 @@
+=== odds fallback key probe  utc=2026-10-12T02:27:04.874Z ===
+
+  HTTP 200
+  key_present        : false
+  route verdict      : binding-absent
+  vendor status      : (no vendor call)
+  cf-cache-status    : (none)
+  x-requests-remaining: (absent)
+  x-requests-used    : (absent)
+  x-requests-last    : (absent)
+
+  verdict: BINDING-ABSENT
+  env.ODDS_API_KEY_FALLBACK is not set, so the 401/429 retry can never fire. That is not the same as an invalid key, and it is not good news.
+
+  ODDS-FREE disproof : the vendor sent no x-requests-last, so this call neither confirms nor refutes the annotation
+
+COVERAGE: ONE call, to ONE binding, at one moment. It says whether the key
+authenticates now. It does NOT prove the 401/429 retry path works end to end —
+that needs the primary to actually fail, which this does not arrange.
