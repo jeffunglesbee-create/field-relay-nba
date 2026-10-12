@@ -52,7 +52,7 @@ Add a monthly credit counter to DO storage:
 - If multiple callers: consolidate to single cached path
 
 ### F3: Starter key fallback
-- Add env var `ODDS_API_KEY_FALLBACK` with Starter key (8452c3ac6e226ca6eff8b087391d3c76)
+- Add env var `ODDS_API_KEY_FALLBACK` with Starter key (<redacted 2026-10-12 — see docs/exposed-secrets.sha256>)
 - When primary key returns 401/429, switch to fallback key
 - Fallback has 500 credits — WC-only, live-only, 180s minimum cooldown
 - Log every fallback usage
