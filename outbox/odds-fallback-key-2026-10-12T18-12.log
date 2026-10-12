@@ -1,0 +1,28 @@
+=== odds fallback key probe  utc=2026-10-12T18:12:00.496Z ===
+
+  HTTP 200
+  key_present        : true
+  route verdict      : valid
+  vendor status      : 200
+  cf-cache-status    : MISS
+  x-requests-remaining: 500
+  x-requests-used    : 0
+  x-requests-last    : 0
+  sports in list     : 80
+
+  verdict: VALID
+  the key authenticates, x-requests-remaining 500.
+
+  ODDS-FREE disproof : holds — x-requests-last is 0, the sports list was not billed
+
+COVERAGE: ONE call, to ONE binding, at one moment. It says whether the key
+authenticates now. It does NOT prove the 401/429 retry path works end to end —
+that needs the primary to actually fail, which this does not arrange.
+
+=== binding type  utc=2026-10-12T18:12:01Z ===
+
+  secrets listed     : 19
+  control FIELD_MCP_SECRET : 1
+
+  verdict: SECRET
+  ODDS_API_KEY_FALLBACK is a secret_text binding. It survives wrangler deploy.
