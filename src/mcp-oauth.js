@@ -168,6 +168,34 @@ export async function register(request, env) {
     }, 201);
 }
 
+// ── Enrollment window ───────────────────────────────────────────────────────
+// MCP_ENROLL_UNTIL is an ISO-8601 instant. While it is in the FUTURE, the
+// password check on POST /oauth/authorize is bypassed so the account owner can
+// re-enroll a client without the shared password.
+//
+// WHY THIS EXISTS. FIELD_MCP_SECRET is the only human-typed credential in this
+// system, and it lives in two write-only stores — GitHub Actions secrets and a
+// Cloudflare Worker secret. Neither can display it back. On 2026-10-12 the
+// connector's refresh token lapsed and the owner was locked out of his own
+// single-user server with no recovery path: a credential whose correct,
+// automated provisioning path can never show it, gating a login form. Rotating
+// it does not help, because the rotated value is equally unreadable.
+//
+// FOUR STATES, NOT TWO (Rule 99). unset / unparseable / expired / open are
+// different facts and only the last opens anything. An unparseable value must
+// NOT read as open — a typo would otherwise hold the door permanently, which is
+// the absence-collapse this codebase keeps paying for.
+//
+// THE WINDOW IS THE WHOLE CONTROL. There is no revoke step to forget: it closes
+// by the clock whether or not anyone comes back. Leave it unset in steady state.
+export function enrollmentState(env, now = Date.now()) {
+    const raw = env && env.MCP_ENROLL_UNTIL;
+    if (!raw) return 'unset';
+    const t = Date.parse(raw);
+    if (Number.isNaN(t)) return 'unparseable';
+    return t > now ? 'open' : 'expired';
+}
+
 // ── GET /oauth/authorize — render password prompt ───────────────────────────
 export async function authorizeGet(url, env) {
     const params = url.searchParams;
@@ -196,39 +224,16 @@ export async function authorizeGet(url, env) {
         return html(errorPage('invalid_redirect_uri', 'redirect_uri not registered for this client'), 400);
     }
 
+    // The page must say which state it is in. Drawing an identical password
+    // form whether or not the window is open is the same absence-collapse the
+    // window itself was built to avoid: on 2026-10-12 the owner read the form
+    // as a failed reconnect while it was in fact ready to accept anything.
     return html(passwordPage({
         client_name: client.client_name,
         client_id, redirect_uri, state, scope,
         code_challenge, code_challenge_method,
+        enrollUntil: enrollmentState(env) === 'open' ? env.MCP_ENROLL_UNTIL : null,
     }));
-}
-
-// ── Enrollment window ───────────────────────────────────────────────────────
-// MCP_ENROLL_UNTIL is an ISO-8601 instant. While it is in the FUTURE, the
-// password check on POST /oauth/authorize is bypassed so the account owner can
-// re-enroll a client without the shared password.
-//
-// WHY THIS EXISTS. FIELD_MCP_SECRET is the only human-typed credential in this
-// system, and it lives in two write-only stores — GitHub Actions secrets and a
-// Cloudflare Worker secret. Neither can display it back. On 2026-10-12 the
-// connector's refresh token lapsed and the owner was locked out of his own
-// single-user server with no recovery path: a credential whose correct,
-// automated provisioning path can never show it, gating a login form. Rotating
-// it does not help, because the rotated value is equally unreadable.
-//
-// FOUR STATES, NOT TWO (Rule 99). unset / unparseable / expired / open are
-// different facts and only the last opens anything. An unparseable value must
-// NOT read as open — a typo would otherwise hold the door permanently, which is
-// the absence-collapse this codebase keeps paying for.
-//
-// THE WINDOW IS THE WHOLE CONTROL. There is no revoke step to forget: it closes
-// by the clock whether or not anyone comes back. Leave it unset in steady state.
-export function enrollmentState(env, now = Date.now()) {
-    const raw = env && env.MCP_ENROLL_UNTIL;
-    if (!raw) return 'unset';
-    const t = Date.parse(raw);
-    if (Number.isNaN(t)) return 'unparseable';
-    return t > now ? 'open' : 'expired';
 }
 
 // ── POST /oauth/authorize — verify password, mint code, redirect ───────────
@@ -260,6 +265,7 @@ export async function authorizePost(request, env) {
             client_id, redirect_uri, state, scope,
             code_challenge, code_challenge_method,
             error: 'Incorrect password',
+            enrollUntil: enrollmentState(env) === 'open' ? env.MCP_ENROLL_UNTIL : null,
         }), 401);
     }
 
@@ -404,7 +410,7 @@ export async function debugRecentRequests(request, env) {
 }
 
 // ── HTML templates ──────────────────────────────────────────────────────────
-function passwordPage({ client_name, client_id, redirect_uri, state, scope, code_challenge, code_challenge_method, error }) {
+function passwordPage({ client_name, client_id, redirect_uri, state, scope, code_challenge, code_challenge_method, error, enrollUntil }) {
     const esc = s => String(s || '').replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[c]));
@@ -431,6 +437,10 @@ function passwordPage({ client_name, client_id, redirect_uri, state, scope, code
            margin-top: 16px; cursor: pointer; }
   button:hover { background: #1e4ee0; }
   .error { color: #ff6464; font-size: 13px; margin-top: 8px; }
+  .enroll { background: #2a200a; border: 1px solid #6b5a0a; border-radius: 8px;
+            padding: 14px 16px; margin: 24px 0; font-size: 14px; color: #f0d98a; }
+  .enroll b { color: #ffd84d; }
+  .enroll .when { display: block; margin-top: 6px; color: #b09a4a; font-size: 12px; }
 </style></head><body>
 <h1>FIELD Handoff</h1>
 <p class="sub">Authorize MCP client access</p>
@@ -438,9 +448,13 @@ function passwordPage({ client_name, client_id, redirect_uri, state, scope, code
   <div><b>${esc(client_name)}</b> requests <code>${esc(scope)}</code> scope.</div>
   <div class="meta">redirect_uri: ${esc(redirect_uri)}</div>
 </div>
+${enrollUntil ? `<div class="enroll">
+  <b>Enrollment window open</b> — no password required. Press Authorize.
+  <span class="when">Closes ${esc(enrollUntil)}</span>
+</div>` : ''}
 <form method="POST" action="/oauth/authorize">
-  <label for="password">Password</label>
-  <input type="password" id="password" name="password" autofocus required>
+  ${enrollUntil ? '' : `<label for="password">Password</label>
+  <input type="password" id="password" name="password" autofocus required>`}
   ${error ? `<div class="error">${esc(error)}</div>` : ''}
   <input type="hidden" name="client_id" value="${esc(client_id)}">
   <input type="hidden" name="redirect_uri" value="${esc(redirect_uri)}">
