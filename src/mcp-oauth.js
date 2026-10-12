@@ -203,6 +203,34 @@ export async function authorizeGet(url, env) {
     }));
 }
 
+// ── Enrollment window ───────────────────────────────────────────────────────
+// MCP_ENROLL_UNTIL is an ISO-8601 instant. While it is in the FUTURE, the
+// password check on POST /oauth/authorize is bypassed so the account owner can
+// re-enroll a client without the shared password.
+//
+// WHY THIS EXISTS. FIELD_MCP_SECRET is the only human-typed credential in this
+// system, and it lives in two write-only stores — GitHub Actions secrets and a
+// Cloudflare Worker secret. Neither can display it back. On 2026-10-12 the
+// connector's refresh token lapsed and the owner was locked out of his own
+// single-user server with no recovery path: a credential whose correct,
+// automated provisioning path can never show it, gating a login form. Rotating
+// it does not help, because the rotated value is equally unreadable.
+//
+// FOUR STATES, NOT TWO (Rule 99). unset / unparseable / expired / open are
+// different facts and only the last opens anything. An unparseable value must
+// NOT read as open — a typo would otherwise hold the door permanently, which is
+// the absence-collapse this codebase keeps paying for.
+//
+// THE WINDOW IS THE WHOLE CONTROL. There is no revoke step to forget: it closes
+// by the clock whether or not anyone comes back. Leave it unset in steady state.
+export function enrollmentState(env, now = Date.now()) {
+    const raw = env && env.MCP_ENROLL_UNTIL;
+    if (!raw) return 'unset';
+    const t = Date.parse(raw);
+    if (Number.isNaN(t)) return 'unparseable';
+    return t > now ? 'open' : 'expired';
+}
+
 // ── POST /oauth/authorize — verify password, mint code, redirect ───────────
 export async function authorizePost(request, env) {
     const form = await request.formData();
@@ -214,7 +242,16 @@ export async function authorizePost(request, env) {
     const code_challenge = form.get('code_challenge');
     const code_challenge_method = form.get('code_challenge_method');
 
-    if (!password || password !== env.FIELD_MCP_SECRET) {
+    // The enrollment window, if open, stands in for the password. Logged at
+    // warn level with the client_id and the expiry so the bypass is never
+    // silent — an auth path that opens without leaving a trace is worse than
+    // the lockout it exists to fix.
+    const enroll = enrollmentState(env);
+    if (enroll === 'open') {
+        console.warn(`[mcp-oauth] ENROLLMENT WINDOW OPEN — password bypassed for client_id=${client_id}, closes ${env.MCP_ENROLL_UNTIL}`);
+    }
+
+    if (enroll !== 'open' && (!password || password !== env.FIELD_MCP_SECRET)) {
         const clientRaw = await env.MCP_OAUTH.get(`client:${client_id}`);
         if (!clientRaw) return html(errorPage('invalid_client', 'Unknown client'), 400);
         const client = JSON.parse(clientRaw);

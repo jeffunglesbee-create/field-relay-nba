@@ -1,0 +1,103 @@
+# Open a time-boxed MCP enrollment window.
+#
+# Sets the Worker var MCP_ENROLL_UNTIL to an instant `minutes` from now. While
+# that instant is in the future, POST /oauth/authorize on field-relay-nba
+# accepts an authorization without FIELD_MCP_SECRET and logs the bypass. See the
+# "Enrollment window" block in src/mcp-oauth.js for why this exists.
+#
+# Set minutes: 0 to close the window immediately.
+#
+# A timestamp is not a credential, so this workflow prints the value it set.
+# It must never echo CF_TOKEN, and it must never run under `set -x` -- that is
+# how FIELD_MCP_SECRET leaked on 2026-07-13.
+
+name: Open enrollment window
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Minutes the window stays open (0 closes it now)'
+        required: true
+        default: '15'
+
+permissions:
+  contents: read
+
+jobs:
+  open:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set MCP_ENROLL_UNTIL
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MINUTES: ${{ inputs.minutes }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CF_TOKEN:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is not set on this repository."
+            exit 1
+          fi
+
+          case "$MINUTES" in
+            ''|*[!0-9]*) echo "::error::minutes must be a non-negative integer, got '$MINUTES'"; exit 1 ;;
+          esac
+          if [ "$MINUTES" -gt 60 ]; then
+            echo "::error::refusing a window longer than 60 minutes (got $MINUTES)"
+            exit 1
+          fi
+
+          if [ "$MINUTES" -eq 0 ]; then
+            UNTIL="1970-01-01T00:00:00Z"
+            echo "Closing the enrollment window now."
+          else
+            UNTIL=$(date -u -d "+${MINUTES} minutes" +%Y-%m-%dT%H:%M:%SZ)
+            echo "Opening the enrollment window until ${UNTIL} (${MINUTES} minutes)."
+          fi
+
+          # The value is generated here, not supplied, and is re-validated before
+          # it is interpolated into JSON. No quote, backslash or $ can reach the
+          # request body.
+          if ! printf '%s' "$UNTIL" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'; then
+            echo "::error::computed timestamp failed validation: $UNTIL"
+            exit 1
+          fi
+
+          ACCOUNT="b57e9af57ab46c52ca9215804e689c29"
+          WORKER="field-relay-nba"
+
+          HTTP=$(curl -sS -o /tmp/cf.json -w '%{http_code}' -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/workers/scripts/${WORKER}/secrets" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "{\"name\":\"MCP_ENROLL_UNTIL\",\"text\":\"${UNTIL}\",\"type\":\"secret_text\"}")
+
+          # The response body echoes only the var NAME, never its value, and the
+          # CF token appears nowhere in it.
+          echo "HTTP $HTTP"
+          cat /tmp/cf.json
+          echo
+
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::Cloudflare returned HTTP $HTTP"
+            exit 1
+          fi
+          if ! grep -q '"success":true' /tmp/cf.json; then
+            echo "::error::Cloudflare reported success:false"
+            exit 1
+          fi
+
+          echo "MCP_ENROLL_UNTIL = ${UNTIL}"
+          {
+            echo "### MCP enrollment window"
+            echo
+            if [ "$MINUTES" -eq 0 ]; then
+              echo "Closed."
+            else
+              echo "Open until **${UNTIL}** (${MINUTES} min)."
+              echo
+              echo "Reconnect the FIELD connector now. Any password is accepted"
+              echo "while the window is open; it closes itself."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
