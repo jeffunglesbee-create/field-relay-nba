@@ -233,5 +233,19 @@ must assert the field is READ, never treat a missing one as zero.
    third outcome named, Task 2's action adopted — with the numbers above.
 3. ✅ `watch-odds-pairing-rate.mjs` reads the closed day's `degraded_open` and
    fails on a rise, with the READ-state assertion. Proven by self-test,
-   mutation and an end-to-end run; its first scheduled live verdict is pending
-   and must read `over` for 2026-10-11.
+   mutation and an end-to-end run. **Live verdict confirmed 2026-10-12** by
+   scheduled run `38301876359` (fired 20:04:56Z, 545 min after its 11:00 slot),
+   verbatim from `outbox/odds-pairing-rate-20261012T200503Z.log`:
+
+   ```
+     ── D1 overload, closed day 2026-10-11 (budget 13) ──
+     degraded_open        : over
+     D1 overloads         : 155   (daily + month paths)
+     all degrade events   : 1230
+     month-batch reason   : 1075   (the batch-shape fix of 2026-10-11 should hold this at 0)
+
+   FAIL: 155 D1 overloads on 2026-10-11, over the budget of 13.
+   ```
+
+   Same job: `self-test: 69/69`, `7 of 7 mutations caught.` The live read path
+   returned the real block, not `not-reported` or `unreadable`.

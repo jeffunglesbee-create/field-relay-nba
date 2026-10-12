@@ -1,5 +1,16 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-12f — the D1 overload watch went red on schedule
+
+Scheduled run `38301876359` (20:04:56Z, 545 min late, this workflow's worst
+yet) read closed day 2026-10-11 as `over`, 155 overloads against a budget of
+13, and FAILED. That red is the alert working. `d1-overload-degrades` done
+condition 3 is now VERIFIED, live half included. Self-test 69/69, mutations 7/7.
+
+The same reading shows 2026-10-12 at 20:05Z: `2176 / 3800` and
+`degraded_open` **0 events** of any kind. Tomorrow's run judges 10-12 and should
+read `none`.
+
 ## CHECK-IN — 2026-10-12e — fallback key set, and it is a Secret
 
 `docs/CC-CMD-2026-10-12-starter-key-exposure.md` — **DONE**, rotation included.

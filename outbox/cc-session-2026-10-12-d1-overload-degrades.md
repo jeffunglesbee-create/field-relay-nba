@@ -76,7 +76,7 @@ cannot match itself.
 | CI activity per day's window | **VERIFIED** — Actions API |
 | the predicate | **VERIFIED** — 69/69, 7/7 |
 | the watch's runtime path | **VERIFIED** — end to end against a fake relay |
-| the watch's first live verdict | **STAGED** — next scheduled run of `odds-pairing-rate-watch.yml` (`0 11 * * *`) |
+| the watch's first live verdict | **VERIFIED 2026-10-12T20:05Z** — scheduled run `38301876359`: `degraded_open: over`, `D1 overloads: 155`, FAIL; month-batch `1075`; self-test 69/69 and 7/7 mutations in the same job |
 | attribution of the 155 to a cause | **NOT ESTABLISHED** — needs `by_hour`, filed |
 
 **Credits spent: 0.**
