@@ -79,10 +79,13 @@ jobs:
           cat /tmp/cf.json
           echo
 
-          if [ "$HTTP" != "200" ]; then
-            echo "::error::Cloudflare returned HTTP $HTTP"
-            exit 1
-          fi
+          # Cloudflare returns 201 when the var is created and 200 when an
+          # existing one is overwritten. Both are success; the first run of this
+          # workflow failed on 201 with success:true in the body.
+          case "$HTTP" in
+            200|201) ;;
+            *) echo "::error::Cloudflare returned HTTP $HTTP"; exit 1 ;;
+          esac
           if ! grep -q '"success":true' /tmp/cf.json; then
             echo "::error::Cloudflare reported success:false"
             exit 1
