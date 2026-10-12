@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-12e — fallback key set, and it is a Secret
+
+`docs/CC-CMD-2026-10-12-starter-key-exposure.md` — **DONE**, rotation included.
+
+The owner set `ODDS_API_KEY_FALLBACK` in Cloudflare. Run `38289284222` read
+**VALID** (x-requests-remaining 500, the sports list unbilled) and **SECRET**
+(19 secrets listed, control `FIELD_MCP_SECRET` present).
+
+The second reading is new: `scripts/check-odds-fallback-binding-type.sh`, a step
+in `odds-fallback-key-probe.yml`. A dashboard Text variable reads VALID too, and
+with no `keep_vars` the next deploy erases it. Names and types only, never
+values. Self-test 8/8, mutations 5/5.
+
+Not proved, and stated in the probe's COVERAGE: the 401/429 retry end to end.
+
 ## CHECK-IN — 2026-10-12d — month-degrade probe removed
 
 The 01:47Z probe fired at **08:03Z** (run 38221289092, 376 min late) and read

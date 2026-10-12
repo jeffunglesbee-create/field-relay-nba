@@ -4,11 +4,11 @@
 **Repos:** field-relay-nba and jubilant-bassoon (literals); field-laboratory (tripwire only)
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect) — a live credential in plaintext, and a guard that could not see it
-**Status:** DONE on the exposure. **REOPENED on the rotation**: the probe built
-to verify it found `env.ODDS_API_KEY_FALLBACK` **NOT SET** in the worker, so the
-new key is at the provider and not in the binding. Same half-landed shape as
-2026-09-15, caught this time on the probe's first run. See THE PROBE'S FIRST
-RUN below.
+**Status:** **DONE** — exposure and rotation both. The rotation was REOPENED at
+02:27Z when the probe found `env.ODDS_API_KEY_FALLBACK` **NOT SET**, the same
+half-landed shape as 2026-09-15. The owner set it the same day; at 18:12Z the
+probe read **VALID** (500 remaining) and the binding read **SECRET**, so it
+survives deploys. See CLOSED below.
 
 ## There are three odds keys, and the project's own documents call all three
 ## "the Odds API key"
@@ -212,3 +212,41 @@ The owner sets `ODDS_API_KEY_FALLBACK` in Cloudflare (Workers >
 field-relay-nba > Settings > Variables, or `wrangler secret put
 ODDS_API_KEY_FALLBACK`) to the key rotated on 2026-10-12, then the probe is
 re-dispatched and must read `VALID` with an `x-requests-remaining` near 500.
+
+## CLOSED — 2026-10-12T18:12Z
+
+Two readings, because one could not tell the two dashboard types apart.
+
+Run `38288967181` (18:09Z) and run `38289284222` (18:12Z), verbatim from
+`outbox/odds-fallback-key-2026-10-12T18-12.log`:
+
+```
+  key_present        : true
+  route verdict      : valid
+  vendor status      : 200
+  x-requests-remaining: 500
+  x-requests-used    : 0
+  x-requests-last    : 0
+  verdict: VALID
+
+=== binding type  utc=2026-10-12T18:12:01Z ===
+  secrets listed     : 19
+  control FIELD_MCP_SECRET : 1
+  verdict: SECRET
+```
+
+**Why the second reading exists.** VALID proves the worker can read the key
+now. It does not prove the key will still be there after the next deploy. A
+dashboard variable of type Text and one of type Secret reach the worker under
+the same name; `wrangler.toml` has no `keep_vars`, so `wrangler deploy` would
+erase a Text one. A green VALID over a Text variable would have been this
+morning's half-landed state again, deferred to the next push to `src/`.
+`scripts/check-odds-fallback-binding-type.sh` reads names and types (never
+values) from the Workers secrets API. Its control is `FIELD_MCP_SECRET`, put by
+`deploy.yml` on every deploy and so a Secret by construction. Self-test 8/8,
+five mutations caught 5/5. The fifth survived until a fixture with
+`success:false` beside a full list was added.
+
+**What this still does not prove**, and the probe's own COVERAGE line says so:
+the 401/429 retry end to end. That needs the primary to fail, which nothing
+here arranges, and arranging it would mean spending or breaking the live key.

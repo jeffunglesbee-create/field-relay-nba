@@ -87,7 +87,7 @@ probe as step 3.
 | all three manifests carry the hash | **VERIFIED** |
 | CI | **VERIFIED** — relay `8811a38` guards + deploy success; jubilant-bassoon `6380d41` smoke + both viewport audits success; field-laboratory `1571220` guards success |
 | the key rotated at the provider | **DONE 2026-10-12** by the owner — this is what killed the exposed value |
-| the Cloudflare `ODDS_API_KEY_FALLBACK` binding | **NOT SET** — run `38195821834`, `BINDING-ABSENT`. The new key is not reachable by the worker and the 401/429 retry is a no-op |
+| the Cloudflare `ODDS_API_KEY_FALLBACK` binding | **VERIFIED 2026-10-12T18:12Z** — run `38289284222`: `VALID`, 500 remaining, and `SECRET` (survives deploys). Was `BINDING-ABSENT` at 02:27Z, run `38195821834`, until the owner set it |
 | the fallback probe that found it | **BUILT, and free** — `/debug/odds-fallback-key` + `probe-odds-fallback-key.mjs`, 10 self-tests. `/v4/sports` is not billed, so the 1-2 credit estimate was wrong |
 
 ## Manifest
