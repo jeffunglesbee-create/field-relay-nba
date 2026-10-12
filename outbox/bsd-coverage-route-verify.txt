@@ -1,5 +1,5 @@
 === /bsd/coverage, DEPLOYED  https://field-relay-nba.jeffunglesbee.workers.dev/bsd/coverage
-  HTTP 200  1957B
+  HTTP 200  1958B
   X-Coverage-State: vendor
   Cache-Control   : public, max-age=600
   X-FIELD-Source  : sports.bzzoiro.com
