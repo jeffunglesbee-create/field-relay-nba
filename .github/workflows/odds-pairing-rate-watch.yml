@@ -57,6 +57,14 @@ jobs:
       - name: the watcher can fail
         run: node scripts/watch-odds-pairing-rate.mjs --self-test
 
+      # The D1-overload half was added 2026-10-11 (docs/CC-CMD-2026-10-11-d1-
+      # overload-degrades.md). Its seven mutations are each a way for a database
+      # failing the odds guard to read as healthy, and two of them — `?? 0` and
+      # reading one level above the field — already happened once in a probe.
+      # P7 survived its first run: the null guard existed and nothing proved it.
+      - name: the overload predicate can fail
+        run: node scripts/mutate-odds-pairing-rate.mjs
+
       # pipefail: without it the step's exit code is the last tee's, which is
       # how run 35012890540 reported success over a script that exited 1.
       - name: Watch

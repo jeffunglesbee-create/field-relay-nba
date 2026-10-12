@@ -111,6 +111,73 @@ export function degradeVerdict(prevDegraded, currDegraded, escaped) {
   return { state: delta >= escaped ? 'explains' : 'partial', credits: delta };
 }
 
+/** D1 OVERLOAD ON A CLOSED DAY — docs/CC-CMD-2026-10-11-d1-overload-degrades.md,
+ *  Task 3. Its own predicate, not a branch of degradeVerdict above: that one asks
+ *  whether degrades EXPLAIN a ledger gap; this asks whether the database the odds
+ *  guard writes to is failing it.
+ *
+ *  WHY IT MATTERS IN MONEY. Both guards degrade OPEN on a throw. A daily-path
+ *  overload therefore lets a call spend at the vendor with the daily counter
+ *  unmoved — and AFTER the ceiling it turns a veto into a spend, because the
+ *  vetoed attempt still runs its D1 batch and the throw returns true. Each one is
+ *  a vendor call the ceiling did not see.
+ *
+ *  THE RECORD THIS IS CALIBRATED ON, and it is thin, said plainly: the reasons
+ *  map only exists from 2026-10-09T00:44Z. Every sample before that has NO
+ *  reasons key, so "0 overloads" there is an absent field, not a zero — reading
+ *  it as zero would have manufactured a 22-day clean baseline. The real record
+ *  is three closed days: 2026-10-09 0, 2026-10-10 13, 2026-10-11 155.
+ *
+ *  THE BUDGET IS A RATCHET at 13: the first day overloads appeared, and the day
+ *  before the 12x jump. A 10-11-shaped day fails; a 10-10-shaped day passes and
+ *  says so. Lower it when a measured week runs lower; raise it only with a
+ *  written reason in the same commit.
+ *
+ *  FIVE STATES, and four of them are not "fine" (Rule 99):
+ *    not-reported  the field is absent at daily.degraded_open — the wrong-nesting
+ *                  failure that cost three probe revisions on 2026-10-11
+ *    unreadable    null (the route's own "could not be read") or not an object
+ *    unattributed  events > 0 but no reasons map: degrades happened and their
+ *                  causes are invisible — the instrument regressed
+ *    none / within / over   read, attributed, and counted against the budget
+ *
+ *  An absent KV key comes back as {events:0, credits:0, last:null} — a real zero,
+ *  read and empty, and the one case where no reasons map is correct. */
+export const D1_OVERLOAD_BUDGET = 13;
+export const D1_OVERLOAD_MARK   = 'D1 DB is overloaded';
+export const MONTH_BATCH_MARK   = 'odds budget batch returned 2 result(s), expected 3';
+// The overflow bucket's NAME comes from the writer, not a copy of it: if
+// budget-helpers.js renames it, a copied string here would silently stop
+// matching and an overflowed overload would read as none.
+const { DEGRADE_OTHER_KEY } = await import('../src/budget-helpers.js');
+export { DEGRADE_OTHER_KEY };
+
+export function d1OverloadVerdict(block, budget = D1_OVERLOAD_BUDGET) {
+  if (block === undefined) return { state: 'not-reported', overloads: null };
+  if (block === null || typeof block !== 'object' || Array.isArray(block)) {
+    return { state: 'unreadable', overloads: null };
+  }
+  const events = Number(block.events);
+  if (block.events === null || block.events === undefined || !Number.isFinite(events)) {
+    return { state: 'unreadable', overloads: null };
+  }
+  if (events === 0) return { state: 'none', overloads: 0, events: 0, monthBatch: 0, overflow: 0 };
+  const reasons = block.reasons;
+  if (!reasons || typeof reasons !== 'object' || Array.isArray(reasons)) {
+    return { state: 'unattributed', overloads: null, events };
+  }
+  let overloads = 0, monthBatch = 0, overflow = 0;
+  for (const [k, v] of Object.entries(reasons)) {
+    const n = Number(v) || 0;
+    if (k.includes(D1_OVERLOAD_MARK)) overloads += n;
+    if (k.includes(MONTH_BATCH_MARK)) monthBatch += n;
+    if (k === DEGRADE_OTHER_KEY) overflow += n;
+  }
+  const base = { overloads, events, monthBatch, overflow, budget };
+  if (overloads === 0) return { state: 'none', ...base };
+  return { state: overloads > budget ? 'over' : 'within', ...base };
+}
+
 /** CI SPENDS AT THE VENDOR WITHOUT TOUCHING OUR LEDGER, BY CONSTRUCTION.
  *  odds-backfill.js runs in GitHub Actions and calls the Odds API directly;
  *  consumeOddsCredit lives in the worker and never sees it. So a positive
@@ -266,7 +333,8 @@ if (SELF) {
   // ── CI spend, subtracted from the escape so the alarm is on the residual ──
   // This file had no scalar assertion helper — the loops above count `bad`
   // inline. One is defined here rather than reshaping them (Rule 69).
-  const one = (label, got, want, why) => got === want
+  let ones = 0;
+  const one = (label, got, want, why) => (ones++, got === want)
     ? console.log(`  PASS  ${label} -> ${got}  (${why})`)
     : (bad++, console.log(`  FAIL  ${label}: got ${got} want ${want}  (${why})`));
   const PR = (completed_at, credits_used) => ({ date: 'x', completed_at, credits_used });
@@ -362,16 +430,62 @@ if (SELF) {
   one('a midnight rollover is unreadable', degradeVerdict(DG(900), DG(20), 347).state, 'unreadable',
       'the daily counter restarted; clamping would claim "no degradation" on exactly that reading');
 
+  // D1 OVERLOAD ON A CLOSED DAY. The three real days first, verbatim from
+  // outbox/odds-site-drift-series.json, so the calibration is the record.
+  const OVL = 'daily: D1_ERROR: D1 DB is overloaded. Requests queued for too long.';
+  const OVM = 'month: D1_ERROR: D1 DB is overloaded. Requests queued for too long.';
+  const MB  = 'month: odds budget batch returned 2 result(s), expected 3';
+  const day09 = { events: 801, credits: 2997, reasons: { [MB]: 801 }, last: '2026-10-09T21:00:54Z' };
+  const day10 = { events: 925, credits: 4431, reasons: { [MB]: 912, [OVL]: 6, [OVM]: 7 } };
+  const day11 = { events: 1230, credits: 5995, reasons: { [MB]: 1075, [OVL]: 77, [OVM]: 78 } };
+  one('real 2026-10-09: reasons present, no overload', d1OverloadVerdict(day09).state, 'none',
+      'a read, attributed zero — the only clean day on record');
+  one('real 2026-10-10: 13 overloads sits AT the budget', d1OverloadVerdict(day10).state, 'within',
+      'the budget is 13, set on this day');
+  one('real 2026-10-10: both paths are summed', d1OverloadVerdict(day10).overloads, 13,
+      'daily 6 + month 7 — counting one path would report half the failures');
+  one('real 2026-10-11 FAILS', d1OverloadVerdict(day11).state, 'over',
+      'the 12x day; a watch that passed it would be the reason this document exists');
+  one('the month-batch reason is reported beside it', d1OverloadVerdict(day11).monthBatch, 1075,
+      'a free daily runtime check on the batch-shape fix: post-fix this must read 0');
+
+  // RULE 99, and both lessons from the three probe revisions on 2026-10-11.
+  one('undefined is not-reported, not zero', d1OverloadVerdict(undefined).state, 'not-reported',
+      'the field missing at daily.degraded_open — the wrong-nesting failure');
+  one('null is unreadable, not zero', d1OverloadVerdict(null).state, 'unreadable',
+      'the route returns null when the KV read failed; ?? 0 here is the original defect');
+  one('a non-object is unreadable', d1OverloadVerdict([]).state, 'unreadable');
+  one('events missing is unreadable, not zero', d1OverloadVerdict({ credits: 0 }).state, 'unreadable',
+      'Number(undefined) is NaN — caught by the finiteness test alone');
+  // The case the line above does NOT cover, found by mutation P7 surviving: the
+  // explicit null guard existed and nothing proved it. Number(null) is 0, which
+  // is finite, so without the guard this reads as a real, read, empty day.
+  one('events NULL is unreadable, not zero', d1OverloadVerdict({ events: null, credits: 0 }).state, 'unreadable',
+      'Number(null) is 0 and finite — only the explicit null check stops it reading as a clean day');
+  one('an absent KV key is a REAL zero', d1OverloadVerdict({ events: 0, credits: 0, last: null }).state, 'none',
+      'the one shape where no reasons map is correct');
+  one('events without reasons is UNATTRIBUTED', d1OverloadVerdict({ events: 245, credits: 1263 }).state, 'unattributed',
+      'every sample before 2026-10-09T00:44Z looked like this; reading it as zero manufactures a clean baseline');
+  one('the overflow bucket is surfaced, not dropped',
+      d1OverloadVerdict({ events: 9, reasons: { [DEGRADE_OTHER_KEY]: 9 } }).overflow, 9,
+      'overloads past the 8-reason cap land here and would otherwise read as none');
+  one('an explicit budget is honoured', d1OverloadVerdict(day10, 12).state, 'over');
+
   for (const [daily, want, why] of CEILING) {
     const got = ceilingVerdict(daily).state;
     got === want ? console.log(`  PASS  ceiling: ${want.padEnd(27)} (${why})`)
                  : (bad++, console.log(`  FAIL  ceiling: got ${got} want ${want}  (${why})`));
   }
 
-  const _n = CASES.length + INTEGRITY.length + CEILING.length + 32;
+  // COUNTED, NOT WRITTEN DOWN. This was `+ 32`, the number of one() calls on the
+  // day it was typed, and adding an assertion without editing it would have
+  // printed a denominator that was quietly wrong — the Rule 91 failure, inside
+  // the self-test that exists to prevent it.
+  const _n = CASES.length + INTEGRITY.length + CEILING.length + ones;
   console.log(bad ? `\n${bad} FAILED` : `\nself-test: ${_n}/${_n}`);
-  console.log(`COVERAGE: six predicates on synthetic readings. None exercises D1, the`);
-  console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers.`);
+  console.log(`COVERAGE: seven predicates on synthetic readings. None exercises D1, the`);
+  console.log(`provider, or the cron. Two cases replay real 2026-09-16 numbers, three the real`);
+  console.log(`2026-10-09/10/11 degrade counters.`);
   process.exit(bad ? 1 : 0);
 }
 
@@ -559,6 +673,63 @@ if (integrity.state === 'no_baseline') {
             : nowPaired - basePaired}`);
 }
 
+// ── D1 OVERLOAD, ON THE CLOSED DAY ──────────────────────────────────────────
+// A SEPARATE READ, because the one above is the RUNNING day at ~11:00Z and the
+// overloads arrive in the afternoon peak: on 2026-10-11 the count was 0 at
+// 09:21Z and 111 by 16:29Z. A running-day read at this hour would pass that day.
+// ?date= reads a closed day, which makes the verdict immune to the 104-405
+// minute runner delay measured here, and the 2-day TTL covers yesterday.
+const OVL_DAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+let ovl = { state: 'unreadable', overloads: null }, ovlWhy = '';
+try {
+  const rr = await fetch(`${RELAY}/budget/odds?date=${OVL_DAY}`, { headers: { Accept: 'application/json' } });
+  if (!rr.ok) {
+    ovlWhy = `/budget/odds?date=${OVL_DAY} returned HTTP ${rr.status}`;
+  } else {
+    const bj = await rr.json();
+    const d = bj && bj.daily;
+    if (!d || d.date !== OVL_DAY) {
+      ovlWhy = `asked for ${OVL_DAY}, got ${JSON.stringify(d && d.date)} — ?date= was not honoured`;
+    } else if (d.is_today === true) {
+      ovlWhy = `${OVL_DAY} is still running; a day must be CLOSED before its total means anything`;
+    } else {
+      // hasOwnProperty, not `d.degraded_open ?? ...`: whether the key is THERE
+      // is the answer to "is the field reported", and defaulting it away is the
+      // coercion that hid it once already.
+      ovl = d1OverloadVerdict(Object.prototype.hasOwnProperty.call(d, 'degraded_open') ? d.degraded_open : undefined);
+    }
+  }
+} catch (e) { ovlWhy = `the closed-day read threw: ${e.message}`; }
+
+console.log(`\n  ── D1 overload, closed day ${OVL_DAY} (budget ${D1_OVERLOAD_BUDGET}) ──`);
+if (ovlWhy) {
+  console.log(`  NOT READ: ${ovlWhy}`);
+} else {
+  console.log(`  degraded_open        : ${ovl.state}`);
+  if (ovl.overloads !== null) console.log(`  D1 overloads         : ${ovl.overloads}   (daily + month paths)`);
+  if (ovl.events !== undefined) console.log(`  all degrade events   : ${ovl.events}`);
+  if (ovl.monthBatch !== undefined) console.log(`  month-batch reason   : ${ovl.monthBatch}   (the batch-shape fix of 2026-10-11 should hold this at 0)`);
+  if (ovl.overflow) console.log(`  overflow bucket      : ${ovl.overflow}   (reasons past the cap — overloads could be hiding here)`);
+}
+if (ovlWhy || ['over', 'unattributed', 'not-reported', 'unreadable'].includes(ovl.state)) {
+  failed = true;
+  if (ovlWhy) {
+    console.log(`\nFAIL: the closed-day degrade counter for ${OVL_DAY} could not be read (${ovlWhy}).`);
+    console.log(`      A watch that cannot see the thing it watches does not get to pass.`);
+  } else if (ovl.state === 'over') {
+    console.log(`\nFAIL: ${ovl.overloads} D1 overloads on ${OVL_DAY}, over the budget of ${ovl.budget}.`);
+    console.log(`      Each is a degrade-OPEN: a vendor call the counter did not see, and after`);
+    console.log(`      the daily ceiling a veto turned into a spend. The odds guard REPORTS this;`);
+    console.log(`      it is the only D1 caller that counts its failures, which makes it the`);
+    console.log(`      witness, not necessarily the cause. docs/CC-CMD-2026-10-11-d1-overload-degrades.md.`);
+  } else if (ovl.state === 'unattributed') {
+    console.log(`\nFAIL: ${ovl.events} degrade events on ${OVL_DAY} and NO reasons map. Degrades`);
+    console.log(`      happened and their causes are invisible — the instrument regressed.`);
+  } else {
+    console.log(`\nFAIL: daily.degraded_open on ${OVL_DAY} is ${ovl.state}. That is not a zero (Rule 99).`);
+  }
+}
+
 series.push(reading);
 fs.writeFileSync(SERIES, JSON.stringify(series.slice(-120), null, 2) + '\n');
 console.log(`\n  wrote ${SERIES} (${Math.min(series.length, 120)} reading(s) kept)`);
@@ -584,7 +755,8 @@ if (cap.over) {
 }
 
 if (!failed) console.log(`\nPASS: every date that spent credits paired at least one game, our ledger`);
-if (!failed) console.log(`captured everything the vendor billed, and the daily counter is under its cap.`);
+if (!failed) console.log(`captured everything the vendor billed, the daily counter is under its cap, and`);
+if (!failed) console.log(`yesterday's D1 overloads were read, attributed, and at or under ${D1_OVERLOAD_BUDGET}.`);
 
 console.log(`\nCOVERAGE: ${rows.length} progress rows since ${since}, ${series.length} provider reading(s).`);
 console.log(`odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an`);
