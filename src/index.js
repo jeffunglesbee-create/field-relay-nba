@@ -701,13 +701,19 @@ const ODDS_BASE    = 'https://api.the-odds-api.com';
 //   ODDS_API_KEY_FALLBACK   Starter-tier key (500 credits / month) — used as a
 //                           runtime fallback when the primary returns 401/429
 //                           (exhausted or rate-limited). Set via dashboard.
-//                           NEVER ROTATED, and its value sat in six plaintext
-//                           copies across two repos until 2026-10-12. The
-//                           literals are gone and both ratchets now pin it at
-//                           0, but it is in git history in both repos and
-//                           history was not rewritten — so rotating it at the
-//                           provider is the only thing that ends it. Owner's
-//                           step. docs/CC-CMD-2026-10-12-starter-key-exposure.md.
+//                           Rotated 2026-10-12 by the owner, after its value
+//                           was found in six plaintext copies across two repos.
+//                           The literals are gone, both ratchets pin it at 0,
+//                           and the rotation is what made the copies still in
+//                           git history harmless.
+//                           NOT PROBED BY ANYTHING. This binding only engages
+//                           when the primary returns 401/429, so a bad value
+//                           here first shows up on the day the primary is
+//                           exhausted — the worst day to find out. Nothing in
+//                           scripts/ or .github/workflows/ reads it; the
+//                           2026-09-15 outage was the same shape, a store
+//                           nobody probed.
+//                           docs/CC-CMD-2026-10-12-starter-key-exposure.md.
 // THE HARD-CODED KEY WAS REMOVED 2026-08-25.
 //
 // It was a live API credential in a tracked file, and it was the THIRD level of

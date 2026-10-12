@@ -4,8 +4,10 @@
 **Repos:** field-relay-nba and jubilant-bassoon (literals); field-laboratory (tripwire only)
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect) — a live credential in plaintext, and a guard that could not see it
-**Status:** DONE 2026-10-12 for everything automatable. **One step is the owner's
-and is NOT done: rotating the key at the provider.**
+**Status:** DONE 2026-10-12. All five done conditions met. The owner rotated the
+Starter-plan key at the provider on 2026-10-12, which is the step redaction
+could not substitute for — the value in both repos' git history is now dead.
+**Unverified by any instrument, and that is a real gap: see the closing note.**
 
 ## There are three odds keys, and the project's own documents call all three
 ## "the Odds API key"
@@ -121,8 +123,38 @@ one look identical from one green probe."*
    green after redaction.
 3. ✅ Zero occurrences across all four repos, by hash.
 4. ✅ The source comment names both stores and the probe step.
-5. ❌ **The owner rotates the Starter-plan key at The Odds API and sets the new
-   value in the Cloudflare `ODDS_API_KEY_FALLBACK` binding.** Until then the
-   value in git history is live. There is no GitHub Actions copy of this one —
-   only the Cloudflare binding — so unlike 2026-09-15 it is a single-store
-   rotation.
+5. ✅ **The owner rotated the Starter-plan key at The Odds API and set the
+   Cloudflare `ODDS_API_KEY_FALLBACK` binding, 2026-10-12.** Single store —
+   there is no GitHub Actions copy of this key — so unlike 2026-09-15 there was
+   no second store to fall out of step. The value in both repos' git history is
+   now dead, which is the only thing that ever ended it.
+
+## THE ROTATION IS UNVERIFIED, and nothing in this repo can verify it
+
+Stated plainly rather than closed over. `scripts/probe-relay-odds-key-live.mjs`
+tests `env.ODDS_API_KEY` through `/odds/v4/sports`. **No script, workflow or
+route touches `ODDS_API_KEY_FALLBACK` at all** — measured 2026-10-12:
+`grep -rln ODDS_API_KEY_FALLBACK scripts/ .github/workflows/` returns nothing.
+
+That is the same shape as the 2026-09-15 incident: a store nobody probed. There
+it was the GitHub copy; here it is the fallback binding. The fallback only
+engages when the primary returns 401 or 429, so it cannot be exercised
+incidentally — it will first be used in anger, on the day the primary is
+exhausted, which is the worst day to discover a bad value.
+
+Two ways to close it, neither taken without approval:
+
+1. **A fallback probe, 1-2 credits.** One vendor call using the fallback key,
+   reporting status and `x-requests-remaining` only. A fresh Starter key should
+   read near 500. This is the instrument that should have existed since the
+   fallback was written.
+2. **The dead-value check, 0 credits.** Send the PRE-rotation value and require
+   a 401. A 401 is not billed, and it proves the rotation took effect at the
+   provider rather than merely that a binding was set. Rejected for now: it
+   needs a pipeline that reads a credential out of git history into a runner,
+   and a credential that must never be printed is a poor thing to build a
+   workflow around when option 1 answers the same question without it.
+
+Until one runs, "rotated" rests on the owner's report, which is the correct
+basis for an action only they can take — but it is not a measurement, and this
+document does not record it as one.

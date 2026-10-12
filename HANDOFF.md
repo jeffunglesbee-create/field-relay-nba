@@ -46,13 +46,26 @@ secret AND GitHub Actions secret) and they were updated ~70 minutes apart, with
 ~16 minutes of observed worker-side 401s. `src/index.js`'s key comment named one
 store; it now names both and carries the probe as step 3.
 
-### Carry-forward — one, and it is the owner's
+### Closed same day — the owner rotated it
 
-Rotate the Starter-plan key at The Odds API and set the new value in the
-Cloudflare `ODDS_API_KEY_FALLBACK` binding. The old value is in git history in
-two repos and history was not rewritten, so redaction stopped it spreading and
-rotation is what ends it. Single store this time — there is no GitHub Actions
-copy of this key.
+The Starter-plan key was rotated at the provider on 2026-10-12. The old
+literals are still readable in both repos' git history, which was not
+rewritten, but they no longer read out a credential. Redaction stopped the
+spread; rotation is what ended it. Single store — no GitHub Actions copy of
+this key — so there was no second store to fall out of step.
+
+### Carry-forward — the verification gap, and it is ours
+
+**Nothing probes `ODDS_API_KEY_FALLBACK`.** Measured 2026-10-12:
+`grep -rln ODDS_API_KEY_FALLBACK scripts/ .github/workflows/` returns nothing.
+`probe-relay-odds-key-live.mjs` tests the PRIMARY key only.
+
+That is the 2026-09-15 shape again — a store nobody probed. The fallback
+engages only on a 401/429 from the primary, so a bad value here surfaces on the
+day the primary is exhausted, which is the worst day to find out. The
+instrument costs 1-2 credits (one vendor call reading status and
+`x-requests-remaining`; a fresh Starter key reads near 500) and needs approval
+before it runs.
 
 ---
 
