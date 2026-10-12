@@ -296,7 +296,7 @@ jobs:
           node scripts/check-empty-catches.mjs --self-test
           node scripts/check-empty-catches.mjs src scripts \
             --baseline=112 \
-            --require=src/ambient-do.js:306 \
+            --require=src/ambient-do.js:311 \
             --control
           node scripts/mutate-empty-catches.mjs
 

@@ -13,7 +13,11 @@
 // mutate-odds-attribution.mjs quotes call sites as anchors; neither makes a
 // guarded call. Excluded by name rather than by the list quietly being
 // shorter than the population.
-// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs
+// check-odds-live-disabled.mjs quotes the ambient charge statement as an
+// anchor — it asserts the odds-live 404 guard returns BEFORE that line — and
+// makes no guarded call of its own. Same reason as the two above, and named
+// here rather than letting the list be quietly shorter than the population.
+// SCOPE-EXCLUDES: scripts/check-odds-calls-guarded.mjs scripts/mutate-odds-attribution.mjs scripts/check-odds-live-disabled.mjs
 //
 // THIS FILE ALSO SCANS reconcileOddsCredit as of 2026-09-16, and its population
 // is the same three files by construction: the equality it asserts is between

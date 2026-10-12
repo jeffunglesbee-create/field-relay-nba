@@ -50,7 +50,12 @@ import { readFileSync } from 'node:fs';
 // defc1e1) — so four route blocks sat unshipped while their documents read
 // DONE. A prose pointer is enough to widen a population; a widened population
 // is enough to stop a deploy.
-// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs
+// probe-odds-live-endpoint.mjs reaches the vendor host unguarded, deliberately
+// and harmlessly: it sends the literal string INVALID_KEY_FOR_PATH_TEST to ask
+// whether a PATH resolves (401) or does not (404). Neither answer is billable,
+// so there is no credit for a guard to charge. It is dispatch-only and is the
+// run that established /odds-live is a 404.
+// SCOPE-EXCLUDES: src/budget-helpers.js src/odds-consumer-rules.js src/odds-shape.js scripts/mutate-scope-claims.mjs .github/scripts/odds-backfill.js scripts/targeted-odds-fill.mjs scripts/probe-odds-api.mjs scripts/odds-spread-shape-probe.mjs scripts/diagnose-cfb-name-join.mjs scripts/watch-odds-pairing-rate.mjs src/route-provenance.js scripts/build-route-provenance.mjs scripts/check-odds-reconciled.mjs scripts/check-scope-claims.mjs scripts/probe-odds-live-endpoint.mjs
 const FILES = ['src/index.js', 'src/ambient-do.js', 'src/wp-resolver.js'];
 
 // A guard that charges the MONTHLY counter. checkAndIncrementDailyOdds is

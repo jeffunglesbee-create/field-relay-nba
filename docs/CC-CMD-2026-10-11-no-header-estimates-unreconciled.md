@@ -4,9 +4,84 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** B (gap) — the instrumentation exists and nobody had read it against the residual
-**Status:** OPEN. Filed rather than deferred, per Rule 87.4, by
+**Status:** DONE 2026-10-11. Task 0 settled it for zero credits against a
+budgeted 1-2, and the answer was neither of the two branches this document
+enumerated. Filed originally per Rule 87.4 by
 `docs/CC-CMD-2026-10-11-monthly-batch-degrades-open.md`, whose Task 1 refuted
 two candidate causes for this and so had to say where the real one goes.
+
+## TASK 0 — THE ANSWER, and it is not EXPIRED revalidation
+
+**`/v4/sports/{sport}/odds-live` is a 404. The vendor does not serve it.**
+
+Run `38186065943`, from a runner, with the literal key
+`INVALID_KEY_FOR_PATH_TEST`, so nothing was billable:
+
+```
+/v4/sports/soccer_fifa_world_cup/odds       401 INVALID_KEY
+/v4/sports/soccer_fifa_world_cup/odds-live  404 Not Found
+/v4/sports/soccer_epl/odds                  401 INVALID_KEY
+/v4/sports/soccer_epl/odds-live             404 Not Found
+```
+
+The control carries the result: `/odds` resolving to an auth error on both
+sport keys means the keys are right and the path is not. Both paths 404ing
+would have meant a bad sport key, and the probe REFUSES in that case rather
+than concluding — one of its ten self-tests, and the one that matters.
+
+So every `ambientFetchLiveOdds` call was a 404. A 404 carries no
+`x-requests-last`, which is exactly why reconcile recorded `no-header` on every
+one; a 404 is also billed nothing, which is why the vendor's figure never moved
+with ours. And `if (!r.ok) return;` sits below the fetch — **the function has
+never produced a single odds row in its life**, while the line above the fetch
+charged 2 credits per attempt.
+
+`oddsCreditCost` on that URL returns 2, which is where the exact 2.0 per call
+came from: 2074/1037, 796/398, 674/337, 578/289, all four exact.
+
+**This document's own Task 0 instruction was wrong and had to be refuted before
+it could be followed.** It said to probe *"from a runner with the same `cf`
+options"*. `cf` is a Workers-only argument to `fetch`; a runner cannot set it,
+and `cf-cache-status` never appears on a request that does not pass through the
+relay. Had that instruction been followed literally it would have produced a
+confident reading of a cache state that was never the mechanism.
+
+**The EXPIRED premise is dead, not confirmed.** `cache: EXPIRED` on every
+no-header row is Cloudflare caching the 404 response, not a revalidation of a
+real payload. Neither Task 1 nor Task 2 below applies: the charge is not right
+and the receipt is not lost — there was never a call to bill.
+
+## THE DECISION — a third answer, stated
+
+Not "refund EXPIRED" (Task 1) and not "stop routing through cacheEverything"
+(Task 2). **Stop making the call, and do not repoint it without a budget.**
+
+`ODDS_LIVE_PATH_404` returns before the charge. Repointing at `/odds` would make
+eleven sports of 15-second polling start billing for real against a ceiling
+already reached at 14:03:59Z, and `src/odds-sport-keys.js` says plainly that
+raising ambient's coverage is a budget change made under its own document. That
+decision is `docs/CC-CMD-2026-10-11-odds-live-path-404.md`.
+
+Held by `scripts/check-odds-live-disabled.mjs` in `guards.yml`: 7/7, six
+mutations, including the guard moved BELOW the charge — still disabled, still
+spending, and the half a reading would miss.
+
+## TASK 3 — the residual stops carrying it silently
+
+`noHeaderCredits` in `watch-odds-daily-vs-vendor.mjs` reports the tally beside
+the residual rather than inside it:
+
+```
+  unreconciled estimate  : 2074 over 1037 call(s) in state no-header
+                           from ambientFetchLiveOdds
+  residual after it      : 107   (the part no named cause accounts for)
+```
+
+Beside, not folded in: netting it out would silently reclassify days, and the
+verdict's three states are what every other watch quotes. Null rather than zero
+when the tally cannot be read. Seven new self-tests, 20 total, and two new
+mutations — a null tally reading as nothing unreconciled, and reconciled rows
+counted as unreconciled, which would make any day look fully explained.
 
 ## The measurement nobody had made
 
@@ -118,7 +193,16 @@ contains a known quantity is not a measurement.
 
 ## Done conditions
 
-1. Every response header from one `EXPIRED` revalidation, committed verbatim.
-2. A stated decision between Task 1 and Task 2, with the headers as its reason.
-3. The next closed day's watch-1 residual inside tolerance, or the `no-header`
-   tally named inside the residual so what remains is genuinely unexplained.
+1. ~~Every response header from one `EXPIRED` revalidation, committed
+   verbatim.~~ **Not met as written, and it should not be.** There was never an
+   EXPIRED revalidation of a real endpoint to capture — the responses were
+   cached 404s. The condition asked for evidence of a mechanism that does not
+   exist. What stands in its place is the probe output above, committed verbatim
+   in `outbox/odds-live-endpoint-2026-10-11T2355.log`, which answers the
+   question the condition was trying to ask.
+2. ✅ A stated decision, with the measurement as its reason — a third answer,
+   neither Task 1 nor Task 2, and the document says why both were wrong.
+3. ✅ The `no-header` tally is named inside the residual, with its own
+   mutations. The first clause — the next closed day's residual inside
+   tolerance — is now a prediction of this fix and is
+   `docs/CC-CMD-2026-10-11-odds-live-path-404.md`'s done condition 3.
