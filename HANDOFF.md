@@ -1,5 +1,58 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-11f — the overcharge was a 404 loop
+
+**HEAD:** `1c929a4` → this commit. Hashes and run ids are in the session doc's
+manifest. Session doc: `outbox/cc-session-2026-10-11-odds-live-404.md`.
+
+`docs/CC-CMD-2026-10-11-no-header-estimates-unreconciled.md` — **DONE**, for
+zero credits against a budgeted 1-2, and the answer was neither branch it
+enumerated. `docs/CC-CMD-2026-10-11-odds-live-path-404.md` filed OPEN per Rule
+87.4: repoint or delete, and either way it is a budget decision.
+
+### The finding
+
+`_fetchLiveOdds` called `/v4/sports/{sport}/odds-live`. The vendor 404s that
+path — run `38186065943`, invalid key, with `/odds` returning 401 on the same
+sport keys as the control. So every call was a 404, the function has never
+produced an odds row, and the line above its fetch charged 2 credits per
+attempt: 1037 calls and 2074 credits on 2026-10-10.
+
+That is the `we-overcharge-ourselves` residual. Watch 1 measured −1967 for that
+day against 2074 unreconciled credits, from two instruments sharing no code
+path, agreeing to 107.
+
+**Disabled, not repointed.** `/odds` would bill for real across eleven sports
+on a 15-second poll against a ceiling already saturating before noon.
+`scripts/check-odds-live-disabled.mjs` holds the guard ahead of the charge —
+7/7, six mutations, including the guard moved BELOW the charge.
+
+Watch 1 now reports the `no-header` tally beside its residual rather than
+inside it (Rule 91), null when unreadable, 20 self-tests, 14/14 mutations.
+
+### Three things to know before touching this area
+
+1. The bare-catch control is pinned by LINE in **two** workflows, `guards.yml`
+   and `deploy.yml`. Any insertion into `src/ambient-do.js` moves it. Fixing
+   one copy turns guards green while the deploy stays red, and a `.github/`-only
+   commit triggers no deploy — so everything looks fixed and nothing shipped.
+2. `odds-daily-vs-vendor` differences two readings. **Dispatching it off
+   schedule changes what it measures**: a 00:10Z look inserted a reading 5.5h
+   early, refused its own window at 18.5h, would have refused the next one at
+   5.5h, and made `odds-daily-vs-monthly` report a spurious `EXCESS 645`.
+3. The deploy for a `src/` change must be confirmed by its own run id. The one
+   that mattered here was dispatched (`38186673939`), not push-triggered.
+
+### Carry-forwards — both a clock, not deferred work
+
+- Watch 1's new tally line prints on the ~05:40Z scheduled run.
+- `no-header` credits reaching zero needs a closed day entirely after the
+  deploy: 2026-10-13. It is done condition 3 of the odds-live-path-404 document.
+- That document's Task 0 is free: re-probe the vendor's candidate in-play path
+  names before anyone considers repointing.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11e — the monthly guard threw on every call
 
 **HEAD:** `32e9bc4` → this commit. Per-commit hashes and every run id are in
