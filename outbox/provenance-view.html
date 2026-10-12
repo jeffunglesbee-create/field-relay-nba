@@ -126,14 +126,14 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
     now carries in its headers, and what it carries in its body. Read worst-first.
     Generated from the census, never written by hand.</p>
     <div class="headline">
-      <div class="big big-ok">189<small> of 189</small></div>
+      <div class="big big-ok">190<small> of 190</small></div>
       <p>responses now arrive stamped with the route and the kind of surface it is.
-      186 name a source outright, 2 declare that they read
+      187 name a source outright, 2 declare that they read
       nothing, 1 say the URL is built somewhere this parser cannot follow.
-      One wrapper at the fetch exit, not 189 edits.</p>
+      One wrapper at the fetch exit, not 190 edits.</p>
     </div>
     <div class="headline second">
-      <div class="big">6<small> of 189</small></div>
+      <div class="big">6<small> of 190</small></div>
       <p>carry it in the <em>body</em> as well &mdash; <strong>retired as a target</strong>, not a
       backlog. The client stores a transformed structure so relay body fields never reach it,
       the relay's own caches already carry writer and time in metadata, and 24
@@ -145,11 +145,11 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   <section class="panel">
     <h2>The header layer, live since the response wrapper shipped</h2>
     <p>Every response passes through one exit, so provenance goes on there rather than
-    into 189 response bodies one at a time. Verified against the deployed worker,
+    into 190 response bodies one at a time. Verified against the deployed worker,
     not the source that describes it: <code>outbox/provenance-runtime-probe-latest.json</code>.</p>
     <table class="vers">
-      <tr><td class="n">189</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
-      <tr><td class="n">186</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
+      <tr><td class="n">190</td><td class="w">stamped</td><td class="why">every response carries X-FIELD-Route and X-FIELD-Kind</td></tr>
+      <tr><td class="n">187</td><td class="w">named source</td><td class="why">read out of the handler's own body, never typed by hand</td></tr>
       <tr><td class="n">2</td><td class="w">reads nothing</td><td class="why">a trigger or pure computation — an answer, not a gap</td></tr>
       <tr><td class="n">1</td><td class="w">undeclared</td><td class="why">the URL is assembled in a helper; on a ratchet so it cannot grow quietly</td></tr>
     </table>
@@ -166,18 +166,18 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
       <tr><td class="n">50</td><td class="w">stamped</td><td class="why">keys carrying a writer and a timestamp, prefix <code>odds</code></td></tr>
       <tr><td class="n">1</td><td class="w">not yet</td><td class="why">written before the wrap shipped, or by a Durable Object &mdash; these expire on their own TTL, and watching this to zero is the done condition</td></tr>
       <tr><td class="n">6</td><td class="w">writer</td><td class="why"><code>cron:*/15 * * * *</code></td></tr>
-      <tr><td class="n">20</td><td class="w">writer</td><td class="why"><code>do:AmbientDO</code></td></tr>
-      <tr><td class="n">6</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
-      <tr><td class="n">11</td><td class="w">writer</td><td class="why"><code>route:/v2/games</code></td></tr>
+      <tr><td class="n">19</td><td class="w">writer</td><td class="why"><code>do:AmbientDO</code></td></tr>
+      <tr><td class="n">5</td><td class="w">writer</td><td class="why"><code>route:/wc/odds-probs</code></td></tr>
+      <tr><td class="n">13</td><td class="w">writer</td><td class="why"><code>route:/v2/games</code></td></tr>
       <tr><td class="n">4</td><td class="w">writer</td><td class="why"><code>route:/cfl/odds-probs</code></td></tr>
       <tr><td class="n">3</td><td class="w">writer</td><td class="why"><code>route:/archive/game</code></td></tr>
     </table>
-    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-10-11T08:08:04.637Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
+    <p style="border-top:1px solid var(--line-soft)">Read live from <code>/provenance/kv</code> at 2026-10-12T02:26:50.098Z. Never returns a stored value &mdash; keys, ages and writers only.</p>
   </section>
 
   <div class="barwrap">
     <div class="barlabel">The body layer &mdash; measured, not chased</div>
-    <div class="bar"><div class="seg s-none" style="width:71.42857142857143%" title="135 body bare"><span>135</span></div><div class="seg s-passthrough" style="width:12.698412698412698%" title="24 passthrough"><span>24</span></div><div class="seg s-age-only" style="width:10.052910052910052%" title="19 age only"><span>19</span></div><div class="seg s-source-only" style="width:2.6455026455026456%" title="5 source only"><span>5</span></div><div class="seg s-both" style="width:3.1746031746031744%" title="6 complete"><span>6</span></div></div>
+    <div class="bar"><div class="seg s-none" style="width:71.57894736842105%" title="136 body bare"><span>136</span></div><div class="seg s-passthrough" style="width:12.631578947368421%" title="24 passthrough"><span>24</span></div><div class="seg s-age-only" style="width:10%" title="19 age only"><span>19</span></div><div class="seg s-source-only" style="width:2.6315789473684212%" title="5 source only"><span>5</span></div><div class="seg s-both" style="width:3.1578947368421053%" title="6 complete"><span>6</span></div></div>
     <div class="key">
       <span><i class="s-none"></i><b>body bare</b> &mdash; the body carries neither; the headers do</span>
       <span><i class="s-passthrough"></i><b>passthrough</b> &mdash; upstream bytes — no body of ours to carry it</span>
@@ -204,10 +204,10 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <section class="panel">
-    <h2>189 data surfaces</h2>
+    <h2>190 data surfaces</h2>
     <div class="filters" role="group" aria-label="Filter by state">
-      <button aria-pressed="true" data-f="all">all &middot; 189</button>
-      <button aria-pressed="false" data-f="none">body bare &middot; 135</button>
+      <button aria-pressed="true" data-f="all">all &middot; 190</button>
+      <button aria-pressed="false" data-f="none">body bare &middot; 136</button>
       <button aria-pressed="false" data-f="passthrough">passthrough &middot; 24</button>
       <button aria-pressed="false" data-f="age-only">age only &middot; 19</button>
       <button aria-pressed="false" data-f="source-only">source only &middot; 5</button>
@@ -222,7 +222,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/admin/archive/backfill-went-to-ot</td>
-<td class="num">12333</td>
+<td class="num">12428</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -230,7 +230,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/admin/wc/bsd-backfill</td>
-<td class="num">12305</td>
+<td class="num">12400</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -238,7 +238,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/ambient/<span class="pfx">*</span></td>
-<td class="num">13918</td>
+<td class="num">14013</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -246,7 +246,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/<span class="pfx">*</span></td>
-<td class="num">18476</td>
+<td class="num">18656</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -254,7 +254,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/circadian-late/recompute</td>
-<td class="num">14102</td>
+<td class="num">14197</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -262,7 +262,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/degraded</td>
-<td class="num">17605</td>
+<td class="num">17785</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -270,7 +270,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/jinx/recompute</td>
-<td class="num">14100</td>
+<td class="num">14195</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -278,7 +278,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/morning-report/recompute</td>
-<td class="num">14101</td>
+<td class="num">14196</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -286,7 +286,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/newspaper/<span class="pfx">*</span></td>
-<td class="num">18329</td>
+<td class="num">18509</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -294,7 +294,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/night-stars/recompute</td>
-<td class="num">14099</td>
+<td class="num">14194</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -302,7 +302,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/record-streak/recompute</td>
-<td class="num">14103</td>
+<td class="num">14198</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -310,7 +310,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/run</td>
-<td class="num">14098</td>
+<td class="num">14193</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -318,7 +318,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/analytics/status</td>
-<td class="num">17454</td>
+<td class="num">17634</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -326,7 +326,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/<span class="pfx">*</span></td>
-<td class="num">12418</td>
+<td class="num">12513</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+25</span></td>
@@ -334,7 +334,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/backfill</td>
-<td class="num">12523</td>
+<td class="num">12618</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -342,7 +342,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/backfill-enrich</td>
-<td class="num">13040</td>
+<td class="num">13135</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -350,7 +350,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/bracket-replay</td>
-<td class="num">13872</td>
+<td class="num">13967</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -358,7 +358,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/bracket-snapshot</td>
-<td class="num">13831</td>
+<td class="num">13926</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -366,7 +366,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/brief</td>
-<td class="num">13683</td>
+<td class="num">13778</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -374,7 +374,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/date/<span class="pfx">*</span></td>
-<td class="num">12455</td>
+<td class="num">12550</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -382,7 +382,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/debrief-backfill</td>
-<td class="num">12549</td>
+<td class="num">12644</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -390,7 +390,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/drama</td>
-<td class="num">12670</td>
+<td class="num">12765</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -398,7 +398,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/drama-by-id</td>
-<td class="num">12816</td>
+<td class="num">12911</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -406,7 +406,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/drama-missing</td>
-<td class="num">12874</td>
+<td class="num">12969</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -414,7 +414,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/drama/leaderboard</td>
-<td class="num">12742</td>
+<td class="num">12837</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -422,7 +422,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/drama/percentile</td>
-<td class="num">12776</td>
+<td class="num">12871</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -430,7 +430,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/game</td>
-<td class="num">13161</td>
+<td class="num">13256</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+15</span></td>
@@ -438,7 +438,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/last-meeting</td>
-<td class="num">12440</td>
+<td class="num">12535</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -446,7 +446,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/odds-backfill</td>
-<td class="num">12501</td>
+<td class="num">12596</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -454,7 +454,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/query</td>
-<td class="num">13592</td>
+<td class="num">13687</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -462,7 +462,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/score-by-id</td>
-<td class="num">12925</td>
+<td class="num">13020</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -470,7 +470,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/score-missing</td>
-<td class="num">12900</td>
+<td class="num">12995</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -478,7 +478,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/series/<span class="pfx">*</span></td>
-<td class="num">12425</td>
+<td class="num">12520</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -486,7 +486,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/sport/<span class="pfx">*</span></td>
-<td class="num">12478</td>
+<td class="num">12573</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -494,7 +494,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/archive/tagged/<span class="pfx">*</span></td>
-<td class="num">12468</td>
+<td class="num">12563</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -502,7 +502,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/audio/tts</td>
-<td class="num">10303</td>
+<td class="num">10398</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -510,7 +510,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/backfill/brief-scores</td>
-<td class="num">14641</td>
+<td class="num">14736</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -518,7 +518,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/backfill/game-briefs</td>
-<td class="num">14431</td>
+<td class="num">14526</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+8</span></td>
@@ -526,7 +526,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/<span class="pfx">*</span></td>
-<td class="num">10341</td>
+<td class="num">10436</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -534,7 +534,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/contract</td>
-<td class="num">10346</td>
+<td class="num">10441</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -542,7 +542,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/coverage</td>
-<td class="num">10536</td>
+<td class="num">10631</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -550,7 +550,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/events/by-date</td>
-<td class="num">11662</td>
+<td class="num">11757</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -558,7 +558,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/events/live</td>
-<td class="num">10639</td>
+<td class="num">10734</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -566,7 +566,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/events/season</td>
-<td class="num">11679</td>
+<td class="num">11774</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -574,7 +574,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/r2/list</td>
-<td class="num">11696</td>
+<td class="num">11791</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -582,7 +582,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/r2/read</td>
-<td class="num">11711</td>
+<td class="num">11806</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -590,7 +590,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/tennis/draw</td>
-<td class="num">11184</td>
+<td class="num">11279</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -598,7 +598,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/tennis/matches/by-date</td>
-<td class="num">11075</td>
+<td class="num">11170</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -606,7 +606,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/tennis/matches/live</td>
-<td class="num">11630</td>
+<td class="num">11725</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -614,7 +614,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bsd/tennis/tournaments</td>
-<td class="num">11585</td>
+<td class="num">11680</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -622,7 +622,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/bundesliga-bapi/resolve-dayid</td>
-<td class="num">19804</td>
+<td class="num">19984</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -630,7 +630,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/cfl/<span class="pfx">*</span></td>
-<td class="num">13939</td>
+<td class="num">14034</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -638,7 +638,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/cfl/fixtures</td>
-<td class="num">13949</td>
+<td class="num">14044</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -646,7 +646,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/cfl/rosters</td>
-<td class="num">13960</td>
+<td class="num">14055</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -654,134 +654,6 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/cfl/scoreboard/rounds</td>
-<td class="num">13966</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/cfl/scoreboard/squads</td>
-<td class="num">13979</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/cfl/standings</td>
-<td class="num">13964</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/cfl/stats/players</td>
-<td class="num">13956</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/cfl/stats/teams</td>
-<td class="num">13958</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/cfl/teams</td>
-<td class="num">13962</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/changelog/<span class="pfx">*</span></td>
-<td class="num">16404</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline<span class="hf">+1</span></td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/context/<span class="pfx">*</span></td>
-<td class="num">12142</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline<span class="hf">+6</span></td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/context/date/<span class="pfx">*</span></td>
-<td class="num">12233</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/context/game/<span class="pfx">*</span></td>
-<td class="num">12147</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline<span class="hf">+6</span></td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/d1/execute</td>
-<td class="num">14104</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/datamuse/words</td>
-<td class="num">18021</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/debug/gemini-model-test</td>
-<td class="num">9934</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline<span class="hf">+2</span></td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/debug/last-archive-error</td>
-<td class="num">9917</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/debug/odds-budget-latency</td>
-<td class="num">14105</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/debug/recent-requests</td>
-<td class="num">9837</td>
-<td class="tick">&#9675;</td>
-<td class="tick">&#9675;</td>
-<td class="via">inline</td>
-</tr>
-<tr data-state="none">
-<td><span class="chip c-none">body bare</span></td>
-<td class="path">/dropbox/upload</td>
 <td class="num">14061</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
@@ -789,8 +661,144 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 </tr>
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
+<td class="path">/cfl/scoreboard/squads</td>
+<td class="num">14074</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/cfl/standings</td>
+<td class="num">14059</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/cfl/stats/players</td>
+<td class="num">14051</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/cfl/stats/teams</td>
+<td class="num">14053</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/cfl/teams</td>
+<td class="num">14057</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/changelog/<span class="pfx">*</span></td>
+<td class="num">16499</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/context/<span class="pfx">*</span></td>
+<td class="num">12237</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+6</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/context/date/<span class="pfx">*</span></td>
+<td class="num">12328</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/context/game/<span class="pfx">*</span></td>
+<td class="num">12242</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+6</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/d1/execute</td>
+<td class="num">14199</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/datamuse/words</td>
+<td class="num">18201</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/debug/gemini-model-test</td>
+<td class="num">10029</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+2</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/debug/last-archive-error</td>
+<td class="num">10012</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/debug/odds-budget-latency</td>
+<td class="num">14200</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/debug/odds-fallback-key</td>
+<td class="num">16581</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline<span class="hf">+1</span></td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/debug/recent-requests</td>
+<td class="num">9932</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
+<td class="path">/dropbox/upload</td>
+<td class="num">14156</td>
+<td class="tick">&#9675;</td>
+<td class="tick">&#9675;</td>
+<td class="via">inline</td>
+</tr>
+<tr data-state="none">
+<td><span class="chip c-none">body bare</span></td>
 <td class="path">/freshness/<span class="pfx">*</span></td>
-<td class="num">16347</td>
+<td class="num">16442</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -798,7 +806,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/health</td>
-<td class="num">10257</td>
+<td class="num">10352</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -806,7 +814,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/identity/mismatches</td>
-<td class="num">15566</td>
+<td class="num">15661</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -814,7 +822,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/integrity/game-briefs</td>
-<td class="num">14208</td>
+<td class="num">14303</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -822,7 +830,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/integrity/games</td>
-<td class="num">14300</td>
+<td class="num">14395</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -830,7 +838,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/brief/history</td>
-<td class="num">18967</td>
+<td class="num">19147</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -838,7 +846,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/context-probe</td>
-<td class="num">17390</td>
+<td class="num">17570</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -846,7 +854,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/enqueue</td>
-<td class="num">14095</td>
+<td class="num">14190</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -854,7 +862,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/game-complete</td>
-<td class="num">14096</td>
+<td class="num">14191</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -862,7 +870,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/game-lines</td>
-<td class="num">19021</td>
+<td class="num">19201</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -870,7 +878,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/game/<span class="pfx">*</span></td>
-<td class="num">19006</td>
+<td class="num">19186</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -878,7 +886,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/generate</td>
-<td class="num">14094</td>
+<td class="num">14189</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -886,7 +894,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/journalism/result/<span class="pfx">*</span></td>
-<td class="num">18921</td>
+<td class="num">19101</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -894,7 +902,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/jq/retry-telemetry</td>
-<td class="num">10087</td>
+<td class="num">10182</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -902,7 +910,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/live-wp/<span class="pfx">*</span></td>
-<td class="num">13918</td>
+<td class="num">14013</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -910,7 +918,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/live/ambient</td>
-<td class="num">13918</td>
+<td class="num">14013</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -918,7 +926,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/mlb-savant-update</td>
-<td class="num">20148</td>
+<td class="num">20328</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -926,7 +934,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/mls/stats/team-metrics</td>
-<td class="num">17263</td>
+<td class="num">17443</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -934,7 +942,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/nba-clutch-update</td>
-<td class="num">20112</td>
+<td class="num">20292</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -942,7 +950,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/nfl-r2-update</td>
-<td class="num">20129</td>
+<td class="num">20309</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -950,7 +958,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/nhl-gsax/<span class="pfx">*</span></td>
-<td class="num">19349</td>
+<td class="num">19529</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -958,7 +966,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/nhl-series/<span class="pfx">*</span></td>
-<td class="num">19373</td>
+<td class="num">19553</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -966,7 +974,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/odds-story/preview</td>
-<td class="num">11874</td>
+<td class="num">11969</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -974,7 +982,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/odds/history/<span class="pfx">*</span></td>
-<td class="num">16655</td>
+<td class="num">16835</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -982,7 +990,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/pin/game/<span class="pfx">*</span></td>
-<td class="num">10224</td>
+<td class="num">10319</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -990,7 +998,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/push/game-final</td>
-<td class="num">10162</td>
+<td class="num">10257</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -998,7 +1006,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/push/subscribe</td>
-<td class="num">10130</td>
+<td class="num">10225</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1006,7 +1014,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/push/unsubscribe</td>
-<td class="num">10146</td>
+<td class="num">10241</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1014,7 +1022,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/quality/backfill-scores</td>
-<td class="num">14825</td>
+<td class="num">14920</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1022,7 +1030,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/quality/report</td>
-<td class="num">14889</td>
+<td class="num">14984</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1030,7 +1038,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/repo/archive</td>
-<td class="num">9993</td>
+<td class="num">10088</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1038,7 +1046,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/rss-proxy</td>
-<td class="num">18941</td>
+<td class="num">19121</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1046,7 +1054,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/savant/sync</td>
-<td class="num">14097</td>
+<td class="num">14192</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1054,7 +1062,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/schedule/ai-fallback</td>
-<td class="num">16880</td>
+<td class="num">17060</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1062,7 +1070,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/session/record</td>
-<td class="num">14107</td>
+<td class="num">14202</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1070,7 +1078,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/signal/crunch/<span class="pfx">*</span></td>
-<td class="num">10205</td>
+<td class="num">10300</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1078,7 +1086,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/soccer/fbref/fetch</td>
-<td class="num">14109</td>
+<td class="num">14204</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1086,7 +1094,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/soccer/season-form</td>
-<td class="num">17335</td>
+<td class="num">17515</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1094,7 +1102,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/soccer/sub-impact</td>
-<td class="num">19558</td>
+<td class="num">19738</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1102,7 +1110,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/soccer/xg</td>
-<td class="num">19423</td>
+<td class="num">19603</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1110,7 +1118,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/stat/<span class="pfx">*</span></td>
-<td class="num">21858</td>
+<td class="num">22038</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1118,7 +1126,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/test/combined-generate-judge</td>
-<td class="num">14113</td>
+<td class="num">14208</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1126,7 +1134,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/test/gemini-judge</td>
-<td class="num">14112</td>
+<td class="num">14207</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1134,7 +1142,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/test/prefilter</td>
-<td class="num">14114</td>
+<td class="num">14209</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1142,7 +1150,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/test/workers-ai-judge</td>
-<td class="num">14111</td>
+<td class="num">14206</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1150,7 +1158,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/unpin/game/<span class="pfx">*</span></td>
-<td class="num">10239</td>
+<td class="num">10334</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1158,7 +1166,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/user/<span class="pfx">*</span></td>
-<td class="num">10042</td>
+<td class="num">10137</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1166,7 +1174,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/user/event</td>
-<td class="num">10052</td>
+<td class="num">10147</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1174,7 +1182,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/v2/golf/competitor-stats</td>
-<td class="num">14047</td>
+<td class="num">14142</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1182,7 +1190,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/v2/golf/enriched</td>
-<td class="num">14029</td>
+<td class="num">14124</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1190,7 +1198,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/v2/golf/eventlog</td>
-<td class="num">14037</td>
+<td class="num">14132</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1198,7 +1206,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/v2/golf/player-stats</td>
-<td class="num">14019</td>
+<td class="num">14114</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1206,7 +1214,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc-context-patch</td>
-<td class="num">19305</td>
+<td class="num">19485</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1214,7 +1222,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/admin/seed</td>
-<td class="num">11926</td>
+<td class="num">12021</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">handleWCAdminSeed<span class="hf">+4</span></td>
@@ -1222,7 +1230,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/bracket/live</td>
-<td class="num">12054</td>
+<td class="num">12149</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1230,7 +1238,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/bracket/refresh</td>
-<td class="num">12081</td>
+<td class="num">12176</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1238,7 +1246,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/bracket/state</td>
-<td class="num">12065</td>
+<td class="num">12160</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1246,7 +1254,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/brief/tournament</td>
-<td class="num">11959</td>
+<td class="num">12054</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1254,7 +1262,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/match-wp</td>
-<td class="num">11922</td>
+<td class="num">12017</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">handleWCMatchWP<span class="hf">+3</span></td>
@@ -1262,7 +1270,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/matchup/cache</td>
-<td class="num">12099</td>
+<td class="num">12194</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1270,7 +1278,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wc/movers</td>
-<td class="num">11950</td>
+<td class="num">12045</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1278,7 +1286,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/web-fetch</td>
-<td class="num">17825</td>
+<td class="num">18005</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1286,7 +1294,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/wiki/trending</td>
-<td class="num">17626</td>
+<td class="num">17806</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1294,7 +1302,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="none">
 <td><span class="chip c-none">body bare</span></td>
 <td class="path">/ws/game/<span class="pfx">*</span></td>
-<td class="num">10179</td>
+<td class="num">10274</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1302,7 +1310,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/atp<span class="pfx">*</span></td>
-<td class="num">17088</td>
+<td class="num">17268</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1310,7 +1318,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/bdl<span class="pfx">*</span></td>
-<td class="num">17103</td>
+<td class="num">17283</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1318,7 +1326,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/bundesliga-bapi/broadcasts</td>
-<td class="num">20080</td>
+<td class="num">20260</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1326,7 +1334,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/espn-gambit<span class="pfx">*</span></td>
-<td class="num">17136</td>
+<td class="num">17316</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1334,7 +1342,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/espn-standings<span class="pfx">*</span></td>
-<td class="num">17161</td>
+<td class="num">17341</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1342,7 +1350,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/espn-summary<span class="pfx">*</span></td>
-<td class="num">17147</td>
+<td class="num">17327</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1350,7 +1358,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/fd<span class="pfx">*</span></td>
-<td class="num">16831</td>
+<td class="num">17011</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1358,7 +1366,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/field/data/today</td>
-<td class="num">17173</td>
+<td class="num">17353</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1366,7 +1374,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/fpl<span class="pfx">*</span></td>
-<td class="num">16984</td>
+<td class="num">17164</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1374,7 +1382,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/kali/<span class="pfx">*</span></td>
-<td class="num">16613</td>
+<td class="num">16793</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1382,7 +1390,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/laliga-apim/clasificacion</td>
-<td class="num">16959</td>
+<td class="num">17139</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1390,7 +1398,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/mcp</td>
-<td class="num">20342</td>
+<td class="num">20522</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+9</span></td>
@@ -1398,7 +1406,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/mlb-stats<span class="pfx">*</span></td>
-<td class="num">17184</td>
+<td class="num">17364</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1406,7 +1414,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/mls/stats<span class="pfx">*</span></td>
-<td class="num">17321</td>
+<td class="num">17501</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1414,7 +1422,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/nba-clutch/<span class="pfx">*</span></td>
-<td class="num">19396</td>
+<td class="num">19576</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1422,7 +1430,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/nba-stats<span class="pfx">*</span></td>
-<td class="num">21904</td>
+<td class="num">22084</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1430,7 +1438,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/nfl/epa/plays</td>
-<td class="num">19108</td>
+<td class="num">19288</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+4</span></td>
@@ -1438,7 +1446,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/nflverse/<span class="pfx">*</span></td>
-<td class="num">19164</td>
+<td class="num">19344</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1446,7 +1454,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/nhl/<span class="pfx">*</span></td>
-<td class="num">16823</td>
+<td class="num">17003</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1454,7 +1462,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/odds<span class="pfx">*</span></td>
-<td class="num">16702</td>
+<td class="num">16882</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+8</span></td>
@@ -1462,7 +1470,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/pl/<span class="pfx">*</span></td>
-<td class="num">16992</td>
+<td class="num">17172</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1470,7 +1478,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/soccer-fbref/<span class="pfx">*</span></td>
-<td class="num">19733</td>
+<td class="num">19913</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1478,7 +1486,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/sportradar-ufl<span class="pfx">*</span></td>
-<td class="num">20301</td>
+<td class="num">20481</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1486,7 +1494,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="passthrough">
 <td><span class="chip c-passthrough">passthrough</span></td>
 <td class="path">/squiggle<span class="pfx">*</span></td>
-<td class="num">16636</td>
+<td class="num">16816</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1494,7 +1502,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/cfl/odds-probs</td>
-<td class="num">13930</td>
+<td class="num">14025</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleCFLOddsProbs<span class="hf">+6</span></td>
@@ -1502,7 +1510,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/deploy/verify</td>
-<td class="num">14370</td>
+<td class="num">14465</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1510,7 +1518,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/identity/substitution-census</td>
-<td class="num">15720</td>
+<td class="num">15815</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+11</span></td>
@@ -1518,7 +1526,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/integrity/briefs</td>
-<td class="num">14124</td>
+<td class="num">14219</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1526,7 +1534,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/journalism/brief</td>
-<td class="num">18993</td>
+<td class="num">19173</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1534,7 +1542,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/journalism/run</td>
-<td class="num">17443</td>
+<td class="num">17623</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1542,7 +1550,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/journalism/tonight</td>
-<td class="num">18993</td>
+<td class="num">19173</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1550,7 +1558,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/<span class="pfx">*</span></td>
-<td class="num">11919</td>
+<td class="num">12014</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCStandings<span class="hf">+1</span></td>
@@ -1558,7 +1566,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/bracket</td>
-<td class="num">12039</td>
+<td class="num">12134</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline</td>
@@ -1566,7 +1574,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/elimination-traps</td>
-<td class="num">11979</td>
+<td class="num">12074</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1574,7 +1582,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/odds-probs</td>
-<td class="num">11923</td>
+<td class="num">12018</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCOddsProbs<span class="hf">+8</span></td>
@@ -1582,7 +1590,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/projections</td>
-<td class="num">11934</td>
+<td class="num">12029</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1590,7 +1598,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/projections/refresh</td>
-<td class="num">11968</td>
+<td class="num">12063</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1598,7 +1606,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/results</td>
-<td class="num">11921</td>
+<td class="num">12016</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCResults<span class="hf">+1</span></td>
@@ -1606,7 +1614,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/standings</td>
-<td class="num">11920</td>
+<td class="num">12015</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCStandings<span class="hf">+1</span></td>
@@ -1614,7 +1622,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/third-place</td>
-<td class="num">11924</td>
+<td class="num">12019</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCThirdPlace<span class="hf">+1</span></td>
@@ -1622,7 +1630,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/traps</td>
-<td class="num">12018</td>
+<td class="num">12113</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline</td>
@@ -1630,7 +1638,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wc/wp/verify</td>
-<td class="num">11925</td>
+<td class="num">12020</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleWCWPVerify<span class="hf">+3</span></td>
@@ -1638,7 +1646,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="age-only">
 <td><span class="chip c-age-only">age only</span></td>
 <td class="path">/wnba/slate</td>
-<td class="num">17761</td>
+<td class="num">17941</td>
 <td class="tick">&#9675;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1646,7 +1654,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="source-only">
 <td><span class="chip c-source-only">source only</span></td>
 <td class="path">/briefs/spot-check</td>
-<td class="num">15201</td>
+<td class="num">15296</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1654,7 +1662,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="source-only">
 <td><span class="chip c-source-only">source only</span></td>
 <td class="path">/circadian/<span class="pfx">*</span></td>
-<td class="num">11758</td>
+<td class="num">11853</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline</td>
@@ -1662,7 +1670,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="source-only">
 <td><span class="chip c-source-only">source only</span></td>
 <td class="path">/fantasy/ownership</td>
-<td class="num">19216</td>
+<td class="num">19396</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1670,7 +1678,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="source-only">
 <td><span class="chip c-source-only">source only</span></td>
 <td class="path">/fifa-rankings/<span class="pfx">*</span></td>
-<td class="num">11800</td>
+<td class="num">11895</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1678,7 +1686,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="source-only">
 <td><span class="chip c-source-only">source only</span></td>
 <td class="path">/mlb-umpire-scrape</td>
-<td class="num">20221</td>
+<td class="num">20401</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9675;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1686,7 +1694,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/budget/odds</td>
-<td class="num">14787</td>
+<td class="num">14882</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+3</span></td>
@@ -1694,7 +1702,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/health/sources</td>
-<td class="num">11744</td>
+<td class="num">11839</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+1</span></td>
@@ -1702,7 +1710,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/provenance/kv</td>
-<td class="num">14752</td>
+<td class="num">14847</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline</td>
@@ -1710,7 +1718,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/test/drama-score-cost</td>
-<td class="num">18061</td>
+<td class="num">18241</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">inline<span class="hf">+2</span></td>
@@ -1718,7 +1726,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/v2/<span class="pfx">*</span></td>
-<td class="num">14017</td>
+<td class="num">14112</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleV2Games<span class="hf">+19</span></td>
@@ -1726,7 +1734,7 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
 <tr data-state="both">
 <td><span class="chip c-both">complete</span></td>
 <td class="path">/v2/games</td>
-<td class="num">14018</td>
+<td class="num">14113</td>
 <td class="tick">&#9679;</td>
 <td class="tick">&#9679;</td>
 <td class="via">handleV2Games<span class="hf">+19</span></td>
@@ -1737,8 +1745,8 @@ code{font:400 12px "IBM Plex Mono",ui-monospace,monospace;background:var(--grey-
   </section>
 
   <footer>
-    <span>census 2026-10-11T13:05:19.242Z</span>
-    <span>226 dispatch lines &rarr; 197 distinct paths</span>
+    <span>census 2026-10-12T15:43:45.224Z</span>
+    <span>227 dispatch lines &rarr; 198 distinct paths</span>
     <span>static read; runtime responses not probed</span>
     <span>interrogate one route: <code>node scripts/provenance-census.mjs --explain /budget/odds</code></span>
   </footer>
