@@ -4,14 +4,14 @@
 //
 // Where each route's data comes from, read out of the handler that answers it.
 // The response wrapper in src/index.js stamps X-FIELD-Source from this, so all
-// 189 routes describe themselves without 189 hand edits.
+// 190 routes describe themselves without 190 hand edits.
 //
 // `k` is the kind of surface, `s` the declared upstreams and storage bindings.
 // s: null means the route answers without reading anything -- a trigger that
 // returns an acknowledgement, or a pure computation. That is a real answer, not
 // a gap, and the gate checks it stays true.
 
-export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-11T07:22:11.970Z";
+export const ROUTE_PROVENANCE_GENERATED_AT = "2026-10-12T02:22:14.286Z";
 export const ROUTE_PROVENANCE = {
   "/admin/archive/backfill-went-to-ot": { k: "trigger", s: "d1:ARCHIVE_DB" },
   "/admin/wc/bsd-backfill": { k: "trigger", s: "d1:WC2026_DB + sports.bzzoiro.com" },
@@ -89,6 +89,7 @@ export const ROUTE_PROVENANCE = {
   "/debug/gemini-model-test": { k: "trigger", s: "field-claude-proxy.jeffunglesbee.workers.dev" },
   "/debug/last-archive-error": { k: "trigger", s: "kv:FIELD_JOURNALISM" },
   "/debug/odds-budget-latency": { k: "trigger", s: "d1:ARCHIVE_DB + kv:FIELD_JOURNALISM" },
+  "/debug/odds-fallback-key": { k: "trigger", s: "api.the-odds-api.com" },
   "/debug/recent-requests": { k: "trigger", s: "kv:MCP_OAUTH" },
   "/deploy/verify": { k: "upstream", s: "api.github.com" },
   "/dropbox/upload": { k: "upstream", s: "content.dropboxapi.com + jubilant-bassoon.jeffunglesbee.workers.dev" },
@@ -219,7 +220,7 @@ export const ROUTE_PROVENANCE = {
 // `t: 1` marks an entry whose sources are a PARTIAL READ. The scanner walks
 // forward at most 1500 lines looking for brace balance; when a handler block is
 // longer than that the scan gives up, and `s` describes only what fitted inside
-// the window. 1 of 189 entries are in that state.
+// the window. 1 of 190 entries are in that state.
 //
 // It is not cosmetic. /archive/'s window ended nine lines past the /cfl/ routes,
 // so the entry claimed echo.pims.cfl.ca and www.cfl.ca — hosts /archive/* never
