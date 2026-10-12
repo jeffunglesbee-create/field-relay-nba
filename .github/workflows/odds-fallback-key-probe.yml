@@ -52,6 +52,25 @@ jobs:
           set -o pipefail
           node scripts/probe-odds-fallback-key.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # VALID above cannot tell a Secret from a Text variable: both reach the
+      # worker as the same env name. With no keep_vars in wrangler.toml, the
+      # next `wrangler deploy` erases a Text one. This reads names and types
+      # from the Cloudflare API, never values, against a control that is a
+      # Secret by construction.
+      - name: the binding-type check can fail
+        if: always()
+        run: bash scripts/check-odds-fallback-binding-type.sh --self-test
+
+      - name: Binding type (a Secret survives a deploy, a Text variable does not)
+        if: always()
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          bash scripts/check-odds-fallback-binding-type.sh 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
       # always(): a REJECTED run is the one carrying the evidence.
       - name: Commit the log
         if: always()
