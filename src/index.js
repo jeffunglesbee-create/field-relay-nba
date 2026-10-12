@@ -671,11 +671,43 @@ const ODDS_BASE    = 'https://api.the-odds-api.com';
 // for those sports is UNMEASURED, not refused. Collapsing "not viable for
 // football" into "not viable" is the substitution this repository keeps
 // finding.
-// ODDS API key — rotate via Cloudflare dashboard (Workers > field-relay-nba > Settings > Variables)
-//   ODDS_API_KEY            primary paid-tier key (20K credits / month)
+// ODDS API keys. TWO STORES, AND THAT IS THE WHOLE POINT OF THIS COMMENT.
+//
+// This comment used to name one: "rotate via Cloudflare dashboard". It is also
+// a GitHub Actions secret, read by .github/scripts/odds-backfill.js and passed
+// as step env by five workflows. A rotation that updates one store and not the
+// other half-lands, and that is not hypothetical — it happened on 2026-09-15:
+//
+//   17:23Z  /odds/v4/sports -> 200, 86 sports        (pre-rotation, healthy)
+//   19:16Z  GitHub Actions copy GOOD                 (run 35012664679)
+//   20:10Z  /odds/v4/sports -> 401                   (run 35017969042)
+//   20:22Z  probe: vendor 401, /health 200           (worker secret still old)
+//   20:26Z  probe: vendor 200                        (worker secret now good)
+//
+// ~70 minutes with the two stores out of step, ~16 of them with every
+// worker-side odds caller returning 401 — AmbientDO in-play capture, the WP
+// resolver, closing-odds capture — while the nightly backfill ran fine on the
+// GitHub copy. Nobody noticed; scripts/probe-relay-odds-key-live.mjs found it.
+//
+// SO: ROTATE BOTH, AND PROBE AFTER. Cloudflare first or GitHub first does not
+// matter; finishing both before the next cron tick does.
+//   1. Cloudflare: Workers > field-relay-nba > Settings > Variables
+//      (or `wrangler secret put ODDS_API_KEY`)
+//   2. GitHub: repo Settings > Secrets and variables > Actions > ODDS_API_KEY
+//   3. node scripts/probe-relay-odds-key-live.mjs   — must print 200
+//
+//   ODDS_API_KEY            primary paid-tier key (20K credits / month).
+//                           Rotated 2026-09-15 by the owner.
 //   ODDS_API_KEY_FALLBACK   Starter-tier key (500 credits / month) — used as a
 //                           runtime fallback when the primary returns 401/429
 //                           (exhausted or rate-limited). Set via dashboard.
+//                           NEVER ROTATED, and its value sat in six plaintext
+//                           copies across two repos until 2026-10-12. The
+//                           literals are gone and both ratchets now pin it at
+//                           0, but it is in git history in both repos and
+//                           history was not rewritten — so rotating it at the
+//                           provider is the only thing that ends it. Owner's
+//                           step. docs/CC-CMD-2026-10-12-starter-key-exposure.md.
 // THE HARD-CODED KEY WAS REMOVED 2026-08-25.
 //
 // It was a live API credential in a tracked file, and it was the THIRD level of
