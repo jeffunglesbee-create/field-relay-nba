@@ -1,5 +1,18 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-12d — month-degrade probe removed
+
+The 01:47Z probe fired at **08:03Z** (run 38221289092, 376 min late) and read
+**INCONCLUSIVE**: `used 513/3800`, +0 in its 420s window. The ceiling was not the
+cause; the hour was quiet: 6 credits between 02:50Z and 08:03Z. Its sample 1 read
+513 credits since the 00:00Z reset with **0** degrade events, against 1,075 on
+closed 10-11, which agrees with the 02:50Z drift reading.
+
+`.github/workflows/month-degrade-probe.yml` and `scripts/probe-month-degrade-
+stopped.mjs` deleted: the done condition is settled, `check-batch-order.mjs`
+holds the regression, and the workflow could only PASS by chance at its hour.
+`monthly-batch-degrades-open` is **DONE** in full.
+
 ## CHECK-IN — 2026-10-12c — odds-live 404 fix, read from scheduled runs
 
 No dispatches, no credits, documents only.

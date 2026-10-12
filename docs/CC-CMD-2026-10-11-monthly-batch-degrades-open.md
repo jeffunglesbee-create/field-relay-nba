@@ -235,3 +235,23 @@ events on 2026-10-10 (6 daily + 7 month) to **155 on 2026-10-11** (77 + 78), a
    of 60 seconds. The 01:47Z scheduled probe had still not fired at 06:23Z
    (GitHub scheduling delay, 276 min so far); its PASS deletes the workflow,
    and a FAIL would reopen this line.
+
+   **The probe, and why it was deleted without a PASS.** Its scheduled run
+   fired at 08:03Z (run 38221289092, 376 min late) and returned INCONCLUSIVE:
+   `used 513/3800` at both samples, +0 in 420s. The ceiling was not the cause.
+   The premise its 01:47Z slot rested on — that the */5 cron charges on most
+   ticks once the day has reset — was false for these hours: 507 at 02:50Z,
+   513 at 08:03Z, **6 credits in 313 minutes**. A 420s window at that hour
+   almost never contains spend, so the workflow could only PASS by chance.
+
+   Its own first sample already held the reading it was waiting for. The degrade
+   counter is per-UTC-day and starts at zero at the reset, so sample 1 is an
+   interval 00:00Z → 08:03Z: **513 credits charged, `degraded_open.events` 0,
+   month-batch reason count 0**, beside 1,075 for closed 2026-10-11 in the same
+   output. The verdict logic read only the 420s between its two samples.
+
+   With two readings agreeing and `scripts/check-batch-order.mjs` in
+   `guards.yml` holding the regression on every push, the workflow and
+   `scripts/probe-month-degrade-stopped.mjs` (its only caller) were removed
+   2026-10-12. Kept running, it would have committed an INCONCLUSIVE log every
+   day at an hour with no spend.
