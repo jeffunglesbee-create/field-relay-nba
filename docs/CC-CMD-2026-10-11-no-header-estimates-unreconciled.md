@@ -206,3 +206,21 @@ contains a known quantity is not a measurement.
    mutations. The first clause — the next closed day's residual inside
    tolerance — is now a prediction of this fix and is
    `docs/CC-CMD-2026-10-11-odds-live-path-404.md`'s done condition 3.
+
+   **Live half met 2026-10-12** — the scheduled run of 05:48:55Z (closed day
+   2026-10-11, `outbox/odds-daily-vs-vendor-2026-10-12T0548.log`) printed both
+   lines against real data, verbatim:
+
+   ```
+     residual               : -1220   tolerance 140
+     unreconciled estimate  : 584 over 292 call(s) in state no-header
+                              from ambientFetchLiveOdds
+     residual after it      : -636   (the part no named cause accounts for)
+   ```
+
+   292 / 584 is the pre-fix rate, as predicted: the 16:51Z in-flight reading
+   was 289 / 578, and 2026-10-11 is entirely before the 00:25Z 10-12 deploy.
+   **The −636 left over is not explained by anything this document names.**
+   2026-10-10's was +107. Its cause is not established here. The 2026-10-12
+   closed day, with `no-header` near zero, is the first reading that
+   isolates it.

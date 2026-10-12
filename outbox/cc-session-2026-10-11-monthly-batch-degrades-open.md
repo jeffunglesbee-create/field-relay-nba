@@ -87,7 +87,7 @@ what prevents the regression and runs on every push.
 | the mutation harness refusing a bad anchor | **VERIFIED** — pointed M1 at an absent anchor, it FAILED |
 | all 11 existing budget gates | **VERIFIED** — exit 0 each |
 | deploy | **VERIFIED** — run 38168389875 success |
-| the degrade reason stopping | **STAGED** — blocked by the daily ceiling; unblocks at 00:00 UTC; the 01:47 UTC run settles it |
+| the degrade reason stopping | **VERIFIED 2026-10-12** — odds-site-drift 02:50Z: `used` 507, `degraded_open.events` 0 (10-11 at 02:40Z: 657 and 150). The 01:47Z probe run, when it fires, deletes its workflow on PASS |
 
 ## Manifest
 

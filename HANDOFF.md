@@ -1,5 +1,30 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-12c — odds-live 404 fix, read from scheduled runs
+
+No dispatches, no credits, documents only.
+
+1. **Watch 1's tally line prints against real data.** The 05:48Z scheduled
+   odds-daily-vs-vendor run (closed day 2026-10-11) printed `unreconciled
+   estimate : 584 over 292 call(s) in state no-header`. `no-header-estimates-
+   unreconciled` done condition 3 is now met in full.
+2. **10-11's no-header is the pre-fix rate.** 292 / 584 closed, against 289 /
+   578 at 16:51Z. No drop, so nothing else changed.
+3. **Post-fix, first reading:** the 02:50Z drift sample for 2026-10-12 has zero
+   `no-header` cells of 11. `odds-live-path-404` done condition 3 closes on
+   10-12's closed-day run (~05:45Z on 10-13). Check-in armed.
+4. **Month-degrade done condition 4 met**, from odds-site-drift rather than the
+   probe: 10-12 at 02:50Z, `used` 507 and `degraded_open.events` **0**, against
+   10-11 at 02:40Z, 657 and 150. That line carried a premature ✅ before; it is
+   now corrected and cited. The 01:47Z probe had still not fired at 06:23Z
+   (276 min late); the 08:45Z check-in deletes its workflow on PASS.
+
+**Unexplained, and not to be read as a finding:** 10-11's residual after the
+no-header estimate is **−636** (10-10's was +107, tolerance 140). Nothing named
+accounts for it. 10-12's closed day, with no-header near zero, is the first
+reading that isolates it. The 10-13 check-in reads it and files a CC-CMD if it
+persists.
+
 ## SESSION CLOSE-OUT — 2026-10-12b — D1 overload degrades
 
 Session doc: `outbox/cc-session-2026-10-12-d1-overload-degrades.md`.

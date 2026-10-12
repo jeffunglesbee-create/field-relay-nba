@@ -219,4 +219,19 @@ events on 2026-10-10 (6 daily + 7 month) to **155 on 2026-10-11** (77 + 78), a
    behaviour and proved so. ✅
 3. A check whose mutation is this defect, going red on it. ✅
 4. The degrade reason's count not growing across an interval with real spend,
-   read from outside the sandbox. ✅ — see the outbox manifest for the run.
+   read from outside the sandbox. ✅ **met 2026-10-12, not before.** Until
+   then this line carried a ✅ that its own manifest contradicted: every probe
+   run on 10-11 was INCONCLUSIVE and the session doc said STAGED.
+   What meets it is odds-site-drift's 02:50Z runner reading of `/budget/odds`
+   (`outbox/odds-site-drift-series.json`), at the same hour as the day before:
+
+   | sample | `used` | `degraded_open.events` | month-batch reason |
+   |---|---|---|---|
+   | 2026-10-11T02:40:02Z (pre-fix) | 657 | 150 | 150 |
+   | 2026-10-12T02:50:06Z (post-fix) | 507 | **0** | absent |
+
+   The interval is 00:00Z reset → 02:50Z: 507 credits charged, 205 calls in the
+   reconcile tally, zero degrades. The probe's own predicate, over 170 minutes instead
+   of 60 seconds. The 01:47Z scheduled probe had still not fired at 06:23Z
+   (GitHub scheduling delay, 276 min so far); its PASS deletes the workflow,
+   and a FAIL would reopen this line.
