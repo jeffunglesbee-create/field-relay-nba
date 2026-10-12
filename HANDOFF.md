@@ -46,26 +46,54 @@ secret AND GitHub Actions secret) and they were updated ~70 minutes apart, with
 ~16 minutes of observed worker-side 401s. `src/index.js`'s key comment named one
 store; it now names both and carries the probe as step 3.
 
-### Closed same day — the owner rotated it
+### The rotation half-landed, and the probe is how we know
 
-The Starter-plan key was rotated at the provider on 2026-10-12. The old
-literals are still readable in both repos' git history, which was not
-rewritten, but they no longer read out a credential. Redaction stopped the
-spread; rotation is what ended it. Single store — no GitHub Actions copy of
-this key — so there was no second store to fall out of step.
+The Starter-plan key was rotated at the provider on 2026-10-12 — that part is
+done, and it is what killed the exposed value: the old literals are still
+readable in both repos' git history, which was not rewritten, but they no
+longer read out a credential.
 
-### Carry-forward — the verification gap, and it is ours
+**The Cloudflare binding was not set**, so the new key is not reachable by the
+worker. Same half-landed shape as 2026-09-15 — one store done, one not — except
+there the lagging store caught up in 16 minutes and here it is empty.
 
-**Nothing probes `ODDS_API_KEY_FALLBACK`.** Measured 2026-10-12:
-`grep -rln ODDS_API_KEY_FALLBACK scripts/ .github/workflows/` returns nothing.
-`probe-relay-odds-key-live.mjs` tests the PRIMARY key only.
+### The probe was built, and it found the binding EMPTY on its first run
 
-That is the 2026-09-15 shape again — a store nobody probed. The fallback
-engages only on a 401/429 from the primary, so a bad value here surfaces on the
-day the primary is exhausted, which is the worst day to find out. The
-instrument costs 1-2 credits (one vendor call reading status and
-`x-requests-remaining`; a fresh Starter key reads near 500) and needs approval
-before it runs.
+`GET /debug/odds-fallback-key` (CI-gated; in the worker, because the key is a
+Cloudflare binding with no GitHub copy) plus
+`scripts/probe-odds-fallback-key.mjs` and its dispatch workflow.
+
+**It cost nothing, not the 1-2 credits estimated.** `check-odds-calls-guarded`
+caught the new site and named the reason: a `/v4/sports` call needs an
+`ODDS-FREE` note, because the sports list is not billed — which is why the
+primary-key probe already used it for validity. The route is also the DISPROOF
+for that annotation: it returns `x-requests-last`, so a billed sports list
+would show up as a non-null `requests_last`.
+
+Run `38195821834`, 2026-10-12T02:27Z:
+
+```
+key_present : false
+verdict     : BINDING-ABSENT
+```
+
+**`env.ODDS_API_KEY_FALLBACK` is not set in the running worker**, so the key
+rotated at the provider on 2026-10-12 is not reachable, and the 401/429 retry
+path is a no-op — `_oddsFallbackKey` returns null, `oddsFetchWithFallback`
+retries only when the binding is set, and `ambient-do.js`'s `useFallback` is a
+truthiness check on the same value. **When the primary hits its 20,000-credit
+month there is no fallback.**
+
+How long it has been unset is NOT established. The probe says it is empty now;
+nothing on file says when it became so, which is the cost of a binding that had
+no probe until today.
+
+### Carry-forward — the owner's, one step
+
+Set `ODDS_API_KEY_FALLBACK` in Cloudflare (Workers > field-relay-nba >
+Settings > Variables, or `wrangler secret put ODDS_API_KEY_FALLBACK`) to the key
+rotated 2026-10-12, then re-dispatch `odds-fallback-key-probe.yml`. It must read
+`VALID` with `x-requests-remaining` near 500.
 
 ---
 

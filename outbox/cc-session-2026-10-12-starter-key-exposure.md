@@ -86,7 +86,9 @@ probe as step 3.
 | jubilant-bassoon gate red on a declared hash | **VERIFIED** — throwaway, exit 1 |
 | all three manifests carry the hash | **VERIFIED** |
 | CI | **VERIFIED** — relay `8811a38` guards + deploy success; jubilant-bassoon `6380d41` smoke + both viewport audits success; field-laboratory `1571220` guards success |
-| **the key rotated at the provider** | **NOT DONE — the owner's step** |
+| the key rotated at the provider | **DONE 2026-10-12** by the owner — this is what killed the exposed value |
+| the Cloudflare `ODDS_API_KEY_FALLBACK` binding | **NOT SET** — run `38195821834`, `BINDING-ABSENT`. The new key is not reachable by the worker and the 401/429 retry is a no-op |
+| the fallback probe that found it | **BUILT, and free** — `/debug/odds-fallback-key` + `probe-odds-fallback-key.mjs`, 10 self-tests. `/v4/sports` is not billed, so the 1-2 credit estimate was wrong |
 
 ## Manifest
 

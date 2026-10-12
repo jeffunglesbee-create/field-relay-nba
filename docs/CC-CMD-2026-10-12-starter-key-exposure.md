@@ -4,10 +4,11 @@
 **Repos:** field-relay-nba and jubilant-bassoon (literals); field-laboratory (tripwire only)
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect) — a live credential in plaintext, and a guard that could not see it
-**Status:** DONE 2026-10-12. All five done conditions met. The owner rotated the
-Starter-plan key at the provider on 2026-10-12, which is the step redaction
-could not substitute for — the value in both repos' git history is now dead.
-**Unverified by any instrument, and that is a real gap: see the closing note.**
+**Status:** DONE on the exposure. **REOPENED on the rotation**: the probe built
+to verify it found `env.ODDS_API_KEY_FALLBACK` **NOT SET** in the worker, so the
+new key is at the provider and not in the binding. Same half-landed shape as
+2026-09-15, caught this time on the probe's first run. See THE PROBE'S FIRST
+RUN below.
 
 ## There are three odds keys, and the project's own documents call all three
 ## "the Odds API key"
@@ -123,8 +124,11 @@ one look identical from one green probe."*
    green after redaction.
 3. ✅ Zero occurrences across all four repos, by hash.
 4. ✅ The source comment names both stores and the probe step.
-5. ✅ **The owner rotated the Starter-plan key at The Odds API and set the
-   Cloudflare `ODDS_API_KEY_FALLBACK` binding, 2026-10-12.** Single store —
+5. ⚠️ **PARTLY.** The owner rotated the key at The Odds API on 2026-10-12 —
+   that is done and it is what killed the exposed value. **The Cloudflare
+   `ODDS_API_KEY_FALLBACK` binding is NOT set**, measured by run `38195821834`,
+   so the new key is not reachable by the worker and the fallback path is a
+   no-op. Single store —
    there is no GitHub Actions copy of this key — so unlike 2026-09-15 there was
    no second store to fall out of step. The value in both repos' git history is
    now dead, which is the only thing that ever ended it.
@@ -158,3 +162,53 @@ Two ways to close it, neither taken without approval:
 Until one runs, "rotated" rests on the owner's report, which is the correct
 basis for an action only they can take — but it is not a measurement, and this
 document does not record it as one.
+
+## THE PROBE'S FIRST RUN — BINDING-ABSENT
+
+Option 1 was built and it cost nothing, not the 1-2 credits estimated:
+`check-odds-calls-guarded` caught the new call site and told me why a
+`/v4/sports` call needs an `ODDS-FREE` note — the sports list is not billed,
+which is why the primary-key probe already used it for validity.
+
+`GET /debug/odds-fallback-key` (CI-gated, in the worker because the key is a
+Cloudflare binding with no GitHub copy), run `38195821834`, 2026-10-12T02:27Z:
+
+```
+HTTP 200
+key_present         : false
+route verdict       : binding-absent
+vendor status       : (no vendor call)
+x-requests-remaining: (absent)
+
+verdict: BINDING-ABSENT
+```
+
+**`env.ODDS_API_KEY_FALLBACK` is not set in the running worker.** No vendor call
+was made, so this cost nothing at all.
+
+### What that means, stated carefully
+
+- The rotation reached **the provider** and **not the binding**. The same
+  two-store half-landing as 2026-09-15, except there the lagging store caught up
+  in 16 minutes and here it is simply empty.
+- **The 401/429 retry cannot fire and has not been able to.** `_oddsFallbackKey`
+  returns null; `oddsFetchWithFallback` retries only when the binding is set; and
+  `ambient-do.js`'s `useFallback` is a truthiness check on the same value. With
+  the binding unset the whole fallback path is a no-op.
+- **When the primary hits its 20,000-credit month, there is no fallback.** The
+  Starter plan's 500 credits are not reachable from the worker.
+- **How long it has been unset is NOT established by this probe.** It says the
+  binding is empty now. Whether the rotation emptied it or it was never set is a
+  different question, and nothing on file answers it — which is itself the cost
+  of the binding having had no probe until today.
+
+BINDING-ABSENT was made its own verdict on purpose (Rule 99): an unset binding
+and an invalid key look identical from the outside and have different fixes. The
+probe exits non-zero on it, and the run is red.
+
+### What closes it
+
+The owner sets `ODDS_API_KEY_FALLBACK` in Cloudflare (Workers >
+field-relay-nba > Settings > Variables, or `wrangler secret put
+ODDS_API_KEY_FALLBACK`) to the key rotated on 2026-10-12, then the probe is
+re-dispatched and must read `VALID` with an `x-requests-remaining` near 500.
