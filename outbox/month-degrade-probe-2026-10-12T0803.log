@@ -1,0 +1,26 @@
+=== month degrade probe  utc=2026-10-12T08:03:41.341Z ===
+
+  sample 1 : used 513/3800  monthly 21641
+             degraded_open is READ — {"events":0,"credits":0,"last":null}
+             monthly batch reason count 0
+
+  closed 2026-10-11 : used 3800/3800  monthly 21641 (current month — peekMonthlyOdds takes no date)
+                      degraded_open is READ — {"events":1230,"credits":5995,"reasons":{"month: odds budget batch returned 2 result(s), expected 3":1075,"daily: D1_ERROR: D1 DB is overloaded. Requests queued for too long.":77,"month: D1_ERROR: D1 DB is overloaded. Requests queued for too long.":78},"last":"2026-10-11T18:08:12.034Z"}
+                      monthly batch reason count 1075
+
+  waiting 420s for the */5 cron to fire at least once...
+
+  sample 2 : used 513/3800  monthly 21641
+             degraded_open is READ — {"events":0,"credits":0,"last":null}
+             monthly batch reason count 0
+
+  verdict: INCONCLUSIVE
+  the reason did not grow, but neither did the day's odds counter (+0) nor any degrade (+0) — nothing happened in this interval, so a flat count proves nothing
+
+COVERAGE: 2 sample(s) of /budget/odds, 420s apart, on 2026-10-12.
+It sees the UTC day's cumulative degrade counter only. A monthly batch throw
+that happens outside this interval is invisible here, which is why the
+interval has to show spend before a flat count is read as a pass.
+
+INCONCLUSIVE is not a pass. Re-run during an active slate — the daily
+ceiling resets at 00:00 UTC and charges resume with the */5 cron.
