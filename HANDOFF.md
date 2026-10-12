@@ -1,5 +1,61 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-12 — the third odds key
+
+**HEAD:** `1c929a4` → this commit. Session doc:
+`outbox/cc-session-2026-10-12-starter-key-exposure.md`.
+`docs/CC-CMD-2026-10-12-starter-key-exposure.md` — DONE for everything
+automatable; **one step is the owner's and is open.**
+
+### READ THIS BEFORE WRITING "the Odds API key" AGAIN
+
+There are **three**, and every document in this project has called all three by
+that one name. That conflation is what hid a live credential for weeks:
+
+| key | state |
+|---|---|
+| Exhausted free-tier | Removed from source 2026-08-25 (`0607526`), ratchet 0, still in git history. Dead. |
+| **Live 20K-plan** | **Rotated by the owner 2026-09-15.** Never a literal anywhere. |
+| **Starter-plan** (`env.ODDS_API_KEY_FALLBACK`) | Six plaintext copies across two repos until 2026-10-12. **Never rotated — the owner's step.** |
+
+The carried-forward note *"The Odds API key is still in git history in four
+repos; rotate at the provider"* is true of the first and third and FALSE of the
+second. It was repeated unchanged for three weeks and read as though the
+rotation had never happened.
+
+### What landed
+
+6 → 0 literals by hash across four repos. The hash
+`06e2d4f3752f87d37dc44d4796203edd94b3a5818a0bd3bdb719587ad764643b` is now
+declared at max 0 in both ratchets and on field-laboratory's tripwire list.
+
+**A ratchet only knows the hashes it is given** — both scanners printed PASS on
+every run while six copies of an undeclared odds key sat in tracked files.
+
+Both gates were proven able to FAIL before being allowed to pass, separately,
+because the two checkers are different programs: the relay's entry went in while
+all six literals were present (red, exit 1, named the file), and
+jubilant-bassoon's was tested with a throwaway `deadbeef` token rather than by
+rewriting a credential.
+
+### The 2026-09-15 rotation is now written down
+
+It had no session doc — the outbox has 09-14 and 09-16. Its only record was a
+workflow header and two probe logs. The key lives in **two stores** (Cloudflare
+secret AND GitHub Actions secret) and they were updated ~70 minutes apart, with
+~16 minutes of observed worker-side 401s. `src/index.js`'s key comment named one
+store; it now names both and carries the probe as step 3.
+
+### Carry-forward — one, and it is the owner's
+
+Rotate the Starter-plan key at The Odds API and set the new value in the
+Cloudflare `ODDS_API_KEY_FALLBACK` binding. The old value is in git history in
+two repos and history was not rewritten, so redaction stopped it spreading and
+rotation is what ends it. Single store this time — there is no GitHub Actions
+copy of this key.
+
+---
+
 ## SESSION CLOSE-OUT — 2026-10-11f — the overcharge was a 404 loop
 
 **HEAD:** `1c929a4` → this commit. Hashes and run ids are in the session doc's
