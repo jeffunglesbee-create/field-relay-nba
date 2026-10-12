@@ -16548,6 +16548,91 @@ export default {
         // is built. No real day is touched, and every reader of odds_budget
         // filters `WHERE day = ?` (checked: three call sites), so the sentinel is
         // invisible to them even in the window before cleanup.
+        // GET /debug/odds-fallback-key — IS THE FALLBACK KEY ANY GOOD?
+        //
+        // It had no probe at all until 2026-10-12, which is the gap that made
+        // the 2026-09-15 outage possible in its sibling: a store nobody reads.
+        // env.ODDS_API_KEY_FALLBACK only engages when the primary returns
+        // 401/429, so a bad value here cannot surface incidentally — it
+        // surfaces on the day the primary is exhausted, which is the worst day
+        // to find out. The owner rotated this key on 2026-10-12 and nothing
+        // could confirm it took.
+        //
+        // IN THE WORKER, BECAUSE THAT IS WHERE THE SECRET IS. The fallback has
+        // no GitHub Actions copy — it is a Cloudflare binding only — so a
+        // runner cannot read it and scripts/probe-relay-odds-key-live.mjs
+        // cannot reach it. This route is the only place the question can be
+        // asked.
+        //
+        // /v4/sports, NOT /v4/sports/{k}/odds. The same endpoint
+        // probe-relay-odds-key-live.mjs already uses for key validity: it
+        // answers 200-or-401 on the key while being the cheapest call the
+        // vendor serves. The response's own x-requests-remaining is returned
+        // beside the status so the reader sees the quota rather than inferring
+        // it — a freshly rotated Starter key should read near its 500.
+        //
+        // NEVER THE KEY. Only its presence, the status, and the vendor's own
+        // usage headers. A debug route that echoes a credential is the defect
+        // this repo has already shipped twice (commit 26c2507, and
+        // update-odds-key.yml).
+        //
+        // NO CACHE. cacheTtl 0, because a replayed 200 would describe an older
+        // call with an older key and read as a pass.
+        if (pathname === '/debug/odds-fallback-key' && request.method === 'GET') {
+            const authHeader = request.headers.get('X-FIELD-Relay');
+            if (authHeader !== CI_ROUTE_GATE) {
+                return new Response('unauthorized', { status: 401, headers: CORS });
+            }
+            const k = env.ODDS_API_KEY_FALLBACK || null;
+            const out = {
+                probe: 'odds-fallback-key',
+                at: new Date().toISOString(),
+                key_present: Boolean(k),
+                note: 'the key itself is never returned by this route',
+            };
+            if (!k) {
+                // ABSENT IS ITS OWN ANSWER (Rule 99), and it is not "invalid":
+                // the binding being unset means the fallback path silently
+                // does nothing, which looks identical to a working primary.
+                out.verdict = 'binding-absent';
+                out.detail  = 'env.ODDS_API_KEY_FALLBACK is not set — the 401/429 retry in oddsFetchWithFallback can never fire. No vendor call was made.';
+                return new Response(JSON.stringify(out, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+            }
+            try {
+                // ODDS-FREE: the sports LIST is not charged to the monthly
+                // ledger, which is why probe-relay-odds-key-live.mjs tests the
+                // primary key this way. Labelled rather than assumed — and
+                // THIS ROUTE IS ITS OWN DISPROOF: it returns the provider's
+                // x-requests-last beside the status. If a /v4/sports call ever
+                // comes back with a non-zero requests_last, this annotation is
+                // wrong and this site needs a guard like every other.
+                const r = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${encodeURIComponent(k)}`,
+                                     { cf: { cacheTtl: 0, cacheEverything: false } });
+                out.status            = r.status;
+                out.cf_cache_status   = r.headers.get('cf-cache-status');
+                out.requests_remaining = r.headers.get('x-requests-remaining');
+                out.requests_used      = r.headers.get('x-requests-used');
+                out.requests_last      = r.headers.get('x-requests-last');
+                if (r.ok) {
+                    let n = null;
+                    try { const j = await r.json(); n = Array.isArray(j) ? j.length : null; } catch (_) { n = null; }
+                    out.sports_count = n;
+                    out.verdict = 'valid';
+                    out.detail  = `the fallback key authenticates. ${out.requests_remaining === null ? 'The vendor sent no x-requests-remaining, so the quota is unknown from this call.' : `x-requests-remaining ${out.requests_remaining}.`}`;
+                } else {
+                    out.body_head = (await r.text()).slice(0, 200);
+                    out.verdict = r.status === 401 ? 'rejected' : 'unexpected-status';
+                    out.detail  = r.status === 401
+                        ? 'the vendor rejected the fallback key. Either the binding holds a pre-rotation value or it was never updated.'
+                        : `the vendor answered ${r.status}, which says nothing conclusive about the key.`;
+                }
+            } catch (e) {
+                out.verdict = 'unreachable';
+                out.detail  = `the vendor call threw: ${String(e && e.message || e).slice(0, 160)}`;
+            }
+            return new Response(JSON.stringify(out, null, 2), { headers: { ...CORS, 'Content-Type': 'application/json' } });
+        }
+
         if (pathname === '/debug/odds-budget-latency' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
             if (authHeader !== CI_ROUTE_GATE) {

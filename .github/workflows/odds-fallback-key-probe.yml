@@ -1,0 +1,61 @@
+name: Odds fallback key probe (read-only, no credits)
+
+# Nothing probed env.ODDS_API_KEY_FALLBACK until 2026-10-12. The primary-key
+# probe tests the other binding; `grep -rln ODDS_API_KEY_FALLBACK scripts/
+# .github/workflows/` returned nothing.
+#
+# That is the 2026-09-15 shape — a store nobody reads — and this one is worse to
+# leave: the fallback engages only on a 401/429 from the primary, so a bad value
+# first shows up on the day the primary is exhausted. The owner rotated this key
+# on 2026-10-12 and nothing could confirm it took.
+#
+# FREE. The work happens inside the worker (the key is a Cloudflare binding with
+# no GitHub copy), and the call it makes is /v4/sports, which is not charged to
+# the monthly ledger — the same endpoint the primary-key probe uses. The relay's
+# ODDS-FREE annotation names this route as its own disproof: the probe prints
+# x-requests-last, so a billed sports list would show up there.
+#
+# DISPATCH ONLY. It answers a question. Once the answer is in the CC-CMD this
+# can stay for the next rotation or be deleted — unlike the month-degrade probe
+# it has no regression gate behind it, so keeping it is the cheaper option.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The verdict must be able to come back GATE-REFUSED, BINDING-ABSENT and
+      # REJECTED before a VALID from it means anything. The first matters most:
+      # reading a gate refusal as a bad key sends someone to rotate a key that
+      # is fine.
+      - name: the probe can fail
+        run: node scripts/probe-odds-fallback-key.mjs --self-test
+
+      # pipefail: without it the step's exit code is tee's, which is how run
+      # 35012890540 reported success over a script that exited 1.
+      - name: Probe
+        shell: bash
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
+        run: |
+          set -o pipefail
+          node scripts/probe-odds-fallback-key.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # always(): a REJECTED run is the one carrying the evidence.
+      - name: Commit the log
+        if: always()
+        run: |
+          PROBE_AUTHOR_NAME="odds-fallback-key-probe" \
+          PROBE_AUTHOR_EMAIL="actions@github.com" \
+          bash scripts/probe-commit-retry.sh "chore: odds fallback key probe"

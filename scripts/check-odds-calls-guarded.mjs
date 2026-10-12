@@ -244,7 +244,11 @@ for (const x of findings) {
 // A ratchet on the count, so a NEW odds call site is visible even if it is
 // correctly guarded. This table is how the worker spends money; it should not
 // grow without someone saying so.
-const EXPECTED_SITES = 9;
+// 9 -> 10 on 2026-10-12: GET /debug/odds-fallback-key, the first thing that
+// ever probed env.ODDS_API_KEY_FALLBACK. A /v4/sports call carrying ODDS-FREE,
+// and it is the disproof for that annotation as well as its user — it returns
+// the provider's x-requests-last, so a billed sports list would show up there.
+const EXPECTED_SITES = 10;
 if (findings.length !== EXPECTED_SITES) {
     console.error(`  FAIL: expected ${EXPECTED_SITES} odds call sites, found ${findings.length}.`);
     console.error(`  If this is a deliberate add or removal, update EXPECTED_SITES in this file in the same commit.`);
