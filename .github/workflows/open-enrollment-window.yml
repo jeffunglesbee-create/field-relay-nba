@@ -86,8 +86,12 @@ jobs:
             200|201) ;;
             *) echo "::error::Cloudflare returned HTTP $HTTP"; exit 1 ;;
           esac
-          if ! grep -q '"success":true' /tmp/cf.json; then
-            echo "::error::Cloudflare reported success:false"
+          # Parse the body instead of pattern-matching it. Cloudflare
+          # pretty-prints, so the success flag arrives as '"success": true' with
+          # a space, and a grep for '"success":true' misses it -- which is how
+          # this step failed a second time on a write that had succeeded.
+          if ! python3 -c 'import json,sys; sys.exit(0 if json.load(open("/tmp/cf.json")).get("success") is True else 1)'; then
+            echo "::error::Cloudflare did not report success:true"
             exit 1
           fi
 
