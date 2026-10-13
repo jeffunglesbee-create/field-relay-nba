@@ -1631,27 +1631,15 @@ jobs:
       # in field-laboratory that exists and authenticates nothing, and the check
       # there would report a 401 as "the probe failed" -- the silence both repos
       # spent today deleting.
-      - name: BOOTSTRAP — Sync RELAY_SHARED_SECRET to field-laboratory
+      - name: BOOTSTRAP — Sync RELAY_SHARED_SECRET to field-laboratory and jubilant-bassoon
         continue-on-error: true
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           RELAY_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
-        run: |
-          if [ -z "$RELAY_SECRET" ]; then
-            echo "❌ RELAY_SHARED_SECRET is not set in this repository."
-            echo "   Add it under Settings → Secrets and variables → Actions."
-            echo "   Until then field-laboratory's check:sport-vocabulary cannot run,"
-            echo "   and it reports that as a failure rather than a skip."
-            exit 1
-          fi
-          RESULT=$(curl -s -X POST https://field-deploy.jeffunglesbee.workers.dev/secret \
-            -H "Authorization: Bearer $OIDC_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"repo\":\"field-laboratory\",\"name\":\"RELAY_SHARED_SECRET\",\"value\":\"$RELAY_SECRET\"}")
-          echo "Result: $RESULT"
-          echo "$RESULT" | grep -q '"ok":true' \
-            && echo "✅ RELAY_SHARED_SECRET synced to field-laboratory" \
-            || { echo "❌ Sync FAILED: $RESULT"; exit 1; }
+        # jubilant-bassoon added 2026-10-13: its scripts stopped carrying the
+        # literal and read the env like field-laboratory's. One script, shared
+        # with the rotation, so both write the same repos the same way.
+        run: bash scripts/distribute-relay-secret.sh field-laboratory jubilant-bassoon
 
       # A 500 ON A ROUTE THIS DEPLOY TOUCHED, CAUGHT IN MINUTES NOT HOURS.
       # `node --check` parses a temporal dead zone without complaint: on
