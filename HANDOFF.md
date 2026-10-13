@@ -1,5 +1,22 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-13b — the shared secret leaves the source
+
+Session doc: `outbox/cc-session-2026-10-13-rotate-relay-secret.md`.
+`docs/CC-CMD-2026-08-25-rotate-relay-secret.md` — steps 1 and 2 **DONE**.
+
+**Owner action, one click:** Actions → "Rotate RELAY_SHARED_SECRET" → Run
+workflow → `confirm: ROTATE`. The runner makes the new value, writes both
+Workers, this repo and both siblings, proves the new value accepted and the old
+refused, and rolls back on any failure. Nobody sees the value. A session's
+dispatch was refused by its permission policy.
+
+- **The CC-CMD's premise was wrong.** The binding was ABSENT on both Workers;
+  step 1 as written would have closed every gated route. Both were written first.
+- No code path in either repo holds the literal. 33 lines remain here and 4 in
+  jubilant-bassoon, all in docs/ and outbox/; step 4 redacts them after step 3.
+- Gates are verified live (5/5) and statically (5/5 mutations, in guards).
+
 ## SESSION CLOSE-OUT — 2026-10-13 — the pairing watch's degrade line
 
 Session doc: `outbox/cc-session-2026-10-13-pairing-degrade-cross-day.md`.

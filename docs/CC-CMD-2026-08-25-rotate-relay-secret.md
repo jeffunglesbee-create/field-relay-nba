@@ -1,8 +1,13 @@
 # CC-CMD-2026-08-25-rotate-relay-secret
 
 **Filed:** 2026-08-25.
-**Status:** OPEN. Steps 1, 2, 4 and 5 are automatable. **Step 3 — the rotation
-itself — needs a human with Cloudflare and GitHub credentials.**
+**Status:** OPEN — **steps 1 and 2 DONE 2026-10-13; step 3 is one dispatch.**
+Run `.github/workflows/rotate-relay-secret.yml` with `confirm=ROTATE`. It needs
+no credentials from a person: the runner generates the value, writes it
+everywhere, proves it live and rolls back on any failure. A session's dispatch
+of it was refused by the session's permission policy (secret-store write), so
+the owner presses the button. Steps 4 and 5 follow its log. See
+"2026-10-13 — what was done" at the end.
 
 Corrected 2026-08-25 after checking HEAD: an earlier version of this document
 claimed the Actions secret still had to be created and named one auth gate.
@@ -184,3 +189,54 @@ unchanged, replacing a literal with a binding that holds the same value is a
 no-op at runtime — every gate and every self-call keeps working, and the change
 can be verified against a live relay before anything rotates. Rotate-first makes
 every one of those 114 sites wrong simultaneously.
+
+
+---
+
+## 2026-10-13 — what was done
+
+Session doc: `outbox/cc-session-2026-10-13-rotate-relay-secret.md`.
+
+**A premise of this document was false, and step 1 as written would have been
+an outage.** Step 1 makes every gate fail closed on an unset
+`env.RELAY_SHARED_SECRET`. `scripts/worker-secret-names.sh` read the binding
+**ABSENT on both Workers** (field-relay-nba 20 secrets, field-claude-proxy 4).
+Nothing had noticed because every gate compared the literal and the two sites
+that read the binding fell back to it. Both bindings were written first, at
+06:36Z, from the Actions secret, which every passing gated CI call proves equal
+to the literal; then re-read as PRESENT.
+
+| step | state | commit / run |
+|---|---|---|
+| 1a bindings on both Workers | **DONE** | `199c02c`; sync runs 38357628677, 38357634319; re-read 38357685164 |
+| 1b relay src + proxy read the binding, fail closed | **DONE, verified live** | `28203a2`; deploy 38358536700; probe 38358907878: 5/5 |
+| 1c 44 scripts, 24 workflows | **DONE** | `17b966d` |
+| siblings get the secret | **DONE** | `8329fc6`; distribute run 38359407131 |
+| two probes that grepped source for the literal | **DONE** | `1e196d5` |
+| 1d jubilant-bassoon's live code | **DONE** | jb `0dc9a6fd` |
+| 2 retire `bootstrap-relay-secret.yml` | **DONE** | `d214ef1` |
+| 3 rotate | **ONE DISPATCH** — `rotate-relay-secret.yml`, confirm=ROTATE | `7771486` |
+| 4 redact docs/ and outbox/ | after 3 | 33 lines here, 4 in jubilant-bassoon |
+| 5 ratchet to 0, new hash at 0 | after 3 | the rotation log prints the new value's SHA-256 |
+
+**Two defects caught before they shipped:**
+- `src/analytics-engine.js`'s `callProxy` is module-level and had no `env` in
+  scope. ESLint `no-undef` flagged it; shipped, it would have thrown on every
+  analytics proxy call. It now takes `env` from its six callers.
+- `odds-budget-latency.yml` and `d1-returning-probe.yml` extracted the gate
+  value from `src/index.js` with a grep, exactly as bootstrap did. With no
+  literal left they would have stopped at "found 0". They read the Actions
+  secret now.
+
+**Guards added:** `check-relay-secret-gates.mjs` (in guards.yml; the helper run
+on 7 cases, no literal gate or fallback; 5/5 mutations),
+`probe-relay-secret-gates.sh` (the live done condition, free: the proxy half
+uses an empty body, refused only after its relay check passes),
+`worker-secret-names.sh` (8/8, 4/4 mutations), `rotate-relay-secret.sh` (6/6 dry-run paths, 6/6
+mutations). `check-courier-sync-uses-secrets.mjs` follows the sync into the
+shared script.
+
+**The done condition, when step 3 runs:** the rotation log ends `ROTATED`, its
+probe shows the new value accepted by both gates and the OLD value refused by
+both (401 and 403), and `node scripts/check-exposed-secrets.mjs` reads
+`RELAY_SHARED_SECRET: at most 0` after step 5.
