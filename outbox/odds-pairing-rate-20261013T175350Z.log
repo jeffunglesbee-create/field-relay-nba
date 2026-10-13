@@ -1,0 +1,46 @@
+=== odds backfill pairing rate  utc=2026-10-13T17:53:50.897Z ===
+window: progress rows dated >= 2026-09-29
+
+  progress rows in window        : 14
+  of those, rows that spent      : 14
+  spent AND paired at least one  : 14
+  spent AND paired ZERO          : 0
+  total credits in window        : 1700
+  total games paired in window   : 211
+
+  provider billed this month     : 15320
+  our ledger says                : 25365
+  today's daily counter          : 642 / 3800
+  readings on file               : 32
+  daily ceiling verdict          : within_ceiling  (642/3800, 17%)
+
+  since the last reading (21.8h):
+      provider billed   : 2035
+      our ledger charged: 2151
+      escaped the ledger: -116
+      known CI spend    : 160   (1 backfill run(s) in window)
+      UNEXPLAINED       : -276   (tolerance 102)
+      guard fell open   : none — 0 credit(s)
+                          = 2026-10-12 close 0 - 0 at the last reading + 0 today
+      negative — our ledger charged MORE than the vendor billed, which is the reconcile direction
+      games paired since: 6
+
+  ── D1 overload, closed day 2026-10-12 (budget 13) ──
+  degraded_open        : none
+  D1 overloads         : 0   (daily + month paths)
+  all degrade events   : 0
+  month-batch reason   : 0   (the batch-shape fix of 2026-10-11 should hold this at 0)
+
+  wrote outbox/odds-provider-usage-series.json (33 reading(s) kept)
+
+PASS: every date that spent credits paired at least one game, our ledger
+captured everything the vendor billed, the daily counter is under its cap, and
+yesterday's D1 overloads were read, attributed, and at or under 13.
+
+COVERAGE: 14 progress rows since 2026-09-29, 33 provider reading(s).
+odds_backfill_progress is keyed by DATE, so a date mixing a paired sport with an
+unpaired one reads as paired — this catches total failure per date, not per sport.
+KNOWN CI SPEND IS A LOWER BOUND: only odds-backfill records its own credits, so
+probes and one-off fills are NOT subtracted and UNEXPLAINED is an upper bound on
+real leakage. Joined on completed_at (the run clock), never on date (the day
+being backfilled) — a run today writes yesterday's row.
