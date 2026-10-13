@@ -1,31 +1,5 @@
 [
   {
-    "at": "2026-09-27T14:21:23.603Z",
-    "date": "2026-09-27",
-    "used": 222,
-    "by_site": {
-      "fetchSportOddsHistorical": 60,
-      "fetchSportOddsLive": 126,
-      "getWCPregameLambdas": 12,
-      "handleCFLOddsProbs": 24,
-      "handleWCOddsProbs": 0,
-      "wpResolver": 0,
-      "ambientFetchLiveOdds": 0,
-      "ambientCaptureClosingOdds": 0,
-      "oddsProxyRoute": 0,
-      "unattributed": 0
-    },
-    "by_site_sum": 222,
-    "unreadable_sites": null,
-    "degraded_open": {
-      "events": 392,
-      "credits": 4748,
-      "last": "2026-09-27T14:17:55.582Z"
-    },
-    "source": "d1",
-    "ceiling_reached_at": null
-  },
-  {
     "at": "2026-09-27T18:42:30.108Z",
     "date": "2026-09-27",
     "used": 539,
@@ -3180,6 +3154,62 @@
         "state": "reconciled",
         "cache": "MISS",
         "n": 1,
+        "credits_kept": 0
+      }
+    ]
+  },
+  {
+    "at": "2026-10-13T02:17:00.963Z",
+    "date": "2026-10-13",
+    "used": 129,
+    "by_site": {
+      "fetchSportOddsHistorical": 60,
+      "fetchSportOddsLive": 69,
+      "getWCPregameLambdas": 0,
+      "handleWCOddsProbs": 0,
+      "handleCFLOddsProbs": 0,
+      "wpResolver": 0,
+      "ambientFetchLiveOdds": 0,
+      "ambientCaptureClosingOdds": 0,
+      "oddsProxyRoute": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 129,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 0,
+      "credits": 0,
+      "last": null
+    },
+    "source": "d1",
+    "ceiling_reached_at": null,
+    "reconcile": [
+      {
+        "site": "fetchSportOddsLive",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 23,
+        "credits_kept": 69
+      },
+      {
+        "site": "fetchSportOddsHistorical",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 2,
+        "credits_kept": 60
+      },
+      {
+        "site": "fetchSportOddsLive",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 7,
+        "credits_kept": 0
+      },
+      {
+        "site": "fetchSportOddsHistorical",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 3,
         "credits_kept": 0
       }
     ]
