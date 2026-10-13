@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect) — a watch line that reports a verdict from a meaningless number
-**Status:** OPEN
+**Status:** DONE on conditions 1 and 2 (`2d8d584`, 2026-10-13). Condition 3 is the next scheduled run; a check-in is armed for 2026-10-13T20:30Z.
 
 ## The defect, measured
 
@@ -71,10 +71,56 @@ mutation must be CAUGHT.
 
 ## Done conditions
 
-1. The real 10-10 → 10-11 pair returns `cross-day` in the self-test.
-2. The sign-only mutation is CAUGHT.
-3. The next scheduled run prints no `explains` / `partial` over an interval that
-   spans midnight.
+1. ✅ The real 10-10 → 10-11 pair returns `cross-day` in the self-test, and
+   offers no number.
+2. ✅ The sign-only mutation is CAUGHT (P8), with P9-P11 beside it: 11/11.
+3. **Restated, because Task 2 chose option 1.** As first written this said "no
+   `explains` / `partial` over an interval that spans midnight", which assumed
+   the line would go silent. It does not: across ONE midnight it now rebuilds
+   the number exactly. The condition is that the next scheduled run prints
+   either a verdict with its reconstruction line beneath it
+   (`= <day> close C - W at the last reading + N today`, and C - W + N equals the
+   printed credits) or `cross-day` naming which case. Never a bare subtraction
+   of two days' counters.
+
+## What was built
+
+**Task 1.** `degradeVerdict(prev, curr, escaped, span)` compares the readings'
+UTC dates. The counter is keyed by UTC date (`_degradeKey`,
+`src/budget-helpers.js:154`), so the date is the right discriminator, not the
+sign. A call without dates is `unreadable`: the old three-argument form can no
+longer produce a verdict.
+
+**Task 2: option 1, because it was free.** The watch already read the
+previous day's closed block for its D1 section. That read now happens once,
+before both consumers. Across one midnight:
+`(close - last reading) + today so far`. Across two, or with no close:
+`cross-day`, with `why` naming which. Readings now carry `daily_date` from the
+relay, so the date comes from the counter's owner, not the runner clock.
+
+A fifth state came with it: **`no-escape`**. Once the line produces numbers
+again, `explains` over a NEGATIVE escape would be a new false verdict. On
+2026-10-12 UNEXPLAINED was −322 (the ledger charged more than the vendor
+billed), and 146 degraded credits do not "explain" a gap in that direction.
+
+**Task 3.** Self-test 69 → 81. The real pairs: 10-10 → 10-11 is `cross-day`;
+10-11 → 10-12 is exactly 146 (`5995 - 5849 + 0`) and `no-escape`. Mutations
+P8-P11, 11/11 caught. End to end against a fake relay, three cases:
+one midnight with the close (`partial — 146` and its arithmetic line), two
+midnights (`cross-day`, "one day's close cannot bridge it"), close absent
+(`cross-day`, and the D1 section FAILs `not-reported`).
+
+**Found while doing it:**
+- `mutate-odds-matcher.mjs` M44 was anchored on the line this rewrote. It
+  reported FAIL with NOTHING MUTATED, not a false CAUGHT, because the harness
+  checks its anchors (Rule 90's corollary working). Re-anchored; 46/46.
+- The old `a midnight rollover is unreadable` self-test would have kept
+  passing, for the wrong reason: with no dates it reads `unreadable` without
+  ever reaching the subtraction. Replaced by a same-day decrease with dates,
+  plus a separate test that a dateless call is `unreadable`.
+- The first end-to-end pass read a stale fake relay left on the port by the
+  previous scenario, so its third case was invalid. The harness now prints the
+  relay's served closed-day block before each run.
 
 ## Do not
 

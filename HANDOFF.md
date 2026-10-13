@@ -1,5 +1,20 @@
 # FIELD Relay — HANDOFF
 
+## SESSION CLOSE-OUT — 2026-10-13 — the pairing watch's degrade line
+
+Session doc: `outbox/cc-session-2026-10-13-pairing-degrade-cross-day.md`.
+`docs/CC-CMD-2026-10-12-pairing-degrade-cross-day.md` — DONE on 1 and 2.
+
+The `guard fell open` line subtracted one day's cumulative degrade counter from
+the previous day's whenever the result came out positive. `explains — 1468`
+(10-10) and `explains — 3297` (10-11) were that. It now compares UTC dates.
+Across one midnight it rebuilds the interval from the previous day's close and
+prints the arithmetic beside it. Otherwise it says `cross-day`. Over a negative
+escape it says `no-escape`, not `explains`.
+
+Self-test 81/81, pairing mutations 11/11, matcher mutations 46/46 (M44
+re-anchored; the harness had refused to report it as caught).
+
 ## CHECK-IN — 2026-10-12f — the D1 overload watch went red on schedule
 
 Scheduled run `38301876359` (20:04:56Z, 545 min late, this workflow's worst
