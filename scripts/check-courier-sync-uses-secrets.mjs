@@ -30,9 +30,22 @@ import { execSync } from 'node:child_process'
 // land in the file nobody scans.
 const WFS = [
   '.github/workflows/deploy.yml',
-  '.github/workflows/bootstrap-relay-secret.yml',
 ]
 const COURIER = 'field-deploy.jeffunglesbee.workers.dev/secret'
+
+// THE RELAY SECRET'S SYNC MOVED INTO A SCRIPT, 2026-10-13. deploy.yml and the
+// rotation both write it to field-laboratory AND jubilant-bassoon through
+// scripts/distribute-relay-secret.sh, so the same two invariants are checked
+// there: the value is the $RELAY_SECRET variable, never a literal, and deploy.yml
+// still calls it for field-laboratory. bootstrap-relay-secret.yml left WFS the
+// same day: it extracted the secret from src/index.js, which no longer holds it.
+const SCRIPT = 'scripts/distribute-relay-secret.sh'
+export const scriptVerdict = (scriptText, deployText) => ({
+  posts: scriptText.includes(COURIER),
+  valueIsVariable: /--arg value "\$RELAY_SECRET"/.test(scriptText),
+  literalValue: /--arg value "[^$"][^"]*"/.test(scriptText),
+  labCalled: /bash scripts\/distribute-relay-secret\.sh[^\n]*\bfield-laboratory\b/.test(deployText),
+})
 
 /**
  * Every Courier sync in the file, as { name, repo, value }. `value` is the raw
@@ -46,10 +59,12 @@ export const syncs = (yaml) => {
   return out
 }
 
-export const verdict = (list) => {
+export const verdict = (list, sv = null) => {
   const literal = list.filter(s => !s.value.startsWith('$'))
-  const relay = list.filter(s => s.name === 'RELAY_SHARED_SECRET' && s.repo === 'field-laboratory')
-  return { literal, hasRelaySync: relay.length > 0, total: list.length }
+  if (sv && sv.literalValue) literal.push({ name: 'RELAY_SHARED_SECRET', repo: SCRIPT, value: '(literal)' })
+  const inline = list.some(s => s.name === 'RELAY_SHARED_SECRET' && s.repo === 'field-laboratory')
+  const viaScript = !!(sv && sv.posts && sv.valueIsVariable && sv.labCalled)
+  return { literal, hasRelaySync: inline || viaScript, total: list.length + (sv && sv.posts ? 1 : 0) }
 }
 
 let fail = 0
@@ -61,6 +76,7 @@ const check = (name, cond, detail = '') => {
 // Concatenated: the invariant is over the set of Courier calls in the repo, and
 // which file each lives in does not change whether it may carry a literal.
 const yaml = WFS.map(f => readFileSync(f, 'utf8')).join('\n')
+const script = readFileSync(SCRIPT, 'utf8')
 
 // Every workflow naming the Courier must be in WFS, or a new one can add an
 // unscanned call. This is the check that keeps WFS honest.
@@ -72,23 +88,30 @@ const unscanned = execSync(
 if (process.argv.includes('--self-test')) {
   console.log('self-test: the check rejects its own negative controls')
 
-  // 1. A literal pasted in place of the variable.
-  const pasted = yaml.replace('\\"value\\":\\"$RELAY_SECRET\\"', '\\"value\\":\\"some-literal-value\\"')
-  const a = verdict(syncs(pasted))
+  // 1. A literal pasted in place of the variable, in the script that now sends it.
+  const pasted = script.replace('--arg value "$RELAY_SECRET"', '--arg value "some-literal-value"')
+  const a = verdict(syncs(yaml), scriptVerdict(pasted, yaml))
   check('a pasted literal is caught',
-    pasted !== yaml && a.literal.length === 1 && a.literal[0].name === 'RELAY_SHARED_SECRET',
+    pasted !== script && a.literal.length === 1 && a.literal[0].name === 'RELAY_SHARED_SECRET',
     `mutation changed nothing, or the check did not see it: ${JSON.stringify(a.literal)}`)
 
-  // 2. The step deleted outright.
-  const dropped = yaml.replace(/\\"repo\\":\\"field-laboratory\\",\\"name\\":\\"RELAY_SHARED_SECRET\\"[^\n]*/, '')
-  const b = verdict(syncs(dropped))
+  // 1b. A literal pasted into an inline sync is still caught.
+  const pastedInline = yaml.replace('\\"value\\":\\"$CF_TOKEN\\"', '\\"value\\":\\"some-literal-value\\"')
+  const a2 = verdict(syncs(pastedInline), scriptVerdict(script, pastedInline))
+  check('a pasted literal in an inline sync is caught',
+    pastedInline !== yaml && a2.literal.length >= 1,
+    `mutation changed nothing, or the check did not see it: ${JSON.stringify(a2.literal)}`)
+
+  // 2. The field-laboratory write deleted from deploy.yml.
+  const dropped = yaml.replace(/(bash scripts\/distribute-relay-secret\.sh[^\n]*?)\s*\bfield-laboratory\b/, '$1')
+  const b = verdict(syncs(dropped), scriptVerdict(script, dropped))
   check('a deleted RELAY_SHARED_SECRET sync is caught',
     dropped !== yaml && b.hasRelaySync === false,
     'removing the step is the other way to turn a red step green')
 
   // 3. Control: the real file must pass, or a check that reds everything would
   //    satisfy 1 and 2 while saying nothing.
-  const c = verdict(syncs(yaml))
+  const c = verdict(syncs(yaml), scriptVerdict(script, yaml))
   check('the real workflow passes',
     c.literal.length === 0 && c.hasRelaySync === true,
     `literals=${JSON.stringify(c.literal)} relaySync=${c.hasRelaySync}`)
@@ -98,7 +121,7 @@ if (process.argv.includes('--self-test')) {
     unscanned.length === 0, `unscanned: ${unscanned.join(', ')}`)
 } else {
   console.log('Courier secret syncs carry variables, not values')
-  const v = verdict(syncs(yaml))
+  const v = verdict(syncs(yaml), scriptVerdict(script, yaml))
   check(`${v.total} sync(s) parsed`, v.total >= 4,
     'the pattern stopped matching — a sync could be unchecked')
   check('no sync sends a literal', v.literal.length === 0,
