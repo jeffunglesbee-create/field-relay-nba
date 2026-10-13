@@ -100,7 +100,18 @@ does not, another site is keeping estimates and this document missed it.
 3. `no-header` credits at zero on a closed day in
    `outbox/odds-daily-vs-vendor-*.log`, or the site that is still keeping
    estimates named.
-   **Open, first reading in.** 2026-10-11 closed at 292 calls / 584 credits
+   ✅ **MET 2026-10-13** — scheduled run 38358251009 (06:42Z), closed day
+   2026-10-12, `outbox/odds-daily-vs-vendor-2026-10-13T0642.log`, verbatim:
+
+   ```
+     unreconciled estimate  : 0 — no call kept an estimate for want of a receipt
+   ```
+
+   The first closed day after the 00:25Z 10-12 deploy, and zero. The residual
+   beside it (−616) is not this document's: it is filed as
+   `docs/CC-CMD-2026-10-13-vendor-residual-window.md`.
+
+   Earlier reading, kept for the record: 2026-10-11 closed at 292 calls / 584 credits
    (05:48Z run), all pre-fix as expected. 2026-10-12's 02:50Z drift sample has
    **zero** `no-header` cells among all 11 in its reconcile tally, the
    00:00–00:25Z pre-deploy minutes included. The closed-day reading for 10-12

@@ -1,5 +1,27 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-13c — no-header at zero; the residual is mostly a window
+
+`odds-live-path-404` done condition 3 **MET**: closed day 2026-10-12 reads
+`unreconciled estimate : 0` (run 38358251009, 06:42Z). The /odds-live fix holds.
+
+Its residual is **−616**. Measured, not inferred:
+- **About 380 of it is the watch's own window offset.** The vendor window runs
+  05:48Z → 06:42Z the next day; the daily counter is the UTC day; about 510 of
+  10-12's 3,799 landed before 05:48Z. Window-aligned, the daily counter is
+  about 3,420.
+- The monthly ledger, which IS read at the vendor's instants, moved 3,373
+  against the bill's 3,383. Less the 200 that `odds-backfill` spends directly,
+  the ledger is over by **≥ 190**, just above tolerance.
+- D1 degrades and missing CI spend are **refuted by sign**: both would make the
+  residual positive.
+- `handleCFLOddsProbs` shows a 600-credit gap between charged and reconciled,
+  which is **larger** than the whole excess, so it is not the cause. It is an
+  open anomaly.
+
+Filed: `docs/CC-CMD-2026-10-13-vendor-residual-window.md`. Its Task 1 makes the
+watch compare like with like.
+
 ## SESSION CLOSE-OUT — 2026-10-13b — the shared secret leaves the source
 
 Session doc: `outbox/cc-session-2026-10-13-rotate-relay-secret.md`.
