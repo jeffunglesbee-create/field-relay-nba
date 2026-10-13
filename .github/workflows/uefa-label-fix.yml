@@ -30,6 +30,8 @@ concurrency:
 jobs:
   fix:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4

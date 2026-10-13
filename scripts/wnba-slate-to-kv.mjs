@@ -18,7 +18,7 @@
 import { adaptWnbaCDN } from '../src/index.js';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-const AUTH  = 'field-relay-cron-2026';
+const AUTH  = process.env.RELAY_SHARED_SECRET;
 const SRC   = 'https://cdn.wnba.com/static/json/liveData/scoreboard/todaysScoreboard_10.json';
 
 const started = new Date().toISOString();

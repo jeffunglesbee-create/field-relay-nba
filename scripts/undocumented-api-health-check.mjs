@@ -18,7 +18,7 @@ import { writeFileSync } from 'fs';
 
 const RELAY = 'https://field-relay-nba.jeffunglesbee.workers.dev';
 const D1_URL = `${RELAY}/d1/execute`;
-const D1_AUTH = 'field-relay-cron-2026'; // real header value, confirmed at src/index.js:12424
+const D1_AUTH = process.env.RELAY_SHARED_SECRET;   // from the Actions secret: no literal, no default
 
 // Real, previously-resolved, cached Bundesliga date-mode params (avoids a
 // live browser render on every scheduled run).

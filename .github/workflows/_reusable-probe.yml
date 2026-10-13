@@ -85,6 +85,11 @@ jobs:
       # it structural instead of something to remember per-script.
       - name: Run probe
         continue-on-error: true
+        # Empty unless the caller passes `secrets: inherit`. Scripts read the
+        # relay's shared secret from here, never from a literal
+        # (docs/CC-CMD-2026-08-25-rotate-relay-secret.md).
+        env:
+          RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node "${{ inputs.script }}"
 
       # MOVED OUT OF THIS FILE 2026-09-13, and that is the point. Inline here

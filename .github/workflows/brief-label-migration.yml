@@ -45,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
       # Resolved ONCE into a job-level env. inputs.mode is empty on a schedule
       # trigger, and the 08-06 run's own note explains why this matters: the run
       # step, the log filename and the commit message must never be able to

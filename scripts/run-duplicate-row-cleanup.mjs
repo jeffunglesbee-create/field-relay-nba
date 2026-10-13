@@ -33,7 +33,7 @@ const PREDICATE = `
 async function d1(sql) {
   const res = await fetch(`${RELAY}/d1/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
     body: JSON.stringify({ sql, params: [] }),
   });
   const b = await res.json();

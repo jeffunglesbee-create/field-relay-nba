@@ -18,7 +18,7 @@ const JOURNALISM_CLAUDE_PROXY = 'https://field-claude-proxy.jeffunglesbee.worker
 const callProxy = async (promptText) => {
     const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
         body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001', max_tokens: 400,
             messages: [{ role: 'user', content: promptText }],

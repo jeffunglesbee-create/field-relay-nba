@@ -8,7 +8,7 @@ const PROXY_URL = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 async function callProxy(prompt, testModel, maxTokens) {
     const headers = {
         'Content-Type': 'application/json',
-        'X-FIELD-Relay': 'field-relay-cron-2026',
+        'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET,
     };
     if (testModel) headers['X-FIELD-Test-Model'] = testModel;
     const r = await fetch(PROXY_URL, {

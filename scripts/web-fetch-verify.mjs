@@ -14,7 +14,7 @@
 // saw the error page was html_probe's, not this relay's.
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-const AUTH  = { 'X-FIELD-Relay': 'field-relay-cron-2026' };
+const AUTH  = { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET };
 
 async function webFetch(target, opts = {}) {
   const r = await fetch(`${RELAY}/web-fetch?url=${encodeURIComponent(target)}`, {

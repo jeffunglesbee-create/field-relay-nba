@@ -14,6 +14,8 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

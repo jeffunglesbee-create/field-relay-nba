@@ -7,6 +7,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     steps:
       # CC-CMD-2026-07-12-completion-trigger-close TASK 3: the savant check
       # (change_log rows with source='savant') has been independently
@@ -18,7 +20,7 @@ jobs:
         id: journalism
         run: |
           RESULT=$(curl -s -X POST https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute \
-            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "X-FIELD-Relay: $RELAY_SHARED_SECRET" \
             -H "Content-Type: application/json" \
             -d '{"sql": "SELECT COUNT(*) as n FROM briefs WHERE source = ?", "params": ["completion-trigger"]}')
           echo "result=$RESULT" >> "$GITHUB_OUTPUT"
@@ -68,7 +70,7 @@ jobs:
                   data=payload, method='POST',
                   headers={
                       'Content-Type': 'application/json',
-                      'X-FIELD-Relay': 'field-relay-cron-2026',
+                      'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET,
                       'User-Agent': UA,
                   },
               )

@@ -39,6 +39,7 @@ jobs:
     # for. Resolved once here so the run step, log filename and commit
     # message can never disagree about which mode actually ran.
     env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
       MODE: ${{ inputs.mode || 'verify' }}
     steps:
       - uses: actions/checkout@v4

@@ -54,6 +54,8 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4

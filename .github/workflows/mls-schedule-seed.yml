@@ -9,6 +9,8 @@ permissions:
 jobs:
   seed:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,7 +19,7 @@ jobs:
         # (same pattern as odds-backfill.yml and scoreboard-probe.yml)
         run: |
           RESULT=$(curl -s -X POST \
-            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "X-FIELD-Relay: $RELAY_SHARED_SECRET" \
             -H "Content-Type: application/json" \
             -d '{"league":253,"season":2026,"from":"2026-07-19","to":"2026-10-31","sport":"MLS"}' \
             "https://field-relay-nba.jeffunglesbee.workers.dev/fixtures/fetch")

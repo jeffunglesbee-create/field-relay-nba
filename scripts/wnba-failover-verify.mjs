@@ -4,7 +4,7 @@
 import { adaptWnbaCDN } from '../src/index.js';
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-const AUTH  = { 'X-FIELD-Relay': 'field-relay-cron-2026' };
+const AUTH  = { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET };
 const DATE  = process.env.PROBE_DATE || new Date().toISOString().slice(0, 10);
 
 const fail = [];

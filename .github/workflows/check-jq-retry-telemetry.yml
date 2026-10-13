@@ -15,6 +15,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     timeout-minutes: 5
     steps:
       - name: Query jq_retry_telemetry directly
@@ -22,13 +24,13 @@ jobs:
           echo "=== COUNT ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
             -H "Content-Type: application/json" \
-            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "X-FIELD-Relay: $RELAY_SHARED_SECRET" \
             -d '{"sql":"SELECT COUNT(*) as n FROM jq_retry_telemetry"}' \
             -w "\nHTTP %{http_code}\n"
           echo ""
           echo "=== ROWS ==="
           curl -sS -X POST "https://field-relay-nba.jeffunglesbee.workers.dev/d1/execute" \
             -H "Content-Type: application/json" \
-            -H "X-FIELD-Relay: field-relay-cron-2026" \
+            -H "X-FIELD-Relay: $RELAY_SHARED_SECRET" \
             -d '{"sql":"SELECT * FROM jq_retry_telemetry ORDER BY id DESC LIMIT 10"}' \
             -w "\nHTTP %{http_code}\n"

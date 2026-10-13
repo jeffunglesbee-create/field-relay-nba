@@ -32,6 +32,8 @@ concurrency:
 jobs:
   produce:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

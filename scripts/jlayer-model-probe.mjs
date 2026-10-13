@@ -41,7 +41,7 @@
 
 const PROXY = process.env.PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-const SECRET = process.env.RELAY_SHARED_SECRET || 'field-relay-cron-2026';
+const SECRET = process.env.RELAY_SHARED_SECRET;
 const TS = new Date().toISOString();
 
 // The allow-list the 2026-07-16 session recorded. Under test, not assumed.

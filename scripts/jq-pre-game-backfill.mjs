@@ -29,7 +29,7 @@
 // do not invent a second scorer). No direct UPDATE of quality_score here.
 
 const RELAY = process.env.RELAY_BASE || 'https://field-relay-nba.jeffunglesbee.workers.dev';
-const SECRET = process.env.RELAY_SHARED_SECRET || 'field-relay-cron-2026';
+const SECRET = process.env.RELAY_SHARED_SECRET;
 const APPLY = process.env.APPLY === 'true';
 
 async function d1(sql) {

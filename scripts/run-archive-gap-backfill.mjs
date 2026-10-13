@@ -16,7 +16,7 @@ const DATES = ['2026-08-05', '2026-08-06'];   // NOT 08-07: it recovered on its 
 async function d1(sql) {
   const res = await fetch(`${RELAY}/d1/execute`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
     body: JSON.stringify({ sql, params: [] }),
   });
   const b = await res.json();
@@ -53,7 +53,7 @@ const countFor = async () => {
   for (const date of DATES) {
     const r = await fetch(`${RELAY}/archive/backfill?date=${date}`, {
       method: 'POST',
-      headers: { 'X-FIELD-Relay': 'field-relay-cron-2026' },
+      headers: { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
       signal: AbortSignal.timeout(120000),
     });
     const body = await r.text();

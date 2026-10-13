@@ -31,6 +31,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      RELAY_SHARED_SECRET: ${{ secrets.RELAY_SHARED_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,7 +72,7 @@ jobs:
           echo "normal  : $(echo "$NORMAL" | head -c 200)" >> "$OUT"
 
           # Forced failure. The switch is gated on this exact header.
-          FORCED=$(curl -s --max-time 30 -H "X-FIELD-Relay: field-relay-cron-2026" \
+          FORCED=$(curl -s --max-time 30 -H "X-FIELD-Relay: $RELAY_SHARED_SECRET" \
             "${RELAY}/v2/games?sport=mlb&date=${DATE}&_forcePrimaryFail=1")
           echo "forced  : $(echo "$FORCED" | head -c 200)" >> "$OUT"
 

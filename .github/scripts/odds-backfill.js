@@ -97,7 +97,7 @@ async function d1Query(sql, params = []) {
     method: 'POST',
     headers: {
       'Content-Type':  'application/json',
-      'X-FIELD-Relay': 'field-relay-cron-2026',
+      'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET,
     },
     body: JSON.stringify({ sql, params }),
   });

@@ -20,6 +20,7 @@ permissions:
 jobs:
   diagnose:
     uses: ./.github/workflows/_reusable-probe.yml
+    secrets: inherit
     with:
       script: scripts/diagnose-staged-fails-2026-08-22.mjs
       commit_message: "chore: staged-fail diagnostic [skip ci]"

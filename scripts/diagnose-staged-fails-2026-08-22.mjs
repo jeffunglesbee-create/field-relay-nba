@@ -24,7 +24,7 @@ const T_ALIASES_COMPLETE  = '2026-08-21 23:24:27';  // bb04fc8
 async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
         method: 'POST',
-        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026', 'Content-Type': 'application/json', 'User-Agent': UA },
+        headers: { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET, 'Content-Type': 'application/json', 'User-Agent': UA },
         body: JSON.stringify({ sql, params }),
     });
     const t = await r.text();

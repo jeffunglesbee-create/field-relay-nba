@@ -14,7 +14,7 @@ const PROXY_URL = 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 async function judgeVerdict(text) {
     const r = await fetch(PROXY_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
         body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001', max_tokens: 100,
             messages: [{ role: 'user', content: _buildVoiceJudgePrompt(text) }],

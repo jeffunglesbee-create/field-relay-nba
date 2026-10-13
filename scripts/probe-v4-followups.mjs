@@ -28,7 +28,7 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
         method: 'POST',
-        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026', 'Content-Type': 'application/json', 'User-Agent': UA },
+        headers: { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET, 'Content-Type': 'application/json', 'User-Agent': UA },
         body: JSON.stringify({ sql, params }),
     });
     const t = await r.text();

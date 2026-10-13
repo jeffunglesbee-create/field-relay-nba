@@ -384,7 +384,7 @@ async function main() {
     try {
       const r = await fetch(`${RELAY}${endpoint}?date=${date}`, {
         method: 'POST',
-        headers: { 'X-FIELD-Relay': 'field-relay-cron-2026' },
+        headers: { 'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET },
       });
       const body = await r.json().catch(() => ({}));
       console.log(`  [recompute:${feature}] ${date} → HTTP ${r.status} ${JSON.stringify(body).slice(0, 150)}`);

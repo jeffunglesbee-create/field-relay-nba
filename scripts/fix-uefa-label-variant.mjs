@@ -46,7 +46,7 @@ async function d1(sql, params = []) {
     const r = await fetch(`${RELAY}/d1/execute`, {
         method: 'POST',
         headers: {
-            'X-FIELD-Relay': 'field-relay-cron-2026',
+            'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET,
             'Content-Type': 'application/json',
             'User-Agent': UA,
         },

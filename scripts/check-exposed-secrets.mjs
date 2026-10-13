@@ -68,12 +68,12 @@ export function digestsIn(text) {
   // leading and ONE trailing quote. It missed this, measured 2026-08-25 in
   // jubilant-bassoon docs/journalism-root-cause-2026-05-29.md:24:
   //
-  //     `relayAuth === RELAY_SHARED_SECRET || 'field-relay-cron-2026'`
+  //     `relayAuth === RELAY_SHARED_SECRET || '<the old shared secret>'`
   //
   // Two failures at once. The quote-pair pass above matched the OUTER backtick
   // span first and consumed the inner literal, so the single-quoted secret
   // never got its own match. The token pass then produced
-  // `'field-relay-cron-2026'\`` and the single strip left a trailing
+  // `'<the old shared secret>'\`` and the single strip left a trailing
   // apostrophe, so the hash missed. The file scanned clean while carrying the
   // secret — and a secret inside a code span is exactly how one appears in
   // prose.
