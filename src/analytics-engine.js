@@ -390,12 +390,14 @@ async function writeRunStatus(env, status) {
 // (src/index.js: callProxy). POST with X-FIELD-Relay header, Anthropic-
 // shaped request body. Proxy routes to Gemini 3.1 Flash-Lite (primary) or
 // Claude Haiku 4.5 (fallback). Returns the joined text or null on failure.
-async function callProxy(promptText, { maxTokens = 250 } = {}) {
+// `env` is passed in: this is a module-level function, and the shared secret
+// now comes from the Worker binding rather than a compiled-in literal.
+async function callProxy(env, promptText, { maxTokens = 250 } = {}) {
     const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-FIELD-Relay': 'field-relay-cron-2026',
+            'X-FIELD-Relay': env.RELAY_SHARED_SECRET,
         },
         body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
@@ -548,7 +550,7 @@ async function runPhase3TruthIs(env, date, ctx) {
     const prompt =
         `Write one sentence about this fact with genuine wonder. Factual, warm. ` +
         `No hype words. The truth is the fun part.\n\nFACT: ${finding.headline}`;
-    const line = await callProxy(prompt, { maxTokens: 80 });
+    const line = await callProxy(env, prompt, { maxTokens: 80 });
     const briefText = line || finding.headline; // fall back to the raw fact
 
     await writeAnalyticsOutput(env, {
@@ -649,7 +651,7 @@ async function runPhase5MorningReport(env, date, { stars, truthIs, ctx }) {
         `exact qualifier appears in ALL RESULTS above -- if you're unsure ` +
         `which city or league a team belongs to, do not guess or add one.`;
 
-    const prose = await callProxy(prompt, { maxTokens: 250 });
+    const prose = await callProxy(env, prompt, { maxTokens: 250 });
     // Structural guard, added alongside the prompt instruction above (2026-07-15,
     // real live incident -- see comment above). REVISED same day after a
     // second real, live occurrence survived the first version of this guard:
@@ -941,7 +943,7 @@ async function runPhase9FieldPick(env, today) {
         `Write one sentence recommending this game. V4 voice. Warm, like a friend's ` +
         `recommendation. "Watch this one. Trust me."\n` +
         `GAME: ${g.home?.name || g.home} vs ${g.away?.name || g.away}, ${g.sport || ''}, ${context}`;
-    const line = await callProxy(prompt, { maxTokens: 60 });
+    const line = await callProxy(env, prompt, { maxTokens: 60 });
     const briefText = line || `Watch ${g.home?.name || g.home} vs ${g.away?.name || g.away} — ${context}.`;
 
     const value = {
@@ -1363,7 +1365,7 @@ async function runPhase6BCompositeBrief(env, date) {
         `Blend these sentences into one literary paragraph. V4 voice: warm, ` +
         `wise, uplifting. 60-80 words. The week in sports, compressed.\n\n` +
         `BEST LINES:\n${lines}`;
-    const prose = await callProxy(prompt, { maxTokens: 150 });
+    const prose = await callProxy(env, prompt, { maxTokens: 150 });
     const briefText = prose || `Across ${bestPerSport.size} sports this week, the slate kept giving.`;
 
     await writeAnalyticsOutput(env, {
@@ -1461,7 +1463,7 @@ async function runPhase6CContradiction(env, date) {
         `FIELD said "${top.positive_quote}" on ${top.positive_date} and ` +
         `"${top.negative_quote}" on ${top.negative_date} about ${top.team}. ` +
         `Write one sentence acknowledging this with warm self-awareness. V4 voice.`;
-    const line = await callProxy(prompt, { maxTokens: 80 });
+    const line = await callProxy(env, prompt, { maxTokens: 80 });
     const briefText = line || `About ${top.team}: we said opposite things this week. Both were true at the time.`;
 
     await writeAnalyticsOutput(env, {
@@ -1748,7 +1750,7 @@ async function runPhase10APreview(env, today, { aiCallsSoFar = 0 } = {}) {
         `FIELD'S PICK: ${pickSummary}\n\n` +
         `Do NOT list all games. Highlight the 1-2 most interesting. ` +
         `The truth is the fun part. Let it be fun.`;
-    const prose = await callProxy(prompt, { maxTokens: 120 });
+    const prose = await callProxy(env, prompt, { maxTokens: 120 });
     const briefText = prose || `${games.length} games on the slate. ${pickSummary}.`;
 
     try {

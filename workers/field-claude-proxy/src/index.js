@@ -199,7 +199,10 @@ export default {
     // shared header instead of Origin. Browsers can't set this cross-origin without
     // a preflight that would fail, so it can't be spoofed from the web.
     const relayAuth = request.headers.get('X-FIELD-Relay') || '';
-    const isRelay = relayAuth === (env.RELAY_SHARED_SECRET || 'field-relay-cron-2026');
+    // Fail closed: an unset binding is never a match, and there is no literal
+    // fallback (docs/CC-CMD-2026-08-25-rotate-relay-secret.md).
+    const isRelay = typeof env.RELAY_SHARED_SECRET === 'string' && env.RELAY_SHARED_SECRET.length > 0
+      && relayAuth === env.RELAY_SHARED_SECRET;
     if (!isRelay && !ALLOWED_ORIGINS.includes(origin))
       return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
         status: 403, headers: { 'Content-Type': 'application/json', ...version() },

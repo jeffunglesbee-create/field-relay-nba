@@ -119,7 +119,15 @@ import { checkAndIncrementDailyOdds, chargeMonthlyOdds, peekDailyOdds, peekMonth
 // so the count is flat. The other 27 sites in this file send the header on
 // outbound calls rather than checking it, and converting those is a separate
 // change with its own diff.
-const CI_ROUTE_GATE = 'field-relay-cron-2026';
+// THE SHARED SECRET, FROM THE WORKER BINDING ONLY — docs/CC-CMD-2026-08-25-rotate-relay-secret.md.
+// This was a compiled-in literal, which put a credential for POST /d1/execute in
+// every clone of a public repository. It now reads env.RELAY_SHARED_SECRET and
+// FAILS CLOSED: an unset or empty binding matches no header at all, including
+// an absent one, so `undefined === undefined` can never open a gate.
+function relaySecretMatches(header, env) {
+  const s = env && env.RELAY_SHARED_SECRET;
+  return typeof s === 'string' && s.length > 0 && header === s;
+}
 
 import { stampProvenance } from './provenance-stamp.js';
 import { withKvProvenance } from './kv-provenance.js';
@@ -4423,7 +4431,7 @@ async function handleV2Games(url, env, ctx, request = null) {
         // already gates on -- an unauthenticated caller cannot reach it, so it
         // is not a way to force load onto the secondary.
         const _forceFail = url.searchParams.get('_forcePrimaryFail') === '1'
-            && request?.headers.get('X-FIELD-Relay') === 'field-relay-cron-2026';
+            && relaySecretMatches(request?.headers.get('X-FIELD-Relay'), env);
         const espnUrl  = _forceFail
             ? 'https://espn-primary-forced-failure.invalid/scoreboard'
             : `${ESPN_API_BASE}/sports/${_espnSportPath}/${cfg.espnLeague}/scoreboard?dates=${espnDate}`;
@@ -7225,7 +7233,7 @@ async function executeSeriesPreviewBackfill(env) {
     const callProxy = async (promptText) => {
       const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026'},
+        headers: {'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET},
         body: JSON.stringify({model: 'claude-haiku-4-5-20251001', max_tokens: 400,
           messages: [{role: 'user', content: promptText}]}),
       });
@@ -7349,7 +7357,7 @@ async function executeGameBriefBackfill(env, date) {
     const callProxy = async (promptText) => {
       const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026'},
+        headers: {'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET},
         body: JSON.stringify({model: 'claude-haiku-4-5-20251001', max_tokens: 400,
           messages: [{role: 'user', content: promptText}]}),
       });
@@ -7435,7 +7443,7 @@ async function executeBackfill(env, date) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-FIELD-Relay': 'field-relay-cron-2026',
+        'X-FIELD-Relay': env.RELAY_SHARED_SECRET,
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -9308,7 +9316,7 @@ async function handleJournalismCycle(env, opts = {}) {
         headers: {
           'Content-Type': 'application/json',
           // Server-to-server auth: proxy bypasses Origin check for the relay cron.
-          'X-FIELD-Relay': 'field-relay-cron-2026',
+          'X-FIELD-Relay': env.RELAY_SHARED_SECRET,
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
@@ -10037,7 +10045,7 @@ export default {
             const PROXY_URL = env.CLAUDE_PROXY_URL || 'https://field-claude-proxy.jeffunglesbee.workers.dev';
 
             const callModel = async (testModel) => {
-                const headers = { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET || 'field-relay-cron-2026' };
+                const headers = { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET };
                 if (testModel) headers['X-FIELD-Test-Model'] = testModel;
                 const r = await fetch(PROXY_URL, {
                     method: 'POST', headers,
@@ -13834,7 +13842,7 @@ export default {
                         const callProxy = async (promptText) => {
                             const r = await fetch(PROXY_URL, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                                headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                                 body: JSON.stringify({
                                     model: 'claude-haiku-4-5-20251001',
                                     max_tokens: 1000,
@@ -14597,7 +14605,7 @@ export default {
                 const callProxy = async (promptText) => {
                     const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                        headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                         body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 400,
                             messages: [{ role: 'user', content: promptText }] }),
                     });
@@ -14777,7 +14785,7 @@ export default {
             const callProxy = async (promptText) => {
                 const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                     body: JSON.stringify({
                         model: 'claude-haiku-4-5-20251001',
                         max_tokens: 1000,
@@ -15362,11 +15370,11 @@ export default {
         // edge IPs are not blocked. Replaces the per-league GH Actions
         // workflows in jubilant-bassoon that were silently writing empty
         // teams:{} blobs since June 10 2026.
-        // Auth: X-FIELD-Relay: field-relay-cron-2026 (same as /fixtures/fetch).
+        // Auth: X-FIELD-Relay: env.RELAY_SHARED_SECRET (same as /fixtures/fetch).
         // Body: { leagues?: string[] }  defaults to all FBREF_LEAGUES.
         if (pathname === '/soccer/fbref/fetch' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE)
+            if (!relaySecretMatches(authHeader, env))
                 return new Response('unauthorized', { status: 401, headers: CORS });
             if (!env.FIELD_DATA)
                 return new Response(JSON.stringify({ ok: false, error: 'FIELD_DATA R2 not bound' }),
@@ -16580,7 +16588,7 @@ export default {
         // call with an older key and read as a pass.
         if (pathname === '/debug/odds-fallback-key' && request.method === 'GET') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const k = env.ODDS_API_KEY_FALLBACK || null;
@@ -16635,7 +16643,7 @@ export default {
 
         if (pathname === '/debug/odds-budget-latency' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const N       = 7;               // odd, so the median is a real sample
@@ -16717,7 +16725,7 @@ export default {
 
         if (pathname === '/d1/execute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             let body;
@@ -17034,7 +17042,7 @@ export default {
         // re-derived approximation could produce a differently-shaped or
         // worse result than what the client gets today. Server-to-server
         // proxy call auth reuses the exact existing pattern (X-FIELD-Relay:
-        // field-relay-cron-2026 to JOURNALISM_CLAUDE_PROXY), same as every
+        // env.RELAY_SHARED_SECRET to JOURNALISM_CLAUDE_PROXY), same as every
         // other cron-side proxy call in this file -- not a new auth path.
         //
         // Response shape: {ok:true, rows:[[home,away,league,time,streamKey],...]}
@@ -17090,7 +17098,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             try {
                 const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                     signal: AbortSignal.timeout(15000),
                     body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] }),
                 });
@@ -17664,7 +17672,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // redundant AI-call cost) — see CC-CMD-2026-07-08-night-stars-recompute.
         if (pathname === '/analytics/night-stars/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -17688,7 +17696,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // /analytics/night-stars/recompute exactly.
         if (pathname === '/analytics/jinx/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -17708,7 +17716,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // auth pattern as /analytics/jinx/recompute.
         if (pathname === '/analytics/record-streak/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -17737,7 +17745,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // (PURE-classified, no LLM cost) to refresh that copy too.
         if (pathname === '/analytics/morning-report/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -17763,7 +17771,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
         // cross-sport-contamination TASK 2).
         if (pathname === '/analytics/circadian-late/recompute' && request.method === 'POST') {
             const authHeader = request.headers.get('X-FIELD-Relay');
-            if (authHeader !== CI_ROUTE_GATE) {
+            if (!relaySecretMatches(authHeader, env)) {
                 return new Response('unauthorized', { status: 401, headers: CORS });
             }
             const date = url.searchParams.get('date');
@@ -17942,7 +17950,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             const J = (body, status = 200) => new Response(JSON.stringify(body),
                 { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-            if (request.headers.get('X-FIELD-Relay') !== 'field-relay-cron-2026') {
+            if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env)) {
                 return J({ ok: false, error: 'unauthorized' }, 401);
             }
             if (!env.FIELD_JOURNALISM) return J({ ok: false, error: 'FIELD_JOURNALISM not bound' }, 503);
@@ -18006,7 +18014,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             const J = (body, status = 200) => new Response(JSON.stringify(body),
                 { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-            if (request.headers.get('X-FIELD-Relay') !== 'field-relay-cron-2026') {
+            if (!relaySecretMatches(request.headers.get('X-FIELD-Relay'), env)) {
                 return J({ ok: false, error: 'unauthorized' }, 401);
             }
 
@@ -18370,7 +18378,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 const t0 = Date.now();
                 const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                     body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256,
                         messages: [{ role: 'user', content: prompt }] }),
                 });
@@ -18437,7 +18445,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                 const t0 = Date.now();
                 const resp = await fetch(JOURNALISM_CLAUDE_PROXY, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': 'field-relay-cron-2026' },
+                    headers: { 'Content-Type': 'application/json', 'X-FIELD-Relay': env.RELAY_SHARED_SECRET },
                     body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens,
                         messages: [{ role: 'user', content: combinedPrompt }] }),
                 });
@@ -18759,10 +18767,10 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    // Proxy whitelist requires 'field-relay-cron-2026' to bypass origin check.
+                    // Proxy whitelist requires the shared secret (env.RELAY_SHARED_SECRET) to bypass origin check.
                     // The previous value 'field-relay-jq-2026' was rejected with 403 "Origin not allowed".
                     // Use same value cron does — proxy is path-agnostic, only checks header value.
-                    'X-FIELD-Relay': 'field-relay-cron-2026',
+                    'X-FIELD-Relay': env.RELAY_SHARED_SECRET,
                   },
                   body: JSON.stringify({
                     model: 'claude-haiku-4-5-20251001',
@@ -22163,7 +22171,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
             const callProxy = async (promptText) => {
               const r = await fetch(PROXY_URL, {
                 method: 'POST',
-                headers: {'Content-Type':'application/json','X-FIELD-Relay':'field-relay-cron-2026'},
+                headers: {'Content-Type':'application/json','X-FIELD-Relay':env.RELAY_SHARED_SECRET},
                 body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens: job.max_tokens||400,
                   messages:[{role:'user',content:promptText}]}),
               });
@@ -22343,7 +22351,7 @@ Return {"s":[]} if no major sport games that day. CRITICAL: If you are not highl
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'X-FIELD-Relay': 'field-relay-cron-2026',
+                'X-FIELD-Relay': env.RELAY_SHARED_SECRET,
               },
               body: JSON.stringify({
                 model: 'claude-haiku-4-5-20251001',

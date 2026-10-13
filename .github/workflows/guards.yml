@@ -49,6 +49,11 @@ jobs:
       - name: no known-exposed credential appears more often than declared
         run: node scripts/check-exposed-secrets.mjs --self-test && node scripts/check-exposed-secrets.mjs
 
+      # docs/CC-CMD-2026-08-25-rotate-relay-secret.md: every gate reads the
+      # binding and fails closed, and no literal fallback comes back.
+      - name: the relay's gates read the secret from env and fail closed
+        run: node scripts/check-relay-secret-gates.mjs --self-test && node scripts/check-relay-secret-gates.mjs
+
       - name: no workflow installs a credential from a literal
         run: node scripts/check-no-literal-secret-writes.mjs --self-test && node scripts/check-no-literal-secret-writes.mjs
 

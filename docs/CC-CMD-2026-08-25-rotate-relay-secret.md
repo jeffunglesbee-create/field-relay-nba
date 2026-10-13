@@ -34,7 +34,7 @@ credential travels with a clone of this repository.
 **This reasoning was WRONG and is kept only to be corrected.** It said: removing
 the literals without rotating first buys nothing. The value is in git
 history either way, so the exposure is unchanged, and the change carries real
-breakage risk: `src/index.js:3997` is
+breakage risk: the gate then at line 3997 of `src/index.js` was
 
 ```js
 request?.headers.get('X-FIELD-Relay') === '<literal>'
@@ -63,7 +63,7 @@ than from HEAD, and got two things wrong. Both are corrected here.
 So "add it as a GitHub Actions secret" is not a step. It is done.
 
 **There are ELEVEN inbound gates, not one.** The first version named
-`src/index.js:3997` as "the auth check". Parsed from HEAD 2026-08-25 — the same
+line 3997 of `src/index.js` as "the auth check". Parsed from HEAD 2026-08-25 — the same
 mistake as this session's other CC-CMD, which said "21 of 22 entries" from an
 estimate:
 
