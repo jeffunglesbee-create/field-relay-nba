@@ -99,16 +99,49 @@ export const ESCAPE_PCT = 0.05;
  *  delta would go negative; that is reported as unreadable rather than clamped,
  *  because a clamp would quietly claim "no degradation" on exactly the reading
  *  that spans midnight. */
-export function degradeVerdict(prevDegraded, currDegraded, escaped) {
+/*  THE SIGN WAS NEVER THE DATE. docs/CC-CMD-2026-10-12-pairing-degrade-cross-day.md.
+ *  The watch runs once a day, so consecutive readings almost always sit on two
+ *  different UTC dates, and the `delta < 0` test above only caught the half of
+ *  those that came out negative. The other half printed a verdict from one
+ *  day's counter minus the previous day's: `explains — 1468` on 2026-10-10 and
+ *  `explains — 3297` on 10-11 were exactly that, and measured nothing.
+ *
+ *  `span` carries both readings' UTC dates and, when they are one day apart,
+ *  the PREVIOUS day's closing count from /budget/odds?date=. Across one
+ *  midnight the interval's degrades are then exact:
+ *      (yesterday's close - yesterday at the last reading) + today so far.
+ *  Without that close, or across more than one midnight, the state is
+ *  `cross-day` and no number is offered. Two more states:
+ *    cross-day    the interval spans midnight and cannot be reconstructed
+ *    no-escape    degrades happened, but nothing escaped the ledger for them to
+ *                 explain (escaped <= 0) — `explains` there would be a verdict
+ *                 about a gap that does not exist */
+const nextUtcDate = (iso) => new Date(Date.parse(`${iso}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+
+export function degradeVerdict(prevDegraded, currDegraded, escaped, span = {}) {
   const n = (d) => (d && Number.isFinite(Number(d.credits)) ? Number(d.credits) : null);
   const now = n(currDegraded);
   if (now === null) return { state: 'unreadable', credits: null };
   const was = prevDegraded === undefined ? 0 : n(prevDegraded);
   if (was === null) return { state: 'unreadable', credits: null };
-  const delta = now - was;
-  if (delta < 0) return { state: 'unreadable', credits: null };
-  if (delta === 0) return { state: 'none', credits: 0 };
-  return { state: delta >= escaped ? 'explains' : 'partial', credits: delta };
+  const { prevDate, currDate } = span;
+  if (!currDate || (prevDegraded !== undefined && !prevDate)) return { state: 'unreadable', credits: null };
+  let delta, parts = null;
+  if (prevDegraded === undefined || prevDate === currDate) {
+    delta = now - was;
+    if (delta < 0) return { state: 'unreadable', credits: null };
+  } else if (nextUtcDate(prevDate) === currDate) {
+    const close = n(span.prevDayClose);
+    if (close === null) return { state: 'cross-day', credits: null, why: 'no-close' };
+    if (close < was) return { state: 'unreadable', credits: null };
+    delta = (close - was) + now;
+    parts = { close, was, now };
+  } else {
+    return { state: 'cross-day', credits: null, why: 'multi-day' };
+  }
+  if (delta === 0) return { state: 'none', credits: 0, parts };
+  if (!(escaped > 0)) return { state: 'no-escape', credits: delta, parts };
+  return { state: delta >= escaped ? 'explains' : 'partial', credits: delta, parts };
 }
 
 /** D1 OVERLOAD ON A CLOSED DAY — docs/CC-CMD-2026-10-11-d1-overload-degrades.md,
@@ -414,21 +447,51 @@ if (SELF) {
 
   // ── did a guard fall open? the last surviving candidate for the 347 ──────
   const DG = (credits) => ({ events: 1, credits, last: 'x' });
-  one('no degradation',        degradeVerdict(DG(0), DG(0), 347).state, 'none', 'the counter did not move');
-  one('none is reported as 0', degradeVerdict(DG(0), DG(0), 347).credits, 0, 'a real zero, distinguishable from unreadable');
-  one('degradation explains it',  degradeVerdict(DG(0), DG(400), 347).state, 'explains', '400 covers a 347 escape');
-  one('degradation covers exactly', degradeVerdict(DG(0), DG(347), 347).state, 'explains', 'equal counts as covered');
-  one('degradation is partial',   degradeVerdict(DG(100), DG(200), 347).state, 'partial', '100 of 347 — real, but not the whole story');
-  one('the DELTA is used, not the level', degradeVerdict(DG(1000), DG(1100), 347).credits, 100,
+  const SAME = { prevDate: '2026-10-10', currDate: '2026-10-10' };
+  one('no degradation',        degradeVerdict(DG(0), DG(0), 347, SAME).state, 'none', 'the counter did not move');
+  one('none is reported as 0', degradeVerdict(DG(0), DG(0), 347, SAME).credits, 0, 'a real zero, distinguishable from unreadable');
+  one('degradation explains it',  degradeVerdict(DG(0), DG(400), 347, SAME).state, 'explains', '400 covers a 347 escape');
+  one('degradation covers exactly', degradeVerdict(DG(0), DG(347), 347, SAME).state, 'explains', 'equal counts as covered');
+  one('degradation is partial',   degradeVerdict(DG(100), DG(200), 347, SAME).state, 'partial', '100 of 347 — real, but not the whole story');
+  one('the DELTA is used, not the level', degradeVerdict(DG(1000), DG(1100), 347, SAME).credits, 100,
       'the counter is cumulative per day; a level would claim 1100 on an interval that saw 100');
-  one('an unreadable counter is not zero', degradeVerdict(DG(0), null, 347).state, 'unreadable',
+  one('an unreadable counter is not zero', degradeVerdict(DG(0), null, 347, SAME).state, 'unreadable',
       'Number(null) is 0 and would print "no guard degraded" on no evidence — Rule 99, in the instrument');
-  one('an unreadable BASELINE is not zero', degradeVerdict(null, DG(50), 347).state, 'unreadable',
+  one('an unreadable BASELINE is not zero', degradeVerdict(null, DG(50), 347, SAME).state, 'unreadable',
       'the older readings predate this field; a missing baseline cannot be subtracted from');
-  one('a first reading treats absence as 0', degradeVerdict(undefined, DG(50), 347).credits, 50,
+  one('a first reading treats absence as 0', degradeVerdict(undefined, DG(50), 347, SAME).credits, 50,
       'undefined means there was no prior reading at all, which is different from one that could not be read');
-  one('a midnight rollover is unreadable', degradeVerdict(DG(900), DG(20), 347).state, 'unreadable',
-      'the daily counter restarted; clamping would claim "no degradation" on exactly that reading');
+  one('a same-day decrease is unreadable', degradeVerdict(DG(900), DG(20), 347, SAME).state, 'unreadable',
+      'the counter only grows within a day; going backwards is a bad read, and clamping would claim "no degradation"');
+  one('a call with no dates is unreadable', degradeVerdict(DG(0), DG(400), 347).state, 'unreadable',
+      'the old three-argument call: without dates there is no knowing whether the counter restarted');
+
+  // CROSS-DAY. docs/CC-CMD-2026-10-12-pairing-degrade-cross-day.md. The real
+  // pairs from outbox/odds-provider-usage-series.json first.
+  const R1010 = { credits: 2552 }, R1011 = { credits: 5849 }, R1012 = { credits: 0 };
+  const X = (prevDate, currDate, prevDayClose) => ({ prevDate, currDate, prevDayClose });
+  one('real 10-10 -> 10-11 without the close is cross-day', degradeVerdict(R1010, R1011, 347, X('2026-10-10', '2026-10-11')).state, 'cross-day',
+      'printed "explains — 3297" on 2026-10-11: one day\'s counter minus the previous day\'s');
+  one('real 10-10 -> 10-11 offers no number', degradeVerdict(R1010, R1011, 347, X('2026-10-10', '2026-10-11')).credits, null,
+      'a cross-day difference is not a quantity of anything');
+  one('real 10-11 -> 10-12 with the close is exact', degradeVerdict(R1011, R1012, -322, X('2026-10-11', '2026-10-12', { credits: 5995 })).credits, 146,
+      '10-11 closed at 5995 (closed-day read, 2026-10-12): 5995 - 5849 + 0');
+  one('real 10-11 -> 10-12 has nothing to explain', degradeVerdict(R1011, R1012, -322, X('2026-10-11', '2026-10-12', { credits: 5995 })).state, 'no-escape',
+      'UNEXPLAINED was -322: the ledger charged MORE than the vendor billed, so "explains" would be about a gap that is not there');
+  one('across midnight, enough covers it', degradeVerdict(DG(100), DG(50), 200, X('2026-10-11', '2026-10-12', DG(300))).state, 'explains',
+      '(300 - 100) + 50 = 250 covers a 200 escape');
+  one('across midnight, the sum is used', degradeVerdict(DG(100), DG(50), 400, X('2026-10-11', '2026-10-12', DG(300))).credits, 250,
+      'the close minus the last reading, plus today so far');
+  one('across midnight, too little is partial', degradeVerdict(DG(100), DG(50), 400, X('2026-10-11', '2026-10-12', DG(300))).state, 'partial',
+      '250 of 400');
+  one('two midnights is cross-day', degradeVerdict(DG(100), DG(50), 200, X('2026-10-10', '2026-10-12', DG(300))).state, 'cross-day',
+      'one close cannot bridge two days');
+  one('a close below the last reading is unreadable', degradeVerdict(DG(400), DG(50), 200, X('2026-10-11', '2026-10-12', DG(300))).state, 'unreadable',
+      'a day cannot close lower than it already was');
+  one('a missing previous date is unreadable', degradeVerdict(DG(100), DG(50), 200, { currDate: '2026-10-12' }).state, 'unreadable',
+      'without the previous date there is no way to know whether the counter restarted');
+  one('a month boundary is one midnight', degradeVerdict(DG(10), DG(5), 100, X('2026-09-30', '2026-10-01', DG(40))).credits, 35,
+      'date arithmetic, not string arithmetic: 09-30 + 1 day is 10-01');
 
   // D1 OVERLOAD ON A CLOSED DAY. The three real days first, verbatim from
   // outbox/odds-site-drift-series.json, so the calibration is the record.
@@ -583,6 +646,9 @@ const reading = {
   // Carried on every reading so the NEXT one can take a delta. Absent on the
   // older readings, which degradeVerdict reports as unreadable rather than 0.
   degraded_open: budget?.daily?.degraded_open ?? null,
+  // The date the counter above belongs to, from the relay rather than the
+  // runner clock. Older readings lack it; degradeVerdict then uses `at`.
+  daily_date: budget?.daily?.date ?? null,
   // A partial sum published as a total is the defect this field would carry
   // forward into every future delta. If any row's count was unreadable, the
   // window total is unknown and is stored as such.
@@ -590,11 +656,41 @@ const reading = {
   games_paired_rows_counted: gamesTotal.n,
   games_paired_rows_skipped: gamesTotal.skipped,
 };
+// ── THE CLOSED DAY, READ ONCE ───────────────────────────────────────────────
+// Two consumers: the interval's degrade line (yesterday's CLOSE is what makes a
+// cross-midnight interval computable) and the D1 overload section below.
+// ?date= reads a closed day, which makes both immune to the 104-405 minute
+// runner delay measured here, and the 2-day TTL covers yesterday.
+const OVL_DAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+let closedDay = null, ovlWhy = '';
+try {
+  const rr = await fetch(`${RELAY}/budget/odds?date=${OVL_DAY}`, { headers: { Accept: 'application/json' } });
+  if (!rr.ok) {
+    ovlWhy = `/budget/odds?date=${OVL_DAY} returned HTTP ${rr.status}`;
+  } else {
+    const bj = await rr.json();
+    const d = bj && bj.daily;
+    if (!d || d.date !== OVL_DAY) {
+      ovlWhy = `asked for ${OVL_DAY}, got ${JSON.stringify(d && d.date)} — ?date= was not honoured`;
+    } else if (d.is_today === true) {
+      ovlWhy = `${OVL_DAY} is still running; a day must be CLOSED before its total means anything`;
+    } else {
+      closedDay = d;
+    }
+  }
+} catch (e) { ovlWhy = `the closed-day read threw: ${e.message}`; }
+
 const prev = series.length ? series[series.length - 1] : null;
 const ceiling = Number(reading.daily_ceiling) || 3800;
 const ci = prev ? ciSpendInInterval(rows, prev.at, reading.at) : { credits: 0, runs: 0, undated: 0 };
 const integrity = ledgerIntegrityVerdict(prev, reading, ci.credits);
-const degrade = degradeVerdict(prev?.degraded_open, reading.degraded_open, integrity.unexplained ?? 0);
+const prevDate = prev ? (prev.daily_date ?? String(prev.at).slice(0, 10)) : undefined;
+const degrade = degradeVerdict(prev?.degraded_open, reading.degraded_open, integrity.unexplained ?? 0, {
+  prevDate,
+  currDate: reading.daily_date ?? reading.at.slice(0, 10),
+  // Only the close of the day the previous reading belongs to will do.
+  prevDayClose: closedDay && prevDate === OVL_DAY ? closedDay.degraded_open : undefined,
+});
 const cap = ceilingVerdict({ used: reading.daily_used, ceiling: reading.daily_ceiling });
 
 console.log(`\n  provider billed this month     : ${reading.provider_used ?? 'unreadable'}`);
@@ -618,7 +714,17 @@ if (integrity.state === 'no_baseline') {
   console.log(`      escaped the ledger: ${integrity.escaped}`);
   console.log(`      known CI spend    : ${integrity.outsideLedger}   (${ci.runs} backfill run(s) in window${ci.undated ? `, ${ci.undated} undated row(s) NOT subtracted` : ''})`);
   console.log(`      UNEXPLAINED       : ${integrity.unexplained}   (tolerance ${integrity.tolerance})`);
-  console.log(`      guard fell open   : ${degrade.state}${degrade.credits === null ? '' : ` — ${degrade.credits} credit(s)`}`);
+  console.log(`      guard fell open   : ${degrade.state}${degrade.credits === null ? '' : ` — ${degrade.credits} credit(s)`}${
+    degrade.state === 'cross-day' ? (degrade.why === 'multi-day'
+      ? ` — ${prevDate} to ${reading.daily_date ?? reading.at.slice(0, 10)} spans more than one midnight; one day's close cannot bridge it`
+      : ` — the interval spans midnight from ${prevDate}, and that day's close was not readable`)
+    : degrade.state === 'no-escape' ? ' — but nothing escaped the ledger for them to explain' : ''}`);
+  // Across one midnight the number is reconstructed, so its inputs are printed
+  // beside it: the line can be checked against the closed-day block and the
+  // series without re-running anything.
+  if (degrade.parts) {
+    console.log(`                          = ${prevDate} close ${degrade.parts.close} - ${degrade.parts.was} at the last reading + ${degrade.parts.now} today`);
+  }
   // WHAT THREW, added 2026-10-08. `state` and `credits` say how often and how
   // much; both degrade-open catches were `catch (_)` until today, so the cause
   // was not recorded anywhere and this line had nothing to print. 245 events
@@ -679,27 +785,14 @@ if (integrity.state === 'no_baseline') {
 // 09:21Z and 111 by 16:29Z. A running-day read at this hour would pass that day.
 // ?date= reads a closed day, which makes the verdict immune to the 104-405
 // minute runner delay measured here, and the 2-day TTL covers yesterday.
-const OVL_DAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-let ovl = { state: 'unreadable', overloads: null }, ovlWhy = '';
-try {
-  const rr = await fetch(`${RELAY}/budget/odds?date=${OVL_DAY}`, { headers: { Accept: 'application/json' } });
-  if (!rr.ok) {
-    ovlWhy = `/budget/odds?date=${OVL_DAY} returned HTTP ${rr.status}`;
-  } else {
-    const bj = await rr.json();
-    const d = bj && bj.daily;
-    if (!d || d.date !== OVL_DAY) {
-      ovlWhy = `asked for ${OVL_DAY}, got ${JSON.stringify(d && d.date)} — ?date= was not honoured`;
-    } else if (d.is_today === true) {
-      ovlWhy = `${OVL_DAY} is still running; a day must be CLOSED before its total means anything`;
-    } else {
-      // hasOwnProperty, not `d.degraded_open ?? ...`: whether the key is THERE
-      // is the answer to "is the field reported", and defaulting it away is the
-      // coercion that hid it once already.
-      ovl = d1OverloadVerdict(Object.prototype.hasOwnProperty.call(d, 'degraded_open') ? d.degraded_open : undefined);
-    }
-  }
-} catch (e) { ovlWhy = `the closed-day read threw: ${e.message}`; }
+// The closed-day read itself happens once, above, before the interval line.
+let ovl = { state: 'unreadable', overloads: null };
+if (closedDay) {
+  // hasOwnProperty, not `d.degraded_open ?? ...`: whether the key is THERE
+  // is the answer to "is the field reported", and defaulting it away is the
+  // coercion that hid it once already.
+  ovl = d1OverloadVerdict(Object.prototype.hasOwnProperty.call(closedDay, 'degraded_open') ? closedDay.degraded_open : undefined);
+}
 
 console.log(`\n  ── D1 overload, closed day ${OVL_DAY} (budget ${D1_OVERLOAD_BUDGET}) ──`);
 if (ovlWhy) {

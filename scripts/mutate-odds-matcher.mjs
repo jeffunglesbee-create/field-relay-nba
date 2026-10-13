@@ -201,14 +201,17 @@ const MUTATIONS = [
     catches: 'the watch prints "no guard degraded" on no evidence and eliminates a candidate it never tested' },
 
   { file: WATCHER, check: WATCH_CHECK, name: 'M44 the cumulative counter is read as a level',
-    anchor: '  const delta = now - was;',
-    replace: '  const delta = now;',
+    // Re-anchored 2026-10-13: degradeVerdict now branches on the readings' dates
+    // (docs/CC-CMD-2026-10-12-pairing-degrade-cross-day.md) and this is the
+    // same-day branch's subtraction.
+    anchor: '    delta = now - was;',
+    replace: '    delta = now;',
     catches: 'a day-long total is attributed to one interval, so any escape looks explained' },
 
-  { file: WATCHER, check: WATCH_CHECK, name: 'M45 a midnight rollover is clamped instead of flagged',
+  { file: WATCHER, check: WATCH_CHECK, name: 'M45 a same-day decrease is clamped instead of flagged',
     anchor: "  if (delta < 0) return { state: 'unreadable', credits: null };",
     replace: '  if (delta < 0) return { state: \'none\', credits: 0 };',
-    catches: 'the reading that spans midnight claims no degradation, which is the one that cannot know' },
+    catches: 'a counter that went backwards within one day claims no degradation, which is the reading that cannot know' },
 
   { file: WATCHER, check: WATCH_CHECK, name: 'M46 a missing baseline is treated as zero',
     anchor: "  if (was === null) return { state: 'unreadable', credits: null };",

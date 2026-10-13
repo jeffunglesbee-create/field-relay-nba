@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Rule 90 for the D1-overload half of the pairing watch.
+// Rule 90 for the D1-overload half of the pairing watch, and (P8-P11) for the
+// interval degrade line's cross-day handling.
 //
 // Every mutation here is a way for a database that is failing the odds guard to
 // read as healthy. P1 and P2 are the two that already happened once, on
@@ -61,6 +62,29 @@ const MUTATIONS = [
     anchor: "  if (block.events === null || block.events === undefined || !Number.isFinite(events)) {",
     replace: "  if (!Number.isFinite(events)) {",
     catches: 'Number(null) is 0, so a block with events:null would read as a real, read, empty day' },
+
+  // degradeVerdict — docs/CC-CMD-2026-10-12-pairing-degrade-cross-day.md. P8 is
+  // the defect itself: the sign-only check that printed "explains — 3297" from
+  // one day's counter minus the previous day's.
+  { name: 'P8 the date check reverts to the sign',
+    anchor: "  if (prevDegraded === undefined || prevDate === currDate) {",
+    replace: "  if (true) {",
+    catches: 'the real 10-10 -> 10-11 pair would read explains again, from a cross-day subtraction' },
+
+  { name: 'P9 a negative escape reads as explained',
+    anchor: "  if (!(escaped > 0)) return { state: 'no-escape', credits: delta, parts };",
+    replace: "",
+    catches: 'every degrade "explains" a ledger that charged MORE than the vendor billed' },
+
+  { name: 'P10 the previous day\'s close is ignored',
+    anchor: "    delta = (close - was) + now;",
+    replace: "    delta = now;",
+    catches: 'the interval loses everything between the last reading and midnight: 146 on 10-11 -> 10-12 reads 0' },
+
+  { name: 'P11 two midnights are bridged with one close',
+    anchor: "  } else if (nextUtcDate(prevDate) === currDate) {",
+    replace: "  } else if (prevDate < currDate) {",
+    catches: 'a missed day would be reconstructed from the wrong close' },
 ];
 
 let caught = 0;
@@ -83,7 +107,7 @@ for (const mut of MUTATIONS) {
 }
 
 console.log(`\n${caught} of ${MUTATIONS.length} mutations caught.`);
-console.log(`COVERAGE: d1OverloadVerdict only — the predicate the D1-overload FAIL rests on.`);
-console.log(`It does NOT exercise the closed-day fetch, ?date= handling, or the other six`);
-console.log(`predicates in this watch; the fetch is verified by dispatching the workflow.`);
+console.log(`COVERAGE: d1OverloadVerdict (P1-P7) and degradeVerdict (P8-P11) only.`);
+console.log(`It does NOT exercise the closed-day fetch, ?date= handling, or the other five`);
+console.log(`predicates in this watch; the fetch is verified by a scheduled run.`);
 process.exit(caught === MUTATIONS.length ? 0 : 1);
