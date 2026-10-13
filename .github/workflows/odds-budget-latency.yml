@@ -40,29 +40,11 @@ jobs:
           node scripts/probe-odds-budget-latency.mjs --self-test
           node scripts/mutate-odds-budget-latency.mjs
 
-      # READ FROM SOURCE, NOT WRITTEN HERE. bootstrap-relay-secret.yml already
-      # extracts this literal the same way, and for the same reason: a copy in a
-      # workflow file is a second place to forget when the gate rotates, and the
-      # failure would surface as a 401 days later somewhere else.
-      #
-      # Exactly one distinct literal, or stop. Picking one of several would send
-      # a value the route rejects, and a 401 would then be read as a D1 answer.
-      - name: Extract the gate literal from source
-        id: gate
-        run: |
-          mapfile -t FOUND < <(grep -ao "X-FIELD-Relay') !== '[^']*'" src/index.js \
-            | sed "s/.*!== '//; s/'$//" | sort -u)
-          echo "distinct gate literals: ${#FOUND[@]}"
-          if [ "${#FOUND[@]}" -ne 1 ]; then
-            echo "::error::expected exactly 1 distinct gate literal, found ${#FOUND[@]}"
-            exit 1
-          fi
-          echo "::add-mask::${FOUND[0]}"
-          echo "gate=${FOUND[0]}" >> "$GITHUB_OUTPUT"
-
       - name: Probe
         env:
-          RELAY_GATE: ${{ steps.gate.outputs.gate }}
+          # From the Actions secret since 2026-10-13: the source no longer holds a
+          # literal to extract (docs/CC-CMD-2026-08-25-rotate-relay-secret.md).
+          RELAY_GATE: ${{ secrets.RELAY_SHARED_SECRET }}
         run: node scripts/probe-odds-budget-latency.mjs
 
       - name: Commit the artifact
