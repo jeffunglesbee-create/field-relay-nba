@@ -4,7 +4,7 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (defect) — a watch line that reports a verdict from a meaningless number
-**Status:** DONE on conditions 1 and 2 (`2d8d584`, 2026-10-13). Condition 3 is the next scheduled run; a check-in is armed for 2026-10-13T20:30Z.
+**Status:** **DONE** — conditions 1 and 2 (`2d8d584`), condition 3 met by the first scheduled run, 2026-10-13T17:53Z.
 
 ## The defect, measured
 
@@ -82,6 +82,19 @@ mutation must be CAUGHT.
    (`= <day> close C - W at the last reading + N today`, and C - W + N equals the
    printed credits) or `cross-day` naming which case. Never a bare subtraction
    of two days' counters.
+
+   ✅ **MET 2026-10-13** — scheduled run 38442336533, verbatim from
+   `outbox/odds-pairing-rate-20261013T175350Z.log`:
+
+   ```
+         guard fell open   : none — 0 credit(s)
+                             = 2026-10-12 close 0 - 0 at the last reading + 0 today
+   ```
+
+   0 − 0 + 0 = 0, the printed figure. The interval crossed one midnight, used
+   the closed day's block, and printed its arithmetic. The same run's D1 section
+   read closed day 2026-10-12 as `none`, with 0 overloads and a month-batch
+   count of 0.
 
 ## What was built
 

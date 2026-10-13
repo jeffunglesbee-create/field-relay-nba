@@ -22,7 +22,7 @@ readings and is never run off-schedule.
 | the sign-only check cannot come back unnoticed | **VERIFIED** — P8 CAUGHT, 11/11 |
 | the reordered main flow, three cases | **VERIFIED** — real watch against a fake relay |
 | every guards.yml node command | **VERIFIED** locally, and Repo guards run `38327653153` on `2d8d584`: success |
-| the first scheduled run prints a reconstructed verdict or `cross-day` | **STAGED** — blocked on the 11:00Z slot (delay up to 545 min measured). Unblocked when `odds-pairing-rate-20261013T*.log` exists. Verify: its `guard fell open` line is either `cross-day — …` or a verdict followed by `= 2026-10-12 close C - W at the last reading + N today` with C − W + N equal to the printed credits. Check-in armed 2026-10-13T20:30Z |
+| the first scheduled run prints a reconstructed verdict or `cross-day` | **VERIFIED** — run 38442336533 (17:53Z): `none — 0 credit(s)` with `= 2026-10-12 close 0 - 0 at the last reading + 0 today` |
 
 ## Not done
 
