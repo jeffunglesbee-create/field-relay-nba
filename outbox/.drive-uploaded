@@ -331,6 +331,7 @@ cc-session-2026-10-12-d1-overload-degrades.md
 cc-session-2026-10-12-starter-key-exposure.md
 cc-session-2026-10-13-pairing-degrade-cross-day.md
 cc-session-2026-10-13-rotate-relay-secret.md
+cc-session-2026-10-14-espn-host-flip.md
 cc-session-analytics-cron-p1.md
 cc-session-analytics-cron-p2.md
 cc-session-analytics-cron-p3.md
@@ -758,6 +759,7 @@ odds-history-shadow-fix-2026-07-13.md
 odds-watches-daily-read-2026-10-11.md
 odds-watches-daily-read-2026-10-12.md
 odds-watches-daily-read-2026-10-13.md
+odds-watches-daily-read-2026-10-14.md
 p15b-2026-07-13.md
 playground-README.md
 playground-docs__OPERATING-MODE.md
