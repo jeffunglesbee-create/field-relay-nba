@@ -1,0 +1,19 @@
+name: ESPN host parity probe
+
+# Dispatch-only. Do site.api.espn.com and site.web.api.espn.com serve the same
+# payload for the endpoints the relay reads? Answers the premise a host
+# re-point rests on (docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md, Task 2).
+# No secrets, no credits, no relay call. See scripts/probe-espn-host-parity.mjs.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    uses: ./.github/workflows/_reusable-probe.yml
+    with:
+      script: scripts/probe-espn-host-parity.mjs
+      commit_message: "chore: espn host parity probe"
