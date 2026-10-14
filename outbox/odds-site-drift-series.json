@@ -1,31 +1,5 @@
 [
   {
-    "at": "2026-09-29T00:39:57.764Z",
-    "date": "2026-09-29",
-    "used": 3,
-    "by_site": {
-      "fetchSportOddsLive": 3,
-      "getWCPregameLambdas": 0,
-      "handleWCOddsProbs": 0,
-      "handleCFLOddsProbs": 0,
-      "fetchSportOddsHistorical": 0,
-      "wpResolver": 0,
-      "ambientFetchLiveOdds": 0,
-      "ambientCaptureClosingOdds": 0,
-      "oddsProxyRoute": 0,
-      "unattributed": 0
-    },
-    "by_site_sum": 3,
-    "unreadable_sites": null,
-    "degraded_open": {
-      "events": 9,
-      "credits": 35,
-      "last": "2026-09-29T00:36:51.666Z"
-    },
-    "source": "d1",
-    "ceiling_reached_at": null
-  },
-  {
     "at": "2026-09-29T09:10:12.104Z",
     "date": "2026-09-29",
     "used": 51,
@@ -3458,6 +3432,55 @@
         "state": "cache-hit",
         "cache": "HIT",
         "n": 4,
+        "credits_kept": 0
+      }
+    ]
+  },
+  {
+    "at": "2026-10-14T16:02:16.013Z",
+    "date": "2026-10-14",
+    "used": 42,
+    "by_site": {
+      "handleCFLOddsProbs": 42,
+      "handleWCOddsProbs": 0,
+      "getWCPregameLambdas": 0,
+      "fetchSportOddsLive": 0,
+      "fetchSportOddsHistorical": 0,
+      "wpResolver": 0,
+      "ambientFetchLiveOdds": 0,
+      "ambientCaptureClosingOdds": 0,
+      "oddsProxyRoute": 0,
+      "unattributed": 0
+    },
+    "by_site_sum": 42,
+    "unreadable_sites": null,
+    "degraded_open": {
+      "events": 0,
+      "credits": 0,
+      "last": null
+    },
+    "source": "d1",
+    "ceiling_reached_at": null,
+    "reconcile": [
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "reconciled",
+        "cache": "EXPIRED",
+        "n": 4,
+        "credits_kept": 24
+      },
+      {
+        "site": "handleCFLOddsProbs",
+        "state": "cache-hit",
+        "cache": "HIT",
+        "n": 4,
+        "credits_kept": 0
+      },
+      {
+        "site": "handleWCOddsProbs",
+        "state": "reconciled",
+        "cache": "MISS",
+        "n": 1,
         "credits_kept": 0
       }
     ]
