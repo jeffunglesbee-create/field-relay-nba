@@ -1,0 +1,254 @@
+{
+  "at": "2026-10-14T18:45:30.914Z",
+  "rows": [
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/football/nfl/scoreboard?dates=20261012",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 23197
+      },
+      "web": {
+        "status": 200,
+        "bytes": 23197
+      },
+      "shape": {
+        "same": true,
+        "paths": 228,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 1,
+        "web": 1
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/football/college-football/scoreboard?dates=20261010",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 742083
+      },
+      "web": {
+        "status": 200,
+        "bytes": 742083
+      },
+      "shape": {
+        "same": true,
+        "paths": 231,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 46,
+        "web": 46
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261004",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 2363
+      },
+      "web": {
+        "status": 200,
+        "bytes": 2363
+      },
+      "shape": {
+        "same": true,
+        "paths": 35,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 0,
+        "web": 0
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/soccer/usa.1/scoreboard?dates=20261011",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 15806
+      },
+      "web": {
+        "status": 200,
+        "bytes": 15806
+      },
+      "shape": {
+        "same": true,
+        "paths": 178,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 1,
+        "web": 1
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/baseball/mlb/scoreboard?dates=20261013",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 31605
+      },
+      "web": {
+        "status": 200,
+        "bytes": 31605
+      },
+      "shape": {
+        "same": true,
+        "paths": 253,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 1,
+        "web": 1
+      }
+    },
+    {
+      "kind": "scoreboard",
+      "path": "/apis/site/v2/sports/hockey/nhl/scoreboard?dates=20261013",
+      "headers": "none (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 473780
+      },
+      "web": {
+        "status": 200,
+        "bytes": 473780
+      },
+      "shape": {
+        "same": true,
+        "paths": 231,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "events": {
+        "api": 16,
+        "web": 16
+      }
+    },
+    {
+      "kind": "summary",
+      "path": "/apis/site/v2/sports/football/nfl/summary?event=401872994",
+      "headers": "browser (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 683288
+      },
+      "web": {
+        "status": 200,
+        "bytes": 683288
+      },
+      "shape": {
+        "same": true,
+        "paths": 867,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "fields": {
+        "api": {
+          "plays": "absent",
+          "winprobability": 207,
+          "boxscore_teams": 2,
+          "boxscore_players": 2,
+          "header_competitions": 1,
+          "keyEvents": "absent"
+        },
+        "web": {
+          "plays": "absent",
+          "winprobability": 207,
+          "boxscore_teams": 2,
+          "boxscore_players": 2,
+          "header_competitions": 1,
+          "keyEvents": "absent"
+        }
+      }
+    },
+    {
+      "kind": "summary",
+      "path": "/apis/site/v2/sports/football/nfl/summary?event=401872994",
+      "headers": "none",
+      "api": {
+        "status": 200,
+        "bytes": 683288
+      },
+      "web": {
+        "status": 200,
+        "bytes": 683288
+      },
+      "shape": {
+        "same": true,
+        "paths": 867,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      },
+      "fields": {
+        "api": {
+          "plays": "absent",
+          "winprobability": 207,
+          "boxscore_teams": 2,
+          "boxscore_players": 2,
+          "header_competitions": 1,
+          "keyEvents": "absent"
+        },
+        "web": {
+          "plays": "absent",
+          "winprobability": 207,
+          "boxscore_teams": 2,
+          "boxscore_players": 2,
+          "header_competitions": 1,
+          "keyEvents": "absent"
+        }
+      }
+    },
+    {
+      "kind": "standings",
+      "path": "/apis/v2/sports/football/nfl/standings?region=us&lang=en&contentorigin=espn&type=0&level=2&sort=playoffseed:asc",
+      "headers": "browser (relay)",
+      "api": {
+        "status": 200,
+        "bytes": 157388
+      },
+      "web": {
+        "status": 200,
+        "bytes": 157388
+      },
+      "shape": {
+        "same": true,
+        "paths": 74,
+        "onlyApi": [],
+        "onlyWeb": [],
+        "onlyApiCount": 0,
+        "onlyWebCount": 0
+      }
+    }
+  ]
+}

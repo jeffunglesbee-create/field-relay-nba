@@ -1,0 +1,19 @@
+=== espn host parity  utc=2026-10-14T18:45:30.148Z  runner (NOT a Worker IP) ===
+  scoreboard none (relay)  api 200    23197B   web 200    23197B   same-shape   /apis/site/v2/sports/football/nfl/scoreboard?dates=20261012
+  scoreboard none (relay)  api 200   742083B   web 200   742083B   same-shape   /apis/site/v2/sports/football/college-football/scoreboard?dates=20261010
+  scoreboard none (relay)  api 200     2363B   web 200     2363B   same-shape   /apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261004
+  scoreboard none (relay)  api 200    15806B   web 200    15806B   same-shape   /apis/site/v2/sports/soccer/usa.1/scoreboard?dates=20261011
+  scoreboard none (relay)  api 200    31605B   web 200    31605B   same-shape   /apis/site/v2/sports/baseball/mlb/scoreboard?dates=20261013
+  scoreboard none (relay)  api 200   473780B   web 200   473780B   same-shape   /apis/site/v2/sports/hockey/nhl/scoreboard?dates=20261013
+  summary    browser (relay) api 200   683288B   web 200   683288B   same-shape   /apis/site/v2/sports/football/nfl/summary?event=401872994
+             fields api {"plays":"absent","winprobability":207,"boxscore_teams":2,"boxscore_players":2,"header_competitions":1,"keyEvents":"absent"}
+             fields web {"plays":"absent","winprobability":207,"boxscore_teams":2,"boxscore_players":2,"header_competitions":1,"keyEvents":"absent"}
+  summary    none          api 200   683288B   web 200   683288B   same-shape   /apis/site/v2/sports/football/nfl/summary?event=401872994
+             fields api {"plays":"absent","winprobability":207,"boxscore_teams":2,"boxscore_players":2,"header_competitions":1,"keyEvents":"absent"}
+             fields web {"plays":"absent","winprobability":207,"boxscore_teams":2,"boxscore_players":2,"header_competitions":1,"keyEvents":"absent"}
+  standings  browser (relay) api 200   157388B   web 200   157388B   same-shape   /apis/v2/sports/football/nfl/standings?region=us&lang=en&contentorigin=espn&type=0&level=2&sort=playoffseed:asc
+
+COVERAGE: 9 host pairs fetched, 9 comparable (both answered JSON), 0 differ in shape.
+          summaries for 1 of 2 leagues (an event id is taken from a completed game on that day's scoreboard).
+          Shapes to depth 4, arrays read over their first 3 elements. A runner is not a Worker:
+          this says what each host SERVES, not whether the relay is let in.
