@@ -70,7 +70,7 @@ jobs:
                   data=payload, method='POST',
                   headers={
                       'Content-Type': 'application/json',
-                      'X-FIELD-Relay': process.env.RELAY_SHARED_SECRET,
+                      'X-FIELD-Relay': os.environ['RELAY_SHARED_SECRET'],
                       'User-Agent': UA,
                   },
               )
