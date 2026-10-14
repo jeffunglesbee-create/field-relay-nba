@@ -56,7 +56,7 @@ export function parseManifest(text) {
  * both forms costs nothing and means the scanner does not depend on which
  * syntax the next one shows up in.
  */
-export function digestsIn(text) {
+export function digestsIn(text, depth = 0) {
   const found = new Map();
   const add = v => { if (v && v.length >= 8 && v.length <= 200) found.set(sha(v), v.length); };
   for (const m of text.matchAll(/'([^'\n]{8,200})'|"([^"\n]{8,200})"|`([^`\n]{8,200})`/g)) {
@@ -82,6 +82,25 @@ export function digestsIn(text) {
   // so nothing is lost, and nesting stops mattering. The quote-pair pass stays
   // for values that contain spaces, which the token split would break apart.
   for (const tok of text.split(/[\s,;()[\]{}<>'"`]+/)) add(tok);
+  // BASE64, because that is where five of them were. Measured 2026-10-14:
+  // deploy.yml's verify job and rule90-staleness-monitor.yml ship Python as
+  // `echo "<base64>" | base64 -d > x.py`, and five of those scripts carried the
+  // shared secret as a header literal. This scanner read them as one opaque
+  // token, so the 2026-10-13 move to the Actions secret missed all five and the
+  // ratchet still read "at most 33". A run is decoded only if it round-trips
+  // and comes out as text, so a hash or an id that merely looks like base64
+  // adds nothing.
+  if (depth < 1) {
+    for (const m of text.matchAll(/[A-Za-z0-9+/]{24,}={0,2}/g)) {
+      const raw = m[0];
+      const dec = Buffer.from(raw, 'base64');
+      if (dec.toString('base64').replace(/=+$/, '') !== raw.replace(/=+$/, '')) continue;
+      const s = dec.toString('utf8');
+      const printable = s.replace(/[^\x20-\x7e\n\r\t]/g, '').length;
+      if (s.length === 0 || printable / s.length < 0.95) continue;
+      for (const line of s.split(/\r?\n/)) for (const [k, v] of digestsIn(line, depth + 1)) found.set(k, v);
+    }
+  }
   return found;
 }
 
@@ -118,6 +137,14 @@ if (SELF_TEST) {
   }
   check('the scanner does not report a value that is absent',
     !digestsIn('const K = process.env.X;').has(h), 'a false positive');
+  // The form the 2026-10-13 sweep missed: a script shipped as a base64 blob.
+  const script = `import json\nreq = Request(URL, headers={'X-FIELD-Relay': '${probe}'})\n`;
+  check('a secret inside a base64-encoded script is found',
+    digestsIn(`echo "${Buffer.from(script).toString('base64')}" | base64 -d > /tmp/p.py`).has(h),
+    'the encoded form is invisible again');
+  check('...and a base64 script without it is not reported',
+    !digestsIn(`echo "${Buffer.from(script.replace(probe, 'os.environ[X]')).toString('base64')}" | base64 -d`).has(h),
+    'a false positive from decoding');
 
   // The nested-quote form, and the one that actually got past this scanner.
   // A secret inside a code span: an outer backtick pair around an inner
