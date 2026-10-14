@@ -910,8 +910,10 @@ function espnGambitAllowed(path) {
 }
 
 // ── ESPN Site API — Summary endpoint (Win Probability, play-by-play, scores) ───
-// Source: site.web.api.espn.com — returns data.plays[] (substitutions) + data.boxscore
-// site.api.espn.com only returns WP; site.web.api.espn.com returns full game data
+// Returns data.boxscore, winprobability[] and (soccer) data.plays[] substitutions.
+// An older note here said site.api returns only WP. Measured false 2026-10-14:
+// the same NFL summary was 683288 bytes on both hosts, same shape, boxscore and
+// 207 WP entries on each (outbox/espn-host-parity-2026-10-14T1845.log).
 // CORS: locked to espn.com origin — server-side relay required
 // Cache: 25s — aligns with FIELD's 30s poll; winprobability[] array is live-updated
 // Route: /espn-summary/* → site.web.api.espn.com/apis/site/v2/*
@@ -933,7 +935,15 @@ function espnGambitAllowed(path) {
 // site.web.api being blocked next. espn-reachability-monitor.yml (hourly)
 // is what makes a recurrence visible; the resilience work is Task 3 of the
 // same CC-CMD.
-const ESPN_API_BASE        = 'https://site.web.api.espn.com/apis/site/v2';
+//
+// FLIPPED BACK 2026-10-14. From 2026-10-13T21:39Z site.web.api answered 403 to
+// Worker egress on every path (html_probe: scoreboard, summary, standings,
+// common/v3) and site.api answered 200 -- the reverse of 08-08. A runner
+// probe the same day found the two hosts byte-identical on 9 of 9 endpoint
+// pairs (outbox/espn-host-parity-2026-10-14T1845.log), so the host is a
+// transport choice, not a data choice. It has now flipped twice; the
+// resilience question is docs/CC-CMD-2026-10-14-espn-host-flip.md.
+const ESPN_API_BASE        = 'https://site.api.espn.com/apis/site/v2';
 const ESPN_SUMMARY_BASE    = ESPN_API_BASE;
 const ESPN_SUMMARY_TTL     = 25;
 const ESPN_SUMMARY_HEADERS = {
@@ -960,10 +970,12 @@ const ESPN_SUMMARY_HEADERS = {
 // while site.web.api.espn.com — the same host /espn-summary already uses — serves
 // the identical standings payload with HTTP 200. Three different callers get three
 // different answers from site.api: browser 200+error-body, Worker 403, GH runner
-// 200+data. site.web.api is the one that works from here.
+// 200+data. site.web.api was the one that worked from here -- until 2026-10-13,
+// when the block moved to it and site.api let the Worker back in (standings
+// 200 with children[] = AFC/NFC via html_probe, 2026-10-14). See ESPN_API_BASE.
 // Requires params: ?region=us&lang=en&contentorigin=espn&type=0&level=2&sort=playoffseed:asc
 // level=2 yields children[] = AFC/NFC, which is the shape the client parser expects.
-const ESPN_STANDINGS_PROXY_BASE = 'https://site.web.api.espn.com/apis/v2/sports';
+const ESPN_STANDINGS_PROXY_BASE = 'https://site.api.espn.com/apis/v2/sports';
 const ESPN_STANDINGS_PROXY_TTL  = 900;   // standings move slowly; 15 min edge cache
 function espnStandingsAllowed(path) {
     return /^\/[a-z]+\/[a-z0-9.-]+\/standings$/.test(path.split('?')[0]);
@@ -3904,7 +3916,9 @@ async function handleGolfPlayerStats(athleteId, season, env) {
             if (cached) return JSON.parse(cached);
         } catch (e) { console.error("[GOLF] player-stats KV read failed:", e.message); }
     }
-    const url = `https://site.web.api.espn.com/apis/common/v3/sports/golf/athletes/${encodeURIComponent(athleteId)}/stats?season=${encodeURIComponent(season)}`;
+    // site.api since 2026-10-14 (see ESPN_API_BASE): common/v3 answered 403 on
+    // site.web.api and 200 on site.api from the Worker that day.
+    const url = `https://site.api.espn.com/apis/common/v3/sports/golf/athletes/${encodeURIComponent(athleteId)}/stats?season=${encodeURIComponent(season)}`;
     let data;
     try {
         const resp = await fetch(url, { cf: { cacheTtl: 600, cacheEverything: true } });

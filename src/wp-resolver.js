@@ -13,14 +13,16 @@ import { checkAndIncrementDailyOdds, chargeMonthlyOdds, oddsCreditCost, reconcil
 import { relayFetchKV } from './cache-helpers.js';
 
 // ── ESPN summary endpoint (keep in sync with index.js) ─────────────────────
-const ESPN_SUMMARY_BASE    = 'https://site.web.api.espn.com/apis/site/v2';
+const ESPN_SUMMARY_BASE    = 'https://site.api.espn.com/apis/site/v2';
 // ESPN scoreboard base. Was site.api.espn.com until 2026-08-08
 // (CC-CMD-2026-08-08-espn-site-api-403-p0): Akamai began 403ing Cloudflare
 // Worker egress IPs on that host, breaking every ESPN read from the relay.
 // site.web.api serves the same payload and returns 200 from the Worker IP.
 // Mirrors index.js's ESPN_API_BASE -- keep the two in sync (this module
 // cannot import it; the duplication is pre-existing and deliberate).
-const ESPN_SCOREBOARD_BASE = 'https://site.web.api.espn.com/apis/site/v2';
+// Back on site.api since 2026-10-14, when the block moved to site.web.api.
+// index.js's ESPN_API_BASE carries the measurement.
+const ESPN_SCOREBOARD_BASE = 'https://site.api.espn.com/apis/site/v2';
 const ESPN_SUMMARY_HEADERS = {
     'Origin':  'https://www.espn.com',
     'Referer': 'https://www.espn.com/',
