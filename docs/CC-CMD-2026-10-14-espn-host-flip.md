@@ -103,9 +103,21 @@ The owner's decision, ranked:
 
 ## Task 3 — sports.core.api.espn.com is also 403 from the Worker
 
-`/soccer/xg` and `/soccer/sub-impact` read it (route-provenance). There is no
-second host to move to. Measure whether those routes are failing for users,
-then decide whether they need a non-ESPN source or a stated outage.
+There is no second host to move to. As first written this named two routes;
+the audit workflow (`wf_e4283b41-c05`) found five read sites and measured them
+through the live relay after the re-point, 2026-10-14:
+
+| route | core read (`src/index.js`) | live result |
+|---|---|---|
+| `/v2/golf/eventlog` | ~4023 | `{ok:false, error:"ESPN 403"}` |
+| `/v2/golf/competitor-stats` | ~3964 | `{ok:false, error:"ESPN 403"}` |
+| `/v2/golf/enriched` | ~4106, and 3964 for the top 20 | drops course and top-20 stats on an active event (read from code) |
+| `/soccer/xg` | ~19668 | 200 with `_hasXG:false, _hasMatchStats:false` — **silent** |
+| `/soccer/sub-impact` | ~19809 | 200 with `defensiveSubs:[]` — **silent**: a 403 reads as "no defensive sub happened" |
+
+The two silent ones are the worse half: `r.ok ? r.json() : null` turns the
+outage into a plausible empty answer (Rule 99). The fix decision is the
+owner's: a non-ESPN source, or the route says it is degraded.
 
 ## Task 4 — the monitor read a failover 200 as ESPN reachable
 

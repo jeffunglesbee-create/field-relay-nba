@@ -36,6 +36,7 @@ verify job).
 | the relay's ESPN reads work after the deploy | **VERIFIED** — nfl/epl `espn-wc`, `/espn-summary` 200 683288 B, monitor 38619780577 green |
 | five base64 sites use the Actions secret | **VERIFIED** — deploy 38620645051 verify steps 5/8/10/13 green; rule90 run 38620611419 read D1 |
 | bridge probe query | **VERIFIED** — 1 s step (was 13-21 s), `PASS: brief_text populated for espn:401915415` |
+| host-swap premise, adversarially | refuted AS WORDED by the audit: the swap cannot reach the five `sports.core.api` reads. Everything the swap did touch is verified above |
 | independent audit of both conversion commits | workflow `wf_e4283b41-c05`: relay 89 of 89 secret-reading files mapped to their steps; jb 4 of 4 converted sites run; findings confirmed by refuters are the five base64 sites and known-vpc, both fixed |
 
 ## Not done, and where it lives
@@ -43,6 +44,11 @@ verify job).
 - ESPN resilience, `sports.core.api` 403, monitor blind spot: the ESPN CC-CMD,
   Tasks 2-4.
 - `/archive/game` auth: its own CC-CMD, owner decision.
+- The push cron's live-game poll is refused by `/espn-gambit`'s own allow-list,
+  so it collects nothing: `docs/CC-CMD-2026-10-14-push-cron-gambit-path.md`,
+  owner decision (ADR-002 Rule A).
+- `sports.core.api` readers: five, not two. Two answer `ESPN 403`, two are
+  silent empties; the ESPN CC-CMD's Task 3 now lists them with live results.
 - jb's manifest prose still says "Nine occurrences"; the count line is 5. The
   rotation's step 5 rewrites that file.
 - jb's copy of `workers/field-claude-proxy` is not deployed by any jb workflow
