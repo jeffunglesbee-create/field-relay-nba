@@ -1,5 +1,37 @@
 # FIELD Relay — HANDOFF
 
+## CHECK-IN — 2026-10-14 — ESPN moved its Worker block; five hidden secrets
+
+**ESPN was down for every sport without a secondary from 2026-10-13T21:39Z.**
+site.web.api began refusing Cloudflare Worker egress (403), the reverse of
+2026-08-08; site.api lets it in again. Re-pointed in `2142bad` after a runner
+probe found the two hosts byte-identical on 9 of 9 endpoint pairs. Verified
+from the relay: `/v2/games` nfl and epl answer `"source":"espn-wc"`,
+`/espn-summary` 200; monitor run 38619780577 green.
+`docs/CC-CMD-2026-10-14-espn-host-flip.md` keeps Tasks 2-4 open: it has
+flipped twice, `sports.core.api` is 403 with no second host, and the monitor
+read MLB's statsapi failover as ESPN being up.
+
+**Rotation step 1c had missed six sites.** One was mine and broke at once:
+`verify-pending-checks.yml` got JavaScript inside a Python heredoc (`41dfb4b`;
+the next scheduled run is its proof, the step writes D1 so it was not
+dispatched). Five were invisible: base64-encoded scripts in `deploy.yml` and
+`rule90-staleness-monitor.yml` still sent the old literal, and the ratchet
+could not see inside base64. Converted and verified live (`84b3a40`), and the
+ratchet now decodes base64 here and in jubilant-bassoon (`d991edb9`). Every
+one of the five would have broken at rotation. Step 3 is still the owner's
+dispatch; nothing blocks it.
+
+**The deploy's bridge probe** timed out on a D1 JOIN that scanned the games
+table per recap brief. `c6f094a`: 95.7 ms. Deploy 38620645051 green throughout.
+
+**Filed for the owner:** `POST /archive/game` writes the archive (scores,
+briefs, closing lines) with no auth. Known since 2026-08-11 as a test
+convenience. `docs/CC-CMD-2026-10-14-archive-game-unauthenticated-write.md`.
+
+Session doc: outbox/cc-session-2026-10-14-espn-host-flip.md
+Daily read: outbox/odds-watches-daily-read-2026-10-14.md
+
 ## CHECK-IN — 2026-10-13c — no-header at zero; the residual is mostly a window
 
 `odds-live-path-404` done condition 3 **MET**: closed day 2026-10-12 reads

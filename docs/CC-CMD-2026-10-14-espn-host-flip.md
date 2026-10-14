@@ -4,7 +4,8 @@
 **Repo:** field-relay-nba
 **Branch:** main — commit directly, do not create a feature branch or PR
 **Type:** A (live outage) — every ESPN read in the relay answered 403
-**Status:** **OPEN.** Task 1 (re-point) is built and deploying; Tasks 2-4 open.
+**Status:** **OPEN.** Task 1 (re-point) **DONE** 2026-10-14 (`2142bad`, all three
+done conditions met); Tasks 2-4 open.
 
 Successor to `docs/CC-CMD-2026-08-08-espn-site-api-403-p0.md`, whose Task 2
 this repeats in the other direction.
@@ -59,6 +60,27 @@ regenerated (13 routes, hosts only).
    source other than `mlbam-statsapi` (the ESPN path, `espn-wc`).
 2. `/espn-summary/sports/football/nfl/summary?event=<a final>` answers 200.
 3. One `espn-reachability-monitor.yml` run green.
+
+✅ **MET 2026-10-14**, deploy run 38618692905 (deploy job success, 18:5xZ):
+
+1. `probe_relay_route /v2/games?sport=nfl&date=2026-10-15` → 200,
+   `"source":"espn-wc"`, DEN v SEA, `"start":"2026-10-16T00:15Z"`.
+   `?sport=epl&date=2026-10-18` → 200, `"count":4,"source":"espn-wc"`.
+2. `/espn-summary/sports/football/nfl/summary?event=401872994` → 200,
+   `bodyBytes: 683288`, the same size the runner probe read on both hosts, with
+   the relay's browser headers. The 2026-08 note that browser headers make
+   site.api worse from the Worker does not hold today.
+3. Monitor run 38619780577 (dispatch, 18:58Z), verbatim:
+   ```
+     ✅ mlb: HTTP 200
+     ✅ epl: HTTP 200
+   ESPN reachable through the relay.
+   ```
+
+The same deploy's verify job went red on an unrelated, older defect: the
+`/context/game` bridge probe's D1 JOIN scanned `regular_season_games` once per
+recap brief and passed its 20 s timeout. Fixed in `c6f094a` (95.7 ms, 9935
+rows read); dispatched deploy 38620645051 is green on every step.
 
 ## Task 2 — the host has flipped twice; decide what survives the third
 

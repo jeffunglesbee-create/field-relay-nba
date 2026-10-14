@@ -240,3 +240,29 @@ shared script.
 probe shows the new value accepted by both gates and the OLD value refused by
 both (401 and 403), and `node scripts/check-exposed-secrets.mjs` reads
 `RELAY_SHARED_SECRET: at most 0` after step 5.
+
+## 2026-10-14 — step 1c was not complete; it is now
+
+Two misses, both found by the daily read's dead-cron watch rather than by any
+check on the conversion itself:
+
+| miss | how it showed | fixed |
+|---|---|---|
+| `verify-pending-checks.yml`: the JavaScript `process.env.RELAY_SHARED_SECRET` written inside a Python heredoc | `NameError: name 'process' is not defined`, five scheduled runs red from 2026-10-13T14:00Z | `41dfb4b` |
+| five scripts shipped as base64 blobs (`deploy.yml` verify job x4, `rule90-staleness-monitor.yml` x1) still sent the old literal | invisible: the ratchet hashed each blob as one token. Found by decoding every blob and matching the manifest hash | `84b3a40` |
+
+The second would have broken on the rotation itself: all five would have been
+refused the moment the old value stopped being current. They are verified live
+on the Actions secret: deploy 38620645051's verify steps green (bridge probe
+`PASS: brief_text populated for espn:401915415`), and rule90 run 38620611419
+reading D1 (`RELAY_SHARED_SECRET: ***`, red for its usual `rule-98` reason).
+
+`check-exposed-secrets.mjs` now decodes base64 in both repos (`84b3a40`,
+jubilant-bassoon `d991edb9`); restoring the five literals reads 38 > 33. Every
+base64 blob in all four repos was checked against every hash in all three
+manifests: 12 blobs, 0 carriers after the fix. field-laboratory's own checker
+(`scripts/exposed-secret-check.mjs`, a different implementation) does NOT
+decode base64; it had 0 base64 carriers on 2026-10-14.
+
+Step 3 (the dispatch) is unchanged and still the owner's. Nothing above
+blocks it now.
