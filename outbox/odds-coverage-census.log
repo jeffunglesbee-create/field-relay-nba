@@ -1,23 +1,32 @@
 
-=== 2026-10-13 — 39 row(s) across regular+postseason
+=== 2026-10-14 — 51 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
   CFB                       2        0        0     0     0        0           0
-  EFL Trophy                6        0        0     0     0        0           0
-  MLB                       1        1        0     0     0        0           0
-  NBA                       5        0        0     0     0        0           0
-  NHL                      16        0        0     0     0        0           0
+  MLB                       1        1        1     0     0        0           1
+  MLS                      30       27       13    27     0        0          13
+  NBA                       7        0        0     0     0        0           0
+  NHL                       2        0        0     0     0        0           0
   UEFA Champions League     9        0        0     0     0        0           0
 
-  of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
+  of 14 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 14 out of order
 
-  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-13T10:02:19.928Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-143,"away":119},"spread":{"home":-1.5,"away":1.5,"homePrice":1
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-14T19:02:46.737Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-182,"away":150},"spread":{"home":-1.5,"away":1.5,"homePrice":1
 
   checked 6 distinct sport label(s) on this date — every label present, not a sample
 
-=== 2026-10-14 — 15 row(s) across regular+postseason
+=== 2026-10-15 — 64 row(s) across regular+postseason
   sport label            rows  opening  closing  draw   seq  untimed  outOfOrder
-  MLS                      15        0        0     0     0        0           0
+  CFB                       3        0        0     0     0        0           0
+  MLB                       2        2        0     0     0        0           0
+  MLS                       9        0        0     0     0        0           0
+  NBA                       2        0        0     0     0        0           0
+  NFL                       1        0        0     0     0        0           0
+  NHL                      11        0        0     0     0        0           0
+  UEFA Europa Conference League   18        0        0     0     0        0           0
+  UEFA Europa League       18        0        0     0     0        0           0
 
   of 0 closing snapshot(s): 0 a verified sequence, 0 unverifiable, 0 out of order
 
-  checked 1 distinct sport label(s) on this date — every label present, not a sample
+  one real opening_odds payload: {"source":"draftkings","captured_at":"2026-10-15T10:02:56.879Z","_oddsProof":{"adapterId":"odds-api","sourceId":"odds-api-the-odds-api"},"moneyline":{"home":-134,"away":111},"spread":{"home":-1.5,"away":1.5,"homePrice":1
+
+  checked 8 distinct sport label(s) on this date — every label present, not a sample
